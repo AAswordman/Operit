@@ -33,6 +33,7 @@ enum class ApiProviderType {
         MNN, // MNN本地推理引擎
         LLAMA_CPP, // llama.cpp 本地推理引擎
         PPINFRA, // 派欧云
+        NOVITA, // Novita AI
         OTHER // 其他提供商（自定义端点）
 }
 

@@ -1032,6 +1032,7 @@ private fun getProviderDisplayName(provider: ApiProviderType, context: android.c
         ApiProviderType.MNN -> context.getString(R.string.provider_mnn)
         ApiProviderType.LLAMA_CPP -> context.getString(R.string.provider_llama_cpp)
         ApiProviderType.PPINFRA -> context.getString(R.string.provider_ppinfra)
+        ApiProviderType.NOVITA -> context.getString(R.string.provider_novita)
         ApiProviderType.OTHER -> context.getString(R.string.provider_other)
     }
 }
@@ -1625,6 +1626,7 @@ private fun getProviderColor(provider: ApiProviderType): androidx.compose.ui.gra
         ApiProviderType.MNN -> MaterialTheme.colorScheme.secondary
         ApiProviderType.LLAMA_CPP -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f)
         ApiProviderType.PPINFRA -> MaterialTheme.colorScheme.primaryContainer
+        ApiProviderType.NOVITA -> MaterialTheme.colorScheme.tertiaryContainer
         ApiProviderType.OTHER -> MaterialTheme.colorScheme.surfaceVariant
     }
 }

@@ -1234,6 +1234,7 @@
     <string name="provider_infiniai">InfiniAI</string>
     <string name="provider_lmstudio">LM Studio</string>
     <string name="provider_ollama">Ollama</string>
+    <string name="provider_novita">Novita AI</string>
     <string name="provider_other">Otros proveedores</string>
     <string name="select_api_provider_title">Seleccionar Proveedor API</string>
     <string name="search_providers">Buscar proveedores</string>

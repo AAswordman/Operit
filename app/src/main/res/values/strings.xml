@@ -3603,6 +3603,7 @@
     <string name="provider_mnn">MNN 本地推理</string>
     <string name="provider_llama_cpp">llama.cpp 本地推理</string>
     <string name="provider_ppinfra">派欧云</string>
+    <string name="provider_novita">Novita AI</string>
     <string name="provider_openai_generic">OpenAI通用</string>
     <string name="provider_other">其他供应商</string>
     <string name="select_api_provider_title">选择API提供商</string>

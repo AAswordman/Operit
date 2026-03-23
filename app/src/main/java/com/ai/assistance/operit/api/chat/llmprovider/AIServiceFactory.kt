@@ -393,6 +393,19 @@ object AIServiceFactory {
                     supportsVideo = supportsVideo,
                     enableToolCall = enableToolCall
                 )
+            ApiProviderType.NOVITA ->
+                OpenAIProvider(
+                    apiEndpoint = config.apiEndpoint,
+                    apiKeyProvider = apiKeyProvider,
+                    modelName = config.modelName,
+                    client = httpClient,
+                    customHeaders = customHeaders,
+                    providerType = config.apiProviderType,
+                    supportsVision = supportsVision,
+                    supportsAudio = supportsAudio,
+                    supportsVideo = supportsVideo,
+                    enableToolCall = enableToolCall
+                )
             ApiProviderType.OTHER ->
                 OpenAIProvider(
                     apiEndpoint = config.apiEndpoint,

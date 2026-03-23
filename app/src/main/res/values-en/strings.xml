@@ -3703,6 +3703,7 @@
     <string name="provider_lmstudio">LM Studio</string>
     <string name="provider_ollama">Ollama</string>
     <string name="provider_ppinfra">PPInfra Cloud</string>
+    <string name="provider_novita">Novita AI</string>
     <string name="provider_openai_generic">OpenAI (Generic)</string>
     <string name="provider_other">Other Providers</string>
     <string name="provider_doubao">Doubao</string>
