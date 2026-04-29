@@ -728,8 +728,6 @@
     <string name="disable_user_preference_description_desc">When disabled, the system prompt no longer appends the "User preference description" section</string>
     <string name="disable_status_tags">Disable Status Tags</string>
     <string name="disable_status_tags_desc">When disabled, the system prompt no longer appends rules that require replies to end with Task Complete / Wait for User status tags</string>
-    <string name="pause_reading">Pause Reading</string>
-    <string name="resume_reading">Resume Reading</string>
     <string name="stop_reading">Stop Reading</string>
     <string name="edit_and_resend">Edit &amp; Resend</string>
     <string name="rollback_to_here">Rollback to Here</string>
@@ -763,13 +761,6 @@
     <string name="selected_count">%d selected</string>
     <string name="generating_image">Generating image...</string>
     <string name="share_failed">Share failed</string>
-    <string name="share_preview_title">Share Preview</string>
-    <string name="share_preview_image_content_description">Shared image preview</string>
-    <string name="share_preview_generating">Generating preview...</string>
-    <string name="share_preview_expand_thinking">Expand thinking</string>
-    <string name="share_preview_expand_tools_groups">Expand tools and thinking groups</string>
-    <string name="share_preview_include_background">Include background</string>
-    <string name="share_preview_border_width">Border: %1$.1f dp</string>
     <string name="image_generated">Image generated</string>
     <string name="image_preview">Image Preview</string>
     <string name="load_more_history">Tap to load older chat history</string>
@@ -928,6 +919,12 @@
     
     <string name="settings_section_usage">Usage Statistics</string>
     <string name="settings_section_external_calls">External Calls</string>
+    <string name="settings_quick_permissions_button">Quickly enable usage and notification permissions</string>
+    <string name="settings_quick_permissions_granted">Related permissions granted</string>
+    <string name="settings_quick_permissions_desc">Use this to quickly enable Usage Access and Notification permissions. If direct request is not supported on your device, the app will open the corresponding system settings page for manual enabling.</string>
+    <string name="settings_quick_permissions_status_line">Notification permission: %1$s, Usage Access permission: %2$s</string>
+    <string name="settings_quick_permissions_status_granted">Granted</string>
+    <string name="settings_quick_permissions_status_denied">Not granted</string>
     <string name="settings_token_statistics">Token Statistics</string>
     <string name="settings_total_tokens_breakdown">Input: %1$d (Cached: %2$d) / Output: %3$d</string>
     <string name="settings_cached_tokens">(Cached: %1$d)</string>
@@ -1994,7 +1991,6 @@
     <string name="tool_log_viewer_desc">Real-time capture and view system and application logs with filtering and search support</string>
     <string name="tool_sql_viewer">SQL Viewer</string>
     <string name="tool_sql_viewer_desc">Browse built-in tables and run SQL commands</string>
-    <string name="tool_token_config_desc">Open the API key acquisition and configuration page for quick model setup</string>
     <string name="screen_title_sql_viewer">SQL Viewer</string>
     <string name="sql_viewer_title">SQL Viewer</string>
     <string name="sql_viewer_input_label">SQL Input</string>
@@ -3081,14 +3077,16 @@
     <!-- Chat Components -->
     <string name="memory_auto_update_active">Memory auto update activated</string>
     <string name="thinking_mode_active">Thinking mode activated</string>
+    <string name="thinking_guidance_active">Thinking guidance activated</string>
     <string name="ai_planning_active">AI planning mode activated</string>
     <string name="auto_approve_active">Auto approve activated</string>
     <string name="settings_options">Settings options</string>
     <string name="thinking_settings">Thinking</string>
-    <string name="thinking_settings_desc">Manage thinking mode</string>
+    <string name="thinking_settings_desc">Manage thinking mode and thinking guidance</string>
     <string name="thinking_settings_active_count">%1$d enabled</string>
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
+    <string name="thinking_type_guidance">guidance</string>
     <string name="thinking_quality">Thinking intensity</string>
     <string name="thinking_quality_desc">Only effective in thinking mode. Four levels are available; higher means deeper reasoning, and level 1 uses auto.</string>
     <string name="model_config">Model Configuration</string>
@@ -3324,6 +3322,8 @@
     <string name="ai_planning_desc">Will perform task decomposition and trigger multiple sub-agents to collect information, then summarize. Sub-agents have the same tool-calling capabilities as the chat agent. This can be very time-consuming, only recommended when collecting information.</string>
     <string name="thinking_mode">Thinking Mode</string>
     <string name="thinking_mode_desc">Currently supports Gemini, Qwen3, Claude, Doubao, NVIDIA, SiliconFlow and MNN local models, enabling built-in thinking.</string>
+    <string name="thinking_guidance">Thinking Guidance</string>
+    <string name="thinking_guidance_desc">Can force models that can\'t think to perform thinking. This option is not recommended for thinking models.</string>
     <string name="model_selection">Model Selection</string>
     <string name="prompt_selection">Prompt Selection</string>
     <string name="memory_selection">Memory Selection</string>
@@ -3759,7 +3759,7 @@
     <string name="api_provider">API Provider</string>
     <string name="select_api_provider">Click to select API provider</string>
     <string name="select">Select</string>
-    <string name="default_config_model_restriction">When using default configuration, only deepseek-v4-flash model can be used</string>
+    <string name="default_config_model_restriction">When using default configuration, only deepseek-chat model can be used</string>
     <string name="enable_direct_image_processing">Model supports vision</string>
     <string name="enable_direct_image_processing_desc">When enabled, images will be sent directly to the AI for processing instead of using OCR tools to read them</string>
     <string name="enable_direct_audio_processing">Model supports audio</string>
@@ -4891,8 +4891,6 @@
     <string name="enable_reply_notification_sound_description">Play a sound when a reply notification is triggered</string>
     <string name="enable_reply_notification_vibration">Reply Notification Vibration</string>
     <string name="enable_reply_notification_vibration_description">Vibrate when a reply notification is triggered</string>
-    <string name="enable_background_keep_alive">Background keep-alive</string>
-    <string name="enable_background_keep_alive_description">Keep the foreground notification active after enabling it, and do not automatically stop the foreground service when AI becomes idle.</string>
     <string name="keep_screen_on">Keep Screen On</string>
     <string name="keep_screen_on_description">Keep screen awake to prevent auto-lock during conversations</string>
     <string name="enable_navigation_animation">New Navigation Animation</string>
@@ -6519,13 +6517,13 @@
     <string name="profile_identity_value">Identity: %1$s</string>
     <string name="profile_occupation_value">Occupation: %1$s</string>
     <string name="profile_ai_style_value">Expected AI Style: %1$s</string>
-    <string name="profile_regex_birth_date">(Birth Date|Date of Birth)[:：\\s]+([\\d-]+)</string>
-    <string name="profile_regex_birth_year">(Birth year|Age)[:：\\s]+(\\d+)</string>
-    <string name="profile_regex_gender">Gender[:：\\s]+([^;]+)</string>
-    <string name="profile_regex_personality">Personality( traits)?[:：\\s]+([^;]+)</string>
-    <string name="profile_regex_identity">Identity( recognition)?[:：\\s]+([^;]+)</string>
-    <string name="profile_regex_occupation">Occupation[:：\\s]+([^;]+)</string>
-    <string name="profile_regex_ai_style">(AI Style|Expected AI Style|Preferred AI Style)[:：\\s]+([^;]+)</string>
+    <string name="profile_regex_birth_date">(Birth Date|Date of Birth)[:：\s]+([\d-]+)</string>
+    <string name="profile_regex_birth_year">(Birth year|Age)[:：\s]+(\d+)</string>
+    <string name="profile_regex_gender">Gender[:：\s]+([^;]+)</string>
+    <string name="profile_regex_personality">Personality( traits)?[:：\s]+([^;]+)</string>
+    <string name="profile_regex_identity">Identity( recognition)?[:：\s]+([^;]+)</string>
+    <string name="profile_regex_occupation">Occupation[:：\s]+([^;]+)</string>
+    <string name="profile_regex_ai_style">(AI Style|Expected AI Style|Preferred AI Style)[:：\s]+([^;]+)</string>
 
     <!-- AI Message Manager -->
     <string name="ai_message_user">User</string>
@@ -7159,8 +7157,6 @@
     <string name="web_session_accessibility_minimize_panel">Minimize web sessions panel</string>
     <string name="web_session_accessibility_close_current_session">Close current web session</string>
     <string name="web_session_accessibility_minimized_indicator">Web sessions panel minimized, double tap to expand</string>
-    <string name="web_session_render_process_crashed">The current web page render process crashed. This tab has been closed.</string>
-    <string name="web_session_render_process_gone">The current web page render process was reclaimed by the system. This tab has been closed.</string>
     <string name="web_session_back">Back</string>
     <string name="web_session_forward">Forward</string>
     <string name="web_session_refresh">Refresh</string>
@@ -7279,6 +7275,7 @@
     <string name="web_session_userscript_notification_channel">Userscript Notifications</string>
     <string name="web_session_userscript_notification_denied">Notification permission is not granted, so userscript notifications cannot be shown</string>
     <string name="web_session_userscript_download_failed">Userscript download failed</string>
+
     <string name="tool_windows_control_one_click">Windows One-Click Setup</string>
     <string name="tool_windows_control_one_click_desc">Export the PC agent package, configure HTTP agent environment variables, and enable windows_control in one flow</string>
     <string name="screen_title_windows_control_one_click">Windows One-Click Setup</string>
@@ -7405,6 +7402,8 @@
     <string name="screen_title_package_market">Package Market</string>
     <string name="screen_title_package_manage">Manage Packages</string>
     <string name="screen_title_package_publish">Publish Package</string>
+    <string name="enable_new_sidebar">New sidebar</string>
+    <string name="enable_new_sidebar_description">When enabled, the new sidebar entry will be activated. Future major sidebar redesigns will also iterate based on this.</string>
 
     <string name="sidebar_permission_short">Permissions</string>
     <string name="sidebar_status_normal">Normal</string>
@@ -7486,31 +7485,4 @@
     <string name="publish_target_script_market">Will be automatically published to the script market</string>
     <string name="publish_target_package_market">Will be automatically published to the package market</string>
     <string name="display_name_label">Display Name</string>
-
-    <string name="nav_group_plugins">Plugins</string>
-    <string name="chat_delete_single_variant">Delete Single Message</string>
-    <string name="chat_delete_single_variant_unavailable">No single message candidates available for deletion</string>
-    <string name="chat_delete_single_variant_failed">Failed to delete single message: %1$s</string>
-
-    <string name="quick_plugin_creator_title">Quickly Create Your Plugin</string>
-    <string name="quick_plugin_creator_desc">Cannot find the plugin you want in the built-in list or marketplace? Create your own.</string>
-    <string name="quick_plugin_creator_step1_title">1. Update or download the package creation Skill</string>
-    <string name="quick_plugin_creator_step1_desc">Click the button to automatically download install_or_update.js and run the operit_editor debug_run_sandbox_script for installation or update.</string>
-    <string name="quick_plugin_creator_run_setup">Auto download and execute</string>
-    <string name="quick_plugin_creator_setup_success">Package creation Skill installation or update completed</string>
-    <string name="quick_plugin_creator_step2_title">2. Enter requirements to start creating</string>
-    <string name="quick_plugin_creator_requirement_hint">For example: create a tool to batch organize images in the download directory and generate an index</string>
-    <string name="quick_plugin_creator_requirement_empty">Please enter the plugin requirements first</string>
-    <string name="mcp_plugin_comment_view_thread">View thread</string>
-    <string name="mcp_plugin_user_comments">User comments</string>
-
-    <string name="quick_plugin_creator_setup_failed">Failed to install or update the Skill for package creation</string>
-    <string name="pkg_toolpkg_workflow_templates">Workflow templates: %1$d</string>
-    <string name="pkg_toolpkg_workspace_templates">Workspace templates: %1$d</string>
-    <string name="pkg_toolpkg_registered_workflow_templates">Workflow templates</string>
-    <string name="pkg_toolpkg_registered_workspace_templates">Workspace templates</string>
-    <string name="workspace_template_importing">Importing plugin template...</string>
-    <string name="workspace_project_type_toolpkg_section">Plugin workspace templates</string>
-    <string name="workspace_template_import_failed">Failed to import plugin workspace template</string>
-    <string name="workflow_template_toolpkg_section">Plugin templates</string>
 </resources>

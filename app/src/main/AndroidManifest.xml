@@ -215,14 +215,6 @@
                 <data android:scheme="https" />
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="operit"
-                    android:host="github-oauth-callback" />
-            </intent-filter>
-            <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
@@ -329,7 +321,7 @@
             android:name=".services.FloatingChatService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync|specialUse" />
 
         <service
             android:name=".core.tools.system.ScreenCaptureService"
@@ -352,11 +344,7 @@
             android:name=".api.chat.AIForegroundService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync|microphone|specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps the user-requested assistant runtime alive for external HTTP control when no standard foreground service type fully describes that mode." />
-        </service>
+            android:foregroundServiceType="dataSync|microphone|specialUse" />
         
         <!-- 添加广播接收器配置 -->
         <receiver
@@ -376,22 +364,6 @@
         </receiver>
 
         <receiver
-            android:name=".core.tools.packTool.PackageDebugRefreshReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.ai.assistance.operit.DEBUG_REFRESH_PACKAGES" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".core.tools.packTool.ToolPkgComposeDslDebugDumpReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.ai.assistance.operit.DUMP_COMPOSE_DSL_UI" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
             android:name=".integrations.intent.ExternalChatReceiver"
             android:exported="true">
             <intent-filter>
@@ -403,11 +375,7 @@
             android:name=".services.UIDebuggerService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Shows a user-triggered floating UI debugger overlay across apps for inspection tasks that do not match other foreground service types." />
-        </service>
+            android:foregroundServiceType="specialUse" />
         
         <!-- Voice Assistant Widget Receiver -->
         <receiver
@@ -460,6 +428,16 @@
             android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".feature.lifecare.LifeCareAlarmReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.ai.assistance.operit.action.LIFE_CARE_MIDNIGHT_CHECK" />
             </intent-filter>
         </receiver>
         

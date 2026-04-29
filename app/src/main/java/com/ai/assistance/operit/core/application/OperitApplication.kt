@@ -63,6 +63,7 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.ai.assistance.operit.core.tools.system.shower.OperitShowerShellRunner
 import com.ai.assistance.showerclient.ShowerEnvironment
 import com.ai.assistance.showerclient.ShowerLogSink
+import com.ai.assistance.operit.feature.lifecare.LifeCompanionCareManager
 import java.io.File
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -197,6 +198,10 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             val characterStartTime = System.currentTimeMillis()
             CharacterCardManager.getInstance(applicationContext).initializeIfNeeded()
             AppLogger.d(TAG, "【启动计时】功能提示词管理器初始化完成（异步） - ${System.currentTimeMillis() - characterStartTime}ms")
+        }
+
+        applicationScope.launch {
+            LifeCompanionCareManager.onApplicationWarmStart(applicationContext)
         }
 
         // 初始化当前活跃角色目标的自定义表情

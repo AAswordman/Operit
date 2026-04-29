@@ -64,8 +64,10 @@ class CharacterCardManager private constructor(private val context: Context) {
 
         // 默认角色卡ID
         const val DEFAULT_CHARACTER_CARD_ID = "default_character"
+        const val LIFE_CARE_CHARACTER_CARD_ID = "default_life_care_character"
 
         const val DEFAULT_CHARACTER_NAME = "Operit"
+        const val LIFE_CARE_CHARACTER_NAME = "生活关怀"
         
         @Volatile
         private var INSTANCE: CharacterCardManager? = null
@@ -456,10 +458,39 @@ class CharacterCardManager private constructor(private val context: Context) {
             userPreferencesManager.saveAiAvatarForCharacterCard(DEFAULT_CHARACTER_CARD_ID, "file:///android_asset/operit.png")
         }
 
+        ensureLifeCareCharacterCard()
+        userPreferencesManager.saveAiAvatarForCharacterCard(LIFE_CARE_CHARACTER_CARD_ID, "file:///android_asset/operit2.jpg")
+
         // 清理历史内置功能标签（chat/voice/desktop pet）
         tagManager.removeLegacyBuiltInTags()
         removeDeletedTagReferencesFromCharacterCards()
         migrateLegacyOtherContentToChat()
+    }
+
+    private suspend fun ensureLifeCareCharacterCard() {
+        val cardIds = characterCardListFlow.first()
+        if (cardIds.contains(LIFE_CARE_CHARACTER_CARD_ID)) return
+
+        val now = System.currentTimeMillis()
+        val lifeCard = CharacterCard(
+            id = LIFE_CARE_CHARACTER_CARD_ID,
+            name = LIFE_CARE_CHARACTER_NAME,
+            description = "专注于生活聊天与深夜关怀",
+            characterSetting = "你是一个温柔、稳定、有边界感的生活陪伴助手。你会结合用户手机使用情况进行关怀，优先共情，再给简短可执行建议。",
+            openingStatement = "我在这儿。今天过得怎么样？",
+            otherContentChat = "当消息涉及作息、疲劳、深夜使用手机时，优先进行关怀式回应。可引用当日 Top3 应用使用时长做个性化开场。",
+            otherContentVoice = "语气口语化、温和，不说教，优先短句。",
+            attachedTagIds = emptyList(),
+            advancedCustomPrompt = "",
+            marks = "builtin:life_care",
+            isDefault = true,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        upsertCharacterCardWithId(lifeCard)
+        userPreferencesManager.copyCurrentThemeToCharacterCard(LIFE_CARE_CHARACTER_CARD_ID)
+        userPreferencesManager.saveAiAvatarForCharacterCard(LIFE_CARE_CHARACTER_CARD_ID, "file:///android_asset/operit2.jpg")
     }
 
     // 重置默认角色卡

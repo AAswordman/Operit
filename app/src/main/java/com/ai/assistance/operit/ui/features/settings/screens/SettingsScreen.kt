@@ -1,5 +1,12 @@
 package com.ai.assistance.operit.ui.features.settings.screens
 
+import android.Manifest
+import android.app.AppOpsManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -36,6 +43,10 @@ import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginWebViewDialog
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 
@@ -65,6 +76,15 @@ fun SettingsScreen(
         navigateToLayoutAdjustmentSettings: () -> Unit
 ) {
         val context = LocalContext.current
+        var permissionCheckTick by remember { mutableStateOf(0) }
+        val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+        ) { granted ->
+                if (!granted) {
+                        openNotificationSettings(context)
+                }
+                permissionCheckTick++
+        }
         val userPreferences = remember { UserPreferencesManager.getInstance(context) }
         val githubAuth = remember { GitHubAuthPreferences.getInstance(context) }
         val scope = rememberCoroutineScope()
@@ -84,6 +104,9 @@ fun SettingsScreen(
         }
 
         val hasBackgroundImage = userPreferences.useBackgroundImage.collectAsState(initial = false).value
+        val hasUsagePermission = remember(permissionCheckTick) { hasUsageAccessPermission(context) }
+        val hasNotificationPermission = remember(permissionCheckTick) { hasNotificationPermission(context) }
+        val allGranted = hasUsagePermission && hasNotificationPermission
         
         val cardContainerColor = if (hasBackgroundImage) {
                 MaterialTheme.colorScheme.surface
@@ -302,9 +325,143 @@ fun SettingsScreen(
                         )
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                        onClick = {
+                                requestUsageAndNotificationPermissions(
+                                        context = context,
+                                        notificationPermissionLauncher = notificationPermissionLauncher::launch
+                                )
+                                permissionCheckTick++
+                        },
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                                containerColor = if (allGranted) Color(0xFF4CAF50) else Color.White,
+                                contentColor = if (allGranted) Color.White else Color.Black
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                ) {
+                        Text(
+                                text = if (allGranted) {
+                                        stringResource(R.string.settings_quick_permissions_granted)
+                                } else {
+                                        stringResource(R.string.settings_quick_permissions_button)
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                        )
+                }
+
+                Text(
+                        text = stringResource(R.string.settings_quick_permissions_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp, start = 4.dp, end = 4.dp)
+                )
+
+                Text(
+                        text = stringResource(
+                                R.string.settings_quick_permissions_status_line,
+                                if (hasNotificationPermission) {
+                                        stringResource(R.string.settings_quick_permissions_status_granted)
+                                } else {
+                                        stringResource(R.string.settings_quick_permissions_status_denied)
+                                },
+                                if (hasUsagePermission) {
+                                        stringResource(R.string.settings_quick_permissions_status_granted)
+                                } else {
+                                        stringResource(R.string.settings_quick_permissions_status_denied)
+                                }
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp, start = 4.dp, end = 4.dp)
+                )
+
                 // 底部间距
                 Spacer(modifier = Modifier.height(16.dp))
         }
+}
+
+private fun requestUsageAndNotificationPermissions(
+        context: Context,
+        notificationPermissionLauncher: (String) -> Unit
+) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val hasNotificationPermission = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+                if (!hasNotificationPermission) {
+                        notificationPermissionLauncher(Manifest.permission.POST_NOTIFICATIONS)
+                }
+        }
+
+        if (!hasUsageAccessPermission(context)) {
+                openUsageAccessSettings(context)
+        }
+}
+
+private fun hasNotificationPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+        } else {
+                NotificationManagerCompat.from(context).areNotificationsEnabled()
+        }
+}
+
+private fun hasUsageAccessPermission(context: Context): Boolean {
+        val appOpsManager = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOpsManager.unsafeCheckOpNoThrow(
+                        AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        android.os.Process.myUid(),
+                        context.packageName
+                )
+        } else {
+                @Suppress("DEPRECATION")
+                appOpsManager.checkOpNoThrow(
+                        AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        android.os.Process.myUid(),
+                        context.packageName
+                )
+        }
+        return mode == AppOpsManager.MODE_ALLOWED
+}
+
+private fun openUsageAccessSettings(context: Context) {
+        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { context.startActivity(intent) }
+}
+
+private fun openNotificationSettings(context: Context) {
+        val intent = Intent().apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                when {
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                                action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        }
+                        else -> {
+                                action = "android.settings.APP_NOTIFICATION_SETTINGS"
+                                putExtra("app_package", context.packageName)
+                                putExtra("app_uid", context.applicationInfo.uid)
+                        }
+                }
+        }
+        runCatching { context.startActivity(intent) }
 }
 
 @Composable

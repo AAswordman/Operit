@@ -120,7 +120,6 @@
     <string name="nav_workflow">工作流</string>
     <string name="nav_group_ai_features">AI 功能</string>
     <string name="nav_group_tools">工具</string>
-    <string name="nav_group_plugins">插件</string>
     <string name="nav_group_system">系统</string>
     <string name="menu">菜单</string>
     <string name="token_config">获取密钥</string>
@@ -249,10 +248,6 @@
     <string name="workflow_trigger_type_speech">语音触发</string>
     <string name="workflow_trigger_type_app_open">打开 App 时触发</string>
     <string name="workflow_trigger_fallback">触发器</string>
-    <string name="web_session_dialog_title_alert">页面提示</string>
-    <string name="web_session_dialog_title_confirm">页面确认</string>
-    <string name="web_session_dialog_title_prompt">页面输入</string>
-    <string name="web_session_dialog_empty_message">(空消息)</string>
 
     <string name="workflow_execute_config_title">执行配置</string>
     <string name="workflow_tool_name_label">工具名称</string>
@@ -890,6 +885,12 @@
     
     <string name="settings_section_usage">使用统计</string>
     <string name="settings_section_external_calls">外部调用</string>
+    <string name="settings_quick_permissions_button">一键申请使用情况与通知权限</string>
+    <string name="settings_quick_permissions_granted">相关权限已授权</string>
+    <string name="settings_quick_permissions_desc">用于快速开启“使用情况访问权限”和“通知权限”。若系统不支持直接申请，会自动跳转到对应系统设置页面供你手动开启。</string>
+    <string name="settings_quick_permissions_status_line">通知权限：%1$s，使用情况权限：%2$s</string>
+    <string name="settings_quick_permissions_status_granted">已授权</string>
+    <string name="settings_quick_permissions_status_denied">未授权</string>
     <string name="settings_token_statistics">Token统计</string>
     <string name="settings_total_tokens_breakdown">输入: %1$d (缓存: %2$d) / 输出: %3$d</string>
     <string name="settings_cached_tokens">(缓存: %1$d)</string>
@@ -972,16 +973,6 @@
     <!-- Package Manager Screen -->
     <string name="packages">包管理</string>
     <string name="skills">技能</string>
-    <string name="quick_plugin_creator_title">快速创作你的插件</string>
-    <string name="quick_plugin_creator_desc">内置和市场都找不到想要的插件？创作你自己想要的！</string>
-    <string name="quick_plugin_creator_step1_title">1. 更新或者下载包创作 Skill</string>
-    <string name="quick_plugin_creator_step1_desc">点击按钮后会自动下载 `install_or_update.js`，并调用 operit_editor 的 debug_run_sandbox_script 执行安装或更新。</string>
-    <string name="quick_plugin_creator_run_setup">自动下载并执行</string>
-    <string name="quick_plugin_creator_setup_success">包创作 Skill 安装或更新完成</string>
-    <string name="quick_plugin_creator_setup_failed">包创作 Skill 安装或更新失败</string>
-    <string name="quick_plugin_creator_step2_title">2. 输入需求开始创作</string>
-    <string name="quick_plugin_creator_requirement_hint">例如：做一个可以批量整理下载目录图片并生成索引的工具</string>
-    <string name="quick_plugin_creator_requirement_empty">请先输入插件需求</string>
     <string name="show_to_ai_short">AI</string>
     <string name="package_manager">包管理器</string>
     <string name="available_packages">可用包</string>
@@ -1012,13 +1003,9 @@
     <string name="pkg_toolpkg_version">版本：%1$s</string>
     <string name="pkg_toolpkg_resources">资源数：%1$d</string>
     <string name="pkg_toolpkg_ui_modules">UI 模块数：%1$d</string>
-    <string name="pkg_toolpkg_workflow_templates">工作流模板数：%1$d</string>
-    <string name="pkg_toolpkg_workspace_templates">工作区模板数：%1$d</string>
     <string name="pkg_toolpkg_empty_subpackages">该 ToolPkg 未声明任何子包</string>
     <string name="pkg_toolpkg_tool_count">工具数：%1$d</string>
     <string name="pkg_toolpkg_subpackage_toggle_failed">子包开关失败，请重试</string>
-    <string name="pkg_toolpkg_registered_workflow_templates">工作流模板</string>
-    <string name="pkg_toolpkg_registered_workspace_templates">工作区模板</string>
     <string name="pkg_plugin_config_open_action">打开配置</string>
     <string name="automation_json_only">仅支持JSON文件</string>
     <string name="no_filename">无法获取文件名</string>
@@ -1577,8 +1564,6 @@
     <string name="disable_status_tags">禁用状态标签</string>
     <string name="disable_status_tags_desc">禁用后，系统提示词中不再附加要求以“任务完成 / 等待响应”状态标签结束回复的规则</string>
     <string name="reply_message">回复</string>
-    <string name="pause_reading">暂停朗读</string>
-    <string name="resume_reading">继续朗读</string>
     <string name="stop_reading">停止朗读</string>
     <string name="edit_and_resend">编辑并重发</string>
     <string name="rollback_to_here">回滚到此处</string>
@@ -1611,13 +1596,6 @@
     <string name="selected_count">已选择 %d 条</string>
     <string name="generating_image">正在生成图片...</string>
     <string name="share_failed">分享失败</string>
-    <string name="share_preview_title">分享预览</string>
-    <string name="share_preview_image_content_description">分享图片预览</string>
-    <string name="share_preview_generating">正在生成预览...</string>
-    <string name="share_preview_expand_thinking">展开思考</string>
-    <string name="share_preview_expand_tools_groups">展开工具和思考组</string>
-    <string name="share_preview_include_background">包含背景</string>
-    <string name="share_preview_border_width">边框：%1$.1f dp</string>
     <string name="image_generated">图片已生成</string>
     <string name="image_preview">图片预览</string>
     <string name="load_more_history">点击加载更早的历史记录</string>
@@ -1774,7 +1752,6 @@
     <string name="workspace_description">为您的AI项目提供一个专属的文件环境</string>
     <string name="workspace_select_language_type_title">选择语言类型</string>
     <string name="workspace_select_language_type_prompt">请选择要创建的默认工作区类型</string>
-    <string name="workspace_template_importing">正在导入插件模板...</string>
     <string name="workspace_project_type_blank_title">空白工作区</string>
     <string name="workspace_project_type_blank_description">仅创建一个空的工作区目录，不包含任何模板文件</string>
     <string name="workspace_project_type_office_title">办公文档</string>
@@ -1795,8 +1772,6 @@
     <string name="workspace_project_type_java_description">适用于 Java 开发，支持 Gradle 和 Maven 构建</string>
     <string name="workspace_project_type_go_title">Go 项目</string>
     <string name="workspace_project_type_go_description">适用于 Go 开发，提供 go mod 和 build 命令</string>
-    <string name="workspace_project_type_toolpkg_section">插件工作区模板</string>
-    <string name="workspace_template_import_failed">导入插件工作区模板失败</string>
     <string name="please_select_or_create_conversation">请先选择或创建一个对话</string>
     <string name="latest">最新</string>
     <string name="main_highlights">✨ 主要亮点</string>
@@ -2074,7 +2049,6 @@
     <string name="tool_log_viewer_desc">实时捕获并查看系统和应用日志，支持过滤和搜索</string>
     <string name="tool_sql_viewer">SQL 查看器</string>
     <string name="tool_sql_viewer_desc">查看应用数据库表并执行 SQL 命令</string>
-    <string name="tool_token_config_desc">打开 API 密钥获取与配置页面，便于快速完成模型接入</string>
     <string name="screen_title_sql_viewer">SQL 查看器</string>
     <string name="sql_viewer_title">SQL 查看器</string>
     <string name="sql_viewer_input_label">SQL 输入</string>
@@ -2974,14 +2948,16 @@
     <!-- Chat Components -->
     <string name="memory_auto_update_active">记忆自动更新已激活</string>
     <string name="thinking_mode_active">思考模式已激活</string>
+    <string name="thinking_guidance_active">思考引导已激活</string>
     <string name="ai_planning_active">深度搜索已激活</string>
     <string name="auto_approve_active">自动批准已激活</string>
     <string name="settings_options">设置选项</string>
     <string name="thinking_settings">思考</string>
-    <string name="thinking_settings_desc">管理思考模式</string>
+    <string name="thinking_settings_desc">管理思考模式与思考引导</string>
     <string name="thinking_settings_active_count">已启用 %1$d 项</string>
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
+    <string name="thinking_type_guidance">guidance</string>
     <string name="thinking_quality">思考程度</string>
     <string name="thinking_quality_desc">仅在思考模式下生效，共 4 挡，数值越高思考越深，1 为自动。</string>
     <string name="model_config">模型配置</string>
@@ -3219,6 +3195,8 @@
     <string name="chat_ai_computer_closed_due_to_workspace">AI电脑已关闭（由于打开工作区）</string>
     <string name="thinking_mode">思考模式</string>
     <string name="thinking_mode_desc">目前支持Gemini、Qwen3、Claude、豆包、NVIDIA、硅基流动和MNN本地模型，能够启用内置的思考。</string>
+    <string name="thinking_guidance">思考引导</string>
+    <string name="thinking_guidance_desc">能够让不能思考的模型强制进行思考。该选项不建议对思考模型开启。</string>
     <string name="details">详情</string>
     <string name="model_selection">模型选择</string>
     <string name="prompt_selection">提示词选择</string>
@@ -3690,7 +3668,7 @@
     <string name="api_provider">API提供商</string>
     <string name="select_api_provider">点击选择API提供商</string>
     <string name="select">选择</string>
-    <string name="default_config_model_restriction">使用默认配置时，只能使用deepseek-v4-flash模型</string>
+    <string name="default_config_model_restriction">使用默认配置时，只能使用deepseek-chat模型</string>
     <string name="enable_direct_image_processing">模型支持识图</string>
     <string name="enable_direct_image_processing_desc">启用后，图片将直接发送给AI处理，而不是让AI通过OCR工具读取</string>
     <string name="enable_direct_audio_processing">模型支持音频解析</string>
@@ -4168,11 +4146,6 @@
 
     <string name="github_account">GitHub 账户</string>
     <string name="login_github">登录 GitHub</string>
-    <string name="github_login_method_description">请选择 GitHub 登录方式。内嵌模式适合无法调起外部浏览器的设备，外部浏览器模式兼容性更好。</string>
-    <string name="github_login_method_embedded">使用内嵌页面登录</string>
-    <string name="github_login_method_external">使用外部浏览器登录</string>
-    <string name="github_login_external_waiting">已打开浏览器，请在完成授权后返回应用。</string>
-    <string name="github_login_external_cancelled">已取消 GitHub 授权</string>
     <string name="publish_mcp_plugins_to_market">• 发布您的 MCP 插件到市场</string>
     <string name="manage_published_plugins">• 管理您已发布的插件</string>
     <string name="better_installation_experience">• 获得更好的安装体验</string>
@@ -4319,7 +4292,7 @@
     <string name="updated_at_label">更新时间</string>
     <string name="source_file_label">源文件</string>
     <string name="reactions_title">反应</string>
-    <string name="comments_with_count">评论(%1$d)</string>
+    <string name="comments_with_count">评论 (%1$d)</string>
     <string name="no_comments_yet">还没有评论</string>
     <string name="be_first_comment_here">来留下第一条反馈吧。</string>
     <string name="market_detail_about_title">简介</string>
@@ -4469,7 +4442,6 @@
     <string name="mcp_plugin_author">作者: %1$s</string>
     <string name="mcp_plugin_shared_by">分享者: %1$s</string>
     <string name="mcp_plugin_repository">查看仓库</string>
-    <string name="mcp_plugin_comment_view_thread">查看楼层</string>
     <string name="mcp_plugin_install">安装插件</string>
     <string name="mcp_plugin_installed">已安装</string>
     <string name="mcp_plugin_description_title">插件描述</string>
@@ -4481,8 +4453,7 @@
     <string name="mcp_plugin_updated_at">更新于: %1$s</string>
     <string name="mcp_plugin_community_feedback">社区反馈</string>
     <string name="mcp_plugin_login_required">请先登录GitHub账号以参与点赞</string>
-    <string name="mcp_plugin_comments">评论(%1$d)</string>
-    <string name="mcp_plugin_user_comments">用户评论</string>
+    <string name="mcp_plugin_comments">评论 (%1$d)</string>
     <string name="mcp_plugin_no_comments">暂无评论</string>
     <string name="mcp_plugin_be_first_comment">成为第一个评论的人吧！</string>
     <string name="mcp_plugin_add_comment">添加评论</string>
@@ -4742,7 +4713,6 @@
     <string name="workflow_template_error_branch_desc">主节点失败 -> 错误处理分支；成功 -> 正常分支</string>
     <string name="workflow_template_speech_trigger_title">语音触发</string>
     <string name="workflow_template_speech_trigger_desc">语音识别命中正则 -> 执行动作</string>
-    <string name="workflow_template_toolpkg_section">插件模板</string>
     <string name="workflow_action_create">创建</string>
     <string name="time_just_now">刚刚</string>
     <string name="time_minutes_ago">%1$d 分钟前</string>
@@ -5053,8 +5023,6 @@
     <string name="enable_reply_notification_sound_description">当回复通知触发时播放提示音</string>
     <string name="enable_reply_notification_vibration">回复通知震动</string>
     <string name="enable_reply_notification_vibration_description">当回复通知触发时进行震动提醒</string>
-    <string name="enable_background_keep_alive">后台保活</string>
-    <string name="enable_background_keep_alive_description">开启后保留前台通知，AI 空闲进入 idle 时也不自动关闭前台服务，适合需要长期后台驻留的场景。</string>
     <string name="keep_screen_on">屏幕常亮</string>
     <string name="keep_screen_on_description">保持屏幕常亮，防止在对话时自动锁屏</string>
     <string name="enable_navigation_animation">新版导航动画</string>
@@ -6646,6 +6614,8 @@
     <string name="visit_web_wait_time_value">%1$d 秒</string>
     <string name="enable_enter_to_send">回车发送</string>
     <string name="enable_enter_to_send_description">开启后，聊天输入框按回车会直接发送，键盘发送键也会显示为发送。</string>
+    <string name="enable_new_sidebar">新版侧边栏</string>
+    <string name="enable_new_sidebar_description">开启后启用新版侧边栏入口，后续侧边栏的大改版也会基于这里继续迭代。</string>
     <string name="tool_collapse_mode_title">折叠工具</string>
     <string name="tool_collapse_mode_desc">设置消息中工具调用分组的默认折叠范围</string>
     <string name="tool_collapse_mode_read_only">折叠多个只读工具</string>
@@ -7364,8 +7334,6 @@
     <string name="web_session_accessibility_minimize_panel">最小化网页会话面板</string>
     <string name="web_session_accessibility_close_current_session">关闭当前网页会话</string>
     <string name="web_session_accessibility_minimized_indicator">已最小化网页会话面板，双击展开</string>
-    <string name="web_session_render_process_crashed">当前网页渲染进程已崩溃，已关闭该标签页。</string>
-    <string name="web_session_render_process_gone">当前网页渲染进程已被系统回收，已关闭该标签页。</string>
     <string name="web_session_back">后退</string>
     <string name="web_session_forward">前进</string>
     <string name="web_session_refresh">刷新</string>
@@ -7484,6 +7452,7 @@
     <string name="web_session_userscript_notification_channel">Userscript 通知</string>
     <string name="web_session_userscript_notification_denied">通知权限未授予，脚本通知无法显示</string>
     <string name="web_session_userscript_download_failed">脚本下载失败</string>
+
     <string name="tool_windows_control_one_click">Windows 一键配置</string>
     <string name="tool_windows_control_one_click_desc">一键导出电脑端代理包，配置 HTTP Agent 环境变量并启用 windows_control</string>
     <string name="screen_title_windows_control_one_click">Windows 一键配置</string>

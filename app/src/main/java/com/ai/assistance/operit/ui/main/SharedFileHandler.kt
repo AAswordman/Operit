@@ -13,6 +13,8 @@ object SharedFileHandler {
     val sharedFiles: StateFlow<List<Uri>?> = _sharedFiles
     private val _sharedLinks = MutableStateFlow<List<String>?>(null)
     val sharedLinks: StateFlow<List<String>?> = _sharedLinks
+    private val _lifeCareMessage = MutableStateFlow<String?>(null)
+    val lifeCareMessage: StateFlow<String?> = _lifeCareMessage
     
     /**
      * Set the shared files to be processed
@@ -34,6 +36,14 @@ object SharedFileHandler {
 
     fun clearSharedLinks() {
         _sharedLinks.value = null
+    }
+
+    fun setLifeCareMessage(message: String) {
+        _lifeCareMessage.value = message
+    }
+
+    fun clearLifeCareMessage() {
+        _lifeCareMessage.value = null
     }
 }
 
