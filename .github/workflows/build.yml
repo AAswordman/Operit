@@ -1,0 +1,27 @@
+姓名：构建安装包
+on：[推,pull_request]
+
+工作:
+建立:
+ 
+连续的：Ubuntu-最新-
+连续的：Ubuntu-最新-
+-用途：操作/设置-Java@v4
+和……一起:
+java版: '17'
+分布: 'temurin'
+-跑
+-用途：android-actions/setup-android@v2 用途：android-actions/setup-android@v2 用途：android-actions/setup-android@v2 用途：android-actions/setup-android@v2: RM-rf Dragonbones mnlama mmd FBX终端showerclient quickjs
+-跑: SED-i's/^include("：龙骨")$/\/\/包括("：龙骨")/'settings.gradle.kts
+-跑: SED-i's/^include("：mnn")$/\/\/include("：mnn")/'ED-i
+-跑's/^include("：llama")$/\/\/include("：llama")/'-跑：SED-i
+-跑: SED-i's/^include("：mmd")$/\/\/include("：mmd")/'settings.gradle.kts
+-跑: SED-i's/^include("：FBX")$/\/\/include("：FBX")/'settings.gradle.kts
+-跑: SED-i's/^include("：终端")$/\/\/包括("：终端")/'settings.gradle.kts
+-跑: SED-i's/^include("：淋浴客户端")$/\//\/包括("：淋浴客户端")/'settings.gradle.kts
+-跑: SED-i's/^include("：quickjs")$/\/\/include("：quickjs")/'settings.gradle.kts
+-跑: ./gradlew组件调试--无守护程序
+/gradlew组件调试--无守护程序: 操作/上载工件@v4
+和……一起:
+姓名: opit-debug-apk
+路径: app/build/outputs/apk/debug/app-debug.apk
