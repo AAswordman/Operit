@@ -1,0 +1,39 @@
+姓名: 构建安装包
+在……之上:
+推:
+分支机构: [主要的]
+pull_request:
+分支机构: [主要的]
+工作:
+建立:
+连续的：Ubuntu-最新
+:
+-uses: 作/结帐@v4
+-用途：操作/设置-Java@v4
+-用途：操作/设置-Java@v4:
+java版: '17'
+分布: 'temurin'
+-
+跑跑-|
+git子模块更新-init-recursive
+SED-i's/^include("：龙骨")$/\/\/包括("：龙骨")/'设置。Gradle.kts
+SED-i's/^include("：mnn")$/\/\/include("：mnn")/'settings.gradle.kts
+SED-i's/^include("：llama")$/\/\/include("：llama")/'设置。Gradle.kts
+SED-i's/^include("：mmd")$/\/\/include("：mmd")/'settings.gradle.kts
+SED-i's/^include("：FBX")$/\//\/include("：FBX")/'settings.gradle.kts
+SED-i's/^include("：终端")$/\//\/包括("：终端")/'设置。Gradle.kts
+SED-i's/^include("：淋浴客户端")$/\//\/包括("：淋浴客户端")/'设置。Gradle.kts
+SED-i's/^include("：quickjs")$/\/\/include("：quickjs")/'设置。Gradle.kts
+SED-i的/^实施(项目("：龙骨"))$/\//\/实施(项目("：龙骨"))/'App/build.gradle.kts
+SED-i的/^实现(项目("：mnn"))$/\//\/实现(项目("：mnn"))/'App/build.gradle.kts
+SED-i的/^实施(项目("：美洲驼"))$/\//\/实施(项目("：美洲驼"))/'App/build.gradle.kts
+SED-i的/^实现(项目("：mmd"))$/\//\/实现(项目("：mmd"))/'App/build.gradle.kts
+SED-i的/^实现(项目("：FBX"))$/\//\/实现(项目("：FBX"))/'App/build.gradle.kts
+SED-i的/^实现(项目("：终端"))$/\//\/实现(项目("：终端"))/'App/build.gradle.kts
+SED-i的/^实现(项目("：淋浴客户端"))$/\//\/实现(项目("：淋浴客户端"))/'App/build.gradle.kts
+SED-i的/^实现(项目("：quickjs"))$/\//\/实现(项目("：quickjs"))/'App/build.gradle.kts
+      - 跑: ./gradlew组件调试--无守护程序
+-uses: 操作/上载工件@v4
+和……一起:
+姓名: opit-debug-apk
+路径: app/build/outputs/apk/debug/app-debug.apk
