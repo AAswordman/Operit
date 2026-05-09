@@ -1,0 +1,27 @@
+name: Build APK
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: android-actions/setup-android@v2
+      - run: rm -rf dragonbones mnn llama mmd fbx terminal showerclient quickjs
+      - run: sed -i 's/^include(":dragonbones")$/\/\/include(":dragonbones")/' settings.gradle.kts
+      - run: sed -i 's/^include(":mnn")$/\/\/include(":mnn")/' settings.gradle.kts
+      - run: sed -i 's/^include(":llama")$/\/\/include(":llama")/' settings.gradle.kts
+      - run: sed -i 's/^include(":mmd")$/\/\/include(":mmd")/' settings.gradle.kts
+      - run: sed -i 's/^include(":fbx")$/\/\/include(":fbx")/' settings.gradle.kts
+      - run: sed -i 's/^include(":terminal")$/\/\/include(":terminal")/' settings.gradle.kts
+      - run: sed -i 's/^include(":showerclient")$/\/\/include(":showerclient")/' settings.gradle.kts
+      - run: sed -i 's/^include(":quickjs")$/\/\/include(":quickjs")/' settings.gradle.kts
+      - run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Operit-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
