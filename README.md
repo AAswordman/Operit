@@ -466,3 +466,54 @@ AI自动分类管理记忆，支持时间查询/导入导出/自动总结，智�
   
   <sub>Made with ❤️ by the Operit Team</sub>
 </div>
+## ❓ FAQ (常见问题)
+
+### 什么是 Operit AI？
+
+**Operit AI** 是移动端首个功能完备的 AI 智能助手应用，完全独立运行于 Android 设备（除API调用），拥有强大的**工具调用能力**、**深度搜索**、**工作流与自动化**、**智能记忆库**，支持**人设定制**与**角色卡**。
+
+### Key Features (核心功能)
+
+| Feature | Description |
+|---------|-------------|
+| 🖥️ **Ubuntu 24 环境** | 内置完整 Ubuntu 系统，支持 vim、MCP、Python 等工具 |
+| 🧠 **智能记忆系统** | AI 自动分类管理记忆，支持时间查询/导入导出/自动总结 |
+| 🗣️ **语音交互** | 连续自然对话，支持本地/云端 TTS + 本地 STT |
+| 🤖 **本地AI模型** | 支持 MNN / llama.cpp 本地模型（GGUF），完全离线运行 |
+| 🎭 **人设与角色卡** | 自定义 AI 性格、说话风格，支持角色卡导入导出 |
+| 🔌 **丰富工具生态** | 40+ 内置工具 + MCP/Skill 市场插件 + 工具包/工作流 |
+
+### 内置工具类型
+
+| 工具类型 | 功能说明 |
+|---------|---------|
+| 🐧 Linux环境 | 完整 Ubuntu 24，apt 包管理、Python/Node.js 运行环境 |
+| 📁 文件系统 | 读写文件、搜索、解压缩、格式转换、Git 集成 |
+| 🌐 网络工具 | HTTP 请求、网页访问、文件上传下载 |
+| ⚙️ 系统操作 | 安装应用、权限管理、无障碍/ADB/Root 三通道自动化 |
+| 🎬 媒体处理 | 视频转换、帧提取、OCR/图像理解、相机拍照 |
+
+### Supported Platforms
+
+| Platform | Requirements |
+|----------|-------------|
+| Android 8.0+ | 主平台，完整功能支持 |
+| Ubuntu 24 (内置) | 完整 Linux 环境 |
+
+### Getting Started
+
+1. 从 [GitHub Releases](https://github.com/AAswordman/Operit/releases/latest) 下载最新 APK
+2. 安装并启动应用
+3. 配置 API Key（支持 OpenAI/DeepSeek/Qwen 等）
+
+### License
+
+Apache-2.0 License
+
+### Help Resources
+
+| Resource | Link |
+|----------|------|
+| 📖 用户指南 | https://aaswordman.github.io/OperitWeb |
+| 🐛 Issues | https://github.com/AAswordman/Operit/issues |
+| 💬 Discord | https://discord.gg/YnV9MWurRF |
