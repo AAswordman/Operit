@@ -1153,6 +1153,10 @@ class ClaudeProvider(
         )
     }
 
+    /**
+     * 将质量等级整数转换为 API quality 参数字符串
+     */
+    private fun qualityLevelToString(qualityLevel: Int): String {
         return when (qualityLevel.coerceIn(1, 4)) {
             1 -> "low"
             2 -> "medium"
