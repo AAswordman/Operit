@@ -1153,14 +1153,7 @@ class ClaudeProvider(
         )
     }
 
-        return when (qualityLevel.coerceIn(1, 4)) {
-            1 -> "low"
-            2 -> "medium"
-            3 -> "high"
-            4 -> "max"
-            else -> "high"
-        }
-    }
+
 
     // 添加模型参数
     private fun addParameters(jsonObject: JSONObject, modelParameters: List<ModelParameter<*>>) {
