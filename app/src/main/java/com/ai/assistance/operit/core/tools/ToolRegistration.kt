@@ -99,19 +99,12 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             error = error
         )
     }
-
     fun parseProxyInvocation(
         tool: AITool,
         requireQualifiedTarget: Boolean
     ): Pair<ParsedProxyInvocation?, ToolResult?> {
         val allowedParamNames = setOf("tool_name", "params") + packageContextParamNames
-        val unknownParamNames = tool.parameters.map { it.name }.filter { it !in allowedParamNames }
-        if (unknownParamNames.isNotEmpty()) {
-            return null to buildToolErrorResult(
-                tool,
-                "Unexpected parameters: ${unknownParamNames.joinToString(", ")}. Only tool_name, params, and supported system context parameters are allowed"
-            )
-        }
+        val unknownParameters = tool.parameters.filter { it.name !in allowedParamNames }
 
         val toolNameParams = tool.parameters.filter { it.name == "tool_name" }
         if (toolNameParams.size != 1) {
@@ -136,24 +129,33 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
         }
 
         val paramsParams = tool.parameters.filter { it.name == "params" }
-        if (paramsParams.size != 1) {
+        if (paramsParams.size > 1) {
             return null to buildToolErrorResult(
                 tool,
                 "Exactly one params parameter is required"
             )
         }
-        val paramsRaw = paramsParams.first().value.trim()
-        if (paramsRaw.isBlank()) {
-            return null to buildToolErrorResult(tool, "params must be a JSON object")
+        val paramsObject = if (paramsParams.isEmpty()) {
+            JSONObject()
+        } else {
+            val paramsRaw = paramsParams.first().value.trim()
+            if (paramsRaw.isBlank()) {
+                JSONObject()
+            } else {
+                try {
+                    JSONObject(paramsRaw)
+                } catch (_: Exception) {
+                    return null to buildToolErrorResult(tool, "params must be a valid JSON object")
+                }
+            }
         }
 
-        val paramsObject = try {
-            JSONObject(paramsRaw)
-        } catch (_: Exception) {
-            return null to buildToolErrorResult(tool, "params must be a valid JSON object")
+        unknownParameters.forEach { param ->
+            paramsObject.put(param.name, param.value)
         }
 
         val forwardedParameters = mutableListOf<ToolParameter>()
+
         val keys = paramsObject.keys()
         while (keys.hasNext()) {
             val key = keys.next()
