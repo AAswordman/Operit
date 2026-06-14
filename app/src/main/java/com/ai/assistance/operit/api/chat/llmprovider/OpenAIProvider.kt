@@ -792,7 +792,11 @@ open class OpenAIProvider(
                     put(
                         "input_audio",
                         JSONObject().apply {
-                            put("data", link.base64Data)
+                            put("data", if (providerType == ApiProviderType.ALIYUN) {
+                                "data:${link.mimeType};base64,${link.base64Data}"
+                            } else {
+                                link.base64Data
+                            })
                             put("format", audioFormatFromMime(link.mimeType))
                         }
                     )

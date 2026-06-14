@@ -337,6 +337,12 @@ class ChatHistoryDelegate(
     suspend fun getRuntimeChatHistory(chatId: String): List<ChatMessage> =
         chatHistoryManager.loadRuntimeChatMessages(chatId)
 
+    suspend fun getRuntimeChatHistoryUpTo(
+        chatId: String,
+        upToTimestampInclusive: Long
+    ): List<ChatMessage> =
+        chatHistoryManager.loadRuntimeChatMessagesUpTo(chatId, upToTimestampInclusive)
+
     suspend fun getCurrentRuntimeChatHistorySnapshot(): List<ChatMessage> {
         val chatId = _currentChatId.value ?: return emptyList()
         return chatHistoryManager.loadRuntimeChatMessages(chatId)

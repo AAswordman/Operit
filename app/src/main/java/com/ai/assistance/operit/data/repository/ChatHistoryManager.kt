@@ -2171,6 +2171,32 @@ class ChatHistoryManager private constructor(private val context: Context) {
         }
     }
 
+    suspend fun loadRuntimeChatMessagesUpTo(
+        chatId: String,
+        upToTimestampInclusive: Long
+    ): List<ChatMessage> {
+        return withContext(Dispatchers.IO) {
+            val latestSummaryTimestamp =
+                messageDao.getLatestSummaryTimestampUpTo(chatId, upToTimestampInclusive)
+            val messageEntities =
+                if (latestSummaryTimestamp != null) {
+                    messageDao.getMessagesForChatWindowAsc(
+                        chatId = chatId,
+                        startTimestampInclusive = latestSummaryTimestamp,
+                        endTimestampInclusive = upToTimestampInclusive
+                    )
+                } else {
+                    messageDao.getMessagesForChatInRangeAsc(
+                        chatId = chatId,
+                        afterTimestampExclusive = null,
+                        beforeTimestampExclusive = null,
+                        upToTimestampInclusive = upToTimestampInclusive
+                    )
+                }
+            hydrateMessages(chatId, messageEntities)
+        }
+    }
+
     suspend fun loadChatMessageLocatorPreviews(
         chatId: String,
         query: String = "",

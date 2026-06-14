@@ -1359,6 +1359,8 @@ class MessageProcessingDelegate(
         chatModelConfigIdOverride: String?,
         chatModelIndexOverride: Int?,
         preferenceProfileIdOverride: String?,
+        groupOrchestrationMode: Boolean,
+        groupParticipantNamesText: String?,
         onVariantPreviewStarted: suspend (ChatMessage) -> Unit,
         onVariantReady: suspend (ChatMessage) -> Unit,
     ) {
@@ -1422,12 +1424,21 @@ class MessageProcessingDelegate(
             var firstResponseElapsed: Long? = null
             val requestSentAt = System.currentTimeMillis()
             val requestStartElapsed = messageTimingNow()
+            val effectiveRequestMessageContent =
+                if (groupOrchestrationMode &&
+                    requestMessageContent.trimStart().isNotEmpty() &&
+                    !requestMessageContent.trimStart().startsWith("[From user]")
+                ) {
+                    "[From user]\n$requestMessageContent"
+                } else {
+                    requestMessageContent
+                }
 
             val responseStream =
                 AIMessageManager.sendMessage(
                     enhancedAiService = service,
                     chatId = chatId,
-                    messageContent = requestMessageContent,
+                    messageContent = effectiveRequestMessageContent,
                     chatHistory = requestHistory,
                     workspacePath = workspacePath,
                     promptFunctionType = promptFunctionType,
@@ -1440,6 +1451,8 @@ class MessageProcessingDelegate(
                     roleCardId = roleCardId,
                     currentRoleName = currentRoleName,
                     splitHistoryByRole = true,
+                    groupOrchestrationMode = groupOrchestrationMode,
+                    groupParticipantNamesText = groupParticipantNamesText,
                     onToolInvocation = { incrementCurrentTurnToolInvocationCount(chatId) },
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,

@@ -361,15 +361,25 @@ class MessageCoordinationDelegate(
         if (targetMessage.sender != "ai") {
             throw IllegalArgumentException(context.getString(R.string.chat_only_ai_message_allowed))
         }
-        val prefixHistory = currentHistory.subList(0, index).toList()
-        val (requestHistory, requestMessageContent) =
-            if (prefixHistory.lastOrNull()?.sender == "user") {
-                prefixHistory.dropLast(1) to prefixHistory.last().content
-            } else {
-                prefixHistory to ""
-            }
+        val runtimeHistory =
+            chatHistoryDelegate.getRuntimeChatHistoryUpTo(
+                chatId = chatId,
+                upToTimestampInclusive = targetMessage.timestamp
+            )
+        val targetRuntimeIndex = runtimeHistory.indexOfFirst { it.timestamp == targetMessage.timestamp }
+        if (targetRuntimeIndex < 0) {
+            throw IndexOutOfBoundsException(context.getString(R.string.chat_invalid_message_index))
+        }
+        val requestHistory = runtimeHistory.take(targetRuntimeIndex)
+        val requestMessageContent =
+            requestHistory.lastOrNull()
+                ?.takeIf { it.sender == "user" }
+                ?.content
+                .orEmpty()
 
         val currentChat = chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == chatId }
+        val groupParticipantNamesText = buildBoundGroupParticipantNamesText(chatId)
+        val groupOrchestrationMode = groupParticipantNamesText != null
         val workspacePath = currentChat?.workspace
         val roleCardId = resolveRegenerationRoleCardId(chatId, targetMessage)
         val currentRoleName =
@@ -401,6 +411,8 @@ class MessageCoordinationDelegate(
                 chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
                 chatModelIndexOverride = resolvedChatModelIndexOverride,
                 preferenceProfileIdOverride = resolvedPreferenceProfileIdOverride,
+                groupOrchestrationMode = groupOrchestrationMode,
+                groupParticipantNamesText = groupParticipantNamesText,
                 onVariantPreviewStarted = { previewMessage ->
                     chatHistoryDelegate.addMessageToChat(
                         previewMessage.copy(
@@ -419,7 +431,15 @@ class MessageCoordinationDelegate(
                         chatIdOverride = chatId,
                     )
                     runCatching {
-                        refreshStableContextWindow(chatId = chatId)
+                        refreshStableContextWindow(
+                            chatId = chatId,
+                            roleCardId = roleCardId,
+                            groupOrchestrationMode = groupOrchestrationMode,
+                            groupParticipantNamesText = groupParticipantNamesText,
+                            chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
+                            chatModelIndexOverride = resolvedChatModelIndexOverride,
+                            preferenceProfileIdOverride = resolvedPreferenceProfileIdOverride
+                        )
                     }.onFailure {
                         AppLogger.w(TAG, "单条重新生成后刷新上下文窗口失败", it)
                     }
@@ -1096,6 +1116,23 @@ class MessageCoordinationDelegate(
             .mapNotNull { member -> memberCardsById[member.characterCardId]?.name?.trim()?.takeIf { it.isNotBlank() } }
             .distinct() + formattedUserName
         return if (useEnglish) participantNames.joinToString(", ") else participantNames.joinToString("、")
+    }
+
+    private suspend fun buildBoundGroupParticipantNamesText(chatId: String): String? {
+        val groupId = chatHistoryDelegate.chatHistories.value
+            .firstOrNull { it.id == chatId }
+            ?.characterGroupId
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+        val group = characterGroupCardManager.getCharacterGroupCard(groupId) ?: return null
+        val memberCardsById = group.members
+            .associate { member ->
+                member.characterCardId to characterCardManager.getCharacterCard(member.characterCardId)
+            }
+        return buildGroupParticipantNamesText(
+            members = group.members,
+            memberCardsById = memberCardsById
+        )
     }
 
     private suspend fun resolveTargetGroupForChat(chatId: String): com.ai.assistance.operit.data.model.CharacterGroupCard? {
