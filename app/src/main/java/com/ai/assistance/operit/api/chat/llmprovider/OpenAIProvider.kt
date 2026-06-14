@@ -15,6 +15,7 @@ import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.util.HttpLogSanitizer
 import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.util.StreamingJsonXmlConverter
 import com.ai.assistance.operit.util.TokenCacheManager
@@ -1627,7 +1628,7 @@ open class OpenAIProvider(
             "AIService",
             "[req=$requestTraceId] Request trace summary: provider=${traceContext.provider}, model=${traceContext.model}, stream=$stream, attempt=$attemptNumber, bodyBytes=$bodyBytes, endpoint=${traceContext.endpointLabel}"
         )
-        logLargeString("AIService", "Request headers: \n${request.headers}")
+        logLargeString("AIService", "Request headers: \n${HttpLogSanitizer.headersForLog(request.headers)}")
         return request
     }
 

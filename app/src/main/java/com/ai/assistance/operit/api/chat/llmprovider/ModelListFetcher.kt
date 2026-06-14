@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONException
@@ -25,6 +26,20 @@ import org.json.JSONObject
 object ModelListFetcher {
     private const val TAG = "ModelListFetcher"
     private const val ANTHROPIC_VERSION = "2023-06-01"
+    private const val API_KEY_LOG_MASK = "API_KEY_HIDDEN"
+    private val SENSITIVE_QUERY_PARAMETER_NAMES =
+            setOf(
+                    "key",
+                    "api_key",
+                    "apikey",
+                    "access_token",
+                    "token",
+                    "authorization",
+                    "auth",
+                    "password",
+                    "secret",
+                    "client_secret"
+            )
     private val KIMI_CODING_MODELS =
             listOf("kimi-for-coding")
 
@@ -45,7 +60,7 @@ object ModelListFetcher {
      * @return 用于获取模型列表的URL
      */
     fun getModelsListUrl(apiEndpoint: String, apiProviderType: ApiProviderType): String {
-        AppLogger.d(TAG, "生成模型列表URL，API端点: $apiEndpoint, 提供商类型: $apiProviderType")
+        AppLogger.d(TAG, "生成模型列表URL，API端点: ${sanitizeUrlForLog(apiEndpoint)}, 提供商类型: $apiProviderType")
 
         val modelsUrl =
                 when (apiProviderType) {
@@ -108,8 +123,23 @@ object ModelListFetcher {
                     else -> "${extractBaseUrl(apiEndpoint)}/v1/models" // 默认尝试OpenAI兼容格式
                 }
 
-        AppLogger.d(TAG, "生成的模型列表URL: $modelsUrl")
+        AppLogger.d(TAG, "生成的模型列表URL: ${sanitizeUrlForLog(modelsUrl)}")
         return modelsUrl
+    }
+
+    private fun sanitizeUrlForLog(rawUrl: String, apiKey: String = ""): String {
+        var sanitizedUrl = rawUrl
+        if (apiKey.isNotBlank()) {
+            sanitizedUrl = sanitizedUrl.replace(apiKey, API_KEY_LOG_MASK)
+        }
+        SENSITIVE_QUERY_PARAMETER_NAMES.forEach { parameterName ->
+            sanitizedUrl =
+                    Regex("([?&]${Regex.escape(parameterName)}=)([^&#]*)", RegexOption.IGNORE_CASE)
+                            .replace(sanitizedUrl) { matchResult ->
+                                "${matchResult.groupValues[1]}$API_KEY_LOG_MASK"
+                            }
+        }
+        return sanitizedUrl
     }
 
     private fun isKimiCodingEndpoint(apiEndpoint: String): Boolean {
@@ -136,12 +166,12 @@ object ModelListFetcher {
                 // 截取到版本路径之前的部分
                 val pathBeforeVersion = path.substring(0, match.range.first)
                 val finalUrl = "${url.protocol}://${url.authority}$pathBeforeVersion"
-                AppLogger.d(TAG, "从 $fullUrl 提取基本URL: $finalUrl (找到版本路径 ${match.value})")
+                AppLogger.d(TAG, "从 ${sanitizeUrlForLog(fullUrl)} 提取基本URL: ${sanitizeUrlForLog(finalUrl)} (找到版本路径 ${match.value})")
                 finalUrl
             } else {
                 // 如果找不到版本路径，则返回原始URL的主机部分，这通常是安全的备选方案
                 val finalUrl = "${url.protocol}://${url.authority}"
-                AppLogger.d(TAG, "从 $fullUrl 提取基本URL: $finalUrl (未找到版本路径)")
+                AppLogger.d(TAG, "从 ${sanitizeUrlForLog(fullUrl)} 提取基本URL: ${sanitizeUrlForLog(finalUrl)} (未找到版本路径)")
                 finalUrl
             }
         } catch (e: Exception) {
@@ -165,7 +195,7 @@ object ModelListFetcher {
             apiEndpoint: String,
             apiProviderType: ApiProviderType = ApiProviderType.OPENAI
     ): Result<List<ModelOption>> {
-        AppLogger.d(TAG, "开始获取模型列表: 端点=$apiEndpoint, 提供商=${apiProviderType.name}")
+        AppLogger.d(TAG, "开始获取模型列表: 端点=${sanitizeUrlForLog(apiEndpoint, apiKey)}, 提供商=${apiProviderType.name}")
 
         return withContext(Dispatchers.IO) {
             val maxRetries = 2
@@ -189,7 +219,7 @@ object ModelListFetcher {
                     val modelsUrl = getModelsListUrl(completedEndpoint, apiProviderType)
                     val providerRequiresApiKey =
                             ApiProviderConfigs.requiresApiKey(apiProviderType, completedEndpoint)
-                    AppLogger.d(TAG, "准备发送请求到: $modelsUrl, 尝试次数: ${retryCount + 1}/${maxRetries + 1}")
+                    AppLogger.d(TAG, "准备发送请求到: ${sanitizeUrlForLog(modelsUrl, apiKey)}, 尝试次数: ${retryCount + 1}/${maxRetries + 1}")
 
                     val requestBuilder =
                             Request.Builder()
@@ -202,14 +232,14 @@ object ModelListFetcher {
                         ApiProviderType.GEMINI_GENERIC -> {
                             // Google Gemini API 使用 API 密钥作为查询参数
                             val urlWithKey =
-                                    if (modelsUrl.contains("?")) {
-                                        "$modelsUrl&key=$apiKey"
-                                    } else {
-                                        "$modelsUrl?key=$apiKey"
-                                    }
+                                    modelsUrl
+                                            .toHttpUrl()
+                                            .newBuilder()
+                                            .setQueryParameter("key", apiKey)
+                                            .build()
                             AppLogger.d(
                                     TAG,
-                                    "添加Google API密钥，完整URL: ${urlWithKey.replace(apiKey, "API_KEY_HIDDEN")}"
+                                    "添加Google API密钥，完整URL: ${sanitizeUrlForLog(urlWithKey.toString(), apiKey)}"
                             )
                             requestBuilder.url(urlWithKey)
                         }
@@ -256,7 +286,7 @@ object ModelListFetcher {
 
                     val request = requestBuilder.get().build()
 
-                    AppLogger.d(TAG, "发送HTTP请求: ${request.url}")
+                    AppLogger.d(TAG, "发送HTTP请求: ${sanitizeUrlForLog(request.url.toString(), apiKey)}")
                     val response = client.newCall(request).execute()
 
                     if (!response.isSuccessful) {

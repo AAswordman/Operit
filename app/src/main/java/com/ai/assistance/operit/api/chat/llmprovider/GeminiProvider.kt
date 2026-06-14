@@ -11,6 +11,7 @@ import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.ParameterCategory
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.HttpLogSanitizer
 import com.ai.assistance.operit.util.StreamingJsonXmlConverter
 import com.ai.assistance.operit.util.TokenCacheManager
 import com.ai.assistance.operit.util.exceptions.UserCancellationException
@@ -1335,7 +1336,7 @@ class GeminiProvider(
                 .addHeader("Content-Type", "application/json")
                 .build()
 
-        logLargeString(TAG, context.getString(R.string.gemini_request_headers, request.headers.toString()))
+        logLargeString(TAG, context.getString(R.string.gemini_request_headers, HttpLogSanitizer.headersForLog(request.headers)))
         return request
     }
 

@@ -12,6 +12,7 @@ import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
 import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.util.HttpLogSanitizer
 import com.ai.assistance.operit.util.StreamingJsonXmlConverter
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.TokenCacheManager
@@ -148,22 +149,6 @@ class ClaudeProvider(
         activeCall = null
 
         AppLogger.d("AIService", "取消标志已设置，流读取将立即被中断")
-    }
-
-    private fun headersForLog(headers: Headers): String {
-        return buildString {
-            headers.names().forEach { name ->
-                val value = when {
-                    name.equals("x-api-key", ignoreCase = true) -> "[REDACTED]"
-                    name.equals("authorization", ignoreCase = true) -> "[REDACTED]"
-                    else -> headers[name] ?: ""
-                }
-                append(name)
-                append(": ")
-                append(value)
-                append('\n')
-            }
-        }.trimEnd()
     }
 
     private data class AnthropicUsageCounts(
@@ -1242,8 +1227,8 @@ class ClaudeProvider(
         }
 
         val request = builder.build()
-        AppLogger.d("AIService", "Claude请求URL: ${request.url}")
-        AppLogger.d("AIService", "Claude请求头: \n${headersForLog(request.headers)}")
+        AppLogger.d("AIService", "Claude请求URL: ${HttpLogSanitizer.urlForLog(request.url)}")
+        AppLogger.d("AIService", "Claude请求头: \n${HttpLogSanitizer.headersForLog(request.headers)}")
         return request
     }
 

@@ -5,6 +5,7 @@ import android.util.Base64
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.HttpLogSanitizer
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -417,8 +418,8 @@ open class HttpVoiceProvider(
 
             val request = requestBuilder.build()
 
-            AppLogger.i(TAG, "Executing TTS Request: ${request.method} ${request.url}")
-            AppLogger.i(TAG, "Request Headers:\n${request.headers}")
+            AppLogger.i(TAG, "Executing TTS Request: ${request.method} ${HttpLogSanitizer.urlForLog(request.url)}")
+            AppLogger.i(TAG, "Request Headers:\n${HttpLogSanitizer.headersForLog(request.headers)}")
             val initialPayload = executeBinaryRequest(request, "HTTP TTS request")
             val finalPayload =
                 if (httpConfig.responsePipeline.isEmpty()) {
