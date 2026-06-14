@@ -1,2 +1,2 @@
 allowBuilds:
-  esbuild: false
+  esbuild: true
