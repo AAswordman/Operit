@@ -13,6 +13,9 @@
 [submodule "mmd/third_party/saba"]
 	path = mmd/third_party/saba
 	url = https://github.com/benikabocha/saba.git
+[submodule "mmd/third_party/bullet3"]
+	path = mmd/third_party/bullet3
+	url = https://github.com/bulletphysics/bullet3.git
 [submodule "app/src/main/cpp/thirdparty/ncnn"]
 	path = app/src/main/cpp/thirdparty/ncnn
 	url = https://github.com/Tencent/ncnn.git

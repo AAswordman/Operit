@@ -60,7 +60,6 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
 
     private fun sanitizeFileNamePart(value: String): String =
             value.replace(Regex("[^A-Za-z0-9._-]+"), "_").trim('_').take(80)
-    }
 
     /**
      * 从 MCP 结果中提取内容
