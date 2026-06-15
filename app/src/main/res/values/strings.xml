@@ -874,6 +874,8 @@
     <string name="settings_enable_summary_by_message_count_desc">当新消息数量达到阈值时触发总结</string>
     <string name="settings_summary_message_count_threshold">消息条数阈值</string>
     <string name="settings_summary_message_count_threshold_subtitle">触发总结的新消息数量(1-20条)</string>
+    <string name="settings_summary_custom_rules">自定义总结规则</string>
+    <string name="settings_summary_custom_rules_desc">总结对话时发送的额外规则，留空为不添加</string>
 
     <string name="settings_section_display">显示与行为</string>
 

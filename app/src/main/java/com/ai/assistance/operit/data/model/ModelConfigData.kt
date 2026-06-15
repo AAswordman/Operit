@@ -119,6 +119,8 @@ data class ModelConfigData(
                 ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT,
         val summaryMessageCountThreshold: Int =
                 ModelConfigDefaults.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD,
+        // 自定义总结规则
+        val summaryCustomRules: String = "",
 
         // MNN特定配置
         // 注意：MNN模型路径会根据modelName自动构建，不需要单独存储

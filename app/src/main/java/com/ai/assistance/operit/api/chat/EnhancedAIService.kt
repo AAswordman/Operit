@@ -2496,17 +2496,19 @@ class EnhancedAIService private constructor(private val context: Context) {
      */
     suspend fun generateSummary(
             messages: List<Pair<String, String>>,
-            previousSummary: String?
+            previousSummary: String?,
+            customRules: String? = null
     ): String {
-        return generateSummaryFromPromptTurns(messages.toPromptTurns(), previousSummary)
+        return generateSummaryFromPromptTurns(messages.toPromptTurns(), previousSummary, customRules)
     }
 
     suspend fun generateSummaryFromPromptTurns(
             messages: List<PromptTurn>,
-            previousSummary: String?
+            previousSummary: String?,
+            customRules: String? = null
     ): String {
         // 调用ConversationService中的方法
-        return conversationService.generateSummaryFromPromptTurns(messages, previousSummary, multiServiceManager)
+        return conversationService.generateSummaryFromPromptTurns(messages, previousSummary, multiServiceManager, customRules)
     }
 
     /**

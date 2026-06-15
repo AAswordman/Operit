@@ -112,12 +112,17 @@ class ConversationService(
     suspend fun generateSummaryFromPromptTurns(
             messages: List<PromptTurn>,
             previousSummary: String?,
-            multiServiceManager: MultiServiceManager
+            multiServiceManager: MultiServiceManager,
+            customRules: String? = null
     ): String {
         try {
             val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
             val activePromptMetadata = buildActivePromptHookMetadata(context)
             var systemPrompt = FunctionalPrompts.buildSummarySystemPrompt(previousSummary, useEnglish)
+            // 注入自定义总结规则
+            if (!customRules.isNullOrBlank()) {
+                systemPrompt += "\n\n${customRules.trim()}"
+            }
             val sanitizedMessages = ChatUtils.stripGeminiThoughtSignatureMetaTurns(messages)
 
             // Get all model parameters from preferences (with enabled state)

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -145,6 +146,9 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     var summaryMessageCountThresholdInput by remember(currentConfig?.id) {
         mutableStateOf(currentConfig?.summaryMessageCountThreshold?.toString().orEmpty())
     }
+    var summaryCustomRulesInput by remember(currentConfig?.id) {
+        mutableStateOf(currentConfig?.summaryCustomRules.orEmpty())
+    }
     var summaryError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentConfig?.id, currentConfig?.contextLength) {
@@ -165,6 +169,9 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     LaunchedEffect(currentConfig?.id, currentConfig?.summaryMessageCountThreshold) {
         summaryMessageCountThresholdInput =
             currentConfig?.summaryMessageCountThreshold?.toString().orEmpty()
+    }
+    LaunchedEffect(currentConfig?.id, currentConfig?.summaryCustomRules) {
+        summaryCustomRulesInput = currentConfig?.summaryCustomRules.orEmpty()
     }
 
     val errorValidContextLength = stringResource(id = R.string.model_config_error_valid_context_length)
@@ -238,6 +245,15 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.size(12.dp))
 
+                // 自定义总结规则自动保存
+                ContextSummaryCustomRulesAutoSaveEffect(
+                    currentConfig = currentConfig,
+                    summaryCustomRulesInput = summaryCustomRulesInput,
+                    modelConfigManager = modelConfigManager,
+                    errorSaveFailed = errorSaveFailed,
+                    onSummaryErrorChange = { summaryError = it }
+                )
+
                 RenderContextSummaryConfigSections(
                     componentBackgroundColor = componentBackgroundColor,
                     contextLengthInput = contextLengthInput,
@@ -264,6 +280,10 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                     onSummaryMessageCountThresholdInputChange = {
                         summaryMessageCountThresholdInput = it
                         summaryError = null
+                    },
+                    summaryCustomRulesInput = summaryCustomRulesInput,
+                    onSummaryCustomRulesInputChange = {
+                        summaryCustomRulesInput = it
                     },
                     summaryError = summaryError
                 )
@@ -467,6 +487,43 @@ private fun HistoryRetentionAutoSaveEffects(
 }
 
 @Composable
+private fun ContextSummaryCustomRulesAutoSaveEffect(
+    currentConfig: ModelConfigData?,
+    summaryCustomRulesInput: String,
+    modelConfigManager: ModelConfigManager,
+    errorSaveFailed: String,
+    onSummaryErrorChange: (String?) -> Unit
+) {
+    val latestConfig by rememberUpdatedState(currentConfig)
+
+    LaunchedEffect(currentConfig?.id) {
+        val configId = currentConfig?.id ?: return@LaunchedEffect
+        snapshotFlow { summaryCustomRulesInput }
+            .drop(1)
+            .debounce(700)
+            .distinctUntilChanged()
+            .collectLatest { rulesText ->
+                val current = latestConfig ?: return@collectLatest
+                if (current.id != configId) return@collectLatest
+                if (current.summaryCustomRules == rulesText) return@collectLatest
+                try {
+                    modelConfigManager.updateSummarySettings(
+                        configId = current.id,
+                        enableSummary = current.enableSummary,
+                        summaryTokenThreshold = current.summaryTokenThreshold,
+                        enableSummaryByMessageCount = current.enableSummaryByMessageCount,
+                        summaryMessageCountThreshold = current.summaryMessageCountThreshold,
+                        summaryCustomRules = rulesText
+                    )
+                    onSummaryErrorChange(null)
+                } catch (e: Exception) {
+                    onSummaryErrorChange(e.message ?: errorSaveFailed)
+                }
+            }
+    }
+}
+
+@Composable
 private fun RenderContextSummaryConfigSections(
     componentBackgroundColor: Color,
     contextLengthInput: String,
@@ -482,6 +539,8 @@ private fun RenderContextSummaryConfigSections(
     onEnableSummaryByMessageCountChange: (Boolean) -> Unit,
     summaryMessageCountThresholdInput: String,
     onSummaryMessageCountThresholdInputChange: (String) -> Unit,
+    summaryCustomRulesInput: String,
+    onSummaryCustomRulesInputChange: (String) -> Unit,
     summaryError: String?
 ) {
     SectionTitle(
@@ -571,6 +630,16 @@ private fun RenderContextSummaryConfigSections(
             modifier = Modifier.padding(horizontal = 4.dp)
         )
     }
+
+    Spacer(modifier = Modifier.size(8.dp))
+    SettingsMultilineTextField(
+        title = stringResource(id = R.string.settings_summary_custom_rules),
+        subtitle = stringResource(id = R.string.settings_summary_custom_rules_desc),
+        value = summaryCustomRulesInput,
+        onValueChange = onSummaryCustomRulesInputChange,
+        backgroundColor = componentBackgroundColor,
+        enabled = enableSummary
+    )
 }
 
 @Composable
@@ -854,4 +923,67 @@ private fun filterDecimalInput(input: String): String {
         }
     }
     return result.toString()
+}
+
+@Composable
+private fun SettingsMultilineTextField(
+    title: String,
+    subtitle: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    backgroundColor: Color,
+    enabled: Boolean = true
+) {
+    val contentAlpha = if (enabled) 1f else 0.38f
+    Column(
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(bottom = 4.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(backgroundColor)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .alpha(contentAlpha)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+        BasicTextField(
+            value = value,
+            onValueChange = { newText ->
+                if (enabled) {
+                    onValueChange(newText)
+                }
+            },
+            enabled = enabled,
+            modifier =
+                Modifier.fillMaxWidth()
+                    .heightIn(min = 80.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+            textStyle =
+                TextStyle(
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 13.sp
+                ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            decorationBox = { innerTextField ->
+                if (value.isEmpty()) {
+                    Text(
+                        text = stringResource(id = R.string.settings_summary_custom_rules_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+                innerTextField()
+            }
+        )
+    }
 }
