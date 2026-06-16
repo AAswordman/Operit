@@ -22,8 +22,7 @@ class WorkspaceDocumentsProvider : DocumentsProvider() {
     companion object {
         private const val TAG = "WorkspaceDocumentsProvider"
         
-        // Authority需要与AndroidManifest中的声明一致
-        private const val AUTHORITY = "com.ai.assistance.operit.documents.workspace"
+        // Authority在AndroidManifest.xml中使用${applicationId}.documents.workspace声明
         
         // Root ID
         private const val ROOT_ID = "workspace_root"

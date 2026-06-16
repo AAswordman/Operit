@@ -16,6 +16,7 @@ import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import androidx.core.app.NotificationCompat
+import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.tools.AppListData
 import com.ai.assistance.operit.core.tools.AppOperationData
@@ -57,7 +58,6 @@ open class StandardSystemOperationTools(private val context: Context) {
 
     companion object {
         private const val TAG = "SystemOperationTools"
-        private const val OPERIT_PACKAGE = "com.ai.assistance.operit"
 
         private const val AI_REPLY_CHANNEL_ID = "AI_REPLY_CHANNEL"
         private const val AI_REPLY_CHANNEL_NAME = "Chat Completion Reminder"
@@ -65,8 +65,9 @@ open class StandardSystemOperationTools(private val context: Context) {
 
     private fun isOperitInternalPath(path: String): Boolean {
         val normalizedPath = path.trim()
-        return normalizedPath.startsWith("/data/data/$OPERIT_PACKAGE") ||
-            AndroidUserPathUtils.isCurrentUserPackageDataPath(normalizedPath, OPERIT_PACKAGE)
+        val appPackage = BuildConfig.APPLICATION_ID
+        return normalizedPath.startsWith("/data/data/$appPackage") ||
+            AndroidUserPathUtils.isCurrentUserPackageDataPath(normalizedPath, appPackage)
     }
 
     private fun stageApkForInstallIfNeeded(apkFile: File): File {

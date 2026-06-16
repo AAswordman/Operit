@@ -17,6 +17,7 @@ import com.ai.assistance.operit.core.tools.FilePartContentData
 import com.ai.assistance.operit.core.tools.FindFilesResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolExecutionLimits
+import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.core.tools.defaultTool.accessbility.AccessibilityFileSystemTools
 import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
 import com.ai.assistance.operit.data.model.AITool
@@ -51,12 +52,11 @@ import kotlinx.coroutines.flow.collect
 open class DebuggerFileSystemTools(context: Context) : AccessibilityFileSystemTools(context) {
     companion object {
         private const val TAG = "DebuggerFileSystemTools"
-        private const val OPERIT_PACKAGE = "com.ai.assistance.operit"
-
         internal fun isOperitInternalPath(path: String): Boolean {
             val normalizedPath = path.trim()
-            return normalizedPath.startsWith("/data/data/$OPERIT_PACKAGE") ||
-                AndroidUserPathUtils.isCurrentUserPackageDataPath(normalizedPath, OPERIT_PACKAGE)
+            val appPackage = BuildConfig.APPLICATION_ID
+            return normalizedPath.startsWith("/data/data/$appPackage") ||
+                AndroidUserPathUtils.isCurrentUserPackageDataPath(normalizedPath, appPackage)
         }
     }
     

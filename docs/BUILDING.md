@@ -25,7 +25,7 @@
 # 更新软件包列表  
 sudo apt update
 
-# 安装必要的工具、JDK 17、Node.js、npm 和 Python 3
+# 安装必要的工具、JDK 21、Node.js、npm 和 Python 3
 sudo apt install -y git wget unzip openjdk-21-jdk nodejs npm python3
 
 # 安装 pnpm（sync_example_packages.py 预构建 examples 时会用到）
@@ -86,8 +86,8 @@ nano ~/.bashrc
 
 2. **在文件末尾添加以下内容：**  
 ```bash
-# =============== Java JDK 17 配置 ===============  
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64  
+# =============== Java JDK 21 配置 ===============  
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64  
 export PATH=$JAVA_HOME/bin:$PATH
 
 # =============== Android SDK 配置 ===============  
@@ -247,16 +247,23 @@ chmod +x ./gradlew
 ```bash
 ./gradlew assembleDebug
 ```
+
+或者运行 assembleDebugClone 编译共存版:
+```
+./gradlew assembleDebugClone
+```
+
 10. 查找 APK 文件:  
 编译成功后，生成的 APK 文件位于项目目录下的以下路径：  
 app/build/outputs/apk/debug/app-debug.apk
+app/build/outputs/apk/clone/app-clone.apk
 
 ## **7. 常见问题排查**
 
 | 错误信息 | 解决方案 |
 | :---- | :---- |
 | sdkmanager: command not found | 环境变量未正确设置或生效。请检查 **~/.bashrc** 文件内容，并执行 source ~/.bashrc。 |
-| Could not determine Java version... | **JAVA_HOME** 环境变量不正确，或安装了错误的 JDK 版本。请确保已安装 **JDK 17** 并指向正确的路径。 |
+| Could not determine Java version... | **JAVA_HOME** 环境变量不正确，或安装了错误的 JDK 版本。请确保已安装 **JDK 21** 并指向正确的路径。 |
 | NDK not found. | 确保已在 **第四步** 中使用 sdkmanager 安装了项目所需的 **ndk;25.1.8937393** 版本。 |
 | pnpm: command not found | 尚未安装 `pnpm`。请先执行 `sudo npm install -g pnpm`，再重新运行 `python3 ./sync_example_packages.py`。 |
 | Missing web-chat/dist. Run `npm --prefix web-chat run build` first. | 尚未构建 `web-chat` 或构建失败。请先执行 `npm --prefix web-chat install`，再在项目根目录执行 `npm run build:webchat`。 |

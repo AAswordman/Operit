@@ -99,6 +99,15 @@ android {
                 signingConfig = releaseSigningConfig
             }
         }
+        create("clone") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".clone"
+            if (releaseSigningConfig != null) {
+                signingConfig = releaseSigningConfig
+            }
+            matchingFallbacks += listOf("debug")
+            resValue("string", "app_name", "Operit Clone")
+        }
         create("nightly") {
             isMinifyEnabled = false
             isShrinkResources = false
@@ -118,6 +127,12 @@ android {
             outputs.all {
                 val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
                 output.outputFileName = "app-nightly.apk"
+            }
+        }
+        if (buildType.name == "clone") {
+            outputs.all {
+                val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+                output.outputFileName = "app-clone.apk"
             }
         }
     }

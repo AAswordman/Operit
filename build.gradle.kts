@@ -22,3 +22,8 @@ plugins {
 tasks.register("clean", Delete::class) {
     delete(rootProject.buildDir)
 }
+
+tasks.register("assembleDebugClone") {
+    dependsOn(":app:assembleClone")
+    description = "Build the clone (co-installable) debug APK with package name suffix .clone"
+}

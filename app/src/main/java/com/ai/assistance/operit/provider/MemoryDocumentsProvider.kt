@@ -30,7 +30,7 @@ class MemoryDocumentsProvider : DocumentsProvider() {
 
     companion object {
         private const val TAG = "MemoryDocumentsProvider"
-        private const val AUTHORITY = "com.ai.assistance.operit.documents.memory"
+        // Authority在AndroidManifest.xml中使用${applicationId}.documents.memory声明
         private const val ROOT_ID = "memory_root"
 
         private const val DOC_ID_ROOT = "root"
