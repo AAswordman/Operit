@@ -153,6 +153,7 @@ import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
 import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
 import com.ai.assistance.operit.ui.theme.liquidGlass
 import com.ai.assistance.operit.ui.theme.waterGlass
+import com.ai.assistance.operit.ui.theme.LocalMonochromeBackground
 import com.ai.assistance.operit.util.ChatUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -497,12 +498,17 @@ fun AgentChatInputSection(
     }
 
     val isDarkTheme = MaterialTheme.colorScheme.onSurface.luminance() > 0.5f
+    val monochromeBg = LocalMonochromeBackground.current
     val darkModeInputColor =
-        lerp(
-            MaterialTheme.colorScheme.surface,
-            MaterialTheme.colorScheme.onSurface,
-            0.08f,
-        )
+        if (monochromeBg) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            lerp(
+                MaterialTheme.colorScheme.surface,
+                MaterialTheme.colorScheme.onSurface,
+                0.08f,
+            )
+        }
 
     val inputContainerColor =
         when {

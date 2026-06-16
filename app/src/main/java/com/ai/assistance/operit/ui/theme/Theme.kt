@@ -65,6 +65,7 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.fletchmckee.liquid.liquefiable
 import io.github.fletchmckee.liquid.rememberLiquidState
+import androidx.compose.runtime.staticCompositionLocalOf
 
 private val DarkColorScheme =
         darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
@@ -85,6 +86,8 @@ private val LightColorScheme =
                 onSurface = Color(0xFF1C1B1F),
                 */
                 )
+
+val LocalMonochromeBackground = staticCompositionLocalOf { false }
 
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -178,16 +181,22 @@ fun OperitTheme(content: @Composable () -> Unit) {
             }
 
     // 应用自定义颜色和文本颜色
+    var monochromeBackground = false
     if (useCustomColors) {
         customPrimaryColor?.let { primaryArgb ->
             val primary = Color(primaryArgb)
             val secondary = customSecondaryColor?.let { Color(it) } ?: colorScheme.secondary
 
-            colorScheme = if (darkTheme) {
+            val matchedPreset = themePresets.find { it.primaryArgb == primaryArgb }
+            monochromeBackground = matchedPreset != null
+
+            colorScheme = if (matchedPreset != null) {
+                generateColorScheme(primary, secondary, onColorMode, matchedPreset.backgroundMode)
+            } else if (darkTheme) {
                 generateDarkColorScheme(primary, secondary, onColorMode)
-                    } else {
+            } else {
                 generateLightColorScheme(primary, secondary, onColorMode)
-                    }
+            }
         }
     }
 
@@ -215,16 +224,16 @@ fun OperitTheme(content: @Composable () -> Unit) {
                 // 状态栏颜色和图标颜色控制
                 val statusBarColor = when {
                     statusBarTransparent -> Color.Transparent.toArgb()
-                    useBackgroundImage && backgroundImageUri != null -> Color.Transparent.toArgb()  // 有背景时透明
+                    useBackgroundImage && backgroundImageUri != null -> Color.Transparent.toArgb()
                     useCustomStatusBarColor && customStatusBarColorValue != null -> customStatusBarColorValue!!.toInt()
-                    else -> colorScheme.primary.toArgb()
+                    monochromeBackground -> Color.Transparent.toArgb()
+                    else -> colorScheme.surface.toArgb()
                 }
                 window.statusBarColor = statusBarColor
 
-                // 根据状态栏背景色动态设置状态栏图标颜色
-                // isAppearanceLightStatusBars = true 表示图标为深色（适用于浅色背景）
-                // isAppearanceLightStatusBars = false 表示图标为浅色（适用于深色背景）
-                insetsController?.isAppearanceLightStatusBars = !isColorLight(Color(statusBarColor))
+                val effectiveStatusBarColor = if (statusBarColor == Color.Transparent.toArgb())
+                    colorScheme.background else Color(statusBarColor)
+                insetsController?.isAppearanceLightStatusBars = isColorLight(effectiveStatusBarColor)
             }
             
             // 设置导航栏颜色（底部小白条所在的区域）
@@ -247,7 +256,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                 // 根据导航栏背景色动态设置导航栏图标颜色
                 // isAppearanceLightNavigationBars = true 表示图标为深色（适用于浅色背景）
                 // isAppearanceLightNavigationBars = false 表示图标为浅色（适用于深色背景）
-                insetsController?.isAppearanceLightNavigationBars = !isColorLight(colorScheme.background)
+                insetsController?.isAppearanceLightNavigationBars = isColorLight(colorScheme.background)
             }
         }
     }
@@ -357,6 +366,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
         CompositionLocalProvider(
             LocalLiquidGlassBackdrop provides liquidGlassBackdrop,
             LocalWaterGlassState provides waterGlassState,
+            LocalMonochromeBackground provides monochromeBackground,
         ) {
             Box(
                 modifier = Modifier.fillMaxSize().layerBackdrop(liquidGlassBackdrop)
@@ -365,7 +375,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .background(if (darkTheme) Color.Black else Color.White)
+                            .background(colorScheme.background)
                             .then(
                                 if (waterGlassState != null) {
                                     Modifier.liquefiable(waterGlassState)
@@ -552,25 +562,38 @@ private fun generateLightColorScheme(
         else -> getContrastingTextColor(secondaryColor)
     }
 
+    val bg = Color(0xFFF5F5F7)
     val primaryContainer = lightenColor(primaryColor, 0.7f)
     val onPrimaryContainer = getContrastingTextColor(primaryContainer)
     val secondaryContainer = lightenColor(secondaryColor, 0.7f)
     val onSecondaryContainer = getContrastingTextColor(secondaryContainer)
 
-    // Return a complete color scheme, ensuring onSurface and onSurfaceVariant are consistent
+    val tertiaryColor = blendColors(primaryColor, secondaryColor, 0.5f)
+    val tertiaryContainer = lightenColor(tertiaryColor, 0.85f)
+    val onTertiary = getContrastingTextColor(tertiaryColor)
+    val onTertiaryContainer = getContrastingTextColor(tertiaryContainer)
+
     return LightColorScheme.copy(
-            primary = primaryColor,
-            onPrimary = onPrimary,
-            primaryContainer = primaryContainer,
-            onPrimaryContainer = onPrimaryContainer,
-            secondary = secondaryColor,
-            onSecondary = onSecondary,
-            secondaryContainer = secondaryContainer,
-            onSecondaryContainer = onSecondaryContainer,
-        // Ensure other colors are consistent with a light theme
+        primary = primaryColor,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        secondary = secondaryColor,
+        onSecondary = onSecondary,
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = onSecondaryContainer,
+        tertiary = tertiaryColor,
+        onTertiary = onTertiary,
+        tertiaryContainer = tertiaryContainer,
+        onTertiaryContainer = onTertiaryContainer,
+        background = bg,
+        onBackground = Color.Black.copy(alpha = 0.85f),
+        surface = Color.White,
         onSurface = Color.Black,
-        onSurfaceVariant = Color.Black.copy(alpha = 0.7f),
-        onBackground = Color.Black
+        surfaceVariant = Color(0xFFF0F1F3),
+        onSurfaceVariant = Color.Black.copy(alpha = 0.38f),
+        outline = Color.Black.copy(alpha = 0.08f),
+        outlineVariant = Color.Black.copy(alpha = 0.04f),
     )
 }
 
@@ -580,6 +603,7 @@ private fun generateDarkColorScheme(
     secondaryColor: Color,
     onColorMode: String
 ): ColorScheme {
+    val bg = Color(0xFF1A1B1E)
     val adjustedPrimaryColor = lightenColor(primaryColor, 0.2f)
     val adjustedSecondaryColor = lightenColor(secondaryColor, 0.2f)
 
@@ -594,25 +618,170 @@ private fun generateDarkColorScheme(
         else -> getContrastingTextColor(adjustedSecondaryColor)
     }
 
+    val tertiaryColor = blendColors(adjustedPrimaryColor, adjustedSecondaryColor, 0.5f)
+    val onTertiary = getContrastingTextColor(tertiaryColor, forceLight = true)
+
     val primaryContainer = darkenColor(primaryColor, 0.3f)
     val onPrimaryContainer = getContrastingTextColor(primaryContainer, forceLight = true)
     val secondaryContainer = darkenColor(secondaryColor, 0.3f)
     val onSecondaryContainer = getContrastingTextColor(secondaryContainer, forceLight = true)
+    val tertiaryContainer = darkenColor(tertiaryColor, 0.3f)
+    val onTertiaryContainer = getContrastingTextColor(tertiaryContainer, forceLight = true)
 
-    // Return a complete color scheme, ensuring onSurface and onSurfaceVariant are consistent
     return DarkColorScheme.copy(
-            primary = adjustedPrimaryColor,
-            onPrimary = onPrimary,
-            primaryContainer = primaryContainer,
-            onPrimaryContainer = onPrimaryContainer,
-            secondary = adjustedSecondaryColor,
-            onSecondary = onSecondary,
-            secondaryContainer = secondaryContainer,
-            onSecondaryContainer = onSecondaryContainer,
-        // Ensure other colors are consistent with a dark theme
+        primary = adjustedPrimaryColor,
+        onPrimary = onPrimary,
+        primaryContainer = primaryContainer,
+        onPrimaryContainer = onPrimaryContainer,
+        secondary = adjustedSecondaryColor,
+        onSecondary = onSecondary,
+        secondaryContainer = secondaryContainer,
+        onSecondaryContainer = onSecondaryContainer,
+        tertiary = tertiaryColor,
+        onTertiary = onTertiary,
+        tertiaryContainer = tertiaryContainer,
+        onTertiaryContainer = onTertiaryContainer,
+        background = bg,
+        onBackground = Color.White.copy(alpha = 0.88f),
+        surface = bg,
         onSurface = Color.White,
-        onSurfaceVariant = Color.White.copy(alpha = 0.7f),
-        onBackground = Color.White
+        surfaceVariant = Color(0xFF2C2C2E),
+        onSurfaceVariant = Color.White.copy(alpha = 0.55f),
+        outline = Color.White.copy(alpha = 0.10f),
+        outlineVariant = Color.White.copy(alpha = 0.05f),
+    )
+}
+
+/** 为3种单色主题预设生成完整颜色方案 */
+private fun generateColorScheme(
+    primaryColor: Color,
+    secondaryColor: Color,
+    onColorMode: String,
+    backgroundMode: String, // "light" | "dark" | "oled"
+): ColorScheme {
+    val onPrimary = when (onColorMode) {
+        ON_COLOR_MODE_LIGHT -> Color.White
+        ON_COLOR_MODE_DARK -> Color.Black
+        else -> getContrastingTextColor(primaryColor)
+    }
+    val onSecondary = when (onColorMode) {
+        ON_COLOR_MODE_LIGHT -> Color.White
+        ON_COLOR_MODE_DARK -> Color.Black
+        else -> getContrastingTextColor(secondaryColor)
+    }
+
+    val bg: Color
+    val surface: Color
+    val surfaceContainer: Color
+    val surfaceVariantVal: Color
+    val surfaceContainerHigh: Color
+    val surfaceContainerHighest: Color
+    val surfaceContainerLow: Color
+    val surfaceContainerLowest: Color
+    val outline: Color
+    val outlineVariant: Color
+    val onBackground: Color
+    val onSurface: Color
+    val onSurfaceVariant: Color
+    val tertiary: Color
+
+    when (backgroundMode) {
+        "light" -> {
+            bg = Color(0xFFF5F5F7)
+            surface = Color(0xFFFFFFFF)
+            surfaceContainer = Color(0xFFF5F5F7)
+            surfaceVariantVal = Color(0xFFF0F1F3)
+            surfaceContainerHigh = Color(0xFFE8E8EA)
+            surfaceContainerHighest = Color(0xFFDEDFE1)
+            surfaceContainerLow = Color(0xFFF8F8FA)
+            surfaceContainerLowest = Color(0xFFFFFFFF)
+            outline = Color(0xFFD1D1D6)
+            outlineVariant = Color(0xFFE5E5EA)
+            onBackground = Color(0xFF111111)
+            onSurface = Color(0xFF111111)
+            onSurfaceVariant = Color(0xFF636366)
+            tertiary = blendColors(primaryColor, secondaryColor, 0.5f)
+        }
+        "dark" -> {
+            bg = Color(0xFF1A1B1E)
+            surface = Color(0xFF202124)
+            surfaceContainer = Color(0xFF202124)
+            surfaceVariantVal = Color(0xFF2A2B2F)
+            surfaceContainerHigh = Color(0xFF2A2B2F)
+            surfaceContainerHighest = Color(0xFF303135)
+            surfaceContainerLow = Color(0xFF1E1F22)
+            surfaceContainerLowest = Color(0xFF1A1B1E)
+            outline = Color(0xFF3A3B40)
+            outlineVariant = Color(0xFF2A2B2F)
+            onBackground = Color(0xFFE8E8E8)
+            onSurface = Color(0xFFE8E8E8)
+            onSurfaceVariant = Color(0xFFB8B8B8)
+            tertiary = Color(0xFF8A8D93)
+        }
+        "oled" -> {
+            bg = Color(0xFF000000)
+            surface = Color(0xFF0A0A0A)
+            surfaceContainer = Color(0xFF0A0A0A)
+            surfaceVariantVal = Color(0xFF141414)
+            surfaceContainerHigh = Color(0xFF141414)
+            surfaceContainerHighest = Color(0xFF1A1A1E)
+            surfaceContainerLow = Color(0xFF060606)
+            surfaceContainerLowest = Color(0xFF000000)
+            outline = Color(0xFF2A2A2E)
+            outlineVariant = Color(0xFF1A1A1E)
+            onBackground = Color(0xFFE8E8E8)
+            onSurface = Color(0xFFE8E8E8)
+            onSurfaceVariant = Color(0xFFB8B8B8)
+            tertiary = Color(0xFF8A8D93)
+        }
+        else -> {
+            bg = Color(0xFF1A1B1E)
+            surface = Color(0xFF202124)
+            surfaceContainer = Color(0xFF202124)
+            surfaceVariantVal = Color(0xFF2A2B2F)
+            surfaceContainerHigh = Color(0xFF2A2B2F)
+            surfaceContainerHighest = Color(0xFF303135)
+            surfaceContainerLow = Color(0xFF1E1F22)
+            surfaceContainerLowest = Color(0xFF1A1B1E)
+            outline = Color(0xFF3A3B40)
+            outlineVariant = Color(0xFF2A2B2F)
+            onBackground = Color(0xFFE8E8E8)
+            onSurface = Color(0xFFE8E8E8)
+            onSurfaceVariant = Color(0xFFB8B8B8)
+            tertiary = Color(0xFF8A8D93)
+        }
+    }
+
+    return DarkColorScheme.copy(
+        primary = primaryColor,
+        onPrimary = onPrimary,
+        primaryContainer = surfaceVariantVal,
+        onPrimaryContainer = onSurface,
+        secondary = secondaryColor,
+        onSecondary = onSecondary,
+        secondaryContainer = surfaceContainerHigh,
+        onSecondaryContainer = onSurfaceVariant,
+        tertiary = tertiary,
+        onTertiary = onSurface,
+        tertiaryContainer = surfaceContainerHigh,
+        onTertiaryContainer = onSurfaceVariant,
+        background = bg,
+        onBackground = onBackground,
+        surface = surface,
+        onSurface = onSurface,
+        surfaceVariant = surfaceVariantVal,
+        onSurfaceVariant = onSurfaceVariant,
+        surfaceContainerLowest = surfaceContainerLowest,
+        surfaceContainerLow = surfaceContainerLow,
+        surfaceContainer = surfaceContainer,
+        surfaceContainerHigh = surfaceContainerHigh,
+        surfaceContainerHighest = surfaceContainerHighest,
+        outline = outline,
+        outlineVariant = outlineVariant,
+        surfaceTint = Color.Transparent,
+        inverseSurface = bg,
+        inversePrimary = primaryColor,
+        inverseOnSurface = onSurface,
     )
 }
 

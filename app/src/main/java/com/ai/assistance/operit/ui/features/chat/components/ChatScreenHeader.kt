@@ -31,6 +31,7 @@ import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
+import com.ai.assistance.operit.ui.theme.LocalMonochromeBackground
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 
@@ -139,13 +140,18 @@ fun ChatScreenHeader(
 
     val launchFloatingWindow = useFloatingWindowLauncher(actualViewModel, permissionLauncher)
 
+    val monochromeBg = LocalMonochromeBackground.current
+
     Row(
             modifier =
                     modifier
                             .fillMaxWidth()
                             .background(
-                                    if (chatHeaderTransparent) Color.Transparent
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                    when {
+                                        chatHeaderTransparent -> Color.Transparent
+                                        monochromeBg -> MaterialTheme.colorScheme.surface
+                                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                    }
                             )
                             .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,

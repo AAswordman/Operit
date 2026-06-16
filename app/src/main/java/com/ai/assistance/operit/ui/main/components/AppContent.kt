@@ -80,6 +80,7 @@ import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.runtime.setValue
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.theme.LocalMonochromeBackground
 import androidx.compose.foundation.layout.ime
 import androidx.compose.ui.platform.LocalDensity
 import com.ai.assistance.operit.api.chat.AIForegroundService
@@ -175,6 +176,7 @@ fun AppContent(
     // Get toolbar transparency setting
     val toolbarTransparent =
             preferencesManager.toolbarTransparent.collectAsState(initial = false).value
+    val monochromeBackground = LocalMonochromeBackground.current
     
     // Get AppBar custom color settings
     val useCustomAppBarColor =
@@ -343,6 +345,7 @@ fun AppContent(
                     TopAppBarDefaults.topAppBarColors(
                         containerColor =
                         when {
+                            monochromeBackground -> Color.Transparent
                             toolbarTransparent -> Color.Transparent
                             useCustomAppBarColor && customAppBarColor != null -> Color(customAppBarColor)
                             else -> MaterialTheme.colorScheme.primary
