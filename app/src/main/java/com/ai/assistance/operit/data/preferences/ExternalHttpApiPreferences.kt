@@ -74,6 +74,12 @@ class ExternalHttpApiPreferences private constructor(private val context: Contex
         return generated
     }
 
+    suspend fun setBearerToken(token: String) {
+        context.externalHttpApiDataStore.edit { preferences ->
+            preferences[KEY_BEARER_TOKEN] = token
+        }
+    }
+
     suspend fun getConfig(): ExternalHttpApiConfig {
         val preferences = context.externalHttpApiDataStore.data.first()
         return ExternalHttpApiConfig(
