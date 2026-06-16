@@ -99,7 +99,7 @@ internal fun ThemeSettingsContentEditor(
             ?: flowOf(null)
     }.collectAsState(initial = null)
     val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = MaterialTheme.colorScheme.surface,
     )
     var selectedThemeTab by remember { mutableStateOf(ThemeSettingsTab.BASIC) }
     var showSaveSuccessMessage by remember { mutableStateOf(false) }

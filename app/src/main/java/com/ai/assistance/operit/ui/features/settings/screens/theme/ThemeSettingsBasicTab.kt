@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.toArgb
 import com.ai.assistance.operit.ui.features.settings.components.ColorPickerDialog
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsCharacterBindingInfoCard
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsColorContentMode
+import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsPresetsSection
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsColorCustomizationSection
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsFontSection
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsThemeModeSection
@@ -314,6 +315,14 @@ private fun ThemeSettingsBasicColorPanel(
         pipIconColorInput = pipIconColor ?: defaultHeaderIconColor
         onColorModeInput = onColorMode
     }
+
+    ThemeSettingsPresetsSection(
+        cardColors = cardColors,
+        preferencesManager = preferencesManager,
+        saveThemeSettingsWithCharacterCard = shared.saveThemeSettingsWithCharacterCard,
+        primaryColorInput = primaryColorInput,
+        secondaryColorInput = secondaryColorInput,
+    )
 
     ThemeSettingsColorCustomizationSection(
         cardColors = cardColors,
