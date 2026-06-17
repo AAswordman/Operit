@@ -164,11 +164,11 @@ adb shell am broadcast \
     fun saveToken() {
         scope.launch {
             if (bearerTokenText.length < 6) {
-                showToast("Token长度需大于6!")
+                showToast(context.getString(R.string.external_http_chat_token_length_error))
                 return@launch
             }
             preferences.setBearerToken(bearerTokenText)
-            showToast("Token 已保存")
+            showToast(context.getString(R.string.external_http_chat_token_saved))
         }
     }
 
@@ -274,7 +274,7 @@ adb shell am broadcast \
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = ::saveToken) {
-                        Text("保存")
+                        Text(stringResource(R.string.external_http_chat_save_token))
                     }
                     TextButton(
                         onClick = {

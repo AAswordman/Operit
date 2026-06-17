@@ -4796,6 +4796,9 @@
     <string name="external_http_chat_service_enabled">服务已启用</string>
     <string name="external_http_chat_service_disabled">服务已停用</string>
     <string name="external_http_chat_restart_service">重启服务</string>
+    <string name="external_http_chat_save_token">保存</string>
+    <string name="external_http_chat_token_saved">Token 已保存</string>
+    <string name="external_http_chat_token_length_error">Token长度需大于6!</string>
 
     <!-- Custom Emoji Management -->
     <string name="manage_custom_emoji">管理自定义表情</string>
