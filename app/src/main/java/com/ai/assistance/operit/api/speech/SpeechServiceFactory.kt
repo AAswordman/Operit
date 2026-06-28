@@ -3,6 +3,7 @@ package com.ai.assistance.operit.api.speech
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
+import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences.VadConfig
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.atomic.AtomicBoolean
@@ -123,7 +124,10 @@ object SpeechServiceFactory {
                 } else {
                     val service =
                         when (type) {
-                            SpeechServiceType.SHERPA_NCNN -> SherpaSpeechProvider(appContext)
+                            SpeechServiceType.SHERPA_NCNN -> {
+                                val vc = runBlocking { SpeechServicesPreferences(appContext).vadConfigFlow.first() }
+                                SherpaSpeechProvider(appContext, vc)
+                            }
                             else -> throw IllegalArgumentException("Not a local SpeechService type: $type")
                         }
                     LocalEntry(type = type, service = service, refCount = 1).also { localEntry = it }
