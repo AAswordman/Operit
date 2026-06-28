@@ -160,6 +160,15 @@ class AIToolHandler private constructor(private val context: Context) {
     fun getAllToolNames(): List<String> {
         return availableTools.keys.toList().sorted()
     }
+    /**
+     * Get human-readable description for a tool by name.
+     * Used by the tool selector UI to help users understand each tool's purpose.
+     */
+    fun getToolDescription(toolName: String): String {
+        return toolPermissionSystem.getOperationDescription(AITool(name = toolName))
+    }
+
+
 
     /** Force refresh permission request state Can be called if permission dialog is not showing */
     fun refreshPermissionState(): Boolean {

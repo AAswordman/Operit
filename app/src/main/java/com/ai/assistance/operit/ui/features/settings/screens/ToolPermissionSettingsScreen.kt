@@ -159,6 +159,7 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
                 level = PermissionLevel.ALLOW,
                 allTools = allTools,
                 toolsInLevel = toolPermissions.filterValues { it == PermissionLevel.ALLOW }.keys,
+                toolHandler = toolHandler,
                 onToolToggled = { toolName -> handlePermissionChange(toolName, PermissionLevel.ALLOW) }
             )
         }
@@ -167,6 +168,7 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
                 level = PermissionLevel.FORBID,
                 allTools = allTools,
                 toolsInLevel = toolPermissions.filterValues { it == PermissionLevel.FORBID }.keys,
+                toolHandler = toolHandler,
                 onToolToggled = { toolName -> handlePermissionChange(toolName, PermissionLevel.FORBID) }
             )
         }
@@ -178,6 +180,7 @@ private fun PermissionGroup(
     level: PermissionLevel,
     allTools: List<String>,
     toolsInLevel: Set<String>,
+    toolHandler: AIToolHandler,
     onToolToggled: (String) -> Unit
 ) {
     var showToolSelector by remember { mutableStateOf(false) }
@@ -242,6 +245,7 @@ private fun PermissionGroup(
         ToolSelectorDialog(
             allTools = allTools,
             toolsInLevel = toolsInLevel,
+            toolHandler = toolHandler,
             onDismiss = { showToolSelector = false },
             onToolToggled = onToolToggled
         )
@@ -280,10 +284,14 @@ private fun ToolChip(toolName: String, onRemove: () -> Unit) {
 private fun ToolSelectorDialog(
     allTools: List<String>,
     toolsInLevel: Set<String>,
+    toolHandler: AIToolHandler,
     onDismiss: () -> Unit,
     onToolToggled: (String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    val descriptions = remember(allTools) {
+        allTools.associateWith { toolHandler.getToolDescription(it) }
+    }
     val filteredTools = allTools.filter { it.contains(searchQuery, ignoreCase = true) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -327,11 +335,19 @@ private fun ToolSelectorDialog(
                                 onCheckedChange = { onToolToggled(toolName) }
                             )
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = toolName,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = toolName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = descriptions[toolName] ?: toolName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2
+                                )
+                            }
                         }
                     }
                 }
