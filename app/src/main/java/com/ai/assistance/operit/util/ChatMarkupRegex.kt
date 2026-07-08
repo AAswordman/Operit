@@ -27,6 +27,24 @@ object ChatMarkupRegex {
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
     )
 
+    /**
+     * 标记 XML 工具标签来源于 Provider 的原生 function calling 转换，
+     * 而非 AI 在普通文本中输出的 XML 示例。
+     */
+    const val NATIVE_TOOL_CALL_ORIGIN = "native_tool_call"
+
+    private val nativeOriginAttrRegex = Regex(
+        """\bdata-origin\s*=\s*["']$NATIVE_TOOL_CALL_ORIGIN["']""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * 检查工具标签 XML 片段是否带有 data-origin="native_tool_call" 标记。
+     */
+    fun isNativeToolCallOrigin(tagXml: String): Boolean {
+        return nativeOriginAttrRegex.containsMatchIn(tagXml)
+    }
+
     val toolTag = Regex(
         """<($TOOL_TAG_NAME_REGEX_SOURCE)\b[\s\S]*?</\1>""",
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)

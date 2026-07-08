@@ -287,7 +287,7 @@ class GeminiProvider(
      * 解析XML格式的tool调用，转换为Gemini FunctionCall格式
      * @return 文本内容、functionCall对象列表、以及挂在Part级别的thought signature
      */
-    private fun parseXmlToolCalls(content: String): GeminiFunctionCallPayload {
+    private fun parseXmlToolCalls(content: String, onlyNative: Boolean = false): GeminiFunctionCallPayload {
         if (!enableToolCall) {
             return GeminiFunctionCallPayload(
                 textContent = content,
@@ -298,7 +298,14 @@ class GeminiProvider(
 
         val thoughtSignaturePayload = extractGeminiThoughtSignaturePayload(content)
         val sanitizedContent = thoughtSignaturePayload.contentWithoutMeta
-        val matches = ChatMarkupRegex.toolCallPattern.findAll(sanitizedContent).toList()
+        val allMatches = ChatMarkupRegex.toolCallPattern.findAll(sanitizedContent).toList()
+
+        // 当 onlyNative=true 时，只保留带 data-origin="native_tool_call" 标记的匹配
+        val matches = if (onlyNative) {
+            allMatches.filter { ChatMarkupRegex.isNativeToolCallOrigin(it.value) }
+        } else {
+            allMatches
+        }
         
         if (matches.isEmpty()) {
             return GeminiFunctionCallPayload(
@@ -675,7 +682,7 @@ class GeminiProvider(
             if (enableToolCall) {
                 when (turn.kind) {
                     PromptTurnKind.ASSISTANT -> {
-                        val functionCallPayload = parseXmlToolCalls(content)
+                    val functionCallPayload = parseXmlToolCalls(content, onlyNative = true)
                         if (functionCallPayload.functionCalls.isNotEmpty()) {
                             if (openFunctionCallNames.isNotEmpty()) {
                                 flushOpenFunctionCallsAsCancelled("assistant_function_call_before_result")
@@ -1787,7 +1794,7 @@ class GeminiProvider(
                         
                         // 输出工具开始标签
                         val toolTagName = ChatMarkupRegex.generateRandomToolTagName()
-                        contentBuilder.append("\n<$toolTagName name=\"$toolName\">")
+                        contentBuilder.append("\n<$toolTagName name=\"$toolName\" data-origin=\"${ChatMarkupRegex.NATIVE_TOOL_CALL_ORIGIN}\">")
                         
                         // 使用 StreamingJsonXmlConverter 流式转换参数
                         val args = functionCall.optJSONObject("args")

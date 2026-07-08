@@ -1173,7 +1173,7 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
             )
         }
 
-        return grepCodeWithRipgrep(
+        return grepCodeWithNativeRipgrep(
             toolName = tool.name,
             path = path,
             pattern = pattern,

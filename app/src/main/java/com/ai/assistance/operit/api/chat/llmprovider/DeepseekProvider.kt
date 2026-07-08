@@ -283,7 +283,7 @@ class DeepseekProvider(
 
                         PromptTurnKind.ASSISTANT -> {
                             val (content, reasoningContent) = ChatUtils.extractThinkingContent(originalContent)
-                            val (textContent, parsedToolCalls) = parseXmlToolCalls(content)
+                            val (textContent, parsedToolCalls) = parseXmlToolCalls(content, onlyNative = true)
                             val toolCalls =
                                 if (parsedToolCalls != null) {
                                     wrapPackageToolCallsWithProxy(parsedToolCalls)

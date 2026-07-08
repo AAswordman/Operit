@@ -263,7 +263,7 @@ internal object StructuredToolCallBridge {
                 }
 
                 PromptTurnKind.ASSISTANT -> {
-                    val (textContent, parsedToolCalls) = parseXmlToolCalls(content)
+                    val (textContent, parsedToolCalls) = parseXmlToolCalls(content, onlyNative = true)
                     val toolCalls =
                         if (parsedToolCalls != null) {
                             wrapPackageToolCallsWithProxy(parsedToolCalls)
@@ -433,11 +433,13 @@ internal object StructuredToolCallBridge {
             }.getOrNull()
 
             val toolTagName = ChatMarkupRegex.generateRandomToolTagName()
-            xml.append("\n<")
-                .append(toolTagName)
-                .append(" name=\"")
-                .append(name)
-                .append("\">")
+        xml.append("\n<")
+            .append(toolTagName)
+            .append(" name=\"")
+            .append(name)
+            .append("\" data-origin=\"")
+            .append(ChatMarkupRegex.NATIVE_TOOL_CALL_ORIGIN)
+            .append("\">")
 
             if (paramsObj != null) {
                 val keys = paramsObj.keys()
@@ -600,7 +602,7 @@ internal object StructuredToolCallBridge {
         }
     }
 
-    private fun parseXmlToolCalls(content: String): Pair<String, JSONArray?> {
+    private fun parseXmlToolCalls(content: String, onlyNative: Boolean = false): Pair<String, JSONArray?> {
         val matches = ChatMarkupRegex.toolCallPattern.findAll(content)
         if (!matches.any()) {
             return content to null
@@ -611,6 +613,11 @@ internal object StructuredToolCallBridge {
         var callIndex = 0
 
         matches.forEach { match ->
+            // 当 onlyNative=true 时，跳过未标记为原生 tool call 的 XML 标签
+            if (onlyNative && !ChatMarkupRegex.isNativeToolCallOrigin(match.value)) {
+                return@forEach
+            }
+
             val toolName = match.groupValues[2]
             val toolBody = match.groupValues[3]
 

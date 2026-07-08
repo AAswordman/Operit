@@ -295,9 +295,11 @@ object ToolExecutionManager {
     /**
      * 从 AI 响应中提取工具调用。
      * @param response AI 的响应字符串。
+     * @param onlyNative 如果为 true，只提取带有 data-origin="native_tool_call" 标记的 XML 标签，
+     *   跳过 AI 普通文本中的 XML 工具标签示例。用于 enableToolCall=true 时避免误执行。
      * @return 检测到的工具调用列表。
      */
-    suspend fun extractToolInvocations(response: String): List<ToolInvocation> {
+    suspend fun extractToolInvocations(response: String, onlyNative: Boolean = false): List<ToolInvocation> {
         val invocations = mutableListOf<ToolInvocation>()
         val content = response
 
@@ -313,6 +315,11 @@ object ToolExecutionManager {
 
             if (group.tag is StreamXmlPlugin) {
                 ChatMarkupRegex.toolCallPattern.findAll(chunkString).forEach { toolMatch ->
+                    // 当 onlyNative=true 时，跳过未标记为原生 tool call 的 XML 标签
+                    if (onlyNative && !ChatMarkupRegex.isNativeToolCallOrigin(toolMatch.value)) {
+                        return@forEach
+                    }
+
                     val toolName = toolMatch.groupValues.getOrNull(2) ?: return@forEach
                     val toolBody = toolMatch.groupValues.getOrNull(3).orEmpty()
 
@@ -338,7 +345,7 @@ object ToolExecutionManager {
 
         AppLogger.d(
             TAG,
-            "Found ${invocations.size} tool invocations: ${invocations.map { resolveDisplayToolName(it.tool) }}"
+            "Found ${invocations.size} tool invocations (onlyNative=$onlyNative): ${invocations.map { resolveDisplayToolName(it.tool) }}"
         )
         return invocations
     }
