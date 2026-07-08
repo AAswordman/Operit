@@ -31,4 +31,40 @@ class ToolExecutionManagerTest {
             }
         )
     }
+
+    @Test
+    fun extractToolInvocations_onlyNative_skipsUnmarkedTags() = runBlocking {
+        val response = """
+            <tool_A1 name="read_file"><param name="path">/etc/hosts</param></tool_A1>
+        """.trimIndent()
+
+        val invocations = ToolExecutionManager.extractToolInvocations(response, onlyNative = true)
+
+        assertEquals(0, invocations.size)
+    }
+
+    @Test
+    fun extractToolInvocations_onlyNative_keepsMarkedTags() = runBlocking {
+        val response = """
+            <tool_A1 name="read_file" data-origin="native_tool_call"><param name="path">/etc/hosts</param></tool_A1>
+        """.trimIndent()
+
+        val invocations = ToolExecutionManager.extractToolInvocations(response, onlyNative = true)
+
+        assertEquals(1, invocations.size)
+        assertEquals("/etc/hosts", invocations[0].tool.parameters.first { it.name == "path" }.value)
+    }
+
+    @Test
+    fun extractToolInvocations_onlyNative_skipsUnmarkedButKeepsMarked() = runBlocking {
+        val response = """
+            <tool_A1 name="read_file"><param name="path">/tmp/unmarked</param></tool_A1>
+            <tool_B2 name="read_file" data-origin="native_tool_call"><param name="path">/tmp/marked</param></tool_B2>
+        """.trimIndent()
+
+        val invocations = ToolExecutionManager.extractToolInvocations(response, onlyNative = true)
+
+        assertEquals(1, invocations.size)
+        assertEquals("/tmp/marked", invocations[0].tool.parameters.first { it.name == "path" }.value)
+    }
 }

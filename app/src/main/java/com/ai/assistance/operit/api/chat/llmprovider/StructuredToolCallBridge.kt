@@ -433,13 +433,13 @@ internal object StructuredToolCallBridge {
             }.getOrNull()
 
             val toolTagName = ChatMarkupRegex.generateRandomToolTagName()
-        xml.append("\n<")
-            .append(toolTagName)
-            .append(" name=\"")
-            .append(name)
-            .append("\" data-origin=\"")
-            .append(ChatMarkupRegex.NATIVE_TOOL_CALL_ORIGIN)
-            .append("\">")
+            xml.append("\n<")
+                .append(toolTagName)
+                .append(" name=\"")
+                .append(name)
+                .append("\" data-origin=\"")
+                .append(ChatMarkupRegex.NATIVE_TOOL_CALL_ORIGIN)
+                .append("\">")
 
             if (paramsObj != null) {
                 val keys = paramsObj.keys()

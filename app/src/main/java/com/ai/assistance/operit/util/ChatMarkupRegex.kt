@@ -40,9 +40,12 @@ object ChatMarkupRegex {
 
     /**
      * 检查工具标签 XML 片段是否带有 data-origin="native_tool_call" 标记。
+     * 只检测开标签（第一个 `>` 之前），避免参数内容中的误匹配。
      */
     fun isNativeToolCallOrigin(tagXml: String): Boolean {
-        return nativeOriginAttrRegex.containsMatchIn(tagXml)
+        val openingTagEnd = tagXml.indexOf('>')
+        val openingTag = if (openingTagEnd >= 0) tagXml.substring(0, openingTagEnd + 1) else tagXml
+        return nativeOriginAttrRegex.containsMatchIn(openingTag)
     }
 
     val toolTag = Regex(

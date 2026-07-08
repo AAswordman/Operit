@@ -682,7 +682,7 @@ class GeminiProvider(
             if (enableToolCall) {
                 when (turn.kind) {
                     PromptTurnKind.ASSISTANT -> {
-                    val functionCallPayload = parseXmlToolCalls(content, onlyNative = true)
+                        val functionCallPayload = parseXmlToolCalls(content, onlyNative = true)
                         if (functionCallPayload.functionCalls.isNotEmpty()) {
                             if (openFunctionCallNames.isNotEmpty()) {
                                 flushOpenFunctionCallsAsCancelled("assistant_function_call_before_result")

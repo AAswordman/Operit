@@ -970,7 +970,7 @@ open class OpenAIProvider(
                         }
 
                         PromptTurnKind.ASSISTANT -> {
-                    val (textContent, parsedToolCalls) = parseXmlToolCalls(content, onlyNative = true)
+                            val (textContent, parsedToolCalls) = parseXmlToolCalls(content, onlyNative = true)
                             val toolCalls =
                                 if (parsedToolCalls != null) {
                                     wrapPackageToolCallsWithProxy(parsedToolCalls)
