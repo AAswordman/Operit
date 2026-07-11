@@ -3,12 +3,13 @@ package com.ai.assistance.operit.ui.common.markdown
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.text.StaticLayout
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
-import android.text.style.ImageSpan
 import android.text.style.MetricAffectingSpan
+import android.text.style.ReplacementSpan
 import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.URLSpan
@@ -25,10 +26,71 @@ import com.ai.assistance.operit.util.markdown.MarkdownNodeStable
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.streamnative.NativeMarkdownSplitter
 import ru.noties.jlatexmath.JLatexMathDrawable
+import kotlin.math.ceil
+import kotlin.math.floor
 
 private const val TAG = "MarkdownInlineSpannable"
-private const val INLINE_LATEX_PLACEHOLDER = '\uFFFC'
+internal const val INLINE_LATEX_PLACEHOLDER = '\uFFFC'
 private const val MAX_INLINE_RENDER_DEPTH = 24
+
+/**
+ * Places a formula around the surrounding text's visual center instead of aligning the
+ * drawable's bottom to the text baseline. ImageSpan.ALIGN_BASELINE treats the bottom of a
+ * formula bitmap as its baseline, which shifts fractions, integrals and subscripts upward.
+ *
+ * The same span is also used for block formulas so both rendering paths derive their height
+ * from identical drawable metrics.
+ */
+internal class LatexDrawableSpan(
+    private val drawable: Drawable,
+) : ReplacementSpan() {
+    private val width = drawable.intrinsicWidth.coerceAtLeast(1)
+    private val height = drawable.intrinsicHeight.coerceAtLeast(1)
+
+    init {
+        drawable.setBounds(0, 0, width, height)
+    }
+
+    override fun getSize(
+        paint: Paint,
+        text: CharSequence,
+        start: Int,
+        end: Int,
+        fontMetrics: Paint.FontMetricsInt?,
+    ): Int {
+        fontMetrics?.let { metrics ->
+            val textMetrics = paint.fontMetricsInt
+            val textCenter = (textMetrics.ascent + textMetrics.descent) / 2f
+            val formulaTop = floor(textCenter - height / 2f).toInt()
+            val formulaBottom = ceil(textCenter + height / 2f).toInt()
+
+            metrics.ascent = minOf(textMetrics.ascent, formulaTop)
+            metrics.descent = maxOf(textMetrics.descent, formulaBottom)
+            metrics.top = minOf(textMetrics.top, metrics.ascent)
+            metrics.bottom = maxOf(textMetrics.bottom, metrics.descent)
+        }
+        return width
+    }
+
+    override fun draw(
+        canvas: Canvas,
+        text: CharSequence,
+        start: Int,
+        end: Int,
+        x: Float,
+        top: Int,
+        baseline: Int,
+        bottom: Int,
+        paint: Paint,
+    ) {
+        val textCenter = (paint.ascent() + paint.descent()) / 2f
+        val formulaTop = baseline + textCenter - height / 2f
+        canvas.save()
+        canvas.translate(x, formulaTop)
+        drawable.draw(canvas)
+        canvas.restore()
+    }
+}
 
 private object NestedInlineNodeCache {
     private const val MAX_ENTRIES = 256
@@ -436,7 +498,7 @@ private fun appendInlineNode(
                     builder.append(INLINE_LATEX_PLACEHOLDER)
                     val end = builder.length
                     builder.setSpan(
-                        ImageSpan(drawable, ImageSpan.ALIGN_BASELINE),
+                        LatexDrawableSpan(drawable),
                         start,
                         end,
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE

@@ -61,6 +61,8 @@ import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.stream.Stream
 import java.util.concurrent.ConcurrentHashMap
 import android.graphics.Typeface
+import android.util.TypedValue
+import android.view.Gravity
 import android.widget.TextView
 import ru.noties.jlatexmath.JLatexMathDrawable
 import kotlin.math.floor
@@ -698,6 +700,7 @@ private fun renderNodeContent(
         
         // ========== 块级 LaTeX：保留原组件 ==========
         MarkdownProcessorType.BLOCK_LATEX -> {
+            val formulaTextSizePx = with(density) { fontSizes.bodyMedium.toPx() }
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                 color = Color.Transparent,
@@ -723,34 +726,46 @@ private fun renderNodeContent(
                         AndroidView(
                             factory = { context ->
                                 TextView(context).apply {
-                                    // 设置初始空白状态
-                                    text = ""
+                                    includeFontPadding = false
+                                    gravity = Gravity.CENTER
+                                    setPadding(0, 0, 0, 0)
+                                    setTextSize(TypedValue.COMPLEX_UNIT_PX, formulaTextSizePx)
                                 }
                             },
                             update = { textView ->
-                                // 在update回调中渲染LaTeX公式
                                 try {
                                     val drawable = LatexCache.getDrawable(
                                         latexContent.trim(),
                                         JLatexMathDrawable.builder(latexContent)
-                                            .textSize(14f * textView.resources.displayMetrics.density)
+                                            .textSize(formulaTextSizePx)
                                             .padding(2)
                                             .background(0x00000000)
                                             .align(JLatexMathDrawable.ALIGN_CENTER)
                                             .color(textColor.toArgb())
                                     )
-                                    
-                                    // 设置边界并添加到TextView
-                                    drawable.setBounds(0, 0, drawable.intrinsicWidth, drawable.intrinsicHeight)
-                                    textView.setCompoundDrawables(null, drawable, null, null)
+                                    val formulaText =
+                                        SpannableStringBuilder(INLINE_LATEX_PLACEHOLDER.toString())
+                                    formulaText.setSpan(
+                                        LatexDrawableSpan(drawable),
+                                        0,
+                                        formulaText.length,
+                                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                                    )
+                                    textView.apply {
+                                        includeFontPadding = false
+                                        gravity = Gravity.CENTER
+                                        setPadding(0, 0, 0, 0)
+                                        setTextSize(TypedValue.COMPLEX_UNIT_PX, formulaTextSizePx)
+                                        setTextColor(textColor.toArgb())
+                                        typeface = Typeface.DEFAULT
+                                        text = formulaText
+                                    }
                                 } catch (e: Exception) {
                                     AppLogger.w(TAG, "Block LaTeX render failed, fallback to raw text: $latexContent", e)
-                                    // 渲染失败时回退到公式原文显示，避免整页闪退
-                                    textView.setCompoundDrawables(null, null, null, null)
                                     textView.text = content.trimAll()
                                     textView.setTextColor(textColor.toArgb())
-                                    textView.textSize = 16f
-                                    textView.typeface = android.graphics.Typeface.MONOSPACE
+                                    textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, formulaTextSizePx)
+                                    textView.typeface = Typeface.MONOSPACE
                                 }
                             },
                             modifier = Modifier.wrapContentWidth(unbounded = true)
