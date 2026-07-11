@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.enhance
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.tools.AIToolHandler
@@ -266,7 +267,8 @@ object ToolExecutionManager {
         )
     }
 
-    private fun resolveProxyParameters(tool: AITool): List<ToolParameter> {
+    @VisibleForTesting
+    internal fun resolveProxyParameters(tool: AITool): List<ToolParameter> {
         val paramsRaw = tool.parameters
             .firstOrNull { it.name == "params" }
             ?.value
@@ -276,7 +278,15 @@ object ToolExecutionManager {
             return emptyList()
         }
 
-        val paramsObject = runCatching { JSONObject(paramsRaw) }.getOrNull() ?: return emptyList()
+        val paramsObject = runCatching { JSONObject(paramsRaw) }
+            .recoverCatching {
+                // Issue #657: when the params JSON contains literal quotation
+                // marks inside a string value (e.g. dialogue like 她说"你好"),
+                // XML unescaping + LLM double-escape omission leaves the JSON
+                // invalid. Attempt a best-effort repair before giving up.
+                JSONObject(repairUnescapedQuotesInJson(paramsRaw))
+            }
+            .getOrNull() ?: return emptyList()
         val forwardedParameters = mutableListOf<ToolParameter>()
         val keys = paramsObject.keys()
         while (keys.hasNext()) {
@@ -290,6 +300,84 @@ object ToolExecutionManager {
             forwardedParameters.add(ToolParameter(name = key, value = valueString))
         }
         return forwardedParameters
+    }
+
+    /**
+     * Repairs a JSON string whose interior (string-value) double quotes were
+     * left unescaped, by re-escaping those quotes.
+     *
+     * ### Why this exists (GitHub issue #657)
+     * `package_proxy` params arrive XML-escaped; [unescapeXml] (invoked while
+     * extracting tool calls) converts **all** `&quot;` into literal `"`.
+     * LLMs frequently omit the required double escaping (JSON `\"` **plus**
+     * XML `&quot;`), so a value such as `她说"你好"` ends up breaking the JSON
+     * structure and [JSONObject] throws "params must be a valid JSON object".
+     *
+     * This is a **best-effort** fallback used only after the primary
+     * [JSONObject] parse fails. It walks the text char-by-char, tracks whether
+     * the cursor is currently inside a JSON string value, and re-escapes
+     * interior quotes that are not already escaped. An unescaped `"` is
+     * treated as a structural (closing) quote only when the next
+     * non-whitespace character is one of `,` `}` `]` `:` or end-of-input;
+     * otherwise it is an interior value quote and gets escaped to `\"`.
+     *
+     * The function is **pure and side-effect-free** so it can be unit-tested in
+     * isolation (the host build environment cannot compile the app).
+     *
+     * @param raw the broken JSON text (already XML-unescaped).
+     * @return a best-effort repaired JSON string. The result may still be
+     *   invalid JSON; callers MUST re-validate (e.g. via [JSONObject]).
+     */
+    @VisibleForTesting
+    internal fun repairUnescapedQuotesInJson(raw: String): String {
+        if (raw.isEmpty()) return raw
+        val result = StringBuilder(raw.length + 8)
+        val structuralAfterString = setOf(',', '}', ']', ':')
+        var inString = false
+        var escapeNext = false
+        var i = 0
+        while (i < raw.length) {
+            val c = raw[i]
+            when {
+                escapeNext -> {
+                    // Previous char was a backslash: keep this escape sequence
+                    // (e.g. \" or \n) verbatim so we never double-escape.
+                    result.append(c)
+                    escapeNext = false
+                }
+                c == '\\' -> {
+                    result.append(c)
+                    escapeNext = true
+                }
+                c == '"' -> {
+                    if (inString) {
+                        // Could be the structural closing quote OR an interior
+                        // value quote that was not escaped.
+                        val nextNonWs =
+                            (i + 1 until raw.length)
+                                .firstOrNull { !raw[it].isWhitespace() }
+                                ?: raw.length
+                        val isStructuralClose =
+                            nextNonWs == raw.length ||
+                                raw[nextNonWs] in structuralAfterString
+                        if (isStructuralClose) {
+                            result.append('"')
+                            inString = false
+                        } else {
+                            // Interior value quote left unescaped → escape it.
+                            result.append("\\\"")
+                        }
+                    } else {
+                        // Opening quote of a key or value.
+                        result.append('"')
+                        inString = true
+                    }
+                }
+                else -> result.append(c)
+            }
+            i++
+        }
+        return result.toString()
     }
 
     /**
