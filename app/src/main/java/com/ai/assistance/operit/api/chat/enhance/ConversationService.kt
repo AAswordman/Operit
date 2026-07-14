@@ -523,7 +523,7 @@ class ConversationService(
                 val proxyRolePrompt =
                     proxySenderName
                         ?.takeIf { it.isNotBlank() }
-                        ?.let(characterCardManager::findCharacterCardByName)
+                        ?.let { name -> characterCardManager.findCharacterCardByName(name) }
                         ?.let { proxyCard ->
                             characterCardManager.combinePrompts(
                                 proxyCard.id,

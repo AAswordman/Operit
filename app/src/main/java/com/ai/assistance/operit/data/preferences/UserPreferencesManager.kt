@@ -536,7 +536,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private fun decodeIdList(encoded: String?): List<String> {
-        return encoded?.let { Json.decodeFromString(it) }.orEmpty()
+        return encoded?.let { Json.decodeFromString<List<String>>(it) }.orEmpty()
     }
 
     private fun createDefaultProfile(profileId: String): LegacyUserProfile {

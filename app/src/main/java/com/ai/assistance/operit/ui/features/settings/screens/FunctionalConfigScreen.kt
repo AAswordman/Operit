@@ -639,7 +639,6 @@ fun FunctionConfigCard(
                                                             duplicatesPromptPart = "",
                                                             existingMemoriesPrompt = existingMemoriesPrompt,
                                                             existingFoldersPrompt = existingFoldersPrompt,
-                                                            currentPreferences = "",
                                                             useEnglish = useEnglish
                                                         )
                                                     val userPrompt =
