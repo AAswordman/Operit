@@ -18,7 +18,6 @@ import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.PreferenceProfile
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.core.tools.UIPageResultData
 import com.ai.assistance.operit.core.tools.SimplifiedUINode
@@ -30,7 +29,7 @@ import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
 import com.ai.assistance.operit.data.model.PromptFunctionType
-import com.ai.assistance.operit.data.preferences.preferencesManager
+import com.ai.assistance.operit.data.preferences.UserProfileDocumentRepository
 import com.ai.assistance.operit.core.avatar.impl.factory.AvatarModelFactoryImpl
 import com.ai.assistance.operit.data.repository.AvatarRepository
 import com.ai.assistance.operit.util.ChatMarkupRegex
@@ -39,7 +38,6 @@ import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.util.streamnative.NativeXmlSplitter
 import com.github.difflib.DiffUtils
 import com.github.difflib.UnifiedDiffUtils
-import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -77,7 +75,7 @@ class ConversationService(
     private val characterCardManager = CharacterCardManager.getInstance(context)
     private val characterCardToolAccessResolver = CharacterCardToolAccessResolver.getInstance(context)
     private val activePromptManager = ActivePromptManager.getInstance(context)
-    private val userPreferencesManager = preferencesManager
+    private val userProfileDocumentRepository = UserProfileDocumentRepository.getInstance(context)
     private val avatarRepository by lazy {
         AvatarRepository.getInstance(context, AvatarModelFactoryImpl())
     }
@@ -480,7 +478,7 @@ class ConversationService(
             useToolCallApi: Boolean = false,
             chatModelHasDirectImage: Boolean = false,
             toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
-            preferenceProfileIdOverride: String? = null,
+            memorySpaceIdOverride: String? = null,
             dispatchHistoryHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchPromptHistoryHooks,
             dispatchSystemPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchSystemPromptComposeHooks,
             dispatchToolPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchToolPromptComposeHooks
@@ -519,25 +517,20 @@ class ConversationService(
         conversationMutex.withLock {
             // Add system prompt if not already present
             if (!effectiveChatHistory.any { it.kind == PromptTurnKind.SYSTEM }) {
-                val safeProxySenderName = proxySenderName?.takeIf { it.isNotBlank() }
-
-                val preferencesText = if (safeProxySenderName == null) {
-                    val preferenceProfile =
-                        userPreferencesManager.getUserPreferencesFlow(
-                            preferenceProfileIdOverride?.takeIf { it.isNotBlank() }.orEmpty()
-                        ).first()
-                    buildPreferencesText(preferenceProfile)
-                } else {
-                    val proxyCard = characterCardManager.findCharacterCardByName(safeProxySenderName)
-                    if (proxyCard == null) {
-                        ""
-                    } else {
-                        characterCardManager.combinePrompts(
-                            proxyCard.id,
-                            promptFunctionType = promptFunctionType
-                        )
-                    }
-                }
+                // user.md describes the one human user. Role cards and group proxy senders describe
+                // assistants, so they must never replace or select a different user document.
+                val userProfileMarkdown = userProfileDocumentRepository.load().trim()
+                val proxyRolePrompt =
+                    proxySenderName
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let(characterCardManager::findCharacterCardByName)
+                        ?.let { proxyCard ->
+                            characterCardManager.combinePrompts(
+                                proxyCard.id,
+                                promptFunctionType = promptFunctionType
+                            )
+                        }
+                        .orEmpty()
 
                 // 根据功能类型获取对应的提示词
                 val effectiveRoleCardId = roleCardId?.takeIf { it.isNotBlank() }
@@ -622,10 +615,16 @@ class ConversationService(
                 val finalSystemPrompt = buildString {
                     append(avatarMoodRulesText)
                     append(systemPrompt)
+                    if (proxyRolePrompt.isNotEmpty()) {
+                        append("\n\n<assistant_role source=\"proxy_character_card\">\n")
+                        append(proxyRolePrompt)
+                        append("\n</assistant_role>")
+                    }
                     append(waifuRulesText)
-                    if (!disableUserPreferenceDescription && preferencesText.isNotEmpty()) {
-                        append("\n\nUser preference description: ")
-                        append(preferencesText)
+                    if (!disableUserPreferenceDescription && userProfileMarkdown.isNotEmpty()) {
+                        append("\n\n<user_profile source=\"user.md\">\n")
+                        append(userProfileMarkdown)
+                        append("\n</user_profile>")
                     }
                 }
 
@@ -843,53 +842,6 @@ class ConversationService(
 
         // 将合并后的消息添加到对话历史
         conversationHistory.addAll(mergedSegments)
-    }
-
-    /** Build a formatted preferences text string from a PreferenceProfile */
-    fun buildPreferencesText(profile: PreferenceProfile): String {
-        val parts = mutableListOf<String>()
-
-        if (profile.gender.isNotEmpty()) {
-            parts.add("Gender: ${profile.gender}")
-        }
-
-        if (profile.birthDate > 0) {
-            // Convert timestamp to age and format as text
-            val today = Calendar.getInstance()
-            val birthCal = Calendar.getInstance().apply { timeInMillis = profile.birthDate }
-            var age = today.get(Calendar.YEAR) - birthCal.get(Calendar.YEAR)
-            // Adjust age if birthday hasn't occurred yet this year
-            if (today.get(Calendar.MONTH) < birthCal.get(Calendar.MONTH) ||
-                            (today.get(Calendar.MONTH) == birthCal.get(Calendar.MONTH) &&
-                                    today.get(Calendar.DAY_OF_MONTH) <
-                                            birthCal.get(Calendar.DAY_OF_MONTH))
-            ) {
-                age--
-            }
-            parts.add("Age: $age")
-
-            // Also add birth date for more precise information
-            val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-            parts.add("Birth Date: ${dateFormat.format(java.util.Date(profile.birthDate))}")
-        }
-
-        if (profile.personality.isNotEmpty()) {
-            parts.add("Personality: ${profile.personality}")
-        }
-
-        if (profile.identity.isNotEmpty()) {
-            parts.add("Identity: ${profile.identity}")
-        }
-
-        if (profile.occupation.isNotEmpty()) {
-            parts.add("Occupation: ${profile.occupation}")
-        }
-
-        if (profile.aiStyle.isNotEmpty()) {
-            parts.add("Expected AI Style: ${profile.aiStyle}")
-        }
-
-        return parts.joinToString("; ")
     }
 
     /** Data class for search-replace operations, used for JSON deserialization. */

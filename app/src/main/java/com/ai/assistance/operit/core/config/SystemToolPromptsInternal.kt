@@ -692,15 +692,10 @@ object SystemToolPromptsInternal {
                             )
                         ),
                         ToolPrompt(
-                            name = "update_user_preferences",
-                            description = "Updates user preference information directly. Use this when you learn new information about the user that should be remembered (e.g., their birthday, gender, personality traits, identity, occupation, or preferred AI interaction style). This allows immediate updates without waiting for the automatic system.",
+                            name = "update_user_profile",
+                            description = "Replaces the private user.md profile after the user approves the tool call. Preserve useful existing content and write the complete Markdown document.",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "birth_date", type = "integer", description = "optional, Unix timestamp in milliseconds", required = false),
-                                ToolParameterSchema(name = "gender", type = "string", description = "optional, string", required = false),
-                                ToolParameterSchema(name = "personality", type = "string", description = "optional, string describing personality traits", required = false),
-                                ToolParameterSchema(name = "identity", type = "string", description = "optional, string describing identity/role", required = false),
-                                ToolParameterSchema(name = "occupation", type = "string", description = "optional, string", required = false),
-                                ToolParameterSchema(name = "ai_style", type = "string", description = "optional, string describing preferred AI interaction style. At least one parameter must be provided", required = false)
+                                ToolParameterSchema(name = "markdown", type = "string", description = "required, complete contents of user.md, maximum 12000 characters", required = true)
                             )
                         )
                     )
@@ -3689,15 +3684,10 @@ object SystemToolPromptsInternal {
                             )
                         ),
                         ToolPrompt(
-                            name = "update_user_preferences",
-                            description = "直接更新用户偏好信息。当你了解到用户的新信息时使用（例如生日、性别、性格特征、身份、职业或首选AI交互风格）。这允许立即更新而无需等待自动系统。",
+                            name = "update_user_profile",
+                            description = "在用户批准工具调用后替换私有 user.md。保留仍然有用的现有内容，并写入完整的 Markdown 文档。",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "birth_date", type = "integer", description = "可选, Unix时间戳，毫秒", required = false),
-                                ToolParameterSchema(name = "gender", type = "string", description = "可选, 字符串", required = false),
-                                ToolParameterSchema(name = "personality", type = "string", description = "可选, 描述性格特征的字符串", required = false),
-                                ToolParameterSchema(name = "identity", type = "string", description = "可选, 描述身份/角色的字符串", required = false),
-                                ToolParameterSchema(name = "occupation", type = "string", description = "可选, 字符串", required = false),
-                                ToolParameterSchema(name = "ai_style", type = "string", description = "可选, 描述首选AI交互风格的字符串. 必须提供至少一个参数", required = false)
+                                ToolParameterSchema(name = "markdown", type = "string", description = "必需，user.md 的完整内容，最多 12000 个字符", required = true)
                             )
                         )
                     )

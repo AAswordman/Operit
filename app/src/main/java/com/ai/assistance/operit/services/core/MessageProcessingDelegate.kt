@@ -598,7 +598,7 @@ class MessageProcessingDelegate(
             enableSummary: Boolean = true,
             chatModelConfigIdOverride: String? = null,
             chatModelIndexOverride: Int? = null,
-            preferenceProfileIdOverride: String? = null,
+            memorySpaceIdOverride: String? = null,
             suppressUserMessageInHistory: Boolean = false,
             isGroupOrchestrationTurn: Boolean = false,
             groupParticipantNamesText: String? = null,
@@ -873,7 +873,7 @@ class MessageProcessingDelegate(
                             groupParticipantNamesText = groupParticipantNamesText,
                             chatModelConfigIdOverride = chatModelConfigIdOverride,
                             chatModelIndexOverride = chatModelIndexOverride,
-                            preferenceProfileIdOverride = preferenceProfileIdOverride,
+                            memorySpaceIdOverride = memorySpaceIdOverride,
                             publishEstimate = false
                         )
                     }.onFailure {
@@ -964,7 +964,7 @@ class MessageProcessingDelegate(
                     notifyReplyOverride = turnOptions.notifyReply,
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
-                    preferenceProfileIdOverride = preferenceProfileIdOverride,
+                    memorySpaceIdOverride = memorySpaceIdOverride,
                     disableWarning = turnOptions.disableWarning
                 )
                 logMessageTiming(
@@ -1454,7 +1454,7 @@ class MessageProcessingDelegate(
         tokenUsageThreshold: Double,
         chatModelConfigIdOverride: String?,
         chatModelIndexOverride: Int?,
-        preferenceProfileIdOverride: String?,
+        memorySpaceIdOverride: String?,
         groupOrchestrationMode: Boolean,
         groupParticipantNamesText: String?,
         onVariantPreviewStarted: suspend (ChatMessage) -> Unit,
@@ -1552,7 +1552,7 @@ class MessageProcessingDelegate(
                     onToolInvocation = { incrementCurrentTurnToolInvocationCount(chatId) },
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
-                    preferenceProfileIdOverride = preferenceProfileIdOverride,
+                    memorySpaceIdOverride = memorySpaceIdOverride,
                 )
 
             val sharedResponseStream = responseStream

@@ -117,7 +117,7 @@ import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.ModelConfigSummary
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getModelList
 import com.ai.assistance.operit.data.model.getValidModelIndex
@@ -360,8 +360,8 @@ fun AgentChatInputSection(
     val configMappingWithIndex by
         functionalConfigManager.functionConfigMappingWithIndexFlow.collectAsState(initial = emptyMap())
     var configSummaries by remember { mutableStateOf<List<ModelConfigSummary>>(emptyList()) }
-    val activeProfileId by userPreferencesManager.activeProfileIdFlow.collectAsState(initial = "default")
-    var preferenceProfiles by remember { mutableStateOf<List<PreferenceProfile>>(emptyList()) }
+    val activeProfileId by userPreferencesManager.activeMemorySpaceIdFlow.collectAsState(initial = "default")
+    var preferenceProfiles by remember { mutableStateOf<List<MemorySpace>>(emptyList()) }
     val currentConfigMapping =
         configMappingWithIndex[FunctionType.CHAT]
             ?: FunctionConfigMapping(FunctionalConfigManager.DEFAULT_CONFIG_ID, 0)
@@ -385,9 +385,9 @@ fun AgentChatInputSection(
 
     LaunchedEffect(Unit) {
         configSummaries = modelConfigManager.getAllConfigSummaries()
-        val profileIds = userPreferencesManager.profileListFlow.first()
+        val profileIds = userPreferencesManager.memorySpaceListFlow.first()
         preferenceProfiles =
-            profileIds.map { profileId -> userPreferencesManager.getUserPreferencesFlow(profileId).first() }
+            profileIds.map { profileId -> userPreferencesManager.getMemorySpaceFlow(profileId).first() }
     }
 
     LaunchedEffect(showModelSelectorPopup.value) {
@@ -584,7 +584,7 @@ fun AgentChatInputSection(
             }
         } else {
             scope.launch {
-                userPreferencesManager.setActiveProfile(selectedId)
+                userPreferencesManager.setActiveMemorySpace(selectedId)
                 EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
                 showExtraSettingsPopup.value = false
             }
@@ -2278,7 +2278,7 @@ private fun AgentModelSelectorItem(
 private fun AgentExtraSettingsPopup(
     visible: Boolean,
     popupContainerColor: Color,
-    preferenceProfiles: List<PreferenceProfile>,
+    preferenceProfiles: List<MemorySpace>,
     currentProfileId: String,
     onSelectMemory: (String) -> Unit,
     onManageMemory: () -> Unit,
@@ -2526,7 +2526,7 @@ private fun AgentExtraSettingsPopup(
 
 @Composable
 private fun AgentMemorySelectorItem(
-    preferenceProfiles: List<PreferenceProfile>,
+    preferenceProfiles: List<MemorySpace>,
     currentProfileId: String,
     onSelectMemory: (String) -> Unit,
     expanded: Boolean,

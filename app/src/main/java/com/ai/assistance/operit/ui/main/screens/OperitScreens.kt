@@ -62,7 +62,6 @@ import com.ai.assistance.operit.ui.features.settings.screens.SettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.SpeechServicesSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ThemeSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ToolPermissionSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.UserPreferencesGuideScreen
 import com.ai.assistance.operit.ui.features.settings.screens.UserPreferencesSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.MnnModelDownloadScreen
 import com.ai.assistance.operit.ui.features.settings.screens.TokenUsageStatisticsScreen
@@ -776,27 +775,6 @@ sealed class Screen(
         }
     }
 
-    data class UserPreferencesGuide(var profileName: String = "", var profileId: String = "") :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_user_preferences_guide) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            UserPreferencesGuideScreen(
-                    profileName = profileName,
-                    profileId = profileId,
-                    onComplete = onGoBack,
-                    navigateToPermissions = { navigateTo(ShizukuCommands) }
-            )
-        }
-    }
-
     data object UserPreferencesSettings :
             Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_user_preferences_settings) {
         @Composable
@@ -809,12 +787,7 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            UserPreferencesSettingsScreen(
-                    onNavigateBack = onGoBack,
-                    onNavigateToGuide = { profileName, profileId ->
-                        navigateTo(UserPreferencesGuide(profileName, profileId))
-                    }
-            )
+            UserPreferencesSettingsScreen(onNavigateBack = onGoBack)
         }
     }
 
@@ -1519,5 +1492,4 @@ object GestureStateHolder {
     // 聊天界面手势是否被消费的状态
     var isChatScreenGestureConsumed: Boolean = false
 }
-
 

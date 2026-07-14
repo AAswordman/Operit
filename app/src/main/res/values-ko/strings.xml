@@ -863,7 +863,7 @@
     <string name="install_failed">내장 Shizuku 설치에 실패했습니다. 앱 스토어에서 설치해 보세요.</string>
     <string name="user_preferences_guide">개인화 설정</string>
     <string name="user_preferences">사용자 기본 설정</string>
-    <string name="user_preferences_settings">상세 사용자 기본 설정</string>
+    <string name="user_preferences_settings">사용자 프로필 (user.md)</string>
     <string name="custom_description">맞춤형 소개</string>
     <string name="preferences_hint">개인 소개를 입력하세요(최대 100자).</string>
     <string name="enter_preferences">여기에 개인 소개를 입력하세요...</string>
@@ -1426,8 +1426,8 @@
     <string name="manage_tools">도구 관리</string>
     <string name="tool_prompt_manager_title">도구 프롬프트 관리자</string>
     <string name="manage_packages">패키지 관리</string>
-    <string name="disable_user_preference_description">사용자 기본 설정 설명 비활성화</string>
-    <string name="disable_user_preference_description_desc">비활성화되면 시스템 프롬프트에 더 이상 "사용자 기본 설정 설명" 섹션이 추가되지 않습니다.</string>
+    <string name="disable_user_preference_description">user.md 비활성화</string>
+    <string name="disable_user_preference_description_desc">비활성화하면 시스템 프롬프트에 user.md가 삽입되지 않습니다.</string>
     <string name="reply_message">답글</string>
     <string name="pause_reading">읽기 일시 중지</string>
     <string name="resume_reading">읽기 재개</string>
@@ -2751,7 +2751,7 @@
     <string name="prompt">프롬프트</string>
     <string name="prompt_desc">여기에서 구성된 프롬프트를 선택하거나 아래의 구성 관리를 클릭하여 프롬프트를 생성하거나 수정합니다.</string>
     <string name="memory">메모리</string>
-    <string name="memory_desc">메모리 선택에는 사용자 기본 설정과 해당 기본 설정의 메모리 베이스가 포함됩니다. 새 메모리 베이스를 생성하려면 설정으로 이동하여 새 사용자 기본 설정을 생성하고 여기에서 선택하세요.</string>
+    <string name="memory_desc">현재 대화에서 사용할 독립 메모리 공간을 선택합니다.</string>
     <string name="memory_auto_update">메모리 자동 저장</string>
     <string name="memory_auto_update_desc">활성화되면 현재 대화의 후보 콘텐츠는 응답이 완료된 후 대기열에 추가된 다음 앱 프로세스가 활성 상태로 유지되는 동안 주기적인 백그라운드 처리를 통해 메모리 라이브러리에 기록됩니다.</string>
     <string name="memory_auto_update_runtime_status">추출 대기 중인 메모리 항목: %1$d개, 다음 저장까지 %2$d분</string>
@@ -3560,7 +3560,7 @@
     <string name="screen_title_memory_base">메모리 베이스</string>
     <string name="screen_title_tool_permissions">도구 권한</string>
     <string name="screen_title_user_preferences_guide">사용자 기본 설정 가이드</string>
-    <string name="screen_title_user_preferences_settings">사용자 기본 설정</string>
+    <string name="screen_title_user_preferences_settings">사용자 프로필 (user.md)</string>
     <string name="screen_title_model_config">모델 및 매개변수 구성</string>
     <string name="screen_title_speech_services_settings">음성 서비스 설정</string>
     <string name="screen_title_persona_card_generation">페르소나 카드 생성</string>
@@ -5123,7 +5123,7 @@
     <string name="toolreg_user_pref_occupation">직업</string>
     <string name="toolreg_user_pref_ai_style">AI 스타일</string>
     <string name="toolreg_list_separator">, </string>
-    <string name="toolreg_update_user_preferences_desc">사용자 기본 설정 업데이트: %1$s</string>
+    <string name="toolreg_update_user_profile_desc">사용자 프로필 문서 업데이트: %1$s</string>
     <string name="toolreg_create_memory_desc">메모리 생성: %1$s</string>
     <string name="toolreg_update_memory_desc">메모리 업데이트: %1$s -&gt; %2$s</string>
     <string name="toolreg_delete_memory_desc">메모리 삭제: %1$s</string>

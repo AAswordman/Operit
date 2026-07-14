@@ -725,34 +725,31 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             }
     )
 
-    // 注册用户偏好更新工具
+    // Register the document-level profile update. The normal tool confirmation UI is the safety
+    // boundary; unlike the released analyzer, no background process may rewrite user.md.
     handler.registerTool(
-            name = "update_user_preferences",
+            name = "update_user_profile",
             descriptionGenerator = { tool ->
-                val params = mutableListOf<String>()
-                tool.parameters.forEach { param ->
-                    val label =
-                            when (param.name) {
-                                "birth_date" -> s(R.string.toolreg_user_pref_birth_date)
-                                "gender" -> s(R.string.toolreg_user_pref_gender)
-                                "personality" -> s(R.string.toolreg_user_pref_personality)
-                                "identity" -> s(R.string.toolreg_user_pref_identity)
-                                "occupation" -> s(R.string.toolreg_user_pref_occupation)
-                                "ai_style" -> s(R.string.toolreg_user_pref_ai_style)
-                                else -> null
-                            }
-                    if (label != null) {
-                        params.add(label)
-                    }
-                }
                 s(
-                        R.string.toolreg_update_user_preferences_desc,
-                        params.joinToString(s(R.string.toolreg_list_separator))
+                        R.string.toolreg_update_user_profile_desc,
+                        "user.md"
                 )
             },
             executor = { tool ->
                 val memoryTool = ToolGetter.getMemoryQueryToolExecutor(context)
                 memoryTool.invoke(tool)
+            }
+    )
+
+    // Compatibility for released packages and persisted calls. It is intentionally absent from
+    // the current system-tool prompt, so new conversations use only update_user_profile.
+    handler.registerTool(
+            name = "update_user_preferences",
+            descriptionGenerator = {
+                s(R.string.toolreg_update_user_profile_desc, "user.md")
+            },
+            executor = { tool ->
+                ToolGetter.getMemoryQueryToolExecutor(context).invoke(tool)
             }
     )
 

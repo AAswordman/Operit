@@ -9,7 +9,9 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.LegacyUserProfile
+import com.ai.assistance.operit.data.model.MemorySpace
+import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -34,14 +36,18 @@ val preferencesManager: UserPreferencesManager
 fun initUserPreferencesManager(context: Context, defaultProfileName: String = "Default") {
     val manager = UserPreferencesManager.getInstance(context)
 
-    // 在后台初始化默认配置
+    // Migration must finish before the default memory space is created. Otherwise a fresh default
+    // entry could hide the released profile metadata that still owns existing ObjectBox databases.
     GlobalScope.launch {
-        val profiles = manager.profileListFlow.first()
-        if (profiles.isEmpty() || !profiles.contains("default")) {
-            manager.createProfile(defaultProfileName, isDefault = true)
-        }
+        UserProfileDocumentRepository.getInstance(context).initialize()
+        manager.ensureDefaultMemorySpace(defaultProfileName)
     }
 }
+
+data class LegacyUserProfileSnapshot(
+    val activeProfileId: String,
+    val profiles: List<LegacyUserProfile>
+)
 
 class UserPreferencesManager private constructor(private val context: Context) {
     companion object {
@@ -60,9 +66,13 @@ class UserPreferencesManager private constructor(private val context: Context) {
             }
         }
 
-        // 基本偏好相关键
+        // Released structured-profile keys. These are read only by schema-v2 migration.
         private val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
         private val PROFILE_LIST = stringPreferencesKey("profile_list")
+
+        // Memory spaces replace preference profiles while retaining their stable identifiers.
+        private val ACTIVE_MEMORY_SPACE_ID = stringPreferencesKey("active_memory_space_id")
+        private val MEMORY_SPACE_LIST = stringPreferencesKey("memory_space_list")
 
         // 应用语言设置
         private val APP_LANGUAGE = stringPreferencesKey("app_language")
@@ -370,29 +380,171 @@ class UserPreferencesManager private constructor(private val context: Context) {
         }
     }
 
-    // 获取当前激活的用户偏好配置文件ID
-    val activeProfileIdFlow: Flow<String> =
-            context.userPreferencesDataStore.data.map { preferences ->
-                preferences[ACTIVE_PROFILE_ID] ?: DEFAULT_PROFILE_ID
-            }
+    val activeMemorySpaceIdFlow: Flow<String> =
+        context.userPreferencesDataStore.data.map { preferences ->
+            preferences[ACTIVE_MEMORY_SPACE_ID] ?: DEFAULT_PROFILE_ID
+        }
 
-    // 获取配置文件列表
-    val profileListFlow: Flow<List<String>> =
-            context.userPreferencesDataStore.data.map { preferences ->
-                val profileListJson = preferences[PROFILE_LIST] ?: "[]"
-                try {
-                    val profileList =
-                            Json.decodeFromString<List<String>>(profileListJson).toMutableList()
-                    // 确保默认配置总是在列表中，即使在存储中不存在
-                    if (!profileList.contains(DEFAULT_PROFILE_ID)) {
-                        profileList.add(0, DEFAULT_PROFILE_ID)
-                    }
-                    profileList
-                } catch (e: Exception) {
-                    // 如果解析失败，至少返回包含默认配置的列表
-                    listOf(DEFAULT_PROFILE_ID)
+    val memorySpaceListFlow: Flow<List<String>> =
+        context.userPreferencesDataStore.data.map { preferences ->
+            preferences[MEMORY_SPACE_LIST]
+                ?.let { Json.decodeFromString<List<String>>(it) }
+                .orEmpty()
+        }
+
+    fun getMemorySpaceFlow(memorySpaceId: String = ""): Flow<MemorySpace> {
+        return context.userPreferencesDataStore.data.map { preferences ->
+            val targetId =
+                memorySpaceId.ifBlank {
+                    preferences[ACTIVE_MEMORY_SPACE_ID] ?: DEFAULT_PROFILE_ID
                 }
+            val encoded =
+                requireNotNull(preferences[stringPreferencesKey("memory_space_$targetId")]) {
+                    "Missing memory space metadata: $targetId"
+                }
+            Json.decodeFromString<MemorySpace>(encoded)
+        }
+    }
+
+    suspend fun ensureDefaultMemorySpace(defaultName: String) {
+        val ids = memorySpaceListFlow.first()
+        val storedDefault =
+            context.userPreferencesDataStore.data.first()[stringPreferencesKey("memory_space_$DEFAULT_PROFILE_ID")]
+        if (!ids.contains(DEFAULT_PROFILE_ID) || storedDefault == null) {
+            createMemorySpace(defaultName, isDefault = true)
+        }
+    }
+
+    suspend fun createMemorySpace(name: String, isDefault: Boolean = false): String {
+        val id = if (isDefault) DEFAULT_PROFILE_ID else "memory_${System.currentTimeMillis()}"
+        val space = MemorySpace(id, name)
+        context.userPreferencesDataStore.edit { preferences ->
+            val ids = decodeIdList(preferences[MEMORY_SPACE_LIST]).toMutableList()
+            if (!ids.contains(id)) ids.add(id)
+            preferences[MEMORY_SPACE_LIST] = Json.encodeToString(ids)
+            preferences[stringPreferencesKey("memory_space_$id")] = Json.encodeToString(space)
+            if (preferences[ACTIVE_MEMORY_SPACE_ID] == null) {
+                preferences[ACTIVE_MEMORY_SPACE_ID] = id
             }
+        }
+        return id
+    }
+
+    suspend fun setActiveMemorySpace(memorySpaceId: String) {
+        context.userPreferencesDataStore.edit { preferences ->
+            val ids = decodeIdList(preferences[MEMORY_SPACE_LIST])
+            require(ids.contains(memorySpaceId)) { "Unknown memory space: $memorySpaceId" }
+            preferences[ACTIVE_MEMORY_SPACE_ID] = memorySpaceId
+        }
+    }
+
+    suspend fun updateMemorySpace(space: MemorySpace) {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[stringPreferencesKey("memory_space_${space.id}")] = Json.encodeToString(space)
+        }
+    }
+
+    suspend fun deleteMemorySpace(memorySpaceId: String) {
+        if (memorySpaceId == DEFAULT_PROFILE_ID) return
+        val characterCardManager = CharacterCardManager.getInstance(context)
+        characterCardManager.getAllCharacterCards()
+            .filter { it.memoryProfileId == memorySpaceId }
+            .forEach { card ->
+                characterCardManager.updateCharacterCard(
+                    card.copy(
+                        memoryProfileBindingMode = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL,
+                        memoryProfileId = null
+                    )
+                )
+            }
+        context.userPreferencesDataStore.edit { preferences ->
+            val ids = decodeIdList(preferences[MEMORY_SPACE_LIST]).toMutableList()
+            ids.remove(memorySpaceId)
+            preferences[MEMORY_SPACE_LIST] = Json.encodeToString(ids)
+            preferences.remove(stringPreferencesKey("memory_space_$memorySpaceId"))
+            if (preferences[ACTIVE_MEMORY_SPACE_ID] == memorySpaceId) {
+                preferences[ACTIVE_MEMORY_SPACE_ID] = DEFAULT_PROFILE_ID
+            }
+        }
+        ObjectBoxManager.delete(context, memorySpaceId)
+    }
+
+    suspend fun readLegacyUserProfiles(): LegacyUserProfileSnapshot {
+        val preferences = context.userPreferencesDataStore.data.first()
+        if (preferences[PROFILE_LIST] == null && preferences[MEMORY_SPACE_LIST] != null) {
+            // A process may stop after the DataStore rewrite and before the separate schema marker
+            // is committed. Reconstructing the snapshot from the new keys makes migration
+            // idempotent and prevents a retry from collapsing existing spaces to only "default".
+            val memorySpaceIds = decodeIdList(preferences[MEMORY_SPACE_LIST]).toMutableList()
+            if (!memorySpaceIds.contains(DEFAULT_PROFILE_ID)) {
+                memorySpaceIds.add(0, DEFAULT_PROFILE_ID)
+            }
+            val spaces = memorySpaceIds.distinct().map { id ->
+                val encoded =
+                    requireNotNull(preferences[stringPreferencesKey("memory_space_$id")]) {
+                        "Missing migrated memory space metadata: $id"
+                    }
+                val name = Json.decodeFromString<MemorySpace>(encoded).name
+                LegacyUserProfile(id = id, name = name)
+            }
+            return LegacyUserProfileSnapshot(
+                activeProfileId = preferences[ACTIVE_MEMORY_SPACE_ID] ?: DEFAULT_PROFILE_ID,
+                profiles = spaces
+            )
+        }
+
+        val activeId = preferences[ACTIVE_PROFILE_ID] ?: DEFAULT_PROFILE_ID
+        val ids = decodeIdList(preferences[PROFILE_LIST]).toMutableList()
+        if (!ids.contains(DEFAULT_PROFILE_ID)) ids.add(0, DEFAULT_PROFILE_ID)
+        val profiles = ids.distinct().map { id ->
+            val encoded = preferences[stringPreferencesKey("profile_$id")]
+            if (encoded == null) {
+                createDefaultProfile(id)
+            } else {
+                Json.decodeFromString<LegacyUserProfile>(encoded)
+            }
+        }
+        return LegacyUserProfileSnapshot(activeId, profiles)
+    }
+
+    suspend fun migrateLegacyProfilesToMemorySpaces(snapshot: LegacyUserProfileSnapshot) {
+        context.userPreferencesDataStore.edit { preferences ->
+            val profiles =
+                snapshot.profiles.ifEmpty {
+                    listOf(createDefaultProfile(DEFAULT_PROFILE_ID))
+                }
+            val ids = profiles.map { it.id }.distinct().toMutableList()
+            if (!ids.contains(DEFAULT_PROFILE_ID)) ids.add(0, DEFAULT_PROFILE_ID)
+            preferences[MEMORY_SPACE_LIST] = Json.encodeToString(ids)
+            val activeId = snapshot.activeProfileId.takeIf(ids::contains) ?: DEFAULT_PROFILE_ID
+            preferences[ACTIVE_MEMORY_SPACE_ID] = activeId
+            profiles.forEach { profile ->
+                val space = MemorySpace(profile.id, profile.name)
+                preferences[stringPreferencesKey("memory_space_${profile.id}")] =
+                    Json.encodeToString(space)
+                preferences.remove(stringPreferencesKey("profile_${profile.id}"))
+            }
+            preferences.remove(ACTIVE_PROFILE_ID)
+            preferences.remove(PROFILE_LIST)
+            preferences.remove(BIRTH_DATE_LOCKED)
+            preferences.remove(GENDER_LOCKED)
+            preferences.remove(PERSONALITY_LOCKED)
+            preferences.remove(IDENTITY_LOCKED)
+            preferences.remove(OCCUPATION_LOCKED)
+            preferences.remove(AI_STYLE_LOCKED)
+        }
+    }
+
+    private fun decodeIdList(encoded: String?): List<String> {
+        return encoded?.let { Json.decodeFromString(it) }.orEmpty()
+    }
+
+    private fun createDefaultProfile(profileId: String): LegacyUserProfile {
+        return LegacyUserProfile(
+            id = profileId,
+            name = if (profileId == DEFAULT_PROFILE_ID) "Default" else profileId
+        )
+    }
 
     // 主题相关Flow
     val themeMode: Flow<String> =
@@ -1558,236 +1710,6 @@ class UserPreferencesManager private constructor(private val context: Context) {
             preferences.remove(CUSTOM_FONT_PATH)
             preferences.remove(FONT_SCALE)
         }
-    }
-
-    // 获取指定配置文件的用户偏好
-    fun getUserPreferencesFlow(profileId: String = ""): Flow<PreferenceProfile> {
-        return context.userPreferencesDataStore.data.map { preferences ->
-            val targetProfileId =
-                    if (profileId.isEmpty()) {
-                        preferences[ACTIVE_PROFILE_ID] ?: DEFAULT_PROFILE_ID
-                    } else {
-                        profileId
-                    }
-
-            val profileKey = stringPreferencesKey("profile_$targetProfileId")
-            val profileJson = preferences[profileKey]
-
-            if (profileJson != null) {
-                try {
-                    Json.decodeFromString<PreferenceProfile>(profileJson)
-                } catch (e: Exception) {
-                    createDefaultProfile(targetProfileId)
-                }
-            } else {
-                createDefaultProfile(targetProfileId)
-            }
-        }
-    }
-
-    // 创建默认的配置文件
-    private fun createDefaultProfile(profileId: String): PreferenceProfile {
-        return PreferenceProfile(
-                id = profileId,
-                name = if (profileId == DEFAULT_PROFILE_ID) "Default" else profileId,
-                birthDate = 0L,
-                gender = "",
-                occupation = "",
-                personality = "",
-                identity = "",
-                aiStyle = "",
-                isInitialized = false
-        )
-    }
-
-    // 获取分类锁定状态
-    val categoryLockStatusFlow: Flow<Map<String, Boolean>> =
-            context.userPreferencesDataStore.data.map { preferences ->
-                mapOf(
-                        "birthDate" to (preferences[BIRTH_DATE_LOCKED] ?: false),
-                        "gender" to (preferences[GENDER_LOCKED] ?: false),
-                        "personality" to (preferences[PERSONALITY_LOCKED] ?: false),
-                        "identity" to (preferences[IDENTITY_LOCKED] ?: false),
-                        "occupation" to (preferences[OCCUPATION_LOCKED] ?: false),
-                        "aiStyle" to (preferences[AI_STYLE_LOCKED] ?: false)
-                )
-            }
-
-    // 检查指定分类是否被锁定
-    fun isCategoryLocked(category: String): Boolean {
-        return runBlocking {
-            val lockStatusMap = categoryLockStatusFlow.first()
-            lockStatusMap[category] ?: false
-        }
-    }
-
-    // 设置分类锁定状态
-    suspend fun setCategoryLocked(category: String, locked: Boolean) {
-        context.userPreferencesDataStore.edit { preferences ->
-            when (category) {
-                "birthDate" -> preferences[BIRTH_DATE_LOCKED] = locked
-                "gender" -> preferences[GENDER_LOCKED] = locked
-                "personality" -> preferences[PERSONALITY_LOCKED] = locked
-                "identity" -> preferences[IDENTITY_LOCKED] = locked
-                "occupation" -> preferences[OCCUPATION_LOCKED] = locked
-                "aiStyle" -> preferences[AI_STYLE_LOCKED] = locked
-            }
-        }
-    }
-
-    // 同步检查偏好是否已初始化
-    fun isPreferencesInitialized(): Boolean {
-        return runBlocking {
-            val activeProfile = getUserPreferencesFlow().first()
-            activeProfile.isInitialized
-        }
-    }
-
-    // 创建新的配置文件
-    suspend fun createProfile(name: String, isDefault: Boolean = false): String {
-        val profileId =
-                if (isDefault) DEFAULT_PROFILE_ID
-                else "profile_${System.currentTimeMillis()}"
-        val newProfile =
-                PreferenceProfile(
-                        id = profileId,
-                        name = name,
-                        birthDate = 0L,
-                        gender = "",
-                        occupation = "",
-                        personality = "",
-                        identity = "",
-                        aiStyle = "",
-                        isInitialized = false
-                )
-
-        context.userPreferencesDataStore.edit { preferences ->
-            // 添加到配置文件列表
-            val currentList =
-                    try {
-                        val listJson = preferences[PROFILE_LIST] ?: "[]"
-                        Json.decodeFromString<List<String>>(listJson).toMutableList()
-                    } catch (e: Exception) {
-                        mutableListOf()
-                    }
-
-            if (!currentList.contains(profileId)) {
-                currentList.add(profileId)
-            }
-
-            preferences[PROFILE_LIST] = Json.encodeToString(currentList)
-
-            // 保存配置文件内容
-            val profileKey = stringPreferencesKey("profile_$profileId")
-            preferences[profileKey] = Json.encodeToString(newProfile)
-
-            // 默认锁定出生日期
-            preferences[BIRTH_DATE_LOCKED] = true
-        }
-
-        return profileId
-    }
-
-    // 设置激活的配置文件
-    suspend fun setActiveProfile(profileId: String) {
-        context.userPreferencesDataStore.edit { preferences ->
-            preferences[ACTIVE_PROFILE_ID] = profileId
-        }
-    }
-
-    // 更新指定配置文件
-    suspend fun updateProfile(profile: PreferenceProfile) {
-        context.userPreferencesDataStore.edit { preferences ->
-            val profileKey = stringPreferencesKey("profile_${profile.id}")
-            preferences[profileKey] = Json.encodeToString(profile)
-        }
-    }
-
-    // 更新配置文件中的特定分类
-    suspend fun updateProfileCategory(
-            profileId: String = "",
-            birthDate: Long? = null,
-            gender: String? = null,
-            personality: String? = null,
-            identity: String? = null,
-            occupation: String? = null,
-            aiStyle: String? = null
-    ) {
-        val targetProfileId =
-                if (profileId.isEmpty()) {
-                    context.userPreferencesDataStore.data.first()[ACTIVE_PROFILE_ID]
-                            ?: DEFAULT_PROFILE_ID
-                } else {
-                    profileId
-                }
-
-        val currentProfile = getUserPreferencesFlow(targetProfileId).first()
-
-        // 检查每个分类的锁定状态，如果锁定则不更新
-        val updatedProfile =
-                currentProfile.copy(
-                        birthDate =
-                                if (birthDate != null && !isCategoryLocked("birthDate")) birthDate
-                                else currentProfile.birthDate,
-                        gender =
-                                if (gender != null && !isCategoryLocked("gender")) gender
-                                else currentProfile.gender,
-                        personality =
-                                if (personality != null && !isCategoryLocked("personality"))
-                                        personality
-                                else currentProfile.personality,
-                        identity =
-                                if (identity != null && !isCategoryLocked("identity")) identity
-                                else currentProfile.identity,
-                        occupation =
-                                if (occupation != null && !isCategoryLocked("occupation"))
-                                        occupation
-                                else currentProfile.occupation,
-                        aiStyle =
-                                if (aiStyle != null && !isCategoryLocked("aiStyle")) aiStyle
-                                else currentProfile.aiStyle,
-                        isInitialized = true
-                )
-
-        updateProfile(updatedProfile)
-    }
-
-    // 删除配置文件
-    suspend fun deleteProfile(profileId: String) {
-        if (profileId == DEFAULT_PROFILE_ID) {
-            // 不允许删除默认配置
-            return
-        }
-
-        context.userPreferencesDataStore.edit { preferences ->
-            // 从列表中删除
-            val currentList =
-                    try {
-                        val listJson = preferences[PROFILE_LIST] ?: "[]"
-                        Json.decodeFromString<List<String>>(listJson).toMutableList()
-                    } catch (e: Exception) {
-                        mutableListOf()
-                    }
-
-            currentList.remove(profileId)
-            preferences[PROFILE_LIST] = Json.encodeToString(currentList)
-
-            // 删除配置文件内容
-            val profileKey = stringPreferencesKey("profile_$profileId")
-            preferences.remove(profileKey)
-
-            // 如果当前活动的是被删除的配置文件，则切换到默认配置
-            if (preferences[ACTIVE_PROFILE_ID] == profileId) {
-                preferences[ACTIVE_PROFILE_ID] = DEFAULT_PROFILE_ID
-            }
-        }
-        // 删除对应的记忆库数据库
-        ObjectBoxManager.delete(context, profileId)
-    }
-
-    // 重置用户偏好
-    suspend fun resetPreferences() {
-        context.userPreferencesDataStore.edit { preferences -> preferences.clear() }
     }
 
     // ========== 角色卡/群组主题绑定功能 ==========

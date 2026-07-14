@@ -397,7 +397,7 @@ private fun getSubfolders(parentPath: String, allPaths: List<String>): Set<Strin
  */
 private suspend fun loadFolderPaths(context: Context): List<String> = withContext(Dispatchers.IO) {
     try {
-        val profileId = preferencesManager.activeProfileIdFlow.first()
+        val profileId = preferencesManager.activeMemorySpaceIdFlow.first()
         AppLogger.d("MemoryFolderDialog", "Loading folders for profileId: $profileId")
         val repository = MemoryRepository(context, profileId)
         val folders = repository.getAllFolderPaths()

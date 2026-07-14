@@ -38,45 +38,135 @@ data class FolderExpandedState(
 )
 
 /**
- * 配置文件选择器
+ * Memory-space selector and metadata controls. Memory contents stay in the existing ObjectBox
+ * database keyed by the stable space id.
  */
 @Composable
 private fun ProfileSelector(
     profileList: List<String>,
     profileNameMap: Map<String, String>,
     selectedProfileId: String,
-    onProfileSelected: (String) -> Unit
+    onProfileSelected: (String) -> Unit,
+    onMemorySpaceCreate: (String) -> Unit,
+    onMemorySpaceRename: (String, String) -> Unit,
+    onMemorySpaceDelete: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // It's possible selectedProfileId is not in profileNameMap yet if things are loading.
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var editedName by remember { mutableStateOf("") }
     val selectedProfileName = profileNameMap[selectedProfileId] ?: selectedProfileId
 
-    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(selectedProfileName, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Profile")
-        }
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Box {
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(selectedProfileName, modifier = Modifier.weight(1f))
+                Icon(Icons.Default.ArrowDropDown, contentDescription = stringResource(R.string.memory_space_select))
+            }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            // Make dropdown same width as button
-            modifier = Modifier.width(218.dp) // 250 - 16*2 = 218
-        ) {
-            profileList.forEach { profileId ->
-                val profileName = profileNameMap[profileId] ?: profileId
-                DropdownMenuItem(
-                    text = { Text(profileName) },
-                    onClick = {
-                        onProfileSelected(profileId)
-                        expanded = false
-                    }
-                )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.width(218.dp)
+            ) {
+                profileList.forEach { profileId ->
+                    val profileName = profileNameMap[profileId] ?: profileId
+                    DropdownMenuItem(
+                        text = { Text(profileName) },
+                        onClick = {
+                            onProfileSelected(profileId)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            IconButton(onClick = { showCreateDialog = true }, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.memory_space_create))
+            }
+            IconButton(
+                onClick = {
+                    editedName = selectedProfileName
+                    showRenameDialog = true
+                },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.memory_space_rename))
+            }
+            if (selectedProfileId != "default") {
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.memory_space_delete))
+                }
+            }
+        }
+    }
+
+    if (showCreateDialog || showRenameDialog) {
+        val creating = showCreateDialog
+        AlertDialog(
+            onDismissRequest = {
+                showCreateDialog = false
+                showRenameDialog = false
+                editedName = ""
+            },
+            title = {
+                Text(stringResource(if (creating) R.string.memory_space_create else R.string.memory_space_rename))
+            },
+            text = {
+                OutlinedTextField(
+                    value = editedName,
+                    onValueChange = { editedName = it },
+                    label = { Text(stringResource(R.string.memory_space_name)) },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val name = editedName.trim()
+                        if (creating) onMemorySpaceCreate(name)
+                        else onMemorySpaceRename(selectedProfileId, name)
+                        showCreateDialog = false
+                        showRenameDialog = false
+                        editedName = ""
+                    },
+                    enabled = editedName.isNotBlank()
+                ) { Text(stringResource(R.string.confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showCreateDialog = false
+                    showRenameDialog = false
+                    editedName = ""
+                }) { Text(stringResource(R.string.cancel_action)) }
+            }
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(R.string.memory_space_delete)) },
+            text = { Text(stringResource(R.string.memory_space_delete_warning, selectedProfileName)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onMemorySpaceDelete(selectedProfileId)
+                        showDeleteDialog = false
+                    }
+                ) { Text(stringResource(R.string.confirm_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel_action))
+                }
+            }
+        )
     }
 }
 
@@ -113,6 +203,9 @@ fun FolderNavigator(
     profileNameMap: Map<String, String>,
     selectedProfileId: String,
     onProfileSelected: (String) -> Unit,
+    onMemorySpaceCreate: (String) -> Unit,
+    onMemorySpaceRename: (String, String) -> Unit,
+    onMemorySpaceDelete: (String) -> Unit,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -184,7 +277,10 @@ fun FolderNavigator(
                     profileList = profileList,
                     profileNameMap = profileNameMap,
                     selectedProfileId = selectedProfileId,
-                    onProfileSelected = onProfileSelected
+                    onProfileSelected = onProfileSelected,
+                    onMemorySpaceCreate = onMemorySpaceCreate,
+                    onMemorySpaceRename = onMemorySpaceRename,
+                    onMemorySpaceDelete = onMemorySpaceDelete
                 )
                 
                 // 新建文件夹按钮和刷新按钮
@@ -659,4 +755,3 @@ private fun FolderDeleteDialog(
         }
     )
 }
-

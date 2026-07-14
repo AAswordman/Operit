@@ -49,8 +49,7 @@ object MemoryLibrary {
         val extractedEntities: List<ParsedEntity> = emptyList(),
         val links: List<ParsedLink> = emptyList(),
         val updatedEntities: List<ParsedUpdate> = emptyList(),
-        val mergedEntities: List<ParsedMerge> = emptyList(),
-        val userPreferences: String = ""
+        val mergedEntities: List<ParsedMerge> = emptyList()
     )
 
 
@@ -141,7 +140,7 @@ object MemoryLibrary {
      */
     private suspend fun autoCategorizeMemories(context: Context, aiService: AIService) {
         mutex.withLock {
-            val profileId = preferencesManager.activeProfileIdFlow.first()
+            val profileId = preferencesManager.activeMemorySpaceIdFlow.first()
             val memoryRepository = MemoryRepository(context, profileId)
             
             // 使用 searchMemories("") 获取所有记忆，然后过滤未分类的
@@ -275,7 +274,7 @@ object MemoryLibrary {
             profileIdOverride: String? = null
     ) {
         mutex.withLock {
-            val profileId = profileIdOverride ?: preferencesManager.activeProfileIdFlow.first()
+            val profileId = profileIdOverride ?: preferencesManager.activeMemorySpaceIdFlow.first()
             val memoryRepository = MemoryRepository(context, profileId)
 
             // Prune tool results to reduce token usage
@@ -367,22 +366,6 @@ object MemoryLibrary {
                     } else {
                         AppLogger.w(TAG, "想要更新的记忆未找到: '${update.titleToUpdate}'")
                     }
-                }
-            }
-
-            // Update user preferences (this logic remains)
-            if (analysis.userPreferences.isNotEmpty()) {
-                try {
-                    withContext(Dispatchers.IO) {
-                        updateUserPreferencesFromAnalysis(
-                            context = context,
-                            preferencesText = analysis.userPreferences,
-                            profileId = profileId
-                        )
-                        AppLogger.d(TAG, "用户偏好已更新")
-                    }
-                } catch (e: Exception) {
-                    AppLogger.e(TAG, "更新用户偏好失败", e)
                 }
             }
 
@@ -508,14 +491,6 @@ object MemoryLibrary {
     ): ParsedAnalysis {
         try {
             val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
-            val currentPreferences = withContext(Dispatchers.IO) {
-                var preferences = ""
-                preferencesManager.getUserPreferencesFlow(profileId).take(1).collect { profile ->
-                    preferences = buildPreferencesText(context, profile)
-                }
-                preferences
-            }
-
             // --- Hybrid Strategy: Local rough search + LLM final decision ---
             // 1. Use a compact search query (question-focused) for rough candidate selection.
             val contextQuery = buildCandidateSearchQuery(query, solution)
@@ -577,7 +552,6 @@ object MemoryLibrary {
                 duplicatesPromptPart = duplicatesPromptPart,
                 existingMemoriesPrompt = existingMemoriesPrompt,
                 existingFoldersPrompt = existingFoldersPrompt,
-                currentPreferences = currentPreferences,
                 useEnglish = useEnglish
             )
 
@@ -833,115 +807,17 @@ object MemoryLibrary {
                 }
             } ?: emptyList()
 
-            val userPreferences = json.optJSONObject("user")?.let {
-                parseUserPreferences(context, it)
-            } ?: ""
-
             ParsedAnalysis(
                 mainProblem = mainProblem,
                 extractedEntities = extractedEntities,
                 links = links,
                 updatedEntities = updatedEntities,
-                mergedEntities = mergedEntities,
-                userPreferences = userPreferences
+                mergedEntities = mergedEntities
             )
         } catch (e: Exception) {
             AppLogger.e(TAG, "解析分析结果失败: $jsonString", e)
             ParsedAnalysis(null)
         }
-    }
-
-    private fun parseUserPreferences(context: Context, preferencesObj: JSONObject): String {
-        val preferenceParts = mutableListOf<String>()
-        // Helper to add preference if it exists and is not "<UNCHANGED>"
-        fun addPref(key: String, prefix: String) {
-            if (preferencesObj.has(key) && preferencesObj.get(key) != "<UNCHANGED>") {
-                val value = preferencesObj.get(key).toString()
-                if (value.isNotEmpty()) preferenceParts.add("$prefix: $value")
-            }
-        }
-        addPref("age", context.getString(R.string.profile_birth_year))
-        addPref("gender", context.getString(R.string.profile_gender))
-        addPref("personality", context.getString(R.string.profile_personality))
-        addPref("identity", context.getString(R.string.profile_identity))
-        addPref("occupation", context.getString(R.string.profile_occupation))
-        addPref("aiStyle", context.getString(R.string.profile_ai_style))
-        return preferenceParts.joinToString("; ")
-    }
-
-
-    private fun buildPreferencesText(context: Context, profile: com.ai.assistance.operit.data.model.PreferenceProfile): String {
-        val parts = mutableListOf<String>()
-        if (profile.gender.isNotEmpty()) parts.add(context.getString(R.string.profile_gender_value, profile.gender))
-        if (profile.birthDate > 0) {
-            val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-            parts.add(context.getString(R.string.profile_birth_date, dateFormat.format(java.util.Date(profile.birthDate))))
-            val today = java.util.Calendar.getInstance()
-            val birthCal = java.util.Calendar.getInstance().apply { timeInMillis = profile.birthDate }
-            var age = today.get(java.util.Calendar.YEAR) - birthCal.get(java.util.Calendar.YEAR)
-            if (today.get(java.util.Calendar.DAY_OF_YEAR) < birthCal.get(java.util.Calendar.DAY_OF_YEAR)) {
-                age--
-            }
-            parts.add(context.getString(R.string.profile_age, age))
-        }
-        if (profile.personality.isNotEmpty()) parts.add(context.getString(R.string.profile_personality_value, profile.personality))
-        if (profile.identity.isNotEmpty()) parts.add(context.getString(R.string.profile_identity_value, profile.identity))
-        if (profile.occupation.isNotEmpty()) parts.add(context.getString(R.string.profile_occupation_value, profile.occupation))
-        if (profile.aiStyle.isNotEmpty()) parts.add(context.getString(R.string.profile_ai_style_value, profile.aiStyle))
-        return parts.joinToString("; ")
-    }
-
-    private suspend fun updateUserPreferencesFromAnalysis(
-        context: Context,
-        preferencesText: String,
-        profileId: String
-    ) {
-        if (preferencesText.isEmpty()) return
-
-        fun extractValue(match: MatchResult?): String? {
-            if (match == null) return null
-            return if (match.groupValues.size > 1) match.groupValues.last().trim() else null
-        }
-
-        val birthDateMatch = "(出生日期|出生年月日|Birth Date|Date of Birth)[:：\\s]+([\\d-]+)".toRegex().find(preferencesText)
-        val birthYearMatch = "(出生年份|年龄|Birth year|Age)[:：\\s]+(\\d+)".toRegex().find(preferencesText)
-        val genderMatch = "(性别|Gender)[:：\\s]+([^;]+)".toRegex().find(preferencesText)
-        val personalityMatch = "(性格(特点)?|Personality( traits)?)[:：\\s]+([^;]+)".toRegex().find(preferencesText)
-        val identityMatch = "(身份(认同)?|Identity( recognition)?)[:：\\s]+([^;]+)".toRegex().find(preferencesText)
-        val occupationMatch = "(职业|Occupation)[:：\\s]+([^;]+)".toRegex().find(preferencesText)
-        val aiStyleMatch = "(AI风格|期待的AI风格|偏好的AI风格|AI Style|Expected AI Style|Preferred AI Style)[:：\\s]+([^;]+)".toRegex().find(preferencesText)
-
-        var birthDateTimestamp: Long? = null
-        if (birthDateMatch != null) {
-            try {
-                val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                val date = extractValue(birthDateMatch)?.let { dateFormat.parse(it) }
-                if (date != null) birthDateTimestamp = date.time
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "解析出生日期失败: ${e.message}")
-            }
-        } else if (birthYearMatch != null) {
-            try {
-                val year = extractValue(birthYearMatch)?.toInt()
-                if (year == null) return
-                val calendar = java.util.Calendar.getInstance()
-                calendar.set(year, java.util.Calendar.JANUARY, 1, 0, 0, 0)
-                calendar.set(java.util.Calendar.MILLISECOND, 0)
-                birthDateTimestamp = calendar.timeInMillis
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "解析出生年份失败: ${e.message}")
-            }
-        }
-
-        preferencesManager.updateProfileCategory(
-                profileId = profileId,
-                birthDate = birthDateTimestamp,
-                gender = extractValue(genderMatch),
-                personality = extractValue(personalityMatch),
-                identity = extractValue(identityMatch),
-                occupation = extractValue(occupationMatch),
-                aiStyle = extractValue(aiStyleMatch)
-        )
     }
 
     /**

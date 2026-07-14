@@ -47,7 +47,7 @@ import com.ai.assistance.operit.data.model.CharacterCardChatStats
 import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.model.CharacterGroupChatStats
 import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -81,7 +81,7 @@ fun ChatHistorySettingsScreen() {
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
     val characterGroupCardManager = remember { CharacterGroupCardManager.getInstance(context) }
     val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
-    val activeProfileId by userPreferencesManager.activeProfileIdFlow.collectAsState(initial = "default")
+    val activeProfileId by userPreferencesManager.activeMemorySpaceIdFlow.collectAsState(initial = "default")
 
     val characterCardStatsState by chatHistoryManager.characterCardStatsFlow
         .collectAsState(initial = null as List<CharacterCardChatStats>?)
@@ -224,13 +224,13 @@ fun ChatHistorySettingsScreen() {
         }
     }
 
-    val profileIds by userPreferencesManager.profileListFlow.collectAsState(initial = listOf("default"))
-    var allProfiles by remember { mutableStateOf<List<PreferenceProfile>>(emptyList()) }
+    val profileIds by userPreferencesManager.memorySpaceListFlow.collectAsState(initial = listOf("default"))
+    var allProfiles by remember { mutableStateOf<List<MemorySpace>>(emptyList()) }
     
     LaunchedEffect(profileIds) {
         val profiles = profileIds.mapNotNull { profileId ->
             try {
-                userPreferencesManager.getUserPreferencesFlow(profileId).first()
+                userPreferencesManager.getMemorySpaceFlow(profileId).first()
             } catch (_: Exception) {
                 null
             }

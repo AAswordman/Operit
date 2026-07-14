@@ -15,7 +15,7 @@ import android.util.Log
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.model.Memory
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.repository.MemoryRepository
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.flow.first
@@ -260,9 +260,9 @@ class MemoryDocumentsProvider : DocumentsProvider() {
 
         when (val parent = parseDocumentId(parentDocumentId)) {
             is DocRef.Root -> {
-                val profileIds = runBlocking { prefs.profileListFlow.first() }
+                val profileIds = runBlocking { prefs.memorySpaceListFlow.first() }
                 profileIds.forEach { profileId ->
-                    val profile = runBlocking { prefs.getUserPreferencesFlow(profileId).first() }
+                    val profile = runBlocking { prefs.getMemorySpaceFlow(profileId).first() }
                     includeProfile(result, profile)
                 }
             }
@@ -510,9 +510,9 @@ class MemoryDocumentsProvider : DocumentsProvider() {
 
             is DocRef.Profile -> {
                 requireProfileExists(ref.profileId)
-                val profile = runBlocking { prefs.getUserPreferencesFlow(ref.profileId).first() }
+                val profile = runBlocking { prefs.getMemorySpaceFlow(ref.profileId).first() }
                 runBlocking {
-                    prefs.updateProfile(profile.copy(name = cleanName))
+                    prefs.updateMemorySpace(profile.copy(name = cleanName))
                 }
                 buildProfileDocumentId(ref.profileId)
             }
@@ -638,7 +638,7 @@ class MemoryDocumentsProvider : DocumentsProvider() {
             is DocRef.Profile -> {
                 requireProfileExists(ref.profileId)
                 val prefs = UserPreferencesManager.getInstance(context ?: throw IllegalStateException("Context is null"))
-                val profile = runBlocking { prefs.getUserPreferencesFlow(ref.profileId).first() }
+                val profile = runBlocking { prefs.getMemorySpaceFlow(ref.profileId).first() }
                 val displayName = getProfileDisplayName(profile)
 
                 val row = result.newRow()
@@ -697,7 +697,7 @@ class MemoryDocumentsProvider : DocumentsProvider() {
         }
     }
 
-    private fun includeProfile(result: MatrixCursor, profile: PreferenceProfile) {
+    private fun includeProfile(result: MatrixCursor, profile: MemorySpace) {
         val displayName = getProfileDisplayName(profile)
         val row = result.newRow()
         row.add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, buildProfileDocumentId(profile.id))
@@ -757,9 +757,8 @@ class MemoryDocumentsProvider : DocumentsProvider() {
             }
     }
 
-    private fun getProfileDisplayName(profile: PreferenceProfile): String {
+    private fun getProfileDisplayName(profile: MemorySpace): String {
         return profile.name
-            .ifBlank { profile.personality }
             .ifBlank { profile.id }
     }
 
@@ -931,10 +930,10 @@ class MemoryDocumentsProvider : DocumentsProvider() {
         return when (parent) {
             is DocRef.Root -> {
                 val prefs = UserPreferencesManager.getInstance(requireProviderContext())
-                val profileIds = runBlocking { prefs.profileListFlow.first() }
+                val profileIds = runBlocking { prefs.memorySpaceListFlow.first() }
                 val profile = profileIds
                     .asSequence()
-                    .map { profileId -> runBlocking { prefs.getUserPreferencesFlow(profileId).first() } }
+                    .map { profileId -> runBlocking { prefs.getMemorySpaceFlow(profileId).first() } }
                     .firstOrNull { getProfileDisplayName(it) == displayName }
                     ?: throw FileNotFoundException("Synthetic child not found: $originalDocumentId")
                 DocRef.Profile(profile.id)
@@ -1049,7 +1048,7 @@ class MemoryDocumentsProvider : DocumentsProvider() {
 
     private fun profileExists(profileId: String): Boolean {
         val prefs = UserPreferencesManager.getInstance(requireProviderContext())
-        return runBlocking { prefs.profileListFlow.first() }.contains(profileId)
+        return runBlocking { prefs.memorySpaceListFlow.first() }.contains(profileId)
     }
 
     private fun requireProfileExists(profileId: String) {

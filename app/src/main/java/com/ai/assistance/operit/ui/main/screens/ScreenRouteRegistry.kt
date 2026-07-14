@@ -357,11 +357,6 @@ object ScreenRouteRegistry {
                 launchNavItem = NavItem.ToolPermissions
             ),
             hostEntryDefinition(
-                entryId = "hidden.user_preferences_guide",
-                screen = Screen.UserPreferencesGuide(),
-                launchNavItem = NavItem.UserPreferencesGuide
-            ),
-            hostEntryDefinition(
                 entryId = "hidden.user_preferences_settings",
                 screen = Screen.UserPreferencesSettings,
                 launchNavItem = NavItem.UserPreferencesSettings

@@ -137,9 +137,9 @@ fun MemorySearchBar(
 @Composable
 fun MemoryScreen() {
     val context = LocalContext.current
-    val profileList by preferencesManager.profileListFlow.collectAsState(initial = emptyList())
+    val profileList by preferencesManager.memorySpaceListFlow.collectAsState(initial = emptyList())
     val activeProfileId by
-    preferencesManager.activeProfileIdFlow.collectAsState(initial = "default")
+    preferencesManager.activeMemorySpaceIdFlow.collectAsState(initial = "default")
 
     // 获取所有配置文件的名称映射(id -> name)
     val profileNameMap = remember { mutableStateMapOf<String, String>() }
@@ -147,7 +147,7 @@ fun MemoryScreen() {
     // 加载所有配置文件名称
     LaunchedEffect(profileList) {
         profileList.forEach { profileId ->
-            val profile = preferencesManager.getUserPreferencesFlow(profileId).first()
+            val profile = preferencesManager.getMemorySpaceFlow(profileId).first()
             profileNameMap[profileId] = profile.name
         }
     }
@@ -395,7 +395,33 @@ fun MemoryScreen() {
                     profileList = profileList,
                     profileNameMap = profileNameMap,
                     selectedProfileId = selectedProfileId,
-                    onProfileSelected = { selectedProfileId = it },
+                    onProfileSelected = { id ->
+                        scope.launch {
+                            preferencesManager.setActiveMemorySpace(id)
+                            selectedProfileId = id
+                        }
+                    },
+                    onMemorySpaceCreate = { name ->
+                        scope.launch {
+                            val id = preferencesManager.createMemorySpace(name)
+                            preferencesManager.setActiveMemorySpace(id)
+                            selectedProfileId = id
+                        }
+                    },
+                    onMemorySpaceRename = { id, name ->
+                        scope.launch {
+                            val space = preferencesManager.getMemorySpaceFlow(id).first()
+                            preferencesManager.updateMemorySpace(space.copy(name = name))
+                            profileNameMap[id] = name
+                        }
+                    },
+                    onMemorySpaceDelete = { id ->
+                        scope.launch {
+                            preferencesManager.deleteMemorySpace(id)
+                            profileNameMap.remove(id)
+                            selectedProfileId = "default"
+                        }
+                    },
                     onDismissRequest = { showFolderNavigator = false }
                 )
             }

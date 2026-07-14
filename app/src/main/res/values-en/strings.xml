@@ -730,8 +730,8 @@
     <string name="agent_menu_behavior_non_streaming">Non-streaming</string>
     <string name="tool_prompt_manager_title">Tool Prompt Manager</string>
     <string name="manage_packages">Manage Packages</string>
-    <string name="disable_user_preference_description">Disable User Preference Description</string>
-    <string name="disable_user_preference_description_desc">When disabled, the system prompt no longer appends the "User preference description" section</string>
+    <string name="disable_user_preference_description">Disable user.md</string>
+    <string name="disable_user_preference_description_desc">When disabled, user.md is not injected into the system prompt</string>
     <string name="pause_reading">Pause Reading</string>
     <string name="resume_reading">Resume Reading</string>
     <string name="stop_reading">Stop Reading</string>
@@ -882,7 +882,7 @@
     <!-- Settings Screen Sections -->
     <string name="settings_section_personalization">Personalization</string>
     <string name="settings_user_preferences">User Preferences</string>
-    <string name="settings_user_preferences_desc">Configure personal information and preferences to help AI better understand you, including age, personality, identity, occupation, and expected AI style</string>
+    <string name="settings_user_preferences_desc">Edit the user.md document sent to the AI as user context</string>
     <string name="settings_configure_preferences">Configure Preferences</string>
     <string name="settings_model_prompts">Model Prompt Settings</string>
     <string name="settings_model_prompts_desc">Customize AI assistant\'s system prompts, including self-introduction and tone style, to better meet your expectations</string>
@@ -996,7 +996,17 @@
     <!-- User Preferences -->
     <string name="user_preferences_guide">Personalization</string>
     <string name="user_preferences">User Preferences</string>
-    <string name="user_preferences_settings">Detailed User Preferences</string>
+    <string name="user_preferences_settings">User Profile (user.md)</string>
+    <string name="user_md_description">The single user profile file. When enabled, this Markdown is sent to the AI as user context.</string>
+    <string name="user_md_edit_tab">Edit</string>
+    <string name="user_md_preview_tab">Preview</string>
+    <string name="user_md_reset">Reset template</string>
+    <string name="user_md_legacy_archive">Legacy profiles</string>
+    <string name="user_md_unsaved_title">Discard unsaved changes?</string>
+    <string name="user_md_unsaved_message">Your changes to user.md will be lost.</string>
+    <string name="user_md_discard">Discard</string>
+    <string name="user_md_reset_title">Reset to the blank template?</string>
+    <string name="user_md_reset_message">The current draft will be replaced with the blank template and takes effect after saving.</string>
     <string name="custom_description">Custom Introduction</string>
     <string name="preferences_hint">Enter your personal introduction (max 100 characters)</string>
     <string name="enter_preferences">Enter your personal introduction here...</string>
@@ -3159,7 +3169,13 @@
     <string name="prompt">Prompt</string>
     <string name="prompt_desc">Select a configured prompt here, or click Manage Configuration below to create or modify prompts</string>
     <string name="memory">Memory</string>
-    <string name="memory_desc">Memory selection includes user preferences and memory base under that preference. To create a new memory base, go to settings to create a new user preference and select it here</string>
+    <string name="memory_desc">Select the isolated memory space used by the current conversation</string>
+    <string name="memory_space_select">Select memory space</string>
+    <string name="memory_space_create">Create memory space</string>
+    <string name="memory_space_rename">Rename memory space</string>
+    <string name="memory_space_delete">Delete memory space</string>
+    <string name="memory_space_name">Memory space name</string>
+    <string name="memory_space_delete_warning">Delete “%1$s” and all memories in it? This cannot be undone.</string>
     <string name="memory_auto_update">Auto Save Memory</string>
     <string name="memory_auto_update_desc">When enabled, candidate content from the current conversation is queued after the reply is finalized, then written into the memory library by periodic background processing while the app process remains alive.</string>
     <string name="memory_auto_update_runtime_status">Pending memory extraction items: %1$d, next save in %2$d minute(s)</string>
@@ -3432,7 +3448,7 @@
     <string name="long_press_manage">Long press to manage</string>
     
     <!-- Settings Screen Subtitles -->
-    <string name="settings_user_preferences_subtitle">Personal preferences and behavior settings</string>
+    <string name="settings_user_preferences_subtitle">Edit and preview user.md</string>
     <string name="settings_language_subtitle">Interface language switching</string>
     <string name="settings_theme_subtitle">Theme and appearance customization</string>
     <string name="layout_adjustment">Layout Adjustment</string>
@@ -4013,7 +4029,7 @@
     <string name="screen_title_memory_base">Memory Base</string>
     <string name="screen_title_tool_permissions">Tool Permissions</string>
     <string name="screen_title_user_preferences_guide">User Preferences Guide</string>
-    <string name="screen_title_user_preferences_settings">User Preferences Settings</string>
+    <string name="screen_title_user_preferences_settings">User Profile (user.md)</string>
     <string name="screen_title_model_config">Model &amp; Parameters Configuration</string>
     <string name="screen_title_speech_services_settings">Speech Services Settings</string>
     <string name="screen_title_persona_card_generation">Persona Card Generation</string>
@@ -5410,7 +5426,7 @@
     <string name="toolreg_user_pref_occupation">Occupation</string>
     <string name="toolreg_user_pref_ai_style">AI style</string>
     <string name="toolreg_list_separator">, </string>
-    <string name="toolreg_update_user_preferences_desc">Update user preferences: %1$s</string>
+    <string name="toolreg_update_user_profile_desc">Update user profile document: %1$s</string>
     <string name="toolreg_create_memory_desc">Create memory: %1$s</string>
     <string name="toolreg_update_memory_desc">Update memory: %1$s -&gt; %2$s</string>
     <string name="toolreg_delete_memory_desc">Delete memory: %1$s</string>
@@ -6991,7 +7007,7 @@
     <!-- MnnModelDownloadScreen -->
     <!-- No strings needed here -->
 
-    <!-- UserPreferencesGuideScreen -->
+    <!-- User profile document -->
     <string name="date_format_pattern">MMMM dd, yyyy</string>
 
     <!-- StreamMarkdownDemo -->

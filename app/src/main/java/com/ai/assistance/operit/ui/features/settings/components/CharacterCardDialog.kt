@@ -38,7 +38,7 @@ import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardToolAccessConfig
 import com.ai.assistance.operit.data.model.ModelConfigSummary
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.model.PromptTag
 import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getModelList
@@ -118,7 +118,7 @@ fun CharacterCardDialog(
     val skillRepository = remember { SkillRepository.getInstance(context) }
     val modelConfigManager = remember { ModelConfigManager(context) }
     var configSummaries by remember { mutableStateOf<List<ModelConfigSummary>>(emptyList()) }
-    var preferenceProfiles by remember { mutableStateOf<List<PreferenceProfile>>(emptyList()) }
+    var preferenceProfiles by remember { mutableStateOf<List<MemorySpace>>(emptyList()) }
     var builtinToolOptions by remember(characterCard.id) {
         mutableStateOf<List<CharacterCardToolAccessOption>>(emptyList())
     }
@@ -137,9 +137,9 @@ fun CharacterCardDialog(
     LaunchedEffect(Unit) {
         modelConfigManager.initializeIfNeeded()
         configSummaries = modelConfigManager.getAllConfigSummaries()
-        val profileIds = userPreferencesManager.profileListFlow.first()
+        val profileIds = userPreferencesManager.memorySpaceListFlow.first()
         preferenceProfiles =
-            profileIds.map { profileId -> userPreferencesManager.getUserPreferencesFlow(profileId).first() }
+            profileIds.map { profileId -> userPreferencesManager.getMemorySpaceFlow(profileId).first() }
     }
 
     LaunchedEffect(chatModelBindingMode, configSummaries) {
@@ -1530,7 +1530,7 @@ private fun CharacterCardFixedModelPickerDialog(
 @Composable
 private fun CharacterCardFixedMemoryProfilePickerDialog(
     visible: Boolean,
-    preferenceProfiles: List<PreferenceProfile>,
+    preferenceProfiles: List<MemorySpace>,
     selectedProfileId: String,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit

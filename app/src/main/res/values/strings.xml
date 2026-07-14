@@ -839,7 +839,7 @@
     <!-- Settings Screen Sections -->
     <string name="settings_section_personalization">个性化</string>
     <string name="settings_user_preferences">用户偏好设置</string>
-    <string name="settings_user_preferences_desc">配置个人信息和偏好，让AI更好地了解你，包括年龄、性格、身份、职业和期待的AI风格</string>
+    <string name="settings_user_preferences_desc">编辑会作为用户上下文发送给 AI 的 user.md</string>
     <string name="settings_configure_preferences">配置用户偏好</string>
     <string name="settings_model_prompts">模型提示词设置</string>
     <string name="settings_model_prompts_desc">自定义AI助手的系统提示词，包括自我介绍和语气风格，使AI更符合您的预期</string>
@@ -953,7 +953,17 @@
     <!-- 用户偏好 -->
     <string name="user_preferences_guide">个性化设置</string>
     <string name="user_preferences">用户偏好设置</string>
-    <string name="user_preferences_settings">用户偏好详细设置</string>
+    <string name="user_preferences_settings">用户资料（user.md）</string>
+    <string name="user_md_description">唯一的用户资料文件。这里的 Markdown 会在启用时作为用户上下文发送给 AI。</string>
+    <string name="user_md_edit_tab">编辑</string>
+    <string name="user_md_preview_tab">预览</string>
+    <string name="user_md_reset">恢复模板</string>
+    <string name="user_md_legacy_archive">旧档案</string>
+    <string name="user_md_unsaved_title">放弃未保存的修改？</string>
+    <string name="user_md_unsaved_message">返回后，本次对 user.md 的修改将丢失。</string>
+    <string name="user_md_discard">放弃修改</string>
+    <string name="user_md_reset_title">恢复空白模板？</string>
+    <string name="user_md_reset_message">当前编辑内容会被空白模板替换，保存后生效。</string>
     <string name="custom_description">自定义介绍</string>
     <string name="preferences_hint">请输入您的个人介绍（最多100字）</string>
     <string name="enter_preferences">在此输入您的个人介绍...</string>
@@ -1597,8 +1607,8 @@
     <string name="agent_menu_behavior_non_streaming">非流式</string>
     <string name="tool_prompt_manager_title">工具提示词管理</string>
     <string name="manage_packages">管理包</string>
-    <string name="disable_user_preference_description">禁用用户偏好描述</string>
-    <string name="disable_user_preference_description_desc">禁用后，系统提示词中不再附加“User preference description”段落</string>
+    <string name="disable_user_preference_description">禁用 user.md</string>
+    <string name="disable_user_preference_description_desc">禁用后，系统提示词中不再注入 user.md 用户资料</string>
     <string name="reply_message">回复</string>
     <string name="pause_reading">暂停朗读</string>
     <string name="resume_reading">继续朗读</string>
@@ -3070,7 +3080,13 @@
     <string name="prompt">提示词</string>
     <string name="prompt_desc">在这里选择一个已经配置好的提示词，或者点击下方的管理配置去新建或修改提示词</string>
     <string name="memory">记忆</string>
-    <string name="memory_desc">记忆选择包括了用户偏好和该偏好下的记忆库。如果想要新的记忆库，可以去设置新建一个用户偏好并在这里选择</string>
+    <string name="memory_desc">选择当前对话使用的独立记忆空间</string>
+    <string name="memory_space_select">选择记忆空间</string>
+    <string name="memory_space_create">新建记忆空间</string>
+    <string name="memory_space_rename">重命名记忆空间</string>
+    <string name="memory_space_delete">删除记忆空间</string>
+    <string name="memory_space_name">记忆空间名称</string>
+    <string name="memory_space_delete_warning">确定删除“%1$s”及其中的全部记忆吗？此操作无法撤销。</string>
     <string name="memory_auto_update">自动保存记忆</string>
     <string name="memory_auto_update_desc">开启后，当前轮回复结束时会先把候选内容加入长期记忆队列，并在应用存活期间由后台定时整理写入记忆库。</string>
     <string name="memory_auto_update_runtime_status">待提取记忆的条数%1$d，距离下次保存%2$d分钟</string>
@@ -3347,7 +3363,7 @@
     <string name="history_scroll_to_bottom">滚动到底部</string>
     
     <!-- Settings Screen Subtitles -->
-    <string name="settings_user_preferences_subtitle">个人偏好和行为设置</string>
+    <string name="settings_user_preferences_subtitle">编辑和预览 user.md</string>
     <string name="settings_language_subtitle">界面语言切换</string>
     <string name="settings_theme_subtitle">主题和外观定制</string>
     <string name="layout_adjustment">布局调整</string>
@@ -3946,7 +3962,7 @@
     <string name="screen_title_memory_base">记忆库</string>
     <string name="screen_title_tool_permissions">工具权限</string>
     <string name="screen_title_user_preferences_guide">用户偏好引导</string>
-    <string name="screen_title_user_preferences_settings">用户偏好设置</string>
+    <string name="screen_title_user_preferences_settings">用户资料（user.md）</string>
     <string name="screen_title_model_config">模型与参数配置</string>
     <string name="screen_title_speech_services_settings">语音服务设置</string>
     <string name="screen_title_persona_card_generation">人设卡生成</string>
@@ -5832,7 +5848,7 @@
     <string name="toolreg_user_pref_occupation">职业</string>
     <string name="toolreg_user_pref_ai_style">AI风格</string>
     <string name="toolreg_list_separator">、</string>
-    <string name="toolreg_update_user_preferences_desc">更新用户偏好: %1$s</string>
+    <string name="toolreg_update_user_profile_desc">更新用户资料文件：%1$s</string>
     <string name="toolreg_create_memory_desc">创建记忆: %1$s</string>
     <string name="toolreg_update_memory_desc">更新记忆: %1$s -&gt; %2$s</string>
     <string name="toolreg_delete_memory_desc">删除记忆: %1$s</string>
@@ -7500,7 +7516,7 @@
     <!-- MnnModelDownloadScreen -->
     <!-- No strings needed here -->
 
-    <!-- UserPreferencesGuideScreen -->
+    <!-- User profile document -->
     <string name="date_format_pattern">yyyy年MM月dd日</string>
 
     <!-- StreamMarkdownDemo -->

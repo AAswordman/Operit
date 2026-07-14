@@ -15,6 +15,7 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ToolValidationResult
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences
+import com.ai.assistance.operit.data.preferences.UserProfileDocumentRepository
 import com.ai.assistance.operit.data.repository.MemoryRepository
 import kotlinx.coroutines.flow.first
 import java.text.ParsePosition
@@ -26,7 +27,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Executes queries against the AI's memory graph and manages user preferences.
+ * Executes queries against the AI's memory graph and the explicit user.md update tool.
  */
 class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
 
@@ -50,7 +51,7 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
     private val settingsRepositories = ConcurrentHashMap<String, MemorySearchSettingsPreferences>()
 
     private fun resolveGlobalActiveProfileId(): String {
-        return kotlinx.coroutines.runBlocking { preferencesManager.activeProfileIdFlow.first() }
+        return kotlinx.coroutines.runBlocking { preferencesManager.activeMemorySpaceIdFlow.first() }
     }
 
     private fun resolveCallerCardId(tool: AITool): String? {
@@ -193,7 +194,8 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
                 "update_memory" -> executeUpdateMemory(tool)
                 "delete_memory" -> executeDeleteMemory(tool)
                 "move_memory" -> executeMoveMemory(tool)
-                "update_user_preferences" -> executeUpdateUserPreferences(tool)
+                "update_user_profile" -> executeUpdateUserProfile(tool)
+                "update_user_preferences" -> executeLegacyUserPreferencesUpdate(tool)
                 "link_memories" -> executeLinkMemories(tool)
                 "query_memory_links" -> executeQueryMemoryLinks(tool)
                 "update_memory_link" -> executeUpdateMemoryLink(tool)
@@ -705,52 +707,25 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
         }
     }
 
-    private suspend fun executeUpdateUserPreferences(tool: AITool): ToolResult {
-        val profileId = resolveActiveProfileId(tool)
-        AppLogger.d(TAG, "Executing update user preferences")
+    private suspend fun executeUpdateUserProfile(tool: AITool): ToolResult {
+        AppLogger.d(TAG, "Executing user.md update")
 
         return try {
-            // 从参数中提取各项偏好设置
-            val birthDate = tool.parameters.find { it.name == "birth_date" }?.value?.toLongOrNull()
-            val gender = tool.parameters.find { it.name == "gender" }?.value
-            val personality = tool.parameters.find { it.name == "personality" }?.value
-            val identity = tool.parameters.find { it.name == "identity" }?.value
-            val occupation = tool.parameters.find { it.name == "occupation" }?.value
-            val aiStyle = tool.parameters.find { it.name == "ai_style" }?.value
-
-            // 检查是否至少有一个参数
-            if (birthDate == null && gender == null && personality == null && 
-                identity == null && occupation == null && aiStyle == null) {
+            val markdown = tool.parameters.find { it.name == "markdown" }?.value
+            if (markdown == null) {
                 return ToolResult(
                     toolName = tool.name,
                     success = false,
                     result = StringResultData(""),
-                    error = "At least one preference parameter must be provided"
+                    error = "markdown parameter is required"
                 )
             }
 
-            // 更新用户偏好
             withContext(Dispatchers.IO) {
-                preferencesManager.updateProfileCategory(
-                    profileId = profileId,
-                    birthDate = birthDate,
-                    gender = gender,
-                    personality = personality,
-                    identity = identity,
-                    occupation = occupation,
-                    aiStyle = aiStyle
-                )
+                UserProfileDocumentRepository.getInstance(context).save(markdown)
             }
 
-            val updatedFields = mutableListOf<String>()
-            birthDate?.let { updatedFields.add("birth_date") }
-            gender?.let { updatedFields.add("gender") }
-            personality?.let { updatedFields.add("personality") }
-            identity?.let { updatedFields.add("identity") }
-            occupation?.let { updatedFields.add("occupation") }
-            aiStyle?.let { updatedFields.add("ai_style") }
-
-            val message = "Successfully updated user preferences: ${updatedFields.joinToString(", ")}"
+            val message = "Successfully updated user.md"
             AppLogger.d(TAG, message)
             
             ToolResult(
@@ -759,12 +734,68 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
                 result = StringResultData(message)
             )
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Failed to update user preferences", e)
+            AppLogger.e(TAG, "Failed to update user.md", e)
             ToolResult(
                 toolName = tool.name,
                 success = false,
                 result = StringResultData(""),
-                error = "Failed to update user preferences: ${e.message}"
+                error = "Failed to update user.md: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * Compatibility adapter for released tool packages and persisted tool calls. The replacement
+     * prompt exposes only update_user_profile; this path preserves an old call's information in
+     * user.md without restoring the structured-profile runtime.
+     */
+    private suspend fun executeLegacyUserPreferencesUpdate(tool: AITool): ToolResult {
+        val fieldLabels =
+            mapOf(
+                "birth_date" to "Birth date (Unix milliseconds)",
+                "gender" to "Gender",
+                "personality" to "Personality",
+                "identity" to "Identity",
+                "occupation" to "Occupation",
+                "ai_style" to "Preferred assistant style"
+            )
+        val updates =
+            tool.parameters.mapNotNull { parameter ->
+                fieldLabels[parameter.name]?.let { label -> label to parameter.value }
+            }
+        if (updates.isEmpty()) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = StringResultData(""),
+                error = "At least one preference parameter must be provided"
+            )
+        }
+
+        return try {
+            val repository = UserProfileDocumentRepository.getInstance(context)
+            withContext(Dispatchers.IO) {
+                val current = repository.load().trimEnd()
+                val importedSection =
+                    buildString {
+                        appendLine("## Imported profile update")
+                        appendLine()
+                        updates.forEach { (label, value) -> appendLine("- $label: $value") }
+                    }.trimEnd()
+                repository.save("$current\n\n$importedSection\n")
+            }
+            ToolResult(
+                toolName = tool.name,
+                success = true,
+                result = StringResultData("Successfully preserved the preference update in user.md")
+            )
+        } catch (error: Exception) {
+            AppLogger.e(TAG, "Failed to preserve legacy preference update in user.md", error)
+            ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = StringResultData(""),
+                error = "Failed to update user.md: ${error.message}"
             )
         }
     }

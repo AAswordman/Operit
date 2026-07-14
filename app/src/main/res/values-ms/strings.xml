@@ -1037,7 +1037,7 @@
     <string name="install_failed">Pemasangan Shizuku terbundel gagal, sila cuba pasang dari kedai aplikasi</string>
     <string name="user_preferences_guide">Tetapan peribadi</string>
     <string name="user_preferences">Keutamaan pengguna</string>
-    <string name="user_preferences_settings">Tetapan terperinci keutamaan pengguna</string>
+    <string name="user_preferences_settings">Profil Pengguna (user.md)</string>
     <string name="custom_description">Perkenalan tersuai</string>
     <string name="preferences_hint">Sila masukkan perkenalan peribadi anda (maksimum 100 perkataan)</string>
     <string name="enter_preferences">Masukkan perkenalan peribadi anda di sini...</string>
@@ -1291,8 +1291,8 @@
     <string name="manage_tools">Pengurusan Alat</string>
     <string name="tool_prompt_manager_title">Pengurusan Petunjuk Alat</string>
     <string name="manage_packages">Urus Pakej</string>
-    <string name="disable_user_preference_description">Lumpuhkan Penerangan Keutamaan Pengguna</string>
-    <string name="disable_user_preference_description_desc">Apabila dilumpuhkan, perenggan "Penerangan Keutamaan Pengguna" tidak lagi dilampirkan pada petunjuk sistem</string>
+    <string name="disable_user_preference_description">Lumpuhkan user.md</string>
+    <string name="disable_user_preference_description_desc">Apabila dilumpuhkan, user.md tidak disuntik ke dalam gesaan sistem</string>
     <string name="reply_message">Balas</string>
     <string name="pause_reading">Jeda Bacaan</string>
     <string name="resume_reading">Sambung Bacaan</string>
@@ -2602,7 +2602,7 @@
     <string name="prompt">Kata kunci</string>
     <string name="prompt_desc">Pilih kata kunci yang telah dikonfigurasi di sini, atau klik pengurusan konfigurasi di bawah untuk mencipta atau mengubah suai kata kunci</string>
     <string name="memory">Ingatan</string>
-    <string name="memory_desc">Pilihan ingatan termasuk keutamaan pengguna dan pangkalan ingatan di bawah keutamaan tersebut. Jika mahukan pangkalan ingatan baharu, pergi ke tetapan untuk mencipta keutamaan pengguna baharu dan pilih di sini</string>
+    <string name="memory_desc">Pilih ruang ingatan berasingan untuk perbualan semasa</string>
     <string name="memory_auto_update">Kemas Kini Ingatan Automatik</string>
     <string name="memory_auto_update_desc">Apabila dihidupkan, selepas respons semasa selesai, kandungan berharga daripada perbualan ini akan disimpan secara automatik ke pangkalan ingatan.</string>
     <string name="chat_summarizing_memory">Sedang meringkaskan ingatan...</string>
@@ -3583,7 +3583,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="screen_title_memory_base">Pangkalan Memori</string>
     <string name="screen_title_tool_permissions">Kebenaran Alat</string>
     <string name="screen_title_user_preferences_guide">Panduan Keutamaan Pengguna</string>
-    <string name="screen_title_user_preferences_settings">Tetapan Keutamaan Pengguna</string>
+    <string name="screen_title_user_preferences_settings">Profil Pengguna (user.md)</string>
     <string name="screen_title_model_config">Konfigurasi Model &amp; Parameter</string>
     <string name="screen_title_speech_services_settings">Tetapan Perkhidmatan Pertuturan</string>
     <string name="screen_title_persona_card_generation">Penjanaan Kad Persona</string>
@@ -5047,7 +5047,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="toolreg_user_pref_occupation">Pekerjaan</string>
     <string name="toolreg_user_pref_ai_style">Gaya AI</string>
     <string name="toolreg_list_separator">、</string>
-    <string name="toolreg_update_user_preferences_desc">Kemas kini keutamaan pengguna: %1$s</string>
+    <string name="toolreg_update_user_profile_desc">Kemas kini dokumen profil pengguna: %1$s</string>
     <string name="toolreg_create_memory_desc">Cipta ingatan: %1$s</string>
     <string name="toolreg_update_memory_desc">Kemas kini ingatan: %1$s -&gt; %2$s</string>
     <string name="toolreg_delete_memory_desc">Padam ingatan: %1$s</string>

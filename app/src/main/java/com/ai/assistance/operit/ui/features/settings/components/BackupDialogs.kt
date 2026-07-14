@@ -41,7 +41,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.converter.ChatFormat
 import com.ai.assistance.operit.data.converter.ExportFormat
 import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.MemorySpace
 
 @Composable
 fun DeleteConfirmationDialog(
@@ -173,7 +173,7 @@ fun StrategyOption(
 @Composable
 fun ProfileSelectionDialog(
     title: String,
-    profiles: List<PreferenceProfile>,
+    profiles: List<MemorySpace>,
     selectedProfileId: String,
     onProfileSelected: (String) -> Unit,
     onDismiss: () -> Unit,

@@ -670,7 +670,7 @@
     <string name="install_failed">Gagal menginstal Shizuku bawaan, coba instal dari toko aplikasi</string>
     <string name="user_preferences_guide">Pengaturan personalisasi</string>
     <string name="user_preferences">Preferensi pengguna</string>
-    <string name="user_preferences_settings">Pengaturan detail preferensi pengguna</string>
+    <string name="user_preferences_settings">Profil Pengguna (user.md)</string>
     <string name="custom_description">Deskripsi kustom</string>
     <string name="preferences_hint">Masukkan deskripsi pribadi Anda (maksimal 100 karakter)</string>
     <string name="enter_preferences">Masukkan deskripsi pribadi Anda di sini...</string>
@@ -1293,8 +1293,8 @@
     <string name="manage_tools">Manajemen Alat</string>
     <string name="tool_prompt_manager_title">Manajemen Prompt Alat</string>
     <string name="manage_packages">Kelola Paket</string>
-    <string name="disable_user_preference_description">Nonaktifkan Deskripsi Preferensi Pengguna</string>
-    <string name="disable_user_preference_description_desc">Setelah dinonaktifkan, paragraf "Deskripsi preferensi pengguna" tidak akan lagi ditambahkan ke prompt sistem</string>
+    <string name="disable_user_preference_description">Nonaktifkan user.md</string>
+    <string name="disable_user_preference_description_desc">Jika dinonaktifkan, user.md tidak disisipkan ke prompt sistem</string>
     <string name="reply_message">Balas</string>
     <string name="pause_reading">Jeda Pembacaan</string>
     <string name="resume_reading">Lanjutkan Pembacaan</string>
@@ -2649,7 +2649,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="prompt">Prompt</string>
     <string name="prompt_desc">Pilih prompt yang sudah dikonfigurasi di sini, atau ketuk kelola konfigurasi di bawah untuk membuat atau mengubah prompt</string>
     <string name="memory">Memori</string>
-    <string name="memory_desc">Pilihan memori mencakup preferensi pengguna dan bank memori di bawah preferensi tersebut. Jika ingin bank memori baru, buat preferensi pengguna baru di pengaturan dan pilih di sini</string>
+    <string name="memory_desc">Pilih ruang memori terisolasi untuk percakapan saat ini</string>
     <string name="memory_auto_update">Pembaruan Memori Otomatis</string>
     <string name="memory_auto_update_desc">Saat diaktifkan, setelah respons saat ini selesai, konten berharga dari percakapan ini akan otomatis disimpan ke bank memori.</string>
     <string name="chat_summarizing_memory">Meringkas memori...</string>
@@ -3336,7 +3336,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="screen_title_memory_base">Basis Memori</string>
     <string name="screen_title_tool_permissions">Izin Alat</string>
     <string name="screen_title_user_preferences_guide">Panduan Preferensi Pengguna</string>
-    <string name="screen_title_user_preferences_settings">Pengaturan Preferensi Pengguna</string>
+    <string name="screen_title_user_preferences_settings">Profil Pengguna (user.md)</string>
     <string name="screen_title_model_config">Konfigurasi Model &amp; Parameter</string>
     <string name="screen_title_speech_services_settings">Pengaturan Layanan Ucapan</string>
     <string name="screen_title_persona_card_generation">Pembuatan Kartu Persona</string>
@@ -5048,7 +5048,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="toolreg_user_pref_occupation">Pekerjaan</string>
     <string name="toolreg_user_pref_ai_style">Gaya AI</string>
     <string name="toolreg_list_separator">、</string>
-    <string name="toolreg_update_user_preferences_desc">Perbarui preferensi pengguna: %1$s</string>
+    <string name="toolreg_update_user_profile_desc">Perbarui dokumen profil pengguna: %1$s</string>
     <string name="toolreg_create_memory_desc">Buat memori: %1$s</string>
     <string name="toolreg_update_memory_desc">Perbarui memori: %1$s -&gt; %2$s</string>
     <string name="toolreg_delete_memory_desc">Hapus memori: %1$s</string>

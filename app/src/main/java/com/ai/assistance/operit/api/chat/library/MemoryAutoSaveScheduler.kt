@@ -80,7 +80,7 @@ class MemoryAutoSaveScheduler(
     }
 
     private suspend fun scanAndProcessCandidates() {
-        val profileIds = preferencesManager.profileListFlow.first()
+        val profileIds = preferencesManager.memorySpaceListFlow.first()
         if (profileIds.isEmpty()) return
 
         val toolHandler = AIToolHandler.getInstance(context)

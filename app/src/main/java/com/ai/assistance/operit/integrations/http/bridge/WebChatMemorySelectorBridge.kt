@@ -14,11 +14,11 @@ internal class WebChatMemorySelectorBridge(
     private val userPreferencesManager = UserPreferencesManager.getInstance(appContext)
 
     suspend fun resolveState(): WebMemorySelectorState {
-        val currentProfileId = userPreferencesManager.activeProfileIdFlow.first()
-        val profileIds = userPreferencesManager.profileListFlow.first()
+        val currentProfileId = userPreferencesManager.activeMemorySpaceIdFlow.first()
+        val profileIds = userPreferencesManager.memorySpaceListFlow.first()
         val profiles =
             profileIds.map { profileId ->
-                val profile = userPreferencesManager.getUserPreferencesFlow(profileId).first()
+                val profile = userPreferencesManager.getMemorySpaceFlow(profileId).first()
                 WebMemoryProfileItem(
                     id = profile.id,
                     name = profile.name
@@ -36,12 +36,12 @@ internal class WebChatMemorySelectorBridge(
             return null
         }
 
-        val profileIds = userPreferencesManager.profileListFlow.first()
+        val profileIds = userPreferencesManager.memorySpaceListFlow.first()
         if (!profileIds.contains(normalizedProfileId)) {
             return null
         }
 
-        userPreferencesManager.setActiveProfile(normalizedProfileId)
+        userPreferencesManager.setActiveMemorySpace(normalizedProfileId)
         return waitForSelection(normalizedProfileId)
     }
 

@@ -68,7 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.backup.OperitBackupDirs
 import com.ai.assistance.operit.data.backup.RawSnapshotBackupManager
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupManager
@@ -148,7 +148,7 @@ fun ChatBackupSettingsScreen() {
     val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
     val modelConfigManager = remember { ModelConfigManager(context) }
-    val activeProfileId by userPreferencesManager.activeProfileIdFlow.collectAsState(initial = "default")
+    val activeProfileId by userPreferencesManager.activeMemorySpaceIdFlow.collectAsState(initial = "default")
     var memoryRepo by remember { mutableStateOf<MemoryRepository?>(null) }
 
     var totalChatCount by remember { mutableStateOf(0) }
@@ -202,8 +202,8 @@ fun ChatBackupSettingsScreen() {
         initial = RoomDatabaseBackupPreferences.DEFAULT_MAX_BACKUP_COUNT
     )
 
-    val profileIds by userPreferencesManager.profileListFlow.collectAsState(initial = listOf("default"))
-    var allProfiles by remember { mutableStateOf<List<PreferenceProfile>>(emptyList()) }
+    val profileIds by userPreferencesManager.memorySpaceListFlow.collectAsState(initial = listOf("default"))
+    var allProfiles by remember { mutableStateOf<List<MemorySpace>>(emptyList()) }
     var selectedExportProfileId by remember { mutableStateOf(activeProfileId) }
     var selectedImportProfileId by remember { mutableStateOf(activeProfileId) }
     var showExportProfileDialog by remember { mutableStateOf(false) }
@@ -227,7 +227,7 @@ fun ChatBackupSettingsScreen() {
     LaunchedEffect(profileIds) {
         val profiles = profileIds.mapNotNull { profileId ->
             try {
-                userPreferencesManager.getUserPreferencesFlow(profileId).first()
+                userPreferencesManager.getMemorySpaceFlow(profileId).first()
             } catch (_: Exception) {
                 null
             }

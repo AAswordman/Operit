@@ -181,7 +181,7 @@
     <!-- 用户偏好 -->
     <string name="user_preferences_guide">Configuración personalizada</string>
     <string name="user_preferences">Preferencias de usuario</string>
-    <string name="user_preferences_settings">Configuración detallada de preferencias de usuario</string>
+    <string name="user_preferences_settings">Perfil de usuario (user.md)</string>
     <string name="custom_description">Descripción personalizada</string>
     <string name="preferences_hint">Ingrese su descripción personal (máximo 100 caracteres)</string>
     <string name="enter_preferences">Ingrese aquí su descripción personal...</string>
@@ -1998,8 +1998,8 @@
     <string name="manage_tools">Gestión de herramientas</string>
     <string name="tool_prompt_manager_title">Gestión de indicaciones de herramientas</string>
     <string name="manage_packages">Gestionar paquetes</string>
-    <string name="disable_user_preference_description">Deshabilitar descripción de preferencias del usuario</string>
-    <string name="disable_user_preference_description_desc">Al deshabilitarlo, ya no se adjuntará el párrafo "User preference description" en las indicaciones del sistema</string>
+    <string name="disable_user_preference_description">Deshabilitar user.md</string>
+    <string name="disable_user_preference_description_desc">Al deshabilitarlo, user.md no se incluirá en el prompt del sistema</string>
     <string name="branch">Rama</string>
     <string name="parent_chat">Chat padre: %1$s</string>
     <string name="confirm_rollback_title">Confirmar reversión</string>
@@ -3141,7 +3141,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="prompt">Prompt</string>
     <string name="prompt_desc">Seleccione un prompt ya configurado aquí, o haga clic en "Gestionar configuración" abajo para crear o modificar un prompt</string>
     <string name="memory">Memoria</string>
-    <string name="memory_desc">La selección de memoria incluye las preferencias del usuario y la biblioteca de memoria asociada. Si desea una nueva biblioteca de memoria, vaya a configuración para crear una nueva preferencia de usuario y selecciónela aquí</string>
+    <string name="memory_desc">Selecciona el espacio de memoria aislado usado por la conversación actual</string>
     <string name="memory_auto_update">Actualización automática de memoria</string>
     <string name="memory_auto_update_desc">Al activarlo, cuando finalice la respuesta actual, el contenido valioso de esta conversación se guardará automáticamente en la biblioteca de memoria.</string>
     <string name="chat_summarizing_memory">Resumiendo memoria...</string>
@@ -3457,7 +3457,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="screen_title_memory_base">Base de memoria</string>
     <string name="screen_title_tool_permissions">Permisos de herramientas</string>
     <string name="screen_title_user_preferences_guide">Guía de preferencias de usuario</string>
-    <string name="screen_title_user_preferences_settings">Ajustes de preferencias de usuario</string>
+    <string name="screen_title_user_preferences_settings">Perfil de usuario (user.md)</string>
     <string name="screen_title_model_config">Configuración del modelo y parámetros</string>
     <string name="screen_title_speech_services_settings">Ajustes de servicios de voz</string>
     <string name="screen_title_persona_card_generation">Generación de tarjeta de personaje</string>
@@ -5238,7 +5238,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="toolreg_user_pref_occupation">Ocupación</string>
     <string name="toolreg_user_pref_ai_style">Estilo de IA</string>
     <string name="toolreg_list_separator">、</string>
-    <string name="toolreg_update_user_preferences_desc">Actualizar preferencias de usuario: %1$s</string>
+    <string name="toolreg_update_user_profile_desc">Actualizar documento de perfil: %1$s</string>
     <string name="toolreg_create_memory_desc">Crear recuerdo: %1$s</string>
     <string name="toolreg_update_memory_desc">Actualizar recuerdo: %1$s -&gt; %2$s</string>
     <string name="toolreg_delete_memory_desc">Eliminar recuerdo: %1$s</string>

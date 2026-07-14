@@ -60,7 +60,7 @@ import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigSummary
-import com.ai.assistance.operit.data.model.PreferenceProfile
+import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
@@ -183,8 +183,8 @@ fun ClassicChatSettingsBar(
     // 新增：用户偏好（记忆）选择逻辑
     val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val activeProfileId by
-            userPreferencesManager.activeProfileIdFlow.collectAsState(initial = "default")
-    var preferenceProfiles by remember { mutableStateOf<List<PreferenceProfile>>(emptyList()) }
+            userPreferencesManager.activeMemorySpaceIdFlow.collectAsState(initial = "default")
+    var preferenceProfiles by remember { mutableStateOf<List<MemorySpace>>(emptyList()) }
     val effectiveCurrentProfileId =
         if (isMemorySelectionLockedByCharacterCard) {
             characterCardBoundMemoryProfileId ?: activeProfileId
@@ -192,9 +192,9 @@ fun ClassicChatSettingsBar(
             activeProfileId
         }
     LaunchedEffect(Unit) {
-        val profileIds = userPreferencesManager.profileListFlow.first()
+        val profileIds = userPreferencesManager.memorySpaceListFlow.first()
         preferenceProfiles =
-                profileIds.map { id -> userPreferencesManager.getUserPreferencesFlow(id).first() }
+                profileIds.map { id -> userPreferencesManager.getMemorySpaceFlow(id).first() }
     }
     
     // 获取聊天设置按钮右边距设置
@@ -286,7 +286,7 @@ fun ClassicChatSettingsBar(
             }
         } else {
             scope.launch {
-                userPreferencesManager.setActiveProfile(selectedId)
+                userPreferencesManager.setActiveMemorySpace(selectedId)
                 // 用户偏好和记忆库绑定，可能影响AI行为，所以刷新服务
                 EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
             }
@@ -1429,7 +1429,7 @@ private fun ThinkingSettingsItem(
 
 @Composable
 private fun MemorySelectorItem(
-    preferenceProfiles: List<PreferenceProfile>,
+    preferenceProfiles: List<MemorySpace>,
     currentProfileId: String,
     onSelectMemory: (String) -> Unit,
     expanded: Boolean,

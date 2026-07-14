@@ -30,12 +30,6 @@ sealed class NavItem(val route: String, val titleResId: Int, val icon: ImageVect
         object Settings : NavItem("settings", R.string.nav_settings, Icons.Default.Settings)
         object ToolPermissions :
                 NavItem("tool_permissions", R.string.tool_permissions, Icons.Default.Security)
-        object UserPreferencesGuide :
-                NavItem(
-                        "user_preferences_guide",
-                        R.string.user_preferences_guide,
-                        Icons.Default.Person
-                )
         object UserPreferencesSettings :
                 NavItem(
                         "user_preferences_settings",

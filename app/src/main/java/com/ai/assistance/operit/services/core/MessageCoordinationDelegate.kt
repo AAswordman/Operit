@@ -98,7 +98,7 @@ class MessageCoordinationDelegate(
     private var currentPromptFunctionType: PromptFunctionType = PromptFunctionType.CHAT
     private var currentChatModelConfigIdOverride: String? = null
     private var currentChatModelIndexOverride: Int? = null
-    private var currentPreferenceProfileIdOverride: String? = null
+    private var currentMemorySpaceIdOverride: String? = null
 
     private var nonFatalErrorCollectorJob: Job? = null
     private val characterCardManager = CharacterCardManager.getInstance(context)
@@ -111,7 +111,7 @@ class MessageCoordinationDelegate(
         val promptFunctionType: PromptFunctionType,
         val chatModelConfigIdOverride: String?,
         val chatModelIndexOverride: Int?,
-        val preferenceProfileIdOverride: String?,
+        val memorySpaceIdOverride: String?,
         val roleCardIdOverride: String?,
         val isGroupOrchestrationTurn: Boolean,
         val groupParticipantNamesText: String?,
@@ -174,7 +174,7 @@ class MessageCoordinationDelegate(
         groupParticipantNamesText: String? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
-        preferenceProfileIdOverride: String? = null
+        memorySpaceIdOverride: String? = null
     ): Int {
         val currentChat = chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == chatId }
         val currentRoleName =
@@ -196,7 +196,7 @@ class MessageCoordinationDelegate(
             groupParticipantNamesText = groupParticipantNamesText,
             chatModelConfigIdOverride = chatModelConfigIdOverride,
             chatModelIndexOverride = chatModelIndexOverride,
-            preferenceProfileIdOverride = preferenceProfileIdOverride,
+            memorySpaceIdOverride = memorySpaceIdOverride,
             publishEstimate = false
         )
     }
@@ -261,7 +261,7 @@ class MessageCoordinationDelegate(
         groupParticipantNamesText: String? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
-        preferenceProfileIdOverride: String? = null
+        memorySpaceIdOverride: String? = null
     ): Int? {
         val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return null
         val service = resolveWindowEstimateService(targetChatId) ?: return null
@@ -271,9 +271,9 @@ class MessageCoordinationDelegate(
             chatModelConfigIdOverride ?: currentChatModelConfigIdOverride
         val effectiveChatModelIndexOverride =
             chatModelIndexOverride ?: currentChatModelIndexOverride
-        val effectivePreferenceProfileIdOverride =
-            preferenceProfileIdOverride
-                ?: currentPreferenceProfileIdOverride
+        val effectiveMemorySpaceIdOverride =
+            memorySpaceIdOverride
+                ?: currentMemorySpaceIdOverride
                 ?: effectiveRoleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
 
         val newWindowSize =
@@ -286,7 +286,7 @@ class MessageCoordinationDelegate(
                 groupParticipantNamesText = groupParticipantNamesText,
                 chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
                 chatModelIndexOverride = effectiveChatModelIndexOverride,
-                preferenceProfileIdOverride = effectivePreferenceProfileIdOverride
+                memorySpaceIdOverride = effectiveMemorySpaceIdOverride
             )
         val (inputTokens, outputTokens) = tokenStatsDelegate.getCumulativeTokenCounts(targetChatId)
         chatHistoryDelegate.saveCurrentChat(
@@ -423,7 +423,7 @@ class MessageCoordinationDelegate(
 
         val (resolvedChatModelConfigIdOverride, resolvedChatModelIndexOverride) =
             resolveRoleCardChatModelOverrides(roleCardId)
-        val resolvedPreferenceProfileIdOverride =
+        val resolvedMemorySpaceIdOverride =
             resolveRoleCardMemoryProfileOverride(roleCardId)
         val chatContextSettings =
             resolveChatContextSettingsForRequest(resolvedChatModelConfigIdOverride)
@@ -448,7 +448,7 @@ class MessageCoordinationDelegate(
                 tokenUsageThreshold = chatContextSettings.summaryTokenThreshold.toDouble(),
                 chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
                 chatModelIndexOverride = resolvedChatModelIndexOverride,
-                preferenceProfileIdOverride = resolvedPreferenceProfileIdOverride,
+                memorySpaceIdOverride = resolvedMemorySpaceIdOverride,
                 groupOrchestrationMode = groupOrchestrationMode,
                 groupParticipantNamesText = groupParticipantNamesText,
                 onVariantPreviewStarted = { previewMessage ->
@@ -476,7 +476,7 @@ class MessageCoordinationDelegate(
                             groupParticipantNamesText = groupParticipantNamesText,
                             chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
                             chatModelIndexOverride = resolvedChatModelIndexOverride,
-                            preferenceProfileIdOverride = resolvedPreferenceProfileIdOverride
+                            memorySpaceIdOverride = resolvedMemorySpaceIdOverride
                         )
                     }.onFailure {
                         AppLogger.w(TAG, "单条重新生成后刷新上下文窗口失败", it)
@@ -515,7 +515,7 @@ class MessageCoordinationDelegate(
         proxySenderNameOverride: String? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
-        preferenceProfileIdOverride: String? = null,
+        memorySpaceIdOverride: String? = null,
         suppressUserMessageInHistory: Boolean = false,
         forceDisableSummary: Boolean = false,
         enableGroupOrchestration: Boolean = true,
@@ -612,16 +612,16 @@ class MessageCoordinationDelegate(
                             resolveRoleCardChatModelOverrides(roleCardId)
                         }
                     }
-                val resolvedPreferenceProfileIdOverride =
+                val resolvedMemorySpaceIdOverride =
                     when {
-                        !preferenceProfileIdOverride.isNullOrBlank() -> preferenceProfileIdOverride
-                        isAutoContinuation -> currentPreferenceProfileIdOverride
+                        !memorySpaceIdOverride.isNullOrBlank() -> memorySpaceIdOverride
+                        isAutoContinuation -> currentMemorySpaceIdOverride
                         else -> roleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
                     }
                 Triple(
                     resolvedChatModelConfigIdOverride,
                     resolvedChatModelIndexOverride,
-                    resolvedPreferenceProfileIdOverride
+                    resolvedMemorySpaceIdOverride
                 )
             } else {
                 Triple(null, null, null)
@@ -635,7 +635,7 @@ class MessageCoordinationDelegate(
         }
         val resolvedChatModelConfigIdOverride = resolvedOverrides.first
         val resolvedChatModelIndexOverride = resolvedOverrides.second
-        val resolvedPreferenceProfileIdOverride = resolvedOverrides.third
+        val resolvedMemorySpaceIdOverride = resolvedOverrides.third
         val chatContextSettings =
             runBlocking {
                 resolveChatContextSettingsForRequest(resolvedChatModelConfigIdOverride)
@@ -644,7 +644,7 @@ class MessageCoordinationDelegate(
         if (!isAutoContinuation) {
             currentChatModelConfigIdOverride = resolvedChatModelConfigIdOverride
             currentChatModelIndexOverride = resolvedChatModelIndexOverride
-            currentPreferenceProfileIdOverride = resolvedPreferenceProfileIdOverride
+            currentMemorySpaceIdOverride = resolvedMemorySpaceIdOverride
         }
 
         // 当前请求使用的Token使用率阈值，默认使用配置值
@@ -685,7 +685,7 @@ class MessageCoordinationDelegate(
                     roleCardId = roleCardId,
                     chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
                     chatModelIndexOverride = resolvedChatModelIndexOverride,
-                    preferenceProfileIdOverride = resolvedPreferenceProfileIdOverride
+                    memorySpaceIdOverride = resolvedMemorySpaceIdOverride
                 )
 
                 // 本次请求的Token阈值在原基础上增加 0.5
@@ -721,7 +721,7 @@ class MessageCoordinationDelegate(
             enableSummary = !forceDisableSummary && !isBackgroundSend && chatContextSettings.enableSummary,
             chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
             chatModelIndexOverride = resolvedChatModelIndexOverride,
-            preferenceProfileIdOverride = resolvedPreferenceProfileIdOverride,
+            memorySpaceIdOverride = resolvedMemorySpaceIdOverride,
             suppressUserMessageInHistory = suppressUserMessageInHistory,
             isGroupOrchestrationTurn = isGroupOrchestrationTurn,
             groupParticipantNamesText = groupParticipantNamesText,
@@ -1273,7 +1273,7 @@ class MessageCoordinationDelegate(
         promptFunctionType: PromptFunctionType,
         chatModelConfigIdOverride: String?,
         chatModelIndexOverride: Int?,
-        preferenceProfileIdOverride: String?,
+        memorySpaceIdOverride: String?,
         roleCardIdOverride: String? = null,
         isGroupOrchestrationTurn: Boolean = false,
         groupParticipantNamesText: String? = null
@@ -1286,7 +1286,7 @@ class MessageCoordinationDelegate(
                 promptFunctionType = promptFunctionType,
                 chatModelConfigIdOverride = chatModelConfigIdOverride,
                 chatModelIndexOverride = chatModelIndexOverride,
-                preferenceProfileIdOverride = preferenceProfileIdOverride,
+                memorySpaceIdOverride = memorySpaceIdOverride,
                 roleCardIdOverride = roleCardIdOverride,
                 isGroupOrchestrationTurn = isGroupOrchestrationTurn,
                 groupParticipantNamesText = groupParticipantNamesText
@@ -1323,7 +1323,7 @@ class MessageCoordinationDelegate(
                         chatIdOverride = chatId,
                         chatModelConfigIdOverride = request.chatModelConfigIdOverride,
                         chatModelIndexOverride = request.chatModelIndexOverride,
-                        preferenceProfileIdOverride = request.preferenceProfileIdOverride,
+                        memorySpaceIdOverride = request.memorySpaceIdOverride,
                         isGroupOrchestrationTurn = request.isGroupOrchestrationTurn,
                         groupParticipantNamesText = request.groupParticipantNamesText
                     )
@@ -1468,7 +1468,7 @@ class MessageCoordinationDelegate(
                     )
                 val profileId =
                     roleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
-                        ?: preferencesManager.activeProfileIdFlow.first()
+                        ?: preferencesManager.activeMemorySpaceIdFlow.first()
                 MemoryAutoSaveCandidateRepository(context, profileId)
                     .enqueueSelectedUserMessages(
                         chatId = currentChatId,
@@ -1524,13 +1524,13 @@ class MessageCoordinationDelegate(
                     chatId = currentChatId,
                     roleCardId = null
                 )
-            val preferenceProfileIdOverride =
+            val memorySpaceIdOverride =
                 roleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
 
             enhancedAiService.saveConversationToMemoryAsync(
                 conversationHistory = history,
                 lastContent = lastMessageContent,
-                preferenceProfileIdOverride = preferenceProfileIdOverride,
+                memorySpaceIdOverride = memorySpaceIdOverride,
                 onSuccess = {
                     uiStateDelegate.showToast(context.getString(R.string.chat_memory_manually_updated))
                     _isUpdatingMemory.value = false
@@ -1730,7 +1730,7 @@ class MessageCoordinationDelegate(
         roleCardId: String?,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
-        preferenceProfileIdOverride: String? = null
+        memorySpaceIdOverride: String? = null
     ) {
         if (snapshotMessages.isEmpty() || originalChatId == null) {
             return
@@ -1785,7 +1785,7 @@ class MessageCoordinationDelegate(
                     roleCardId = roleCardId,
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
-                    preferenceProfileIdOverride = preferenceProfileIdOverride
+                    memorySpaceIdOverride = memorySpaceIdOverride
                 )
             } catch (e: CancellationException) {
                 throw e
@@ -1829,7 +1829,7 @@ class MessageCoordinationDelegate(
         chatIdOverride: String? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
-        preferenceProfileIdOverride: String? = null,
+        memorySpaceIdOverride: String? = null,
         roleCardIdOverride: String? = null,
         isGroupChat: Boolean = false,
         isGroupOrchestrationTurn: Boolean = false,
@@ -1853,9 +1853,9 @@ class MessageCoordinationDelegate(
             chatModelConfigIdOverride ?: currentChatModelConfigIdOverride
         val effectiveChatModelIndexOverride =
             chatModelIndexOverride ?: currentChatModelIndexOverride
-        val effectivePreferenceProfileIdOverride =
-            preferenceProfileIdOverride
-                ?: currentPreferenceProfileIdOverride
+        val effectiveMemorySpaceIdOverride =
+            memorySpaceIdOverride
+                ?: currentMemorySpaceIdOverride
                 ?: roleCardIdOverride?.let { resolveRoleCardMemoryProfileOverride(it) }
         val effectiveIsGroupChat = isGroupChat || isGroupChatSession(currentChatId)
 
@@ -1900,7 +1900,7 @@ class MessageCoordinationDelegate(
                     groupParticipantNamesText = groupParticipantNamesText,
                     chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
                     chatModelIndexOverride = effectiveChatModelIndexOverride,
-                    preferenceProfileIdOverride = effectivePreferenceProfileIdOverride
+                    memorySpaceIdOverride = effectiveMemorySpaceIdOverride
                 )
                 summarySuccess = true
             } else {
@@ -1942,7 +1942,7 @@ class MessageCoordinationDelegate(
                                 promptFunctionType = continuationPromptType,
                                 chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
                                 chatModelIndexOverride = effectiveChatModelIndexOverride,
-                                preferenceProfileIdOverride = effectivePreferenceProfileIdOverride,
+                                memorySpaceIdOverride = effectiveMemorySpaceIdOverride,
                                 roleCardIdOverride = roleCardIdOverride,
                                 isGroupOrchestrationTurn = isGroupOrchestrationTurn,
                                 groupParticipantNamesText = groupParticipantNamesText
@@ -1958,7 +1958,7 @@ class MessageCoordinationDelegate(
                                 chatIdOverride = currentChatId,
                                 chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
                                 chatModelIndexOverride = effectiveChatModelIndexOverride,
-                                preferenceProfileIdOverride = effectivePreferenceProfileIdOverride,
+                                memorySpaceIdOverride = effectiveMemorySpaceIdOverride,
                                 isGroupOrchestrationTurn = isGroupOrchestrationTurn,
                                 groupParticipantNamesText = groupParticipantNamesText
                             )

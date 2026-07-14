@@ -39,7 +39,6 @@ import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.data.preferences.AgreementPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.updates.UpdateManager
@@ -82,14 +81,10 @@ class MainActivity : ComponentActivity() {
 
     // ======== 工具和管理器 ========
     private lateinit var toolHandler: AIToolHandler
-    private lateinit var preferencesManager: UserPreferencesManager
     private lateinit var agreementPreferences: AgreementPreferences
     private var updateCheckPerformed = false
     private lateinit var anrMonitor: AnrMonitor
     private lateinit var mcpRepository: MCPRepository
-
-    // ======== 导航状态 ========
-    private var showPreferencesGuide by mutableStateOf(false)
 
     // ======== MCP插件状态 ========
     private val pluginLoadingState = PluginLoadingState()
@@ -204,7 +199,6 @@ class MainActivity : ComponentActivity() {
 
         initializeComponents()
         anrMonitor.start()
-        setupPreferencesListener()
         configureDisplaySettings()
 
         // 设置上下文以便获取插件元数据
@@ -563,14 +557,6 @@ class MainActivity : ComponentActivity() {
 
         anrMonitor = AnrMonitor(this, lifecycleScope)
 
-        // 初始化用户偏好管理器并直接检查初始化状态
-        preferencesManager = UserPreferencesManager.getInstance(this)
-        showPreferencesGuide = !preferencesManager.isPreferencesInitialized()
-        AppLogger.d(
-                TAG,
-                "初始化检查: 用户偏好已初始化=${!showPreferencesGuide}，将${if(showPreferencesGuide) "" else "不"}显示引导界面"
-        )
-
         // 初始化协议偏好管理器
         agreementPreferences = AgreementPreferences(this)
 
@@ -617,22 +603,6 @@ class MainActivity : ComponentActivity() {
                 TAG,
                 "权限级别检查: 已设置=${!showPermissionGuide}, 将${if(showPermissionGuide) "" else "不"}显示权限引导界面"
         )
-    }
-
-    // ======== 偏好监听器设置 ========
-    private fun setupPreferencesListener() {
-        // 监听偏好变化
-        lifecycleScope.launch {
-            preferencesManager.getUserPreferencesFlow().collect { profile ->
-                // 只有当状态变化时才更新UI
-                val newValue = !profile.isInitialized
-                if (showPreferencesGuide != newValue) {
-                    AppLogger.d(TAG, "偏好变更: 从 $showPreferencesGuide 变为 $newValue")
-                    showPreferencesGuide = newValue
-                    setAppContent()
-                }
-            }
-        }
     }
 
     // ======== 显示与性能配置 ========
@@ -714,15 +684,12 @@ class MainActivity : ComponentActivity() {
                             // 处理待处理的分享文件
                             processPendingSharedFiles()
                             processPendingSharedText()
-                            val shortcutNavItem = if (!showPreferencesGuide) pendingShortcutNavItem else null
-                            val shortcutNavRequestId =
-                                if (!showPreferencesGuide) pendingShortcutRequestId else 0L
-                            val routeNavRequest = if (!showPreferencesGuide) pendingRouteId else null
-                            val routeNavArgs = if (!showPreferencesGuide) pendingRouteArgs else emptyMap()
-                            val routeNavRequestId =
-                                if (!showPreferencesGuide) pendingRouteRequestId else 0L
+                            val shortcutNavItem = pendingShortcutNavItem
+                            val shortcutNavRequestId = pendingShortcutRequestId
+                            val routeNavRequest = pendingRouteId
+                            val routeNavArgs = pendingRouteArgs
+                            val routeNavRequestId = pendingRouteRequestId
                             val initialNavItem = when {
-                                showPreferencesGuide -> NavItem.UserPreferencesGuide
                                 shortcutNavItem != null -> shortcutNavItem
                                 else -> currentMainNavItem
                             }

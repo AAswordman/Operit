@@ -853,7 +853,7 @@
     <string name="install_failed">A instalação do Shizuku integrado falhou. Tente instalar na App Store</string>
     <string name="user_preferences_guide">Personalização</string>
     <string name="user_preferences">Preferências do usuário</string>
-    <string name="user_preferences_settings">Detalhes de preferência do usuário</string>
+    <string name="user_preferences_settings">Perfil do usuário (user.md)</string>
     <string name="custom_description">Introdução personalizada</string>
     <string name="preferences_hint">Por favor, insira sua introdução pessoal (máximo de 100 palavras)</string>
     <string name="enter_preferences">Insira sua biografia aqui...</string>
@@ -1389,8 +1389,8 @@
     <string name="manage_tools">Gerenciamento de ferramentas</string>
     <string name="tool_prompt_manager_title">Gerenciamento de palavras com dicas de ferramentas</string>
     <string name="manage_packages">pacote de gerenciamento</string>
-    <string name="disable_user_preference_description">Desativar descrições de preferências do usuário</string>
-    <string name="disable_user_preference_description_desc">Após a desativação, o parágrafo "Descrição da preferência do usuário" não será mais anexado à palavra do prompt do sistema.</string>
+    <string name="disable_user_preference_description">Desativar user.md</string>
+    <string name="disable_user_preference_description_desc">Quando desativado, user.md não é inserido no prompt do sistema.</string>
     <string name="reply_message">responder</string>
     <string name="pause_reading">pausar leitura</string>
     <string name="resume_reading">continuar leitura</string>
@@ -2654,7 +2654,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="prompt">palavra alerta</string>
     <string name="prompt_desc">Selecione aqui uma palavra de prompt já configurada ou clique em Gerenciar configuração abaixo para criar ou modificar uma palavra de prompt.</string>
     <string name="memory">memória</string>
-    <string name="memory_desc">A seleção de memória inclui as preferências do usuário e o banco de memória dessa preferência. Se você quiser um novo banco de memória, você pode ir nas configurações para criar uma nova preferência de usuário e selecioná-la aqui</string>
+    <string name="memory_desc">Selecione o espaço de memória isolado usado pela conversa atual</string>
     <string name="memory_auto_update">atualização automática de memória</string>
     <string name="memory_auto_update_desc">Quando ativado, após a resposta atual ser finalizada, o conteúdo valioso desta conversa será salvo automaticamente na biblioteca de memória.</string>
     <string name="chat_summarizing_memory">Resumindo memórias...</string>
@@ -3421,7 +3421,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="screen_title_memory_base">banco de memória</string>
     <string name="screen_title_tool_permissions">Permissões de ferramentas</string>
     <string name="screen_title_user_preferences_guide">Orientação de preferência do usuário</string>
-    <string name="screen_title_user_preferences_settings">Preferências do usuário</string>
+    <string name="screen_title_user_preferences_settings">Perfil do usuário (user.md)</string>
     <string name="screen_title_model_config">Configuração de modelo e parâmetros</string>
     <string name="screen_title_speech_services_settings">Configurações do serviço de voz</string>
     <string name="screen_title_persona_card_generation">Geração de cartão de personalidade</string>
@@ -4700,7 +4700,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="toolreg_user_pref_occupation">Profissão</string>
     <string name="toolreg_user_pref_ai_style">Estilo IA</string>
     <string name="toolreg_list_separator">,</string>
-    <string name="toolreg_update_user_preferences_desc">Atualizar preferências do usuário: %1$s</string>
+    <string name="toolreg_update_user_profile_desc">Atualizar documento de perfil: %1$s</string>
     <string name="toolreg_create_memory_desc">Criar memória: %1$s</string>
     <string name="toolreg_update_memory_desc">Atualizar memória: %1$s -&gt; %2$s</string>
     <string name="toolreg_delete_memory_desc">Excluir memória: %1$s</string>
