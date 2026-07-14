@@ -6,9 +6,13 @@ Replace profile selection, questionnaires, category locks, and onboarding with a
 
 The screen provides:
 
-- Edit and preview modes
-- Explicit save
-- Character count and limit
+- A compact document toolbar for edit, preview, dirty state, and explicit save
+- A low-contrast, monospace Markdown editor with localized empty-state guidance
+- Character count and limit inside the editor status bar
 - Unsaved-change confirmation
 - Reset-to-template confirmation
-- Read-only access to the legacy profile archive when migration produced one
+- Low-frequency reset and archive actions in an overflow menu
+- Read-only access to the legacy profile archive in a large bottom sheet
+
+An untouched instructional template is normalized to an empty document so an empty profile is not
+injected into the system prompt. Guidance remains presentation-only and is never stored in user.md.

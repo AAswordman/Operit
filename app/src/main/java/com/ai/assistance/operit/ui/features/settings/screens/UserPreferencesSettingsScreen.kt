@@ -6,27 +6,38 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,8 +50,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserProfileDocumentRepository
@@ -54,15 +67,17 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val repository = remember(context) { UserProfileDocumentRepository.getInstance(context) }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var savedMarkdown by remember { mutableStateOf("") }
     var draftMarkdown by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
     var loading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
-    var showArchiveDialog by remember { mutableStateOf(false) }
+    var showArchiveSheet by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
     var archiveMarkdown by remember { mutableStateOf<String?>(null) }
 
     val hasUnsavedChanges = draftMarkdown != savedMarkdown
@@ -74,7 +89,7 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
             draftMarkdown = savedMarkdown
             archiveMarkdown = repository.readLegacyArchive()
         } catch (error: Exception) {
-            errorMessage = error.message
+            snackbarHostState.showSnackbar(error.message ?: error.javaClass.simpleName)
         } finally {
             loading = false
         }
@@ -86,112 +101,221 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
 
     BackHandler(onBack = ::navigateBackSafely)
 
-    CustomScaffold { paddingValues ->
-        Column(
+    CustomScaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Box(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            Text(
-                text = UserProfileDocumentRepository.USER_FILE_NAME,
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Text(
-                text = stringResource(R.string.user_md_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text(stringResource(R.string.user_md_edit_tab)) }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text(stringResource(R.string.user_md_preview_tab)) }
-                )
-            }
-
-            if (loading) {
-                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (selectedTab == 0) {
-                OutlinedTextField(
-                    value = draftMarkdown,
-                    onValueChange = { draftMarkdown = it },
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    textStyle = MaterialTheme.typography.bodyMedium,
-                    label = { Text(UserProfileDocumentRepository.USER_FILE_NAME) },
-                    supportingText = {
-                        Text(
-                            text =
-                                "${draftMarkdown.length} / ${UserProfileDocumentRepository.MAX_CONTENT_CHARS}",
-                            color =
-                                if (exceedsLimit) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    isError = exceedsLimit
-                )
-            } else {
-                Box(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState())
-                            .padding(vertical = 8.dp)
+            Column(
+                modifier =
+                    Modifier.align(Alignment.TopCenter)
+                        .fillMaxHeight()
+                        .widthIn(max = 840.dp)
+                        .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MarkdownTextComposable(
-                        text = draftMarkdown,
-                        textColor = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth()
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.user_md_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
 
-            errorMessage?.let {
-                Text(text = it, color = MaterialTheme.colorScheme.error)
-            }
-
-            HorizontalDivider()
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(onClick = { showResetDialog = true }) {
-                    Icon(Icons.Default.Restore, contentDescription = null)
-                    Text(stringResource(R.string.user_md_reset))
-                }
-                if (archiveMarkdown != null) {
-                    OutlinedButton(onClick = { showArchiveDialog = true }) {
-                        Icon(Icons.Default.Archive, contentDescription = null)
-                        Text(stringResource(R.string.user_md_legacy_archive))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FilterChip(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            label = { Text(stringResource(R.string.user_md_edit_tab)) }
+                        )
+                        FilterChip(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            label = { Text(stringResource(R.string.user_md_preview_tab)) }
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (hasUnsavedChanges) {
+                            Text(
+                                text = stringResource(R.string.workspace_unsaved),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        FilledTonalButton(
+                            onClick = {
+                                scope.launch {
+                                    saving = true
+                                    try {
+                                        repository.save(draftMarkdown)
+                                        savedMarkdown = draftMarkdown
+                                        snackbarHostState.showSnackbar(
+                                            context.getString(R.string.save_successful)
+                                        )
+                                    } catch (error: Exception) {
+                                        snackbarHostState.showSnackbar(
+                                            error.message ?: error.javaClass.simpleName
+                                        )
+                                    } finally {
+                                        saving = false
+                                    }
+                                }
+                            },
+                            enabled = hasUnsavedChanges && !exceedsLimit && !saving
+                        ) {
+                            if (saving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.Save, contentDescription = null)
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.save_action))
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                Button(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                repository.save(draftMarkdown)
-                                savedMarkdown = draftMarkdown
-                                errorMessage = null
-                            } catch (error: Exception) {
-                                errorMessage = error.message
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    if (loading) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                if (selectedTab == 0) {
+                                    BasicTextField(
+                                        value = draftMarkdown,
+                                        onValueChange = { draftMarkdown = it },
+                                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                                        textStyle =
+                                            MaterialTheme.typography.bodyMedium.copy(
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontFamily = FontFamily.Monospace
+                                            ),
+                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                        decorationBox = { innerTextField ->
+                                            Box(modifier = Modifier.fillMaxSize()) {
+                                                if (draftMarkdown.isEmpty()) {
+                                                    Text(
+                                                        text = stringResource(R.string.user_md_editor_placeholder),
+                                                        style =
+                                                            MaterialTheme.typography.bodyMedium.copy(
+                                                                fontFamily = FontFamily.Monospace
+                                                            ),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                                innerTextField()
+                                            }
+                                        }
+                                    )
+                                } else if (draftMarkdown.isBlank()) {
+                                    Text(
+                                        text = stringResource(R.string.user_md_preview_empty),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.align(Alignment.Center).padding(24.dp)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier =
+                                            Modifier.fillMaxSize()
+                                                .verticalScroll(rememberScrollState())
+                                                .padding(16.dp)
+                                    ) {
+                                        MarkdownTextComposable(
+                                            text = draftMarkdown,
+                                            textColor = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                                        .padding(start = 16.dp, end = 8.dp, bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text =
+                                        "${draftMarkdown.length} / ${UserProfileDocumentRepository.MAX_CONTENT_CHARS}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color =
+                                        if (exceedsLimit) MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                Box {
+                                    IconButton(onClick = { showMoreMenu = true }) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = stringResource(R.string.more)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showMoreMenu,
+                                        onDismissRequest = { showMoreMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.user_md_reset)) },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Restore, contentDescription = null)
+                                            },
+                                            onClick = {
+                                                showMoreMenu = false
+                                                showResetDialog = true
+                                            }
+                                        )
+                                        if (archiveMarkdown != null) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(stringResource(R.string.user_md_legacy_archive))
+                                                },
+                                                leadingIcon = {
+                                                    Icon(Icons.Default.Archive, contentDescription = null)
+                                                },
+                                                onClick = {
+                                                    showMoreMenu = false
+                                                    showArchiveSheet = true
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
-                    },
-                    enabled = hasUnsavedChanges && !exceedsLimit
-                ) {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Text(stringResource(R.string.save_action))
+                    }
                 }
             }
         }
@@ -239,13 +363,25 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
         )
     }
 
-    if (showArchiveDialog) {
-        AlertDialog(
-            onDismissRequest = { showArchiveDialog = false },
-            title = { Text(UserProfileDocumentRepository.LEGACY_ARCHIVE_FILE_NAME) },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState())
+    if (showArchiveSheet) {
+        ModalBottomSheet(onDismissRequest = { showArchiveSheet = false }) {
+            Column(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .fillMaxHeight(0.85f)
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = UserProfileDocumentRepository.LEGACY_ARCHIVE_FILE_NAME,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
                 ) {
                     MarkdownTextComposable(
                         text = archiveMarkdown.orEmpty(),
@@ -253,12 +389,7 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showArchiveDialog = false }) {
-                    Text(stringResource(R.string.confirm))
-                }
             }
-        )
+        }
     }
 }

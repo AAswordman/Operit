@@ -30,7 +30,9 @@ class UserProfileDocumentRepository private constructor(private val context: Con
         const val USER_FILE_NAME = "user.md"
         const val LEGACY_ARCHIVE_FILE_NAME = "legacy-user-profiles.md"
 
-        val DEFAULT_TEMPLATE = """# About me
+        const val DEFAULT_TEMPLATE = ""
+
+        private val LEGACY_EMPTY_TEMPLATE = """# About me
 
 <!-- Describe yourself, your preferences, and how you want the assistant to communicate. -->
 """
@@ -71,6 +73,16 @@ class UserProfileDocumentRepository private constructor(private val context: Con
             val schemaVersion = migrationPreferences.getInt(SCHEMA_VERSION_KEY, 0)
             if (schemaVersion < CURRENT_SCHEMA_VERSION) {
                 migrateReleasedStructuredProfiles()
+            }
+
+            // The first user.md implementation stored its editor hint inside the document, which
+            // made an otherwise empty profile part of every system prompt. Remove only that exact
+            // untouched template; real user-authored Markdown is never rewritten here.
+            if (
+                userFile.exists() &&
+                    userFile.readText(StandardCharsets.UTF_8) == LEGACY_EMPTY_TEMPLATE
+            ) {
+                writeAtomically(userFile, DEFAULT_TEMPLATE)
             }
 
             if (!userFile.exists()) {
