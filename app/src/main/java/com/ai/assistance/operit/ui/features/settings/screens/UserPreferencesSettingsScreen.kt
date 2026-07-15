@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.settings.screens
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,9 +18,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Restore
@@ -51,9 +54,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserProfileDocumentRepository
@@ -70,23 +76,27 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     var savedMarkdown by remember { mutableStateOf("") }
-    var draftMarkdown by remember { mutableStateOf("") }
+    // Preserve selection and composition; reducing editor state to String can re-anchor a
+    // long-press selection at the start of a scrolled document.
+    var draftEditorValue by remember { mutableStateOf(TextFieldValue("")) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var loading by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
-    var showArchiveSheet by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     var archiveMarkdown by remember { mutableStateOf<String?>(null) }
+    var archiveSheetMarkdown by remember { mutableStateOf<String?>(null) }
 
+    val draftMarkdown = draftEditorValue.text
     val hasUnsavedChanges = draftMarkdown != savedMarkdown
     val exceedsLimit = draftMarkdown.length > UserProfileDocumentRepository.MAX_CONTENT_CHARS
 
     LaunchedEffect(repository) {
         try {
-            savedMarkdown = repository.load()
-            draftMarkdown = savedMarkdown
+            val loadedMarkdown = repository.load()
+            savedMarkdown = loadedMarkdown
+            draftEditorValue = TextFieldValue(loadedMarkdown)
             archiveMarkdown = repository.readLegacyArchive()
         } catch (error: Exception) {
             snackbarHostState.showSnackbar(error.message ?: error.javaClass.simpleName)
@@ -213,8 +223,8 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
                             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                                 if (selectedTab == 0) {
                                     BasicTextField(
-                                        value = draftMarkdown,
-                                        onValueChange = { draftMarkdown = it },
+                                        value = draftEditorValue,
+                                        onValueChange = { draftEditorValue = it },
                                         modifier = Modifier.fillMaxSize().padding(16.dp),
                                         textStyle =
                                             MaterialTheme.typography.bodyMedium.copy(
@@ -297,7 +307,7 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
                                                 showResetDialog = true
                                             }
                                         )
-                                        if (archiveMarkdown != null) {
+                                        archiveMarkdown?.let { archive ->
                                             DropdownMenuItem(
                                                 text = {
                                                     Text(stringResource(R.string.user_md_legacy_archive))
@@ -307,7 +317,7 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
                                                 },
                                                 onClick = {
                                                     showMoreMenu = false
-                                                    showArchiveSheet = true
+                                                    archiveSheetMarkdown = archive
                                                 }
                                             )
                                         }
@@ -347,7 +357,8 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        draftMarkdown = UserProfileDocumentRepository.DEFAULT_TEMPLATE
+                        draftEditorValue =
+                            TextFieldValue(UserProfileDocumentRepository.DEFAULT_TEMPLATE)
                         selectedTab = 0
                         showResetDialog = false
                     }
@@ -363,8 +374,10 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
         )
     }
 
-    if (showArchiveSheet) {
-        ModalBottomSheet(onDismissRequest = { showArchiveSheet = false }) {
+    archiveSheetMarkdown?.let { archive ->
+        val clipboardManager = LocalClipboardManager.current
+        val archiveScrollState = rememberScrollState()
+        ModalBottomSheet(onDismissRequest = { archiveSheetMarkdown = null }) {
             Column(
                 modifier =
                     Modifier.fillMaxWidth()
@@ -377,17 +390,40 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
                     text = UserProfileDocumentRepository.LEGACY_ARCHIVE_FILE_NAME,
                     style = MaterialTheme.typography.titleLarge
                 )
-                Box(
+                SelectionContainer(
                     modifier =
                         Modifier.fillMaxWidth()
                             .weight(1f)
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(archiveScrollState)
                 ) {
-                    MarkdownTextComposable(
-                        text = archiveMarkdown.orEmpty(),
-                        textColor = MaterialTheme.colorScheme.onSurface,
+                    Text(
+                        text = archive,
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace
+                            ),
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(archive))
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.copied_to_clipboard),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.copy_content))
+                    }
                 }
             }
         }
