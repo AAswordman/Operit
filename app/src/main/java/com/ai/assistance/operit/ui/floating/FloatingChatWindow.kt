@@ -131,11 +131,6 @@ fun FloatingChatWindow(
             ?: remember { mutableStateOf<String?>(null) }
     val toastEvent by toastEventState
 
-    // 将窗口缩放限制在合理范围内 - 已通过回调和状态源头处理，不再需要
-    // LaunchedEffect(initialWindowScale) {
-    //     floatContext.windowScale = initialWindowScale.coerceIn(0.5f, 1.0f)
-    // }
-
     // 监听输入状态变化
     LaunchedEffect(floatContext.showInputDialog) {
         // 通知服务需要切换焦点模式

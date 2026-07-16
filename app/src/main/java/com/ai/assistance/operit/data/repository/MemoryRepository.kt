@@ -68,6 +68,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
         private const val SEARCH_KEYWORD_COVERAGE_BONUS = 0.6
         private const val SEARCH_RELEVANCE_THRESHOLD = 0.025
         private val INDEX_KEY_SANITIZE_REGEX = Regex("[^a-zA-Z0-9._-]")
+        private val WHITESPACE_SPLIT_REGEX = Regex("\\s+")
+        private val DOC_CHUNK_SPLIT_REGEX = Regex("(\\r?\\n[\\t ]*){2,}")
+        private val DOC_CHUNK_TRIM_REGEX = Regex("(?m)^[\\*\\-=_]{3,}\\s*$")
 
         fun normalizeFolderPath(folderPath: String?): String? {
             val raw = folderPath?.trim() ?: return null
@@ -190,7 +193,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         return if (query.contains('|')) {
             query.split('|').map { it.trim() }.filter { it.isNotEmpty() }
         } else {
-            query.split(Regex("\\s+")).map { it.trim() }.filter { it.isNotEmpty() }
+            query.split(WHITESPACE_SPLIT_REGEX).map { it.trim() }.filter { it.isNotEmpty() }
         }
     }
 
@@ -783,9 +786,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
         }
         memoryBox.put(documentMemory)
 
-        val chunks = text.split(Regex("(\\r?\\n[\\t ]*){2,}"))
+        val chunks = text.split(DOC_CHUNK_SPLIT_REGEX)
             .mapNotNull { chunkText ->
-                val cleanedText = chunkText.replace(Regex("(?m)^[\\*\\-=_]{3,}\\s*$"), "").trim()
+                val cleanedText = chunkText.replace(DOC_CHUNK_TRIM_REGEX, "").trim()
                 if (cleanedText.isNotBlank()) {
                     DocumentChunk(content = cleanedText, chunkIndex = 0)
                 } else {
