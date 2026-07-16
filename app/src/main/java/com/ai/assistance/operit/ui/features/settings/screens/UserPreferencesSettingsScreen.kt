@@ -66,6 +66,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserProfileDocumentRepository
 import com.ai.assistance.operit.ui.common.displays.MarkdownTextComposable
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.features.settings.components.rememberMarkdownSyntaxOutputTransformation
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +81,7 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
     // field can instead bring the stale cursor at the document start back into view.
     val draftEditorState = rememberTextFieldState()
     val editorScrollState = rememberScrollState()
+    val markdownSyntaxOutputTransformation = rememberMarkdownSyntaxOutputTransformation()
     var savedMarkdown by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
     var loading by remember { mutableStateOf(true) }
@@ -236,6 +238,7 @@ fun UserPreferencesSettingsScreen(onNavigateBack: () -> Unit) {
                                                 color = MaterialTheme.colorScheme.onSurface,
                                                 fontFamily = FontFamily.Monospace
                                             ),
+                                        outputTransformation = markdownSyntaxOutputTransformation,
                                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                         decorator = { innerTextField ->
                                             Box(modifier = Modifier.fillMaxSize()) {
