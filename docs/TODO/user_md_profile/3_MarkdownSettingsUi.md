@@ -8,7 +8,7 @@ The screen provides:
 
 - A compact document toolbar for edit, preview, dirty state, and explicit save
 - A low-contrast, monospace Markdown editor with localized empty-state guidance
-- Stable long-press selection and scrolling by retaining the complete editor value
+- Stable long-press selection and scrolling through coordinated text and scroll state
 - Character count and limit inside the editor status bar
 - Unsaved-change confirmation
 - Reset-to-template confirmation
