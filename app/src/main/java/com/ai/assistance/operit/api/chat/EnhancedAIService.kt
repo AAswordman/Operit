@@ -2887,7 +2887,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             val toolExposureMode = ToolExposureMode.resolve(config.apiProviderType)
 
             // 获取所有工具分类
-            val isEnglish = LocaleUtils.getCurrentLanguage(context) == "en"
+            val isEnglish = LocaleUtils.isNonChineseLanguage(context)
 
             // 后端识图服务是否可用（IMAGE_RECOGNITION 功能），用于 intent-based 视觉模型
             val hasBackendImageRecognition = multiServiceManager.hasImageRecognitionConfigured()

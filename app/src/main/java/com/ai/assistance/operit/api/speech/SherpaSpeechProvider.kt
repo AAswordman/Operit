@@ -531,7 +531,7 @@ class SherpaSpeechProvider(private val context: Context) : SpeechService {
 
     override suspend fun getSupportedLanguages(): List<String> =
             withContext(Dispatchers.IO) {
-                return@withContext listOf("zh", "en")
+                return@withContext listOf("zh", "en", "es", "ko", "id", "ms", "pt-BR")
             }
 
     // This method is for non-streaming recognition, which we are not using with sherpa-ncnn's

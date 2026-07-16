@@ -645,7 +645,7 @@ class SherpaMnnSpeechProvider(private val context: Context) : SpeechService {
 
     override suspend fun getSupportedLanguages(): List<String> =
             withContext(Dispatchers.IO) {
-                return@withContext listOf("zh", "en")
+                return@withContext listOf("zh", "en", "es", "ko", "id", "ms", "pt-BR")
             }
 
     override suspend fun recognize(audioData: FloatArray) {

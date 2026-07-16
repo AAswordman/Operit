@@ -43,6 +43,7 @@ import com.ai.assistance.operit.services.floating.FloatingWindowManager
 import com.ai.assistance.operit.services.floating.FloatingWindowState
 import com.ai.assistance.operit.services.floating.StatusIndicatorStyle
 import com.ai.assistance.operit.ui.floating.FloatingMode
+import com.ai.assistance.operit.services.whatsapp.WhatsAppMicrophoneManager
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.FileUtils
 import com.ai.assistance.operit.util.WaifuMessageProcessor
@@ -119,6 +120,7 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     private var autoExitRunnable: Runnable? = null
 
     private val wakePrefs by lazy { WakeWordPreferences(applicationContext) }
+    private var whatsappMicManager: WhatsAppMicrophoneManager? = null
 
     fun consumeAutoEnterVoiceChat(): Boolean {
         val value = autoEnterVoiceChat.value
@@ -227,6 +229,11 @@ class FloatingChatService : Service(), FloatingWindowCallback {
             chatCore = ChatRuntimeHolder.getInstance(applicationContext).getCore(ChatRuntimeSlot.FLOATING)
             chatCore.setUiBridge(EmptyChatServiceUiBridge)
             AppLogger.d(TAG, "ChatServiceCore 已初始化")
+
+            // Inicializar WhatsAppMicrophoneManager para manejar conflictos de micrófono
+            whatsappMicManager = WhatsAppMicrophoneManager(applicationContext)
+            whatsappMicManager?.startMonitoring()
+            AppLogger.d(TAG, "WhatsAppMicrophoneManager initialized")
 
             // 订阅聊天历史更新
             serviceScope.launch {
@@ -617,6 +624,13 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                     } catch (_: Exception) {
                     }
                 }
+            } catch (_: Exception) {
+            }
+
+            // Limpiar WhatsAppMicrophoneManager
+            try {
+                whatsappMicManager?.cleanup()
+                whatsappMicManager = null
             } catch (_: Exception) {
             }
             

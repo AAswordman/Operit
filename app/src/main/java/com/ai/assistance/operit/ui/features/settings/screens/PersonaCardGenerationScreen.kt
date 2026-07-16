@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.features.settings.screens
 
 import android.annotation.SuppressLint
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.LocaleUtils
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.*
@@ -150,8 +151,8 @@ fun PersonaCardGenerationScreen(
 
     // 引导文案（顶部说明）
     val characterAssistantIntro = remember {
-        val locale = Locale.getDefault().language
-        if (locale == "zh" || locale == "zh-CN" || locale == "zh-TW") {
+        val lang = LocaleUtils.getCurrentLanguage(context).lowercase()
+        if (lang.startsWith("zh")) {
             """
             嗨嗨～这里是你的角色卡小助手(｡･ω･｡)ﾉ♡ 我会陪你一起把专属角色慢慢捏出来～
             我们按部就班来哦：先告诉我你的称呼，再说说你想要的角色大方向，比方说：
@@ -340,7 +341,8 @@ fun PersonaCardGenerationScreen(
 
     // 构建稳定的系统提示词
     fun buildSystemPrompt(): String {
-        val useEnglish = !Locale.getDefault().language.lowercase().startsWith("zh")
+        val lang = LocaleUtils.getCurrentLanguage(context).lowercase()
+        val useEnglish = lang.startsWith("en")
         return FunctionalPrompts.personaCardGenerationSystemPrompt(useEnglish)
     }
     

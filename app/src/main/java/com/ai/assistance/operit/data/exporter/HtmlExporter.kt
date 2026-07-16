@@ -59,7 +59,7 @@ object HtmlExporter {
      */
     private fun appendHtmlHeader(sb: StringBuilder, title: String) {
         sb.appendLine("<!DOCTYPE html>")
-        sb.appendLine("<html lang=\"zh-CN\">")
+        sb.appendLine("<html lang=\"${java.util.Locale.getDefault().toLanguageTag()}\">")
         sb.appendLine("<head>")
         sb.appendLine("  <meta charset=\"UTF-8\">")
         sb.appendLine("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">")

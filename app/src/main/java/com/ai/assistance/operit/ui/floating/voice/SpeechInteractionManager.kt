@@ -13,7 +13,9 @@ import androidx.compose.runtime.setValue
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.api.speech.SpeechPrerollStore
 import com.ai.assistance.operit.api.speech.WakePhraseSnapshot
+import com.ai.assistance.operit.api.speech.SpeechService
 import com.ai.assistance.operit.api.speech.SpeechServiceFactory
+import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.api.voice.VoiceServiceFactory
 import com.ai.assistance.operit.util.TtsCleaner
 import com.ai.assistance.operit.util.WaifuMessageProcessor
@@ -124,6 +126,12 @@ class SpeechInteractionManager(
             return
         }
 
+        // Verificar si WhatsApp está en primer plano (conflicto de micrófono)
+        if (com.ai.assistance.operit.services.accessibility.OperitAccessibilityService.isWhatsAppInForeground()) {
+            AppLogger.w(TAG, "WhatsApp is in foreground - microphone may conflict")
+            // Continuar pero con advertencia - WhatsApp podría estar usando el micrófono
+        }
+
         // 重置超时
         timeoutJob?.cancel()
         
@@ -161,8 +169,9 @@ class SpeechInteractionManager(
                     if (attempt > 0) {
                         delay(160)
                     }
-                    ok = speechService.startRecognition(
-                        languageCode = "zh-CN",
+                    val sttLang = LocaleUtils.getSttLanguageCode(context)
+                                        ok = speechService.startRecognition(
+                                            languageCode = sttLang,
                         continuousMode = true,
                         partialResults = true
                     )

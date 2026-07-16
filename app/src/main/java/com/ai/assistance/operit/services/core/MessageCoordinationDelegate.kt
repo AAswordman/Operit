@@ -1152,7 +1152,7 @@ class MessageCoordinationDelegate(
         members: List<com.ai.assistance.operit.data.model.GroupMemberConfig>,
         memberCardsById: Map<String, CharacterCard>
     ): String {
-        val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+        val useEnglish = LocaleUtils.isNonChineseLanguage(context)
         val userName = displayPreferencesManager.globalUserName.first()?.trim().orEmpty()
         val formattedUserName = if (userName.isNotBlank()) {
             "$userName（用户）"

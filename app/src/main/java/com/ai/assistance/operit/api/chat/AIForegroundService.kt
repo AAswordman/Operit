@@ -36,6 +36,7 @@ import com.ai.assistance.operit.api.speech.PersonalWakeListener
 import com.ai.assistance.operit.api.speech.SpeechPrerollStore
 import com.ai.assistance.operit.api.speech.SpeechService
 import com.ai.assistance.operit.api.speech.SpeechServiceFactory
+import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.application.ActivityLifecycleManager
@@ -1594,8 +1595,9 @@ class AIForegroundService : Service() {
             val initOk = provider.initialize()
             AppLogger.d(TAG, "唤醒识别器 initialize: ok=$initOk")
             wakeListeningMicActiveForRecordingDetection = true
-            val startOk = provider.startRecognition(
-                languageCode = "zh-CN",
+            val sttLang = LocaleUtils.getSttLanguageCode(this@AIForegroundService)
+                        val startOk = provider.startRecognition(
+                            languageCode = sttLang,
                 continuousMode = true,
                 partialResults = true,
                 audioSource = MediaRecorder.AudioSource.MIC,

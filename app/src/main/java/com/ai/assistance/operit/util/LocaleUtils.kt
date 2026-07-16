@@ -219,6 +219,68 @@ object LocaleUtils {
         return legacyLanguageCodeAliases[canonicalCode] ?: canonicalCode
     }
 
+    /**
+     * 判断当前语言是否为非中文语言
+     * 用于决定使用英文还是中文的系统提示词模板
+     * 英文、西班牙语、韩语等非中文语言都使用英文模板
+     * @param context 上下文
+     * @return true 如果当前语言不是中文
+     */
+    fun isNonChineseLanguage(context: Context): Boolean {
+        val lang = getCurrentLanguage(context).lowercase()
+        return lang.isNotBlank() && !lang.startsWith("zh") && lang != LanguageCodes.AUTO
+    }
+
+    /**
+     * 获取首选语言代码，用于 BilingualData.resolve() 等多语言查找。
+     * 返回的代码对应 BilingualData 中的 key（如 "en"、"zh"、"es"、"ko"、"id"、"ms"、"pt"）。
+     * 如果找不到匹配的语言，回退到 "zh"。
+     */
+    fun getPreferredLanguage(context: Context): String {
+        val lang = getCurrentLanguage(context).lowercase()
+        return when {
+            lang.startsWith("en") -> LanguageCodes.ENGLISH
+            lang.startsWith("es") -> LanguageCodes.SPANISH
+            lang.startsWith("ko") -> LanguageCodes.KOREAN
+            lang.startsWith("id") -> LanguageCodes.INDONESIAN
+            lang.startsWith("ms") -> LanguageCodes.MALAY
+            lang.startsWith("pt") -> "pt"
+            else -> LanguageCodes.CHINESE
+        }
+    }
+
+    /**
+     * 获取适用于 STT/TTS 的 BCP47 语言标签
+     * 将应用语言代码映射到语音识别/合成所需的完整语言标签
+     * @param context 上下文
+     * @return BCP47 语言标签，如 zh-CN、en-US、es-ES 等
+     */
+    fun getSttLanguageCode(context: Context): String {
+        val appLang = getCurrentLanguage(context)
+        return when (appLang) {
+            LanguageCodes.CHINESE -> "zh-CN"
+            LanguageCodes.ENGLISH -> "en-US"
+            LanguageCodes.SPANISH -> "es-ES"
+            LanguageCodes.KOREAN -> "ko-KR"
+            LanguageCodes.MALAY -> "ms-MY"
+            LanguageCodes.INDONESIAN -> "id-ID"
+            LanguageCodes.PORTUGUESE_BRAZIL -> "pt-BR"
+            else -> {
+                val systemLang = Locale.getDefault().language.lowercase()
+                when (systemLang) {
+                    "zh" -> "zh-CN"
+                    "en" -> "en-US"
+                    "es" -> "es-ES"
+                    "ko" -> "ko-KR"
+                    "ms" -> "ms-MY"
+                    "id" -> "id-ID"
+                    "pt" -> "pt-BR"
+                    else -> "en-US"
+                }
+            }
+        }
+    }
+
     private fun resolveSupportedLanguageCode(languageCode: String): String {
         val normalizedCode = normalizeStoredLanguageCode(languageCode)
         if (normalizedCode.isBlank() || normalizedCode == LanguageCodes.AUTO) {

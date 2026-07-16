@@ -185,7 +185,7 @@ object MemoryLibrary {
         repository: MemoryRepository,
         aiService: AIService
     ) {
-        val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+        val useEnglish = LocaleUtils.isNonChineseLanguage(context)
         val memoriesDigest = memories.joinToString("\n") { "- title: ${it.title}, content: ${it.content.take(100)}..." }
         val systemPrompt = FunctionalPrompts.buildMemoryAutoCategorizePrompt(
             existingFolders = existingFolders,
@@ -507,7 +507,7 @@ object MemoryLibrary {
         profileId: String
     ): ParsedAnalysis {
         try {
-            val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+            val useEnglish = LocaleUtils.isNonChineseLanguage(context)
             val currentPreferences = withContext(Dispatchers.IO) {
                 var preferences = ""
                 preferencesManager.getUserPreferencesFlow(profileId).take(1).collect { profile ->

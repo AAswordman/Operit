@@ -113,6 +113,9 @@ fun CharacterCardDialog(
     val useEnglish = remember(context) {
         LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
     }
+    val preferredLanguage = remember(context) {
+        LocaleUtils.getPreferredLanguage(context)
+    }
     val toolHandler = remember { AIToolHandler.getInstance(context) }
     val packageManager = remember { PackageManager.getInstance(context, toolHandler) }
     val skillRepository = remember { SkillRepository.getInstance(context) }
@@ -187,7 +190,7 @@ fun CharacterCardDialog(
                     .joinToString(" · ")
             )
         }
-        packageOptions = buildCharacterCardPackageToolAccessOptions(context, packageManager, useEnglish)
+        packageOptions = buildCharacterCardPackageToolAccessOptions(context, packageManager, useEnglish, preferredLanguage)
         skillOptions = skillRepository.getAiVisibleSkillPackages()
             .toSortedMap(String.CASE_INSENSITIVE_ORDER)
             .map { (skillName, skillPackage) ->
@@ -1029,9 +1032,9 @@ private data class CharacterCardToolAccessOption(
 private fun buildCharacterCardPackageToolAccessOptions(
     context: android.content.Context,
     packageManager: PackageManager,
-    useEnglish: Boolean
+    useEnglish: Boolean,
+    preferredLanguage: String = if (useEnglish) "en" else "zh"
 ): List<CharacterCardToolAccessOption> {
-    val preferredLanguage = if (useEnglish) "en" else "zh"
     return packageManager.getEnabledPackageNames()
         .asSequence()
         .map { it.trim() }

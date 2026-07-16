@@ -75,7 +75,7 @@ interface SpeechService {
      * @return 开始识别是否成功
      */
     suspend fun startRecognition(
-            languageCode: String = "zh-CN",
+            languageCode: String = "en-US",
             continuousMode: Boolean = false,
             partialResults: Boolean = true,
             audioSource: Int = MediaRecorder.AudioSource.VOICE_COMMUNICATION,

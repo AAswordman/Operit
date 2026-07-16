@@ -116,7 +116,7 @@ fun SpeechToTextScreen(navController: NavController) {
 
     // 状态变量
     var recognizedText by remember { mutableStateOf("") }
-    var selectedLanguage by remember { mutableStateOf("zh-CN") }
+    var selectedLanguage by remember { mutableStateOf(java.util.Locale.getDefault().language.lowercase()) }
     var error by remember { mutableStateOf<String?>(null) }
     var availableLanguages by remember { mutableStateOf<List<String>>(emptyList()) }
     

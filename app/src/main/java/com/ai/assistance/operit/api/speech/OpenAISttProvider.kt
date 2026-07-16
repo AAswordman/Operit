@@ -390,7 +390,7 @@ class OpenAISttProvider(
 
     override suspend fun getSupportedLanguages(): List<String> =
         withContext(Dispatchers.IO) {
-            return@withContext listOf("zh", "en")
+            return@withContext listOf("zh", "en", "es", "ko", "id", "ms", "pt-BR")
         }
 
     override suspend fun recognize(audioData: FloatArray) {
@@ -553,6 +553,11 @@ class OpenAISttProvider(
         return when {
             code.startsWith("zh") -> "zh"
             code.startsWith("en") -> "en"
+            code.startsWith("es") -> "es"
+            code.startsWith("ko") -> "ko"
+            code.startsWith("id") -> "id"
+            code.startsWith("ms") -> "ms"
+            code.startsWith("pt") -> "pt"
             else -> code
         }
     }
