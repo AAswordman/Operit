@@ -52,6 +52,7 @@ import com.ai.assistance.operit.ui.common.displays.FpsCounter
 import com.ai.assistance.operit.ui.main.NavigationTransitionSource
 import com.ai.assistance.operit.ui.main.TopBarTitleContent
 import com.ai.assistance.operit.ui.main.navigation.RouteEntry
+import com.ai.assistance.operit.ui.main.navigation.LocalRouteInstanceId
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
 import kotlinx.coroutines.CoroutineScope
@@ -671,6 +672,7 @@ fun AppContent(
                                         screenStateHolder.SaveableStateProvider(screenKey) {
                                             CompositionLocalProvider(
                                                 LocalIsCurrentScreen provides isCurrentScreen,
+                                                LocalRouteInstanceId provides screenKey,
                                                 LocalSetScreenSoftInputMode provides { mode ->
                                                     if (isCurrentScreen && currentScreenSoftInputMode != mode) {
                                                         currentScreenSoftInputMode = mode

@@ -9,13 +9,16 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.joinAll
 
 private const val DEFAULT_MODEL_CONFIG_AUTO_SAVE_DEBOUNCE_MS = 700L
 
@@ -25,6 +28,8 @@ private val modelConfigSaveCoordinatorScope =
 @Stable
 class ModelConfigSaveCoordinator {
     private val saveActions = LinkedHashMap<String, suspend (Boolean) -> Unit>()
+    private val backgroundFlushJobs = LinkedHashSet<Job>()
+    private val backgroundFlushFailures = LinkedHashMap<String, Exception>()
     private val lock = Any()
 
     fun register(key: String, action: suspend (Boolean) -> Unit) {
@@ -40,23 +45,39 @@ class ModelConfigSaveCoordinator {
     }
 
     suspend fun flushAll(showSuccess: Boolean = false) {
+        while (true) {
+            val pendingJobs = synchronized(lock) { backgroundFlushJobs.toList() }
+            if (pendingJobs.isEmpty()) {
+                break
+            }
+            pendingJobs.joinAll()
+        }
+
         val actions =
             synchronized(lock) {
-                saveActions.values.toList()
+                saveActions.entries.map { it.key to it.value }
             }
         var firstFailure: Exception? = null
-        actions.forEach { action ->
+        actions.forEach { (key, action) ->
             try {
                 action(showSuccess)
+                synchronized(lock) {
+                    backgroundFlushFailures.remove(key)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                synchronized(lock) {
+                    backgroundFlushFailures[key] = e
+                }
                 if (firstFailure == null) {
                     firstFailure = e
                 }
             }
         }
-        firstFailure?.let { throw it }
+        val unresolvedFailure =
+            firstFailure ?: synchronized(lock) { backgroundFlushFailures.values.firstOrNull() }
+        unresolvedFailure?.let { throw it }
     }
 
     fun flushAllInBackground(showSuccess: Boolean = false) {
@@ -73,11 +94,29 @@ class ModelConfigSaveCoordinator {
                 saveActions[key]
             } ?: return
 
-        modelConfigSaveCoordinatorScope.launch {
-            runCatching {
+        val job = modelConfigSaveCoordinatorScope.launch(start = CoroutineStart.LAZY) {
+            try {
                 action(showSuccess)
+                synchronized(lock) {
+                    backgroundFlushFailures.remove(key)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                synchronized(lock) {
+                    backgroundFlushFailures[key] = e
+                }
             }
         }
+        synchronized(lock) {
+            backgroundFlushJobs.add(job)
+        }
+        job.invokeOnCompletion {
+            synchronized(lock) {
+                backgroundFlushJobs.remove(job)
+            }
+        }
+        job.start()
     }
 }
 

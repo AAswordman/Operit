@@ -43,7 +43,10 @@ import com.ai.assistance.operit.ui.main.navigation.AppRouteDiscoveryGateway
 import com.ai.assistance.operit.ui.main.navigation.NavigationEntrySpec
 import com.ai.assistance.operit.ui.main.navigation.NavigationSurface
 import com.ai.assistance.operit.ui.main.navigation.RouteEntrySource
+import com.ai.assistance.operit.ui.main.navigation.LocalRouteBackGuardRegistry
+import com.ai.assistance.operit.ui.main.navigation.RouteBackGuardRegistry
 import com.ai.assistance.operit.util.NetworkUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -107,6 +110,7 @@ fun OperitApp(
     val routerState = remember {
         AppRouterState(AppRouteCatalog.initialEntry(initialNavItem))
     }
+    val routeBackGuardRegistry = remember { RouteBackGuardRegistry() }
     val currentRouteEntry = routerState.currentEntry
     val currentScreen = AppRouteCatalog.resolveScreen(navigationModel, currentRouteEntry) ?: Screen.AiChat
     val selectedItem = currentScreen.navItem
@@ -216,7 +220,7 @@ fun OperitApp(
         }
     }
 
-    fun goBack() {
+    fun performGoBack() {
         if (routerState.canPop) {
             isNavigatingBack = true
             navigationTransitionSource = NavigationTransitionSource.DEFAULT
@@ -225,6 +229,39 @@ fun OperitApp(
             isNavigatingBack = true
             navigationTransitionSource = NavigationTransitionSource.DEFAULT
             routerState.resetTo(AppRouteCatalog.toEntry(Screen.AiChat))
+        }
+    }
+
+    var isBackRequestInProgress by remember { mutableStateOf(false) }
+
+    fun requestGoBack() {
+        val requestedRouteInstanceId = routerState.currentEntry.instanceId
+        if (!routeBackGuardRegistry.hasGuard(requestedRouteInstanceId)) {
+            performGoBack()
+            return
+        }
+        if (isBackRequestInProgress) {
+            return
+        }
+
+        isBackRequestInProgress = true
+        scope.launch {
+            try {
+                val canNavigateBack =
+                    routeBackGuardRegistry.canNavigateBack(requestedRouteInstanceId)
+                if (
+                    canNavigateBack &&
+                        routerState.currentEntry.instanceId == requestedRouteInstanceId
+                ) {
+                    performGoBack()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "返回处理失败", e)
+            } finally {
+                isBackRequestInProgress = false
+            }
         }
     }
 
@@ -275,7 +312,7 @@ fun OperitApp(
         navigateTo(Screen.TokenConfig)
     }
 
-    BackHandler(enabled = currentScreen !is Screen.AiChat, onBack = { goBack() })
+    BackHandler(enabled = currentScreen !is Screen.AiChat, onBack = { requestGoBack() })
 
     val canGoBack = routerState.canPop
 
@@ -415,6 +452,7 @@ fun OperitApp(
         }
         CompositionLocalProvider(
             LocalAppNavigationModel provides navigationModel,
+            LocalRouteBackGuardRegistry provides routeBackGuardRegistry,
             LocalTopBarActions provides { actions: @Composable RowScope.() -> Unit ->
                 topBarActions = actions
             },
@@ -453,7 +491,7 @@ fun OperitApp(
                     },
                     navigateToTokenConfig = ::navigateToTokenConfig,
                     canGoBack = canGoBack,
-                    onGoBack = ::goBack,
+                    onGoBack = ::requestGoBack,
                     isNavigatingBack = isNavigatingBack,
                     topBarActions = { topBarActions() },
                     topBarTitleContent = topBarTitleContent
@@ -484,7 +522,7 @@ fun OperitApp(
                     onNavigationEntrySelected = ::navigateToNavigationEntry,
                     navigateToTokenConfig = ::navigateToTokenConfig,
                     canGoBack = canGoBack,
-                    onGoBack = ::goBack,
+                    onGoBack = ::requestGoBack,
                     isNavigatingBack = isNavigatingBack,
                     topBarActions = { topBarActions() },
                     topBarTitleContent = topBarTitleContent

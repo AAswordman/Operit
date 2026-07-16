@@ -603,14 +603,24 @@
 
     <!-- Configuration Screen -->
     <string name="config_title">Operit AI 助手</string>
-    <string name="config_description">我们默认使用DeepSeek API，如需更换请点击下方自定义选项</string>
+    <string name="config_description">使用 DeepSeek API Key，或配置其他模型服务</string>
     <string name="config_api_key_label">API密钥</string>
     <string name="config_api_key_placeholder">DeepSeek API密钥</string>
     <string name="config_save_button">确认并保存</string>
-    <string name="config_get_token">获取Token</string>
+    <string name="config_get_token">获取 DeepSeek API Key</string>
+    <string name="config_saving">正在保存...</string>
+    <string name="config_api_key_invalid_format">DeepSeek API Key 格式不正确。仅支持半角英文字母、数字和符号，不能包含中文、空格或不可见字符。</string>
     <string name="config_use_free">薅贡献者的</string>
-    <string name="config_custom">自定义</string>
+    <string name="config_custom">配置其他模型</string>
     <string name="config_free_usage_exceeded">今日免费次数已用完</string>
+    <string name="onboarding_config_not_found">所选模型配置已不存在，请重新选择</string>
+    <string name="onboarding_config_provider_missing">请选择一个模型服务提供商</string>
+    <string name="onboarding_config_provider_unavailable">所选模型服务提供商不可用，请重新选择</string>
+    <string name="onboarding_config_endpoint_invalid">请填写有效的 HTTP 或 HTTPS API 端点</string>
+    <string name="onboarding_config_model_missing">请选择或填写用于对话的模型</string>
+    <string name="onboarding_config_api_key_missing">当前模型服务需要 API Key</string>
+    <string name="onboarding_config_api_key_invalid">API Key 或密钥池格式不正确，请检查后重试</string>
+    <string name="onboarding_config_apply_failed">模型配置保存或应用失败，请重试</string>
     
     <!-- 一键配置相关 -->
     <string name="one_click_config_title">一键配置</string>

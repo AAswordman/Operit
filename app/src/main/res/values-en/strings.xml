@@ -605,14 +605,24 @@
 
     <!-- Configuration Screen -->
     <string name="config_title">Operit AI Assistant</string>
-    <string name="config_description">We use DeepSeek API by default. For alternatives, click the custom option below</string>
+    <string name="config_description">Use a DeepSeek API Key or configure another model service</string>
     <string name="config_api_key_label">API Key</string>
     <string name="config_api_key_placeholder">DeepSeek API Key</string>
     <string name="config_save_button">Confirm and Save</string>
-    <string name="config_get_token">Get Token</string>
+    <string name="config_get_token">Get DeepSeek API Key</string>
+    <string name="config_saving">Saving...</string>
+    <string name="config_api_key_invalid_format">The DeepSeek API Key format is incorrect. Use only ASCII letters, numbers, and symbols, without spaces or invisible characters.</string>
     <string name="config_use_free">Fleece from contributors</string>
-    <string name="config_custom">Custom</string>
+    <string name="config_custom">Configure Another Model</string>
     <string name="config_free_usage_exceeded">Free daily usage limit reached</string>
+    <string name="onboarding_config_not_found">The selected model configuration no longer exists. Select another one.</string>
+    <string name="onboarding_config_provider_missing">Select a model service provider</string>
+    <string name="onboarding_config_provider_unavailable">The selected model service provider is unavailable. Select another one.</string>
+    <string name="onboarding_config_endpoint_invalid">Enter a valid HTTP or HTTPS API endpoint</string>
+    <string name="onboarding_config_model_missing">Select or enter a model for chat</string>
+    <string name="onboarding_config_api_key_missing">This model service requires an API Key</string>
+    <string name="onboarding_config_api_key_invalid">The API Key or key pool format is incorrect. Check it and try again.</string>
+    <string name="onboarding_config_apply_failed">The model configuration could not be saved or applied. Try again.</string>
     
     <!-- One-click configuration related -->
     <string name="one_click_config_title">One-Click Config</string>

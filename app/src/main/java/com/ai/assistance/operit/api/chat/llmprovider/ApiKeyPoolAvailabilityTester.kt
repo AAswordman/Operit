@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +20,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 
@@ -44,6 +48,14 @@ class ApiKeyPoolAvailabilityTester(
 
     fun pause() {
         job?.cancel()
+    }
+
+    suspend fun pauseAndJoin() {
+        job?.cancelAndJoin()
+    }
+
+    fun close() {
+        scope.cancel()
     }
 
     fun isRunning(): Boolean = job?.isActive == true
@@ -96,6 +108,7 @@ class ApiKeyPoolAvailabilityTester(
                 channel.close()
 
                 var workingPool = apiKeyPool
+                val poolUpdateMutex = Mutex()
 
                 val workerCount = maxOf(1, min(concurrency, keysToTest.size))
                 val workers = (0 until workerCount).map {
@@ -114,18 +127,24 @@ class ApiKeyPoolAvailabilityTester(
                                     ApiKeyAvailabilityStatus.UNAVAILABLE
                                 }
 
-                            workingPool = workingPool.map { existing ->
-                                if (existing.id == keyInfo.id) existing.copy(availabilityStatus = status) else existing
-                            }
+                            poolUpdateMutex.withLock {
+                                workingPool = workingPool.map { existing ->
+                                    if (existing.id == keyInfo.id) {
+                                        existing.copy(availabilityStatus = status)
+                                    } else {
+                                        existing
+                                    }
+                                }
 
-                            configManager.updateApiKeyPoolSettings(
-                                configId = configId,
-                                useMultipleApiKeys = useMultipleApiKeys,
-                                apiKeyPool = workingPool
-                            )
+                                withContext(Dispatchers.Main) {
+                                    onPoolUpdated(workingPool)
+                                }
 
-                            withContext(Dispatchers.Main) {
-                                onPoolUpdated(workingPool)
+                                configManager.updateApiKeyPoolSettings(
+                                    configId = configId,
+                                    useMultipleApiKeys = useMultipleApiKeys,
+                                    apiKeyPool = workingPool
+                                )
                             }
 
                             _state.update { current ->

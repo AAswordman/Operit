@@ -74,7 +74,6 @@ import com.ai.assistance.operit.ui.features.chat.webview.MentionSuggestionPanelS
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspaceScreen
 import com.ai.assistance.operit.ui.features.chat.webview.MentionSuggestionPanel
 import com.ai.assistance.operit.ui.features.chat.webview.computer.ComputerScreen
-import com.ai.assistance.operit.ui.features.chat.util.ConfigurationStateHolder
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.main.LocalTopBarActions
 import com.ai.assistance.operit.ui.main.PendingChatDraftHandler
@@ -94,6 +93,7 @@ import com.ai.assistance.operit.ui.main.components.LocalSetScreenSoftInputMode
 import com.ai.assistance.operit.ui.main.components.LocalSetUseScreenImePadding
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextRange
@@ -125,6 +125,7 @@ fun AIChatScreen(
         onNavigateToSettings: () -> Unit = {},
         onNavigateToUserPreferences: () -> Unit = {},
         onNavigateToModelConfig: () -> Unit = {},
+        onNavigateToOnboardingModelConfig: () -> Unit = {},
         onNavigateToModelPrompts: () -> Unit = {},
         onNavigateToPackageManager: () -> Unit = {},
         onGestureConsumed: (Boolean) -> Unit = {}
@@ -297,10 +298,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
 
     // Collect state from ViewModel
     val apiKey by actualViewModel.apiKey.collectAsState()
-    val apiEndpoint by actualViewModel.apiEndpoint.collectAsState()
+    val activeChatConfigId by actualViewModel.activeChatConfigId.collectAsState()
     val modelName by actualViewModel.modelName.collectAsState()
-    val apiProviderType by actualViewModel.apiProviderType.collectAsState()
-    val isConfigured by actualViewModel.isConfigured.collectAsState()
     val chatHistory by actualViewModel.chatHistory.collectAsState()
     // 仅对当前会话显示处理中状态（影响“停止/发送”按钮）
     val isLoading by actualViewModel.currentChatIsLoading.collectAsState()
@@ -406,10 +405,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         actualViewModel.updateApiProviderType(ApiProviderType.DEEPSEEK)
                         actualViewModel.saveApiSettings()
 
-                        // 新增：重置状态以重新显示配置界面
-                        ConfigurationStateHolder.hasConfirmedDefaultInSession = false
-                        actualViewModel.showConfigurationScreen()
-                        
                     }) {
                         Text(stringResource(R.string.change_model))
                     }
@@ -571,15 +566,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
             ?.memoryProfileId
     
 
-
-    // 确保每次应用启动时正确处理配置界面的显示逻辑
-    LaunchedEffect(apiKey) {
-        // 只有当apiKey有效值时才执行逻辑，防止初始化阶段的不正确判断
-        if (apiKey.isNotBlank()) {
-            // 如果使用的是自定义配置，标记为已确认，不显示配置界面
-            ConfigurationStateHolder.hasConfirmedDefaultInSession = true
-        }
-    }
 
     val defaultUserMessageColor = MaterialTheme.colorScheme.primaryContainer
     val defaultAiMessageColor = MaterialTheme.colorScheme.surface
@@ -761,8 +747,13 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         }
     }
 
-    // 确定是否显示配置界面的最终逻辑
-    val showConfig = shouldShowConfigDialog && !ConfigurationStateHolder.hasConfirmedDefaultInSession
+    var isSavingInitialConfiguration by remember { mutableStateOf(false) }
+    var initialConfigurationSaveFailed by
+        rememberSaveable(activeChatConfigId) { mutableStateOf(false) }
+    val showConfig =
+        shouldShowConfigDialog ||
+            isSavingInitialConfiguration ||
+            initialConfigurationSaveFailed
 
     // 添加手势状态
     var chatScreenGestureConsumed by remember { mutableStateOf(false) }
@@ -932,43 +923,36 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
             // 根据前面的逻辑条件决定是否显示配置界面
             if (showConfig) {
                 ConfigurationScreen(
-                        apiEndpoint = apiEndpoint,
                         apiKey = apiKey,
-                        modelName = modelName,
-                        onApiEndpointChange = { actualViewModel.updateApiEndpoint(it) },
-                        onApiKeyChange = { actualViewModel.updateApiKey(it) },
-                        onModelNameChange = { actualViewModel.updateModelName(it) },
-                        onApiProviderTypeChange = { actualViewModel.updateApiProviderType(it) },
-                        onSaveConfig = {
-                            actualViewModel.saveApiSettings()
-                            // 保存配置后导航到聊天界面
-                            ConfigurationStateHolder.hasConfirmedDefaultInSession = true
-                            actualViewModel.onConfigDialogConfirmed()
+                        isSaving = isSavingInitialConfiguration,
+                        onSaveApiKey = { normalizedApiKey ->
+                            if (!isSavingInitialConfiguration) {
+                                coroutineScope.launch {
+                                    isSavingInitialConfiguration = true
+                                    initialConfigurationSaveFailed = false
+                                    try {
+                                        actualViewModel.saveDeepSeekConfiguration(
+                                            activeChatConfigId,
+                                            normalizedApiKey
+                                        )
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        initialConfigurationSaveFailed = true
+                                        actualViewModel.showErrorMessage(
+                                            e.message ?: context.getString(R.string.save_failed)
+                                        )
+                                    } finally {
+                                        isSavingInitialConfiguration = false
+                                    }
+                                }
+                            }
                         },
-                        onError = { error -> actualViewModel.showErrorMessage(error) },
-                        coroutineScope = coroutineScope,
-                        // 新增：使用默认配置的回调
-                        onUseDefault = {
-                            actualViewModel.useDefaultConfig()
-                            // 确认使用默认配置后导航到聊天界面
-                            ConfigurationStateHolder.hasConfirmedDefaultInSession = true
-                            actualViewModel.onConfigDialogConfirmed()
-                        },
-                        // 标识是否在使用默认配置
-                        isUsingDefault = true, // 当显示此屏幕时，总是因为使用了默认值
-                        // 添加导航到聊天界面的回调
-                        onNavigateToChat = {
-                            // 当用户设置了自己的配置后保存
-                            actualViewModel.saveApiSettings()
-                            // 确认后导航到聊天界面
-                            ConfigurationStateHolder.hasConfirmedDefaultInSession = true
-                            actualViewModel.onConfigDialogConfirmed()
-                        },
-                        // 添加导航到Token配置页面的回调
                         onNavigateToTokenConfig = onNavigateToTokenConfig,
-                        // 添加导航到Settings页面的回调
-                        onNavigateToSettings = onNavigateToSettings,
-                        onNavigateToModelConfig = onNavigateToModelConfig
+                        onNavigateToModelConfig = {
+                            initialConfigurationSaveFailed = false
+                            onNavigateToOnboardingModelConfig()
+                        }
                 )
             } else {
                 Box(
@@ -2095,4 +2079,3 @@ private fun MentionSuggestionOverlay(
         }
     }
 }
-

@@ -32,17 +32,25 @@ import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
 import com.ai.assistance.operit.data.model.ApiKeyInfo
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
+import com.ai.assistance.operit.ui.features.settings.ModelConfigSaveCoordinator
+import com.ai.assistance.operit.ui.features.settings.RegisterModelConfigSaveAction
+import com.ai.assistance.operit.util.AppLogger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.*
 
 @Composable
 fun AdvancedSettingsSection(
     config: ModelConfigData,
     configManager: ModelConfigManager,
+    saveCoordinator: ModelConfigSaveCoordinator,
+    keyAvailabilityTester: ApiKeyPoolAvailabilityTester,
     showNotification: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -74,18 +82,54 @@ fun AdvancedSettingsSection(
     var editingKey by remember { mutableStateOf<ApiKeyInfo?>(null) }
     var showClearPoolConfirmDialog by remember { mutableStateOf(false) }
 
-    val keyAvailabilityTester = remember(config.id) { ApiKeyPoolAvailabilityTester(config.id, configManager) }
     val keyTestState by keyAvailabilityTester.state.collectAsState()
+    val keyPoolSaveMutex = remember(config.id) { Mutex() }
 
-    // Save changes to the config
-    fun saveChanges() {
-        scope.launch {
+    data class ApiKeyPoolSaveState(
+        val useMultipleApiKeys: Boolean,
+        val apiKeyPool: List<ApiKeyInfo>
+    )
+
+    fun buildApiKeyPoolSaveState() =
+        ApiKeyPoolSaveState(
+            useMultipleApiKeys = useApiKeyPool,
+            apiKeyPool = apiKeyPool
+        )
+
+    suspend fun persistApiKeyPool(state: ApiKeyPoolSaveState) {
+        keyPoolSaveMutex.withLock {
             configManager.updateApiKeyPoolSettings(
                 configId = config.id,
-                useMultipleApiKeys = useApiKeyPool,
-                apiKeyPool = apiKeyPool
+                useMultipleApiKeys = state.useMultipleApiKeys,
+                apiKeyPool = state.apiKeyPool
             )
             EnhancedAIService.refreshAllServices(configManager.appContext)
+        }
+    }
+
+    fun saveChanges() {
+        val state = buildApiKeyPoolSaveState()
+        scope.launch {
+            try {
+                keyAvailabilityTester.pauseAndJoin()
+                persistApiKeyPool(state)
+                showNotification(context.getString(R.string.advanced_settings_saved))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e("AdvancedSettingsSection", "保存 API Key 池失败", e)
+                showNotification(context.getString(R.string.save_failed))
+            }
+        }
+    }
+
+    RegisterModelConfigSaveAction(
+        coordinator = saveCoordinator,
+        key = "api-key-pool:${config.id}"
+    ) { showSuccess ->
+        keyAvailabilityTester.pauseAndJoin()
+        persistApiKeyPool(buildApiKeyPoolSaveState())
+        if (showSuccess) {
             showNotification(context.getString(R.string.advanced_settings_saved))
         }
     }

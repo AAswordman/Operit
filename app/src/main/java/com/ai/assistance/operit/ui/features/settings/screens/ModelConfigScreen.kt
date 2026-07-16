@@ -36,6 +36,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
+import com.ai.assistance.operit.api.chat.llmprovider.ApiKeyPoolAvailabilityTester
+import com.ai.assistance.operit.api.chat.llmprovider.ChatConfigReadiness
+import com.ai.assistance.operit.api.chat.llmprovider.ChatConfigReadinessIssue
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConfigConnectionTester
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestType
 import com.ai.assistance.operit.data.model.FunctionType
@@ -52,6 +55,9 @@ import com.ai.assistance.operit.ui.features.settings.sections.SettingsInfoBanner
 import com.ai.assistance.operit.ui.features.settings.sections.SettingsSectionHeader
 import com.ai.assistance.operit.ui.features.settings.sections.SettingsSwitchRow
 import com.ai.assistance.operit.ui.features.settings.sections.SettingsTextField
+import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
+import com.ai.assistance.operit.ui.main.navigation.RegisterRouteBackGuard
+import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -68,6 +74,11 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 private data class HeaderPreset(val nameResId: Int, val headers: Map<String, String>)
+
+enum class ModelConfigEntryMode {
+    STANDARD,
+    CHAT_ONBOARDING
+}
 
 private val headerPresets =
     listOf(
@@ -139,8 +150,8 @@ private fun serializeHeaderEntries(headers: List<Pair<String, String>>): String 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ModelConfigScreen(
-    onBackPressed: () -> Unit = {},
-    navigateToMnnModelDownload: (() -> Unit)? = null
+    navigateToMnnModelDownload: (() -> Unit)? = null,
+    entryMode: ModelConfigEntryMode = ModelConfigEntryMode.STANDARD
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -149,12 +160,19 @@ fun ModelConfigScreen(
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     val saveCoordinator = rememberModelConfigSaveCoordinator()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // 配置状态
     val configList = configManager.configListFlow.collectAsState(initial = listOf("default")).value
     // 进入页面时默认选中“对话功能”当前绑定的模型配置
     var selectedConfigId by remember { mutableStateOf(ModelConfigManager.DEFAULT_CONFIG_ID) }
     val selectedConfig = remember { mutableStateOf<ModelConfigData?>(null) }
+    val keyAvailabilityTester =
+        remember(selectedConfigId) {
+            ApiKeyPoolAvailabilityTester(selectedConfigId, configManager)
+        }
+    var hasInitializedSelection by remember { mutableStateOf(false) }
+    var isCompletingOnboarding by remember { mutableStateOf(false) }
 
     // 配置名称映射
     val configNameMap = remember { mutableStateMapOf<String, String>() }
@@ -174,6 +192,10 @@ fun ModelConfigScreen(
     var connectionTestJob by remember { mutableStateOf<Job?>(null) }
     var activeConnectionTestService by remember { mutableStateOf<AIService?>(null) }
 
+    DisposableEffect(keyAvailabilityTester) {
+        onDispose { keyAvailabilityTester.close() }
+    }
+
     // 初始化配置，并默认定位到“对话功能模型”所使用的配置
     LaunchedEffect(Unit) {
         configManager.initializeIfNeeded()
@@ -185,6 +207,7 @@ fun ModelConfigScreen(
             availableConfigIds.firstOrNull { it == chatConfigId }
                 ?: availableConfigIds.firstOrNull()
                 ?: ModelConfigManager.DEFAULT_CONFIG_ID
+        hasInitializedSelection = true
     }
 
     // 加载所有配置名称
@@ -198,6 +221,7 @@ fun ModelConfigScreen(
     // 加载选中的配置
     LaunchedEffect(selectedConfigId) {
         testResults = null
+        selectedConfig.value = null
         configManager.getModelConfigFlow(selectedConfigId).collect { config ->
             selectedConfig.value = config
         }
@@ -210,6 +234,105 @@ fun ModelConfigScreen(
         scope.launch {
             kotlinx.coroutines.delay(3000)
             showSaveSuccessMessage = false
+        }
+    }
+
+    fun showOnboardingError(message: String) {
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    if (entryMode == ModelConfigEntryMode.CHAT_ONBOARDING) {
+        RegisterRouteBackGuard {
+            if (!hasInitializedSelection || isCompletingOnboarding) {
+                return@RegisterRouteBackGuard false
+            }
+
+            val targetConfigId = selectedConfigId
+            isCompletingOnboarding = true
+            try {
+                saveCoordinator.flushAll(showSuccess = false)
+                if (selectedConfigId != targetConfigId) {
+                    showOnboardingError(
+                        context.getString(R.string.onboarding_config_apply_failed)
+                    )
+                    return@RegisterRouteBackGuard false
+                }
+
+                val targetConfig = configManager.getModelConfig(targetConfigId)
+                if (targetConfig == null) {
+                    showOnboardingError(
+                        context.getString(R.string.onboarding_config_not_found)
+                    )
+                    return@RegisterRouteBackGuard false
+                }
+
+                val currentMapping =
+                    functionalConfigManager.getConfigMappingForFunction(FunctionType.CHAT)
+                val targetModelIndex =
+                    if (currentMapping.configId == targetConfigId) {
+                        currentMapping.modelIndex
+                    } else {
+                        0
+                    }
+                val registeredPluginProviderIds =
+                    ToolPkgAiProviderRegistry.list().mapTo(mutableSetOf()) { it.providerId }
+                val readiness =
+                    ChatConfigReadiness.evaluate(
+                        config = targetConfig,
+                        modelIndex = targetModelIndex,
+                        registeredPluginProviderIds = registeredPluginProviderIds
+                    )
+                if (!readiness.isReady) {
+                    val messageResId =
+                        when (readiness.issue) {
+                            ChatConfigReadinessIssue.PROVIDER_MISSING ->
+                                R.string.onboarding_config_provider_missing
+                            ChatConfigReadinessIssue.PROVIDER_UNAVAILABLE ->
+                                R.string.onboarding_config_provider_unavailable
+                            ChatConfigReadinessIssue.ENDPOINT_INVALID ->
+                                R.string.onboarding_config_endpoint_invalid
+                            ChatConfigReadinessIssue.MODEL_MISSING ->
+                                R.string.onboarding_config_model_missing
+                            ChatConfigReadinessIssue.API_KEY_MISSING ->
+                                R.string.onboarding_config_api_key_missing
+                            ChatConfigReadinessIssue.API_KEY_INVALID ->
+                                R.string.onboarding_config_api_key_invalid
+                            null -> R.string.onboarding_config_apply_failed
+                        }
+                    showOnboardingError(context.getString(messageResId))
+                    return@RegisterRouteBackGuard false
+                }
+
+                functionalConfigManager.setConfigForFunction(
+                    FunctionType.CHAT,
+                    targetConfigId,
+                    targetModelIndex
+                )
+                val savedMapping =
+                    functionalConfigManager.getConfigMappingForFunction(FunctionType.CHAT)
+                check(
+                    savedMapping.configId == targetConfigId &&
+                        savedMapping.modelIndex == targetModelIndex
+                )
+                EnhancedAIService.refreshServiceForFunction(
+                    context.applicationContext,
+                    FunctionType.CHAT
+                )
+                true
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e("ModelConfigScreen", "首次引导配置保存或绑定失败", e)
+                showOnboardingError(
+                    context.getString(R.string.onboarding_config_apply_failed)
+                )
+                false
+            } finally {
+                isCompletingOnboarding = false
+            }
         }
     }
 
@@ -229,7 +352,10 @@ fun ModelConfigScreen(
     }
 
     // 主界面内容
-    CustomScaffold() { paddingValues ->
+    CustomScaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
             modifier =
@@ -667,6 +793,8 @@ fun ModelConfigScreen(
                     AdvancedSettingsSection(
                         config = config,
                         configManager = configManager,
+                        saveCoordinator = saveCoordinator,
+                        keyAvailabilityTester = keyAvailabilityTester,
                         showNotification = { message -> showNotification(message) }
                     )
                 }
@@ -844,6 +972,21 @@ fun ModelConfigScreen(
                 },
                 shape = RoundedCornerShape(12.dp)
             )
+        }
+
+        if (isCompletingOnboarding) {
+            Surface(
+                modifier = Modifier.matchParentSize().clickable(enabled = true) {},
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
         }
     }
 }

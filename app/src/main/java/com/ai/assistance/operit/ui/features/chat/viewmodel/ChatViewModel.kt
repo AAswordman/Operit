@@ -23,6 +23,7 @@ import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
+import com.ai.assistance.operit.data.model.ApiKeyFormatValidator
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.AITool
@@ -194,19 +195,14 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     val apiEndpoint: StateFlow<String> by lazy { apiConfigDelegate.apiEndpoint }
     val modelName: StateFlow<String> by lazy { apiConfigDelegate.modelName }
     val apiProviderType: StateFlow<ApiProviderType> by lazy { apiConfigDelegate.apiProviderType }
+    val activeChatModelConfig by lazy { apiConfigDelegate.activeChatModelConfig }
+    val activeChatConfigId by lazy { apiConfigDelegate.activeConfigId }
+    val effectiveChatConfigTarget by lazy { apiConfigDelegate.effectiveChatConfigTarget }
     val isConfigured: StateFlow<Boolean> by lazy { apiConfigDelegate.isConfigured }
     val isApiConfigInitialized: StateFlow<Boolean> by lazy { apiConfigDelegate.isInitialized }
 
     private val _shouldShowConfigDialog = MutableStateFlow(false)
     val shouldShowConfigDialog: StateFlow<Boolean> = _shouldShowConfigDialog.asStateFlow()
-
-    fun onConfigDialogConfirmed() {
-        _shouldShowConfigDialog.value = false
-    }
-
-    fun showConfigurationScreen() {
-        _shouldShowConfigDialog.value = true
-    }
 
     val featureToggles: StateFlow<Map<String, Boolean>> by lazy { apiConfigDelegate.featureToggles }
     val keepScreenOn: StateFlow<Boolean> by lazy { apiConfigDelegate.keepScreenOn }
@@ -427,17 +423,22 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             combine(
                 isApiConfigInitialized,
-                apiKey,
-                apiProviderType,
-                apiEndpoint
-            ) { initialized, currentApiKey, currentProviderType, currentApiEndpoint ->
+                activeChatModelConfig,
+                activeChatConfigId,
+                effectiveChatConfigTarget
+            ) { initialized, config, activeConfigId, effectiveConfigTarget ->
                 initialized &&
-                    currentProviderType == ApiProviderType.DEEPSEEK &&
+                    config != null &&
+                    config.id == activeConfigId &&
+                    effectiveConfigTarget.isResolved &&
+                    effectiveConfigTarget.configId == activeConfigId &&
+                    ApiProviderType.fromProviderTypeId(config.apiProviderTypeId) ==
+                        ApiProviderType.DEEPSEEK &&
                     ApiProviderConfigs.requiresApiKey(
-                        currentProviderType,
-                        currentApiEndpoint
+                        ApiProviderType.DEEPSEEK,
+                        config.apiEndpoint
                     ) &&
-                    currentApiKey.isBlank()
+                    !ApiKeyFormatValidator.hasUsableKey(config)
             }.collect { shouldShow ->
                 _shouldShowConfigDialog.value = shouldShow
             }
@@ -566,6 +567,9 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun updateApiProviderType(providerType: ApiProviderType) = apiConfigDelegate.updateApiProviderType(providerType)
     fun saveApiSettings() = apiConfigDelegate.saveApiSettings()
+    suspend fun saveDeepSeekConfiguration(configId: String, apiKey: String) {
+        apiConfigDelegate.saveDeepSeekConfiguration(configId, apiKey)
+    }
     fun useDefaultConfig() {
         if (apiConfigDelegate.useDefaultConfig()) {
             uiStateDelegate.showToast(context.getString(R.string.chat_use_default_config_continue))

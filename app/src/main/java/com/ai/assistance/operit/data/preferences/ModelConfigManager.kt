@@ -212,6 +212,12 @@ class ModelConfigManager(private val context: Context) {
         updateConfigInternal(configId) { it.copy(currentKeyIndex = newIndex) }
     }
 
+    suspend fun updateSingleApiKey(configId: String, apiKey: String): ModelConfigData {
+        return updateConfigInternal(configId) {
+            it.copy(apiKey = apiKey, useMultipleApiKeys = false)
+        }
+    }
+
     // 获取所有配置的摘要信息
     suspend fun getAllConfigSummaries(): List<ModelConfigSummary> {
         val configIds = configListFlow.first()

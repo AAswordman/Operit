@@ -4,6 +4,7 @@ import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.model.ApiKeyFormatValidator
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
@@ -39,6 +40,11 @@ data class ChatContextSettings(
     val enableSummary: Boolean,
     val enableSummaryByMessageCount: Boolean,
     val summaryMessageCountThreshold: Int
+)
+
+data class EffectiveChatConfigTarget(
+    val configId: String,
+    val isResolved: Boolean
 )
 
 /** 委托类，负责管理用户偏好配置和API密钥 */
@@ -157,9 +163,14 @@ class ApiConfigDelegate(
     private val _activeConfigId =
             MutableStateFlow(FunctionalConfigManager.DEFAULT_CONFIG_ID)
     val activeConfigId: StateFlow<String> = _activeConfigId.asStateFlow()
+    private val _functionalConfigInitialized = MutableStateFlow(false)
+
+    private val _activeChatModelConfig = MutableStateFlow<ModelConfigData?>(null)
+    val activeChatModelConfig: StateFlow<ModelConfigData?> =
+            _activeChatModelConfig.asStateFlow()
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private val effectiveChatConfigId: StateFlow<String> =
+    val effectiveChatConfigTarget: StateFlow<EffectiveChatConfigTarget> =
             activePromptManager.activePromptFlow
                 .flatMapLatest { prompt ->
                     when (prompt) {
@@ -183,6 +194,21 @@ class ApiConfigDelegate(
                         is ActivePrompt.CharacterGroup -> activeConfigId
                     }
                 }
+                .map { configId ->
+                    EffectiveChatConfigTarget(configId = configId, isResolved = true)
+                }
+                .stateIn(
+                    configScope,
+                    kotlinx.coroutines.flow.SharingStarted.Eagerly,
+                    EffectiveChatConfigTarget(
+                        configId = FunctionalConfigManager.DEFAULT_CONFIG_ID,
+                        isResolved = false
+                    )
+                )
+
+    private val effectiveChatConfigId: StateFlow<String> =
+            effectiveChatConfigTarget
+                .map(EffectiveChatConfigTarget::configId)
                 .stateIn(
                     configScope,
                     kotlinx.coroutines.flow.SharingStarted.Eagerly,
@@ -288,7 +314,18 @@ class ApiConfigDelegate(
                 functionalConfigManager.functionConfigMappingFlow.collect { mapping ->
                     val chatConfigId =
                             mapping[FunctionType.CHAT] ?: FunctionalConfigManager.DEFAULT_CONFIG_ID
+                    if (_activeConfigId.value != chatConfigId) {
+                        _isInitialized.value = false
+                    }
                     _activeConfigId.value = chatConfigId
+                    _functionalConfigInitialized.value = true
+
+                    _activeChatModelConfig.value
+                        ?.takeIf { config -> config.id == chatConfigId }
+                        ?.let { config ->
+                            updateStateFromConfig(config)
+                            _isInitialized.value = true
+                        }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 AppLogger.d(TAG, "初始化功能配置映射监听已取消")
@@ -303,13 +340,17 @@ class ApiConfigDelegate(
 
                 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
                 _activeConfigId
-                        .flatMapLatest { configId ->
-                            modelConfigManager.getModelConfigFlow(configId)
-                        }
-                        .collect { config ->
+                    .flatMapLatest { configId -> modelConfigManager.getModelConfigFlow(configId) }
+                    .collect { config ->
+                        _activeChatModelConfig.value = config
+                        if (
+                            _functionalConfigInitialized.value &&
+                                config.id == _activeConfigId.value
+                        ) {
                             updateStateFromConfig(config)
                             _isInitialized.value = true
                         }
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 AppLogger.d(TAG, "模型配置收集监听已取消")
                 _isInitialized.value = true
@@ -498,35 +539,77 @@ class ApiConfigDelegate(
     fun saveApiSettings() {
         configScope.launch {
             try {
-                val configId = _activeConfigId.value
-
-                // 更新所有API相关配置
-                modelConfigManager.updateModelConfig(
-                        configId,
-                        _apiKey.value,
-                        _apiEndpoint.value,
-                        _modelName.value,
-                        _apiProviderType.value
+                persistApiSettings(
+                    apiKey = _apiKey.value,
+                    apiEndpoint = _apiEndpoint.value,
+                    modelName = _modelName.value,
+                    providerType = _apiProviderType.value
                 )
-
-                AppLogger.d(TAG, "API配置已保存到ModelConfigManager")
-
-                // 在IO线程上创建服务，避免阻塞
-                val enhancedAiService = withContext(Dispatchers.IO) {
-                    EnhancedAIService.getInstance(context)
-                }
-
-                // 通知ViewModel配置已更改
-                withContext(Dispatchers.Main) {
-                    onConfigChanged(enhancedAiService)
-                }
-
-                // 更新已配置状态
-                _isConfigured.value = true
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "保存API密钥失败: ${e.message}", e)
             }
         }
+    }
+
+    suspend fun saveDeepSeekConfiguration(expectedConfigId: String, apiKey: String) {
+        try {
+            val normalizedApiKey = ApiKeyFormatValidator.normalize(apiKey)
+            require(ApiKeyFormatValidator.isValid(normalizedApiKey)) {
+                "DeepSeek API Key format is invalid"
+            }
+            check(_activeConfigId.value == expectedConfigId) {
+                "Active chat configuration changed while saving"
+            }
+            val targetConfig = checkNotNull(modelConfigManager.getModelConfig(expectedConfigId)) {
+                "Active chat configuration no longer exists"
+            }
+            check(
+                ApiProviderType.fromProviderTypeId(targetConfig.apiProviderTypeId) ==
+                    ApiProviderType.DEEPSEEK
+            ) {
+                "Active chat configuration is not a DeepSeek configuration"
+            }
+            modelConfigManager.updateSingleApiKey(expectedConfigId, normalizedApiKey)
+            check(_activeConfigId.value == expectedConfigId) {
+                "Active chat configuration changed while saving"
+            }
+            val enhancedAiService =
+                withContext(Dispatchers.IO) {
+                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                    EnhancedAIService.getInstance(context)
+                }
+            withContext(Dispatchers.Main) { onConfigChanged(enhancedAiService) }
+            _isConfigured.value = true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "保存 DeepSeek 配置失败: ${e.message}", e)
+            throw e
+        }
+    }
+
+    private suspend fun persistApiSettings(
+        apiKey: String,
+        apiEndpoint: String,
+        modelName: String,
+        providerType: ApiProviderType
+    ) {
+        val configId = _activeConfigId.value
+        modelConfigManager.updateModelConfig(
+            configId,
+            apiKey,
+            apiEndpoint,
+            modelName,
+            providerType
+        )
+        AppLogger.d(TAG, "API配置已保存到ModelConfigManager")
+
+        val enhancedAiService =
+            withContext(Dispatchers.IO) { EnhancedAIService.getInstance(context) }
+        withContext(Dispatchers.Main) { onConfigChanged(enhancedAiService) }
+        _isConfigured.value = true
     }
 
     fun toggleFeature(featureKey: String) {
