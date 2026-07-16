@@ -144,7 +144,7 @@ object ChatMarkupRegex {
     )
 
     val metaTag = Regex(
-        """<meta\b[\s\S]*?</meta>""",
+        """<meta\b[^>]*>(?:(?!<meta\b)[\s\S])*?</meta>""",
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
     )
 
@@ -246,7 +246,7 @@ object ChatMarkupRegex {
         return metaTag.findAll(content)
             .mapNotNull { match ->
                 val tagContent = match.value
-                val provider = metaProviderAttrRegex.find(tagContent)?.groupValues?.getOrNull(1)
+                val provider = extractMetaProvider(tagContent)
                 if (!provider.equals(GEMINI_THOUGHT_SIGNATURE_PROVIDER, ignoreCase = true)) {
                     return@mapNotNull null
                 }
@@ -263,7 +263,7 @@ object ChatMarkupRegex {
         return metaTag.findAll(content)
             .mapNotNull { match ->
                 val tagContent = match.value
-                val provider = metaProviderAttrRegex.find(tagContent)?.groupValues?.getOrNull(1)
+                val provider = extractMetaProvider(tagContent)
                 if (!provider.equals(OPENAI_RESPONSES_REASONING_PROVIDER, ignoreCase = true)) {
                     return@mapNotNull null
                 }
@@ -279,7 +279,7 @@ object ChatMarkupRegex {
     fun removeGeminiThoughtSignatureMeta(content: String): String {
         var removed = false
         val result = metaTag.replace(content) { match ->
-            val provider = metaProviderAttrRegex.find(match.value)?.groupValues?.getOrNull(1)
+            val provider = extractMetaProvider(match.value)
             if (provider.equals(GEMINI_THOUGHT_SIGNATURE_PROVIDER, ignoreCase = true)) {
                 removed = true
                 ""
@@ -293,7 +293,7 @@ object ChatMarkupRegex {
     fun removeOpenAiResponsesReasoningMeta(content: String): String {
         var removed = false
         val result = metaTag.replace(content) { match ->
-            val provider = metaProviderAttrRegex.find(match.value)?.groupValues?.getOrNull(1)
+            val provider = extractMetaProvider(match.value)
             if (provider.equals(OPENAI_RESPONSES_REASONING_PROVIDER, ignoreCase = true)) {
                 removed = true
                 ""
@@ -302,6 +302,13 @@ object ChatMarkupRegex {
             }
         }
         return if (removed) result.trimEnd() else result
+    }
+
+    private fun extractMetaProvider(metaTagContent: String): String? {
+        return metaProviderAttrRegex
+            .find(metaTagContent.substringBefore('>'))
+            ?.groupValues
+            ?.getOrNull(1)
     }
 
     private fun generateRandomTagCode(length: Int = 4): String {

@@ -102,10 +102,13 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 /**
- * 清理消息中的XML标签，保留Markdown格式和纯文本内容
+ * 清理复制文本中的内部标记，保留Markdown格式和纯文本内容
  */
-private fun cleanXmlTags(content: String): String {
+internal fun cleanMessageContentForCopy(content: String): String {
     return content
+        // Provider元数据必须保留在消息中供后续轮次使用，但不能暴露在复制内容中
+        .let(ChatMarkupRegex::removeGeminiThoughtSignatureMeta)
+        .let(ChatMarkupRegex::removeOpenAiResponsesReasoningMeta)
         // 移除状态标签
         .replace(ChatMarkupRegex.statusTag, "")
         .replace(ChatMarkupRegex.statusSelfClosingTag, "")
@@ -744,7 +747,7 @@ private fun MessageItem(
                         )
                     },
                     onClick = {
-                        val cleanContent = cleanXmlTags(message.content)
+                        val cleanContent = cleanMessageContentForCopy(message.content)
                         copyPreviewText = cleanContent
                         onCopyMessage?.invoke(message)
                         showContextMenu = false

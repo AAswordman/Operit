@@ -26,4 +26,21 @@ class ChatMarkupRegexMetaTest {
             )
         )
     }
+
+    @Test fun removeOpenAiReasoning_preservesVoidMetaBeforeMatchingTag() {
+        val content =
+            "<meta charset=\"utf-8\">visible" +
+                "<meta provider=\"openai:responses_reasoning\">payload</meta>answer"
+
+        assertEquals(
+            "<meta charset=\"utf-8\">visibleanswer",
+            ChatMarkupRegex.removeOpenAiResponsesReasoningMeta(content)
+        )
+    }
+
+    @Test fun removeOpenAiReasoning_ignoresProviderTextInMetaBody() {
+        val content = "<meta>provider=\"openai:responses_reasoning\"</meta>"
+
+        assertEquals(content, ChatMarkupRegex.removeOpenAiResponsesReasoningMeta(content))
+    }
 }
