@@ -1037,7 +1037,7 @@ const dailyLife = (function () {
     async function take_screenshot(params) {
         try {
             const result = await Tools.UI.captureScreenshot();
-            let filePath = result.value;
+            let filePath = result;
             if (params.file_path) {
                 const targetPath = params.file_path;
                 const lastSlashIndex = targetPath.lastIndexOf('/');

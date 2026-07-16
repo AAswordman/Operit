@@ -1138,7 +1138,8 @@ const dailyLife = (function () {
      */
     async function take_screenshot(params: { file_path?: string }): Promise<any> {
         try {
-            let filePath = await Tools.UI.captureScreenshot();
+            const result = await Tools.UI.captureScreenshot();
+            let filePath = result;
 
             if (params.file_path) {
                 const targetPath = params.file_path;

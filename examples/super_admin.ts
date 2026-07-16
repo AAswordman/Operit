@@ -395,7 +395,7 @@ const superAdmin = (function () {
                 sessionId,
                 input: params.input,
                 control: params.control,
-                result: result?.value ?? String(result ?? "")
+                result
             };
         } catch (error) {
             console.error(`[terminal_input] 错误: ${error.message}`);
