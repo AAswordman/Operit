@@ -529,6 +529,9 @@ class MessageCoordinationDelegate(
         }
         val isBackgroundSend =
             !chatIdOverride.isNullOrBlank() && chatIdOverride != chatHistoryDelegate.currentChatId.value
+        // 自动续聊由总结消息中的续接指令驱动，不能消费用户尚未提交的编辑器状态。
+        val shouldReadComposerState = !isBackgroundSend && !isAutoContinuation
+        val effectiveMessageTextOverride = if (isAutoContinuation) "" else messageTextOverride
         // 获取当前聊天ID和工作区路径
         val chatId = chatIdOverride ?: chatHistoryDelegate.currentChatId.value
         if (chatId == null) {
@@ -594,7 +597,8 @@ class MessageCoordinationDelegate(
         }
 
         // 获取当前附件列表
-        val currentAttachments = if (isBackgroundSend) emptyList() else attachmentDelegate.attachments.value
+        val currentAttachments =
+            if (shouldReadComposerState) attachmentDelegate.attachments.value else emptyList()
         // 角色卡和群组地位相等，都可以为 null，优先使用 override，否则使用当前活跃的角色卡（可能为 null）
         val roleCardId = roleCardIdOverride?.takeIf { it.isNotBlank() }
             ?: runBlocking { activePromptManager.resolveActiveCardIdForSend() }
@@ -706,7 +710,7 @@ class MessageCoordinationDelegate(
         messageProcessingDelegate.sendUserMessage(
             attachments = currentAttachments,
             chatId = chatId,
-            messageTextOverride = messageTextOverride,
+            messageTextOverride = effectiveMessageTextOverride,
             proxySenderNameOverride = proxySenderName,
             workspacePath = workspacePath,
             workspaceEnv = workspaceEnv,
@@ -716,7 +720,7 @@ class MessageCoordinationDelegate(
             enableMemoryAutoUpdate = shouldEnableMemoryAutoUpdate,
             maxTokens = maxTokensForSend,
             tokenUsageThreshold = tokenUsageThresholdForSend,
-            replyToMessage = if (isBackgroundSend) null else uiBridge.getReplyToMessage(),
+            replyToMessage = if (shouldReadComposerState) uiBridge.getReplyToMessage() else null,
             isAutoContinuation = isAutoContinuation,
             enableSummary = !forceDisableSummary && !isBackgroundSend && chatContextSettings.enableSummary,
             chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
