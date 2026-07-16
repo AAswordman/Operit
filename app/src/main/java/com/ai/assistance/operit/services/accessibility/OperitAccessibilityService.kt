@@ -555,7 +555,7 @@ class OperitAccessibilityService : AccessibilityService() {
                             setPackage("com.whatsapp")
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
-                        this@OperitAccessibilityService.startActivity(shareIntent)
+                        instance?.startActivity(shareIntent)
                         delay(1500)
                         return true
                     }
