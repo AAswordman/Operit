@@ -1,4 +1,15 @@
-# Presentation boundaries
+---
+title: 展示与编辑边界
+status: draft
+document_type: implementation-step
+step: 2
+depends_on:
+  - 1
+fork_repository: https://github.com/CATMIAOZHI/Operit
+last_reviewed: 2026-07-17
+---
+
+# 展示与编辑边界
 
 - Android 静态和流式 think body 在隔离结构后解码
 - rollback/replay 从 canonical snapshot 重建流式 decoder 状态
@@ -6,5 +17,10 @@
 - Web Chat structured block 输出语义正文并保留 canonical raw content
 - TXT 和 HTML 可读导出显示解码后的 reasoning
 - 未带精确 marker 的旧历史维持现有解释规则，不按新格式解码
+- 未知版本、附加属性、raw 编辑后的 marker 和未闭合 marker 显示为 opaque think body，不执行 v1 解码
 
-展示层不得对 canonical 编码体做通用 HTML/XML 解码，也不得扩大 marker 匹配范围。
+展示层不得对 canonical 编码体做通用 HTML/XML 解码，也不得扩大 v1 decoder 的精确 marker 匹配范围；更宽的结构隔离只能把未知 block 视为 opaque，不能触发解码。
+
+## Completion
+
+状态：未完成。完成静态、流式、rollback/replay、编辑器和导出验证后，在一级标题末尾添加 `[DONE]`。
