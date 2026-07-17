@@ -27,7 +27,7 @@ fork 上已有参考实现，供方案审查和验证使用；它早于本次跨
 - Android、Web Chat、消息编辑器和可读导出
 - 新格式测试及旧历史兼容测试
 
-本任务不处理普通正文 XML provenance、#685/#699、其他 Provider 的 reasoning 或 `tool_call_id` 持久化。
+本任务不处理普通正文 XML provenance、#685/#699、`tool_call_id` 持久化，也不改变其他 Provider 自身 reasoning 响应的 canonical 编码方式；跨 Provider 部分只处理 DeepSeek v1 历史向目标 Provider 请求格式的安全投影。
 
 ## Steps
 

@@ -24,9 +24,10 @@ last_reviewed: 2026-07-17
 
 - 覆盖 DeepSeek 流式和非流式 `reasoning_content`
 - 覆盖 `enableToolCall` 开启和关闭两种状态
-- 验证编码输出不改变 token 统计所使用的原始 reasoning
+- 验证编码输出不改变 DeepSeek 响应输出 token 统计所使用的原始 reasoning
 - 验证工具子轮次恢复出的 `reasoning_content` 与原文逐字符一致
 - 验证其他 OpenAI-compatible Provider 的 reasoning 和工具顺序不变
+- 分别断言 DeepSeek 响应输出 token 使用编码前 reasoning、历史输入 token 使用目标 Provider 最终 wire projection
 
 ## Provider switching matrix
 
@@ -35,18 +36,33 @@ last_reviewed: 2026-07-17
 | Target Provider | Expected v1 projection |
 | --- | --- |
 | DeepSeek | decoded body → `reasoning_content` |
-| Kimi / reasoning-capable compatible Provider | decoded body → provider reasoning field |
+| Kimi / explicitly registered safe history projector | decoded body → provider reasoning field |
 | generic OpenAI Chat Completions | omit v1 block from wire `content` |
 | Provider without reasoning support | omit v1 block from request history |
 
 每个目标覆盖以下组合和内容：
 
-- `preserveThinkInHistory=true` / `false`
+- 对 v1 block 覆盖 `preserveThinkInHistory=true` / `false`；对旧无 marker block 验证仍委托给目标 Provider 现有逻辑
 - `enableToolCall=true` / `false`
 - reasoning 包含 `</think>`、`<tool>`、`&lt;`、`&amp;lt;` 和未知实体
 - 相邻 v1 block、新旧 block 混合、未知 `xml-text-v2` 和未闭合 marker
 - 切换模型后继续对话，检查请求正文、reasoning 字段和 token 输入完全使用同一投影
 - 确认目标 Provider 不会看到 `data-operit-content-encoding` 或 v1 encoded body
+
+## Marker isolation expectations
+
+| Input form | Expected projection |
+| --- | --- |
+| exact, closed `xml-text-v1` | with preserve enabled, decode only for an explicitly registered safe reasoning projector; with preserve disabled or no safe projector, omit the whole block |
+| closed `xml-text-v2` | opaque; omit through the first `</think>` from content, tools, and reasoning |
+| single-quoted v1 or v1 with extra attributes | opaque; omit through the first `</think>` from content, tools, and reasoning |
+| reserved opening tag without `>` | opaque; omit from candidate start through assistant turn end |
+| exact or opaque opening tag without `</think>` | opaque; omit from candidate start through assistant turn end |
+| `<tool>` after an unclosed reserved marker | remains inside the isolated suffix and never reaches tool parsing |
+| exact legacy `<think>` / `<thinking>` without the reserved attribute | unchanged target-Provider legacy behavior |
+| `<think class="foo">` without the reserved attribute | outside v1 projection; unchanged existing content behavior |
+
+每项同时断言普通正文、reasoning 字段、工具解析输入和 token 输入，不能只检查 UI 输出。
 
 ## Tool isolation
 

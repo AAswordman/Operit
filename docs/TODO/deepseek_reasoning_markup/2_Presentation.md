@@ -17,7 +17,7 @@ last_reviewed: 2026-07-17
 - Web Chat structured block 输出语义正文并保留 canonical raw content
 - TXT 和 HTML 可读导出显示解码后的 reasoning
 - 未带精确 marker 的旧历史维持现有解释规则，不按新格式解码
-- 未知版本、附加属性、raw 编辑后的 marker 和未闭合 marker 显示为 opaque think body，不执行 v1 解码
+- 含保留属性的未知版本、附加属性、raw 编辑后的 marker 和未闭合 marker 按步骤 1 的 reserved grammar 显示为 opaque think body，不执行 v1 解码
 
 展示层不得对 canonical 编码体做通用 HTML/XML 解码，也不得扩大 v1 decoder 的精确 marker 匹配范围；更宽的结构隔离只能把未知 block 视为 opaque，不能触发解码。
 
