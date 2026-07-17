@@ -208,7 +208,7 @@ class ApiConfigDelegate(
 
     private val effectiveChatConfigId: StateFlow<String> =
             effectiveChatConfigTarget
-                .map(EffectiveChatConfigTarget::configId)
+                .map { target: EffectiveChatConfigTarget -> target.configId }
                 .stateIn(
                     configScope,
                     kotlinx.coroutines.flow.SharingStarted.Eagerly,
