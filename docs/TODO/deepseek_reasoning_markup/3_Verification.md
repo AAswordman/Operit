@@ -29,7 +29,7 @@ last_reviewed: 2026-07-18
 - 覆盖 `enableToolCall` 开启和关闭两种状态
 - 验证编码输出不改变 DeepSeek 响应输出 token 统计所使用的原始 reasoning
 - 验证工具子轮次恢复出的 `reasoning_content` 与原文逐字符一致
-- 验证 `preserveThinkInHistory=false` 删除普通 DeepSeek 历史 reasoning，但保留后续原生 ToolCall 请求协议必需的 reasoning，且模拟缺失时的 400 条件
+- 验证 DeepSeek 目标在 `preserveThinkInHistory` 两种状态下都回传全部真实 v1 reasoning，并模拟遗漏 tool-call reasoning 时的 400 条件
 - 验证其他 OpenAI-compatible Provider 的 reasoning 和工具顺序不变
 - 分别断言 DeepSeek 响应输出 token 使用编码前 reasoning、历史输入 token 使用目标 Provider 最终 wire projection
 - 验证同一个 projected request 同时驱动请求 JSON、工具调用 ID 配对和 token 输入，不允许 estimator 重新遍历 canonical history
@@ -40,49 +40,55 @@ last_reviewed: 2026-07-18
 
 | Target Provider | Expected v1 projection |
 | --- | --- |
-| DeepSeek | with preserve enabled, decoded body → `reasoning_content`; protocol-required tool reasoning follows the DeepSeek matrix below |
-| Kimi with thinking enabled / explicitly registered safe history projector active for this request | with preserve enabled, decoded body → provider reasoning field |
-| Kimi with thinking disabled | omit v1 block; preserve ordinary text |
+| DeepSeek | always decode every real v1 body → its source assistant `reasoning_content` |
+| Kimi/MiMo with explicitly verified textual history capability | always decode every real v1 body → assistant `reasoning_content`, independent of current thinking toggle |
+| another explicitly verified textual history field | decode every real v1 body → that assistant-only field |
+| reasoning-looking field or inherited implementation without explicit verification | omit v1 completely |
+| Provider with genuine opaque/signature reasoning | omit DeepSeek v1; do not populate opaque fields or change existing same-Provider behavior |
 | generic OpenAI Chat Completions | omit v1 block from wire `content` |
 | Provider without reasoning support | omit v1 block from request history |
 
 每个目标覆盖以下组合和内容：
 
-- 对 v1 block 覆盖 `preserveThinkInHistory=true` / `false`；对旧无 marker block 验证仍委托给目标 Provider 现有逻辑
-- `enableToolCall=true` / `false`
+- 对 v1 block 覆盖 `preserveThinkInHistory=true` / `false`，断言其不能覆盖目标能力决策；对旧无 marker block 验证仍委托给目标 Provider 现有逻辑
+- `enableThinking=true` / `false` 和 `enableToolCall=true` / `false`，断言它们只控制本轮生成能力
 - reasoning 包含 `</think>`、`<tool>`、`&lt;`、`&amp;lt;` 和未知实体
 - 相邻 v1 block、新旧 block 混合、未知 `xml-text-v2` 和未闭合 marker
 - 切换模型后继续对话，检查请求正文、reasoning 字段和 token 输入完全使用同一投影
 - 确认目标 Provider 不会看到 `data-operit-content-encoding` 或 v1 encoded body
 - 覆盖当前角色 assistant 与被角色隔离映射为 user 的其他角色 assistant；后者只发送普通正文和角色前缀
 
-### DeepSeek matrix
+### DeepSeek current-generation controls
 
-| Preserve | Effective native ToolCall | Ordinary historical reasoning | Reasoning attached to projected tool exchange |
+| Current thinking | Current tool exposure | Historical ReasoningV1 | Historical source native tool exchange |
 | --- | --- | --- | --- |
-| false | false | omit | not a native exchange; omit |
-| true | false | decode to `reasoning_content` | not a native exchange; follow ordinary rule |
-| false | true | omit | resend exactly as protocol-required state |
-| true | true | decode to `reasoning_content` | resend exactly as protocol-required state |
+| disabled | disabled | decode all to source assistant `reasoning_content` | preserve native assistant calls + tool results |
+| disabled | enabled | decode all to source assistant `reasoning_content` | preserve native assistant calls + tool results |
+| enabled | disabled | decode all to source assistant `reasoning_content` | preserve native assistant calls + tool results |
+| enabled | enabled | decode all to source assistant `reasoning_content` | preserve native assistant calls + tool results |
 
-每行再覆盖本次 `enableThinking=true` / `false`，共八种组合，并覆盖流式和非流式来源、live 工具子轮次与重载后的持久化历史。mandatory reasoning 由 source native tool exchange 决定，在 thinking disabled 的后续 DeepSeek 工具请求中也必须回传，且只属于对应 assistant `tool_calls`，不会被相邻 turn 错配。
+每行再覆盖 `preserveThinkInHistory=true` / `false`，共八种组合，并覆盖流式和非流式来源、live 工具子轮次与重载后的持久化历史。当前工具关闭或工具列表为空时，请求不得发送新的 `tools`/`tool_choice`，但历史 exchange 仍必须保留原生结构；历史 reasoning 只能属于各自 source assistant，不能被相邻 turn 错配。
 
-### Kimi matrix
+- 切换 `enableThinking` 时 projected history 必须逐字符相同，只有本轮 generation parameter 改变
+- 当前工具关闭或工具列表为空时不得接受或执行新工具调用；历史 exchange 只参与上下文序列化，不得被重新执行
+- 持久化及重载后的 canonical 数据不得包含上游 `tool_call_id`；每次 projected request 生成 request-local IDs，并让 assistant calls 与 tool results 共同使用同一组 ID
 
-| Thinking | Preserve | Expected v1 projection |
+### Kimi/MiMo textual history capability matrix
+
+| Current thinking | Preserve | Expected v1 projection after capability registration |
 | --- | --- | --- |
-| disabled | false | omit v1; no `reasoning_content` |
-| disabled | true | omit v1; no marker or encoded body in ordinary `content` |
-| enabled | false | omit optional v1 reasoning |
-| enabled | true | decode v1 to `reasoning_content` |
+| disabled | false | decode all real v1 to assistant `reasoning_content` |
+| disabled | true | decode all real v1 to assistant `reasoning_content` |
+| enabled | false | decode all real v1 to assistant `reasoning_content` |
+| enabled | true | decode all real v1 to assistant `reasoning_content` |
 
-以上四行分别覆盖 effective native ToolCall 开启和关闭，共八种组合。每种组合断言请求级 projection context 中的 thinking 状态与最终 `thinking` 请求参数一致；thinking-enabled 与 thinking-disabled 两条构建路径均只消费一次相同的 messages/tools 投影，序列化和 token 输入不得重新遍历 canonical history。legacy extractor 只接收 projector 保留的旧无 marker 文本，Provider 子类也不能自动继承安全 reasoning capability。
+能力注册前必须用协议文档、fixture 或 API 验证 thinking-disabled 请求接受历史 `reasoning_content`；验证失败则该目标保持 unverified 并在四行中全部剥离 v1，不能降到普通 `content`。四行分别覆盖本轮工具开启和关闭，共八种组合。每种组合断言 thinking 状态只改变最终本轮生成参数；两条构建路径均只消费一次相同的 history projection，序列化和 token 输入不得重新遍历 canonical history。legacy extractor 只接收 projector 保留的旧无 marker 文本，Provider 子类也不能自动继承安全 reasoning capability。
 
 ## Marker isolation expectations
 
 | Input form | Expected projection |
 | --- | --- |
-| exact, closed `xml-text-v1` with `ReasoningV1` provenance | with preserve enabled, decode only for an explicitly registered safe reasoning projector; with preserve disabled or no safe projector, omit the whole block |
+| exact, closed `xml-text-v1` with `ReasoningV1` provenance | decode for an explicitly registered textual history projector regardless of generation/preserve toggles; otherwise omit the whole block |
 | closed `xml-text-v2` with `ReasoningV1` provenance | opaque; omit the entire reasoning segment from content, tools, and reasoning |
 | single-quoted v1 or v1 with extra attributes and provenance | opaque; omit the entire reasoning segment |
 | reserved opening tag or attribute quote without a closing `>` | opaque; omit the entire reasoning segment and do not search beyond its boundary |
@@ -106,6 +112,7 @@ last_reviewed: 2026-07-18
 - 覆盖 raw 编辑破坏 opening tag、引号或 closing tag；原 reasoning segment 整体 opaque，其后的真实普通 segment 仍按独立边界处理
 - 消息持久化、变体切换、rollback/replay 和重新加载后，segment 来源与 tool exchange 关联保持不变
 - unrelated XML、旧无 marker think block 和普通 XML 工具 markup 不获得 v1 provenance metadata
+- 对 Gemini signature、OpenAI Responses encrypted reasoning、Claude signed thinking 等字段，只断言 DeepSeek v1 不会填入或伪造；这些 Provider 既有的同源状态行为不由本任务新增或修改
 
 ## Tool isolation
 

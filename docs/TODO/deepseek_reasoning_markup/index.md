@@ -13,7 +13,7 @@ last_reviewed: 2026-07-18
 
 # DeepSeek reasoning markup safety
 
-DeepSeek 的 `reasoning_content` 当前会被直接放入 Operit 内部 `<think>` 标签。模型返回字面量 `</think>` 时，该文本会被误认为内部结构，继而影响流式显示和工具解析。
+DeepSeek 的 `reasoning_content` 会被直接放入 Operit 内部 `<think>` 标签。历史或未来后端若返回字面量 `</think>`，该文本会被误认为内部结构，继而影响流式显示和工具解析；当前 deepseek-v4-flash 实测未复现该注入，因此 codec 同时承担后端回退时的防御性兼容保护。
 
 本任务计划在 Provider 边界引入版本化 XML text codec。canonical 消息、历史、数据库和工具解析保持编码态，只在共享历史投影、支持 reasoning 的 Provider 请求字段和已隔离的展示正文中解码。
 
@@ -23,9 +23,9 @@ fork 上已有参考实现，供方案审查和验证使用；它早于本次跨
 
 - DeepSeek 流式与非流式 reasoning 输出
 - 对话切换到 Kimi、通用 OpenAI 或不支持 reasoning 的 Provider 时的历史投影
-- `preserveThinkInHistory` 和 ToolCall 开关组合下的历史 round-trip
+- thinking、history preservation 和 ToolCall 三类正交控制组合下的历史 round-trip
 - DeepSeek 原生 ToolCall 后续请求所需的协议状态
-- Kimi thinking 开关与请求级历史投影
+- Kimi/MiMo thinking 开关与独立的请求级历史投影能力
 - v1 reasoning segment 的来源标识及普通正文同形 XML
 - Android、Web Chat、消息编辑器和可读导出
 - 新格式测试及旧历史兼容测试
