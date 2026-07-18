@@ -8,7 +8,7 @@ fork_repository: https://github.com/CATMIAOZHI/Operit
 branch: fix/deepseek-reasoning-markup
 issue: https://github.com/AAswordman/Operit/issues/727
 reference_implementation: https://github.com/CATMIAOZHI/Operit/commit/9723b5c5
-last_reviewed: 2026-07-17
+last_reviewed: 2026-07-18
 ---
 
 # DeepSeek reasoning markup safety
@@ -24,10 +24,13 @@ fork 上已有参考实现，供方案审查和验证使用；它早于本次跨
 - DeepSeek 流式与非流式 reasoning 输出
 - 对话切换到 Kimi、通用 OpenAI 或不支持 reasoning 的 Provider 时的历史投影
 - `preserveThinkInHistory` 和 ToolCall 开关组合下的历史 round-trip
+- DeepSeek 原生 ToolCall 后续请求所需的协议状态
+- Kimi thinking 开关与请求级历史投影
+- v1 reasoning segment 的来源标识及普通正文同形 XML
 - Android、Web Chat、消息编辑器和可读导出
 - 新格式测试及旧历史兼容测试
 
-本任务不处理普通正文 XML provenance、#685/#699、`tool_call_id` 持久化，也不改变其他 Provider 自身 reasoning 响应的 canonical 编码方式；跨 Provider 部分只处理 DeepSeek v1 历史向目标 Provider 请求格式的安全投影。
+本任务不处理通用正文 XML provenance、#685/#699、`tool_call_id` 持久化，也不改变其他 Provider 自身 reasoning 响应的 canonical 编码方式。为避免把普通正文中的精确 v1 示例误删，本任务只为内部生成的 v1 reasoning segment 保留最小来源标识；该标识不扩展到其他正文 XML。跨 Provider 部分只处理 DeepSeek v1 历史向目标 Provider 请求格式的安全投影。
 
 ## Steps
 
