@@ -39,6 +39,11 @@ object ApiProviderConfigs {
             defaultApiEndpoint = ""
         ),
         ProviderApiConfig(
+            providerType = ApiProviderType.ATLASCLOUD,
+            defaultModelName = "qwen/qwen3.5-flash",
+            defaultApiEndpoint = "https://api.atlascloud.ai/v1/chat/completions"
+        ),
+        ProviderApiConfig(
             providerType = ApiProviderType.ANTHROPIC,
             defaultModelName = "claude-3-opus-20240229",
             defaultApiEndpoint = "https://api.anthropic.com/v1/messages"

@@ -20,6 +20,13 @@ class EndpointCompleterProviderSpecificTest {
         )
     }
 
+    @Test fun atlasCloud_usesOpenAiCompatibleChatCompletion() {
+        assertEquals(
+            "https://api.atlascloud.ai/v1/chat/completions",
+            EndpointCompleter.completeEndpoint("https://api.atlascloud.ai/v1", ApiProviderType.ATLASCLOUD)
+        )
+    }
+
     @Test fun googleProvider_withHashReturnsRawUrlWithoutHash() {
         assertEquals(
             "https://example.com",

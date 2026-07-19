@@ -3844,6 +3844,7 @@
     <string name="provider_openai">OpenAI (GPT系列)</string>
     <string name="provider_openai_responses">OpenAI (Responses API)</string>
     <string name="provider_openai_responses_generic">OpenAI Responses通用</string>
+    <string name="provider_atlascloud">Atlas Cloud</string>
     <string name="provider_anthropic">Anthropic (Claude系列)</string>
     <string name="provider_anthropic_generic">Anthropic通用</string>
     <string name="provider_google">Google (Gemini系列)</string>

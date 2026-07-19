@@ -302,6 +302,7 @@ object AIServiceFactory {
             // OpenAI格式，支持原生和兼容OpenAI API的服务
             ApiProviderType.OPENAI,
             ApiProviderType.OPENAI_GENERIC,
+            ApiProviderType.ATLASCLOUD,
             ApiProviderType.OPENAI_LOCAL ->
                 OpenAIProvider(
                     apiEndpoint = config.apiEndpoint,

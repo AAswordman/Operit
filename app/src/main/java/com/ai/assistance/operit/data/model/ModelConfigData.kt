@@ -9,6 +9,7 @@ enum class ApiProviderType {
         OPENAI_RESPONSES, // OpenAI Responses API
         OPENAI_RESPONSES_GENERIC, // OpenAI Responses通用（自定义端点）
         OPENAI_GENERIC, // OpenAI通用（自定义端点）
+        ATLASCLOUD, // Atlas Cloud OpenAI兼容API
         ANTHROPIC, // Anthropic (Claude系列)
         ANTHROPIC_GENERIC, // Anthropic通用（自定义端点）
         GOOGLE, // Google (Gemini系列)
