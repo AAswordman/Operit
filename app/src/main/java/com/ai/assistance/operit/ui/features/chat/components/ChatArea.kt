@@ -42,6 +42,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -134,6 +135,231 @@ internal fun cleanMessageContentForCopy(content: String): String {
         .let(MediaLinkParser::removeImageLinks)
         .let(MediaLinkParser::removeMediaLinks)
         .trim()
+}
+
+/**
+ * 将消息中的Markdown转换成适合直接粘贴使用的纯文本。
+ * 代码块内容保持原样，避免把代码里的Markdown符号当成格式标记删除。
+ */
+internal fun markdownToPlainTextForCopy(markdown: String): String {
+    val lines = markdown.replace("\r\n", "\n").replace('\r', '\n').split('\n')
+    val output = mutableListOf<String>()
+    var codeFence: String? = null
+    var latexBlockEnd: String? = null
+    val latexBlock = StringBuilder()
+    var inTable = false
+
+    lines.forEachIndexed { index, line ->
+        val trimmed = line.trim()
+        val activeFence = codeFence
+        if (activeFence != null) {
+            if (trimmed.startsWith(activeFence)) {
+                codeFence = null
+            } else {
+                output += line
+            }
+            return@forEachIndexed
+        }
+
+        val activeLatexBlockEnd = latexBlockEnd
+        if (activeLatexBlockEnd != null) {
+            if (trimmed.endsWith(activeLatexBlockEnd)) {
+                latexBlock.append(line.substringBeforeLast(activeLatexBlockEnd))
+                output += latexBlock.toString().trim()
+                latexBlock.clear()
+                latexBlockEnd = null
+            } else {
+                latexBlock.appendLine(line)
+            }
+            return@forEachIndexed
+        }
+
+        val openingFence = Regex("""^(`{3,}|~{3,})\s*([^\s`]*)""").find(trimmed)
+        if (openingFence != null) {
+            codeFence = openingFence.groupValues[1]
+            openingFence.groupValues[2].takeIf(String::isNotBlank)?.let { language ->
+                output += "----$language-----"
+            }
+            inTable = false
+            return@forEachIndexed
+        }
+
+        val latexBlockDelimiters =
+            when {
+                trimmed.startsWith("$$") -> "$$" to "$$"
+                trimmed.startsWith("\\[") -> "\\[" to "\\]"
+                else -> null
+            }
+        if (latexBlockDelimiters != null) {
+            val (start, end) = latexBlockDelimiters
+            val formulaStart = trimmed.removePrefix(start)
+            if (formulaStart.endsWith(end)) {
+                output += formulaStart.removeSuffix(end).trim()
+            } else {
+                latexBlockEnd = end
+                latexBlock.append(formulaStart)
+                if (formulaStart.isNotEmpty()) {
+                    latexBlock.appendLine()
+                }
+            }
+            inTable = false
+            return@forEachIndexed
+        }
+
+        val nextLine = lines.getOrNull(index + 1)?.trim().orEmpty()
+        val startsTable = hasUnescapedPipe(line) && isMarkdownTableSeparator(nextLine)
+        if (isMarkdownTableSeparator(trimmed)) {
+            inTable = true
+            return@forEachIndexed
+        }
+        if ((startsTable || inTable) && hasUnescapedPipe(line)) {
+            output += splitMarkdownTableRow(line).joinToString("\t") {
+                markdownInlineToPlainText(it.trim())
+            }
+            inTable = true
+            return@forEachIndexed
+        }
+        inTable = false
+
+        if (trimmed.matches(Regex("""((\*\s*){3,}|(-\s*){3,}|(_\s*){3,}|={3,})"""))) {
+            output += ""
+            return@forEachIndexed
+        }
+
+        var plainLine = line
+            .replaceFirst(Regex("""^\s{0,3}#{1,6}\s+"""), "")
+            .replaceFirst(Regex("""^(?:\s{0,3}>\s?)+"""), "")
+
+        val unorderedItem = Regex("""^(\s*)[-+*]\s+(.*)$""").matchEntire(plainLine)
+        if (unorderedItem != null) {
+            val itemText =
+                unorderedItem.groupValues[2]
+                    .replaceFirst(Regex("""^\[[ xX]]\s+"""), "")
+            plainLine = "${unorderedItem.groupValues[1]}• $itemText"
+        }
+
+        val orderedItem = Regex("""^(\s*\d+[.)]\s+)(.*)$""").matchEntire(plainLine)
+        plainLine =
+            if (orderedItem != null) {
+                orderedItem.groupValues[1] +
+                    markdownInlineToPlainText(orderedItem.groupValues[2])
+            } else {
+                markdownInlineToPlainText(plainLine)
+            }
+        output += plainLine.trimEnd()
+    }
+
+    return output
+        .fold(mutableListOf<String>()) { normalized, line ->
+            if (line.isNotBlank() || normalized.lastOrNull()?.isNotBlank() == true) {
+                normalized += line
+            }
+            normalized
+        }
+        .dropWhile(String::isBlank)
+        .dropLastWhile(String::isBlank)
+        .joinToString("\n")
+}
+
+private fun markdownInlineToPlainText(text: String): String {
+    val protectedSegments = mutableListOf<String>()
+    var plain = Regex("""(`+)(.*?)\1""").replace(text) { match ->
+        val token = "\uE000${protectedSegments.size}\uE001"
+        protectedSegments += match.groupValues[2]
+        token
+    }
+    plain = protectInlineLatex(plain, protectedSegments)
+
+    plain = plain
+        .replace(Regex("""!\[([^\]]*)]\(([^)]*)\)"""), "$1")
+        .replace(Regex("""\[([^\]]+)]\(([^)]+)\)"""), "$1 ($2)")
+        .replace(Regex("""<(https?://[^>]+)>"""), "$1")
+        .replace(Regex("""(?i)<br\s*/?>"""), "\n")
+        .replace(Regex("""(\*\*\*|___)(.+?)\1"""), "$2")
+        .replace(Regex("""(\*\*|__)(.+?)\1"""), "$2")
+        .replace(Regex("""~~(.+?)~~"""), "$1")
+        .replace(Regex("""(?<!\*)\*([^*]+)\*(?!\*)"""), "$1")
+        .replace(Regex("""(?<!_)_([^_]+)_(?!_)"""), "$1")
+        .replace(Regex("""\\([\\`*{}\[\]()#+\-.!_|>~])"""), "$1")
+
+    protectedSegments.forEachIndexed { index, protectedText ->
+        plain = plain.replace("\uE000$index\uE001", protectedText)
+    }
+    return plain
+}
+
+private fun protectInlineLatex(
+    text: String,
+    protectedSegments: MutableList<String>,
+): String {
+    val output = StringBuilder()
+    var index = 0
+    while (index < text.length) {
+        val delimiter =
+            when {
+                text.startsWith("$$", index) -> "$$" to "$$"
+                text.startsWith("\\[", index) -> "\\[" to "\\]"
+                text.startsWith("\\(", index) -> "\\(" to "\\)"
+                text[index] == '$' &&
+                    text.getOrNull(index - 1) != '\\' &&
+                    text.getOrNull(index + 1) != '$' -> "$" to "$"
+                else -> null
+            }
+        if (delimiter == null) {
+            output.append(text[index])
+            index++
+            continue
+        }
+
+        val formulaStart = index + delimiter.first.length
+        val formulaEnd = text.indexOf(delimiter.second, formulaStart)
+        if (formulaEnd < 0) {
+            output.append(text[index])
+            index++
+            continue
+        }
+
+        val formula = text.substring(formulaStart, formulaEnd)
+        val token = "\uE000${protectedSegments.size}\uE001"
+        protectedSegments += formula
+        output.append(token)
+        index = formulaEnd + delimiter.second.length
+    }
+    return output.toString()
+}
+
+private fun hasUnescapedPipe(line: String): Boolean {
+    return line.indices.any { index ->
+        line[index] == '|' && (index == 0 || line[index - 1] != '\\')
+    }
+}
+
+private fun isMarkdownTableSeparator(line: String): Boolean {
+    if (!hasUnescapedPipe(line)) return false
+    val cells = splitMarkdownTableRow(line)
+    return cells.isNotEmpty() && cells.all { it.trim().matches(Regex(""":?-{3,}:?""")) }
+}
+
+private fun splitMarkdownTableRow(line: String): List<String> {
+    val content = line.trim().removePrefix("|").removeSuffix("|")
+    val cells = mutableListOf<String>()
+    val cell = StringBuilder()
+    var index = 0
+    while (index < content.length) {
+        if (content[index] == '\\' && content.getOrNull(index + 1) == '|') {
+            cell.append('|')
+            index += 2
+        } else if (content[index] == '|') {
+            cells += cell.toString()
+            cell.clear()
+            index++
+        } else {
+            cell.append(content[index])
+            index++
+        }
+    }
+    cells += cell.toString()
+    return cells
 }
 
 private fun isHiddenUserPlaceholder(message: ChatMessage): Boolean {
@@ -1128,6 +1354,16 @@ private fun MessageCopyPreviewBottomSheet(
     val clipboardManager = LocalClipboardManager.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val textScrollState = rememberScrollState()
+    var showPlainText by remember(text) { mutableStateOf(true) }
+    val plainText = remember(text) { markdownToPlainTextForCopy(text) }
+    val displayedText = if (showPlainText) plainText else text
+    val copyButtonText =
+        if (showPlainText) {
+            stringResource(R.string.copy_plain_text)
+        } else {
+            stringResource(R.string.copy_markdown_source)
+        }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -1143,6 +1379,21 @@ private fun MessageCopyPreviewBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                FilterChip(
+                    selected = showPlainText,
+                    onClick = { showPlainText = true },
+                    label = { Text(stringResource(R.string.plain_text)) }
+                )
+                FilterChip(
+                    selected = !showPlainText,
+                    onClick = { showPlainText = false },
+                    label = { Text(stringResource(R.string.markdown_source)) }
+                )
+            }
             SelectionContainer(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1151,7 +1402,7 @@ private fun MessageCopyPreviewBottomSheet(
                     .padding(bottom = 12.dp)
             ) {
                 Text(
-                    text = text,
+                    text = displayedText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth()
@@ -1163,7 +1414,7 @@ private fun MessageCopyPreviewBottomSheet(
             ) {
                 TextButton(
                     onClick = {
-                        clipboardManager.setText(AnnotatedString(text))
+                        clipboardManager.setText(AnnotatedString(displayedText))
                         Toast.makeText(
                             context,
                             context.getString(R.string.message_copied_to_clipboard),
@@ -1171,7 +1422,7 @@ private fun MessageCopyPreviewBottomSheet(
                         ).show()
                     }
                 ) {
-                    Text(text = stringResource(id = R.string.copy_message))
+                    Text(text = copyButtonText)
                 }
             }
         }

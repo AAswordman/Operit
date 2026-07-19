@@ -1436,6 +1436,9 @@
     <string name="accessibility_wizard_open_settings">접근성 설정 열기</string>
     <string name="accessibility_wizard_success_message">접근성 서비스가 올바르게 구성되었으며 사용할 준비가 되었습니다!</string>
     <string name="copy_message">메시지 복사</string>
+    <string name="markdown_source">Markdown 원문</string>
+    <string name="copy_plain_text">일반 텍스트 복사</string>
+    <string name="copy_markdown_source">Markdown 원문 복사</string>
     <string name="chat_hidden_user_message_placeholder">자동으로 트리거된 사용자 메시지(콘텐츠 숨김)</string>
     <string name="chat_hidden_user_message_badge">자동</string>
     <string name="info">정보</string>

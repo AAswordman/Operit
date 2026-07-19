@@ -720,6 +720,9 @@
 
     <!-- Context Menu -->
     <string name="copy_message">Copy Message</string>
+    <string name="markdown_source">Markdown source</string>
+    <string name="copy_plain_text">Copy plain text</string>
+    <string name="copy_markdown_source">Copy Markdown source</string>
     <string name="chat_hidden_user_message_placeholder">Auto-triggered user message (content hidden)</string>
     <string name="chat_hidden_user_message_badge">AUTO</string>
     <string name="info">Info</string>

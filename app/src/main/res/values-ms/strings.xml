@@ -1301,6 +1301,9 @@
     <string name="accessibility_wizard_open_settings">Buka Tetapan Aksesibiliti</string>
     <string name="accessibility_wizard_success_message">Tahniah! Perkhidmatan aksesibiliti berjaya dikonfigurasi, kini AI boleh menganalisis dan mengendalikan kandungan skrin.</string>
     <string name="copy_message">Salin Mesej</string>
+    <string name="markdown_source">Sumber Markdown</string>
+    <string name="copy_plain_text">Salin teks biasa</string>
+    <string name="copy_markdown_source">Salin sumber Markdown</string>
     <string name="info">Maklumat</string>
     <string name="read_message">Bacakan Mesej</string>
     <string name="auto_read_message">Bacaan Automatik</string>

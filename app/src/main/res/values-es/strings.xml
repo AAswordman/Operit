@@ -1286,6 +1286,9 @@
     
     <!-- Context Menu -->
     <string name="copy_message">Copiar Mensaje</string>
+    <string name="markdown_source">Código fuente Markdown</string>
+    <string name="copy_plain_text">Copiar texto sin formato</string>
+    <string name="copy_markdown_source">Copiar código fuente Markdown</string>
     <string name="read_message">Leer Mensaje</string>
     <string name="pause_reading">Pausar Lectura</string>
     <string name="resume_reading">Continuar Lectura</string>

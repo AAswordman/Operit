@@ -1402,6 +1402,9 @@
     <string name="accessibility_wizard_open_settings">Ative as configurações de acessibilidade</string>
     <string name="accessibility_wizard_success_message">Parabéns! Os serviços de acessibilidade foram configurados com sucesso e agora a IA pode analisar e manipular o conteúdo da tela.</string>
     <string name="copy_message">Copiar mensagem</string>
+    <string name="markdown_source">Código-fonte Markdown</string>
+    <string name="copy_plain_text">Copiar texto simples</string>
+    <string name="copy_markdown_source">Copiar código-fonte Markdown</string>
     <string name="info">Informação</string>
     <string name="read_message">Leia mensagens em voz alta</string>
     <string name="auto_read_message">Ler em voz alta automaticamente</string>
