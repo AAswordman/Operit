@@ -1699,7 +1699,7 @@ private fun determineHeaderLevel(content: String): Int {
  * 直接创建 StaticLayout (用于Spannable, 不走缓存)
  */
 /** 提取LaTeX内容，移除各种分隔符 */
-private fun extractLatexContent(content: String): String {
+internal fun extractLatexContent(content: String): String {
     return when {
         content.startsWith("$$") && content.endsWith("$$") -> content.removeSurrounding("$$")
         content.startsWith("\\[") && content.endsWith("\\]") -> content.removeSurrounding("\\[", "\\]")

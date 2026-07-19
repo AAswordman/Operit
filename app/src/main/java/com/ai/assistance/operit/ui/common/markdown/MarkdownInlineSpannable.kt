@@ -321,7 +321,7 @@ private fun appendInlineLatexFallback(
     builder.append(rawContent)
 }
 
-private fun resolveNestedInlineText(node: MarkdownNodeStable): String {
+internal fun resolveNestedInlineText(node: MarkdownNodeStable): String {
     return when (node.type) {
         MarkdownProcessorType.LINK -> extractLinkText(node.content)
         MarkdownProcessorType.UNDERLINE -> stripUnderlineDelimiters(node.content)
@@ -330,7 +330,7 @@ private fun resolveNestedInlineText(node: MarkdownNodeStable): String {
     }
 }
 
-private fun resolveNestedInlineChildren(node: MarkdownNodeStable): List<MarkdownNodeStable> {
+internal fun resolveNestedInlineChildren(node: MarkdownNodeStable): List<MarkdownNodeStable> {
     if (node.children.isNotEmpty()) {
         return node.children
     }

@@ -188,7 +188,7 @@ private fun appendHtmlBreakNode(
  * Converts a mutable [MarkdownNode] to an immutable, stable [MarkdownNodeStable].
  * This function is recursive and converts the entire node tree.
  */
-private fun MarkdownNode.toStableNode(): MarkdownNodeStable {
+internal fun MarkdownNode.toStableNode(): MarkdownNodeStable {
     return MarkdownNodeStable(
         type = this.type,
         content = this.content.toString(),
@@ -663,6 +663,142 @@ private object MarkdownNodeCache {
     }
 }
 
+/**
+ * 将完整的 Markdown 字符串解析为 [MarkdownNode] 树，不依赖 Compose 状态。
+ * 静态渲染入口与其他需要完整 AST 的场景（如复制为纯文本）复用同一套解析语法。
+ */
+internal suspend fun parseMarkdownToNodes(content: String): List<MarkdownNode> {
+    val parsedNodes = mutableListOf<MarkdownNode>()
+    var pendingHtmlBreakCount = 0
+    stream { emit(content) }.nativeMarkdownSplitByBlock().collect { blockGroup ->
+        val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
+
+        if (blockType == MarkdownProcessorType.HTML_BREAK) {
+            if (canMergeWithHtmlBreak(parsedNodes.lastOrNull())) {
+                pendingHtmlBreakCount =
+                    (pendingHtmlBreakCount + 1).coerceAtMost(MAX_CONSECUTIVE_RENDERED_NEWLINES)
+            } else {
+                appendHtmlBreakNode(parsedNodes)
+            }
+            return@collect
+        }
+
+        if (blockType == MarkdownProcessorType.HORIZONTAL_RULE) {
+            if (pendingHtmlBreakCount > 0) {
+                appendHtmlBreakNode(parsedNodes, pendingHtmlBreakCount)
+            }
+            parsedNodes.add(MarkdownNode(type = blockType, initialContent = "---"))
+            pendingHtmlBreakCount = 0
+            return@collect
+        }
+
+        val isLatexBlock = blockType == MarkdownProcessorType.BLOCK_LATEX
+        val tempBlockType =
+            if (isLatexBlock) MarkdownProcessorType.PLAIN_TEXT else blockType
+
+        val isInlineContainer =
+            tempBlockType != MarkdownProcessorType.CODE_BLOCK &&
+                tempBlockType != MarkdownProcessorType.BLOCK_LATEX &&
+                tempBlockType != MarkdownProcessorType.TABLE &&
+                tempBlockType != MarkdownProcessorType.XML_BLOCK
+
+        val mergeWithPrevious =
+            pendingHtmlBreakCount > 0 &&
+                tempBlockType == MarkdownProcessorType.PLAIN_TEXT &&
+                canMergeWithHtmlBreak(parsedNodes.lastOrNull())
+
+        if (pendingHtmlBreakCount > 0 && !mergeWithPrevious) {
+            appendHtmlBreakNode(parsedNodes, pendingHtmlBreakCount)
+            pendingHtmlBreakCount = 0
+        }
+
+        val newNode =
+            if (mergeWithPrevious) {
+                parsedNodes.last()
+            } else {
+                MarkdownNode(type = tempBlockType).also { parsedNodes.add(it) }
+            }
+        val nodeIndex = parsedNodes.lastIndex
+
+        if (isInlineContainer) {
+            val blockTextBuilder = StringBuilder()
+            blockGroup.stream.collect { s ->
+                blockTextBuilder.append(s)
+            }
+            val blockText = blockTextBuilder.toString()
+
+            var pendingLineBreakState = PendingLineBreakState(count = pendingHtmlBreakCount)
+
+            stream { emit(blockText) }.nativeMarkdownSplitByInline().collect { inlineGroup ->
+                val originalInlineType = inlineGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
+                val isInlineLatex = originalInlineType == MarkdownProcessorType.INLINE_LATEX
+                val tempInlineType =
+                    if (isInlineLatex) MarkdownProcessorType.PLAIN_TEXT else originalInlineType
+
+                var childNode: MarkdownNode? = null
+
+                inlineGroup.stream.collect { chunk ->
+                    pendingLineBreakState =
+                        appendInlineChunk(
+                            parentNode = newNode,
+                            getOrCreateChildNode = {
+                                childNode
+                                    ?: if (
+                                        mergeWithPrevious &&
+                                            tempInlineType == MarkdownProcessorType.PLAIN_TEXT &&
+                                            newNode.children.lastOrNull()?.type == MarkdownProcessorType.PLAIN_TEXT
+                                    ) {
+                                        newNode.children.last().also { childNode = it }
+                                    } else {
+                                        MarkdownNode(type = tempInlineType).also {
+                                            childNode = it
+                                            newNode.children.add(it)
+                                        }
+                                    }
+                            },
+                            chunk = chunk,
+                            pendingLineBreakState = pendingLineBreakState,
+                        )
+                }
+
+                if (isInlineLatex && childNode != null) {
+                    val latexContent = childNode!!.content.toString()
+                    val latexChildNode =
+                        MarkdownNode(type = MarkdownProcessorType.INLINE_LATEX, initialContent = latexContent)
+                    val childIndex = newNode.children.lastIndexOf(childNode)
+                    if (childIndex != -1) {
+                        newNode.children[childIndex] = latexChildNode
+                    }
+                }
+
+                if (childNode != null &&
+                    childNode!!.content.toString().trimAll().isEmpty() &&
+                    originalInlineType == MarkdownProcessorType.PLAIN_TEXT
+                ) {
+                    val lastIndex = newNode.children.lastIndex
+                    if (lastIndex >= 0 && newNode.children[lastIndex] == childNode) {
+                        newNode.children.removeAt(lastIndex)
+                    }
+                }
+            }
+        } else {
+            blockGroup.stream.collect { contentChunk ->
+                newNode.content + contentChunk
+            }
+        }
+
+        if (isLatexBlock) {
+            val latexContent = newNode.content.toString()
+            val latexNode =
+                MarkdownNode(type = MarkdownProcessorType.BLOCK_LATEX, initialContent = latexContent)
+            parsedNodes[nodeIndex] = latexNode
+        }
+
+        pendingHtmlBreakCount = 0
+    }
+    return parsedNodes
+}
+
 /** 高性能静态Markdown渲染组件 接受一个完整的字符串，一次性解析和渲染，适用于静态内容显示。 */
 @Composable
 fun StreamMarkdownRenderer(
@@ -741,134 +877,7 @@ fun StreamMarkdownRenderer(
 
         launch(Dispatchers.IO) {
             try {
-                val parsedNodes = mutableListOf<MarkdownNode>()
-                var pendingHtmlBreakCount = 0
-                stream { emit(content) }.nativeMarkdownSplitByBlock().collect { blockGroup ->
-                    val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
-
-                    if (blockType == MarkdownProcessorType.HTML_BREAK) {
-                        if (canMergeWithHtmlBreak(parsedNodes.lastOrNull())) {
-                            pendingHtmlBreakCount =
-                                (pendingHtmlBreakCount + 1).coerceAtMost(MAX_CONSECUTIVE_RENDERED_NEWLINES)
-                        } else {
-                            appendHtmlBreakNode(parsedNodes)
-                        }
-                        return@collect
-                    }
-
-                    if (blockType == MarkdownProcessorType.HORIZONTAL_RULE) {
-                        if (pendingHtmlBreakCount > 0) {
-                            appendHtmlBreakNode(parsedNodes, pendingHtmlBreakCount)
-                        }
-                        parsedNodes.add(MarkdownNode(type = blockType, initialContent = "---"))
-                        pendingHtmlBreakCount = 0
-                        return@collect
-                    }
-
-                    val isLatexBlock = blockType == MarkdownProcessorType.BLOCK_LATEX
-                    val tempBlockType =
-                        if (isLatexBlock) MarkdownProcessorType.PLAIN_TEXT else blockType
-
-                    val isInlineContainer =
-                        tempBlockType != MarkdownProcessorType.CODE_BLOCK &&
-                            tempBlockType != MarkdownProcessorType.BLOCK_LATEX &&
-                            tempBlockType != MarkdownProcessorType.TABLE &&
-                            tempBlockType != MarkdownProcessorType.XML_BLOCK
-
-                    val mergeWithPrevious =
-                        pendingHtmlBreakCount > 0 &&
-                            tempBlockType == MarkdownProcessorType.PLAIN_TEXT &&
-                            canMergeWithHtmlBreak(parsedNodes.lastOrNull())
-
-                    if (pendingHtmlBreakCount > 0 && !mergeWithPrevious) {
-                        appendHtmlBreakNode(parsedNodes, pendingHtmlBreakCount)
-                        pendingHtmlBreakCount = 0
-                    }
-
-                    val newNode =
-                        if (mergeWithPrevious) {
-                            parsedNodes.last()
-                        } else {
-                            MarkdownNode(type = tempBlockType).also { parsedNodes.add(it) }
-                        }
-                    val nodeIndex = parsedNodes.lastIndex
-
-                    if (isInlineContainer) {
-                        val blockTextBuilder = StringBuilder()
-                        blockGroup.stream.collect { s ->
-                            blockTextBuilder.append(s)
-                        }
-                        val blockText = blockTextBuilder.toString()
-
-                        var pendingLineBreakState = PendingLineBreakState(count = pendingHtmlBreakCount)
-
-                        stream { emit(blockText) }.nativeMarkdownSplitByInline().collect { inlineGroup ->
-                            val originalInlineType = inlineGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
-                            val isInlineLatex = originalInlineType == MarkdownProcessorType.INLINE_LATEX
-                            val tempInlineType =
-                                if (isInlineLatex) MarkdownProcessorType.PLAIN_TEXT else originalInlineType
-
-                            var childNode: MarkdownNode? = null
-
-                            inlineGroup.stream.collect { chunk ->
-                                pendingLineBreakState =
-                                    appendInlineChunk(
-                                        parentNode = newNode,
-                                        getOrCreateChildNode = {
-                                            childNode
-                                                ?: if (
-                                                    mergeWithPrevious &&
-                                                        tempInlineType == MarkdownProcessorType.PLAIN_TEXT &&
-                                                        newNode.children.lastOrNull()?.type == MarkdownProcessorType.PLAIN_TEXT
-                                                ) {
-                                                    newNode.children.last().also { childNode = it }
-                                                } else {
-                                                    MarkdownNode(type = tempInlineType).also {
-                                                        childNode = it
-                                                        newNode.children.add(it)
-                                                    }
-                                                }
-                                        },
-                                        chunk = chunk,
-                                        pendingLineBreakState = pendingLineBreakState,
-                                    )
-                            }
-
-                            if (isInlineLatex && childNode != null) {
-                                val latexContent = childNode!!.content.toString()
-                                val latexChildNode =
-                                    MarkdownNode(type = MarkdownProcessorType.INLINE_LATEX, initialContent = latexContent)
-                                val childIndex = newNode.children.lastIndexOf(childNode)
-                                if (childIndex != -1) {
-                                    newNode.children[childIndex] = latexChildNode
-                                }
-                            }
-
-                            if (childNode != null &&
-                                childNode!!.content.toString().trimAll().isEmpty() &&
-                                originalInlineType == MarkdownProcessorType.PLAIN_TEXT
-                            ) {
-                                val lastIndex = newNode.children.lastIndex
-                                if (lastIndex >= 0 && newNode.children[lastIndex] == childNode) {
-                                    newNode.children.removeAt(lastIndex)
-                                }
-                            }
-                        }
-                    } else {
-                        blockGroup.stream.collect { contentChunk ->
-                            newNode.content + contentChunk
-                        }
-                    }
-
-                    if (isLatexBlock) {
-                        val latexContent = newNode.content.toString()
-                        val latexNode =
-                            MarkdownNode(type = MarkdownProcessorType.BLOCK_LATEX, initialContent = latexContent)
-                        parsedNodes[nodeIndex] = latexNode
-                    }
-
-                    pendingHtmlBreakCount = 0
-                }
+                val parsedNodes = parseMarkdownToNodes(content)
 
                 // 将解析完成的节点添加到节点列表，并更新动画状态
                 withContext(Dispatchers.Main) {

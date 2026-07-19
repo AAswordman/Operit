@@ -60,7 +60,8 @@ private const val TABLE_FLING_DECAY_RATE = 4.5f
 private const val TABLE_MIN_FLING_VELOCITY = 120f
 private const val TABLE_MAX_FLING_VELOCITY = 9000f
 
-private data class TableData(
+/** 供表格渲染和复制为纯文本共用的表格解析结果。 */
+internal data class TableData(
     val rows: List<List<String>>,
     val hasHeader: Boolean
 )
@@ -511,7 +512,8 @@ private fun calculateLetterSpacingEm(fontSizeSp: Float, letterSpacingSp: Float):
     return letterSpacingSp / fontSizeSp
 }
 
-private fun parseTable(content: String): TableData {
+/** 将原始 Markdown 表格文本解析成行列结构，供渲染和复制为纯文本共用。 */
+internal fun parseTable(content: String): TableData {
     fun isHeaderSeparatorLine(line: String): Boolean {
         return line.trim().matches(
             Regex("^\\s*\\|?\\s*[-:]+\\s*(\\|\\s*[-:]+\\s*)+\\|?\\s*$")
