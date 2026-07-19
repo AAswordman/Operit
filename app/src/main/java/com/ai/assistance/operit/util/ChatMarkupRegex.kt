@@ -7,7 +7,7 @@ object ChatMarkupRegex {
     private const val GEMINI_THOUGHT_SIGNATURE_PROVIDER = "gemini:thought_signature"
     private const val OPENAI_RESPONSES_REASONING_PROVIDER = "openai:responses_reasoning"
     const val TOOL_TAG_NAME_REGEX_SOURCE =
-        "tool(?:_(?!result(?:_|$))$TOOL_TAG_SUFFIX_REGEX_SOURCE)?"
+        "tool(?:_(?!result(?:_|\\b))$TOOL_TAG_SUFFIX_REGEX_SOURCE)?"
     const val TOOL_RESULT_TAG_NAME_REGEX_SOURCE = "tool_result(?:_${TOOL_TAG_SUFFIX_REGEX_SOURCE})?"
 
     private val toolTagNameRegex = Regex("^$TOOL_TAG_NAME_REGEX_SOURCE$", RegexOption.IGNORE_CASE)

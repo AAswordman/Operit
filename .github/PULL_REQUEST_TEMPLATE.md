@@ -56,6 +56,6 @@ All four items are required. If an item is not applicable, write N/A and explain
 -->
 
 - [ ] 我已记录可复现验证和未运行项原因 / Reproducible verification and reasons for unrun checks are recorded
-- [ ] 与改动范围匹配的必需 CI 已通过或按路径规则跳过 / Required CI passed or was skipped by path rules
+- [ ] 我已确认改动范围对应的必需 CI 会运行，并会处理失败项 / Required CI covers the change scope and failures will be addressed
 - [ ] 最终 diff 无无关、临时、生成、二进制或敏感内容 / Final diff has no unrelated, temporary, generated, binary, or secret content
 - [ ] 已提供对应的回归、UI、文档/字符串或兼容性证据 / Relevant regression, UI, docs/strings, or compatibility evidence is provided

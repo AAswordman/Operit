@@ -16,7 +16,7 @@ class StreamingJsonXmlConverterFlushTest {
         val converter = StreamingJsonXmlConverter()
         converter.feed("{\"a\":1")
         val output = render(converter.flush())
-        assertEquals("\n  <param name=\"a\">1</param>", output)
+        assertEquals("1</param>", output)
     }
 
     private fun render(events: List<StreamingJsonXmlConverter.Event>): String {

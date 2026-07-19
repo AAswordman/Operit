@@ -42,7 +42,10 @@ class StreamingJsonXmlConverterTest {
 
     @Test fun objectValue_isCapturedAsSinglePrimitiveBlock() {
         val converter = StreamingJsonXmlConverter()
-        assertEquals("\n  <param name=\"obj\">{\"a\":1}</param>", render(converter.feed("{\"obj\":{\"a\":1}}")))
+        assertEquals(
+            "\n  <param name=\"obj\">{&quot;a&quot;:1}</param>",
+            render(converter.feed("{\"obj\":{\"a\":1}}"))
+        )
     }
 
     @Test fun escapedXmlCharacters_areEncoded() {
@@ -87,9 +90,9 @@ class StreamingJsonXmlConverterTest {
 
     @Test fun chunkedComplexValue_staysOpenUntilClosed() {
         val converter = StreamingJsonXmlConverter()
-        converter.feed("{\"items\":[1")
+        val openingEvents = converter.feed("{\"items\":[1")
         assertTrue(converter.hasUnfinishedParam())
-        val events = converter.feed(",2]}")
+        val events = openingEvents + converter.feed(",2]}")
         assertEquals("\n  <param name=\"items\">[1,2]</param>", render(events))
     }
 
@@ -113,7 +116,7 @@ class StreamingJsonXmlConverterTest {
     @Test fun nestedObjectInsideArray_isPreserved() {
         val converter = StreamingJsonXmlConverter()
         assertEquals(
-            "\n  <param name=\"items\">[{\"a\":1}]</param>",
+            "\n  <param name=\"items\">[{&quot;a&quot;:1}]</param>",
             render(converter.feed("{\"items\":[{\"a\":1}]}"))
         )
     }

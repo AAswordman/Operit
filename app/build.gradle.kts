@@ -171,9 +171,13 @@ android {
         aidl = true
         buildConfig = true
     }
+    lint {
+        baseline = file("lint-baseline.xml")
+        checkDependencies = true
+    }
 
     sourceSets.getByName("main").assets.srcDir(generatedKatexAssets)
-    
+
     packaging {
         
         jniLibs {

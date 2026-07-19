@@ -1,8 +1,10 @@
 package com.ai.assistance.operit.core.tools.condition
 
+import com.ai.assistance.operit.util.AppLogger
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.Mockito
 
 class ConditionEvaluatorTest {
 
@@ -147,14 +149,20 @@ class ConditionEvaluatorTest {
     }
 
     @Test fun malformedCharacter_returnsFalse() {
-        assertFalse(ConditionEvaluator.evaluate("@", emptyMap()))
+        assertInvalidExpression("@")
     }
 
     @Test fun unterminatedString_returnsFalse() {
-        assertFalse(ConditionEvaluator.evaluate("'abc", emptyMap()))
+        assertInvalidExpression("'abc")
     }
 
     @Test fun unbalancedParenthesis_returnsFalse() {
-        assertFalse(ConditionEvaluator.evaluate("(true", emptyMap()))
+        assertInvalidExpression("(true")
+    }
+
+    private fun assertInvalidExpression(expression: String) {
+        Mockito.mockStatic(AppLogger::class.java).use {
+            assertFalse(ConditionEvaluator.evaluate(expression, emptyMap()))
+        }
     }
 }

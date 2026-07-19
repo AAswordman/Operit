@@ -1149,8 +1149,15 @@ class AvatarRepository(
     private fun loadConfigsFromPrefs(): List<AvatarConfig> {
         val json = prefs.getString(KEY_CONFIGS, null) ?: return emptyList()
         return try {
-            val type = object : TypeToken<List<AvatarConfig>>() {}.type
-            gson.fromJson(json, type)
+            val result = decodePersistedAvatarConfigs(json, gson)
+            if (result.invalidEntryIndexes.isNotEmpty()) {
+                AppLogger.w(
+                    TAG,
+                    "Discarded invalid persisted avatar configs at indexes: " +
+                        result.invalidEntryIndexes.joinToString()
+                )
+            }
+            result.configs
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error parsing avatar configs from JSON", e)
             emptyList()
