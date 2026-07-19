@@ -348,7 +348,7 @@ def print_report(analysis: Dict):
     print(f"  Remaining UI strings: {stats['remaining']}")
     print(f"  Files with Chinese strings: {stats['files_with_strings']}")
 
-    output_file = Path('chinese_strings_detailed.txt')
+    output_file = Path(__file__).resolve().parent / 'chinese_strings_detailed.txt'
     with open(output_file, 'w', encoding='utf-8') as f:
         stats = analysis['total_stats']
         f.write("[OVERALL]\n")
@@ -386,7 +386,8 @@ def print_report(analysis: Dict):
     print(f"[DONE] Results saved to: {output_file.absolute()}")
 
 def main():
-    root_dir = Path('D:\\Code\\prog\\assistance\\app\\src\\main\\java\\com\\ai\\assistance\\operit')
+    repo_root = Path(__file__).resolve().parents[2]
+    root_dir = repo_root / 'app' / 'src' / 'main' / 'java' / 'com' / 'ai' / 'assistance' / 'operit'
 
     if not root_dir.exists():
         print(f"[ERROR] Directory does not exist: {root_dir}")

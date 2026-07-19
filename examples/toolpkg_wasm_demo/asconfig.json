@@ -1,0 +1,13 @@
+{
+  "targets": {
+    "release": {
+      "outFile": "modules/core.wasm",
+      "textFile": "modules/core.wat",
+      "sourceMap": false,
+      "optimizeLevel": 3,
+      "shrinkLevel": 2,
+      "noAssert": true,
+      "runtime": "stub"
+    }
+  }
+}

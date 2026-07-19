@@ -83,6 +83,7 @@ import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailS
 import com.ai.assistance.operit.ui.features.packages.market.canInstallFromUnifiedMarket
 import com.ai.assistance.operit.ui.features.packages.market.formatMarketDetailCompactDate
 import com.ai.assistance.operit.ui.features.packages.market.formatMarketDetailDate
+import com.ai.assistance.operit.ui.features.packages.market.isUnsupportedByCurrentAppVersion
 import com.ai.assistance.operit.ui.features.packages.market.labelResId
 import com.ai.assistance.operit.ui.features.packages.market.marketDetailInitial
 import com.ai.assistance.operit.ui.features.packages.market.resolveMarketReviewSnapshot
@@ -124,6 +125,7 @@ fun UnifiedMarketDetailEntryScreen(
     val currentReactions = reactionsMap[entryId].orEmpty()
     val installProgress = installStates[entryId]
     val localInstallState = localInstallStates[entryId]
+    val isCurrentAppVersionUnsupported = entry.isUnsupportedByCurrentAppVersion()
     val likes =
         if (currentReactions.isNotEmpty()) {
             currentReactions.sumOf { if (it.reaction.ifBlank { it.content } == "+1") it.total.coerceAtLeast(1) else 0 }
@@ -228,11 +230,20 @@ fun UnifiedMarketDetailEntryScreen(
                 onClick = { viewModel.installEntry(entry) },
                 enabled =
                     entry.canInstallFromUnifiedMarket() &&
+                        !isCurrentAppVersionUnsupported &&
                         installProgress == null &&
                         localInstallState?.kind != MarketLocalInstallStateKind.INSTALLED,
                 isLoading = installProgress != null,
                 loadingLabel = installProgress?.detailLabel(),
-                icon = if (localInstallState.shouldShowSwitchAction()) Icons.Default.Update else Icons.Default.Check
+                icon =
+                    if (isCurrentAppVersionUnsupported) {
+                        Icons.Default.Warning
+                    } else if (localInstallState.shouldShowSwitchAction()) {
+                        Icons.Default.Update
+                    } else {
+                        Icons.Default.Check
+                    },
+                isWarning = isCurrentAppVersionUnsupported
             ),
         secondaryAction =
             sourceUrl.takeIf { it.isNotBlank() }?.let { repositoryUrl ->

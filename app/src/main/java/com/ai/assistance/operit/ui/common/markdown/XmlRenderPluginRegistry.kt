@@ -3,6 +3,7 @@ package com.ai.assistance.operit.ui.common.markdown
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -231,7 +232,15 @@ object XmlRenderPluginRegistry {
             )
         }
         val jsEngine = remember(packageManager, executionContextKey) {
-            packageManager.getToolPkgExecutionEngine(executionContextKey)
+            packageManager.getToolPkgExecutionEngine(
+                contextKey = executionContextKey,
+                containerPackageName = result.containerPackageName
+            )
+        }
+        DisposableEffect(packageManager, executionContextKey) {
+            onDispose {
+                packageManager.releaseToolPkgExecutionEngine(executionContextKey, jsEngine)
+            }
         }
         val scope = rememberCoroutineScope()
 

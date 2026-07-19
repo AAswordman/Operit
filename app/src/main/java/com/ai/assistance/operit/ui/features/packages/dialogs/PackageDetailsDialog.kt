@@ -284,6 +284,11 @@ fun PackageDetailsDialog(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
+                                            text = stringResource(R.string.pkg_toolpkg_wasm_modules, details.wasmModuleCount),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
                                             text = stringResource(R.string.pkg_toolpkg_ui_modules, details.uiModuleCount),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -356,11 +361,11 @@ fun PackageDetailsDialog(
                                         details.subpackages.forEach { subpackage ->
                                             fun applySubpackageToggle(enabled: Boolean) {
                                                 toolPkgToggleError = null
-                                                val fallbackDetails = details
+                                                val previousDetails = details
                                                 toolPkgDetails =
-                                                    fallbackDetails.copy(
+                                                    previousDetails.copy(
                                                         subpackages =
-                                                            fallbackDetails.subpackages.map {
+                                                            previousDetails.subpackages.map {
                                                                 if (it.packageName == subpackage.packageName) {
                                                                     it.copy(enabled = enabled)
                                                                 } else {

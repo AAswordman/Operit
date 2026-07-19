@@ -17,7 +17,7 @@ last_reviewed: 2026-07-14
 ## 旧实现情况
 
 - 根项目和 `web-chat` 的构建入口使用 npm
-- `sync_example_packages.py` 已直接调用 pnpm，仓库同时存在两套包管理入口
+- `tools/sync_example_packages.py` 已直接调用 pnpm，仓库同时存在两套包管理入口
 - `pnpm-workspace.yaml` 没有 packages 列表
 - `.gitignore` 忽略 `pnpm-lock.yaml` 和 `package-lock.json`
 - `tools/mcp_bridge` 使用 npm 串联自己的 build、bundle 和 copy 脚本
@@ -41,7 +41,7 @@ last_reviewed: 2026-07-14
 - `web-chat/package.json`
 - `tools/mcp_bridge/package.json`
 - `examples/github/package.json`
-- `sync_example_packages.py`
+- `tools/sync_example_packages.py`
 
 本步骤不修改：
 

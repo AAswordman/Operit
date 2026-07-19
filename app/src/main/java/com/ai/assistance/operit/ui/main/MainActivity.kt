@@ -653,7 +653,7 @@ class MainActivity : ComponentActivity() {
                         if (!agreementPreferences.isAgreementAccepted()) {
                             AgreementScreen(
                                     onAgreementAccepted = {
-                                        agreementPreferences.setAgreementAccepted(true)
+                                        agreementPreferences.acceptCurrentAgreement()
                                         // 协议接受后，检查权限级别设置
                                         lifecycleScope.launch {
                                             // 确保使用非阻塞方式更新UI

@@ -1148,7 +1148,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                             TextStreamEventType.ROLLBACK -> {
                                                 val snapshot =
                                                     revisionMutex.withLock {
-                                                        revisionTracker.rollback(event.id)
+                                                        revisionTracker.rollback(event.id)?.toString()
                                                     } ?: return@collect
                                                 execContext.streamBuffer.clear()
                                                 execContext.streamBuffer.append(snapshot)
@@ -1192,11 +1192,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     revisionTracker.append(content)
                                 }
 
-                                // 更新streamBuffer，保持与原有逻辑一致
+                                // Keep both mutable accumulators synchronized without rebuilding
+                                // the complete response for every streamed chunk.
                                 execContext.streamBuffer.append(content)
-
-                                // 更新内容到轮次管理器
-                                execContext.roundManager.updateContent(execContext.streamBuffer.toString())
+                                execContext.roundManager.appendChunk(content)
 
                                 // 发射当前内容片段
                                 emit(content)
@@ -2372,7 +2371,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                         TextStreamEventType.ROLLBACK -> {
                                             val snapshot =
                                                 revisionMutex.withLock {
-                                                    revisionTracker.rollback(event.id)
+                                                    revisionTracker.rollback(event.id)?.toString()
                                                 } ?: return@collect
                                             context.streamBuffer.clear()
                                             context.streamBuffer.append(snapshot)
@@ -2400,9 +2399,7 @@ class EnhancedAIService private constructor(private val context: Context) {
 
                             // 更新streamBuffer
                             context.streamBuffer.append(content)
-
-                            // 更新内容到轮次管理器
-                            context.roundManager.updateContent(context.streamBuffer.toString())
+                            context.roundManager.appendChunk(content)
 
                             // 累计统计
                             chunkCount++

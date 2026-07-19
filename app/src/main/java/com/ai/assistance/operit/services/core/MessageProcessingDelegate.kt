@@ -1144,18 +1144,19 @@ class MessageProcessingDelegate(
                                 }
                             }
 
-                            suspend fun persistStreamingSnapshot(
-                                contentSnapshot: String,
-                                force: Boolean = false
-                            ) {
-                                if (!effectivePersistTurn || isWaifuModeEnabled || chatId == null) return
+                            fun claimStreamingSnapshot(): Boolean {
+                                if (!effectivePersistTurn || isWaifuModeEnabled || chatId == null) return false
                                 val now = messageTimingNow()
-                                if (!force && now - lastStreamingPersistAt < STREAM_PERSIST_INTERVAL_MS) {
-                                    return
+                                if (now - lastStreamingPersistAt < STREAM_PERSIST_INTERVAL_MS) {
+                                    return false
                                 }
-
-                                addMessageToChat(chatId, aiMessage.copy(content = contentSnapshot))
                                 lastStreamingPersistAt = now
+                                return true
+                            }
+
+                            suspend fun persistStreamingSnapshot(contentSnapshot: String) {
+                                val targetChatId = chatId ?: return
+                                addMessageToChat(targetChatId, aiMessage.copy(content = contentSnapshot))
                             }
 
                             val autoReadJob =
@@ -1194,15 +1195,20 @@ class MessageProcessingDelegate(
                                                 }
 
                                                 TextStreamEventType.ROLLBACK -> {
-                                                    val snapshot =
+                                                    val rollbackResult =
                                                         revisionMutex.withLock {
-                                                            revisionTracker.rollback(event.id)
+                                                            revisionTracker.rollback(event.id)?.let { content ->
+                                                                content.toString() to claimStreamingSnapshot()
+                                                            }
                                                         } ?: return@collect
+                                                    val (snapshot, shouldPersist) = rollbackResult
 
                                                     aiMessage.content = snapshot
 
-                                                    if (!isWaifuModeEnabled) {
+                                                    if (shouldPersist) {
                                                         persistStreamingSnapshot(snapshot)
+                                                    }
+                                                    if (!isWaifuModeEnabled) {
                                                         tryEmitScrollToBottomThrottled(chatId)
                                                     }
                                                 }
@@ -1211,34 +1217,45 @@ class MessageProcessingDelegate(
                                     }
                                 }
 
-                            sharedCharStream.collect { chunk ->
-                                if (!hasLoggedFirstChunk) {
-                                    hasLoggedFirstChunk = true
-                                    if (firstResponseElapsed == null) {
-                                        firstResponseElapsed = messageTimingNow()
-                                        chatRuntime.firstResponseElapsed = firstResponseElapsed
+                            try {
+                                sharedCharStream.collect { chunk ->
+                                    if (!hasLoggedFirstChunk) {
+                                        hasLoggedFirstChunk = true
+                                        if (firstResponseElapsed == null) {
+                                            firstResponseElapsed = messageTimingNow()
+                                            chatRuntime.firstResponseElapsed = firstResponseElapsed
+                                        }
+                                        logMessageTiming(
+                                            stage = "delegate.firstResponseChunk",
+                                            startTimeMs = responseStartTime,
+                                            details = "chatId=$activeChatId, firstChunkLength=${chunk.length}"
+                                        )
                                     }
-                                    logMessageTiming(
-                                        stage = "delegate.firstResponseChunk",
-                                        startTimeMs = responseStartTime,
-                                        details = "chatId=$activeChatId, firstChunkLength=${chunk.length}"
-                                    )
+                                    val contentSnapshot =
+                                        revisionMutex.withLock {
+                                            val liveContent = revisionTracker.append(chunk)
+                                            // Claim the interval before materializing the mutable buffer;
+                                            // checking afterward recreates the original quadratic copying.
+                                            if (claimStreamingSnapshot()) liveContent.toString() else null
+                                        }
+                                    if (contentSnapshot != null) {
+                                        aiMessage.content = contentSnapshot
+                                        persistStreamingSnapshot(contentSnapshot)
+                                    }
+                                    if (!isWaifuModeEnabled) {
+                                        tryEmitScrollToBottomThrottled(chatId)
+                                    }
                                 }
-                                val content =
+                            } finally {
+                                revisionJob?.cancelAndJoin()
+                                // The finalizer uses aiMessage.content when revision events exist,
+                                // so publish one immutable snapshot on every collection exit.
+                                aiMessage.content =
                                     revisionMutex.withLock {
-                                        revisionTracker.append(chunk)
+                                        revisionTracker.currentContent().toString()
                                     }
-                                // 防止后续读取不到
-                                aiMessage.content = content
-                                
-                                // 流式内容由 contentStream 实时渲染，这里仅按固定间隔同步快照，避免碎片 chunk 导致高频持久化。
-                                persistStreamingSnapshot(content)
-                                if (!isWaifuModeEnabled) {
-                                    tryEmitScrollToBottomThrottled(chatId)
-                                }
                             }
 
-                            revisionJob?.cancelAndJoin()
                             autoReadJob?.join()
                             waifuSegmentsJob?.join()
 
@@ -1589,7 +1606,7 @@ class MessageProcessingDelegate(
                                     TextStreamEventType.ROLLBACK -> {
                                         val snapshot =
                                             revisionMutex.withLock {
-                                                revisionTracker.rollback(event.id)
+                                                revisionTracker.rollback(event.id)?.toString()
                                             } ?: return@collect
                                         aiMessage.content = snapshot
                                     }
@@ -1602,13 +1619,16 @@ class MessageProcessingDelegate(
                     if (firstResponseElapsed == null) {
                         firstResponseElapsed = messageTimingNow()
                     }
-                    aiMessage.content =
-                        revisionMutex.withLock {
-                            revisionTracker.append(chunk)
-                        }
+                    revisionMutex.withLock {
+                        revisionTracker.append(chunk)
+                    }
                 }
 
                 revisionJob?.cancelAndJoin()
+                aiMessage.content =
+                    revisionMutex.withLock {
+                        revisionTracker.currentContent().toString()
+                    }
             }
 
             val finalContent = resolveFinalContent(aiMessage)

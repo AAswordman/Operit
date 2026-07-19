@@ -592,7 +592,10 @@ fun ToolPkgComposeDslToolScreen(
             null
         }
     val jsEngine = remember(packageManager, executionContextKey) {
-        packageManager.getToolPkgExecutionEngine(executionContextKey)
+        packageManager.getToolPkgExecutionEngine(
+            contextKey = executionContextKey,
+            containerPackageName = containerPackageName
+        )
     }
 
     var script by remember(containerPackageName, uiModuleId) { mutableStateOf<String?>(null) }
@@ -1143,7 +1146,7 @@ fun ToolPkgComposeDslToolScreen(
             setTopBarTitleContent(null)
             ToolPkgComposeDslDebugSnapshotStore.clear(routeInstanceId)
             ComposeDslWebViewHostRegistry.clearExecutionContext(executionContextKey)
-            packageManager.releaseToolPkgExecutionEngine(executionContextKey)
+            packageManager.releaseToolPkgExecutionEngine(executionContextKey, jsEngine)
         }
     }
 

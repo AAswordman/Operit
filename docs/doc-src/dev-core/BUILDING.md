@@ -28,7 +28,7 @@ sudo apt update
 # 安装必要的工具、JDK 21、Node.js、npm 和 Python 3
 sudo apt install -y git wget unzip openjdk-21-jdk nodejs npm python3
 
-# 安装 pnpm（sync_example_packages.py 预构建 examples 时会用到）
+# 安装 pnpm（tools/sync_example_packages.py 预构建 examples 时会用到）
 sudo npm install -g pnpm
 
 # 安装完成后，请验证 Java 版本是否正确
@@ -43,7 +43,7 @@ python3 --version
 ``` 
 **注意：** 项目官方要求 **JDK 21**。为确保最大兼容性，强烈建议优先安装和使用 JDK 21。
 
-**补充说明：** 项目中的 `web-chat` 使用 React + Vite 构建；`sync_example_packages.py` 会预构建 `examples/` 下的脚本包并打包 `.toolpkg`。因此除了 Android 环境外，还需要准备好 Node.js、npm、pnpm 和 Python 3。如果后续执行前端构建时提示 Node.js 版本过低，请升级到较新的 Node.js LTS 版本后再继续。
+**补充说明：** 项目中的 `web-chat` 使用 React + Vite 构建；`tools/sync_example_packages.py` 会预构建 `examples/` 下的脚本包并打包 `.toolpkg`。因此除了 Android 环境外，还需要准备好 Node.js、npm、pnpm 和 Python 3。如果后续执行前端构建时提示 Node.js 版本过低，请升级到较新的 Node.js LTS 版本后再继续。
 
 ## **2. 第二步：安装 Android 命令行工具**
 
@@ -195,10 +195,7 @@ cd Operit
 ```bash
 git submodule update --init --recursive
 ```  
-如果你只想单独初始化 FBX 运行时依赖，也可以执行：  
-```bash
-git submodule update --init fbx/third_party/ufbx
-```  
+其中 `ufbx`、`Bullet3`、`Saba`、`ncnn`、`sherpa-ncnn`、WAMR、`llama.cpp`、QuickJS、MNN 和 MNN 使用的 KleidiAI 由 CMake 通过 `FetchContent` 获取。CMake 会先解析远端 ref 的 commit，再下载对应 GitHub archive，因此不会拉取完整 Git 历史；默认跟随各自上游主分支或上游工程声明的 tag。如需固定某个 ref，可在 CMake 参数中设置 `OPERIT_UFBX_GIT_REF`、`OPERIT_BULLET3_GIT_REF`、`OPERIT_SABA_GIT_REF`、`OPERIT_NCNN_GIT_REF`、`OPERIT_SHERPA_NCNN_GIT_REF`、`OPERIT_WAMR_GIT_REF`、`OPERIT_LLAMA_CPP_GIT_REF`、`OPERIT_QUICKJS_GIT_REF`、`OPERIT_MNN_GIT_REF` 或 `OPERIT_KLEIDIAI_GIT_REF`。
 2. **下载并放置依赖库 (关键步骤！):**  
 `README.md` 中提到，项目依赖一些需要手动下载的库。请从 [这个 Google Drive 链接](https://drive.google.com/drive/folders/1g-Q_i7cf6Ua4KX9ZM6V282EEZvTVVfF7?usp=sharing) 下载所有文件，并将它们解压或放置到项目根目录下对应的 `libs` 或有 `.keep` 文件的文件夹中。  **警告：** 如果跳过此步骤，编译将因缺少依赖而失败。当前需要下载并解压这四个压缩包：`models.zip`、`subpack.zip`、`jniLibs.zip`、`libs.zip`。  
 ```bash
@@ -218,7 +215,7 @@ git checkout docs/add-building-guide
 ```bash
 npm install
 ```
-这一步会安装 `sync_example_packages.py` 预构建示例脚本包时需要用到的 `typescript`、`esbuild` 等依赖。
+这一步会安装 `tools/sync_example_packages.py` 预构建示例脚本包时需要用到的 `typescript`、`esbuild` 等依赖。
 
 5. **安装 web-chat 的前端依赖:**
 ```bash
@@ -233,9 +230,9 @@ npm run build:webchat
 
 7. **打包 ToolPkg 并同步示例包到应用 assets (关键步骤！):**
 ```bash
-python3 ./sync_example_packages.py
+python3 ./tools/sync_example_packages.py
 ```
-该命令会按 `packages_whitelist.txt` 预构建 `examples/` 下的脚本包，并将包含 `manifest.json` 或 `manifest.hjson` 的目录打包成 `.toolpkg`，最终输出到 `app/src/main/assets/packages/`。如果你修改了 `examples/` 下的脚本包代码，重新编译 APK 前也需要重新执行一次这一步。
+该命令会按 `tools/packages_whitelist.txt` 预构建 `examples/` 下的脚本包，并将包含 `manifest.json` 或 `manifest.hjson` 的目录打包成 `.toolpkg`，最终输出到 `app/src/main/assets/packages/`。如果你修改了 `examples/` 下的脚本包代码，重新编译 APK 前也需要重新执行一次这一步。
 
 8. **为 Gradle 包装器添加可执行权限:**
 ```bash
@@ -265,7 +262,7 @@ app/build/outputs/apk/clone/app-clone.apk
 | sdkmanager: command not found | 环境变量未正确设置或生效。请检查 **~/.bashrc** 文件内容，并执行 source ~/.bashrc。 |
 | Could not determine Java version... | **JAVA_HOME** 环境变量不正确，或安装了错误的 JDK 版本。请确保已安装 **JDK 21** 并指向正确的路径。 |
 | NDK not found. | 确保已在 **第四步** 中使用 sdkmanager 安装了项目所需的 **ndk;25.1.8937393** 版本。 |
-| pnpm: command not found | 尚未安装 `pnpm`。请先执行 `sudo npm install -g pnpm`，再重新运行 `python3 ./sync_example_packages.py`。 |
+| pnpm: command not found | 尚未安装 `pnpm`。请先执行 `sudo npm install -g pnpm`，再重新运行 `python3 ./tools/sync_example_packages.py`。 |
 | Missing web-chat/dist. Run `npm --prefix web-chat run build` first. | 尚未构建 `web-chat` 或构建失败。请先执行 `npm --prefix web-chat install`，再在项目根目录执行 `npm run build:webchat`。 |
-| ERROR: prebuild step failed | `sync_example_packages.py` 在预构建 `examples/` 时失败。请先确认已在项目根目录执行 `npm install`，并检查 `pnpm -v`、`python3 --version` 是否可用。 |
+| ERROR: prebuild step failed | `tools/sync_example_packages.py` 在预构建 `examples/` 时失败。请先确认已在项目根目录执行 `npm install`，并检查 `pnpm -v`、`python3 --version` 是否可用。 |
 | You have not accepted the license agreements... | 你跳过了或未成功执行接受许可的步骤。请返回 **第四步** 执行 `yes |

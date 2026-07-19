@@ -38,7 +38,7 @@
 
 ## 🌟 Project Introduction
 
-**Operit AI** is the first fully functional AI assistant application on mobile devices that runs **completely standalone** (except for external API calls) on your Android device. It features powerful **tool-calling capabilities**, **Deep Search**, **workflows & automation**, an **intelligent Memory Vault**, and highly customizable **User Personality** and **Character Cards**, with **MNN/llama.cpp local inference**, an **MCP/Skill ecosystem**, and a **multi-language UI**. It's more than just a chat interface—it's an **all-in-one assistant** deeply integrated with Android permissions and various tools, now featuring a built-in **Ubuntu 24 Environment** for unprecedented functionality.
+**Operit AI** is the first fully functional AI assistant application on mobile devices. Its core client, chat records, and model configuration run and are stored on your Android device. Cloud models are called directly from the device after you choose a provider and configure your own API key and endpoint; Operit does not provide LLM inference or relay chat requests. It features powerful **tool-calling capabilities**, **Deep Search**, **workflows & automation**, an **intelligent Memory Vault**, and highly customizable **User Personality** and **Character Cards**, with **MNN/llama.cpp local inference**, an **MCP/Skill ecosystem**, and a **multi-language UI**. It's more than just a chat interface—it's an **all-in-one assistant** deeply integrated with Android permissions and various tools, now featuring a built-in **Ubuntu 24 Environment** for unprecedented functionality.
 
 ---
 
@@ -182,6 +182,15 @@ Rich MCP ecosystem
 > **Security Warning:** To ensure your data security, please download this application exclusively from the official [Release Page](https://github.com/AAswordman/Operit/releases) or the [Official Website](https://operit.app). Installation packages from unofficial sources may be maliciously modified, potentially leading to privacy leaks or device monitoring.
 
 **Installation Steps:** Download APK → Install & Launch → Follow Setup Guide → Start Using ✨
+
+---
+
+## 🔐 Data, Models, and Public Deployment
+
+- **Cloud models are user configured:** When using a cloud model, choose the provider and configure the API key, model, and endpoint yourself. Chat requests are sent directly from your device to that provider. Operit does not provide chat inference, API request relaying, or cloud hosting for chat records. Review the selected provider's terms and privacy policy as well.
+- **Local models can infer offline:** MNN and llama.cpp models run inference on the device. Once model files are prepared, they can be used without connecting to a model provider.
+- **Other network features operate separately:** Marketplace, announcements, update checks, GitHub sign-in, and any MCP, search, speech, drawing, or similar feature you enable may access the relevant third-party or Operit network resources. These features do not relay chat model requests.
+- **Deployers are responsible for public services:** The external HTTP service is disabled by default. Once enabled, it provides a web chat interface and HTTP API on the device's network interfaces. Examples such as the QQ Bot can also be used for automated replies. Expose them only to authorized parties, and take responsibility for access control, data protection, and content management. A deployer or operator that continuously provides anthropomorphic emotional-interaction services to the public in China must also assess and comply with applicable laws and regulatory requirements.
 
 ---
 

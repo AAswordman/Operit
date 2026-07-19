@@ -74,8 +74,8 @@ If you just want the short answer for "which tool should I use":
 - Use `execute_js.*` when you want to call one exported function from one normal `.js` file
 - Use `execute_js_dir.*` when the entry depends on sibling modules, or when you are running directory-based tests under `app/src/androidTest/js`
 - Use `run_sandbox_script.*` when you want top-level script-mode execution instead of calling an exported function
-- Use `sync_example_packages.py` when you changed an `examples/` package or toolpkg and want it synced into the real package-loading path
-- If you are debugging `operit_editor` tools such as `debug_install_toolpkg`, the usual flow is: sync with `sync_example_packages.py`, then call the debug tool with `execute_js.bat`
+- Use `tools/sync_example_packages.py` when you changed an `examples/` package or toolpkg and want it synced into the real package-loading path
+- If you are debugging `operit_editor` tools such as `debug_install_toolpkg`, the usual flow is: sync with `tools/sync_example_packages.py`, then call the debug tool with `execute_js.bat`
 
 ## Prerequisites
 
@@ -344,7 +344,7 @@ tools\run_sandbox_script.bat temp\probe.js @params.json
 
 If your code is naturally top-level script logic, this is usually simpler than wrapping everything in `exports.main = ...`.
 
-### 4. What `sync_example_packages.py` is for
+### 4. What `tools/sync_example_packages.py` is for
 
 This is not just a copy script. It is the sync entrypoint for `examples/` package development.
 
@@ -364,19 +364,19 @@ Use it when:
 Most common usage:
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include sidebar_bing_action
 ```
 
 To sync all syncable example items for broad validation:
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --mode test
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --mode test
 ```
 
 To update local assets without device hot reload:
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include sidebar_bing_action --no-hot-reload
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include sidebar_bing_action --no-hot-reload
 ```
 
 ## How To Add Tests
@@ -440,15 +440,15 @@ Recommended approach:
 
 - add or modify the `.ts`, `.js`, or manifest-based directory under `examples/`
 - if it is a directory-based package, make sure it has `manifest.json` or `manifest.hjson`
-- run `sync_example_packages.py`
+- run `tools/sync_example_packages.py`
 - then use `execute_js.bat` to call related debug tools, or validate inside the app
 
 In other words:
 
 - the runners test whether JS executes correctly inside the Android runtime
-- `sync_example_packages.py` tests whether the `examples/` package enters the real package-loading path correctly
+- `tools/sync_example_packages.py` tests whether the `examples/` package enters the real package-loading path correctly
 
-## How To Use It With `sync_example_packages.py`
+## How To Use It With `tools/sync_example_packages.py`
 
 ### Scenario 1: You changed a normal JS script
 
@@ -467,7 +467,7 @@ because you are validating script logic, not package loading.
 Recommended order:
 
 1. Edit `examples/...`
-2. Run `sync_example_packages.py`
+2. Run `tools/sync_example_packages.py`
 3. Confirm the outputs were synced into `app/src/main/assets/packages`
 4. If a device is connected, also validate hot reload
 5. Then verify behavior inside the app or through debug tools
@@ -480,12 +480,12 @@ This fits:
 
 ### Scenario 3: You changed a directory-based toolpkg
 
-This is the case that most needs `sync_example_packages.py`.
+This is the case that most needs `tools/sync_example_packages.py`.
 
 Recommended order:
 
 1. Edit `examples/<toolpkg_dir>`
-2. Run `sync_example_packages.py --include <dir_name>`
+2. Run `tools/sync_example_packages.py --include <dir_name>`
 3. Let it pack the directory into `.toolpkg`
 4. Let it sync the generated artifact into assets and the device
 5. Then verify installation through `operit_editor`'s `debug_install_toolpkg` or a related debug entry
@@ -501,7 +501,7 @@ This validates the full chain:
 
 Recommended order:
 
-1. Sync `operit_editor` itself with `sync_example_packages.py`
+1. Sync `operit_editor` itself with `tools/sync_example_packages.py`
 2. Prepare the package or toolpkg you want it to install
 3. Call the debug function through `execute_js.bat`
 4. Inspect the structured result for success, failure, and related warnings
@@ -509,7 +509,7 @@ Recommended order:
 Example:
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include operit_editor --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include operit_editor --include sidebar_bing_action
 tools\execute_js.bat examples\operit_editor.js debug_install_toolpkg @params.json
 ```
 
@@ -576,13 +576,13 @@ tools\run_sandbox_script.bat temp\probe.js @params.json
 ### 4. Sync one `examples/` package into assets and device
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include sidebar_bing_action
 ```
 
 ### 5. Sync first, then call the debug installer tool
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include operit_editor --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include operit_editor --include sidebar_bing_action
 tools\execute_js.bat examples\operit_editor.js debug_install_toolpkg @params.json
 ```
 

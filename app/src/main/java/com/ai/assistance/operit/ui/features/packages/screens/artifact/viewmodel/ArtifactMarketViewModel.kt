@@ -153,7 +153,8 @@ class ArtifactMarketViewModel(
         version: String,
         minSupportedAppVersion: String?,
         maxSupportedAppVersion: String?,
-        publishContext: ArtifactPublishClusterContext? = null
+        publishContext: ArtifactPublishClusterContext? = null,
+        encryptArtifact: Boolean = false
     ) {
         val localArtifact = _publishableArtifacts.value.firstOrNull { it.packageName == packageName }
         if (localArtifact == null) {
@@ -178,7 +179,8 @@ class ArtifactMarketViewModel(
                 version = version,
                 minSupportedAppVersion = minSupportedAppVersion,
                 maxSupportedAppVersion = maxSupportedAppVersion,
-                publishContext = publishContext
+                publishContext = publishContext,
+                encryptArtifact = encryptArtifact
             )
         executePublish(request, allowCreateForgeRepo = false)
     }

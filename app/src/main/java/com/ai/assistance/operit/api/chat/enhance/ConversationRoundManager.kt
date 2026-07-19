@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.enhance
 
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.markdown.SmartString
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -16,7 +17,7 @@ class ConversationRoundManager {
     }
 
     // Map to store content for each round
-    private val roundContents = mutableMapOf<Int, String>()
+    private val roundContents = mutableMapOf<Int, SmartString>()
 
     // Tracks the current round number
     private val currentResponseRound = AtomicInteger(0)
@@ -38,12 +39,15 @@ class ConversationRoundManager {
      * @return The accumulated content after update
      */
     fun updateContent(content: String): String {
-        // Simply update the content for the current round
         val currentRound = currentResponseRound.get()
-        roundContents[currentRound] = content
-        // AppLogger.d(TAG, "Updated content for round $currentRound")
-
+        roundContents.getOrPut(currentRound) { SmartString() }.replace(content)
         return getDisplayContent()
+    }
+
+    /** Appends a streamed chunk without rebuilding the current round's complete text. */
+    fun appendChunk(content: String): SmartString {
+        val currentRound = currentResponseRound.get()
+        return roundContents.getOrPut(currentRound) { SmartString() }.append(content)
     }
 
     /**
@@ -53,7 +57,7 @@ class ConversationRoundManager {
      */
     fun startNewRound(): Int {
         val newRound = currentResponseRound.incrementAndGet()
-        roundContents[newRound] = "" // Initialize empty content for the new round
+        roundContents[newRound] = SmartString()
         AppLogger.d(TAG, "Starting new round: $newRound")
         return newRound
     }
@@ -65,8 +69,7 @@ class ConversationRoundManager {
      * @return The updated display content
      */
     fun appendContent(content: String): String {
-        roundContents[currentResponseRound.get()] +=
-                "\n" + content.trim() // Use -1 as a special key for appended content
+        appendChunk("\n" + content.trim())
         return getDisplayContent()
     }
 
@@ -82,7 +85,7 @@ class ConversationRoundManager {
         val sortedKeys = roundContents.keys.filter { it >= 0 }.sorted()
 
         sortedKeys.forEachIndexed { index, round ->
-            val content = roundContents[round] ?: ""
+            val content = roundContents[round] ?: SmartString()
             if (index > 0) buffer.append("\n")
             buffer.append(content)
         }
@@ -96,7 +99,7 @@ class ConversationRoundManager {
     }
 
     fun getCurrentRoundContent(): String {
-        return roundContents[currentResponseRound.get()] ?: ""
+        return roundContents[currentResponseRound.get()]?.toString().orEmpty()
     }
 
     /**
@@ -111,7 +114,7 @@ class ConversationRoundManager {
         val sortedKeys = roundContents.keys.filter { it >= 0 }.sorted()
 
         sortedKeys.forEachIndexed { index, round ->
-            val content = roundContents[round] ?: ""
+            val content = roundContents[round] ?: SmartString()
             if (index > 0) buffer.append("\n")
             buffer.append(String.format(ROUND_SEPARATOR_FORMAT, round))
             buffer.append(content)

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "toolpkg_id": "com.operit.examples.wasm_demo",
+  "version": "0.1.0",
+  "author": ["Operit"],
+  "main": "main.js",
+  "display_name": {
+    "zh": "WASM 质数算法示例",
+    "en": "WASM Prime Demo"
+  },
+  "description": {
+    "zh": "演示 ToolPkg TypeScript 入口调用 AssemblyScript WASM 质数算法。",
+    "en": "Demonstrates a ToolPkg TypeScript entry calling AssemblyScript WASM prime logic."
+  },
+  "wasm_modules": [
+    {
+      "id": "core",
+      "path": "modules/core.wasm",
+      "exports": ["isPrime", "nthPrime"],
+      "source_language": "assemblyscript",
+      "abi": "assemblyscript"
+    }
+  ]
+}

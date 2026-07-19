@@ -47,7 +47,7 @@ Operit-follow-up/
 
 ### [`fbx`](fbx/)
 
-这是 FBX Android 原生运行时模块。它通过内置的 `ufbx` C 库解析 FBX 模型，为应用中的 FBX 虚拟形象和模型展示提供基础能力。
+这是 FBX Android 原生运行时模块。它通过 `ufbx` C 库解析 FBX 模型，为应用中的 FBX 虚拟形象和模型展示提供基础能力。`ufbx` 由 CMake 从上游仓库获取，默认使用 `main`。
 
 ### [`gradle`](gradle/)
 
@@ -55,15 +55,15 @@ Operit-follow-up/
 
 ### [`llama`](llama/)
 
-这是 llama.cpp Android 原生集成模块。它通过 CMake/JNI 接入 llama.cpp，为应用提供 GGUF 等本地大语言模型的推理能力。上游 llama.cpp 源码位于 `third_party/llama.cpp` Git 子模块。
+这是 llama.cpp Android 原生集成模块。它通过 CMake/JNI 接入 llama.cpp，为应用提供 GGUF 等本地大语言模型的推理能力。上游 llama.cpp 源码由 CMake 从 ggml-org 仓库获取，默认使用上游主分支。
 
 ### [`mmd`](mmd/)
 
-这是 MMD 模型 Android 运行时和预览模块，包含模型渲染相关的原生集成，并使用 Bullet3 等第三方组件。`UPSTREAM_SABA_VIEWER_MAPPING.md` 记录了上游 Saba Viewer 的映射关系。
+这是 MMD 模型 Android 运行时和预览模块，包含模型渲染相关的原生集成，并使用 Bullet3 等第三方组件。Bullet3 由 CMake 从上游仓库获取，默认使用上游主分支。`UPSTREAM_SABA_VIEWER_MAPPING.md` 记录了上游 Saba Viewer 的映射关系。
 
 ### [`mnn`](mnn/)
 
-这是 MNN Android 原生集成模块。它通过 CMake/Gradle 集成 Alibaba MNN，为应用提供本地模型推理及相关 AI 原生能力。MNN 源码位于 `src/main/cpp/MNN` Git 子模块。
+这是 MNN Android 原生集成模块。它通过 CMake/Gradle 集成 Alibaba MNN，为应用提供本地模型推理及相关 AI 原生能力。MNN 源码由 CMake 从上游仓库获取，默认使用上游主分支。
 
 ### [`quickjs`](quickjs/)
 
@@ -90,4 +90,4 @@ Operit-follow-up/
 ## 相关说明
 
 - `app`、`dragonbones`、`terminal`、`mnn`、`llama`、`mmd`、`fbx`、`showerclient`、`quickjs` 是根 `settings.gradle.kts` 声明的 Gradle 模块。
-- 多个目录包含第三方 Git 子模块；初始化或同步这些目录时应以根目录的 `.gitmodules` 为准。
+- 仍作为 Git 子模块维护的第三方目录，以根目录的 `.gitmodules` 为准。

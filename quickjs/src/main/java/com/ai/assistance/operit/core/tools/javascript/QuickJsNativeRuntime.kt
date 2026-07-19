@@ -59,6 +59,7 @@ class QuickJsNativeRuntime private constructor(
     }
 
     private val closed = AtomicBoolean(false)
+    private val lifecycleLock = Any()
 
     fun eval(script: String, fileName: String = "<eval>"): EvalResult {
         val resultJson = QuickJsNativeBridge.nativeEvaluate(requireHandle(), script, fileName)
@@ -111,14 +112,18 @@ class QuickJsNativeRuntime private constructor(
     }
 
     fun interrupt() {
-        if (!closed.get()) {
-            QuickJsNativeBridge.nativeInterrupt(handle)
+        synchronized(lifecycleLock) {
+            if (!closed.get()) {
+                QuickJsNativeBridge.nativeInterrupt(handle)
+            }
         }
     }
 
     override fun close() {
-        if (closed.compareAndSet(false, true)) {
-            QuickJsNativeBridge.nativeDestroy(handle)
+        synchronized(lifecycleLock) {
+            if (closed.compareAndSet(false, true)) {
+                QuickJsNativeBridge.nativeDestroy(handle)
+            }
         }
     }
 

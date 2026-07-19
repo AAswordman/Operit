@@ -77,6 +77,8 @@
 - `tools`: 由 `ToolPrompt` + 结构化参数构建的 JSON Schema
 - `tool_choice`: `"auto"`
 
+工具参数 schema 中的 `required` 固定输出为数组；无必填参数时输出空数组，避免兼容 OpenAI-style 校验器时被识别为 null。
+
 ### B. 历史消息转换
 
 在 `buildMessagesAndCountTokens(..., useToolCall=true)` 中：

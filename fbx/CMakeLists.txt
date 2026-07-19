@@ -2,11 +2,21 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("fbx_jni")
 
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/operit_git_source.cmake")
+
+operit_prepare_git_source(
+    OPERIT_UFBX_SOURCE_DIR
+    OPERIT_UFBX_BINARY_DIR
+    ufbx
+    "https://github.com/ufbx/ufbx.git"
+    "main"
+)
+
 add_library(
     FbxWrapper
     SHARED
     src/main/cpp/fbx_jni.cpp
-    third_party/ufbx/ufbx.c
+    "${OPERIT_UFBX_SOURCE_DIR}/ufbx.c"
 )
 
 set_target_properties(
@@ -21,7 +31,7 @@ set_target_properties(
 target_include_directories(
     FbxWrapper
     PRIVATE
-    third_party/ufbx
+    "${OPERIT_UFBX_SOURCE_DIR}"
 )
 
 target_link_libraries(

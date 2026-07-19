@@ -651,12 +651,12 @@ def _broadcast_debug_install_toolpkg(
 
 def _hot_reload_packages(
     *,
-    repo_root: Path,
+    state_dir: Path,
     packages_dir: Path,
     plans: list[SyncPlanItem],
     device_serial: str,
 ) -> None:
-    state_file = repo_root / HOT_RELOAD_STATE_FILE
+    state_file = state_dir / HOT_RELOAD_STATE_FILE
     state = _load_hot_reload_state(state_file)
     previous_signatures = state.get(device_serial, {})
 
@@ -746,10 +746,11 @@ def _delete_unplanned_outputs(
 
 
 def main() -> int:
-    repo_root = Path(__file__).resolve().parent
+    tools_dir = Path(__file__).resolve().parent
+    repo_root = tools_dir.parent
     examples_dir = repo_root / "examples"
     packages_dir = repo_root / "app" / "src" / "main" / "assets" / "packages"
-    default_whitelist_file = repo_root / "packages_whitelist.txt"
+    default_whitelist_file = tools_dir / "packages_whitelist.txt"
     source_roots = [examples_dir, repo_root]
 
     parser = argparse.ArgumentParser(
@@ -775,7 +776,7 @@ def main() -> int:
         type=str,
         default=None,
         help=(
-            "Path to whitelist file (.txt or .json). If omitted, will use packages_whitelist.txt if it exists; "
+            "Path to whitelist file (.txt or .json). If omitted, will use tools/packages_whitelist.txt; "
             "otherwise uses current files in app/src/main/assets/packages/ as the whitelist."
         ),
     )
@@ -849,7 +850,7 @@ def main() -> int:
 
     if not final_items:
         print("No whitelist items provided/found. Nothing to do.")
-        print("- Provide --include <name> or create packages_whitelist.txt in repo root.")
+        print("- Provide --include <name> or create tools/packages_whitelist.txt.")
         return 0
 
     plans: list[SyncPlanItem] = []
@@ -870,7 +871,7 @@ def main() -> int:
         seen_dest_names.add(plan.destination_name)
         plans.append(plan)
 
-    local_state_file = repo_root / LOCAL_SYNC_STATE_FILE
+    local_state_file = tools_dir / LOCAL_SYNC_STATE_FILE
     local_state = _load_local_sync_state(local_state_file)
     output_state = local_state.setdefault("outputs", {})
     prebuild_state = local_state.setdefault("prebuild", {})
@@ -943,7 +944,7 @@ def main() -> int:
         if device_serial is not None:
             try:
                 _hot_reload_packages(
-                    repo_root=repo_root,
+                    state_dir=tools_dir,
                     packages_dir=packages_dir,
                     plans=plans,
                     device_serial=device_serial,

@@ -129,7 +129,12 @@ class JsToolManager private constructor(
         val toolPkgRuntime = packageManager.resolveToolPkgSubpackageRuntimeInternal(packageName)
         if (toolPkgRuntime != null) {
             val contextKey = "toolpkg_main:${toolPkgRuntime.containerPackageName}"
-            return block(packageManager.getToolPkgExecutionEngine(contextKey))
+            return block(
+                packageManager.getToolPkgExecutionEngine(
+                    contextKey = contextKey,
+                    containerPackageName = toolPkgRuntime.containerPackageName
+                )
+            )
         }
         return withEngine(block)
     }

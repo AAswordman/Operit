@@ -24,6 +24,7 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.preferences.EnvPreferences
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.ToolPkgWasmRuntime
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.MessageDigest
@@ -43,10 +44,17 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
+import org.json.JSONArray
 import org.json.JSONObject
 
 internal object JsNativeInterfaceDelegates {
     private const val TAG = "JsNativeInterface"
+    private const val WASM_TYPE_I32 = 1
+    private const val WASM_TYPE_I64 = 2
+    private const val WASM_TYPE_F32 = 3
+    private const val WASM_TYPE_F64 = 4
+    private const val MAX_SAFE_JS_INTEGER = 9_007_199_254_740_991.0
+
     private data class ParsedToolCall(
         val params: Map<String, String>,
         val fullToolName: String,
@@ -56,6 +64,11 @@ internal object JsNativeInterfaceDelegates {
     private data class SerializedToolResultData(
         val data: JsonElement,
         val dataType: String? = null
+    )
+
+    private data class ParsedWasmArgs(
+        val types: IntArray,
+        val bits: LongArray
     )
 
     private fun buildToolErrorJson(message: String): String {
@@ -174,7 +187,7 @@ internal object JsNativeInterfaceDelegates {
     }
 
     private inline fun <T> guard(
-        fallback: T,
+        defaultValue: T,
         failureMessage: String,
         block: () -> T
     ): T {
@@ -182,7 +195,7 @@ internal object JsNativeInterfaceDelegates {
             block()
         } catch (e: Exception) {
             AppLogger.e(TAG, failureMessage, e)
-            fallback
+            defaultValue
         }
     }
 
@@ -287,7 +300,7 @@ internal object JsNativeInterfaceDelegates {
         preferImported: String
     ): String {
         return guard(
-            fallback = toolName.trim(),
+            defaultValue = toolName.trim(),
             failureMessage = "Error resolving tool name from JS: package=$packageName, subpackage=$subpackageId, tool=$toolName"
         ) {
             val normalizedTool = normalizeNonBlank(toolName) ?: return@guard ""
@@ -326,7 +339,7 @@ internal object JsNativeInterfaceDelegates {
         internal: String
     ): String {
         return guard(
-            fallback = "",
+            defaultValue = "",
             failureMessage = "Error reading toolpkg resource from JS: package/subpackage=$packageNameOrSubpackageId, resource=$resourceKey"
         ) {
             val target = normalizeNonBlank(packageNameOrSubpackageId) ?: return@guard ""
@@ -365,7 +378,7 @@ internal object JsNativeInterfaceDelegates {
         resourcePath: String
     ): String {
         return guard(
-            fallback = "",
+            defaultValue = "",
             failureMessage = "Error reading toolpkg text resource from JS: package/subpackage=$packageNameOrSubpackageId, path=$resourcePath"
         ) {
             val target = normalizeNonBlank(packageNameOrSubpackageId) ?: return@guard ""
@@ -377,12 +390,170 @@ internal object JsNativeInterfaceDelegates {
         }
     }
 
+    private fun parseWasmArgs(argsJson: String): ParsedWasmArgs {
+        val array =
+            if (argsJson.isBlank()) {
+                JSONArray()
+            } else {
+                JSONArray(argsJson)
+            }
+        val types = IntArray(array.length())
+        val bits = LongArray(array.length())
+
+        for (index in 0 until array.length()) {
+            val arg = array.getJSONObject(index)
+            val type = arg.getString("type").trim().lowercase()
+            val value =
+                if (arg.has("value") && !arg.isNull("value")) {
+                    arg.get("value")
+                } else {
+                    throw IllegalArgumentException("WASM argument $index is missing value")
+                }
+            when (type) {
+                "i32" -> {
+                    types[index] = WASM_TYPE_I32
+                    bits[index] = parseWasmI32(value, "WASM argument $index")
+                }
+                "i64" -> {
+                    types[index] = WASM_TYPE_I64
+                    bits[index] = parseWasmI64(value, "WASM argument $index")
+                }
+                "f32" -> {
+                    types[index] = WASM_TYPE_F32
+                    bits[index] = parseWasmF32Bits(value, "WASM argument $index")
+                }
+                "f64" -> {
+                    types[index] = WASM_TYPE_F64
+                    bits[index] = parseWasmF64Bits(value, "WASM argument $index")
+                }
+                else -> throw IllegalArgumentException("Unsupported WASM argument type at index $index: $type")
+            }
+        }
+
+        return ParsedWasmArgs(types = types, bits = bits)
+    }
+
+    private fun parseWasmI32(value: Any, label: String): Long {
+        val parsed =
+            when (value) {
+                is Number -> parseIntegralNumber(value.toDouble(), label)
+                is String -> parseSignedIntegerText(value, label)
+                else -> throw IllegalArgumentException("$label must be an i32 number")
+            }
+        if (parsed < Int.MIN_VALUE || parsed > Int.MAX_VALUE) {
+            throw IllegalArgumentException("$label is outside i32 range")
+        }
+        return parsed
+    }
+
+    private fun parseWasmI64(value: Any, label: String): Long {
+        return when (value) {
+            is Number -> {
+                val parsed = parseIntegralNumber(value.toDouble(), label)
+                if (kotlin.math.abs(value.toDouble()) > MAX_SAFE_JS_INTEGER) {
+                    throw IllegalArgumentException("$label i64 number must be passed as a string")
+                }
+                parsed
+            }
+            is String -> parseSignedIntegerText(value, label)
+            else -> throw IllegalArgumentException("$label must be an i64 string")
+        }
+    }
+
+    private fun parseWasmF32Bits(value: Any, label: String): Long {
+        val parsed = parseFiniteDouble(value, label)
+        val floatValue = parsed.toFloat()
+        if (floatValue.isInfinite() || floatValue.isNaN()) {
+            throw IllegalArgumentException("$label is outside f32 range")
+        }
+        return java.lang.Float.floatToRawIntBits(floatValue).toLong()
+    }
+
+    private fun parseWasmF64Bits(value: Any, label: String): Long {
+        val parsed = parseFiniteDouble(value, label)
+        return java.lang.Double.doubleToRawLongBits(parsed)
+    }
+
+    private fun parseIntegralNumber(value: Double, label: String): Long {
+        if (value.isNaN() || value.isInfinite() || value % 1.0 != 0.0) {
+            throw IllegalArgumentException("$label must be an integer")
+        }
+        if (value < Long.MIN_VALUE.toDouble() || value > Long.MAX_VALUE.toDouble()) {
+            throw IllegalArgumentException("$label is outside i64 range")
+        }
+        return value.toLong()
+    }
+
+    private fun parseSignedIntegerText(value: String, label: String): Long {
+        val normalized = value.trim()
+        if (!Regex("-?[0-9]+").matches(normalized)) {
+            throw IllegalArgumentException("$label must be a signed integer string")
+        }
+        return normalized.toLongOrNull()
+            ?: throw IllegalArgumentException("$label is outside signed i64 range")
+    }
+
+    private fun parseFiniteDouble(value: Any, label: String): Double {
+        val parsed =
+            when (value) {
+                is Number -> value.toDouble()
+                is String -> value.trim().toDoubleOrNull()
+                    ?: throw IllegalArgumentException("$label must be a finite number")
+                else -> throw IllegalArgumentException("$label must be a finite number")
+            }
+        if (parsed.isNaN() || parsed.isInfinite()) {
+            throw IllegalArgumentException("$label must be finite")
+        }
+        return parsed
+    }
+
+    fun callToolPkgWasm(
+        packageManager: PackageManager,
+        packageNameOrSubpackageId: String,
+        moduleId: String,
+        exportName: String,
+        argsJson: String
+    ): String {
+        return try {
+            val target = normalizeNonBlank(packageNameOrSubpackageId)
+                ?: return buildToolErrorJson("ToolPkg package target is required")
+            val normalizedModuleId = normalizeNonBlank(moduleId)
+                ?: return buildToolErrorJson("WASM module id is required")
+            val normalizedExportName = normalizeNonBlank(exportName)
+                ?: return buildToolErrorJson("WASM export name is required")
+            val wasmModule =
+                packageManager.readToolPkgWasmModuleBytes(
+                    packageNameOrSubpackageId = target,
+                    moduleId = normalizedModuleId,
+                    exportName = normalizedExportName,
+                    preferEnabledContainer = true
+                ) ?: return buildToolErrorJson(
+                    "WASM module or export is not available: $normalizedModuleId.$normalizedExportName"
+                )
+            val parsedArgs = parseWasmArgs(argsJson)
+            ToolPkgWasmRuntime.call(
+                cacheKey = "${wasmModule.containerPackageName}:${wasmModule.moduleId}",
+                wasmBytes = wasmModule.bytes,
+                exportName = normalizedExportName,
+                argTypes = parsedArgs.types,
+                argBits = parsedArgs.bits
+            )
+        } catch (e: Exception) {
+            AppLogger.e(
+                TAG,
+                "Error calling toolpkg WASM: package/subpackage=$packageNameOrSubpackageId, module=$moduleId, export=$exportName, reason=${e.message}",
+                e
+            )
+            buildToolErrorJson(e.message ?: e.javaClass.simpleName)
+        }
+    }
+
     fun getPluginConfigDir(
         packageManager: PackageManager,
         pluginId: String
     ): String {
         return guard(
-            fallback = "",
+            defaultValue = "",
             failureMessage = "Error resolving plugin config dir from JS: pluginId=$pluginId"
         ) {
             val target = normalizeNonBlank(pluginId) ?: return@guard ""

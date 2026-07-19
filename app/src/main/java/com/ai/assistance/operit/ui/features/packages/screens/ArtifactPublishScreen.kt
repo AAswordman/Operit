@@ -178,6 +178,7 @@ fun ArtifactPublishScreen(
     var allowPublicUpdates by rememberSaveable(initialInfo?.allowPublicUpdates) {
         mutableStateOf(initialInfo?.allowPublicUpdates ?: true)
     }
+    var encryptArtifact by rememberSaveable { mutableStateOf(false) }
     var version by rememberSaveable { mutableStateOf(initialInfo?.version.orEmpty().ifBlank { "1.0.0" }) }
     var minSupportedAppVersion by rememberSaveable { mutableStateOf(initialInfo?.minSupportedAppVersion.orEmpty()) }
     var maxSupportedAppVersion by rememberSaveable { mutableStateOf(initialInfo?.maxSupportedAppVersion.orEmpty()) }
@@ -575,6 +576,37 @@ fun ArtifactPublishScreen(
                 }
             }
         }
+        if (!isEditMode) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text(
+                            text = stringResource(R.string.artifact_publish_encrypt_title),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = stringResource(R.string.artifact_publish_encrypt_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = encryptArtifact,
+                        onCheckedChange = {
+                            viewModel.clearPendingMarketRegistrationRetry()
+                            encryptArtifact = it
+                        }
+                    )
+                }
+            }
+        }
         OutlinedTextField(
             value = version,
             onValueChange = {
@@ -757,6 +789,16 @@ fun ArtifactPublishScreen(
                         Text(stringResource(R.string.version_colon, version))
                         Text(
                             stringResource(
+                                R.string.artifact_publish_encrypt_confirmation,
+                                if (encryptArtifact) {
+                                    stringResource(R.string.enabled)
+                                } else {
+                                    stringResource(R.string.disabled)
+                                }
+                            )
+                        )
+                        Text(
+                            stringResource(
                                 R.string.artifact_type_colon,
                                 when (selectedType) {
                                     PublishArtifactType.PACKAGE -> stringResource(R.string.artifact_type_package)
@@ -801,7 +843,8 @@ fun ArtifactPublishScreen(
                                 version = version,
                                 minSupportedAppVersion = minSupportedAppVersion.ifBlank { null },
                                 maxSupportedAppVersion = maxSupportedAppVersion.ifBlank { GitHubForgePublishService.DEFAULT_MAX_SUPPORTED_APP_VERSION },
-                                publishContext = activePublishContext
+                                publishContext = activePublishContext,
+                                encryptArtifact = encryptArtifact
                             )
                         }
                     }

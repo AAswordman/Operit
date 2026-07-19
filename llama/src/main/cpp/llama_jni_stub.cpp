@@ -198,7 +198,7 @@ Java_com_ai_assistance_llama_LlamaNative_nativeIsAvailable(JNIEnv * env, jclass 
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_ai_assistance_llama_LlamaNative_nativeGetUnavailableReason(JNIEnv * env, jclass clazz) {
-    const char * msg = "llama.cpp native backend is not built. Ensure llama/third_party/llama.cpp submodule exists and CMake links target 'llama'.";
+    const char * msg = "llama.cpp native backend is not built. Ensure CMake fetched llama.cpp and links target 'llama'.";
     return env->NewStringUTF(msg);
 }
 

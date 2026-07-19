@@ -1246,9 +1246,8 @@ open class OpenAIProvider(
         }
 
         schema.put("properties", properties)
-        if (required.length() > 0) {
-            schema.put("required", required)
-        }
+        // OpenAI-compatible validators expect `required` to keep its array type even when empty.
+        schema.put("required", required)
 
         return schema
     }

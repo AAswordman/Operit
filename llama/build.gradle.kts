@@ -20,7 +20,6 @@ android {
             abiFilters.addAll(listOf("arm64-v8a"))
         }
 
-        // JNI stub only for now; we'll wire real llama.cpp after you add the submodule.
         externalNativeBuild {
             cmake {
                 cppFlags += listOf("-std=c++17", "-fno-emulated-tls")

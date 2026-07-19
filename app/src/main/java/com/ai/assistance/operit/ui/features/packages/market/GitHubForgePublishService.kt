@@ -11,6 +11,7 @@ import com.ai.assistance.operit.data.api.MarketV2PublishRequest
 import com.ai.assistance.operit.data.api.MarketV2PublishVersion
 import com.ai.assistance.operit.data.api.MarketV2Version
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
+import com.ai.assistance.operit.util.ToolPkgProtection
 import java.io.File
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,8 @@ data class PublishArtifactRequest(
     val version: String,
     val minSupportedAppVersion: String?,
     val maxSupportedAppVersion: String?,
-    val publishContext: ArtifactPublishClusterContext? = null
+    val publishContext: ArtifactPublishClusterContext? = null,
+    val encryptArtifact: Boolean = false
 )
 
 sealed class PublishAttemptResult {
@@ -109,7 +111,8 @@ class GitHubForgePublishService(
                     allowPublicUpdates = request.allowPublicUpdates,
                     minSupportedAppVersion = request.minSupportedAppVersion,
                     maxSupportedAppVersion = request.maxSupportedAppVersion,
-                    publishContext = request.publishContext
+                    publishContext = request.publishContext,
+                    protection = if (request.encryptArtifact) ToolPkgProtection.PROTECTION_ID else null
                 )
             val releaseDescriptor = buildPublishReleaseDescriptor(descriptor)
 
@@ -125,7 +128,16 @@ class GitHubForgePublishService(
             val release = ensuredRelease.release
 
             onProgress(PublishProgressStage.UPLOADING_ASSET)
-            val fileBytes = sourceFile.readBytes()
+            val fileBytes =
+                if (request.encryptArtifact) {
+                    ToolPkgProtection.protectArtifactFile(
+                        context = context,
+                        sourceFile = sourceFile,
+                        isToolPkg = descriptor.type == PublishArtifactType.PACKAGE
+                    )
+                } else {
+                    sourceFile.readBytes()
+                }
             val uploadedAsset =
                 uploadAssetReplacingExisting(
                     owner = currentUser.login,
@@ -187,7 +199,8 @@ class GitHubForgePublishService(
                     allowPublicUpdates = descriptor.allowPublicUpdates,
                     sourceFileName = sourceFile.name,
                     minSupportedAppVersion = descriptor.minSupportedAppVersion,
-                    maxSupportedAppVersion = descriptor.maxSupportedAppVersion
+                    maxSupportedAppVersion = descriptor.maxSupportedAppVersion,
+                    protection = descriptor.protection
                 )
 
             val entry =

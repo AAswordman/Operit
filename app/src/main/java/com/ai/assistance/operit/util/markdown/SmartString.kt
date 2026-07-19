@@ -82,6 +82,28 @@ class SmartString(initialContent: String = "") {
         cachedString = ""
         lastLength = 0
     }
+
+    /** Truncates accumulated content without creating an immutable String snapshot. */
+    fun truncate(length: Int): SmartString {
+        require(length in 0..builder.length) {
+            "truncate length $length is outside 0..${builder.length}"
+        }
+        if (length != builder.length) {
+            builder.setLength(length)
+            cachedString = if (length == 0) "" else null
+            lastLength = length
+        }
+        return this
+    }
+
+    /** Replaces accumulated content while preserving this buffer instance. */
+    fun replace(content: String): SmartString {
+        builder.clear()
+        builder.append(content)
+        cachedString = content
+        lastLength = content.length
+        return this
+    }
     
     /**
      * 截取字符串

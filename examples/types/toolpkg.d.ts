@@ -812,6 +812,46 @@ export namespace ToolPkg {
         ): Promise<TResult>;
     }
 
+    export type WasmValueType = "i32" | "i64" | "f32" | "f64";
+
+    export interface WasmI32Arg {
+        type: "i32";
+        value: number;
+    }
+
+    export interface WasmI64Arg {
+        type: "i64";
+        value: string;
+    }
+
+    export interface WasmF32Arg {
+        type: "f32";
+        value: number;
+    }
+
+    export interface WasmF64Arg {
+        type: "f64";
+        value: number;
+    }
+
+    export type WasmArg = WasmI32Arg | WasmI64Arg | WasmF32Arg | WasmF64Arg;
+
+    export interface WasmResult {
+        type: WasmValueType;
+        value: number | string;
+        bits?: string;
+    }
+
+    export type WasmCallResult = number | string | void | WasmResult[];
+
+    export interface WasmApi {
+        call(
+            moduleId: string,
+            exportName: string,
+            args?: readonly WasmArg[]
+        ): Promise<WasmCallResult>;
+    }
+
     export interface Registry {
         registerToolboxUiModule(definition: ToolboxUiModuleRegistration): void;
         registerUiRoute(definition: UiRouteRegistration): void;
@@ -836,6 +876,7 @@ export namespace ToolPkg {
         readResource(key: string, outputFileName?: string, internal?: boolean): Promise<string>;
         getConfigDir(pluginId?: string): string;
         ipc: IpcApi;
+        wasm: WasmApi;
     }
 }
 

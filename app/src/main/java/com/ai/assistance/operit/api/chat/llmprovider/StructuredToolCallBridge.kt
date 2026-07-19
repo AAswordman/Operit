@@ -409,9 +409,8 @@ internal object StructuredToolCallBridge {
         }
 
         schema.put("properties", properties)
-        if (required.length() > 0) {
-            schema.put("required", required)
-        }
+        // OpenAI-style tool schemas must keep `required` as an array, including an empty one.
+        schema.put("required", required)
 
         return schema
     }

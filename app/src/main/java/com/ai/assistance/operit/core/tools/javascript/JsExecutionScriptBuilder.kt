@@ -525,14 +525,14 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                     finalizeCall();
                 }
 
-                function readCallValue(key, fallbackValue) {
+                function readCallValue(key, defaultValue) {
                     var state = getCallState(callId);
                     var currentParams =
                         state && state.params && typeof state.params === 'object'
                             ? state.params
                             : null;
                     var value = currentParams ? currentParams[key] : undefined;
-                    return value == null || value === '' ? fallbackValue : text(value);
+                    return value == null || value === '' ? defaultValue : text(value);
                 }
 
                 if (hasTimeout) {
@@ -1003,7 +1003,206 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                     root.__operitInvokeToolPkgIpcLocal = invokeToolPkgIpcLocal;
                 }
 
+                function ensureToolPkgWasmApi() {
+                    var toolPkgApi = root.ToolPkg && typeof root.ToolPkg === 'object'
+                        ? root.ToolPkg
+                        : {};
+                    if (root.ToolPkg !== toolPkgApi) {
+                        root.ToolPkg = toolPkgApi;
+                    }
+                    var wasmApi = toolPkgApi.wasm && typeof toolPkgApi.wasm === 'object'
+                        ? toolPkgApi.wasm
+                        : {};
+
+                    function isFiniteNumber(value) {
+                        return typeof value === 'number' && isFinite(value);
+                    }
+
+                    function requireIntegerNumber(value, label) {
+                        if (!isFiniteNumber(value) || value % 1 !== 0) {
+                            throw new Error(label + ' must be an integer');
+                        }
+                        return value;
+                    }
+
+                    function normalizeI32(value, label) {
+                        var numberValue = requireIntegerNumber(Number(value), label);
+                        if (numberValue < -2147483648 || numberValue > 2147483647) {
+                            throw new Error(label + ' is outside i32 range');
+                        }
+                        return numberValue;
+                    }
+
+                    function normalizeI64(value, label) {
+                        if (typeof value === 'bigint') {
+                            return value.toString();
+                        }
+                        if (typeof value === 'string') {
+                            var trimmed = value.trim();
+                            if (!/^-?[0-9]+$/.test(trimmed)) {
+                                throw new Error(label + ' must be a signed integer string');
+                            }
+                            return trimmed;
+                        }
+                        if (typeof value === 'number') {
+                            var numberValue = requireIntegerNumber(value, label);
+                            if (Math.abs(numberValue) > 9007199254740991) {
+                                throw new Error(label + ' i64 number must be passed as a string');
+                            }
+                            return String(numberValue);
+                        }
+                        throw new Error(label + ' must be an i64 string');
+                    }
+
+                    function normalizeFloat(value, label) {
+                        var numberValue = Number(value);
+                        if (!isFiniteNumber(numberValue)) {
+                            throw new Error(label + ' must be a finite number');
+                        }
+                        return numberValue;
+                    }
+
+                    function normalizeWasmArg(arg, index) {
+                        if (!arg || typeof arg !== 'object' || Array.isArray(arg)) {
+                            throw new Error('WASM argument ' + index + ' must be an object');
+                        }
+                        var type = text(arg.type).trim().toLowerCase();
+                        if (!type) {
+                            throw new Error('WASM argument ' + index + ' type is required');
+                        }
+                        if (!Object.prototype.hasOwnProperty.call(arg, 'value')) {
+                            throw new Error('WASM argument ' + index + ' value is required');
+                        }
+                        var label = 'WASM argument ' + index;
+                        if (type === 'i32') {
+                            return { type: 'i32', value: normalizeI32(arg.value, label) };
+                        }
+                        if (type === 'i64') {
+                            return { type: 'i64', value: normalizeI64(arg.value, label) };
+                        }
+                        if (type === 'f32') {
+                            return { type: 'f32', value: normalizeFloat(arg.value, label) };
+                        }
+                        if (type === 'f64') {
+                            return { type: 'f64', value: normalizeFloat(arg.value, label) };
+                        }
+                        throw new Error('Unsupported WASM argument type at index ' + index + ': ' + type);
+                    }
+
+                    function decodeWasmValue(result) {
+                        if (!result || typeof result !== 'object') {
+                            return undefined;
+                        }
+                        var type = text(result.type).trim().toLowerCase();
+                        var value = result.value;
+                        if (type === 'i32') {
+                            return Number(value);
+                        }
+                        if (type === 'i64') {
+                            return text(value);
+                        }
+                        if (type === 'f32' || type === 'f64') {
+                            if (value === 'NaN') {
+                                return NaN;
+                            }
+                            if (value === 'Infinity') {
+                                return Infinity;
+                            }
+                            if (value === '-Infinity') {
+                                return -Infinity;
+                            }
+                            return Number(value);
+                        }
+                        return value;
+                    }
+
+                    function decodeWasmResults(results) {
+                        if (!Array.isArray(results) || results.length === 0) {
+                            return undefined;
+                        }
+                        if (results.length === 1) {
+                            return decodeWasmValue(results[0]);
+                        }
+                        return results.map(function(item) {
+                            var decoded = {
+                                type: text(item && item.type),
+                                value: decodeWasmValue(item)
+                            };
+                            if (item && Object.prototype.hasOwnProperty.call(item, 'bits')) {
+                                decoded.bits = text(item.bits);
+                            }
+                            return decoded;
+                        });
+                    }
+
+                    wasmApi.call = function(moduleId, exportName, args) {
+                        var normalizedModuleId = text(moduleId).trim();
+                        var normalizedExportName = text(exportName).trim();
+                        if (!normalizedModuleId) {
+                            return Promise.reject(new Error('ToolPkg.wasm module id is required'));
+                        }
+                        if (!normalizedExportName) {
+                            return Promise.reject(new Error('ToolPkg.wasm export name is required'));
+                        }
+                        if (
+                            !packageTarget ||
+                            typeof NativeInterface === 'undefined' ||
+                            !NativeInterface ||
+                            typeof NativeInterface.callToolPkgWasm !== 'function'
+                        ) {
+                            return Promise.reject(new Error('ToolPkg.wasm runtime bridge is unavailable'));
+                        }
+
+                        var rawArgs = args == null ? [] : args;
+                        if (!Array.isArray(rawArgs)) {
+                            return Promise.reject(new Error('ToolPkg.wasm args must be an array'));
+                        }
+
+                        return new Promise(function(resolve, reject) {
+                            try {
+                                var normalizedArgs = rawArgs.map(function(arg, index) {
+                                    return normalizeWasmArg(arg, index);
+                                });
+                                var resultJson = NativeInterface.callToolPkgWasm(
+                                    packageTarget,
+                                    normalizedModuleId,
+                                    normalizedExportName,
+                                    JSON.stringify(normalizedArgs)
+                                );
+                                var parsed;
+                                try {
+                                    parsed = JSON.parse(text(resultJson) || '{}');
+                                } catch (error) {
+                                    reject(
+                                        new Error(
+                                            'ToolPkg.wasm returned invalid JSON: ' +
+                                                text(error && error.message ? error.message : error)
+                                        )
+                                    );
+                                    return;
+                                }
+                                if (!parsed || parsed.success !== true) {
+                                    reject(
+                                        new Error(
+                                            parsed && typeof parsed.message === 'string' && parsed.message.trim().length > 0
+                                                ? parsed.message.trim()
+                                                : 'ToolPkg.wasm call failed'
+                                        )
+                                    );
+                                    return;
+                                }
+                                resolve(decodeWasmResults(parsed.results));
+                            } catch (error) {
+                                reject(error);
+                            }
+                        });
+                    };
+
+                    toolPkgApi.wasm = wasmApi;
+                }
+
                 ensureToolPkgIpcApi();
+                ensureToolPkgWasmApi();
 
                 function canSerializeAsPlainObject(value) {
                     if (!value || typeof value !== 'object') {

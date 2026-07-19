@@ -11,13 +11,6 @@ from pathlib import Path
 
 
 LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(\s*(?:<([^>]+)>|([^\s)]+))")
-SKIP_PREFIXES = (
-    "llama/third_party/",
-    "mmd/third_party/",
-    "mnn/src/main/cpp/MNN/",
-)
-
-
 def markdown_files(base_sha: str | None, head_sha: str) -> list[Path]:
     if base_sha:
         command = [
@@ -49,8 +42,6 @@ def should_skip_target(target: str) -> bool:
 
 
 def check_file(path: Path, repo_root: Path, errors: list[str]) -> None:
-    if any(str(path).startswith(prefix) for prefix in SKIP_PREFIXES):
-        return
     if not path.is_file():
         return
 

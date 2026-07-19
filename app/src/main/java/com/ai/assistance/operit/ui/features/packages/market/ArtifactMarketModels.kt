@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.packages.market
 
+import com.ai.assistance.operit.BuildConfig
+import com.ai.assistance.operit.data.api.MarketV2Entry
 import java.io.File
 import kotlinx.serialization.Serializable
 
@@ -131,7 +133,8 @@ data class PublishArtifactDescriptor(
     val contentType: String,
     val assetName: String,
     val minSupportedAppVersion: String?,
-    val maxSupportedAppVersion: String?
+    val maxSupportedAppVersion: String?,
+    val protection: String? = null
 )
 
 data class PublishReleaseDescriptor(
@@ -160,7 +163,8 @@ data class MarketRegistrationPayload(
     val allowPublicUpdates: Boolean = true,
     val sourceFileName: String,
     val minSupportedAppVersion: String?,
-    val maxSupportedAppVersion: String?
+    val maxSupportedAppVersion: String?,
+    val protection: String? = null
 )
 
 @Serializable
@@ -182,6 +186,7 @@ data class ArtifactMarketMetadata(
     val sourceFileName: String = "",
     val minSupportedAppVersion: String? = null,
     val maxSupportedAppVersion: String? = null,
+    val protection: String? = null,
     val normalizedId: String = "",
     val forgeRepo: String = ""
 )
@@ -278,7 +283,8 @@ fun buildPublishArtifactDescriptor(
     allowPublicUpdates: Boolean = true,
     minSupportedAppVersion: String?,
     maxSupportedAppVersion: String?,
-    publishContext: ArtifactPublishClusterContext? = null
+    publishContext: ArtifactPublishClusterContext? = null,
+    protection: String? = null
 ): PublishArtifactDescriptor {
     val runtimePackageId = localArtifact.packageName.trim().ifBlank { localArtifact.packageName }
     if (publishContext == null) {
@@ -324,6 +330,7 @@ fun buildPublishArtifactDescriptor(
     val projectDescription = detail.trim().ifBlank { description.trim().ifBlank { localArtifact.description } }
     val resolvedCategoryId = publishContext?.categoryId?.trim().orEmpty().ifBlank { categoryId.trim() }
     val assetName = "$normalizedRuntimePackageId-v$cleanVersion.$extension"
+    val normalizedProtection = protection?.trim()?.takeIf { it.isNotBlank() }
 
     return PublishArtifactDescriptor(
         type = type,
@@ -337,10 +344,16 @@ fun buildPublishArtifactDescriptor(
         version = cleanVersion,
         allowPublicUpdates = allowPublicUpdates,
         sourceFile = localArtifact.sourceFile,
-        contentType = inferArtifactContentType(type, extension),
+        contentType =
+            if (normalizedProtection != null && type == PublishArtifactType.SCRIPT) {
+                "application/octet-stream"
+            } else {
+                inferArtifactContentType(type, extension)
+            },
         assetName = assetName,
         minSupportedAppVersion = normalizeAppVersionOrNull(minSupportedAppVersion),
-        maxSupportedAppVersion = normalizeAppVersionOrNull(maxSupportedAppVersion)
+        maxSupportedAppVersion = normalizeAppVersionOrNull(maxSupportedAppVersion),
+        protection = normalizedProtection
     )
 }
 
@@ -361,6 +374,9 @@ fun buildPublishReleaseDescriptor(
                 appendLine("Runtime package ID: ${descriptor.runtimePackageId}")
                 appendLine("Display name: ${descriptor.displayName}")
                 appendLine("Version: ${descriptor.version}")
+                descriptor.protection?.let { protection ->
+                    appendLine("Protection: $protection")
+                }
                 appendLine(
                     "Supported app versions: ${formatSupportedAppVersions(descriptor.minSupportedAppVersion, descriptor.maxSupportedAppVersion)}"
                 )
@@ -388,7 +404,8 @@ fun buildArtifactMarketMetadata(
         categoryId = payload.categoryId,
         sourceFileName = payload.sourceFileName,
         minSupportedAppVersion = payload.minSupportedAppVersion,
-        maxSupportedAppVersion = payload.maxSupportedAppVersion
+        maxSupportedAppVersion = payload.maxSupportedAppVersion,
+        protection = payload.protection
     )
 }
 
@@ -447,6 +464,16 @@ fun isAppVersionSupported(
         return false
     }
     return true
+}
+
+fun MarketV2Entry.isUnsupportedByCurrentAppVersion(): Boolean {
+    return latestVersion?.let { version ->
+        !isAppVersionSupported(
+            appVersion = BuildConfig.VERSION_NAME,
+            minSupportedAppVersion = version.minAppVer,
+            maxSupportedAppVersion = version.maxAppVer
+        )
+    } == true
 }
 
 fun isOperit2VersionAllowed(maxSupportedAppVersion: String?): Boolean {

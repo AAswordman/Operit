@@ -37,6 +37,8 @@ windows_control.toolpkg (ZIP 压缩包)
 ├── ui/                                    # UI 模块目录
 │   └── windows_setup/
 │       └── index.ui.js                    # UI 模块脚本
+├── modules/                               # 可选 WASM 核心模块
+│   └── core.wasm                          # AssemblyScript 编译产物
 ├── resources/                             # 资源文件目录
 │   └── pc_agent/
 │       └── operit-pc-agent/              # 目录资源（readResource 时自动导出为 zip）
@@ -102,6 +104,15 @@ windows_control.toolpkg (ZIP 压缩包)
       "mime": "application/zip"
     }
   ],
+  "wasm_modules": [
+    {
+      "id": "core",
+      "path": "modules/core.wasm",
+      "exports": ["isPrime", "nthPrime"],
+      "source_language": "assemblyscript",
+      "abi": "assemblyscript"
+    }
+  ],
   "workflow_templates": [
     {
       "id": "quick_chat_workflow",
@@ -149,6 +160,7 @@ windows_control.toolpkg (ZIP 压缩包)
 | `description` | LocalizedText | 否 | 包的描述信息，支持多语言 |
 | `subpackages` | array | 否 | 子包列表，每个子包是一个独立的工具集 |
 | `resources` | array | 否 | 资源文件列表，可以是任意类型的文件 |
+| `wasm_modules` | array | 否 | 企业核心算法模块列表，当前用于声明和校验 `.wasm` 产物 |
 | `workflow_templates` | array | 否 | 注册到宿主“工作流”入口的工作流模板列表 |
 | `workspace_templates` | array | 否 | 注册到宿主“工作区创建”入口的工作区模板列表 |
 
@@ -211,7 +223,94 @@ windows_control.toolpkg (ZIP 压缩包)
 - 必须包含 `METADATA` 注释块（参考 [SCRIPT_DEV_GUIDE.md](./SCRIPT_DEV_GUIDE.md)）
 - 脚本中定义的工具会被注册为 `<subpackage_id>:<tool_name>` 格式
 
-#### 3.2.4 Main 脚本注册
+#### 3.2.4 WASM 模块
+
+`wasm_modules` 用于声明企业插件的核心算法模块。推荐由 AssemblyScript 编译得到 `.wasm`，插件作者入口写 `src/main.ts`，再通过同目录内的 typed facade 调用 WASM；打包阶段生成宿主执行用的 `main.js`。
+
+```json
+{
+  "id": "core",
+  "path": "modules/core.wasm",
+  "exports": ["isPrime", "nthPrime"],
+  "source_language": "assemblyscript",
+  "abi": "assemblyscript"
+}
+```
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | 模块 ID，在容器内必须唯一 |
+| `path` | string | 是 | `.wasm` 文件路径（相对于 manifest 所在目录） |
+| `exports` | string[] | 否 | 计划暴露给 JS 桥的导出函数名 |
+| `source_language` | string | 否 | 源语言标记，AssemblyScript 模块写 `assemblyscript` |
+| `abi` | string | 否 | 调用约定标记，AssemblyScript 模块写 `assemblyscript` |
+
+推荐结构：
+
+```text
+my_toolpkg/
+├── manifest.json
+├── package.json
+├── src/
+│   ├── main.ts
+│   └── wasm/
+│       ├── core.ts
+│       └── core.as.ts
+├── build/
+│   └── main.js
+└── modules/
+    └── core.wasm
+```
+
+AssemblyScript 核心模块示例 `src/wasm/core.as.ts`：
+
+```ts
+export function isPrime(n: i32): i32 {
+  if (n < 2) return 0;
+  for (let divisor: i32 = 2; divisor <= n / divisor; divisor += 1) {
+    if (n % divisor === 0) return 0;
+  }
+  return 1;
+}
+```
+
+编译示例：
+
+```bash
+npx asc src/wasm/core.as.ts --outFile modules/core.wasm --optimize
+```
+
+当前接入范围：
+
+- `manifest` 会校验模块 ID、`.wasm` 路径和导出名。
+- 加密发布时，`.wasm` 与其他包内资源一起进入保护格式，运行期按 manifest 元数据读取并解密。
+- JS 运行时仍以 `main.js` 和已有 `exports` 为插件对外接口；`main.js` 可以由 TS 构建生成。
+- `ToolPkg.wasm.call(moduleId, exportName, args)` 已接入 native WAMR runtime，当前 ABI 支持 `i32`、`i64`、`f32`、`f64` 数值参数和返回值。
+- `i64` 结果以字符串返回；JS 传入 `i64` 时推荐使用字符串，避免超过 JS safe integer 后丢精度。
+
+TS facade 示例 `src/wasm/core.ts`：
+
+```ts
+export async function isPrime(n: number): Promise<boolean> {
+  const result = await ToolPkg.wasm.call("core", "isPrime", [{ type: "i32", value: n }]);
+  if (typeof result !== "number") {
+    throw new Error("core.isPrime returned a non-number result");
+  }
+  return result === 1;
+}
+```
+
+主入口示例 `src/main.ts`：
+
+```ts
+import { isPrime } from "./wasm/core";
+
+export async function run(params: { n: number }) {
+  return { is_prime: await isPrime(params.n) };
+}
+```
+
+#### 3.2.5 Main 脚本注册
 
 ToolPkg 的 UI 模块和生命周期钩子不再写在 `manifest` 里，而是由 `main` 脚本通过注册函数声明。
 
@@ -532,7 +631,7 @@ await ToolPkg.ipc.call(
 
 目录资源说明：
 - 当 `mime` 是目录类型（如 `inode/directory`、`vnd.android.document/directory`）时，`ToolPkg.readResource(key)` 会先将该目录压缩成 zip，再返回这个 zip 的临时文件路径。
-- 如果没有显式传 `outputFileName`，目录资源默认会自动补上 `.zip` 后缀。
+- 未显式传 `outputFileName` 时，目录资源默认会自动补上 `.zip` 后缀。
 
 #### 3.2.7 Workflow Templates（工作流模板）
 
@@ -684,25 +783,25 @@ Compress-Archive -Path my_toolpkg\* -DestinationPath my_toolpkg.toolpkg
 
 ### 4.2 使用 Python 脚本自动打包
 
-项目提供了 `sync_example_packages.py` 脚本，可以自动将 `examples/` 目录下的包打包成 `.toolpkg` 文件。
+项目提供了 `tools/sync_example_packages.py` 脚本，可以自动将 `examples/` 目录下的包打包成 `.toolpkg` 文件。
 
 **使用方法**：
 
 ```bash
 # 打包所有白名单中的包
-python sync_example_packages.py
+python tools/sync_example_packages.py
 
 # 以“非白名单附加”的方式打包特定包
-python sync_example_packages.py --include windows_control
+python tools/sync_example_packages.py --include windows_control
 
 # 例如只额外同步 template_try 这个示例
-python sync_example_packages.py --include template_try
+python tools/sync_example_packages.py --include template_try
 
 # 查看打包结果（不实际写入）
-python sync_example_packages.py --dry-run
+python tools/sync_example_packages.py --dry-run
 
 # 删除不在白名单中的包
-python sync_example_packages.py --delete-extra
+python tools/sync_example_packages.py --delete-extra
 ```
 
 **工作原理**：
@@ -1051,7 +1150,11 @@ const spec = ctx.getModuleSpec();
 ]
 ```
 
-### 7.2 访问资源
+### 7.2 WASM 模块资源
+
+`wasm_modules` 声明的 `.wasm` 文件不需要同时写入 `resources`。它们由宿主按模块 ID 管理，适合放企业核心算法。作者侧建议在 `src/wasm/*.ts` 写 typed facade，facade 内部调用 `ToolPkg.wasm.call(moduleId, exportName, args)`，业务入口直接导入 facade。
+
+### 7.3 访问资源
 
 **在 UI 模块中**：
 ```javascript
@@ -1122,7 +1225,7 @@ my_toolpkg/
 
 - 所有面向用户的文本都应提供多语言版本
 - 至少提供中文（`zh`）和英文（`en`）
-- 使用 `default` 键作为回退
+- 使用 `default` 键作为默认值
 
 ### 9.4 资源优化
 
@@ -1173,7 +1276,7 @@ my_toolpkg/
 
 1. **使用 dry-run 模式**：
    ```bash
-   python sync_example_packages.py --dry-run
+   python tools/sync_example_packages.py --dry-run
    ```
 
 2. **查看应用日志**：
@@ -1322,7 +1425,7 @@ windows_control/
 
 ```bash
 # 打包 windows_control
-python sync_example_packages.py --include windows_control
+python tools/sync_example_packages.py --include windows_control
 
 # 查看打包结果
 ls -lh app/src/main/assets/packages/windows_control.toolpkg

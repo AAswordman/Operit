@@ -73,7 +73,7 @@ npm --prefix web-chat install
 npm --prefix web-chat run build
 
 # 示例包或 ToolPkg
-python3 ./sync_example_packages.py
+python3 ./tools/sync_example_packages.py
 
 # Android JVM 单测、lint 和构建
 ./gradlew :app:testDebugUnitTest
@@ -110,6 +110,8 @@ PR 页面会自动加载 [PR 模板](../../../.github/PULL_REQUEST_TEMPLATE.md)�
 - 运行过的命令、测试环境、构建变体和结果
 - 必要的截图、录屏、日志或构建产物
 - 四项必填检查清单全部勾选；不适用项在“验证方式”中写明 `N/A` 和原因
+
+草稿 PR 转为 Ready 时会重新运行完整的 PR Required 检查。单独编辑标题或正文不会触发耗时构建，PR policy 会在下一次提交同步时重新校验。
 
 PR 标题需要使用 Conventional Commits 格式，例如：
 

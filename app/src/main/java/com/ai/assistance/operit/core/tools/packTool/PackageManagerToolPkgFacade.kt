@@ -235,6 +235,27 @@ internal class PackageManagerToolPkgFacade(
             )
     }
 
+    private fun buildToolPkgWasmModules(
+        container: ToolPkgContainerRuntime
+    ): List<PackageManager.ToolPkgWasmModule> {
+        return container.wasmModules
+            .map { module ->
+                PackageManager.ToolPkgWasmModule(
+                    id = module.id,
+                    path = module.path,
+                    exports = module.exports,
+                    sourceLanguage = module.sourceLanguage,
+                    abi = module.abi
+                )
+            }
+            .sortedWith(
+                compareBy(
+                    PackageManager.ToolPkgWasmModule::id,
+                    PackageManager.ToolPkgWasmModule::path
+                )
+            )
+    }
+
     fun isToolPkgContainer(packageName: String): Boolean {
         packageManager.ensureInitialized()
         val normalizedPackageName = packageManager.normalizePackageName(packageName)
@@ -281,6 +302,7 @@ internal class PackageManagerToolPkgFacade(
             }
         val workflowTemplates = buildToolPkgWorkflowTemplates(container, localizationContext)
         val workspaceTemplates = buildToolPkgWorkspaceTemplates(container, localizationContext)
+        val wasmModules = buildToolPkgWasmModules(container)
 
         val result = PackageManager.ToolPkgContainerDetails(
             packageName = container.packageName,
@@ -289,9 +311,11 @@ internal class PackageManagerToolPkgFacade(
             version = container.version,
             author = container.author,
             resourceCount = container.resources.size,
+            wasmModuleCount = wasmModules.size,
             workflowTemplateCount = workflowTemplates.size,
             workspaceTemplateCount = workspaceTemplates.size,
             uiModuleCount = container.uiModules.size,
+            wasmModules = wasmModules,
             toolboxUiModules = toolboxUiModules,
             subpackages = subpackages,
             workflowTemplates = workflowTemplates,
@@ -502,24 +526,16 @@ internal class PackageManagerToolPkgFacade(
                 )
             }
 
-            val resourceDir =
-                packageManager.resolveToolPkgResourceFile(runtime, resource.path)
-                    ?: throw IllegalStateException(
-                        "Workspace template directory is unavailable: ${template.resourceKey}"
-                    )
-            if (!resourceDir.isDirectory) {
+            val copied =
+                packageManager.copyToolPkgResourceDirectory(
+                    runtime = runtime,
+                    normalizedResourcePath = resource.path,
+                    destinationDir = destinationDir
+                )
+            if (!copied) {
                 throw IllegalStateException(
                     "Workspace template directory is invalid: ${template.resourceKey}"
                 )
-            }
-
-            resourceDir.listFiles().orEmpty().forEach { child ->
-                val copied = child.copyRecursively(File(destinationDir, child.name), overwrite = false)
-                if (!copied) {
-                    throw IllegalStateException(
-                        "Failed to copy workspace template content: ${child.absolutePath}"
-                    )
-                }
             }
 
             if (!WorkspaceConfigReader.hasConfig(destinationDir.absolutePath)) {
@@ -956,7 +972,11 @@ internal class PackageManagerToolPkgFacade(
 
             val getExecutionEngineStartTime = if (shouldLogTiming) messageTimingNow() else 0L
             val resolvedExecutionContextKey = resolveToolPkgExecutionContextKey(runtime.packageName, params)
-            val executionEngine = packageManager.getToolPkgExecutionEngine(resolvedExecutionContextKey)
+            val executionEngine =
+                packageManager.getToolPkgExecutionEngine(
+                    contextKey = resolvedExecutionContextKey,
+                    containerPackageName = runtime.packageName
+                )
             if (shouldLogTiming) {
                 logMessageTiming(
                     stage = "toolpkg.runMainHook.getExecutionEngine",
@@ -1035,6 +1055,78 @@ internal class PackageManagerToolPkgFacade(
             return explicitContextKey
         }
         return "toolpkg_main:$containerPackageName"
+    }
+
+    fun readToolPkgWasmModuleBytes(
+        packageNameOrSubpackageId: String,
+        moduleId: String,
+        exportName: String,
+        preferEnabledContainer: Boolean = true
+    ): PackageManager.ToolPkgWasmModuleBytes? {
+        packageManager.ensureInitialized()
+        val target = packageNameOrSubpackageId.trim()
+        val normalizedModuleId = moduleId.trim()
+        val normalizedExportName = exportName.trim()
+        if (target.isBlank() || normalizedModuleId.isBlank() || normalizedExportName.isBlank()) {
+            return null
+        }
+
+        val enabledSet = packageManager.getEnabledPackageNameSetInternal()
+
+        fun readFromContainer(containerName: String): PackageManager.ToolPkgWasmModuleBytes? {
+            val normalizedContainerName = packageManager.normalizePackageName(containerName)
+            val runtime = packageManager.toolPkgContainersInternal[normalizedContainerName] ?: return null
+            if (!enabledSet.contains(runtime.packageName)) {
+                return null
+            }
+            val module =
+                runtime.wasmModules.firstOrNull {
+                    it.id.equals(normalizedModuleId, ignoreCase = true)
+                } ?: return null
+            if (
+                module.exports.isNotEmpty() &&
+                    module.exports.none { it.equals(normalizedExportName, ignoreCase = true) }
+            ) {
+                return null
+            }
+            val bytes = packageManager.readToolPkgResourceBytes(runtime, module.path) ?: return null
+            return PackageManager.ToolPkgWasmModuleBytes(
+                containerPackageName = runtime.packageName,
+                moduleId = module.id,
+                path = module.path,
+                bytes = bytes
+            )
+        }
+
+        readFromContainer(target)?.let { return it }
+
+        val directSubpackageRuntime = packageManager.resolveToolPkgSubpackageRuntimeInternal(target)
+        if (directSubpackageRuntime != null) {
+            readFromContainer(directSubpackageRuntime.containerPackageName)?.let { return it }
+        }
+
+        val subpackages =
+            packageManager.toolPkgSubpackageByPackageNameInternal.values.filter {
+                it.subpackageId.equals(target, ignoreCase = true)
+            }
+        if (subpackages.isEmpty()) {
+            return null
+        }
+
+        val containerNames = subpackages.map { it.containerPackageName }.distinct()
+        val candidateContainers =
+            if (preferEnabledContainer) {
+                containerNames.filter { enabledSet.contains(it) } +
+                    containerNames.filterNot { enabledSet.contains(it) }
+            } else {
+                containerNames
+            }
+
+        candidateContainers.forEach { containerName ->
+            readFromContainer(containerName)?.let { return it }
+        }
+
+        return null
     }
 
     fun readToolPkgTextResource(

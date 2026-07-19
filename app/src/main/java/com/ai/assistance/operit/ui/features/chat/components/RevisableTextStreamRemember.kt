@@ -44,7 +44,7 @@ fun rememberRevisableTextStream(sourceStream: Stream<String>?): Stream<String>? 
                         TextStreamEventType.ROLLBACK -> {
                             val snapshot =
                                 stateMutex.withLock {
-                                    tracker.rollback(event.id)
+                                    tracker.rollback(event.id)?.toString()
                                 } ?: return@collect
                             val previousDisplayStream = currentDisplayStream
                             val replacementStream =

@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.preferences.AgreementPreferences
 import kotlinx.coroutines.delay
 
 @Composable
@@ -56,6 +57,17 @@ fun AgreementScreen(onAgreementAccepted: () -> Unit) {
                         text = stringResource(R.string.agreement_subtitle),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                        text = stringResource(
+                                R.string.agreement_version,
+                                AgreementPreferences.CURRENT_AGREEMENT_VERSION
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

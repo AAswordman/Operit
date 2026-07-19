@@ -2,8 +2,23 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("mnn_jni")
 
-# 设置 MNN 源代码路径
-set(MNN_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/MNN)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/operit_git_source.cmake")
+
+operit_prepare_git_source(
+    MNN_SOURCE_DIR
+    OPERIT_MNN_BINARY_DIR
+    mnn
+    "https://github.com/alibaba/MNN.git"
+    "master"
+)
+
+operit_prepare_git_source(
+    KLEIDIAI_SRC_DIR
+    OPERIT_KLEIDIAI_BINARY_DIR
+    kleidiai
+    "https://github.com/ARM-software/kleidiai.git"
+    "v1.16.0"
+)
 
 # 使用 CMake Policy CMP0077 来让 set() 覆盖 option()
 if(POLICY CMP0077)
@@ -38,7 +53,7 @@ set(MNN_BUILD_CONVERTER OFF CACHE BOOL "Build converter" FORCE)
 set(MNN_BUILD_TRAIN OFF CACHE BOOL "Build train" FORCE)
 
 # 添加 MNN 主项目
-add_subdirectory(${MNN_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/MNN)
+add_subdirectory(${MNN_SOURCE_DIR} ${OPERIT_MNN_BINARY_DIR})
 
 # 包含 JNI 绑定代码（只包含我们需要的文件）
 add_library(

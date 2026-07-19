@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -115,7 +116,8 @@ data class UnifiedMarketDetailAction(
     val enabled: Boolean = true,
     val isLoading: Boolean = false,
     val loadingLabel: String? = null,
-    val icon: ImageVector? = null
+    val icon: ImageVector? = null,
+    val isWarning: Boolean = false
 )
 
 data class UnifiedMarketDetailIconAction(
@@ -678,6 +680,15 @@ private fun UnifiedMarketDetailPrimaryButton(
     Button(
         onClick = action.onClick,
         enabled = action.enabled,
+        colors =
+            if (action.isWarning) {
+                ButtonDefaults.buttonColors(
+                    disabledContainerColor = MaterialTheme.colorScheme.errorContainer,
+                    disabledContentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            } else {
+                ButtonDefaults.buttonColors()
+            },
         modifier = modifier.heightIn(min = if (compact) 36.dp else 42.dp),
         shape = RoundedCornerShape(999.dp),
         contentPadding =

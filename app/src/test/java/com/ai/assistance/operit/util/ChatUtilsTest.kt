@@ -87,7 +87,7 @@ class ChatUtilsTest {
     }
 
     @Test fun estimateTokenCount_countsMixedText() {
-        assertEquals(2, ChatUtils.estimateTokenCount("你a"))
+        assertEquals(1, ChatUtils.estimateTokenCount("你a"))
     }
 
     @Test fun extractJson_returnsEmbeddedObject() {

@@ -184,6 +184,15 @@ class JsEngine(private val context: Context) {
         }
     }
 
+    private fun interruptQuickJs(reason: String) {
+        val engine = quickJs ?: return
+        try {
+            engine.interrupt()
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Error interrupting QuickJS: $reason, ${e.message}", e)
+        }
+    }
+
     private fun disposeQuickJsForReinit(reason: String) {
         synchronized(quickJsInitLock) {
             val engine = quickJs
@@ -191,6 +200,9 @@ class JsEngine(private val context: Context) {
                 jsEnvironmentInitialized = false
                 return
             }
+            // Closing is queued behind current QuickJS work, so a synchronous loop must be
+            // interrupted first or reinitialization can wait forever.
+            interruptQuickJs("reinitialize: $reason")
             try {
                 runOnQuickJsThreadBlocking {
                     engine.close()
@@ -400,13 +412,19 @@ class JsEngine(private val context: Context) {
         }
     }
 
-    private fun cancelAllExecutionSessions(reason: String) {
+    private fun drainExecutionSessions(reason: String): List<ExecutionSession> {
         val sessions = activeExecutionSessions.values.toList()
         activeExecutionSessions.clear()
         sessions.forEach { session ->
             if (!session.future.isDone) {
                 session.future.complete(buildJsExecutionErrorPayload(reason))
             }
+        }
+        return sessions
+    }
+
+    private fun cancelAllExecutionSessions(reason: String) {
+        drainExecutionSessions(reason).forEach { session ->
             cancelExecutionSessionInJs(
                 callId = session.callId,
                 reason = reason
@@ -768,7 +786,8 @@ class JsEngine(private val context: Context) {
             if (safeTimeoutSec == null) {
                 null
             } else {
-                JsTimeoutConfig.PRE_TIMEOUT_SECONDS * 1000L
+                (safeTimeoutSec - JsTimeoutConfig.PRE_TIMEOUT_LEAD_SECONDS)
+                    .coerceAtLeast(1L) * 1000L
             }
         val executionArgsJson =
             JSONArray()
@@ -828,6 +847,14 @@ class JsEngine(private val context: Context) {
             }
             result
         } catch (e: Exception) {
+            if (
+                e is java.util.concurrent.TimeoutException ||
+                    e is InterruptedException
+            ) {
+                // JS-side cancellation uses this engine's executor. Native interruption must
+                // happen first because a synchronous loop prevents the queued cancellation.
+                interruptQuickJs("callId=$callId, function=$functionName")
+            }
             if (e is InterruptedException) {
                 Thread.currentThread().interrupt()
             }
@@ -1204,7 +1231,10 @@ class JsEngine(private val context: Context) {
         }
         val engine =
             if (isMainTarget) {
-                packageManager.getToolPkgExecutionEngine(resolvedTargetContextKey)
+                packageManager.getToolPkgExecutionEngine(
+                    contextKey = resolvedTargetContextKey,
+                    containerPackageName = normalizedTarget
+                )
             } else {
                 packageManager.findToolPkgExecutionEngine(resolvedTargetContextKey)
                     ?: return buildToolPkgIpcFailure(
@@ -1521,14 +1551,30 @@ class JsEngine(private val context: Context) {
                 resourcePath = resourcePath
             )?.let { resolved -> return resolved }
             if (temporaryResolverActive) {
-                // During toolpkg parsing we must not fall back into PackageManager.
-                // That fallback can wait on initialization and deadlock JavaBridge thread.
+                // During toolpkg parsing, PackageManager access can wait on initialization
+                // and deadlock JavaBridge thread.
                 return ""
             }
             return JsNativeInterfaceDelegates.readToolPkgTextResource(
                     packageManager = packageManager,
                     packageNameOrSubpackageId = packageNameOrSubpackageId,
                     resourcePath = resourcePath
+            )
+        }
+
+        @JavascriptInterface
+        fun callToolPkgWasm(
+            packageNameOrSubpackageId: String,
+            moduleId: String,
+            exportName: String,
+            argsJson: String
+        ): String {
+            return JsNativeInterfaceDelegates.callToolPkgWasm(
+                packageManager = packageManager,
+                packageNameOrSubpackageId = packageNameOrSubpackageId,
+                moduleId = moduleId,
+                exportName = exportName,
+                argsJson = argsJson
             )
         }
 
@@ -2460,9 +2506,27 @@ class JsEngine(private val context: Context) {
         if (!destroyed.compareAndSet(false, true)) {
             return
         }
+        val engine =
+            synchronized(quickJsInitLock) {
+                quickJs.also {
+                    quickJs = null
+                    jsEnvironmentInitialized = false
+                }
+            }
+
+        // The close task uses the same executor as script calls. Interrupt native execution
+        // before waiting for that executor so synchronous package code cannot pin its threads.
+        if (engine != null) {
+            try {
+                engine.interrupt()
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Error interrupting QuickJS during destruction: ${e.message}", e)
+            }
+        }
+
         try {
             // 确保任何挂起的回调被完成
-            cancelAllExecutionSessions("Engine destroyed")
+            drainExecutionSessions("Engine destroyed")
             clearPendingJsBridgeCallbacks("java bridge callback canceled: Engine destroyed")
             toolCallInterface.detachJavaBridgeLifecycle()
 
@@ -2474,8 +2538,10 @@ class JsEngine(private val context: Context) {
             binaryDataRegistry.clear()
             javaObjectRegistry.clear()
 
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Error during JsEngine destruction: ${e.message}", e)
+        } finally {
             try {
-                val engine = quickJs
                 if (engine != null) {
                     runOnQuickJsThreadBlocking(allowWhenDestroyed = true) {
                         engine.close()
@@ -2483,14 +2549,20 @@ class JsEngine(private val context: Context) {
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Error closing QuickJS: ${e.message}", e)
+            } finally {
+                quickJsThread = null
+                try {
+                    quickJsDispatcher.close()
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "Error closing QuickJS dispatcher: ${e.message}", e)
+                } finally {
+                    try {
+                        quickJsExecutor.shutdownNow()
+                    } catch (e: Exception) {
+                        AppLogger.e(TAG, "Error shutting down QuickJS executor: ${e.message}", e)
+                    }
+                }
             }
-            quickJs = null
-            quickJsThread = null
-            jsEnvironmentInitialized = false
-            quickJsDispatcher.close()
-            quickJsExecutor.shutdownNow()
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "Error during JsEngine destruction: ${e.message}", e)
         }
     }
 

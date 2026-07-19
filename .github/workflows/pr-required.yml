@@ -3,6 +3,7 @@ name: PR Required
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 concurrency:
@@ -34,33 +35,25 @@ jobs:
         id: detect
         env:
           EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BEFORE_SHA: ${{ github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
+          PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          WORKFLOW_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
 
-          case "$EVENT_NAME" in
-            pull_request)
-              base_sha="$PR_BASE_SHA"
-              head_sha="$PR_HEAD_SHA"
-              ;;
-            workflow_dispatch)
-              base_sha=""
-              head_sha="$HEAD_SHA"
-              ;;
-            *)
-              base_sha="$BEFORE_SHA"
-              head_sha="$HEAD_SHA"
-              ;;
-          esac
-
-          if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
-            changed_files="$(git ls-files)"
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            diff_base_sha="$PULL_REQUEST_BASE_SHA"
+            diff_head_sha="$PULL_REQUEST_HEAD_SHA"
           else
-            changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
+            diff_base_sha=""
+            diff_head_sha="$WORKFLOW_SHA"
+          fi
+
+          if [[ -z "$diff_base_sha" || "$diff_base_sha" =~ ^0+$ ]]; then
+            changed_files_command=(git ls-files -z)
+          else
+            changed_files_command=(git diff --name-only -z "$diff_base_sha" "$diff_head_sha")
           fi
 
           android=false
@@ -68,10 +61,9 @@ jobs:
           web=false
           docs=false
 
-          while IFS= read -r path; do
-            [[ -z "$path" ]] && continue
+          while IFS= read -r -d '' path; do
             case "$path" in
-              app/*|dragonbones/*|fbx/*|llama/*|mmd/*|mnn/*|quickjs/*|showerclient/*|terminal/*|tools/native_ripgrep/*|gradle/*|build.gradle.kts|settings.gradle.kts|gradle.properties|gradlew|package.json|pnpm-workspace.yaml|packages_whitelist.txt|sync_example_packages.py|.github/workflows/android-build.yml)
+              app/*|dragonbones/*|examples/*|fbx/*|llama/*|mmd/*|mnn/*|quickjs/*|showerclient/*|terminal|terminal/*|tools/native_ripgrep/*|gradle/*|.gitmodules|build.gradle.kts|settings.gradle.kts|gradle.properties|gradlew|package.json|pnpm-workspace.yaml|packages_whitelist.txt|sync_example_packages.py|.github/workflows/android-build.yml)
                 android=true
                 ;;
             esac
@@ -87,15 +79,15 @@ jobs:
                 ;;
             esac
             case "$path" in
-              *.md|*.mdx|docs/*|ci/README.md)
+              *.md|*.mdx)
                 docs=true
                 ;;
             esac
-          done <<< "$changed_files"
+          done < <("${changed_files_command[@]}")
 
           {
-            echo "base_sha=$base_sha"
-            echo "head_sha=$head_sha"
+            echo "base_sha=$diff_base_sha"
+            echo "head_sha=$diff_head_sha"
             echo "android=$android"
             echo "localization=$localization"
             echo "web=$web"
@@ -132,6 +124,9 @@ jobs:
       - name: Check changed files
         run: python3 ci/script/check_repo_hygiene.py --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA"
 
+      - name: Check Android lint baseline paths
+        run: python3 ci/script/normalize_lint_baseline.py --check
+
       - name: Check local Markdown links
         run: python3 ci/script/check_markdown_links.py --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA"
 
@@ -140,16 +135,42 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -n "$BASE_SHA" ]]; then
-            mapfile -t yaml_files < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" | rg '\.ya?ml$' || true)
+            mapfile -d '' -t yaml_files < <(
+              git diff --name-only --diff-filter=ACMR -z "$BASE_SHA" "$HEAD_SHA" -- '*.yml' '*.yaml'
+            )
           else
-            mapfile -t yaml_files < <(git ls-files | rg '\.ya?ml$' || true)
-          fi
-          if (( ${#yaml_files[@]} > 0 )); then
-            ruby -ryaml -e 'ARGV.each { |path| YAML.safe_load_file(path, aliases: true); puts "YAML OK: #{path}" }' -- "${yaml_files[@]}"
+            mapfile -d '' -t yaml_files < <(git ls-files -z -- '*.yml' '*.yaml')
           fi
 
-      - name: Check GitHub Actions syntax
-        run: docker run --rm -v "$GITHUB_WORKSPACE:/repo" -w /repo rhysd/actionlint:1.7.7
+          : > changed-workflows.list
+          if (( ${#yaml_files[@]} > 0 )); then
+            ruby -ryaml -e 'ARGV.each { |path| YAML.safe_load_file(path, aliases: true); puts "YAML OK: #{path}" }' -- "${yaml_files[@]}"
+            for path in "${yaml_files[@]}"; do
+              case "$path" in
+                .github/workflows/*.yml|.github/workflows/*.yaml)
+                  printf '%s\0' "$path" >> changed-workflows.list
+                  ;;
+              esac
+            done
+          else
+            echo "No changed YAML files to parse."
+          fi
+
+      - name: Check changed GitHub Actions syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -s changed-workflows.list ]]; then
+            echo "No changed GitHub Actions workflows to lint."
+            exit 0
+          fi
+
+          mapfile -d '' -t workflow_files < changed-workflows.list
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo" \
+            -w /repo \
+            rhysd/actionlint:1.7.7 \
+            "${workflow_files[@]}"
 
   localization:
     name: Localization
@@ -248,6 +269,8 @@ jobs:
                   "Reproducible verification and reasons for unrun checks are recorded",
               ),
               (
+                  "我已确认改动范围对应的必需 CI 会运行，并会处理失败项",
+                  "Required CI covers the change scope and failures will be addressed",
                   "与改动范围匹配的必需 CI 已通过或按路径规则跳过",
                   "Required CI passed or was skipped by path rules",
               ),
@@ -260,9 +283,9 @@ jobs:
                   "Relevant regression, UI, docs/strings, or compatibility evidence is provided",
               ),
           )
-          for chinese_label, english_label in required_checklist_items:
-              if not any(item.startswith((chinese_label, english_label)) for item in checked_items):
-                  errors.append(f"Required checklist item is unchecked: {chinese_label} / {english_label}.")
+          for accepted_labels in required_checklist_items:
+              if not any(item.startswith(accepted_labels) for item in checked_items):
+                  errors.append(f"Required checklist item is unchecked: {accepted_labels[0]}.")
 
           kind = title.split(":", 1)[0].split("(", 1)[0]
           if kind in {"feat", "fix", "perf"} and not re.search(

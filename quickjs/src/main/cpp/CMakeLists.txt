@@ -2,9 +2,25 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project(quickjsjni)
 
-set(QUICKJS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../thirdparty/quickjs")
+include("${CMAKE_CURRENT_LIST_DIR}/../../../../cmake/operit_git_source.cmake")
+
+operit_prepare_git_source(
+    QUICKJS_DIR
+    OPERIT_QUICKJS_BINARY_DIR
+    quickjs
+    "https://github.com/bellard/quickjs.git"
+    "master"
+)
+
 file(READ "${QUICKJS_DIR}/VERSION" QUICKJS_VERSION_RAW)
 string(STRIP "${QUICKJS_VERSION_RAW}" QUICKJS_VERSION)
+
+set(OPERIT_QUICKJS_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${OPERIT_QUICKJS_GENERATED_DIR}")
+file(WRITE
+    "${OPERIT_QUICKJS_GENERATED_DIR}/operit_quickjs.h"
+    "#pragma once\n#include \"${QUICKJS_DIR}/quickjs.h\"\n"
+)
 
 add_library(
     quickjsjni
@@ -39,6 +55,12 @@ target_compile_options(
     -Wno-unused-parameter
     -Wwrite-strings
     -Wchar-subscripts
+)
+
+target_include_directories(
+    quickjsjni
+    PRIVATE
+    "${OPERIT_QUICKJS_GENERATED_DIR}"
 )
 
 set_target_properties(

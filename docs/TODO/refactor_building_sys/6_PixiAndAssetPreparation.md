@@ -40,7 +40,7 @@ last_reviewed: 2026-07-14
 - `ci/README.md`
 - `package.json`
 - `web-chat/scripts/`
-- `sync_example_packages.py`
+- `tools/sync_example_packages.py`
 - `tools_built-in/mcp_bridge/`
 
 本步骤不修改：

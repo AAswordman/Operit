@@ -42,20 +42,20 @@
 
 ## 本地源码检查范围
 
-### MNN 子模块
+### MNN 上游源码
 
-- `mnn/src/main/cpp/MNN/transformers/llm/engine/src/prompt.cpp`
-- `mnn/src/main/cpp/MNN/transformers/llm/engine/src/prompt.hpp`
-- `mnn/src/main/cpp/MNN/transformers/llm/engine/include/llm/llm.hpp`
-- `mnn/src/main/cpp/MNN/transformers/llm/engine/src/minja/chat_template.cpp`
-- `mnn/src/main/cpp/MNN/transformers/llm/engine/src/minja/chat_template.hpp`
+- `<MNN_SOURCE_DIR>/transformers/llm/engine/src/prompt.cpp`
+- `<MNN_SOURCE_DIR>/transformers/llm/engine/src/prompt.hpp`
+- `<MNN_SOURCE_DIR>/transformers/llm/engine/include/llm/llm.hpp`
+- `<MNN_SOURCE_DIR>/transformers/llm/engine/src/minja/chat_template.cpp`
+- `<MNN_SOURCE_DIR>/transformers/llm/engine/src/minja/chat_template.hpp`
 
 ### 官方 Android Chat App
 
-- `mnn/src/main/cpp/MNN/apps/Android/MnnLlmChat/app/src/main/java/com/alibaba/mnnllm/android/llm/LlmSession.kt`
-- `mnn/src/main/cpp/MNN/apps/Android/MnnLlmChat/app/src/main/cpp/llm_mnn_jni.cpp`
-- `mnn/src/main/cpp/MNN/apps/Android/MnnLlmChat/README.md`
-- `mnn/src/main/cpp/MNN/apps/Android/MnnLlmChat/README_CN.md`
+- `<MNN_SOURCE_DIR>/apps/Android/MnnLlmChat/app/src/main/java/com/alibaba/mnnllm/android/llm/LlmSession.kt`
+- `<MNN_SOURCE_DIR>/apps/Android/MnnLlmChat/app/src/main/cpp/llm_mnn_jni.cpp`
+- `<MNN_SOURCE_DIR>/apps/Android/MnnLlmChat/README.md`
+- `<MNN_SOURCE_DIR>/apps/Android/MnnLlmChat/README_CN.md`
 
 ---
 
@@ -158,7 +158,7 @@
 
 ## 可行方案
 
-### 方案 A：不改 MNN 子模块，但在我们自己的 JNI 中直接接 MNN 内部模板
+### 方案 A：不改上游 MNN 源码，但在我们自己的 JNI 中直接接 MNN 内部模板
 
 思路：
 
@@ -168,7 +168,7 @@
 
 优点：
 
-- 不动子模块
+- 不改上游 MNN 源码
 - 仍然接的是 MNN internal tools 思路
 - 不会退化成 prompt 拼接协议
 
@@ -176,7 +176,7 @@
 
 - 我们自己的 native 层要承担一部分“structured messages -> internal template”桥接逻辑
 
-### 方案 B：改 MNN 子模块，给 `Prompt/Llm` 增加结构化消息入口
+### 方案 B：改上游 MNN 源码，给 `Prompt/Llm` 增加结构化消息入口
 
 思路：
 
@@ -191,7 +191,7 @@
 
 代价：
 
-- 要修改子模块
+- 要修改上游 MNN 源码
 
 ---
 
@@ -210,11 +210,11 @@
 
 ## 附：本地可直接查看的关键文件
 
-- `mnn/src/main/cpp/MNN/README.md`
-- `mnn/src/main/cpp/MNN/transformers/README.md`
-- `mnn/src/main/cpp/MNN/docs/transformers/llm.md`
-- `mnn/src/main/cpp/MNN/transformers/llm/engine/src/minja/chat_template.cpp`
-- `mnn/src/main/cpp/MNN/transformers/llm/engine/src/prompt.cpp`
-- `mnn/src/main/cpp/MNN/apps/Android/MnnLlmChat/README.md`
-- `mnn/src/main/cpp/MNN/apps/Android/MnnLlmChat/app/src/main/java/com/alibaba/mnnllm/android/llm/LlmSession.kt`
-- `mnn/src/main/cpp/MNN/apps/Android/MnnLlmChat/app/src/main/cpp/llm_mnn_jni.cpp`
+- `<MNN_SOURCE_DIR>/README.md`
+- `<MNN_SOURCE_DIR>/transformers/README.md`
+- `<MNN_SOURCE_DIR>/docs/transformers/llm.md`
+- `<MNN_SOURCE_DIR>/transformers/llm/engine/src/minja/chat_template.cpp`
+- `<MNN_SOURCE_DIR>/transformers/llm/engine/src/prompt.cpp`
+- `<MNN_SOURCE_DIR>/apps/Android/MnnLlmChat/README.md`
+- `<MNN_SOURCE_DIR>/apps/Android/MnnLlmChat/app/src/main/java/com/alibaba/mnnllm/android/llm/LlmSession.kt`
+- `<MNN_SOURCE_DIR>/apps/Android/MnnLlmChat/app/src/main/cpp/llm_mnn_jni.cpp`

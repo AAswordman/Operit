@@ -91,8 +91,8 @@
 - 调一个普通 `.js` 文件里导出的函数，用 `execute_js.*`
 - 入口文件依赖同目录其他模块，或者你在跑 `app/src/androidTest/js` 里的目录化测试，用 `execute_js_dir.*`
 - 想验证顶层 script mode 行为，不想写导出函数，用 `run_sandbox_script.*`
-- 你改的是 `examples/` 里的 package / toolpkg，想热更新到设备里的包系统，再去 UI 或包管理里验证，用 `sync_example_packages.py`
-- 你改的是 `examples/` 里的 toolpkg 调试工具，例如 `operit_editor` 的 `debug_install_toolpkg`，通常是先 `sync_example_packages.py`，再用 `execute_js.bat` 去调这个工具
+- 你改的是 `examples/` 里的 package / toolpkg，想热更新到设备里的包系统，再去 UI 或包管理里验证，用 `tools/sync_example_packages.py`
+- 你改的是 `examples/` 里的 toolpkg 调试工具，例如 `operit_editor` 的 `debug_install_toolpkg`，通常是先 `tools/sync_example_packages.py`，再用 `execute_js.bat` 去调这个工具
 
 ## 快速开始
 
@@ -258,7 +258,7 @@ tools\run_sandbox_script.bat temp\probe.js @params.json
 
 如果你的代码天然就是“顶层执行”，这个比先包一层 `exports.main = ...` 更顺手。
 
-### 4. `sync_example_packages.py` 是干什么的
+### 4. `tools/sync_example_packages.py` 是干什么的
 
 它不是单纯的“复制文件脚本”，而是 `examples/` 包开发时的同步入口。
 
@@ -278,19 +278,19 @@ tools\run_sandbox_script.bat temp\probe.js @params.json
 最常见调用：
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include sidebar_bing_action
 ```
 
 如果你要全量测试 examples 里的可同步项目，可以用：
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --mode test
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --mode test
 ```
 
 如果你只想更新本地资产，不想碰设备热更新：
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include sidebar_bing_action --no-hot-reload
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include sidebar_bing_action --no-hot-reload
 ```
 
 ## 测试如何加
@@ -354,15 +354,15 @@ tools\execute_js_dir.bat app\src\androidTest\js <你的入口相对路径> run "
 
 - 在 `examples/` 下新增或修改你的 `.ts` / `.js` / manifest 目录
 - 如果是目录化 package，保证它有 `manifest.json` 或 `manifest.hjson`
-- 用 `sync_example_packages.py` 同步
+- 用 `tools/sync_example_packages.py` 同步
 - 再用 `execute_js.bat` 去调用相关调试工具，或者直接在应用里验证加载结果
 
 也就是说：
 
 - 运行器测试的是“这段 JS 在安卓 runtime 里能不能执行”
-- `sync_example_packages.py` 测的是“这个 examples 包能不能进入真正的包加载链路”
+- `tools/sync_example_packages.py` 测的是“这个 examples 包能不能进入真正的包加载链路”
 
-## 和 `sync_example_packages.py` 怎么配合
+## 和 `tools/sync_example_packages.py` 怎么配合
 
 ### 场景 1：你改的是普通 JS 脚本
 
@@ -381,7 +381,7 @@ tools\execute_js.bat path\to\script.js main @params.json
 推荐顺序：
 
 1. 改 `examples/...`
-2. 运行 `sync_example_packages.py`
+2. 运行 `tools/sync_example_packages.py`
 3. 看它是否把输出同步到 `app/src/main/assets/packages`
 4. 如果连着设备，顺便验证热更新是否成功
 5. 再在应用里或用调试工具验证功能
@@ -394,12 +394,12 @@ tools\execute_js.bat path\to\script.js main @params.json
 
 ### 场景 3：你改的是目录型 toolpkg
 
-这是最需要和 `sync_example_packages.py` 配合的场景。
+这是最需要和 `tools/sync_example_packages.py` 配合的场景。
 
 推荐顺序：
 
 1. 改 `examples/<toolpkg目录>`
-2. 运行 `sync_example_packages.py --include <目录名>`
+2. 运行 `tools/sync_example_packages.py --include <目录名>`
 3. 让它把目录打成 `.toolpkg`
 4. 让它把生成物同步到 assets 和设备
 5. 再用 `operit_editor` 的 `debug_install_toolpkg` 或相关调试入口验证安装结果
@@ -415,7 +415,7 @@ tools\execute_js.bat path\to\script.js main @params.json
 
 推荐顺序：
 
-1. 先 `sync_example_packages.py` 更新 `operit_editor` 自己
+1. 先 `tools/sync_example_packages.py` 更新 `operit_editor` 自己
 2. 再准备一个待安装的 package / toolpkg
 3. 用 `execute_js.bat` 调 `operit_editor.js` 的调试函数
 4. 看结构化结果里的成功、失败和相关告警
@@ -423,7 +423,7 @@ tools\execute_js.bat path\to\script.js main @params.json
 例如：
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include operit_editor --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include operit_editor --include sidebar_bing_action
 tools\execute_js.bat examples\operit_editor.js debug_install_toolpkg @params.json
 ```
 
@@ -456,13 +456,13 @@ tools\run_sandbox_script.bat temp\probe.js @params.json
 ### 4. 同步一个 `examples/` 包到 assets 和设备
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include sidebar_bing_action
 ```
 
 ### 5. 同步后再调用调试安装工具
 
 ```cmd
-d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\sync_example_packages.py --include operit_editor --include sidebar_bing_action
+d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\sync_example_packages.py --include operit_editor --include sidebar_bing_action
 tools\execute_js.bat examples\operit_editor.js debug_install_toolpkg @params.json
 ```
 

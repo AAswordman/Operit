@@ -1,30 +1,6 @@
 [submodule "terminal"]
 	path = terminal
 	url = https://github.com/AAswordman/OperitTerminalCore.git
-[submodule "mnn/src/main/cpp/MNN"]
-	path = mnn/src/main/cpp/MNN
-	url = https://github.com/alibaba/MNN.git
 [submodule "tools/hotbuild/OperitNightlyRelease"]
 	path = tools/hotbuild/OperitNightlyRelease
 	url = git@github.com:AAswordman/OperitNightlyRelease.git
-[submodule "llama/third_party/llama.cpp"]
-	path = llama/third_party/llama.cpp
-	url = https://github.com/ggml-org/llama.cpp
-[submodule "mmd/third_party/saba"]
-	path = mmd/third_party/saba
-	url = https://github.com/benikabocha/saba.git
-[submodule "mmd/third_party/bullet3"]
-	path = mmd/third_party/bullet3
-	url = https://github.com/bulletphysics/bullet3.git
-[submodule "app/src/main/cpp/thirdparty/ncnn"]
-	path = app/src/main/cpp/thirdparty/ncnn
-	url = https://github.com/Tencent/ncnn.git
-[submodule "app/src/main/cpp/thirdparty/sherpa-ncnn"]
-	path = app/src/main/cpp/thirdparty/sherpa-ncnn
-	url = https://github.com/k2-fsa/sherpa-ncnn.git
-[submodule "quickjs/thirdparty/quickjs"]
-	path = quickjs/thirdparty/quickjs
-	url = https://github.com/bellard/quickjs.git
-[submodule "fbx/third_party/ufbx"]
-	path = fbx/third_party/ufbx
-	url = https://github.com/ufbx/ufbx.git

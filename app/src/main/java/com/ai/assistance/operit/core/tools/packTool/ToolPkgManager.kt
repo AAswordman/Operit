@@ -5,9 +5,11 @@ import com.ai.assistance.operit.core.tools.ToolPackage
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class ToolPkgManager(
-    private val context: Context
+    private val context: Context,
+    private val createExecutionEngine: () -> JsEngine = { JsEngine(context) }
 ) {
     internal val containersInternal = ConcurrentHashMap<String, ToolPkgContainerRuntime>()
     internal val subpackageByPackageNameInternal =
@@ -15,7 +17,14 @@ internal class ToolPkgManager(
 
     private val runtimeChangeListeners =
         CopyOnWriteArrayList<PackageManager.ToolPkgRuntimeChangeListener>()
-    private val executionEngines = ConcurrentHashMap<String, JsEngine>()
+    private data class ExecutionEngineEntry(
+        val containerPackageName: String,
+        val engine: JsEngine
+    )
+
+    private val executionEngineLock = Any()
+    private val executionEngines = ConcurrentHashMap<String, ExecutionEngineEntry>()
+    private val destroyed = AtomicBoolean(false)
 
     fun isToolPkgContainer(packageName: String): Boolean {
         return containersInternal.containsKey(packageName.trim())
@@ -105,9 +114,29 @@ internal class ToolPkgManager(
         }
     }
 
-    fun getToolPkgExecutionEngine(contextKey: String): JsEngine {
-        val normalizedKey = contextKey.trim().ifBlank { "toolpkg_main:default" }
-        return executionEngines.computeIfAbsent(normalizedKey) { JsEngine(context) }
+    fun getToolPkgExecutionEngine(
+        contextKey: String,
+        containerPackageName: String
+    ): JsEngine {
+        val normalizedKey = contextKey.trim()
+        val normalizedContainer = containerPackageName.trim()
+        require(normalizedKey.isNotBlank()) { "ToolPkg execution context key is required" }
+        require(normalizedContainer.isNotBlank()) { "ToolPkg execution container is required" }
+
+        return synchronized(executionEngineLock) {
+            check(!destroyed.get()) { "ToolPkg manager already destroyed" }
+            val entry =
+                executionEngines.computeIfAbsent(normalizedKey) {
+                    ExecutionEngineEntry(
+                        containerPackageName = normalizedContainer,
+                        engine = createExecutionEngine()
+                    )
+                }
+            check(entry.containerPackageName == normalizedContainer) {
+                "ToolPkg execution context '$normalizedKey' belongs to '${entry.containerPackageName}', not '$normalizedContainer'"
+            }
+            entry.engine
+        }
     }
 
     fun findToolPkgExecutionEngine(contextKey: String): JsEngine? {
@@ -115,37 +144,78 @@ internal class ToolPkgManager(
         if (normalizedKey.isBlank()) {
             return null
         }
-        return executionEngines[normalizedKey]
+        return executionEngines[normalizedKey]?.engine
     }
 
-    fun releaseToolPkgExecutionEngine(contextKey: String) {
+    fun releaseToolPkgExecutionEngine(
+        contextKey: String,
+        executionEngine: JsEngine
+    ) {
         val normalizedKey = contextKey.trim()
         if (normalizedKey.isBlank()) {
             return
         }
-        executionEngines.remove(normalizedKey)?.destroy()
+        val removedEntry =
+            synchronized(executionEngineLock) {
+                val entry = executionEngines[normalizedKey]
+                if (
+                    entry != null &&
+                        entry.engine === executionEngine &&
+                        executionEngines.remove(normalizedKey, entry)
+                ) {
+                    entry
+                } else {
+                    null
+                }
+            }
+        if (removedEntry != null) {
+            removedEntry.engine.destroy()
+        }
+    }
+
+    fun releaseToolPkgExecutionEngine(contextKey: String) {
+        // Kept for existing callers; lifecycle-aware owners use the identity-checked overload.
+        val normalizedKey = contextKey.trim()
+        if (normalizedKey.isBlank()) {
+            return
+        }
+        val removedEntry =
+            synchronized(executionEngineLock) {
+                executionEngines.remove(normalizedKey)
+            }
+        removedEntry?.engine?.destroy()
     }
 
     fun cancelExecutionsForChat(chatId: String, reason: String): Boolean {
         var cancelledAny = false
-        executionEngines.values.forEach { engine ->
-            if (engine.cancelExecutionsForChat(chatId, reason)) {
+        executionEngines.values.forEach { entry ->
+            if (entry.engine.cancelExecutionsForChat(chatId, reason)) {
                 cancelledAny = true
             }
         }
         return cancelledAny
     }
 
-    fun destroyDefaultToolPkgExecutionEngine(packageName: String) {
-        val normalizedPackageName = packageName.trim()
-        if (normalizedPackageName.isBlank()) {
+    fun destroyToolPkgExecutionEngines(containerPackageName: String) {
+        val normalizedContainer = containerPackageName.trim()
+        if (normalizedContainer.isBlank()) {
             return
         }
-        releaseToolPkgExecutionEngine("toolpkg_main:$normalizedPackageName")
-        val providerPrefix = "toolpkg_provider:$normalizedPackageName:"
-        executionEngines.keys
-            .filter { key -> key.startsWith(providerPrefix) }
-            .forEach { key -> releaseToolPkgExecutionEngine(key) }
+        val removedEntries =
+            synchronized(executionEngineLock) {
+                executionEngines.entries
+                    .filter { (_, entry) -> entry.containerPackageName == normalizedContainer }
+                    .mapNotNull { (contextKey, entry) ->
+                        if (executionEngines.remove(contextKey, entry)) {
+                            entry
+                        } else {
+                            null
+                        }
+                    }
+            }
+        removedEntries.forEach { entry ->
+            entry.engine.destroy()
+        }
     }
 
     fun clear() {
@@ -154,7 +224,15 @@ internal class ToolPkgManager(
     }
 
     fun destroy() {
-        executionEngines.values.forEach { engine -> engine.destroy() }
-        executionEngines.clear()
+        if (!destroyed.compareAndSet(false, true)) {
+            return
+        }
+        val entries =
+            synchronized(executionEngineLock) {
+                executionEngines.values.toList().also {
+                    executionEngines.clear()
+                }
+            }
+        entries.forEach { entry -> entry.engine.destroy() }
     }
 }

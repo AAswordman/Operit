@@ -80,7 +80,11 @@ internal fun loadToolPkgDesktopWidgetRenderData(
 
     val executionContextKey =
         "toolpkg_widget:${appWidgetId}:${renderRoute.containerPackageName}:${renderRoute.uiModuleId}"
-    val jsEngine = packageManager.getToolPkgExecutionEngine(executionContextKey)
+    val jsEngine =
+        packageManager.getToolPkgExecutionEngine(
+            contextKey = executionContextKey,
+            containerPackageName = renderRoute.containerPackageName
+        )
     return try {
         val runtimeOptions =
             mapOf(
@@ -137,7 +141,7 @@ internal fun loadToolPkgDesktopWidgetRenderData(
             errorMessage = error.message ?: error.javaClass.simpleName
         )
     } finally {
-        packageManager.releaseToolPkgExecutionEngine(executionContextKey)
+        packageManager.releaseToolPkgExecutionEngine(executionContextKey, jsEngine)
     }
 }
 

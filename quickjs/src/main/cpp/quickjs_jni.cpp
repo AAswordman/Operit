@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../thirdparty/quickjs/quickjs.h"
+#include "operit_quickjs.h"
 
 namespace {
 

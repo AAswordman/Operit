@@ -18,7 +18,7 @@ namespace {
 constexpr int64_t kModelFormatPmd = 1;
 constexpr int64_t kModelFormatPmx = 2;
 constexpr const char* kUnavailableReason =
-    "saba submodule not found. Ensure mmd/third_party/saba exists and is initialized.";
+    "Saba native source is not available. Ensure CMake fetched Saba and built MmdWrapper with OPERIT_HAS_SABA.";
 
 std::mutex gLastErrorMutex;
 std::string gLastError;
