@@ -175,10 +175,11 @@ org.gradle.parallel=true
 
 **推荐：先 Fork 后克隆你的仓库**  
 在 GitHub 打开上游仓库并点击 Fork： [AAswordman/Operit](https://github.com/AAswordman/Operit)  
-克隆你的 Fork（注意使用 --recurse-submodules）：
+克隆你的 Fork，并只初始化公开构建依赖 `terminal`：
 ```bash
-git clone --recurse-submodules https://github.com/<你的 GitHub 用户名>/Operit.git
+git clone https://github.com/<你的 GitHub 用户名>/Operit.git
 cd Operit
+git submodule update --init --recursive terminal
 ```  
 （可选）添加上游仓库以便同步更新：  
 ```bash
@@ -187,13 +188,14 @@ git remote add upstream https://github.com/AAswordman/Operit.git
 
 **备选：不 Fork，直接克隆上游仓库（只读）**  
 ```bash
-git clone --recurse-submodules https://github.com/AAswordman/Operit.git
+git clone https://github.com/AAswordman/Operit.git
 cd Operit
+git submodule update --init --recursive terminal
 ```  
 
-如果你已克隆但忘记带 --recurse-submodules，可在仓库目录中执行：  
+如果你已克隆但尚未初始化公开子模块，可在仓库目录中执行：
 ```bash
-git submodule update --init --recursive
+git submodule update --init --recursive terminal
 ```  
 其中 `ufbx`、`Bullet3`、`Saba`、`ncnn`、`sherpa-ncnn`、WAMR、`llama.cpp`、QuickJS、MNN 和 MNN 使用的 KleidiAI 由 CMake 通过 `FetchContent` 获取。CMake 会先解析远端 ref 的 commit，再下载对应 GitHub archive，因此不会拉取完整 Git 历史；默认跟随各自上游主分支或上游工程声明的 tag。如需固定某个 ref，可在 CMake 参数中设置 `OPERIT_UFBX_GIT_REF`、`OPERIT_BULLET3_GIT_REF`、`OPERIT_SABA_GIT_REF`、`OPERIT_NCNN_GIT_REF`、`OPERIT_SHERPA_NCNN_GIT_REF`、`OPERIT_WAMR_GIT_REF`、`OPERIT_LLAMA_CPP_GIT_REF`、`OPERIT_QUICKJS_GIT_REF`、`OPERIT_MNN_GIT_REF` 或 `OPERIT_KLEIDIAI_GIT_REF`。
 2. **下载并放置依赖库 (关键步骤！):**  

@@ -729,6 +729,7 @@
     <string name="pkg_toolpkg_subpackages">Subpakej ToolPkg</string>
     <string name="pkg_toolpkg_version">Versi: %1$s</string>
     <string name="pkg_toolpkg_resources">Bilangan sumber: %1$d</string>
+    <string name="pkg_toolpkg_wasm_modules">Bilangan modul WASM: %1$d</string>
     <string name="pkg_toolpkg_ui_modules">Bilangan modul UI: %1$d</string>
     <string name="pkg_toolpkg_empty_subpackages">ToolPkg ini tidak mengisytiharkan sebarang subpakej</string>
     <string name="pkg_toolpkg_tool_count">Bilangan alat: %1$d</string>

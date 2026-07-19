@@ -5,7 +5,7 @@ const rootDir = process.cwd();
 const outputPath = path.join(rootDir, "dist", "toolpkg_wasm_demo.toolpkg");
 const entries = [
   { source: "manifest.json", name: "manifest.json" },
-  { source: "build/main.js", name: "main.js" },
+  { source: "main.js", name: "main.js" },
   { source: "modules/core.wasm", name: "modules/core.wasm" }
 ];
 

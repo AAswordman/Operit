@@ -16,8 +16,8 @@ last_reviewed: 2026-07-14
 
 ## 旧实现情况
 
-- `ci/README.md` 只有两行目录说明
-- 仓库没有 GitHub Actions workflow，也没有平台无关的流水线定义
+- `ci/README.md` 已记录当前 PR 技术预审和 Android 构建入口
+- 仓库已有 GitHub Actions workflow，但仍没有平台无关的完整流水线定义
 - pixi 与 `ci/script/` 的计划只列出任务名，没有统一的阶段 ID 和依赖关系
 - 输入、输出、缓存、权限、secret、网络访问、设备要求和 QA 场景没有结构化描述
 - 可视化 CI 或 GitHub Actions 接入时需要重新解释脚本顺序和产物交接

@@ -67,6 +67,7 @@ async function main() {
     if (fs.existsSync(preferredEntry)) {
         const metadataBanner = extractMetadataBanner(preferredEntry);
         await esbuild.build({
+            absWorkingDir: githubDir,
             entryPoints: [preferredEntry],
             bundle: true,
             format: 'cjs',
@@ -83,6 +84,7 @@ async function main() {
     if (fs.existsSync(legacyEntry)) {
         const metadataBanner = extractMetadataBanner(legacyEntry);
         await esbuild.build({
+            absWorkingDir: githubDir,
             entryPoints: [legacyEntry],
             bundle: true,
             format: 'cjs',
@@ -103,6 +105,7 @@ async function main() {
     if (tsFiles.length === 1) {
         const metadataBanner = extractMetadataBanner(tsFiles[0]);
         await esbuild.build({
+            absWorkingDir: githubDir,
             entryPoints: [tsFiles[0]],
             bundle: true,
             format: 'cjs',
@@ -126,6 +129,7 @@ async function main() {
     const metadataBanner = extractMetadataBanner(tsFiles.find((p) => fs.readFileSync(p, 'utf8').includes('/* METADATA')) || tsFiles[0]);
 
     await esbuild.build({
+        absWorkingDir: githubDir,
         stdin: {
             contents,
             resolveDir: githubDir,

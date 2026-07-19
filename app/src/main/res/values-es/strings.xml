@@ -2223,6 +2223,7 @@
     <string name="pkg_toolpkg_subpackages">Subpaquetes ToolPkg</string>
     <string name="pkg_toolpkg_version">Versión: %1$s</string>
     <string name="pkg_toolpkg_resources">Recursos: %1$d</string>
+    <string name="pkg_toolpkg_wasm_modules">Módulos WASM: %1$d</string>
 
     <string name="pkg_toolpkg_ui_modules">Módulos de UI: %1$d</string>
     <string name="pkg_toolpkg_empty_subpackages">Este ToolPkg no declara ningún subpaquete</string>

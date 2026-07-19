@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build:js": "tsc -p tsconfig.json --noEmit && esbuild src/main.ts --bundle --format=cjs --platform=neutral --target=es2020 --outfile=build/main.js",
+    "build:js": "tsc -p tsconfig.json --noEmit && esbuild src/main.ts --bundle --format=cjs --platform=neutral --target=es2020 --outfile=main.js",
     "build:wasm": "asc src/wasm/core.as.ts --config asconfig.json --target release",
     "pack:toolpkg": "npm run build:wasm && npm run build:js && node scripts/pack-toolpkg.mjs"
   },

@@ -866,6 +866,7 @@
     <string name="pkg_toolpkg_subpackages">Subpaket ToolPkg</string>
     <string name="pkg_toolpkg_version">Versi: %1$s</string>
     <string name="pkg_toolpkg_resources">Jumlah Sumber Daya: %1$d</string>
+    <string name="pkg_toolpkg_wasm_modules">Jumlah Modul WASM: %1$d</string>
     <string name="pkg_toolpkg_ui_modules">Jumlah Modul UI: %1$d</string>
     <string name="pkg_toolpkg_empty_subpackages">ToolPkg ini tidak mendeklarasikan subpaket apa pun</string>
     <string name="pkg_toolpkg_tool_count">Jumlah Alat: %1$d</string>

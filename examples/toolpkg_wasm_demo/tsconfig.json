@@ -20,7 +20,6 @@
     "../types/**/*.d.ts"
   ],
   "exclude": [
-    "build",
     "dist",
     "node_modules",
     "modules",

@@ -1,0 +1,406 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  JAVA_VERSION: '21'
+  NODE_VERSION: '22'
+  ANDROID_BUILD_TOOLS_VERSION: '35.0.0'
+  ANDROID_NDK_VERSION: '25.1.8937393'
+  ANDROID_CMAKE_VERSION: '3.22.1'
+  MANUAL_DEPS_DIR: manual-deps
+
+jobs:
+  candidate:
+    name: Candidate checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout merge candidate
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Plan candidate checks
+        id: plan
+        env:
+          CANDIDATE_SHA: ${{ github.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 ci/script/pr_check.py plan \
+            --candidate "$CANDIDATE_SHA" \
+            --expected-base "$EXPECTED_BASE_SHA" \
+            --expected-head "$EXPECTED_HEAD_SHA" \
+            --github-output "$GITHUB_OUTPUT" \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Check gate implementation
+        id: gate-tests
+        continue-on-error: true
+        run: python3 -B -m unittest discover -s ci/test -p 'test_*.py'
+
+      - name: Check repository hygiene
+        id: hygiene
+        continue-on-error: true
+        run: |
+          python3 ci/script/check_repo_hygiene.py \
+            --base "${{ steps.plan.outputs.base_sha }}" \
+            --candidate "${{ steps.plan.outputs.candidate_sha }}"
+
+      - name: Check Android lint baseline
+        id: lint-baseline
+        continue-on-error: true
+        run: python3 ci/script/normalize_lint_baseline.py --check
+
+      - name: Check Markdown links
+        id: markdown
+        continue-on-error: true
+        run: |
+          python3 ci/script/check_markdown_links.py \
+            --base "${{ steps.plan.outputs.base_sha }}" \
+            --candidate "${{ steps.plan.outputs.candidate_sha }}"
+
+      - name: Check localization changes
+        id: localization
+        if: steps.plan.outputs.localization == 'true'
+        continue-on-error: true
+        run: |
+          python3 ci/script/check_localizations.py \
+            --base "${{ steps.plan.outputs.base_sha }}" \
+            --candidate "${{ steps.plan.outputs.candidate_sha }}"
+
+      - name: Check changed YAML and Actions workflows
+        id: yaml
+        if: steps.plan.outputs.yaml == 'true'
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ steps.plan.outputs.base_sha }}
+          CANDIDATE_SHA: ${{ steps.plan.outputs.candidate_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          yaml_list="$RUNNER_TEMP/changed-yaml.list"
+          git diff --name-only --no-renames --diff-filter=ACMRT -z \
+            "$BASE_SHA" "$CANDIDATE_SHA" -- '*.yml' '*.yaml' > "$yaml_list"
+          mapfile -d '' -t yaml_files < "$yaml_list"
+
+          workflow_list="$RUNNER_TEMP/changed-workflows.list"
+          : > "$workflow_list"
+          if (( ${#yaml_files[@]} == 0 )); then
+            echo "No added or modified YAML files."
+            exit 0
+          fi
+
+          # AST parsing validates syntax without converting valid scalars into Ruby objects.
+          ruby -rpsych -e \
+            'ARGV.each { |path| Psych.parse_file(path); puts "YAML OK: #{path}" }' \
+            -- "${yaml_files[@]}"
+
+          for path in "${yaml_files[@]}"; do
+            case "$path" in
+              .github/workflows/*.yml|.github/workflows/*.yaml)
+                printf '%s\0' "$path" >> "$workflow_list"
+                ;;
+            esac
+          done
+
+          if [[ -s "$workflow_list" ]]; then
+            mapfile -d '' -t workflow_files < "$workflow_list"
+            actionlint_archive="$RUNNER_TEMP/actionlint.tar.gz"
+            actionlint_dir="$RUNNER_TEMP/actionlint"
+            curl --fail --location --silent --show-error \
+              "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz" \
+              --output "$actionlint_archive"
+            echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $actionlint_archive" \
+              | sha256sum --check --strict
+            mkdir -p "$actionlint_dir"
+            tar -xzf "$actionlint_archive" -C "$actionlint_dir"
+            "$actionlint_dir/actionlint" "${workflow_files[@]}"
+          fi
+
+      - name: Require successful fast checks
+        if: always()
+        env:
+          PLAN_OUTCOME: ${{ steps.plan.outcome }}
+          GATE_TESTS_OUTCOME: ${{ steps.gate-tests.outcome }}
+          HYGIENE_OUTCOME: ${{ steps.hygiene.outcome }}
+          LINT_BASELINE_OUTCOME: ${{ steps.lint-baseline.outcome }}
+          MARKDOWN_OUTCOME: ${{ steps.markdown.outcome }}
+          LOCALIZATION_OUTCOME: ${{ steps.localization.outcome }}
+          YAML_OUTCOME: ${{ steps.yaml.outcome }}
+          LOCALIZATION_REQUIRED: ${{ steps.plan.outputs.localization }}
+          YAML_REQUIRED: ${{ steps.plan.outputs.yaml }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          failures=0
+
+          check_stage() {
+            local name="$1"
+            local required="$2"
+            local outcome="$3"
+            printf '| <code>%s</code> | <code>%s</code> | <code>%s</code> |\n' \
+              "$name" "$required" "$outcome" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$required" == "true" && "$outcome" != "success" ]]; then
+              echo "Required fast check failed: $name ($outcome)" >&2
+              failures=$((failures + 1))
+            fi
+          }
+
+          {
+            echo "## Fast check decision"
+            echo
+            echo '| Stage | Required | Outcome |'
+            echo '| --- | --- | --- |'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          check_stage candidate true "$PLAN_OUTCOME"
+          check_stage gate-tests true "$GATE_TESTS_OUTCOME"
+          check_stage hygiene true "$HYGIENE_OUTCOME"
+          check_stage lint-baseline true "$LINT_BASELINE_OUTCOME"
+          check_stage markdown true "$MARKDOWN_OUTCOME"
+          check_stage localization "$LOCALIZATION_REQUIRED" "$LOCALIZATION_OUTCOME"
+          check_stage yaml "$YAML_REQUIRED" "$YAML_OUTCOME"
+
+          if (( failures > 0 )); then
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        if: >-
+          steps.plan.outputs.web == 'true' ||
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.android_full == 'true'
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install JavaScript dependencies
+        if: >-
+          steps.plan.outputs.web == 'true' ||
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.android_full == 'true'
+        env:
+          WEB_REQUIRED: ${{ steps.plan.outputs.web }}
+          TOOLPKG_REQUIRED: ${{ steps.plan.outputs.toolpkg }}
+          FULL_ANDROID_REQUIRED: ${{ steps.plan.outputs.android_full }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g pnpm@10.34.5
+          if [[ "$TOOLPKG_REQUIRED" == "true" || "$FULL_ANDROID_REQUIRED" == "true" ]]; then
+            npm ci --no-audit --no-fund
+            npm --prefix examples/toolpkg_wasm_demo ci --no-audit --no-fund
+          fi
+          if [[ "$WEB_REQUIRED" == "true" || "$FULL_ANDROID_REQUIRED" == "true" ]]; then
+            npm --prefix web-chat ci --no-audit --no-fund
+          fi
+
+      - name: Check WebChat
+        if: steps.plan.outputs.web == 'true' || steps.plan.outputs.android_full == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix web-chat run typecheck
+          npm run build:webchat
+
+      - name: Check bundled ToolPkg packages
+        if: steps.plan.outputs.toolpkg == 'true' || steps.plan.outputs.android_full == 'true'
+        env:
+          TOOLPKG_REQUIRED: ${{ steps.plan.outputs.toolpkg }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:examples:github
+          git diff --exit-code -- examples/github.js
+          npm --prefix examples/toolpkg_wasm_demo run pack:toolpkg
+          test -s examples/toolpkg_wasm_demo/main.js
+          test -s examples/toolpkg_wasm_demo/modules/core.wasm
+          test -s examples/toolpkg_wasm_demo/dist/toolpkg_wasm_demo.toolpkg
+          if [[ "$TOOLPKG_REQUIRED" == "true" ]]; then
+            python3 tools/sync_example_packages.py --mode test --no-hot-reload
+          fi
+          python3 tools/sync_example_packages.py --no-hot-reload
+
+      - name: Set up JDK
+        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Android SDK
+        if: >-
+          steps.plan.outputs.android_resources == 'true' ||
+          steps.plan.outputs.android_jvm == 'true' ||
+          steps.plan.outputs.android_full == 'true'
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+
+      - name: Install required Android toolchain
+        if: >-
+          steps.plan.outputs.android_resources == 'true' ||
+          steps.plan.outputs.android_jvm == 'true' ||
+          steps.plan.outputs.android_full == 'true'
+        env:
+          JVM_REQUIRED: ${{ steps.plan.outputs.android_jvm }}
+          FULL_REQUIRED: ${{ steps.plan.outputs.android_full }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          packages=("build-tools;$ANDROID_BUILD_TOOLS_VERSION")
+          if [[ "$JVM_REQUIRED" == "true" || "$FULL_REQUIRED" == "true" ]]; then
+            packages+=("platform-tools" "platforms;android-34" "platforms;android-36")
+          fi
+          if [[ "$FULL_REQUIRED" == "true" ]]; then
+            packages+=("ndk;$ANDROID_NDK_VERSION" "cmake;$ANDROID_CMAKE_VERSION")
+          fi
+          sdkmanager --install "${packages[@]}"
+
+      - name: Compile changed Android resources
+        if: steps.plan.outputs.android_resources == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/compiled-app-resources.zip"
+          "$ANDROID_HOME/build-tools/$ANDROID_BUILD_TOOLS_VERSION/aapt2" compile \
+            --dir app/src/main/res \
+            -o "$output"
+          test -s "$output"
+
+      - name: Initialize terminal submodule
+        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync -- terminal
+          git submodule update --init --recursive --depth 1 terminal
+          git submodule status -- terminal
+
+      - name: Configure secret-free Android build
+        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "sdk.dir=$ANDROID_HOME"
+            echo 'GITHUB_CLIENT_ID='
+            echo 'GITHUB_CLIENT_SECRET='
+          } > local.properties
+
+      - name: Restore JVM dependency cache
+        id: cache-jvm-deps
+        if: steps.plan.outputs.android_jvm == 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ env.MANUAL_DEPS_DIR }}
+          key: android-jvm-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
+
+      - name: Download JVM dependencies
+        if: steps.plan.outputs.android_jvm == 'true' && steps.cache-jvm-deps.outputs.cache-hit != 'true'
+        run: bash ci/script/download_android_dependencies.sh jvm "$MANUAL_DEPS_DIR"
+
+      - name: Restore full Android dependency cache
+        id: cache-full-deps
+        if: steps.plan.outputs.android_full == 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ env.MANUAL_DEPS_DIR }}
+          key: android-full-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
+
+      - name: Download full Android dependencies
+        if: steps.plan.outputs.android_full == 'true' && steps.cache-full-deps.outputs.cache-hit != 'true'
+        run: bash ci/script/download_android_dependencies.sh full "$MANUAL_DEPS_DIR"
+
+      - name: Prepare JVM dependencies
+        if: steps.plan.outputs.android_jvm == 'true'
+        run: |
+          python3 ci/script/prepare_android_dependencies.py \
+            --profile jvm \
+            --archives "$MANUAL_DEPS_DIR" \
+            --repository "$GITHUB_WORKSPACE"
+
+      - name: Prepare full Android dependencies
+        if: steps.plan.outputs.android_full == 'true'
+        run: |
+          python3 ci/script/prepare_android_dependencies.py \
+            --profile full \
+            --archives "$MANUAL_DEPS_DIR" \
+            --repository "$GITHUB_WORKSPACE"
+
+      - name: Restore native ripgrep cache
+        if: steps.plan.outputs.android_full == 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tools/native_ripgrep/target
+          key: native-ripgrep-arm64-${{ runner.os }}-${{ hashFiles('tools/native_ripgrep/Cargo.lock') }}
+
+      - name: Build native ripgrep
+        if: steps.plan.outputs.android_full == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+          rustup toolchain install 1.88.0 --profile minimal
+          rustup target add --toolchain 1.88.0 aarch64-linux-android
+          cargo +1.88.0 build \
+            --manifest-path tools/native_ripgrep/Cargo.toml \
+            --release \
+            --target aarch64-linux-android \
+            --locked
+          install -Dm755 \
+            tools/native_ripgrep/target/aarch64-linux-android/release/liboperit_ripgrep.so \
+            app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+          test -s app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+
+      - name: Run Android JVM checks
+        if: steps.plan.outputs.android_jvm == 'true'
+        env:
+          INSTRUMENTATION_REQUIRED: ${{ steps.plan.outputs.android_instrumentation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          tasks=(":app:testDebugUnitTest" ":app:lintDebug")
+          if [[ "$INSTRUMENTATION_REQUIRED" == "true" ]]; then
+            tasks+=(":app:compileDebugAndroidTestKotlin" ":app:compileDebugAndroidTestJavaWithJavac")
+          fi
+          ./gradlew "${tasks[@]}" --stacktrace --no-build-cache --no-daemon
+
+      - name: Run full Android checks
+        if: steps.plan.outputs.android_full == 'true'
+        env:
+          INSTRUMENTATION_REQUIRED: ${{ steps.plan.outputs.android_instrumentation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          tasks=("assembleDebug" ":app:testDebugUnitTest" ":app:lintDebug")
+          if [[ "$INSTRUMENTATION_REQUIRED" == "true" ]]; then
+            tasks+=(":app:compileDebugAndroidTestKotlin" ":app:compileDebugAndroidTestJavaWithJavac")
+          fi
+          ./gradlew "${tasks[@]}" --stacktrace --no-build-cache --no-daemon

@@ -19,7 +19,7 @@ last_reviewed: 2026-07-14
 - `app/libs` 通过 `implementation(fileTree(...))` 无条件接收全部 AAR 和 JAR
 - `packaging.resources` 中存在宽泛的 `pickFirsts += "**/*.so"`
 - 本地二进制与 native 库没有 Gradle 输入校验
-- Gradle Wrapper 使用单一镜像地址，但没有 `distributionSha256Sum`
+- Gradle Wrapper 使用单一镜像地址；PR 门禁重构已补入 Gradle 8.13 官方 `distributionSha256Sum`
 - 当前依赖声明无法从 Gradle 图追溯到步骤 3 的制品 manifest
 
 ## 预期的新实现情况
@@ -64,4 +64,4 @@ last_reviewed: 2026-07-14
 
 ## 完成记录
 
-状态：未开始。完成前需要记录 Gradle 解析与编译验证结果。
+状态：部分准备。Wrapper 校验和已写入；本步骤其余输入规范化尚未开始，完成前仍需记录 Gradle 解析与编译验证结果。

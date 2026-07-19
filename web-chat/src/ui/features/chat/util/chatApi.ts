@@ -15,7 +15,7 @@ import type {
   WebUploadedAttachment
 } from './chatTypes';
 
-type JsonValue = Record<string, unknown> | unknown[] | null;
+type JsonRequestBody = object;
 
 export class ApiError extends Error {
   status: number;
@@ -59,7 +59,7 @@ async function requestJson<T>(
   path: string,
   token: string,
   init?: RequestInit,
-  body?: JsonValue
+  body?: JsonRequestBody
 ): Promise<T> {
   const response = await fetch(path, {
     ...init,

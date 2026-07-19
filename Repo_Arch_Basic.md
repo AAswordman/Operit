@@ -31,7 +31,7 @@ Operit-follow-up/
 
 ### [`ci`](ci/)
 
-这是 CI 和本地自动化脚本目录。目前包含用于修复 Windows 环境下 Git 子模块符号链接的脚本。约定统一使用 pixi 管理脚本依赖。
+这是 CI 和本地自动化脚本目录，包含 PR merge candidate 分类、仓库卫生、本地化、Markdown、Android 依赖准备及对应单元测试。GitHub Actions 负责准备 runner、汇总快速检查，并按作用域编排 WebChat、ToolPkg 与 Android 构建命令。
 
 ### [`docs`](docs/)
 

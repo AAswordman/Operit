@@ -8,7 +8,7 @@ import subprocess
 import sys
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 MANIFEST_FILENAMES = ("manifest.hjson", "manifest.json")
 SYNCABLE_SUFFIXES = {".js", ".toolpkg"}
@@ -354,6 +354,59 @@ def _find_manifest_file(folder: Path) -> Path | None:
     return None
 
 
+def _manifest_runtime_files(folder: Path) -> list[Path]:
+    manifest = _find_manifest_file(folder)
+    if manifest is None or manifest.suffix.lower() != ".json":
+        return []
+
+    try:
+        parsed = json.loads(manifest.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Invalid ToolPkg manifest JSON: {manifest}: {error}") from error
+    if not isinstance(parsed, dict):
+        raise ValueError(f"ToolPkg manifest root must be an object: {manifest}")
+
+    required_values: list[tuple[str, object]] = [("main", parsed.get("main"))]
+    wasm_modules = parsed.get("wasm_modules", [])
+    if not isinstance(wasm_modules, list):
+        raise ValueError(f"manifest.wasm_modules must be an array: {manifest}")
+    for index, module in enumerate(wasm_modules):
+        if not isinstance(module, dict):
+            raise ValueError(f"manifest.wasm_modules[{index}] must be an object: {manifest}")
+        required_values.append((f"wasm_modules[{index}].path", module.get("path")))
+
+    runtime_files: list[Path] = []
+    seen: set[Path] = set()
+    for field, value in required_values:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"manifest.{field} must be a non-empty path: {manifest}")
+        relative_path = PurePosixPath(value)
+        if relative_path.is_absolute() or ".." in relative_path.parts:
+            raise ValueError(f"manifest.{field} escapes the package directory: {value}")
+        file_path = folder.joinpath(*relative_path.parts)
+        if not file_path.is_file():
+            raise FileNotFoundError(f"Missing ToolPkg runtime file for {field}: {file_path}")
+        _validate_package_file(folder, file_path, f"manifest.{field}")
+        if file_path.stat().st_size == 0:
+            raise ValueError(f"ToolPkg runtime file is empty for {field}: {file_path}")
+        if file_path not in seen:
+            seen.add(file_path)
+            runtime_files.append(file_path)
+    return runtime_files
+
+
+def _validate_package_file(folder: Path, file_path: Path, label: str) -> None:
+    package_root = folder.resolve(strict=True)
+    current = folder
+    for part in file_path.relative_to(folder).parts:
+        current /= part
+        if current.is_symlink():
+            raise ValueError(f"ToolPkg {label} is a symbolic link: {file_path}")
+    resolved = file_path.resolve(strict=True)
+    if not resolved.is_relative_to(package_root):
+        raise ValueError(f"ToolPkg {label} escapes the package directory: {file_path}")
+
+
 def _resolve_existing_path(path: Path) -> SyncPlanItem | None:
     if path.is_file() and path.suffix.lower() in SYNCABLE_SUFFIXES:
         return SyncPlanItem(mode="copy", source=path, destination_name=path.name)
@@ -412,6 +465,10 @@ def _resolve_plan_item_from_roots(source_roots: list[Path], item: str) -> SyncPl
 
 
 def _iter_files_for_pack(repo_root: Path, folder: Path) -> list[Path]:
+    repository_root = repo_root.resolve(strict=True)
+    package_root = folder.resolve(strict=True)
+    if folder.is_symlink() or not package_root.is_relative_to(repository_root):
+        raise ValueError(f"ToolPkg folder escapes the repository: {folder}")
     folder_rel = folder.relative_to(repo_root).as_posix()
     completed = subprocess.run(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", folder_rel],
@@ -431,6 +488,13 @@ def _iter_files_for_pack(repo_root: Path, folder: Path) -> list[Path]:
         file_path = repo_root / repo_relative
         if not file_path.is_file():
             continue
+        _validate_package_file(folder, file_path, "source file")
+        if file_path in seen:
+            continue
+        seen.add(file_path)
+        files.append(file_path)
+
+    for file_path in _manifest_runtime_files(folder):
         if file_path in seen:
             continue
         seen.add(file_path)

@@ -956,6 +956,7 @@
     <string name="pkg_toolpkg_subpackages">ToolPkg 하위 패키지</string>
     <string name="pkg_toolpkg_version">버전: %1$s</string>
     <string name="pkg_toolpkg_resources">리소스: %1$d</string>
+    <string name="pkg_toolpkg_wasm_modules">WASM 모듈: %1$d</string>
     <string name="pkg_toolpkg_ui_modules">UI 모듈: %1$d</string>
     <string name="pkg_toolpkg_workflow_templates">워크플로 템플릿: %1$d</string>
     <string name="pkg_toolpkg_workspace_templates">작업 공간 템플릿: %1$d</string>

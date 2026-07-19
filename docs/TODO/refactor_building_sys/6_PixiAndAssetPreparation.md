@@ -17,7 +17,7 @@ last_reviewed: 2026-07-14
 ## 旧实现情况
 
 - 仓库没有 `pixi.toml`
-- `ci/README.md` 只有 `ci/script/` 的简短目录说明
+- `ci/README.md` 已记录当前 candidate 检查和 Android 依赖准备流程，但尚未提供 pixi 任务入口
 - web-chat、toolpkg 和 MCP bridge 没有统一的 assets 生产入口
 - JS assets 没有路径、大小、SHA-256 和生产任务清单
 - 开发文档要求全局安装工具并修改持久化环境配置
