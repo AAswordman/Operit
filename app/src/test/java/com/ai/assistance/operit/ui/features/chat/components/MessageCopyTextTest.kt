@@ -37,4 +37,3 @@ class MessageCopyTextTest {
         assertEquals("<meta charset=\"utf-8\">visibleanswer", cleanMessageContentForCopy(content))
     }
 }
-
