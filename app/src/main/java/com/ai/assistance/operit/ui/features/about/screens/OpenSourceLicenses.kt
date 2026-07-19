@@ -109,6 +109,7 @@ private fun getOpenSourceLibraries(): List<OpenSourceLibrary> {
 
         // LaTeX & Math Rendering
         OpenSourceLibrary("JLatexMath-Android", "LaTeX formula rendering library", "GPL-2.0 with Classpath Exception", "https://github.com/noties/jlatexmath-android"),
+        OpenSourceLibrary("KaTeX", "LaTeX to MathML parser used for plain-text formula export", "MIT", "https://github.com/KaTeX/KaTeX"),
         OpenSourceLibrary("RenderX", "LaTeX rendering library", "MIT", "https://github.com/tech-pw/RenderX"),
 
         // Security & Crypto

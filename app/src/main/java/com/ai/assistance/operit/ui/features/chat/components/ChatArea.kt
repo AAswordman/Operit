@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -96,11 +97,14 @@ import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorS
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.LatexMathMlConverter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 清理复制文本中的内部标记，保留Markdown格式和纯文本内容
@@ -141,9 +145,13 @@ internal fun cleanMessageContentForCopy(content: String): String {
  * 将消息中的Markdown转换成适合直接粘贴使用的纯文本。
  * 代码块内容保持原样，避免把代码里的Markdown符号当成格式标记删除。
  */
-internal fun markdownToPlainTextForCopy(markdown: String): String {
+internal fun markdownToPlainTextForCopy(
+    markdown: String,
+    latexToPlainText: (List<String>) -> List<String> = { it },
+): String {
     val lines = markdown.replace("\r\n", "\n").replace('\r', '\n').split('\n')
     val output = mutableListOf<String>()
+    val latexSegments = mutableListOf<String>()
     var codeFence: String? = null
     var latexBlockEnd: String? = null
     val latexBlock = StringBuilder()
@@ -165,7 +173,7 @@ internal fun markdownToPlainTextForCopy(markdown: String): String {
         if (activeLatexBlockEnd != null) {
             if (trimmed.endsWith(activeLatexBlockEnd)) {
                 latexBlock.append(line.substringBeforeLast(activeLatexBlockEnd))
-                output += latexBlock.toString().trim()
+                output += registerLatex(latexBlock.toString().trim(), latexSegments)
                 latexBlock.clear()
                 latexBlockEnd = null
             } else {
@@ -194,7 +202,7 @@ internal fun markdownToPlainTextForCopy(markdown: String): String {
             val (start, end) = latexBlockDelimiters
             val formulaStart = trimmed.removePrefix(start)
             if (formulaStart.endsWith(end)) {
-                output += formulaStart.removeSuffix(end).trim()
+                output += registerLatex(formulaStart.removeSuffix(end).trim(), latexSegments)
             } else {
                 latexBlockEnd = end
                 latexBlock.append(formulaStart)
@@ -214,7 +222,7 @@ internal fun markdownToPlainTextForCopy(markdown: String): String {
         }
         if ((startsTable || inTable) && hasUnescapedPipe(line)) {
             output += splitMarkdownTableRow(line).joinToString("\t") {
-                markdownInlineToPlainText(it.trim())
+                markdownInlineToPlainText(it.trim(), latexSegments)
             }
             inTable = true
             return@forEachIndexed
@@ -242,33 +250,46 @@ internal fun markdownToPlainTextForCopy(markdown: String): String {
         plainLine =
             if (orderedItem != null) {
                 orderedItem.groupValues[1] +
-                    markdownInlineToPlainText(orderedItem.groupValues[2])
+                    markdownInlineToPlainText(orderedItem.groupValues[2], latexSegments)
             } else {
-                markdownInlineToPlainText(plainLine)
+                markdownInlineToPlainText(plainLine, latexSegments)
             }
         output += plainLine.trimEnd()
     }
 
-    return output
-        .fold(mutableListOf<String>()) { normalized, line ->
-            if (line.isNotBlank() || normalized.lastOrNull()?.isNotBlank() == true) {
-                normalized += line
+    val normalizedText =
+        output
+            .fold(mutableListOf<String>()) { normalized, line ->
+                if (line.isNotBlank() || normalized.lastOrNull()?.isNotBlank() == true) {
+                    normalized += line
+                }
+                normalized
             }
-            normalized
-        }
-        .dropWhile(String::isBlank)
-        .dropLastWhile(String::isBlank)
-        .joinToString("\n")
+            .dropWhile(String::isBlank)
+            .dropLastWhile(String::isBlank)
+            .joinToString("\n")
+
+    if (latexSegments.isEmpty()) return normalizedText
+    val convertedLatex = latexToPlainText(latexSegments)
+    return latexSegments.indices.fold(normalizedText) { text, index ->
+        text.replace(
+            latexPlaceholder(index),
+            convertedLatex.getOrElse(index) { latexSegments[index] }
+        )
+    }
 }
 
-private fun markdownInlineToPlainText(text: String): String {
+private fun markdownInlineToPlainText(
+    text: String,
+    latexSegments: MutableList<String>,
+): String {
     val protectedSegments = mutableListOf<String>()
     var plain = Regex("""(`+)(.*?)\1""").replace(text) { match ->
         val token = "\uE000${protectedSegments.size}\uE001"
         protectedSegments += match.groupValues[2]
         token
     }
-    plain = protectInlineLatex(plain, protectedSegments)
+    plain = protectInlineLatex(plain, protectedSegments, latexSegments)
 
     plain = plain
         .replace(Regex("""!\[([^\]]*)]\(([^)]*)\)"""), "$1")
@@ -291,6 +312,7 @@ private fun markdownInlineToPlainText(text: String): String {
 private fun protectInlineLatex(
     text: String,
     protectedSegments: MutableList<String>,
+    latexSegments: MutableList<String>,
 ): String {
     val output = StringBuilder()
     var index = 0
@@ -321,12 +343,23 @@ private fun protectInlineLatex(
 
         val formula = text.substring(formulaStart, formulaEnd)
         val token = "\uE000${protectedSegments.size}\uE001"
-        protectedSegments += formula
+        protectedSegments += registerLatex(formula, latexSegments)
         output.append(token)
         index = formulaEnd + delimiter.second.length
     }
     return output.toString()
 }
+
+private fun registerLatex(
+    formula: String,
+    latexSegments: MutableList<String>,
+): String {
+    val placeholder = latexPlaceholder(latexSegments.size)
+    latexSegments += formula
+    return placeholder
+}
+
+private fun latexPlaceholder(index: Int): String = "\uE100$index\uE101"
 
 private fun hasUnescapedPipe(line: String): Boolean {
     return line.indices.any { index ->
@@ -1355,8 +1388,16 @@ private fun MessageCopyPreviewBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val textScrollState = rememberScrollState()
     var showPlainText by remember(text) { mutableStateOf(true) }
-    val plainText = remember(text) { markdownToPlainTextForCopy(text) }
-    val displayedText = if (showPlainText) plainText else text
+    var plainText by remember(text) { mutableStateOf<String?>(null) }
+    LaunchedEffect(text, context) {
+        plainText =
+            withContext(Dispatchers.Default) {
+                markdownToPlainTextForCopy(text) { formulas ->
+                    LatexMathMlConverter.convertAll(context, formulas)
+                }
+            }
+    }
+    val displayedText = if (showPlainText) plainText.orEmpty() else text
     val copyButtonText =
         if (showPlainText) {
             stringResource(R.string.copy_plain_text)
@@ -1394,25 +1435,38 @@ private fun MessageCopyPreviewBottomSheet(
                     label = { Text(stringResource(R.string.markdown_source)) }
                 )
             }
-            SelectionContainer(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 520.dp)
-                    .verticalScroll(textScrollState)
-                    .padding(bottom = 12.dp)
-            ) {
-                Text(
-                    text = displayedText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            if (showPlainText && plainText == null) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                SelectionContainer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 520.dp)
+                        .verticalScroll(textScrollState)
+                        .padding(bottom = 12.dp)
+                ) {
+                    Text(
+                        text = displayedText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(
+                    enabled = !showPlainText || plainText != null,
                     onClick = {
                         clipboardManager.setText(AnnotatedString(displayedText))
                         Toast.makeText(

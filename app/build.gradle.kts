@@ -1,6 +1,7 @@
 import java.io.File
 import java.io.FileInputStream
 import java.util.Properties
+import org.gradle.api.tasks.Sync
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -18,6 +19,30 @@ val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
+}
+
+val katexVersion = "0.16.44"
+val katexWebJar by configurations.creating
+val generatedKatexAssets = layout.buildDirectory.dir("generated/katexAssets")
+val katexArchives =
+    katexWebJar.incoming.files.elements.map { files ->
+        files.map { zipTree(it.asFile) }
+    }
+val extractKatexAssets by tasks.registering(Sync::class) {
+    from(katexArchives) {
+        include("META-INF/resources/webjars/katex/$katexVersion/dist/katex.min.js")
+        include("META-INF/resources/webjars/katex/$katexVersion/LICENSE")
+        eachFile {
+            path =
+                if (name == "LICENSE") {
+                    "js/katex.LICENSE.txt"
+                } else {
+                    "js/katex.min.js"
+                }
+        }
+        includeEmptyDirs = false
+    }
+    into(generatedKatexAssets)
 }
 
 android {
@@ -146,6 +171,8 @@ android {
         aidl = true
         buildConfig = true
     }
+
+    sourceSets.getByName("main").assets.srcDir(generatedKatexAssets)
     
     packaging {
         
@@ -187,6 +214,10 @@ android {
 //    }
 }
 
+tasks.named("preBuild").configure {
+    dependsOn(extractKatexAssets)
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
@@ -194,6 +225,8 @@ kotlin {
 }
 
 dependencies {
+    katexWebJar("org.webjars.npm:katex:$katexVersion")
+
     implementation("com.github.jelmerk:hnswlib-core:1.2.1")
     implementation(project(":dragonbones"))
     implementation(project(":terminal"))
