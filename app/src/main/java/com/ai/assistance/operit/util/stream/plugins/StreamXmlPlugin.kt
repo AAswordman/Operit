@@ -95,16 +95,6 @@ class StreamXmlPlugin(private val includeTagsInOutput: Boolean = true) : StreamP
                 }
             }
         } else {
-            if (state == PluginState.IDLE && !atStartOfLine) {
-                val allowStart = allowStartAfterEndTag || allowStartAfterPunctuation
-                if (!allowStart) {
-                    return finish(handleDefaultCharacter(c))
-                }
-                // Allow adjacent XML after an end tag/punctuation even if separated by spaces/tabs
-                if (c == ' ' || c == '\t' || isEmojiContinuationChar(c)) {
-                    return finish(handleDefaultCharacter(c))
-                }
-            }
             // We are in IDLE or TRYING state, looking for a start tag.
             val previousState = state
             when (val result = startTagMatcher.processChar(c)) {
@@ -143,11 +133,7 @@ class StreamXmlPlugin(private val includeTagsInOutput: Boolean = true) : StreamP
                 }
                 is StreamKmpMatchResult.InProgress -> {
                     state = PluginState.TRYING
-                    // We are attempting a new start, consume the allowance
-                    // so only this potential sequence benefits from it
-                    // (if it fails below, we will clear it)
-                    // Keep it true while in-progress so subsequent chars can proceed
-                    allowStartAfterPunctuation = false
+                    updatePunctuationAllowance(c)
                     return finish(includeTagsInOutput)
                 }
                 is StreamKmpMatchResult.NoMatch -> {
