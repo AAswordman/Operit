@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.CodeOff
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.ai.assistance.operit.ui.components.CustomScaffold
@@ -327,7 +326,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val isLoadingDisplayWindow by actualViewModel.isLoadingDisplayWindow.collectAsState()
     val popupMessage by actualViewModel.popupMessage.collectAsState()
     val chatViewRuntime = if (isFloatingMode) "floating" else "main"
-    val chatViewId = rememberSaveable { UUID.randomUUID().toString() }
+    val chatViewId = remember { UUID.randomUUID().toString() }
     val currentChatView = remember(chatHistories, currentChatId) {
         chatHistories.find { it.id == currentChatId }
     }
@@ -749,7 +748,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
 
     var isSavingInitialConfiguration by remember { mutableStateOf(false) }
     var initialConfigurationSaveFailed by
-        rememberSaveable(activeChatConfigId) { mutableStateOf(false) }
+        remember(activeChatConfigId) { mutableStateOf(false) }
     val showConfig =
         shouldShowConfigDialog ||
             isSavingInitialConfiguration ||

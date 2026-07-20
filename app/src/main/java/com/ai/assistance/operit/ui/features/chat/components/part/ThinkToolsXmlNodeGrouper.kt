@@ -15,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -245,10 +244,10 @@ class ThinkToolsXmlNodeGrouper(
         // 流结束（包括用户取消后落为静态消息）默认自动收起。
         val shouldAutoExpand = hasLiveXmlStream && !hasNonConformingAfterGroup
 
-        var expanded by rememberSaveable(rendererId, group.stableKey, forceExpandGroups) {
+        var expanded by remember(rendererId, group.stableKey, forceExpandGroups) {
             mutableStateOf(forceExpandGroups || shouldAutoExpand)
         }
-        var userOverride by rememberSaveable(rendererId, group.stableKey, forceExpandGroups) {
+        var userOverride by remember(rendererId, group.stableKey, forceExpandGroups) {
             mutableStateOf<Boolean?>(null)
         }
         val appearedKeys = remember(rendererId, group.stableKey) { mutableStateMapOf<String, Boolean>() }
