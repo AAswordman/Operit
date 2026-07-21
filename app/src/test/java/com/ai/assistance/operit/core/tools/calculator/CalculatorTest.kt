@@ -40,7 +40,7 @@ class CalculatorTest {
     @Test fun `setVariable and getVariable round trip`() {
         Calculator.setVariable("x", 42.0)
         val result = Calculator.getVariable("x")
-        assertEquals(42.0, result, 0.001)
+        assertEquals(42.0, result ?: 0.0, 0.001)
     }
 
     @Test fun `getVariable returns null for undefined`() {
@@ -50,9 +50,8 @@ class CalculatorTest {
     @Test fun `clearVariables resets state`() {
         Calculator.setVariable("x", 100.0)
         Calculator.clearVariables()
-        // PI should remain
         val pi = Calculator.getVariable("PI")
-        assertEquals(Math.PI, pi, 0.001)
+        assertEquals(Math.PI, pi ?: 0.0, 0.001)
     }
 
     @Test fun `formatResult integer`() {
@@ -75,7 +74,7 @@ class CalculatorTest {
     @Test fun `evalExpression with assignment`() {
         assertEquals(7.0, Calculator.evalExpression("y = 7"), 0.001)
         val y = Calculator.getVariable("y")
-        assertEquals(7.0, y, 0.001)
+        assertEquals(7.0, y ?: 0.0, 0.001)
     }
 
     @Test fun `getSupportedUnits returns units map`() {
