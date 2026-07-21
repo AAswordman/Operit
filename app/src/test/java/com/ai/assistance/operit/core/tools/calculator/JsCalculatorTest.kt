@@ -33,7 +33,7 @@ class JsCalculatorTest {
     }
 
     @Test fun `evaluate with variable assignment`() {
-        assertEquals(10.0, JsCalculator.evaluate("x = 10"), 0.001)
+        assertEquals(10.0, JsCalculator.evaluate("x=10"), 0.001)
     }
 
     @Test fun `evaluate with variable usage`() {
@@ -173,8 +173,8 @@ class JsCalculatorTest {
     }
 
     @Test fun `evaluate compound assignment`() {
-        JsCalculator.evaluate("x = 10")
-        assertEquals(15.0, JsCalculator.evaluate("x += 5"), 0.001)
+        JsCalculator.evaluate("x=10")
+        assertEquals(15.0, JsCalculator.evaluate("x+=5"), 0.001)
     }
 
     @Test fun `evaluate pi constant`() {
