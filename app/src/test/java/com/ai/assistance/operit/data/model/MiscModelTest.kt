@@ -52,9 +52,10 @@ class MiscModelTest {
     }
 
     @Test fun `custom emoji creation`() {
-        val emoji = CustomEmoji(name = "smile", uri = "file://emoji.png")
-        assertEquals("smile", emoji.name)
-        assertEquals("file://emoji.png", emoji.uri)
+        val emoji = CustomEmoji(emotionCategory = "happy", fileName = "smile.jpg", isBuiltInCategory = true)
+        assertEquals("happy", emoji.emotionCategory)
+        assertEquals("smile.jpg", emoji.fileName)
+        assertTrue(emoji.isBuiltInCategory)
     }
 
     @Test fun `document chunk creation`() {
@@ -175,54 +176,100 @@ class MiscModelTest {
     }
 
     @Test fun `memory search config creation`() {
-        val config = MemorySearchConfig(limit = 10, minScore = 0.5)
-        assertEquals(10, config.limit)
-        assertEquals(0.5, config.minScore, 0.001)
+        val config = MemorySearchConfig(
+            scoreMode = MemoryScoreMode.BALANCED,
+            keywordWeight = 10.0f,
+            tagWeight = 0.0f,
+        )
+        assertEquals(MemoryScoreMode.BALANCED, config.scoreMode)
+        assertEquals(10.0f, config.keywordWeight, 0.001f)
+        assertEquals(0.0f, config.tagWeight, 0.001f)
     }
 
     @Test fun `memory search debug info creation`() {
         val info = MemorySearchDebugInfo(
-            searchQuery = "test query",
-            totalResults = 5,
-            searchDurationMs = 100L,
+            query = "test query",
+            keywords = listOf("test"),
+            lexicalTokens = listOf("test"),
+            scoreMode = MemoryScoreMode.BALANCED,
+            relevanceThreshold = 0.5,
+            effectiveKeywordWeight = 1.0,
+            effectiveTagWeight = 0.0,
+            effectiveSemanticWeight = 0.0f,
+            semanticKeywordNormFactor = 0.0,
+            effectiveEdgeWeight = 0.0,
+            memoriesInScopeCount = 10,
+            keywordMatchesCount = 5,
+            tagMatchesCount = 0,
+            reverseContainmentMatchesCount = 0,
+            semanticMatchesCount = 0,
+            graphEdgesTraversed = 0,
+            scoredCount = 5,
+            passedThresholdCount = 3,
+            candidates = emptyList(),
+            finalResultIds = emptyList(),
         )
-        assertEquals("test query", info.searchQuery)
-        assertEquals(5, info.totalResults)
-        assertEquals(100L, info.searchDurationMs)
+        assertEquals("test query", info.query)
+        assertEquals(5, info.keywordMatchesCount)
+        assertEquals(10, info.memoriesInScopeCount)
     }
 
-    @Test fun `operit node info creation`() {
-        val info = OperitNodeInfo(version = "1.0.0", nodeName = "main")
-        assertEquals("1.0.0", info.version)
-        assertEquals("main", info.nodeName)
-    }
-
-    @Test fun `workflow execution log creation`() {
-        val log = WorkflowExecutionLog(
+    @Test fun `workflow execution record creation`() {
+        val record = WorkflowExecutionRecord(
             workflowId = "wf1",
-            nodeId = "node1",
-            status = "completed",
-            message = "Success",
+            workflowName = "Test Workflow",
+            success = true,
+            message = "Completed",
         )
-        assertEquals("wf1", log.workflowId)
-        assertEquals("node1", log.nodeId)
-        assertEquals("completed", log.status)
-        assertEquals("Success", log.message)
+        assertEquals("wf1", record.workflowId)
+        assertEquals("Test Workflow", record.workflowName)
+        assertTrue(record.success)
+        assertEquals("Completed", record.message)
     }
 
     @Test fun `chat message locator preview creation`() {
-        val preview = ChatMessageLocatorPreview(messageId = 1L, previewText = "Hello")
-        assertEquals(1L, preview.messageId)
-        assertEquals("Hello", preview.previewText)
+        val preview = ChatMessageLocatorPreview(
+            timestamp = 1000L,
+            sender = "user",
+            previewContent = "Hello",
+            contentLength = 5,
+            displayMode = ChatMessageDisplayMode.NORMAL.name,
+            isFavorite = false,
+        )
+        assertEquals(1000L, preview.timestamp)
+        assertEquals("Hello", preview.previewContent)
+        assertEquals(ChatMessageDisplayMode.NORMAL, preview.resolvedDisplayMode)
     }
 
     @Test fun `memory space creation`() {
-        val space = MemorySpace(name = "Default")
+        val space = MemorySpace(id = "default", name = "Default")
+        assertEquals("default", space.id)
         assertEquals("Default", space.name)
     }
 
+    @Test fun `operit node info creation`() {
+        val info = OperitNodeInfo(
+            className = "android.widget.Button",
+            packageName = "com.example",
+            text = "Submit",
+            contentDescription = null,
+            viewIdResourceName = null,
+            boundsInScreen = "[0,0][100,50]",
+            isClickable = true,
+            isVisibleToUser = true,
+            isFocused = false,
+            isChecked = false,
+        )
+        assertEquals("android.widget.Button", info.className)
+        assertEquals("com.example", info.packageName)
+        assertEquals("Submit", info.text)
+        assertTrue(info.isClickable)
+        assertTrue(info.isVisibleToUser)
+    }
+
     @Test fun `chat turn options creation`() {
-        val options = ChatTurnOptions(turnType = "normal")
-        assertEquals("normal", options.turnType)
+        val options = ChatTurnOptions(persistTurn = true, hideUserMessage = false)
+        assertTrue(options.persistTurn)
+        assertFalse(options.hideUserMessage)
     }
 }

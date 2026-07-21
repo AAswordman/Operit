@@ -318,19 +318,6 @@ class ExpressionContextTest {
         assertEquals("0.000001", ExpressionContext.formatResult(0.000001))
     }
 
-    @Test fun `getArrayElement with string index`() {
-        ExpressionContext.setVariable("s", 0.0) // dummy, we need a string variable
-        // Use VariableNode pointing to a string value
-        val arrNode = object : ExpressionNode {
-            override fun evaluate(): Double {
-                // Return the character code of 'H' in "Hello"
-                val str = "Hello"
-                return 'H'.code.toDouble()
-            }
-        }
-        // We test through the VariableNode path by setting a variable
-    }
-
     @Test fun `getArrayElement with list out of bounds returns nan`() {
         ExpressionContext.setVariable("arr", 0.0) // dummy
         // This test validates the getArrayElement logic directly

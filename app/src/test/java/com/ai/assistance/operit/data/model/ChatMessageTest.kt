@@ -113,8 +113,8 @@ class ChatMessageTest {
 
     @Test fun `copy with display mode`() {
         val msg = ChatMessage(sender = "ai")
-        val copy = msg.copy(displayMode = ChatMessageDisplayMode.PRIVATE)
-        assertEquals(ChatMessageDisplayMode.PRIVATE, copy.displayMode)
+        val copy = msg.copy(displayMode = ChatMessageDisplayMode.HIDDEN_PLACEHOLDER)
+        assertEquals(ChatMessageDisplayMode.HIDDEN_PLACEHOLDER, copy.displayMode)
     }
 
     @Test fun `is variant preview defaults to false`() {
