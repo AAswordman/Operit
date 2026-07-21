@@ -23,8 +23,8 @@ class ModelParameterTest {
         assertEquals(0.8, param.currentValue, 0.001)
         assertTrue(param.isEnabled)
         assertEquals(ParameterValueType.FLOAT, param.valueType)
-        assertEquals(0.0, param.minValue, 0.001)
-        assertEquals(2.0, param.maxValue, 0.001)
+        assertEquals(0.0, (param.minValue as Double), 0.001)
+        assertEquals(2.0, (param.maxValue as Double), 0.001)
         assertEquals(ParameterCategory.CREATIVITY, param.category)
     }
 
