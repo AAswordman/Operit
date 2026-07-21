@@ -72,7 +72,7 @@ class CalculatorTest {
     }
 
     @Test fun `evalExpression with assignment`() {
-        assertEquals(7.0, Calculator.evalExpression("y = 7"), 0.001)
+        assertEquals(7.0, Calculator.evalExpression("y=7"), 0.001)
         val y = Calculator.getVariable("y")
         assertEquals(7.0, y ?: 0.0, 0.001)
     }

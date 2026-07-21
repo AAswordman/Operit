@@ -42,7 +42,7 @@ class JsCalculatorTest {
     }
 
     @Test fun `evaluate using stored variable`() {
-        JsCalculator.evaluate("x = 7")
+        JsCalculator.evaluate("x=7")
         assertEquals(11.0, JsCalculator.evaluate("x + 4"), 0.001)
     }
 

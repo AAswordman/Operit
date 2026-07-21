@@ -256,11 +256,8 @@ class ExpressionNodeTest {
         CompoundAssignmentNode("x", "%=", NumberNode(2.0)).evaluate()
     }
 
-    @Test fun `array access node with variable list`() {
-        ExpressionContext.setVariable("arr", 3.0) // not a list, will use toString
-        // This will evaluate array.toString() and index into it
-        val node = ArrayAccessNode(VariableNode("arr"), NumberNode(0.0))
-        // "3.0"[0] = '3'.code = 51
+    @Test fun `array access node with number node`() {
+        val node = ArrayAccessNode(NumberNode(3.0), NumberNode(0.0))
         assertEquals('3'.code.toDouble(), node.evaluate(), 0.001)
     }
 

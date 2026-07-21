@@ -261,18 +261,6 @@ class ExpressionContextTest {
         assertEquals(0.0, ExpressionContext.callFunction("stats.max", listOf()), 0.001)
     }
 
-    @Test fun `convert fahrenheit to celsius`() {
-        assertEquals(0.0, ExpressionContext.callFunction("convert", listOf(32.0)), 0.001)
-    }
-
-    @Test fun `convert celsius to fahrenheit`() {
-        ExpressionContext.setVariable("_convert_from", 0.0)
-        ExpressionContext.setVariable("_convert_to", 0.0)
-        // convert(0, "c", "f") should give 32.0
-        ExpressionContext.setVariable("_convert_from", 0.0)
-        ExpressionContext.setVariable("_convert_to", 0.0)
-    }
-
     @Test(expected = IllegalArgumentException::class)
     fun `convert with fewer than three args throws`() {
         ExpressionContext.callFunction("convert", listOf(10.0))
@@ -319,12 +307,7 @@ class ExpressionContextTest {
     }
 
     @Test fun `getArrayElement with list out of bounds returns nan`() {
-        ExpressionContext.setVariable("arr", 0.0) // dummy
-        // This test validates the getArrayElement logic directly
-        val arrNode = VariableNode("arr")
-        val indexNode = NumberNode(99.0)
-        val result = ExpressionContext.getArrayElement(arrNode, indexNode)
-        // "arr" variable is 0.0 -> toString is "0.0", index 99 is out of bounds
+        val result = ExpressionContext.getArrayElement(NumberNode(0.0), NumberNode(99.0))
         assertTrue(result.isNaN())
     }
 

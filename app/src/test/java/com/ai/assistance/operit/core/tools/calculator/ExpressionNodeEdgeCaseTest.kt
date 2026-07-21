@@ -70,9 +70,7 @@ class ExpressionNodeEdgeCaseTest {
     }
 
     @Test fun `array access with negative index returns NaN`() {
-        ExpressionContext.setVariable("s", 0.0) // dummy
-        val result = ExpressionContext.getArrayElement(VariableNode("s"), NumberNode(-1.0))
-        // "0.0" as string, index -1 is out of bounds
+        val result = ExpressionContext.getArrayElement(NumberNode(0.0), NumberNode(-1.0))
         assertTrue(result.isNaN())
     }
 

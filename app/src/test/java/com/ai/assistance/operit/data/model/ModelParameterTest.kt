@@ -19,12 +19,12 @@ class ModelParameterTest {
         assertEquals("temp", param.id)
         assertEquals("Temperature", param.name)
         assertEquals("temperature", param.apiName)
-        assertEquals(0.7, param.defaultValue)
-        assertEquals(0.8, param.currentValue)
+        assertEquals(0.7, param.defaultValue, 0.001)
+        assertEquals(0.8, param.currentValue, 0.001)
         assertTrue(param.isEnabled)
         assertEquals(ParameterValueType.FLOAT, param.valueType)
-        assertEquals(0.0, param.minValue)
-        assertEquals(2.0, param.maxValue)
+        assertEquals(0.0, param.minValue, 0.001)
+        assertEquals(2.0, param.maxValue, 0.001)
         assertEquals(ParameterCategory.CREATIVITY, param.category)
     }
 
