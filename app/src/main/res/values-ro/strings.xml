@@ -2,13 +2,13 @@
  <resources>
 <string name="app_name">Operit AI</string>
 <string name="accessibility_service_description">Folosit pentru a obține ierarhia UI, oferind capabilități mai rapide analiză interfeței pentru asistenții AI și nu colectează și nu stochează informații personale.</string>
-    
+
     <!-- Model selector related -->
 <string name="model_selector_title">Selectați Configurația modelului</string>
 <string name="model_selector_toggle">Afișați selectorul de modele</string>
 <string name="model_selector_toggle_desc">Afișați selectorul de configurare a modelului în partea de sus a interfeței de chat pentru a comuta ușor între configurații diferite de model</string>
 <string name="model">Model</string>
-    
+
     <!-- Navigation -->
 <string name="nav_ai_chat">Chat AI</string>
 <string name="nav_adb_commands">Permisiuni</string>
@@ -134,7 +134,7 @@
 <string name="token_config">Obțineți API Cheie</string>
 <string name="package_category_plugin">Plugin</string>
 <string name="desktop_pet_start">Pornește Animalul de Companie</string>
-    
+
     <!-- Workflow related -->
 <string name="workflow_list_title">Flux de lucru Listă</string>
 <string name="workflow_create">Creează Flux de lucru</string>
@@ -339,18 +339,18 @@
 <string name="current_notifications">Curent Notificări</string>
 <string name="current_location">Curent Locație</string>
 <string name="screen_ocr_select">Selectează OCR</string>
-    
+
     <!-- Model Suggestion Dialog -->
 <string name="model_suggestion_title">Sugestie Model</string>
 <string name="model_suggestion_message">Modelul curent pe care îl folosiți are capacități limitate și poate afecta experiența dumneavoastră de utilizator. Vă recomandăm să treceți la un model mai puternic.</string>
 <string name="change_model">Schimbă modelul</string>
 <string name="ignore">Ignoră</string>
-    
+
     <!-- Permission Request -->
 <string name="requested_operation">Requested Operație</string>
 <string name="used_tool">Unealtă folosită</string>
 <string name="tool_category">Unealtă Categorie</string>
-    
+
     <!-- Assistant Config Screen -->
 <string name="assistant_config_title">Configurare asistent</string>
 <string name="import_model">Importă Model</string>
@@ -545,7 +545,7 @@ DragonBones Intern (.zip)
 <string name="character_card_change_prompt">Cardul de personaj s-a schimbat. Doriți să mergeți la gestionarea chatului pentru a gestiona chaturile legate de acesta?</string>
 <string name="go_to_chat_management">Du-te la Gestionarea Chatului</string>
 <string name="maybe_later">Poate Mai târziu</string>
-    
+
     <!-- Chat History Management Screen -->
 <string name="chat_history_manager">Manager Istoric Chat</string>
 <string name="export_chat_history">Exportă Istoric chat</string>
@@ -561,14 +561,14 @@ DragonBones Intern (.zip)
 <string name="current_chats">În prezent %1$d conversații</string>
 <string name="backup_location">Fișierele de rezervă sunt salvate în folderul "Descărcare/Operit"</string>
 <string name="faq_backup">Întrebări frecvente</string>
-    
+
     <!-- Terminal Screen -->
 <string name="termux_not_installed">Termux Nu Instalat</string>
 <string name="termux_not_running">Termux Nu Rulează</string>
 <string name="termux_command">Termux Comandă</string>
 <string name="execute_termux_command">Execută Comandă</string>
 <string name="termux_result">Comandă Rezultat</string>
-    
+
     <!-- Termux Installation -->
 <string name="install_termux_title">Instalează Termux</string>
 <string name="install_termux_from_store">Instalează Termux din Aplicație Store</string>
@@ -577,7 +577,7 @@ DragonBones Intern (.zip)
 <string name="install_termux_failed">Termux Installation Eșuat</string>
 <string name="open_termux">Deschide Termux</string>
 <string name="termux_setup_guide">Termux Configurare Ghid</string>
-    
+
     <!-- About Screen -->
 <string name="about_title">Despre Operit AI</string>
 <string name="about_version">Versiune: %1$s</string>
@@ -590,7 +590,7 @@ DragonBones Intern (.zip)
 <string name="update_log">Actualizează Jurnal</string>
 <string name="app_logo_description">Aplicație Logo</string>
 <string name="github_star_description">Stea GitHub</string>
-    
+
     <!-- AI Chat Screen -->
 <string name="configure_ai">Configurați AI API</string>
 <string name="api_endpoint">Endpoint API</string>
@@ -616,7 +616,7 @@ DragonBones Intern (.zip)
 <string name="config_use_free">Fleece din contributors</string>
 <string name="config_custom">Personalizat</string>
 <string name="config_free_usage_exceeded">Liber daily usage Limitațiă reached</string>
-    
+
     <!-- One-click configuration related -->
 <string name="one_click_config_title">One-Click Configurație</string>
 <string name="one_click_config_loading">Se încarcă Configurație...</string>
@@ -628,13 +628,13 @@ DragonBones Intern (.zip)
 <string name="one_click_config_login_prompt">Vă rugăm Autentificare sau Înregistrează</string>
 <string name="one_click_config_info_text">Te rugăm să te autentifici sau să te înregistrezi mai întâi, sistemul va obține automat cheia API după autentificare</string>
 <string name="one_click_config_getting_key">Getting API Cheie...</string>
-    
+
     <!-- Token Info Dialog -->
 <string name="token_info_title">Obțineți DeepSeek API Token</string>
 
 <string name="token_info_cancel">Anulează</string>
 <string name="token_info_confirm">Obțineți Token</string>
-    
+
     <!-- Free Usage Dialog -->
 <string name="free_usage_title">Confirmă Liber Resource Usage</string>
 <string name="free_usage_message_1">Vă rugăm să folosiți cu moderație, resursele noastre sunt limitate</string>
@@ -653,7 +653,7 @@ DragonBones Intern (.zip)
 <string name="free_usage_interval_tip">Pentru a preveni falimentul dezvoltatorului, timpul de așteptare se dublează după fiecare utilizare~</string>
 <string name="free_usage_first_tip">Aceasta este prima dvs. utilizare, data viitoare va trebui să așteptați 1 zi~</string>
 <string name="free_usage_later_tip">Liber stuff comes cu Limite, vă rugăm wait %1$d Mai multe Zile (๑•̀ㅂ•́)و✧</string>
-    
+
     <!-- Plugin Loading Screen -->
 <string name="plugin_skip">Sari</string>
 <string name="plugin_app_name">OPERIT</string>
@@ -836,7 +836,7 @@ DragonBones Intern (.zip)
 <string name="theme_loop_on">Dezactivează Buclă</string>
 <string name="theme_loop_enabled">Buclă playback Activat</string>
 <string name="theme_loop_disabled">Buclă playback Dezactivat</string>
-    
+
     <!-- Floating Window -->
 <string name="floating_chat_window">Fereastră de chat flotantă</string>
 <string name="enable_floating_mode">Activează Floating Fereastră</string>
@@ -844,14 +844,14 @@ DragonBones Intern (.zip)
 <string name="overlay_permission_required">Overlay Permisiune Obligatoriu</string>
 <string name="overlay_permission_denied">Overlay Permisiune Refuzat, cannot Afișează floating Fereastră</string>
 <string name="close_floating_window">Închide Floating Fereastră</string>
-    
+
     <!-- Microphone Permission -->
 <string name="microphone_permission">Microphone Permisiune</string>
 <string name="microphone_permission_required">Microphone Permisiune Obligatoriu</string>
 <string name="microphone_permission_desc">Permite aplicație la înregistrează audio pentru voce intrare și vorbire recognition</string>
 <string name="microphone_permission_denied">Microphone Permisiune Refuzat, cannot Activează floating Fereastră Caracteristică</string>
 <string name="microphone_permission_floating_required">Floating Fereastră Caracteristică Necesită microphone Permisiune pentru voce interaction</string>
-    
+
     <!-- AI Tools -->
 <string name="max_mode_title">Maxim Mod</string>
 <string name="max_mode_info">Când Modul Maxim (context extra-mare) este activat, fereastra de context este %2$sk. Opriți-l pentru a reveni la %1$sk. Puteți personaliza aceste valori în</string>
@@ -870,7 +870,7 @@ DragonBones Intern (.zip)
 <string name="tool_calculator">Calculator</string>
 <string name="tool_web_search">Web Caută</string>
 <string name="enhanced_service_not_initialized">Enhanced AI serviciu nu Inițializat, vă rugăm check setări</string>
-    
+
     <!-- Settings Screen -->
 <string name="settings">setări</string>
 <string name="no_settings">Nu setări Disponibil</string>
@@ -881,7 +881,7 @@ DragonBones Intern (.zip)
 <string name="show_thinking">Arată Thinking Proces</string>
 <string name="show_fps_counter">Arată FPS Counter</string>
 <string name="fps_counter_description">Afișează FPS în timp real în colțul din dreapta sus</string>
-    
+
     <!-- Settings Screen Sections -->
 <string name="settings_section_personalization">Personalizare</string>
 <string name="settings_user_preferences">Utilizator Preferences</string>
@@ -900,11 +900,11 @@ DragonBones Intern (.zip)
 <string name="settings_chat_history_management">Gestionare Istoric Chat</string>
 <string name="settings_chat_history_management_subtitle">Vizualizare stats și batch organize dumneavoastră conversations</string>
 <string name="settings_manage_backup">Gestionați Faceți copie de rezervă</string>
-    
+
 <string name="reset_successful">Resetează Successfully</string>
 <string name="reset_default_character">Resetează Implicit Personaj</string>
 <string name="reset_default_character_confirm">Sunteți sigur că doriți să resetați cardul de personaj implicit? Aceasta va restaura numele, setările și prompturile implicite și va reseta avatarul și tema.</string>
-    
+
 <string name="settings_section_ai_model">Configurare model AI</string>
 <string name="settings_model_parameters">Model și Parametru Configurație</string>
 <string name="settings_model_parameters_desc">Configurați API setări, Nume model și Parametri, cu Suport pentru Multiplu Configurație gestionare</string>
@@ -912,7 +912,7 @@ DragonBones Intern (.zip)
 <string name="settings_functional_model">Configurare model funcțional</string>
 <string name="settings_functional_model_desc">Configurați specialized modele și API setări pentru different Funcții (astfel as Chat, summarization, Memorie, etc.)</string>
 <string name="settings_configure_function">Configurați Funcție</string>
-    
+
 <string name="settings_section_context_summary">Context și Rezumat</string>
 <string name="settings_enable_summary">Activează Conversație Rezumat</string>
 <string name="settings_enable_summary_desc">Generează automat rezumate ale conversațiilor când contextul este prea lung pentru a economisi consumul de tokenuri</string>
@@ -922,7 +922,7 @@ DragonBones Intern (.zip)
 <string name="settings_summary_message_count_threshold_subtitle">Număr din mesaje nou la declanșează rezumat (1-20)</string>
 <string name="settings_summary_custom_rules">Personalizat Rezumat Rules</string>
 <string name="settings_summary_custom_rules_desc">Extra rules Trimis când summarizing conversație. Părăsește blank pentru Niciunul</string>
-    
+
 <string name="settings_section_display">Afișează și Behavior</string>
 
 <string name="settings_keep_screen_on">Keep Ecran Pornit</string>
@@ -935,12 +935,12 @@ DragonBones Intern (.zip)
 <string name="notification_permission_denied">Permisiunea de notificare a fost respinsă, nu veți primi notificări cu răspunsurile AI</string>
 <string name="settings_auto_accessibility">Automat-acordați Accessibility Permisiune</string>
 <string name="settings_auto_accessibility_desc">Când este dezactivată, autorizarea manuală este necesară de fiecare dată când aplicația este deschisă</string>
-    
+
 <string name="settings_section_permissions">Permisiuni și Security</string>
 <string name="settings_tool_permissions">Unealtă Permisiune Setări</string>
 <string name="settings_tool_permissions_desc">Configurați Permisiune levels pentru AI assistant instrumente, poate be setați la automat-permiteți, ask, sau refuză</string>
 <string name="settings_configure_permissions">Configurați Permisiuni</string>
-    
+
 <string name="settings_section_usage">Statistici de Utilizare</string>
 <string name="settings_section_external_calls">Calls Extern</string>
 <string name="settings_token_statistics">Statistici Token</string>
@@ -954,7 +954,7 @@ DragonBones Intern (.zip)
 <string name="settings_preference_input_token">Preferință Analysis Tokeni de intrare</string>
 <string name="settings_preference_output_token">Preferință Analysis Ieșire Tokens</string>
 <string name="settings_total">Total</string>
-    
+
     <!-- Shizuku Command Screen -->
 <string name="shizuku_command_executor">Shizuku ADB Comandă Executor</string>
 <string name="device_info">Dispozitiv Informații</string>
@@ -989,13 +989,13 @@ DragonBones Intern (.zip)
 <string name="grant_permission_first">Vă rugăm Acordă Shizuku Permisiune</string>
 <string name="feature_unavailable">ADB Comandă Caracteristică Indisponibil</string>
 <string name="thinking_process">Gândire Proces</string>
-    
+
     <!-- Built-in Shizuku -->
 <string name="install_from_store">Instalează Shizuku din Aplicație Store</string>
 <string name="install_bundled">Instalează Bundled Versiune (v%1$s)</string>
 <string name="installing_bundled">Se instalează bundled Shizuku, vă rugăm Acordă installation Permisiune</string>
 <string name="install_failed">Instalarea Shizuku încorporată a eșuat, încercați să instalați din magazinul de aplicații</string>
-    
+
     <!-- User Preferences -->
 <string name="user_preferences_guide">Personalizare</string>
 <string name="user_preferences">Utilizator Preferences</string>
@@ -1021,7 +1021,7 @@ DragonBones Intern (.zip)
 <string name="tag_count_lock">Blochează Număr</string>
 <string name="tag_count_limit">Maxim selectable</string>
 <string name="tag_count_locked_status">Selectat %1$d / Limitațiă %2$d</string>
-    
+
     <!-- Package Manager Screen -->
 <string name="packages">Pachete</string>
 <string name="skills">Competențe</string>
@@ -1066,7 +1066,7 @@ DragonBones Intern (.zip)
 <string name="import_failed">Import eșuat: %1$s</string>
 <string name="package_import_failed">Pachet Import eșuat</string>
 <string name="package_remove_failed">Pachet removal Eșuat</string>
-    
+
     <!-- OperScript Execution -->
 <string name="run_script">Rulează Script</string>
 <string name="edit_script">Editează Script</string>
@@ -1081,10 +1081,10 @@ DragonBones Intern (.zip)
 <string name="script_execution_success">Script Execuție successful</string>
 <string name="script_execution_error">Script Execuție Eroare: %1$s</string>
 <string name="missing_parameters">Missing Parametri: Obligatoriu %1$s</string>
-    
+
 <string name="save_changes">Salvează modificările</string>
 <string name="back_to_list">Înapoi la listăă</string>
-    
+
     <!-- Language Settings -->
 <string name="language_settings">Limbă Setări</string>
 <string name="language_settings_desc">Schimbați Afișează Limbă din aplicație</string>
@@ -1093,7 +1093,7 @@ DragonBones Intern (.zip)
 <string name="language_info">Aplicația va reporni automat pentru a aplica noua setare de limbă</string>
 <string name="language_changing">Changing Limbă...</string>
 <string name="language_changed">Limbă changed, restarting aplicație</string>
-    
+
     <!-- User Agreement Screen -->
 <string name="agreement_title">Utilizator Acord și Confidențialitate Politică</string>
 <string name="agreement_subtitle">Vă rugăm read și agree la următoarele termeni înainte utilizați.</string>
@@ -1106,18 +1106,18 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="agreement_disclaimer">If acolo is Oricare inconsistency sau conflict între "Plain Limbă Versiune" și "Formal Legal Acord", "Formal Legal Acord" in Chinese va prevail. reserve Noi Final Dreapta din interpretation.</string>
 <string name="agreement_accept">Am citit și sunt de acord</string>
 <string name="agreement_wait">Vă rugăm, wait... (%1$d)</string>
-    
+
     <!-- File Manager -->
 <string name="files_selected">%1$d Fișiere Selectat</string>
 <string name="file_count">%1$d Elemente</string>
-    
+
     <!-- Search Dialog -->
 <string name="search_files">Caută Fișiere</string>
 <string name="searching">Se caută...</string>
 <string name="case_sensitive">Sensibil la majuscule</string>
 <string name="use_wildcard">Utilizați wildcard</string>
 <string name="search">Caută</string>
-    
+
     <!-- File Operations -->
 <string name="new_folder">Dosar Nou</string>
 <string name="folder_name">Dosar Nume</string>
@@ -1150,12 +1150,12 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="permission_guide_welcome">Bun venit</string>
 <string name="permission_guide_basic_permissions">De bază Permisiuni</string>
 <string name="permission_guide_permission_level">Permisiune Nivel</string>
-    
+
 <string name="permission_guide_welcome_title">Bun venit</string>
 <string name="permission_guide_welcome_desc">Înainte folosind aplicație, trebuie noi la setați sus unele de bază permisiuni și selectează dumneavoastră preferred permisiune nivel.</string>
 <string name="permission_guide_welcome_hint">Acest Proces takes doar puține Minute și va Ajutor aplicație serve you better.</string>
 <string name="permission_guide_welcome_start">Fă clic buton in lower Dreapta corner la începeți configurare</string>
-    
+
 <string name="permission_guide_basic_title">De bază Permisiuni</string>
 <string name="permission_guide_basic_desc">Vă rugăm Acordă următoarele De bază Permisiuni la ensure aplicație funcții properly</string>
 <string name="permission_guide_storage_title">Stocare Permisiune</string>
@@ -1168,12 +1168,12 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="permission_guide_location_desc">Permite aplicație la acces locație informații</string>
 <string name="permission_guide_check_permissions">Verifică Permisiune Stare</string>
 <string name="permission_guide_all_granted">Toate De bază Permisiuni Acordat, you poate continuați la următorul pas</string>
-    
+
 <string name="permission_guide_warning_title">Incomplete Permisiuni</string>
 <string name="permission_guide_warning_message">You aveți nu Acordat Toate Permisiuni, Necesar care poate rezultat in incomplete functionality sau Anormal aplicație behavior. Sunteți you sigur you doriți la continuați?</string>
 <string name="permission_guide_warning_continue">Continuați</string>
 <string name="permission_guide_warning_return">Înapoi la permisiuni</string>
-    
+
 <string name="permission_guide_level_title">Selectează Permisiune Nivel</string>
 <string name="permission_guide_level_desc">Vă rugăm Selectează dumneavoastră preferred Permisiune Nivel, care va determine Interval din caracteristici aplicație poate utilizați</string>
 <string name="permission_guide_standard_title">Standard Permisiuni</string>
@@ -1186,23 +1186,23 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="permission_guide_root_desc">Superuser Permisiuni, poate perform Oricare Sistem Operații</string>
 <string name="permission_guide_confirm">Confirmă Selecție</string>
 <string name="permission_guide_change_anytime">You poate schimbați Permisiune Nivel in setări at Oricare Timp</string>
-    
+
     <!-- Permission Guide Toast Messages -->
 <string name="permission_guide_storage_setting_failed">Cannot Deschide Stocare Permisiune setări, vă rugăm autorizați manually</string>
 <string name="permission_guide_overlay_setting_failed">Cannot Deschide overlay setări, vă rugăm autorizați manually</string>
 <string name="permission_guide_battery_hint">Vă rugăm Găsește aplicație in Listă și setați it la \"nu optimized\"</string>
 <string name="permission_guide_battery_setting_failed">Cannot Deschide Baterie optimization setări, vă rugăm setați manually</string>
-    
+
     <!-- Permission Status Description -->
 <string name="permission_guide_granted">Acordat</string>
 <string name="permission_guide_not_granted">Nu Acordat</string>
 <string name="permission_guide_selected">Selectat</string>
-    
+
     <!-- Wizard Cards Common -->
 <string name="wizard_collapse">Restrânge</string>
 <string name="wizard_expand">Extinde</string>
 <string name="wizard_open_docs">Documentație oficială</string>
-    
+
     <!-- RootWizardCard -->
 <string name="root_wizard_title">Root Permisiune Configurare Wizard</string>
 <string name="root_wizard_step1">Pas 1: Root Dispozitiv</string>
@@ -1218,7 +1218,7 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="root_wizard_device_not_rooted">Dumneavoastră Dispozitiv is nu rooted. ROOT Necesită specific Sistem modifications și poate void dumneavoastră warranty. If you trebuie la utilizați root caracteristici, vă rugăm finalizează dispozitiv root proces primul.</string>
 <string name="root_wizard_risk_notice">Nuă: Root Operație Risk Avertisment</string>
 <string name="root_wizard_risk_details">1. ROOT Operații carry risk și poate void dumneavoastră warranty\n2. Unele apps poate refuse la rulează pornit rooted devices\n3. improper root operații poate cause sistem instability</string>
-    
+
     <!-- ShizukuWizardCard -->
 <string name="shizuku_wizard_title">Shizuku Configurare Wizard</string>
 <string name="shizuku_wizard_update_title">Shizuku Actualizează Wizard</string>
@@ -1244,7 +1244,7 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="shizuku_wizard_current_version">Curent Versiune: %1$s</string>
 <string name="shizuku_wizard_latest_version">Latest Versiune: %1$s</string>
 <string name="shizuku_wizard_update">Actualizează Shizuku</string>
-    
+
     <!-- TermuxWizardCard -->
 <string name="termux_wizard_title">Termux Configurare Wizard</string>
 <string name="termux_wizard_step1">Pas 1: Instalează Termux</string>
@@ -1289,7 +1289,7 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="termux_wizard_success_title">Felicitări! Termux environment is fully configured</string>
 <string name="termux_wizard_success_message">You poate Acum utilizați Termux pentru diverse Comandă Linie Operații</string>
 <string name="termux_wizard_open">Deschide Termux</string>
-    
+
     <!-- ShizukuDemoScreen -->
 <string name="shizuku_demo_loading">Se încarcă aplicație Stare...</string>
 <string name="shizuku_demo_permission_failed">Cannot Deschide Permisiune setări</string>
@@ -1339,7 +1339,7 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="battery_optimization">Baterie Optimization Exemption</string>
 <string name="location_permission">Locație Permisiune</string>
 <string name="operit_terminal">Terminal Operit</string>
-    
+
     <!-- Permission Level Descriptions -->
 <string name="permission_level_standard">Standard Permisiune</string>
 <string name="permission_level_accessibility">Accessibility Permisiune</string>
@@ -1356,12 +1356,12 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="permission_level_admin_full_desc">Admin Permisiuni: Allows aplicație la acces mai multe sistem funcții, astfel as locație services</string>
 <string name="permission_level_debugger_full_desc">Depanare Permisiuni: Allows Avansat Operații prin ADB debugging Funcții, Necesită Shizuku serviciu</string>
 <string name="permission_level_root_full_desc">Root Permisiuni: Allows aplicație la rulează as superuser, necesită rooted dispozitiv</string>
-    
+
     <!-- Root Status Information -->
 <string name="root_access_granted">Aplicație are gained Root Acces, poate Execută privileged Comenzi</string>
 <string name="device_rooted_request_permission">Dispozitiv is rooted, Fă clic la solicitare aplicație permisiuni</string>
 <string name="device_not_rooted">Dispozitivul nu este rootat, imposibil de obținut permisiuni de root</string>
-    
+
     <!-- Toast Messages -->
 <string name="toast_download_link_failed">Unable deschide descarcă link</string>
 <string name="toast_apk_extract_failed">Eșuat la extrage apk, vă rugăm try din nou mai târziu</string>
@@ -1371,7 +1371,7 @@ OperitAI este software liber și open-source. Caracteristicile sale de automatiz
 <string name="toast_skip_tuna_source_dialog">Ați ales să săriți configurarea oglinzii tuna. Pentru configurare manuală mai târziu, rulați următoarea comandă în termux:
 
 termux-change-repo</string>
-    
+
     <!-- Chat History Selector -->
 <string name="chat_history">Istoric chat</string>
 <string name="search_chat_history_hint">Caută</string>
@@ -1385,7 +1385,7 @@ termux-change-repo</string>
 <string name="chat_shared_file_target_recent_section">Ultimele 5 conversații</string>
 <string name="chat_shared_file_target_current_badge">Curent conversație</string>
 <string name="chat_shared_file_target_no_recent">Nu Recent conversations sunteți Disponibil încă. You poate Creează one Nou directly.</string>
-    
+
     <!-- Chat Screen Header -->
 <string name="exit_edit_mode">Ieșire Editează Mod</string>
 <string name="enter_edit_mode">Intră Editează Mod</string>
@@ -1400,7 +1400,7 @@ termux-change-repo</string>
 <string name="ask">Întreabă</string>
 <string name="ai_planning_mode">Adânc Caută</string>
 <string name="disabled">Dezactivat</string>
-    
+
     <!-- Termux Related -->
 <string name="termux_not_installed_message">Vă rugăm Instalează Termux Primul</string>
 <string name="termux_manual_auth_title">Autorizare Manuală Obligatorie</string>
@@ -1434,7 +1434,7 @@ termux-change-repo</string>
 <string name="crash_report_copy_success">Copiat la clipboard</string>
 <string name="crash_report_export_success">Raport de eroare exportat to\n%1$s</string>
 <string name="crash_report_export_failed">Exportă Eșuat: %1$s</string>
-    
+
     <!-- Model Prompts Settings Screen -->
 <string name="model_prompts_title">Prompt Setări</string>
 <string name="select_persona_config">Selectează AI Assistant Persona Card Configurație</string>
@@ -1461,7 +1461,7 @@ termux-change-repo</string>
 <string name="create">Creează</string>
 <string name="unnamed_config">Unnamed Configurație</string>
 <string name="delete_config">Șterge</string>
-    
+
     <!-- Functional Prompt Config Screen -->
 <string name="functional_prompt_title">Functional Prompt Configurație</string>
 <string name="functional_prompt_desc">Setați Separat prompt configurations pentru different Funcții, șadar fiecare Funcție poate utilizați cele mai suitable prompts.</string>
@@ -1476,11 +1476,11 @@ termux-change-repo</string>
 <string name="voice_function_desc">Voce interaction Funcție, Personalizează voce assistant prompt Configurație</string>
 <string name="desktop_pet_function">Animal de companie pe desktop</string>
 <string name="desktop_pet_function_desc">Funcție animal de companie pe desktop, personalizează personalitatea și stilul de interacțiune al animalului de companie</string>
-    
+
     <!-- Desktop Pet Service Notification -->
 <string name="pet_service_notification_title">Animal de companie pe desktop Serviciu</string>
 <string name="pet_service_notification_text">Animalul de companie pe desktop rulează</string>
-    
+
     <!-- Settings Screen Additional Strings -->
 <string name="settings_prompt_section">Prompt Configurație</string>
 <string name="settings_prompt_title">Personaj Card Editor</string>
@@ -1562,7 +1562,7 @@ termux-change-repo</string>
 
 <string name="accessibility_risk_warning_title">Accessibility Serviciu Risk Avertisment</string>
 <string name="accessibility_risk_warning_message">În timp ce enabling accessibility serviciu poate Viteză sus UI Operații, Unele apps poate detectați acest serviciu și impose restrictions, including Cont bans. Vă rugăm Activează numai după understanding și accepting associated risks.</string>
-    
+
 <string name="accessibility_risk_warning_additional">Vă rugăm notați: Modul de depanare are deja capacități de operare UI. Activarea serviciului de accesibilitate accelerează doar operațiile UI, dar crește riscul de interdicții ale conturilor. Cu excepția cazului în care aveți nevoie de viteză maximă, nu este recomandat. Dacă este activat, vă rugăm să-l dezactivați imediat după utilizare.</string>
 <string name="accessibility_risk_warning_input">Scrie „Înțeleg și recunosc riscurile de interzicere a contului și restricționare a funcțiilor contului cauzate de permisiunile de accesibilitate și îmi asum consecințele” pentru a confirma</string>
 <string name="accessibility_risk_warning_input_error">Vă rugăm Scrie „Înțeleg și recunosc riscurile de interzicere a contului și restricționare a funcțiilor contului cauzate de permisiunile de accesibilitate și îmi asum consecințele” pentru a confirma you înțelegeți risks</string>
@@ -1888,22 +1888,22 @@ Co</string>
 <string name="common_collapse">Restrânge</string>
 <string name="common_expand_more">Extinde Mai multe</string>
 <string name="nav_memory_base">Memorie Base</string>
-    
+
     <!-- Manual Memory Update -->
 <string name="manual_memory_update">Manual Memorie Salvează</string>
 <string name="manual_memory_update_desc">If you trebuie la store valuable conținut din acest conversație immediately, manually declanșează memorie saving la write it directly în long-term memorie bibliotecă.</string>
 <string name="manual_conversation_summary">Manual Conversație Rezumat</string>
 <string name="manual_conversation_summary_desc">Immediately Declanșează conversație Rezumat la comprimă context și keep cheie points din ambele sides. pentru util lung chats sau înainte sending nou mesaje.</string>
-    
+
     <!-- Context and Summary Settings Screen -->
 <string name="screen_title_context_summary_settings">Context și Rezumat Setări</string>
 <string name="settings_context_title">Context Setări</string>
 <string name="settings_summary_title">Rezumat Setări</string>
 <string name="settings_context_summary_subtitle">Gestionați context, Rezumat, și Istoric media retention setări</string>
-    
+
     <!-- Details -->
 <string name="details">Detalii</string>
-    
+
     <!-- MCP and Plugin Related -->
 <string name="uninstall">Dezinstalează</string>
 <string name="install">Instalează</string>
@@ -1919,7 +1919,7 @@ Co</string>
 <string name="tool_category_file_management">Fișier Gestionare</string>
 <string name="tool_category_development">Dezvoltare Unelte</string>
 <string name="tool_category_system">Sistem Instrumente</string>
-    
+
     <!-- Tool Names -->
 <string name="tool_test_center">Unealtă Test Centru</string>
 <string name="tool_test_center_desc">Testează disponibilitatea și funcționalitatea instrumentelor AI</string>
@@ -2036,7 +2036,7 @@ Co</string>
 <string name="tool_process_limit_remover_desc">Gestionați Android 12+ phantom Proces Număr Limite la permite mai multe background child procese</string>
 <string name="tool_html_packager">Ambalator HTML</string>
 <string name="tool_html_packager_desc">Pachet HTML Fișiere și lor dependencies în Singur Fișier</string>
-    
+
     <!-- Process Limit Remover Screen -->
 <string name="process_limit_title">Phantom Proces Limitațiă Remover</string>
 <string name="process_limit_subtitle">Gestionați Android 12+ phantom Proces Număr Limite</string>
@@ -2070,7 +2070,7 @@ Co</string>
 <string name="process_limit_exit_code">Ieșire Cod: %d</string>
 <string name="process_limit_command">Comandă</string>
 <string name="toolbox_description">Convenient și practical unealtă Colecție la îmbunătățiți dumneavoastră work efficiency</string>
-    
+
     <!-- MCP Config Screen -->
 <string name="import_or_connect_mcp_service">Importă sau Conectează MCP Serviciu</string>
 <string name="select_mcp_plugin_zip">Vă rugăm Selectează MCP plugin zip Pachet</string>
@@ -2129,7 +2129,7 @@ Co</string>
 <string name="name">Nume</string>
 <string name="description">Descriere</string>
 <string name="author">Autor</string>
-    
+
     <!-- Speech Services Settings -->
 <string name="speech_services_settings">Vorbire Services Setări</string>
 <string name="speech_services_settings_desc">Configurați text-to-vorbire și vorbire recognition setări</string>
@@ -2138,13 +2138,13 @@ Co</string>
     <!-- Network Related -->
 <string name="wifi">Wi-Fi</string>
 <string name="ui_automation_in_progress">UI automation in Progres...</string>
-    
+
     <!-- Missing strings -->
 <string name="sherpa_k2_ncnn_init_failed">Real-timp vorbire recognition engine initialization Eșuat</string>
 <string name="sherpa_k2_ncnn_init_success">Real-timp vorbire recognition engine initialization successful</string>
 <string name="floating_chat_window_desc">Afișează floating Fereastră Pornit Ecran pentru Acces Rapid la chat functionality</string>
 <string name="rename">Redenumește</string>
-    
+
     <!-- Theme Settings -->
 <string name="theme_appbar_content_color_title">Aplicație Bar Conținut Culoare</string>
 <string name="theme_appbar_content_color_mode">Culoare Mod</string>
@@ -2214,7 +2214,7 @@ Co</string>
 <string name="doc_link_failed">Eșuat deschide documentation link</string>
 <string name="root_tutorial_failed">Eșuat deschide root tutorial link</string>
 <string name="file_open_failed">Eșuat deschide fișier: %1$s</string>
-    
+
     <!-- Snackbar Messages -->
 <string name="automation_config_imported">Automation Configurație imported successfully</string>
 <string name="tab_import_not_supported">Curent Sekțiune face nu Suport Importă</string>
@@ -2223,7 +2223,7 @@ Co</string>
 <string name="tools_load_error">Eroare Se încarcă instrumente: %1$s</string>
 <string name="plugin_deployed_success">Plugin %1$s deployed cu succes</string>
 <string name="remote_service_updated">La distanță serviciu %1$s Actualizat</string>
-    
+
     <!-- UI Text -->
 <string name="plugin_zip_file">Plugin ZIP Fișier</string>
 <string name="mcp_plugin">Plugin MCP</string>
@@ -2253,7 +2253,7 @@ Co</string>
 <string name="try_different_keywords">Încercați cuvinte cheie diferite</string>
 <string name="try_show_system_apps">Try checking Sistem" apps" la see mai multe apps</string>
 <string name="no_apps_found_anywhere">Nu apps found anywhere</string>
-    
+
     <!-- Permission Groups -->
 <string name="permission_group_activity">Activitate Recognition</string>
 <string name="permission_group_calendar">Calendar</string>
@@ -2269,19 +2269,19 @@ Co</string>
 <string name="permission_group_other_granted">Altul Acordat Permisiuni</string>
 <string name="permission_group_other_denied">Altul Refuzat Permisiuni</string>
 <string name="permission_group_other">Altul Permisiuni</string>
-    
+
 <string name="target_format">Țintă Format</string>
 <string name="start_conversion">Începeți Conversie</string>
 <string name="conversion_success">Conversie successful</string>
 <string name="unknown_file">Necunoscut Fișier</string>
-    
+
     <!-- File Types -->
 <string name="file_type_document">Document</string>
 <string name="file_type_image">Imagine</string>
 <string name="file_type_audio">Audio</string>
 <string name="file_type_video">Video</string>
 <string name="file_type_archive">Arhivă</string>
-    
+
     <!-- Stream Markdown Demo -->
 <string name="stream_markdown_title">În flux Rendering</string>
 <string name="static_rendering">Redare statică</string>
@@ -2299,13 +2299,13 @@ Co</string>
 <string name="dangerous_permission">Periculos Permisiune</string>
 <string name="granted">Acordat</string>
 <string name="not_granted">Nu Acordat</string>
-    
+
     <!-- Toolbox Screen -->
 <string name="toolbox_title">Trusă instrumente</string>
 <string name="toolbox_subtitle">Colecție din development și sistem gestionare instrumente</string>
 <string name="toolbox_no_tools">Nu instrumente in acest Categorie</string>
 <string name="toolbox_animation_loading">Se încarcă instrumente...</string>
-    
+
     <!-- File Manager -->
 <string name="file_manager_title">Fișier Manager</string>
 <string name="file_manager_dual_pane">Dual pane Mod</string>
@@ -2392,7 +2392,7 @@ Co</string>
 <string name="file_op_confirm_delete_message">Sunteți sigur că doriți să ștergeți fișierele selectate? Această acțiune nu poate fi anulată.</string>
 <string name="file_op_confirm_overwrite">Fișier exists</string>
 <string name="file_op_confirm_overwrite_message">Fișier cu același Nume deja exists at destinație. Faceți you doriți la overwrite it?</string>
-    
+
     <!-- Terminal -->
 <string name="terminal_title">Emulator Terminal</string>
 <string name="terminal_new_session">Sesiune Nou</string>
@@ -2420,7 +2420,7 @@ Co</string>
 <string name="terminal_command_not_found">Comandă nu found</string>
 <string name="terminal_process_running">Proces is Rulează...</string>
 <string name="terminal_process_completed">Proces Finalizat</string>
-    
+
     <!-- Terminal Auto Config -->
 <string name="terminal_auto_config_title">Terminal Automat Configurație</string>
 <string name="terminal_auto_config_desc">Detectează și configurează automat mediul terminal</string>
@@ -2432,7 +2432,7 @@ Co</string>
 <string name="terminal_auto_config_failed">Configurație Eșuat</string>
 <string name="terminal_auto_config_detecting">Se detectează mediul...</string>
 <string name="terminal_auto_config_applying">Applying Configurație...</string>
-    
+
     <!-- FFmpeg Toolbox -->
 <string name="ffmpeg_toolbox_title">Trusă instrumente FFmpeg</string>
 <string name="ffmpeg_input_file">Intrare Fișier</string>
@@ -2464,7 +2464,7 @@ Co</string>
 <string name="ffmpeg_no_file_selected">Nu Fișier Selectat</string>
 <string name="ffmpeg_invalid_file">Invalid Fișier Format</string>
 <string name="ffmpeg_permission_error">Permisiune Eroare, cannot Acces Fișier</string>
-    
+
     <!-- Log Viewer (Logcat) -->
 <string name="logcat_title">Jurnal Viewer</string>
 <string name="logcat_start">Începeți X</string>
@@ -2517,7 +2517,7 @@ Co</string>
 <string name="stt_timeout">Recognition Timeout</string>
 <string name="stt_result_saved">Recognition rezultat Salvat</string>
 <string name="stt_save_failed">Eșuat la salvează rezultat</string>
-    
+
     <!-- Speech Services Settings -->
 <string name="speech_services_tts_title">Text-to-Vorbire (TTS) Setări</string>
 <string name="speech_services_tts_desc">Configurați cum este convertit textul în ieșire vocală</string>
@@ -2529,7 +2529,7 @@ Co</string>
 <string name="speech_services_tts_engine">Motor TTS</string>
 <string name="speech_services_stt_engine">Motor STT</string>
 <string name="speech_services_dropdown_expand">Extinde Derulant</string>
-    
+
     <!-- TTS Service Types -->
 <string name="speech_services_tts_type_simple">Sistem TTS Simplu()</string>
 <string name="speech_services_simple_tts_settings">Sistem TTS Setări</string>
@@ -2548,13 +2548,13 @@ Co</string>
 <string name="speech_services_tts_type_doubao">TTS Doubao</string>
 <string name="speech_services_tts_type_openai_ws">OpenAI Realtime (WebSocket)</string>
 <string name="speech_services_tts_type_openai">OpenAI Voce (HTTP)</string>
-    
+
     <!-- STT Service Types -->
 <string name="speech_services_stt_type_sherpa">Sherpa NCNN Local()</string>
 <string name="speech_services_stt_type_sherpa_mnn">Sherpa MNN Local(, cu VAD)</string>
 <string name="speech_services_stt_type_openai">OpenAI STT La distanță()</string>
 <string name="speech_services_stt_type_deepgram">Deepgram STT La distanță()</string>
-    
+
     <!-- TTS Cleaner Regex -->
 <string name="speech_services_tts_cleaner_title">TTS Cleaner Regex Listă</string>
 <string name="speech_services_tts_cleaner_desc">Elimină matched Text folosind acești regular expressions înainte speaking.</string>
@@ -2567,7 +2567,7 @@ Co</string>
 <string name="speech_services_tts_cleaner_template_parenthesis">Elimină (xxx)</string>
 <string name="speech_services_tts_cleaner_template_chinese_parenthesis">Elimină （xxxx）</string>
 <string name="speech_services_tts_cleaner_template_xml">Elimină XML tags</string>
-    
+
     <!-- HTTP TTS Configuration -->
 <string name="speech_services_http_tts_config">HTTP TTS Configurație</string>
 <string name="speech_services_http_url_template">URL Șablon</string>
@@ -2587,7 +2587,7 @@ Co</string>
 <string name="speech_services_http_content_type_placeholder">application/json</string>
 <string name="speech_services_http_request_body">Solicitare Corp Șablon</string>
 <string name="speech_services_http_request_body_placeholder">Text{\"\": Text\"{}\"}</string>
-    
+
     <!-- SiliconFlow TTS Configuration -->
 <string name="speech_services_siliconflow_config">SiliconFlow TTS Configurație</string>
 <string name="speech_services_siliconflow_api_key">API Cheie</string>
@@ -2698,21 +2698,21 @@ Co</string>
 
     <!-- STT Configuration -->
 <string name="speech_services_stt_info">Supports Local Sherpa engines și OpenAI / Deepgram STT La distanță().</string>
-    
+
     <!-- Save Actions -->
 <string name="speech_services_save_button">Salvează setările</string>
 <string name="speech_services_saving">Se salvează...</string>
 <string name="speech_services_save_success">Setări Salvat</string>
 <string name="speech_services_save_error">Salvează Eșuat: %1$s</string>
 <string name="speech_services_test_tts">Test TTS Caracteristică</string>
-    
+
     <!-- Info Card -->
 <string name="speech_services_info_title">Despre Vorbire Services</string>
 <string name="speech_services_info_tts_title">Sinteză vocală (TTS)</string>
 <string name="speech_services_info_tts_desc">TTS serviciu converts Text la vorbire. you poate utilizați built-in sistem engine tts sau conectează la la distanță http / websocket vorbire apis.</string>
 <string name="speech_services_info_stt_title">Vorbire-în-Text (STT)</string>
 <string name="speech_services_info_stt_desc">STT serviciu converts vorbire la text. supports built-in sherpa ncnn și sherpa mnn engines, ambele rulează pornit local dispozitiv fără rețea conexiune. sherpa mnn integrates vad (voce activitate detection) capability pentru improved recognition accuracy și resource efficiency.</string>
-    
+
     <!-- Permission Names -->
 <string name="perm_name_camera">Cameră</string>
 <string name="perm_name_read_contacts">Citește Contacte</string>
@@ -2748,7 +2748,7 @@ Co</string>
 <string name="perm_name_read_sms">Citește SMS</string>
 <string name="perm_name_receive_wap_push">Primește WAP Push</string>
 <string name="perm_name_receive_mms">Primește MMS</string>
-    
+
     <!-- Permission Descriptions -->
 <string name="perm_desc_camera">Permite aplicație la take poze și înregistrează videos</string>
 <string name="perm_desc_read_contacts">Permite aplicație la read dumneavoastră contacts</string>
@@ -2784,7 +2784,7 @@ Co</string>
 <string name="perm_desc_read_sms">Permite aplicație la read sms mesaje</string>
 <string name="perm_desc_receive_wap_push">Permite aplicație la primește wap push mesaje</string>
 <string name="perm_desc_receive_mms">Permite aplicație la primește mms</string>
-    
+
     <!-- Functional Config Screen -->
 <string name="functional_model_config_title">Configurare model funcțional Setări</string>
 <string name="functional_model_config_desc">Setați Separat Model configurations pentru different Funcții, allowing fiecare Funcție la utilizați cele mai suitable api setări.</string>
@@ -2840,12 +2840,12 @@ Co</string>
 <string name="requested_permissions_list">Requested Permisiuni: %s</string>
 <string name="granted_permissions_list">Acordat Permisiuni: %s</string>
 <string name="permission_error_desc">Eroare getting Permisiuni: %s</string>
-    
+
     <!-- Tool Tester Screen -->
 <string name="parameters_label">Parametri:</string>
 <string name="detailed_result">Detailed Rezultat:</string>
 <string name="retest">Retestează</string>
-    
+
     <!-- Tool Test Groups -->
 <string name="env_setup_group">Environment Configurare (Sequential)</string>
 <string name="basic_http_group">De bază &amp; HTTP (Paralel)</string>
@@ -2854,7 +2854,7 @@ Co</string>
 <string name="system_group">Sistem (Paralel)</string>
 <string name="ui_automation_group">UI Automation (Paralel, Poate Eșec)</string>
 <string name="cleanup_group">Cleanup Automat(Execută)</string>
-    
+
     <!-- Tool Test Names -->
 <string name="create_test_dir">Creează Test Director</string>
 <string name="download_test_image">Descarcă Test Imagine</string>
@@ -2890,7 +2890,7 @@ Co</string>
 <string name="simulate_tap_test">Simulate Atinge</string>
 <string name="simulate_swipe_test">Simulate Glisează</string>
 <string name="cleanup_test_dir">Cleanup Testează Regizor</string>
-    
+
     <!-- Tool Test Descriptions -->
 <string name="create_test_dir_desc">Creează root Director pentru Toate Test Fișiere.</string>
 <string name="download_test_image_desc">Descarcă Imagine pentru subsequent Teste.</string>
@@ -2926,7 +2926,7 @@ Co</string>
 <string name="simulate_tap_test_desc">Atinge at (1,1), expected la eșec</string>
 <string name="simulate_swipe_test_desc">Scurt Glisează at Ecran Centru</string>
 <string name="cleanup_test_dir_desc">Șterge Toate Test Fișiere și directories.</string>
-    
+
     <!-- Additional missing strings -->
 <string name="ai_tools_availability_test">AI Unelte Availability Test</string>
 <string name="ai_tools_grouped_desc">AI instrumente grouped by Categorie</string>
@@ -2954,7 +2954,7 @@ Co</string>
 <string name="terminal_send_custom_input">Trimite Personalizat Intrare</string>
 <string name="terminal_yes_y">Da (Y)</string>
 <string name="test_input_field">Test Intrare Câmp</string>
-    
+
     <!-- ShizukuDemoScreen strings -->
 <string name="loading_app_state">Se încarcă aplicație Stare...</string>
 <string name="setup_wizard">Configurare Wizard</string>
@@ -2963,7 +2963,7 @@ Co</string>
 <string name="cannot_open_doc_link">Cannot Deschide documentation Legătură</string>
 <string name="welcome_termux_config">Bun venit la termux configurație unealtă\nclick corresponding buton la începeți configurație</string>
 <string name="executing_task">Executing: %1$s...</string>
-    
+
     <!-- Permission Level Features -->
 <string name="feature_overlay_window">Overlay Fereastră</string>
 <string name="feature_file_operations">Fișier Operații</string>
@@ -3437,7 +3437,7 @@ Istoric Execuție: []</string>
 <string name="choose_delete_method">Vă rugăm alegeți deletion Metodă:</string>
 <string name="swipe_hint">Glisează Stânga sau Dreapta la editează sau șterge atinge(la ascunde)</string>
 <string name="long_press_manage">Lung press la gestionați</string>
-    
+
     <!-- Settings Screen Subtitles -->
 <string name="settings_user_preferences_subtitle">Personal preferences și behavior setări</string>
 <string name="settings_language_subtitle">Interface Limbă switching</string>
@@ -3459,14 +3459,14 @@ Istoric Execuție: []</string>
 <string name="settings_max_context_length_subtitle">Maxim context Lungime supported by Model API (k tokens)</string>
 <string name="settings_summary_threshold">Rezumat Token Threshold</string>
 <string name="settings_summary_threshold_subtitle">Threshold pentru triggering Chat Rezumat (0.1-0.95)</string>
-    
+
     <!-- History Media Retention Settings -->
 <string name="settings_history_retention_title">Istoric Media Retention</string>
 <string name="settings_max_image_history_user_turns">Keep Imagine Istoric Turns</string>
 <string name="settings_max_image_history_user_turns_subtitle">Numai keep Imagini din Ultimul N Utilizator turns la avoid resending imagini vechi</string>
 <string name="settings_max_media_history_user_turns">Keep Media Istoric Turns</string>
 <string name="settings_max_media_history_user_turns_subtitle">Păstrați doar audio/video din ultimele N rânduri ale utilizatorului pentru a evita retrimiterea de medii vechi</string>
-    
+
     <!-- Layout Adjustment Settings -->
 <string name="layout_adjustment_settings_title">Aspect Adjustment Setări</string>
 <string name="layout_adjustment_description">Adjust Poziție și spacing din ui elemente la personalizează dumneavoastră experience</string>
@@ -3494,7 +3494,7 @@ Istoric Execuție: []</string>
 <string name="reset_to_default">Resetează la implicit</string>
 <string name="layout_reset_settings">Resetează Aspect Setări</string>
 <string name="layout_reset_settings_desc">Resetează Toate Aspect adjustment setări la implicit valori</string>
-    
+
 <string name="settings_data_permissions">Dată și Permisiuni</string>
 <string name="settings_tool_permissions_subtitle">Unealtă Permisiuni și security setări</string>
 <string name="settings_privacy_data_cleanup">Confidențialitate și Dată Cleanup</string>
@@ -3557,7 +3557,7 @@ Istoric Execuție: []</string>
 <string name="settings_cached_tokens_label">Tokenuri în cache</string>
 <string name="settings_price_format">$%.2f/1M</string>
 <string name="settings_cost">Cost</string>
-    
+
     <!-- User Preferences Guide Screen -->
 <string name="user_male">Masculin</string>
 <string name="user_female">Feminin</string>
@@ -3584,7 +3584,7 @@ Istoric Execuție: []</string>
 <string name="communication_style_general">Clar și organized communication Stil, focusing Pornit practicality și efficiency</string>
 <string name="preferences_intro_template">I am %1$s, %2$s. I am particularly interested in %3$s. In communication, I prefer %4$s.</string>
 <string name="preferences_intro_template_no_age">I am %1$s, %2$s. I am particularly interested in %3$s. In communication, I prefer %4$s.</string>
-    
+
     <!-- Occupation Options -->
 <string name="occupation_student">Student</string>
 <string name="occupation_employee">Angajat</string>
@@ -3599,7 +3599,7 @@ Istoric Execuție: []</string>
 <string name="occupation_freelancer">Freelancer</string>
 <string name="occupation_retired">Pensionat</string>
 <string name="occupation_other">Altul</string>
-    
+
     <!-- Personality Traits -->
 <string name="personality_extroverted">Extravertit</string>
 <string name="personality_introverted">Introvertit</string>
@@ -3617,7 +3617,7 @@ Istoric Execuție: []</string>
 <string name="personality_innovative">Inovator</string>
 <string name="personality_meticulous">Meticulos</string>
 <string name="personality_rough">Aspru</string>
-    
+
     <!-- Identity Options -->
 <string name="identity_student">Student</string>
 <string name="identity_teacher">Profesor</string>
@@ -3631,7 +3631,7 @@ Istoric Execuție: []</string>
 <string name="identity_foodie">Gurmand</string>
 <string name="identity_entrepreneur">Antreprenor</string>
 <string name="identity_professional">Profesional</string>
-    
+
     <!-- AI Style Options -->
 <string name="ai_style_professional">Professional &amp; Rigorous</string>
 <string name="ai_style_humorous">Lively &amp; Humorous</string>
@@ -3641,7 +3641,7 @@ Istoric Execuție: []</string>
 <string name="ai_style_technical">Orientare Tehnică</string>
 <string name="ai_style_educational">Orientare Educațională</string>
 <string name="ai_style_supportive">Emotional Suport</string>
-    
+
     <!-- User Preferences Settings Screen -->
 <string name="default_profile">Implicit Profilează</string>
 <string name="date_format_chinese">yyyy/MM/dd</string>
@@ -3683,7 +3683,7 @@ Istoric Execuție: []</string>
 <string name="delete_profile_warning">Sunteți sigur că doriți să ștergeți acest profil de preferințe? Această operație va șterge, de asemenea, memoria bibliotecă asociată și nu poate fi recuperată.
 
 Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de a continua.</string>
-    
+
     <!-- Profile Selection for Import/Export -->
 <string name="select_profile">Selectează Profile</string>
 <string name="export_from_profile">Exportă din Profile</string>
@@ -3716,7 +3716,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="info_icon">Informații</string>
 <string name="add_icon">Adaugă</string>
 <string name="delete_icon">Șterge</string>
-  
+
     <!-- Theme Settings Additional Strings -->
 <string name="theme_on_color_mode">Temă Text Culoare</string>
 <string name="theme_on_color_auto">Automat</string>
@@ -3791,18 +3791,18 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="avatar_corner_radius">Avatar Corner Rază</string>
 <string name="avatar_corner_decrease">Scădeți Corner</string>
 <string name="avatar_corner_increase">Creșteți Corner</string>
-    
+
     <!-- Global User Name Settings -->
 <string name="global_user_name_title">Global Utilizator Nume</string>
 <string name="global_user_name_label">Utilizator Nume</string>
 <string name="global_user_name_placeholder">Vă rugăm Intră dumneavoastră Nume</string>
 <string name="global_user_name_desc">Setează un nume global de utilizator care va fi folosit de AI pentru a te adresa în toate conversațiile. Acest nume este distribuit în toate cardurile de personaj.</string>
-    
+
 <string name="ui_text_title">Text UI</string>
 <string name="custom_chat_title_label">Titlu Chat Personalizat</string>
 <string name="custom_chat_title_placeholder">e.g.: Asistent AI</string>
 <string name="save_title_desc">Salvează Titlu</string>
-  
+
     <!-- Model Configuration Screen -->
 <string name="select_model_config">Selectează Configurare model</string>
 <string name="connection_test_success">Conexiune Succes</string>
@@ -3819,7 +3819,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="rename_model_config">Redenumește Configurare model</string>
 <string name="rename_model_config_desc">Modify Nume din model configurație</string>
 <string name="config_renamed">Configurație Renamed</string>
-    
+
     <!-- ModelApiSettingsSection strings -->
 <string name="api_endpoint_placeholder">de ex.: https://api.openai.com/v1/chat/completions</string>
 <string name="actual_request_url">Actual solicitare URL: %s</string>
@@ -3961,7 +3961,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="temperature_recommendation">Temperatură Recomandare</string>
 <string name="parameter_value">Parametru Valoare</string>
 <string name="parameter_range_format">Interval: %1$s - %2$s</string>
-  
+
     <!-- Custom Parameters Dialog -->
 <string name="add_custom_parameter">Adaugă</string>
 <string name="custom_parameter_added">Personalizat Parametru Adăugat</string>
@@ -3980,7 +3980,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="custom_parameters_section">Personalizat Parametri</string>
 <string name="parameter_name_required">Parametru Nume cannot be Gol</string>
 <string name="api_name_required">API Nume cannot be Gol</string>
-    
+
     <!-- Model Parameters Section new strings -->
 <string name="model_parameters_title">Model Parametri Setări</string>
 <string name="repetition_parameters">Repetition Control Parametri</string>
@@ -4007,7 +4007,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="persona_card_generation_desc">Intră AI conversație la generați personalized personaj cards</string>
 <string name="waifu_mode_settings">Waifu Mod Setări</string>
 <string name="waifu_mode_settings_desc">Configurați AI răspuns sentence-by-sentence sending Mod</string>
-    
+
     <!-- Tavern Character Card Import -->
 <string name="import_tavern_card">Importă Tavern Card</string>
 <string name="import_tavern_card_desc">Importă personaj cards din JSON sau PNG tavern Format Fișiere</string>
@@ -4016,7 +4016,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="tavern_card_import_failed">Eșuat la importațiă tavern card</string>
 <string name="invalid_tavern_card_format">Invalid tavern card Formatează</string>
 <string name="tavern_card_parse_error">Eroare parsing tavern card: %1$s</string>
-    
+
     <!-- Screen Titles -->
 <string name="screen_title_memory_base">Memorie Base</string>
 <string name="screen_title_tool_permissions">Permisiuni instrumente</string>
@@ -4052,7 +4052,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="screen_title_mcp_market">MCP Piață</string>
 <string name="screen_title_mcp_publish">Publicați MCP Plugin</string>
 <string name="screen_title_mcp_manage">Gestionați My Plugins</string>
-    
+
     <!-- Model Prompts Settings Screen -->
 <string name="unknown_error">Eroare necunoscută</string>
 <string name="file_read_error">Eșuat la read fișier: %1$s</string>
@@ -4114,7 +4114,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="copy_tone_prompt">Copiază Tone Prompt</string>
 <string name="old_config_usage_tip">You poate Copiază acest Conținut pentru utilizați in personaj Nou card Sistem.</string>
 <string name="close">Închide</string>
-    
+
     <!-- Waifu Mode Settings Screen -->
 <string name="waifu_mode">Waifu Mod</string>
 <string name="waifu_mode_description">Când este activat, răspunsurile AI vor fi împărțite după punctuație și trimise propoziție cu propoziție pentru o experiență de conversație mai naturală.</string>
@@ -4165,7 +4165,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="github_account_info_following">Următoarele</string>
 <string name="github_account_info_not_available">Autentificare la vizualizare cont informații</string>
 <string name="github_account_not_logged_in_desc">Vă rugăm Autentificare la github primul</string>
-    
+
     <!-- Character Card Dialog -->
 <string name="character_card_description">Descriere</string>
 <string name="character_card_character_setting">Personaj Setare</string>
@@ -4300,7 +4300,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="title_label">Titlu</string>
 <string name="url_label">URL</string>
 <string name="settings_config">setări</string>
-    
+
     <!-- Terminal Environment Wizard -->
 <string name="configure_terminal_environment">Configurați Terminal Environment</string>
 <string name="nodejs_pip_environment_ready">NodeJS și pip environment Pregătit</string>
@@ -4311,7 +4311,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="go_to_terminal_config">Go la terminal configurație</string>
 <string name="nodejs_pip_environment_configured">NodeJS și pip environment sunteți configured și Pregătit la utilizați mcp plugins.</string>
 <string name="open_terminal">Deschide Terminal</string>
-    
+
     <!-- MCP Market Screen -->
 <string name="login_github_to_manage_mcp_plugins">Autentificare la github la publicați și gestionați dumneavoastră mcp plugins</string>
 <string name="browse">Navighează</string>
@@ -4339,7 +4339,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="publish_mcp_plugins_to_market">• Publicați dumneavoastră MCP plugins to the market</string>
 <string name="manage_published_plugins">• Gestionați dumneavoastră published plugins</string>
 <string name="better_installation_experience">• Obțineți better installation experience</string>
-    
+
     <!-- MCP Publish Screen -->
 <string name="edit_description">Editează Descriere</string>
 <string name="publish_description">Publicați Descriere</string>
@@ -4372,7 +4372,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="mcp_market">MCP Piață</string>
 <string name="more">Mai multe</string>
 <string name="copy_link">Copiază Link</string>
-    
+
     <!-- MCP Manage Screen -->
 <string name="need_login_github_manage_plugins">Trebuie la autentificare la github la gestionați dumneavoastră published plugins</string>
 <string name="no_published_plugins_yet">Nu published plugins încă</string>
@@ -4384,7 +4384,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="market_review_pending">În șteptare Revizuiți</string>
 <string name="remove">Elimină</string>
 <string name="republish">Republică</string>
-    
+
     <!-- Additional strings -->
 <string name="author_colon">Autor:</string>
 <string name="share_colon">Distribuie:</string>
@@ -4409,7 +4409,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="awesome_mcp">MCP Remarcabil</string>
 <string name="loading_your_plugins">Se încarcă dumneavoastră plugins...</string>
 <string name="confirm_remove_plugin_from_market">Sunteți you sigur you doriți la elimină plugin "%1$s" din market? acest va închide corresponding problemă dar va nu șterge dumneavoastră cod repository.</string>
-    
+
     <!-- MCPPublishScreen additional strings -->
 <string name="edit_plugin_info_description">Editezi informațiile unui plugin publicat. Informațiile modificate vor fi actualizate în issue-ul corespunzător din depozitul market.</string>
 <string name="publish_plugin_info_description">Informațiile pluginului tău vor fi publicate ca Issue GitHub în depozitul market. Te rugăm să te asiguri că informațiile sunt corecte și finalizate. Conținutul formularului va fi salvat automat ca schiță până la publicarea cu succes.</string>
@@ -4512,7 +4512,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="mcp_publish_body_table_row_platform">| Platform | Operit MCP Piață |</string>
 <string name="mcp_publish_body_table_row_parser_version">| Parser Versiune | 1.0 |</string>
 <string name="mcp_publish_body_table_row_publish_time">| Published at | %1$s |</string>
-    
+
     <!-- MCP Plugin Detail Screen -->
 <string name="mcp_plugin_detail_title">Plugin Detalii</string>
 <string name="market_detail_published_label">Publicat</string>
@@ -4547,7 +4547,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="mcp_plugin_cancel">Anulează</string>
 <string name="mcp_plugin_refresh_comments">Reîmprospătează Comments</string>
 <string name="mcp_plugin_unknown_author">Necunoscut</string>
-    
+
     <!-- Advanced Settings Section -->
 <string name="advanced_settings">Avansat Setări</string>
 <string name="use_api_key_pool">Utilizați API Cheie Pool</string>
@@ -4667,7 +4667,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="message_limit_reached_title">Mesaj Limitațiă Reached</string>
 <string name="message_limit_reached_message">conversație Curent are reached Limitațiă din %1$d messages.\nto maintain conversație calitate și performance, vă rugăm clar istoric la continuați.</string>
 <string name="go_clear">Clar Acum</string>
-    
+
     <!-- MNN Local Inference -->
 <string name="screen_title_mnn_model_download">MNN Model Descarcă</string>
 <string name="mnn_model_download">Descarcă model MNN</string>
@@ -4706,7 +4706,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="default_assistant_guide_subtitle">Make Operit Dumneavoastră Smart Assistant</string>
 <string name="default_assistant_guide_intro">După Setare Operit as Sistem Implicit assistant, you poate quickly Lansează Operit voce assistant by long-pressing Acasă buton sau folosind voce wake-sus, providing Mai multe convenient AI interaction experience.</string>
 <string name="default_assistant_guide_steps_title">Configurare Pași</string>
-    
+
     <!-- Step 1 -->
 <string name="default_assistant_guide_step1_title">Deschide Sistem Setări</string>
 <string name="default_assistant_guide_step1_desc">Primul, you trebuie la intră android sistem setări interface</string>
@@ -4714,7 +4714,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="default_assistant_guide_step1_detail2">• Găsește și Selectează "Operit AI" in assistant aplicație Listă</string>
 <string name="default_assistant_guide_step1_detail_android12">Android 12+: Setări → Apps → Implicit apps → Digital assistant aplicație → Implicit digital assistant aplicație</string>
 <string name="default_assistant_guide_open_settings">Deschide Setări</string>
-    
+
     <!-- Step 2 -->
 <string name="default_assistant_guide_open_gesture_settings">Deschide Gesture Setări</string>
 <string name="default_assistant_guide_step2_title">Găsește Assistant Setări</string>
@@ -4724,20 +4724,20 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="default_assistant_guide_step2_detail3">• Voce wake-sus: \"Hey Google\" sau dumneavoastră Dispozitivedevice\'s designated wake word Dispozitiv(Suport Obligatoriu)</string>
 <string name="default_assistant_guide_step2_note">Nuă: Gesture setări poate vary între Telefon brands. Vă rugăm check Disponibil options in Sistem setări</string>
 <string name="default_assistant_guide_step2_detail_android12">Android 12+: Setări → Apps → Implicit apps → Digital assistant aplicație → Implicit digital assistant aplicație</string>
-    
+
     <!-- Step 3 -->
 <string name="default_assistant_guide_step3_title">Selectează Operit</string>
 <string name="default_assistant_guide_step3_desc">Alegeți Operit AI din assistant aplicație Listă</string>
 <string name="default_assistant_guide_step3_detail1">• Găsește \"Operit AI\" in Disponibil assistant apps Listă</string>
 <string name="default_assistant_guide_step3_detail2">• Atinge la selectează, și sistem va setați operit as assistant implicit</string>
 <string name="default_assistant_guide_step3_detail3">• Puteți încerca să vorbiți sau să tastați pentru a interacționa cu asistentul</string>
-    
+
     <!-- Step 4 -->
 <string name="default_assistant_guide_step4_title">Testează Voce Asistent</string>
 <string name="default_assistant_guide_step4_desc">După Configurare, Test if it poate be Lansat normally</string>
 <string name="default_assistant_guide_step4_detail1">• Long-press Acasă buton Acasă(Ecran buton) ar trebui Invocă Operit voce assistant</string>
 <string name="default_assistant_guide_step4_detail2">• If voce wake-sus is supported, saying \"Hey Google\" sau dumneavoastră Dispozitivedevice\'s designated wake word poate de asemenea Declanșează Operit</string>
-    
+
     <!-- Troubleshooting -->
 <string name="default_assistant_guide_troubleshooting_title">Ai probleme?</string>
 <string name="default_assistant_guide_troubleshooting_content">If you poate\'t Găsește Operit in Listă, vă rugăm ensure:\n\n• aplicație is properly Instalat și nu dezactivat\n• Permisiuni Necesar aveți fost Acordat (microphone, overlay, etc.)\n• Try restarting Dispozitiv și Setare it sus din nou\n\nSome Personalizat systems poate restricționați third-party apps din being setați as Implicit assistants. If you encounter acest situation, you poate încă utilizați Operit prin in-aplicație floating Fereastră Caracteristică.</string>
@@ -4874,7 +4874,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="generate_image_failed">Eșuat la generați imagine: %1$s</string>
 <string name="start_export">Starting Exportă...</string>
 <string name="file_operation_error">Fișier Operație Eroare: %1$s</string>
-    
+
     <!-- Missing translations added -->
 <string name="bind_character_card">Legați Personaj Card</string>
 <string name="unbound_character_card">Neasociat</string>
@@ -4893,7 +4893,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="insert_attachment">Inserează Attachment</string>
 <string name="remove_attachment">Elimină Attachment</string>
 <string name="token_limit_exceeded_message">Maxim token Limitațiă exceeded (%1$d / %2$d)</string>
-    
+
     <!-- Font Settings -->
 <string name="font_file_saved">Font Fișier Salvat (.%1$s)</string>
 <string name="font_file_save_failed">Eșuat la salvează font fișier</string>
@@ -4914,7 +4914,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="clear_font">Clar Font</string>
 <string name="current_font_file_path">Curent Font fișier:\n%1$s</string>
 <string name="font_size_scale_label">Font Dimensiune Scală (%1$s)</string>
-    
+
     <!-- Chat History Batch -->
 <string name="no_available_character_cards_toast">Nu Disponibil personaj cards, vă rugăm Creează one Primul</string>
 <string name="please_select_chats_first">Vă rugăm Selectează Înregistrări chat Primul</string>
@@ -4936,7 +4936,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="filter_chat_history">Filtrează istoricul de chat</string>
 <string name="no_chat_records_for_batch">Nu Înregistrări chat Disponibil pentru batch Operații.</string>
 <string name="no_matching_chats_adjust_filter">Nu matching Înregistrări chat, vă rugăm adjust Filtru conditions.</string>
-    
+
     <!-- Assign Dialog -->
 <string name="assign_to_character_card_title">Assign la Character Card</string>
 <string name="unbound_chats_select_card">Acolo sunteți %1$d Înregistrări chat nu bound la personaj card. vă rugăm selectează țintă personaj card:</string>
@@ -4952,11 +4952,11 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="chat_records_label">Înregistrări chat</string>
 <string name="group_label">Grup: %1$s</string>
 <string name="unnamed_conversation">Unnamed Conversație</string>
-    
+
     <!-- Character Selector -->
 <string name="select_character">Selectează Personaj</string>
 <string name="character_count">%1$d characters</string>
-    
+
     <!-- Attachment Selector -->
 <string name="attachment_photo">Foto</string>
 <string name="attachment_camera">Cameră</string>
@@ -4966,7 +4966,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="attachment_notifications">Notificări</string>
 <string name="attachment_location">Locație</string>
 <string name="attachments_count">Attachments (%1$d)</string>
-    
+
     <!-- Workspace -->
 <string name="select_file_to_reference">Selectează Fișier la referință</string>
 <string name="workspace_directory_invalid">Spațiu de lucru Regizor face nu exist sau is Invalid</string>
@@ -4983,7 +4983,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="create_new_workspace_in_app">Creează workspace Nou in aplicație</string>
 <string name="select_existing_workspace">Selectează Existing</string>
 <string name="select_folder_from_device">Selectează Dosar din Dispozitiv</string>
-    
+
     <!-- Global Display Settings -->
 <string name="global_display_settings_description">Acești setări control Global Afișează behavior, independent din personaj cards și temă configurations.</string>
 <string name="message_display_settings">Mesaj Afișează Setări</string>
@@ -5026,7 +5026,7 @@ Vă recomandăm să faceți o copie de rezervă a datelor importante înainte de
 <string name="software_identity_option_operit">Operit AI</string>
 <string name="software_identity_option_lingshu">Lingshu AI</string>
 <string name="reset_all_display_settings">Resetează Toate Afișează Setări</string>
-    
+
     <!-- Chat History Management -->
 <string name="default_profile_name">Implicit Profilează</string>
 <string name="removed_character_card_binding">Legarea cardului de personaj eliminată din %1$d chat(uri)</string>
@@ -5067,7 +5067,7 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="delete_selected_workspaces">Șterge Selectat Workspaces (%1$d)</string>
 <string name="delete_workspaces_confirmation">Ești sigur că vrei să ștergi %1$d spații de lucru selectate?\n\nToate fișierele și datele vor fi pierdute permanent.</string>
 <string name="not_used_by_any_chat">Neutilizat de niciun chat</string>
-    
+
     <!-- Accessibility - Markdown Block Types -->
 <string name="code_block">Cod Blochează</string>
 <string name="table_block">Tabel</string>
@@ -5089,14 +5089,14 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="mood_tag_block">Dispoziție Tag</string>
 <string name="thinking_tools_group_title_with_count">Thinking &amp; Instrument Calls (%1$d)</string>
 <string name="tools_group_title_with_count">Apel instruments (%1$d)</string>
-    
+
     <!-- Backup Settings Screen -->
 <string name="backup_data_overview">Dată Overview</string>
 <string name="backup_current_profile">Curent Profile: %1$s</string>
 <string name="backup_chat_count">Istoric chat</string>
 <string name="backup_memory_count">Memorie Entries</string>
 <string name="backup_memory_link_count">Memorie Linkuri</string>
-    
+
 <string name="backup_files_statistics">Faceți copie de rezervă Fișiere Statistics</string>
 <string name="backup_files_statistics_subtitle">Faceți copie de rezervă Fișiere in Operit Exportă Director</string>
 <string name="backup_refresh">Reîmprospătează</string>
@@ -5135,7 +5135,7 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="backup_room_db_restart_later">Mai târziu</string>
 <string name="backup_room_db_last_success">Ultimul successful Faceți copie de rezervă: %1$s</string>
 <string name="backup_room_db_last_error">Ultimul Eroare: %1$s</string>
-    
+
 <string name="backup_raw_snapshot_title">Fișier Snapshot Faceți copie de rezervă (Experimental)</string>
 <string name="backup_raw_snapshot_subtitle">Arhivați/restaurați aplicație Dată by Fișier &amp; Director</string>
 <string name="backup_raw_snapshot_desc">Acesta arhivează datele aplicației care sunt eliminate prin Ștergerea Datelor: fișiere/shared_prefs/datastore/baze de date interne și Android/data/package/files (terminal Linux</string>
@@ -5171,19 +5171,19 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="backup_chat_history">Istoric chat</string>
 <string name="backup_chat_history_subtitle">Cross-format Faceți copie de rezervă, Exportă și recovery</string>
 <string name="backup_chat_current_count">În prezent %1$d Chat înregistrați(s).</string>
-    
+
 <string name="backup_export">Exportă</string>
 <string name="backup_import">Importă</string>
 <string name="backup_delete_all">Șterge Toate</string>
-    
+
 <string name="backup_memory_library">Memorie Bibliotecă</string>
 <string name="backup_memory_library_subtitle">Cross-profile Faceți copie de rezervă și recovery</string>
 <string name="backup_memory_current_count">În prezent %1$d memor(y/ies) și %2$d Linkurilink(s).</string>
-    
+
 <string name="backup_model_config">Configurații Modele</string>
 <string name="backup_model_config_subtitle">Faceți copie de rezervă și Restaurează Toate Model setări, including API Chei și Parametri</string>
 <string name="backup_model_config_current_count">În prezent %1$d Model configurare(s).</string>
-    
+
 <string name="backup_exporting">Exporting %1$s...</string>
 <string name="backup_importing">Importing %1$s...</string>
 <string name="backup_deleting">Se șterge istoricul chatului...</string>
@@ -5191,7 +5191,7 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="backup_import_success">Importă Successful</string>
 <string name="backup_delete_success">Șterge Successful</string>
 <string name="backup_operation_failed">Operație Eșuat</string>
-    
+
 <string name="backup_faq_title">Întrebări frecvente</string>
 <string name="backup_faq_subtitle">Învățți Despre Faceți copie de rezervă și Importă precautions la avoid common probleme.</string>
 <string name="backup_faq_why">De ce Faceți copie de rezervă Dată?</string>
@@ -5200,7 +5200,7 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="backup_faq_where_answer">Exported Faceți copie de rezervă Fișiere sunteți Salvat in \"Descărcare/Operit\" Dosar Pornit dumneavoastră Telefon, cu filenames containing Dată Sfat, Dată și Timp.</string>
 <string name="backup_faq_duplicate">Va importing Creează duplicat Dată?</string>
 <string name="backup_faq_duplicate_answer">Sistemul folosește ID-urile înregistrărilor pentru a determina duplicatele. Înregistrările cu același ID vor fi actualizate mai degrabă decât duplicate. Înregistrările cu ID-uri diferite vor fi adăugate ca intrări noi.</string>
-    
+
     <!-- Export Format Selection -->
 <string name="backup_select_export_format">Selectează Exportă Format</string>
 <string name="backup_select_format_hint">Vă rugăm Selectează Istoric chat Format la exportațiă:</string>
@@ -5212,7 +5212,7 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="backup_format_html_desc">Web Formatează, suitable pentru viewing in browsers</string>
 <string name="backup_format_txt">Text simplu</string>
 <string name="backup_format_txt_desc">Simplu Text Format, Ușor la distribuie</string>
-    
+
     <!-- Import Format Selection -->
 <string name="backup_select_import_format">Selectează Importă Format</string>
 <string name="backup_import_format_hint">Vă rugăm Selectează Istoric chat Format la importațiă:</string>
@@ -5224,7 +5224,7 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 <string name="backup_format_chatbox_desc">ChatBox desktop aplicație Exportă Format</string>
 <string name="backup_format_generic_json">JSON Generic</string>
 <string name="backup_format_generic_json_desc">Structură JSON standard rol-conținut (suportă Claude, LibreChat, etc.)</string>
-    
+
 <string name="backup_import_result_success">Successfully imported %1$s format:\n- records: Nou %2$d\n- Actualizat records: %3$d%4$s</string>
 <string name="backup_import_result_skipped">\n- Skipped Invalid records: %1$d</string>
 <string name="backup_import_result_failed">Import eșuat: Nu Valid Istoric chat found</string>
@@ -5267,7 +5267,7 @@ Chaturile blocate vor fi omise. Această acțiune nu poate fi anulată.</string>
 
 Sunteți sigur</string>
 <string name="backup_delete_result_success">Successfully cleared %1$d Chat înregistrați(s)</string>
-    
+
     <!-- Model Config Export Security Warning -->
 <string name="backup_model_config_warning_title">Securitate Notice</string>
 <string name="backup_model_config_warning_contains">Acest Configurație Fișier Conține următoarele sensitive Informații:</string>
@@ -5279,7 +5279,7 @@ Sunteți sigur</string>
 <string name="backup_model_config_warning_tips">• Faceți nu Distribuie acest Fișier cu others\n• Faceți nu Încarcă la public cloud storage\n• mutați fișier la sigur locație\n• utilizați encryption instrumente la protect fișier</string>
 <string name="backup_model_config_warning_export_path">Exportă Locație:</string>
 <string name="backup_model_config_warning_confirm">I Înțelegeți</string>
-    
+
     <!-- Memory Import Strategy -->
 <string name="backup_memory_import_strategy_title">Selectează Importă Strategy</string>
 <string name="backup_memory_import_profile_title">Selectează Profile</string>
