@@ -5559,7 +5559,7 @@
     <string name="autoglm_api_key_placeholder">Paste your Zhipu API Key here</string>
     <string name="autoglm_one_click_button">One-Click AutoGLM Config</string>
     <string name="autoglm_status_running">Running one-click configuration, please wait...</string>
-    <string name="autoglm_status_success">AutoGLM one-click configuration completed:\nModel: %1$s\nAPI Key: %2$s\nToolkit: AutoGLM\n\nYou can now use AutoGLM mode in the chat interface.</string>
+    <string name="autoglm_status_success">AutoGLM one-click configuration completed:\n- Created or updated AutoGLM UI controller model config (autoglm-phone, Zhipu)\n- Switched UI Controller function to this config\n- Disabled Automatic_ui_base, enabled Automatic_ui_subagent\nYou can now use AutoGLM mode in the chat interface.</string>
     <string name="autoglm_status_error">One-click configuration failed: %1$s</string>
     <string name="autoglm_error_empty_api_key">Please fill in the Zhipu API Key first.</string>
 

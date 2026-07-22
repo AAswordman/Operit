@@ -2338,7 +2338,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="speech_services_http_content_type">Tipo de conteúdo</string>
     <string name="speech_services_http_content_type_placeholder">aplicativo/json</string>
     <string name="speech_services_http_request_body">Solicitar modelo de corpo</string>
-    <string name="speech_services_http_request_body_placeholder">{\"texto\": \"{texto}\"}</string>
+    <string name="speech_services_http_request_body_placeholder">{\"text\": \"{text}\"}</string>
     <string name="speech_services_siliconflow_config">Configuração TTS de fluxo baseada em silício</string>
     <string name="speech_services_siliconflow_api_key">Chave de API</string>
     <string name="speech_services_siliconflow_api_key_placeholder">Por favor, insira sua chave API do Silicon Mobile</string>
@@ -3549,7 +3549,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="waifu_mode_toggle_desc">As respostas da IA ​​serão enviadas divididas por pontuação</string>
     <string name="typing_speed_settings">Configurações de velocidade de digitação</string>
     <string name="typing_speed_desc">Controle o tempo de atraso de cada personagem para simular o ritmo de digitação de pessoas reais</string>
-    <string name="current_speed_format">Velocidade atual: %,1f caracteres por segundo</string>
+    <string name="current_speed_format">Velocidade atual: %.1f caracteres por segundo</string>
     <string name="speed_fast">rápido</string>
     <string name="speed_slow">lento</string>
     <string name="current_delay_format">Atual: %dms/caracteres</string>
