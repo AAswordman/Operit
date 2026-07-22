@@ -2674,9 +2674,8 @@ Co</string>
 <string name="speech_services_openai_voice_select_icon">Selectează voce</string>
 <string name="speech_services_openai_voice_custom">Personalizat voce</string>
 <string name="speech_services_openai_voices_refresh">Reîmprospătează voce Listă</string>
-<string name="speech_services_openai_voices_fetch_failed">Eșuat la fetch voce listăă: %1$s</string>
-<string name="speech_services_openai_voce_id">voice</string>
-<string name="speech_services_openai_voice_id_placeholder">e.g.: alloy</string>
+    <string name="speech_services_openai_voices_fetch_failed">Eșuat la fetch voce listăă: %1$s</string>
+    <string name="speech_services_openai_voice_id_placeholder">e.g.: alloy</string>
 
 <string name="speech_services_openai_stt_config">OpenAI STT Configurație</string>
 <string name="speech_services_openai_stt_url">URL</string>
@@ -3121,7 +3120,7 @@ Istoric Execuție: []</string>
 
 <status type="complete"></status></string>
 <string name="stream_markdown_rendering">În flux</string>
-<string name="graph_start_node_not_exist">Începeți X</string>
+<string name="graph_start_node_not_exist">Nodul de pornire '%1$s' nu există</string>
 <string name="graph_end_node_not_exist">Sfârșit nod \'%1$s\' face nu exist</string>
 <string name="stream_tag_required">Tag trebuie be setați</string>
 <string name="stream_data_required">Dată transmiteți trebuie be setați</string>
@@ -5425,8 +5424,7 @@ Sunteți sigur</string>
 <string name="toolreg_user_pref_occupation">Ocupație</string>
 <string name="toolreg_user_pref_ai_style">AI Stil</string>
 <string name="toolreg_list_separator">,</string>
-<string name="toolreg_update_user_preferences_desc">Actualizează Utilizator preferences: %1$s</string>
-<string name="toolreg_create_memory_desc">Creează Memorie: %1$s</string>
+    <string name="toolreg_create_memory_desc">Creează Memorie: %1$s</string>
 <string name="toolreg_update_memory_desc">Actualizează Memorie: %1$s -&gt; %2$s</string>
 <string name="toolreg_delete_memory_desc">Șterge Memorie: %1$s</string>
 <string name="toolreg_link_memories_desc">Link memories: [%1$s] -&gt; [%2$s] Sfat(: %3$s)</string>
@@ -5545,7 +5543,7 @@ Sunteți sigur</string>
 <string name="autoglm_api_key_placeholder">Lipește dumneavoastră Zhipu API Cheie aici</string>
 <string name="autoglm_one_click_button">One-Click AutoGLM Configurație</string>
 <string name="autoglm_status_running">Rulează one-clic Configurație, vă rugăm wait...</string>
-<string name="autoglm_status_success">AutoGLM one-clic Configurație completat:\nModel: %1$s\nAPI Cheie: %2$s\nToolkit: AutoGLM\n\nYou poate Acum utilizați AutoGLM Mod in Chat interface.</string>
+    <string name="autoglm_status_success">AutoGLM configurație completată:\nModel: %1$s\nCheie API: %2$s\nToolkit: AutoGLM\n\nAcum poți folosi modul AutoGLM în interfața de chat.</string>
 <string name="autoglm_status_error">One-clic Configurație Eșuat: %1$s</string>
 <string name="autoglm_error_empty_api_key">Vă rugăm fill in Zhipu API Cheie Primul.</string>
 
@@ -6964,8 +6962,8 @@ Sunteți sigur</string>
     <!-- ConversationService -->
 <string name="conversation_language_chinese">Chineză</string>
 <string name="conversation_media_image_link">&lt;link sfat=&quot;imagine&quot; id=&quot;%1$s&quot;&gt;Imagine&lt;/link&gt;</string>
-<string name="conversation_media_audio_link"><link type="audio" id="%1$s">Audio</link></string>
-<string name="conversation_media_video_link"><link type="video" id="%1$s">Video</link></string>
+<string name="conversation_media_audio_link">&lt;link type=\"audio\" id=\"%1$s\"&gt;Audio&lt;/link&gt;</string>
+<string name="conversation_media_video_link">&lt;link type=\"video\" id=\"%1$s\"&gt;Video&lt;/link&gt;</string>
 <string name="conversation_analyze_image_prompt">Vă rugăm analizați acest Imagine.</string>
 <string name="conversation_analyze_audio_prompt">Vă rugăm analizați acest Audio.</string>
 <string name="conversation_analyze_video_prompt">Vă rugăm analizați acest Video.</string>
@@ -7133,7 +7131,7 @@ Sunteți sigur</string>
 <string name="skillmgr_direct_attachment_read_failed">Eșuat la read attachment: %1$s</string>
 
     <!-- PathFinder -->
-<string name="path_simple_start_node_not_exist">Începeți X</string>
+<string name="path_simple_start_node_not_exist">Nodul de pornire '%1$s' nu există</string>
 <string name="path_simple_end_node_not_exist">Sfârșit nod \'%1$s\' face nu exist</string>
 <string name="path_simple_start_equals_end">Începeți nod și Sfârșit nod sunteți același</string>
 <string name="path_simple_found_path">Found Cale folosind %1$s algorithm</string>
@@ -7249,8 +7247,8 @@ Sunteți sigur</string>
 
     <!-- HttpVoiceProvider -->
 <string name="http_tts_url_template_not_set">HTTP TTS serviciu Configurație Eroare: URL Șablon cannot be Gol.</string>
-<string name="http_tts_post_body_missing_placeholder">HTTP TTS serviciu Configurație Eroare: POST solicitare Corp Șablon trebuie Conține Text{} substituent.</string>
-<string name="http_tts_get_url_missing_placeholder">HTTP TTS serviciu Configurație Eroare: Obțineți solicitare URL Șablon trebuie Conține Text{} substituent.</string>
+<string name="http_tts_post_body_missing_placeholder">Eroare de configurare serviciu HTTP TTS: Șablonul corpului cererii POST trebuie să conțină placeholder-ul {text}.</string>
+<string name="http_tts_get_url_missing_placeholder">Eroare de configurare serviciu HTTP TTS: Șablonul URL-ului cererii GET trebuie să conțină placeholder-ul {text}.</string>
 <string name="http_tts_url_invalid_scheme">HTTP TTS serviciu Configurație Eroare: URL Șablon trebuie Începeți cu http:// sau https://.</string>
 <string name="http_tts_init_failed">Unexpected Eroare în timp ce initializing HTTP TTS serviciu</string>
 <string name="http_tts_fetch_failed">Eșuat la fetch http tts audio</string>
@@ -7835,7 +7833,7 @@ Sunteți sigur</string>
 <string name="artifact_market_schedule_notice">\n\nNote: market Public Necesită Programat publishing și va nu Actualizează immediately. Vă rugăm wait pentru Programare la finalizează înainte checking.</string>
 <string name="artifact_publish_updating_published_node">Updating published nod</string>
 <string name="artifact_publish_checking_identity_conflicts">Checking pentru Nume și ID conflicts</string>
-<string name="artifact_publish_author_count_insufficient">Artefactul curent declară autori, dar numărul este insuficient. Nodul predecesor direct curent are %1$d editori GitHub; fie nu specificați autori,</string>
+<string name="artifact_publish_author_count_insufficient">Artefactul curent declară autori, dar numărul este insuficient. Nodul predecesor direct curent are %1$d editori GitHub; fie nu specificați autori, fie furnizați cel puțin %2$d poziții.</string>
 <string name="artifact_publish_check_name_duplicate_failed">Eșuat la check pentru duplicat plugin nume: %1$s</string>
 <string name="artifact_publish_check_runtime_id_duplicate_failed">Eșuat la check pentru duplicat plugin id: %1$s</string>
 <string name="artifact_publish_check_normalized_id_duplicate_failed">Eșuat la check pentru duplicat normalized market id: %1$s</string>
