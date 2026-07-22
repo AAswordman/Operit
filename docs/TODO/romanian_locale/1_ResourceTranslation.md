@@ -1,6 +1,6 @@
 ---
 title: Resource Translation
-status: in-progress
+status: completed
 ---
 
 # Resource Translation
@@ -22,3 +22,5 @@ The completed file must not carry forward malformed or untranslated candidate va
 - XML parses successfully
 - Placeholder multisets match the source for every resource
 - Romanian values do not contain accidental Han characters or source-language residue
+
+[DONE]

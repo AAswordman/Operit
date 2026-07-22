@@ -1,6 +1,6 @@
 ---
 title: Integration And Validation
-status: in-progress
+status: completed
 ---
 
 # Integration And Validation
@@ -22,3 +22,9 @@ The command validates the candidate tree against the recorded upstream base. Gra
 ## Delivery
 
 Inspect the final diff and local worktree status. Pushing and creating a pull request require separate authorization.
+
+## Result
+
+The localization gate completed with zero errors and zero warnings against the recorded upstream baseline.
+
+[DONE]

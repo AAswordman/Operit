@@ -3,7 +3,7 @@ title: Romanian Locale
 repo: https://github.com/luojiaping/Operit
 upstream: https://github.com/AAswordman/Operit
 base: 9dbc573002091730a8aafe47c23484e640888819
-status: in-progress
+status: completed
 ---
 
 # Romanian Locale
@@ -34,3 +34,12 @@ Romanian appears in the in-app language picker and Android locale configuration.
 
 1. [Resource Translation](./1_ResourceTranslation.md)
 2. [Integration And Validation](./2_IntegrationAndValidation.md)
+
+## Completion
+
+- Added 7,195 Romanian resources with the same key set as the Chinese source
+- Registered `ro` without changing existing locale-config entries
+- Added Romanian to the in-app selector and translation target mapping
+- `check_localizations.py --base 9dbc573002091730a8aafe47c23484e640888819 --candidate HEAD` reported zero errors and zero warnings
+
+[DONE]
