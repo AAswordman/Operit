@@ -725,7 +725,7 @@ class MnnModelDownloadManager private constructor(private val context: Context) 
                 
                 if (!response.isSuccessful && response.code != 206) {
                     response.close()
-                    val error = context.getString(R.string.mnn_download_file_failed, fileName, response.code.toString())
+                    val error = context.getString(R.string.mnn_download_file_failed, fileName, response.code)
                     updateDownloadState(modelName, DownloadState.Failed(error))
                     return@withContext Result.failure(Exception(error))
                 }
