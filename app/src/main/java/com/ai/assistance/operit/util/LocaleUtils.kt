@@ -24,6 +24,7 @@ object LocaleUtils {
         const val MALAY = "ms"
         const val INDONESIAN = "id"
         const val PORTUGUESE_BRAZIL = "pt-BR"
+        const val ROMANIAN = "ro"
     }
 
     private val legacyLanguageCodeAliases =
@@ -50,7 +51,8 @@ object LocaleUtils {
                             LanguageCodes.PORTUGUESE_BRAZIL,
                             "Portuguese (Brazil)",
                             "Português (Brasil)"
-                    )
+                    ),
+                    Language(LanguageCodes.ROMANIAN, "Romanian", "Română")
             )
 
     private val supportedLanguageCodes =
