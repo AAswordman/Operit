@@ -1100,6 +1100,7 @@ class ConversationService(
             LocaleUtils.LanguageCodes.MALAY -> "Malay"
             LocaleUtils.LanguageCodes.INDONESIAN -> "Indonesian"
             LocaleUtils.LanguageCodes.PORTUGUESE_BRAZIL -> "Portuguese (Brazil)"
+            LocaleUtils.LanguageCodes.ROMANIAN -> "Romanian"
             else -> context.getString(R.string.conversation_language_chinese) // 默认翻译为中文
         }
         

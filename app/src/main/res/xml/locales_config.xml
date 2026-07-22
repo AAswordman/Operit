@@ -7,4 +7,5 @@
     <locale android:name="ms"/>
     <locale android:name="id"/>
     <locale android:name="pt-BR"/>
+    <locale android:name="ro"/>
 </locale-config> 
