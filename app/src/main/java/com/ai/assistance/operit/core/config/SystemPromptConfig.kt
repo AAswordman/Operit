@@ -47,6 +47,7 @@ PACKAGE SYSTEM
   <param name="package_name">package_name_here</param>
   </tool>
 - This will show you all the tools in the package and how to use them
+- A package listed as activated in a Package Warmup block is already activated; use its attached tool prompt directly and do not activate it again
 - Only after activating a package, you can use its tools directly"""
     private const val PACKAGE_SYSTEM_GUIDELINES_CN = """
 包系统：
@@ -56,6 +57,7 @@ PACKAGE SYSTEM
   <param name="package_name">package_name_here</param>
   </tool>
 - 这将显示包中的所有工具及其使用方法
+- “工具包预热”块中标记为已激活的包已经完成激活；直接使用其中附带的工具提示，不要再次激活
 - 只有在激活包后，才能直接使用其工具"""
 
 
@@ -65,6 +67,7 @@ PACKAGE SYSTEM
 - Some additional functionality is available through packages
 - To use a package, call the use_package function with the package_name parameter
 - If use_package for a package has appeared earlier in this chat, treat that package as activated
+- If a package is listed as activated in a Package Warmup block, it is also already activated; use its attached tool prompt directly and do not call use_package again
 - For package tools, call package_proxy:
   - Set tool_name to the actual package tool name (e.g. packageName:toolName)
   - Put target tool arguments in params as a JSON object"""
@@ -74,6 +77,7 @@ PACKAGE SYSTEM
 - 一些额外功能通过包提供
 - 要使用包，调用 use_package 函数并传入 package_name 参数
 - 只要本次聊天中该包曾出现过 use_package，就视为该包已激活
+- “工具包预热”块中标记为已激活的包也视为已经激活；直接使用其中附带的工具提示，不要再次调用 use_package
 - 调用包工具请使用 package_proxy：
   - tool_name 填写真实工具名（例如 packageName:toolName）
   - 将目标工具参数放入 params（JSON对象）"""

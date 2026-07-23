@@ -7171,7 +7171,7 @@
     <string name="ai_message_result_omitted_with_status">[结果: %1$s %2$s 已省略]</string>
     <string name="ai_message_package_warmup_title">【工具包预热】</string>
     <string name="ai_message_package_warmup_empty">本次摘要范围内未检测到包工具调用，因此未进行工具包预热。</string>
-    <string name="ai_message_package_warmup_intro">以下根据本次摘要范围内的工具使用频次，自动激活了最高频的工具包，并附上 use_package 的返回结果，供下一轮预热。</string>
+    <string name="ai_message_package_warmup_intro">以下高频工具包已由本次预热完成激活。请将它们视为已激活，直接使用附带的工具提示，不要再次调用 use_package。</string>
     <string name="ai_message_use_package_failed">use_package 调用失败: %1$s</string>
     <string name="ai_message_use_package_empty">use_package 返回为空。</string>
     <string name="ai_message_package_warmup_item">%1$d. 包 %2$s（命中 %3$d 次）</string>
