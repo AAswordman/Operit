@@ -64,6 +64,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
@@ -954,7 +955,8 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         }
         val markers = captureActionMarkers(session)
         timeSeconds?.let { seconds ->
-            Thread.sleep(((seconds * 1000.0).toLong()).coerceAtLeast(0L).coerceAtMost(30_000L))
+            val ms = ((seconds * 1000.0).toLong()).coerceAtLeast(0L).coerceAtMost(30_000L)
+            runBlocking(Dispatchers.IO) { delay(ms) }
         }
         if (textGone != null && !waitForTextState(session, textGone = textGone)) {
             return error(tool.name, "Timeout waiting for the requested condition")
@@ -1404,7 +1406,7 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
             applyViewportOverride(session)
             refreshSessionUiOnMain(session.id)
         }
-        Thread.sleep(100)
+        runBlocking(Dispatchers.IO) { delay(100) }
 
         return ok(
             tool.name,
