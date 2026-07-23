@@ -34,7 +34,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -2151,7 +2153,7 @@ class JsEngine(private val context: Context) {
             if (durationMs <= 0L) {
                 return
             }
-            Thread.sleep(durationMs)
+            runBlocking { delay(durationMs) }
         }
 
         @JavascriptInterface

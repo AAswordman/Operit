@@ -52,9 +52,13 @@ import com.ai.assistance.operit.services.notification.OperitNotificationStore
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AndroidUserPathUtils
 import com.ai.assistance.operit.util.OperitPaths
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 /** 提供系统级操作的工具类 包括系统设置修改、应用安装和卸载等 这些操作需要用户明确授权 */
 open class StandardSystemOperationTools(private val context: Context) {
+
+    private val systemToolsScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
         private const val TAG = "SystemOperationTools"
@@ -1552,7 +1556,7 @@ open class StandardSystemOperationTools(private val context: Context) {
                                 )
 
                                 // 设置超时
-                                kotlinx.coroutines.GlobalScope.launch {
+                                kotlinx.coroutines.systemToolsScope.launch {
                                     delay(timeout * 1000L)
                                     // 在主线程上移除更新和恢复协程
                                     kotlinx.coroutines.withContext(

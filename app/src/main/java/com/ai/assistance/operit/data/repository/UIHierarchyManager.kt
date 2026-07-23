@@ -32,6 +32,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * UI层次结构管理器
@@ -105,7 +107,7 @@ object UIHierarchyManager {
      * 启动安装流程来安装提供者应用
      */
     fun launchProviderInstall(context: Context) {
-        GlobalScope.launch(Dispatchers.IO) {
+        hierarchyScope.launch(Dispatchers.IO) {
             val apkFile = extractProviderApkFromAssets(context)
             if (apkFile == null) {
                 withContext(Dispatchers.Main) {

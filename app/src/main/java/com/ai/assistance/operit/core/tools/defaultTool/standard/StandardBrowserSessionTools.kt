@@ -315,7 +315,7 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         val code =
             when {
                 ref != null -> buildClickCode(session, ref, button, doubleClick, modifiers)
-                else -> buildClickCodeForSelector(selector!!, button, doubleClick, modifiers)
+                else -> selector?.let { sel -> buildClickCodeForSelector(sel, button, doubleClick, modifiers) } ?: return pageError(tool.name, session, "No selector provided")
             }
         val useNativeTap =
             ref != null &&
@@ -342,7 +342,7 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
                 else ->
                     dispatchClickBySelector(
                         webView = session.webView,
-                        selector = selector!!,
+                        selector = selector ?: return pageError(tool.name, session, "No selector provided"),
                         button = button,
                         modifiers = modifiers,
                         doubleClick = doubleClick

@@ -1367,7 +1367,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         // Android导出设置对话框
         if (showAndroidExportDialog && webContentDir != null) {
             AndroidExportDialog(
-                    workDir = webContentDir!!,
+                    workDir = webContentDir,
                     onDismiss = { showAndroidExportDialog = false },
                     onExport = { packageName, appName, iconUri, versionName, versionCode ->
                         showAndroidExportDialog = false
@@ -1384,7 +1384,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                     versionName = versionName,
                                     versionCode = versionCode,
                                     iconUri = iconUri,
-                                    webContentDir = webContentDir!!,
+                                    webContentDir = webContentDir,
                                     onProgress = { progress, status ->
                                         exportProgress = progress
                                         exportStatus = status
@@ -1405,7 +1405,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         // Windows导出设置对话框
         if (showWindowsExportDialog && webContentDir != null) {
             WindowsExportDialog(
-                    workDir = webContentDir!!,
+                    workDir = webContentDir,
                     onDismiss = { showWindowsExportDialog = false },
                     onExport = { appName, iconUri ->
                         showWindowsExportDialog = false
@@ -1419,7 +1419,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                     context = context,
                                     appName = appName,
                                     iconUri = iconUri,
-                                    webContentDir = webContentDir!!,
+                                    webContentDir = webContentDir,
                                     onProgress = { progress, status ->
                                         exportProgress = progress
                                         exportStatus = status

@@ -23,6 +23,9 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.util.LocaleUtils.LanguageCodes
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
 
 private val Context.userPreferencesDataStore: DataStore<Preferences> by
         preferencesDataStore(name = "user_preferences")
@@ -38,7 +41,7 @@ fun initUserPreferencesManager(context: Context, defaultProfileName: String = "D
 
     // Migration must finish before the default memory space is created. Otherwise a fresh default
     // entry could hide the released profile metadata that still owns existing ObjectBox databases.
-    GlobalScope.launch {
+    prefsScope.launch {
         UserProfileDocumentRepository.getInstance(context).initialize()
         manager.ensureDefaultMemorySpace(defaultProfileName)
     }
@@ -50,6 +53,8 @@ data class LegacyUserProfileSnapshot(
 )
 
 class UserPreferencesManager private constructor(private val context: Context) {
+
+    private val prefsScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     companion object {
         @Volatile
         private var INSTANCE: UserPreferencesManager? = null
