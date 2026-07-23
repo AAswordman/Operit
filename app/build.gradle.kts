@@ -294,7 +294,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.lifecycle.runtime.ktx)
-
+    // Encrypted SharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     // Kotlin Serialization
     implementation(libs.kotlinx.serialization)
     implementation(libs.kotlin.reflect)

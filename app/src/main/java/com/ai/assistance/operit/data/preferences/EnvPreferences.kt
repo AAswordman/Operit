@@ -2,17 +2,31 @@ package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 /**
  * Central provider for environment-like configuration values used by tool packages.
  *
- * Values are stored in app-private SharedPreferences and can optionally fall back
+ * Values are stored in EncryptedSharedPreferences (AES256_GCM) and can optionally fall back
  * to the process environment via System.getenv when not explicitly set.
  */
 class EnvPreferences private constructor(context: Context) {
 
-    private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = getEncryptedPrefs(context.applicationContext)
+
+    private fun getEncryptedPrefs(context: Context): SharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     /**
      * Get effective environment value for the given key.

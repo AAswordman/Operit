@@ -127,9 +127,25 @@ internal fun StandardBrowserSessionTools.configureWebView(
             }
             false
         }
-        addJavascriptInterface(BrowserWebDownloadBridge(this@configureWebView, session), "OperitWebDownloadBridge")
-        addJavascriptInterface(BrowserAsyncBridge(), "OperitAsyncBridge")
-        addJavascriptInterface(BrowserTextSelectionBridge(), "OperitTextSelectionBridge")
+        // XSS hardening: validate JavaScript interfaces are only accessible from same origin
+        addJavascriptInterface(BrowserWebDownloadBridge(this@configureWebView, session).apply {
+            setOriginValidator { origin ->
+                origin?.startsWith("http") == true &&
+                        (origin.contains("localhost") || origin.contains("127.0.0.1") || origin.startsWith(session.currentUrl?.takeWhile { it != '?' } ?: ""))
+            }
+        }, "OperitWebDownloadBridge")
+        addJavascriptInterface(BrowserAsyncBridge().apply {
+            setOriginValidator { origin ->
+                origin?.startsWith("http") == true &&
+                        (origin.contains("localhost") || origin.contains("127.0.0.1") || origin.startsWith(session.currentUrl?.takeWhile { it != '?' } ?: ""))
+            }
+        }, "OperitAsyncBridge")
+        addJavascriptInterface(BrowserTextSelectionBridge().apply {
+            setOriginValidator { origin ->
+                origin?.startsWith("http") == true &&
+                        (origin.contains("localhost") || origin.contains("127.0.0.1") || origin.startsWith(session.currentUrl?.takeWhile { it != '?' } ?: ""))
+            }
+        }, "OperitTextSelectionBridge")
         setDownloadListener(createDownloadListener(session))
         setOnLongClickListener { true }
         isLongClickable = false

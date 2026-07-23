@@ -69,7 +69,11 @@
     <!-- Workflow scheduling permissions -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-
+    
+    <!-- 保护OperitAssistActivity防止点击劫持 -->
+    <permission android:name="com.ai.assistance.operit.permission.ASSIST_OVERLAY"
+        android:protectionLevel="signature" />
+    
     <queries>
         <!-- 允许查询和绑定到无障碍服务提供者应用 -->
         <package android:name="com.ai.assistance.operit.provider" />
@@ -269,6 +273,7 @@
             android:name=".services.assistant.OperitAssistActivity"
             android:excludeFromRecents="true"
             android:exported="true"
+            android:permission="com.ai.assistance.operit.permission.ASSIST_OVERLAY"
             android:finishOnTaskLaunch="true"
             android:noHistory="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">

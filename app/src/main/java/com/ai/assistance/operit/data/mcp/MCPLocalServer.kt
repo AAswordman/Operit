@@ -2,6 +2,8 @@ package com.ai.assistance.operit.data.mcp
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.tools.AIToolHandler
@@ -67,8 +69,17 @@ class MCPLocalServer private constructor(private val context: Context) {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // 持久化配置
-    private val prefs: SharedPreferences =
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = getSecurePrefs(context)
+
+    private fun getSecurePrefs(context: Context): SharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+        return EncryptedSharedPreferences.create(
+            context, "mcp_config_secure", masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     // 配置目录路径
     private val configBaseDir by lazy {
