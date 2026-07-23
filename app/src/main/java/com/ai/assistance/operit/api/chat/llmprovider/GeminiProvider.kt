@@ -27,6 +27,7 @@ import android.net.Uri
 import android.os.Environment
 import android.util.Base64
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.BuildConfig
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -56,7 +57,7 @@ class GeminiProvider(
 ) : AIService {
     companion object {
         private const val TAG = "GeminiProvider"
-        private const val DEBUG = true // 开启调试日志
+        private val DEBUG = BuildConfig.DEBUG // Controlled by build type: true for debug, false for release
     }
 
     // HTTP客户端
