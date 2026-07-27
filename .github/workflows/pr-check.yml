@@ -359,26 +359,14 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             tools/native_ripgrep/target
-          key: native-ripgrep-arm64-${{ runner.os }}-${{ hashFiles('tools/native_ripgrep/Cargo.lock') }}
+          key: native-ripgrep-arm64-${{ runner.os }}-${{ hashFiles('tools/native_ripgrep/Cargo.toml', 'tools/native_ripgrep/Cargo.lock', 'tools/native_ripgrep/rust-toolchain.toml', 'tools/native_ripgrep/build_android.sh') }}
 
-      - name: Build native ripgrep
+      - name: Build native ripgrep from locked Rust source
         if: steps.plan.outputs.android_full == 'true'
         shell: bash
-        run: |
-          set -euo pipefail
-          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
-          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
-          rustup toolchain install 1.88.0 --profile minimal
-          rustup target add --toolchain 1.88.0 aarch64-linux-android
-          cargo +1.88.0 build \
-            --manifest-path tools/native_ripgrep/Cargo.toml \
-            --release \
-            --target aarch64-linux-android \
-            --locked
-          install -Dm755 \
-            tools/native_ripgrep/target/aarch64-linux-android/release/liboperit_ripgrep.so \
-            app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
-          test -s app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.ANDROID_NDK_VERSION }}
+        run: bash tools/native_ripgrep/build_android.sh
 
       - name: Run Android JVM checks
         if: steps.plan.outputs.android_jvm == 'true'
