@@ -326,6 +326,12 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         AppLogger.d(TAG, "【启动计时】全局图片加载器初始化完成（超时配置：连接30s/读取60s） - ${System.currentTimeMillis() - startTime}ms")
         
         // 初始化图片池管理器，支持本地持久化缓存
+        // 先读取「保留聊天图片」设置再初始化，避免启动即清空磁盘图片
+        val keepChatImages =
+                runBlocking(Dispatchers.IO) {
+                    UserPreferencesManager.getInstance(applicationContext).keepChatImages.first()
+                }
+        ImagePoolManager.keepChatImages = keepChatImages
         ImagePoolManager.initialize(filesDir, preloadNow = false)
         AppLogger.d(TAG, "【启动计时】图片池管理器初始化完成 - ${System.currentTimeMillis() - startTime}ms")
 

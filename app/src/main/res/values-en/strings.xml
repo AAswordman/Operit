@@ -7960,6 +7960,7 @@
     <string name="ai_message_use_package_failed">use_package call failed: %1$s</string>
     <string name="ai_message_use_package_empty">use_package returned empty.</string>
     <string name="ai_message_package_warmup_item">%1$d. Package %2$s (hit %3$d times)</string>
+
     <string name="artifact_publish_encrypt_market_toolpkg_title">Minify and Obfuscate for Publishing</string>
 
     <string name="market_manage_resubmit">Resubmit</string>
@@ -8003,4 +8004,7 @@
     <string name="notification_kind_review_rejected">Rejected</string>
     <string name="notification_kind_review_changes">Changes Required</string>
     <string name="notification_kind_entry_curated">Featured</string>
+
+    <string name="keep_chat_images">Keep chat images</string>
+    <string name="keep_chat_images_desc">When enabled, images in chats are not deleted on app restart or cache eviction, and are kept locally for the long term.</string>
 </resources>

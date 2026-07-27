@@ -88,6 +88,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         // 主题设置相关键
         private val THEME_MODE = stringPreferencesKey("theme_mode")
         private val USE_SYSTEM_THEME = booleanPreferencesKey("use_system_theme")
+        private val KEEP_CHAT_IMAGES = booleanPreferencesKey("keep_chat_images")
         private val CUSTOM_PRIMARY_COLOR = intPreferencesKey("custom_primary_color")
         private val CUSTOM_SECONDARY_COLOR = intPreferencesKey("custom_secondary_color")
         private val USE_CUSTOM_COLORS = booleanPreferencesKey("use_custom_colors")
@@ -556,6 +557,18 @@ class UserPreferencesManager private constructor(private val context: Context) {
             context.userPreferencesDataStore.data.map { preferences ->
                 preferences[USE_SYSTEM_THEME] ?: true
             }
+
+    // 保留聊天图片（开启后图片不在重启/缓存淘汰时丢失）
+    val keepChatImages: Flow<Boolean> =
+            context.userPreferencesDataStore.data.map { preferences ->
+                preferences[KEEP_CHAT_IMAGES] ?: false
+            }
+
+    suspend fun setKeepChatImages(value: Boolean) {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[KEEP_CHAT_IMAGES] = value
+        }
+    }
 
     val customPrimaryColor: Flow<Int?> =
             context.userPreferencesDataStore.data.map { preferences ->

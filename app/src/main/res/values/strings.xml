@@ -7983,4 +7983,7 @@
     <string name="notification_kind_review_changes">需要修改</string>
     <string name="notification_kind_entry_curated">入选精选</string>
 
+    <string name="keep_chat_images">保留聊天图片</string>
+    <string name="keep_chat_images_desc">开启后，聊天中的图片不会在应用重启或缓存淘汰时被删除，会长期保留在本地。</string>
+
 </resources>

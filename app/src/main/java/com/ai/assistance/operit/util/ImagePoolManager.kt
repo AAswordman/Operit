@@ -57,6 +57,14 @@ object ImagePoolManager {
             }
         }
 
+    /**
+     * 是否保留聊天图片。开启后：
+     * 1) 应用启动时不再清空磁盘图片缓存；
+     * 2) LRU 淘汰时仅将图片移出内存池，不删除磁盘文件。
+     * 由用户设置控制，默认 false（保持原有行为）。
+     */
+    var keepChatImages: Boolean = false
+
     private var cacheDir: File? = null
     private var hasResetCacheOnInitialize = false
 
@@ -86,7 +94,10 @@ object ImagePoolManager {
                 val shouldRemove = size > maxPoolSize
                 if (shouldRemove && eldest != null) {
                     AppLogger.d(TAG, "池子已满，移除最旧的图片: ${eldest.key}")
-                    deleteFromDisk(eldest.key)
+                    // 保留聊天图片模式下，仅移出内存池，不删除磁盘文件
+                    if (!keepChatImages) {
+                        deleteFromDisk(eldest.key)
+                    }
                 }
                 return shouldRemove
             }
@@ -109,7 +120,10 @@ object ImagePoolManager {
 
         if (shouldResetCache) {
             imagePool.clear()
-            clearDiskCache()
+            // 保留聊天图片模式下，启动不清空磁盘缓存，避免用户已保存的图片丢失
+            if (!keepChatImages) {
+                clearDiskCache()
+            }
             hasResetCacheOnInitialize = true
             AppLogger.d(TAG, "启动时已清空旧图片池缓存")
         }

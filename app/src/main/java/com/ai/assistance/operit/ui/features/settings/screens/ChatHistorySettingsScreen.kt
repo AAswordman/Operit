@@ -83,6 +83,9 @@ fun ChatHistorySettingsScreen() {
     val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val activeProfileId by userPreferencesManager.activeMemorySpaceIdFlow.collectAsState(initial = "default")
 
+    // 保留聊天图片开关状态
+    val keepChatImages by userPreferencesManager.keepChatImages.collectAsState(initial = false)
+
     val characterCardStatsState by chatHistoryManager.characterCardStatsFlow
         .collectAsState(initial = null as List<CharacterCardChatStats>?)
     val characterCardStats = characterCardStatsState ?: emptyList()
@@ -274,6 +277,40 @@ fun ChatHistorySettingsScreen() {
                     totalChatCount = totalChatCount,
                     activeProfileName = activeProfileName
                 )
+            }
+
+            // 保留聊天图片设置
+            item {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                            Text(
+                                text = stringResource(id = R.string.keep_chat_images),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(id = R.string.keep_chat_images_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = keepChatImages,
+                            onCheckedChange = { enabled ->
+                                scope.launch {
+                                    userPreferencesManager.setKeepChatImages(enabled)
+                                }
+                            }
+                        )
+                    }
+                }
             }
             item {
                 CharacterCardStatsCard(
