@@ -799,8 +799,10 @@ private fun TokenUsageModelCard(
                         fontWeight = FontWeight.Medium
                     )
                     if (cachedInputTokens > 0L) {
+                        val totalInput = inputTokens + cachedInputTokens
+                        val hitRate = if (totalInput > 0) (cachedInputTokens * 100.0 / totalInput) else 0.0
                         Text(
-                            text = stringResource(R.string.settings_cached_tokens, cachedInputTokens),
+                            text = stringResource(R.string.settings_cached_tokens, cachedInputTokens) + " (${String.format("%.1f", hitRate)}%)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
