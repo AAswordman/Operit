@@ -35,6 +35,7 @@ import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.ToolInvocation
 import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.AITool
@@ -2689,6 +2690,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 useToolCallApi,
                 chatModelHasDirectImage,
                 toolExposureMode,
+                splitDynamicContext = config.apiProviderType == ApiProviderType.DEEPSEEK,
                 memorySpaceIdOverride,
                 dispatchHistoryHooks,
                 dispatchSystemPromptComposeHooks,

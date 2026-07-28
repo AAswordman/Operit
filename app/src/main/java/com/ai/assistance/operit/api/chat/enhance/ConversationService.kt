@@ -478,6 +478,7 @@ class ConversationService(
             useToolCallApi: Boolean = false,
             chatModelHasDirectImage: Boolean = false,
             toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+            splitDynamicContext: Boolean = false,
             memorySpaceIdOverride: String? = null,
             dispatchHistoryHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchPromptHistoryHooks,
             dispatchSystemPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchSystemPromptComposeHooks,
@@ -613,49 +614,82 @@ class ConversationService(
 
                 // 替换提示词中的占位符
                 val aiName = activeCard?.name ?: context.getString(R.string.app_name)
-                val systemPromptWithReplacements = replacePromptPlaceholders(
-                    systemPrompt,
-                    aiName
-                )
 
-                // 构建动态上下文（角色卡、waifu规则、用户档案等）
-                val dynamicContext = buildString {
-                    if (avatarMoodRulesText.isNotEmpty()) {
-                        append(avatarMoodRulesText)
-                    }
-                    if (proxyRolePrompt.isNotEmpty()) {
-                        append("\n\n<assistant_role source=\"proxy_character_card\">\n")
-                        append(proxyRolePrompt)
-                        append("\n</assistant_role>")
-                    }
-                    append(waifuRulesText)
-                    if (!disableUserPreferenceDescription && userProfileMarkdown.isNotEmpty()) {
-                        append("\n\n<user_profile source=\"user.md\">\n")
-                        append(userProfileMarkdown)
-                        append("\n</user_profile>")
-                    }
-                }
-
-                // 稳定的系统提示词放在最前面（缓存锚点）
-                preparedHistory.add(
-                    0,
-                    PromptTurn(
-                        kind = PromptTurnKind.SYSTEM,
-                        content = systemPromptWithReplacements
+                if (splitDynamicContext) {
+                    // DeepSeek 策略：拆分稳定系统提示词和动态上下文，提高前缀缓存命中率
+                    val systemPromptWithReplacements = replacePromptPlaceholders(
+                        systemPrompt,
+                        aiName
                     )
-                )
 
-                // 动态上下文作为第二条 SYSTEM 消息插入，放在静态系统提示词之后、对话历史之前
-                if (dynamicContext.isNotBlank()) {
-                    val dynamicContextWithReplacements = replacePromptPlaceholders(
-                        dynamicContext,
+                    // 构建动态上下文（角色卡、waifu规则、用户档案等）
+                    val dynamicContext = buildString {
+                        if (avatarMoodRulesText.isNotEmpty()) {
+                            append(avatarMoodRulesText)
+                        }
+                        if (proxyRolePrompt.isNotEmpty()) {
+                            append("\n\n<assistant_role source=\"proxy_character_card\">\n")
+                            append(proxyRolePrompt)
+                            append("\n</assistant_role>")
+                        }
+                        append(waifuRulesText)
+                        if (!disableUserPreferenceDescription && userProfileMarkdown.isNotEmpty()) {
+                            append("\n\n<user_profile source=\"user.md\">\n")
+                            append(userProfileMarkdown)
+                            append("\n</user_profile>")
+                        }
+                    }
+
+                    // 稳定的系统提示词放在最前面（缓存锚点）
+                    preparedHistory.add(
+                        0,
+                        PromptTurn(
+                            kind = PromptTurnKind.SYSTEM,
+                            content = systemPromptWithReplacements
+                        )
+                    )
+
+                    // 动态上下文作为第二条 SYSTEM 消息插入
+                    if (dynamicContext.isNotBlank()) {
+                        val dynamicContextWithReplacements = replacePromptPlaceholders(
+                            dynamicContext,
+                            aiName
+                        )
+                        preparedHistory.add(
+                            1,
+                            PromptTurn(
+                                kind = PromptTurnKind.SYSTEM,
+                                content = dynamicContextWithReplacements
+                            )
+                        )
+                    }
+                } else {
+                    // 其他模型：保持原有逻辑，所有内容合并到一条系统消息
+                    val finalSystemPrompt = buildString {
+                        append(avatarMoodRulesText)
+                        append(systemPrompt)
+                        if (proxyRolePrompt.isNotEmpty()) {
+                            append("\n\n<assistant_role source=\"proxy_character_card\">\n")
+                            append(proxyRolePrompt)
+                            append("\n</assistant_role>")
+                        }
+                        append(waifuRulesText)
+                        if (!disableUserPreferenceDescription && userProfileMarkdown.isNotEmpty()) {
+                            append("\n\n<user_profile source=\"user.md\">\n")
+                            append(userProfileMarkdown)
+                            append("\n</user_profile>")
+                        }
+                    }
+
+                    val finalSystemPromptWithReplacements = replacePromptPlaceholders(
+                        finalSystemPrompt,
                         aiName
                     )
                     preparedHistory.add(
-                        1,
+                        0,
                         PromptTurn(
                             kind = PromptTurnKind.SYSTEM,
-                            content = dynamicContextWithReplacements
+                            content = finalSystemPromptWithReplacements
                         )
                     )
                 }
