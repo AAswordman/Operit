@@ -151,8 +151,8 @@ data class ModelConfigData(
         // Claude特定配置
         val enableClaude1hPromptCache: Boolean = false, // 是否启用1小时提示缓存TTL (仅Claude支持)
 
-        // Tool Call配置
-        val enableToolCall: Boolean = false, // 是否启用Tool Call接口调用工具（使用模型原生工具调用而非XML格式）
+        // Tool Call配置（默认开启：工具定义从 system prompt 移到 tools 字段，缩短 system prompt 以提高前缀缓存命中率）
+        val enableToolCall: Boolean = true, // 是否启用Tool Call接口调用工具（使用模型原生工具调用而非XML格式）
 
         // 请求频率限制配置
         val requestLimitPerMinute: Int = 0, // 每分钟最大请求次数，0表示不限流
