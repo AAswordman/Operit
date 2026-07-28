@@ -272,7 +272,9 @@ object OpenAIResponsesPayloadAdapter {
         val totalInputTokens: Int,
         val actualInputTokens: Int,
         val cachedInputTokens: Int,
-        val outputTokens: Int
+        val outputTokens: Int,
+        val promptCacheHitTokens: Int = 0,   // DeepSeek 特有：缓存命中 token 数
+        val promptCacheMissTokens: Int = 0    // DeepSeek 特有：缓存未命中 token 数
     )
 
     data class ParsedResponseOutput(
@@ -302,10 +304,20 @@ object OpenAIResponsesPayloadAdapter {
         val cachedInputTokens =
             cachedDetails?.optInt("cached_tokens", usage.optInt("cached_tokens", 0))
                 ?: usage.optInt("cached_tokens", 0)
-        val actualInputTokens = (totalInputTokens - cachedInputTokens).coerceAtLeast(0)
 
-        return if (totalInputTokens > 0 || outputTokens > 0 || cachedInputTokens > 0) {
-            UsageCounts(totalInputTokens, actualInputTokens, cachedInputTokens, outputTokens)
+        // DeepSeek 特有字段：前缀缓存命中/未命中 token 数
+        val promptCacheHitTokens = usage.optInt("prompt_cache_hit_tokens", 0)
+        val promptCacheMissTokens = usage.optInt("prompt_cache_miss_tokens", 0)
+
+        // 使用 DeepSeek 缓存命中数作为 cachedInputTokens 的 fallback（当标准字段为 0 时）
+        val effectiveCachedInput = if (cachedInputTokens > 0) cachedInputTokens else promptCacheHitTokens
+        val actualInputTokens = (totalInputTokens - effectiveCachedInput).coerceAtLeast(0)
+
+        return if (totalInputTokens > 0 || outputTokens > 0 || effectiveCachedInput > 0) {
+            UsageCounts(
+                totalInputTokens, actualInputTokens, effectiveCachedInput, outputTokens,
+                promptCacheHitTokens, promptCacheMissTokens
+            )
         } else {
             null
         }

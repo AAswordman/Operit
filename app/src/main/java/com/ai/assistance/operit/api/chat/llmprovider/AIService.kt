@@ -18,6 +18,14 @@ interface AIService {
     /** 输出token计数 */
     val outputTokenCount: Int
 
+    /** DeepSeek 前缀缓存命中 token 数（服务端返回，非 DeepSeek provider 为 0） */
+    val promptCacheHitTokens: Int
+        get() = 0
+
+    /** DeepSeek 前缀缓存未命中 token 数（服务端返回，非 DeepSeek provider 为 0） */
+    val promptCacheMissTokens: Int
+        get() = 0
+
     /** 获取供应商:模型标识符，格式如"DEEPSEEK:deepseek-chat" */
     val providerModel: String
 

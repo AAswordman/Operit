@@ -135,6 +135,11 @@ open class OpenAIProvider(
     override val cachedInputTokenCount: Int
         get() = tokenCacheManager.cachedInputTokenCount
 
+    override val promptCacheHitTokens: Int
+        get() = tokenCacheManager.promptCacheHitTokens
+    override val promptCacheMissTokens: Int
+        get() = tokenCacheManager.promptCacheMissTokens
+
     // 供应商:模型标识符
     override val providerModel: String
         get() = "${providerType.name}:$modelName"
@@ -146,6 +151,10 @@ open class OpenAIProvider(
         val parsed = OpenAIResponsesPayloadAdapter.parseUsageCounts(usage) ?: return
         tokenCacheManager.updateActualTokens(parsed.actualInputTokens, parsed.cachedInputTokens)
         tokenCacheManager.setOutputTokens(parsed.outputTokens)
+        // 更新 DeepSeek 前缀缓存统计（非 DeepSeek provider 时 hit/miss 均为 0，不影响）
+        if (parsed.promptCacheHitTokens > 0 || parsed.promptCacheMissTokens > 0) {
+            tokenCacheManager.updatePromptCacheStats(parsed.promptCacheHitTokens, parsed.promptCacheMissTokens)
+        }
         onTokensUpdated(
             parsed.totalInputTokens,
             parsed.cachedInputTokens,
