@@ -611,10 +611,18 @@ class ConversationService(
                     }
                 AppLogger.d("petRules", avatarMoodRulesText)
 
-                // 构建最终的系统提示词
-                val finalSystemPrompt = buildString {
-                    append(avatarMoodRulesText)
-                    append(systemPrompt)
+                // 替换提示词中的占位符
+                val aiName = activeCard?.name ?: context.getString(R.string.app_name)
+                val systemPromptWithReplacements = replacePromptPlaceholders(
+                    systemPrompt,
+                    aiName
+                )
+
+                // 构建动态上下文（角色卡、waifu规则、用户档案等）
+                val dynamicContext = buildString {
+                    if (avatarMoodRulesText.isNotEmpty()) {
+                        append(avatarMoodRulesText)
+                    }
                     if (proxyRolePrompt.isNotEmpty()) {
                         append("\n\n<assistant_role source=\"proxy_character_card\">\n")
                         append(proxyRolePrompt)
@@ -628,19 +636,29 @@ class ConversationService(
                     }
                 }
 
-                // 替换提示词中的占位符
-                val aiName = activeCard?.name ?: context.getString(R.string.app_name)
-                val finalSystemPromptWithReplacements = replacePromptPlaceholders(
-                    finalSystemPrompt,
-                    aiName
-                )
+                // 稳定的系统提示词放在最前面（缓存锚点）
                 preparedHistory.add(
                     0,
                     PromptTurn(
                         kind = PromptTurnKind.SYSTEM,
-                        content = finalSystemPromptWithReplacements
+                        content = systemPromptWithReplacements
                     )
                 )
+
+                // 动态上下文作为第二条 SYSTEM 消息插入，放在静态系统提示词之后、对话历史之前
+                if (dynamicContext.isNotBlank()) {
+                    val dynamicContextWithReplacements = replacePromptPlaceholders(
+                        dynamicContext,
+                        aiName
+                    )
+                    preparedHistory.add(
+                        1,
+                        PromptTurn(
+                            kind = PromptTurnKind.SYSTEM,
+                            content = dynamicContextWithReplacements
+                        )
+                    )
+                }
             }
 
             // Process each message in chat history
