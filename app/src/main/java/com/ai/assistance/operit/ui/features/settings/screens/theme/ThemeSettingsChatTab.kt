@@ -7,14 +7,13 @@ import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.ai.assistance.operit.R
@@ -24,13 +23,13 @@ import com.ai.assistance.operit.ui.features.settings.components.ColorPickerDialo
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsAvatarSection
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsChatStyleSection
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsDisplayOptionsSection
-import com.ai.assistance.operit.ui.features.settings.sections.SaveThemeSettingsAction
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.FileUtils
 import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
 import com.canhub.cropper.CropImageOptions
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,38 +70,8 @@ private enum class ThemeSettingsAvatarPickerMode(val uniqueName: String) {
 internal data class ThemeSettingsChatRuntimeState(
     val context: android.content.Context,
     val scope: CoroutineScope,
-    val preferencesManager: UserPreferencesManager,
+    val editorSession: ThemeEditorSession,
     val displayPreferencesManager: DisplayPreferencesManager,
-    val saveThemeSettingsWithCharacterCard: SaveThemeSettingsAction,
-    val bubbleUserBubbleLiquidGlassInput: Boolean,
-    val bubbleUserBubbleWaterGlassInput: Boolean,
-    val bubbleAiBubbleLiquidGlassInput: Boolean,
-    val bubbleAiBubbleWaterGlassInput: Boolean,
-    val onBubbleUserUseImageInputChange: (Boolean) -> Unit,
-    val onBubbleAiUseImageInputChange: (Boolean) -> Unit,
-    val onBubbleUserImageUriInputChange: (String?) -> Unit,
-    val onBubbleAiImageUriInputChange: (String?) -> Unit,
-    val onBubbleUserImageCropLeftInputChange: (Float) -> Unit,
-    val onBubbleUserImageCropTopInputChange: (Float) -> Unit,
-    val onBubbleUserImageCropRightInputChange: (Float) -> Unit,
-    val onBubbleUserImageCropBottomInputChange: (Float) -> Unit,
-    val onBubbleUserImageRepeatStartInputChange: (Float) -> Unit,
-    val onBubbleUserImageRepeatEndInputChange: (Float) -> Unit,
-    val onBubbleUserImageRepeatYStartInputChange: (Float) -> Unit,
-    val onBubbleUserImageRepeatYEndInputChange: (Float) -> Unit,
-    val onBubbleUserImageScaleInputChange: (Float) -> Unit,
-    val onBubbleAiImageCropLeftInputChange: (Float) -> Unit,
-    val onBubbleAiImageCropTopInputChange: (Float) -> Unit,
-    val onBubbleAiImageCropRightInputChange: (Float) -> Unit,
-    val onBubbleAiImageCropBottomInputChange: (Float) -> Unit,
-    val onBubbleAiImageRepeatStartInputChange: (Float) -> Unit,
-    val onBubbleAiImageRepeatEndInputChange: (Float) -> Unit,
-    val onBubbleAiImageRepeatYStartInputChange: (Float) -> Unit,
-    val onBubbleAiImageRepeatYEndInputChange: (Float) -> Unit,
-    val onBubbleAiImageScaleInputChange: (Float) -> Unit,
-    val onBubbleImageRenderModeInputChange: (String) -> Unit,
-    val onUserAvatarUriInputChange: (String?) -> Unit,
-    val onAiAvatarUriInputChange: (String?) -> Unit,
     val onGlobalUserAvatarUriInputChange: (String?) -> Unit,
 )
 
@@ -218,32 +187,27 @@ internal fun rememberThemeSettingsChatRuntime(
                         val internalUri =
                             FileUtils.copyFileToInternalStorage(context, croppedUri, uniqueName)
                         if (internalUri != null) {
-                            val enabledForAi =
-                                !state.bubbleAiBubbleLiquidGlassInput &&
-                                    !state.bubbleAiBubbleWaterGlassInput
-                            val enabledForUser =
-                                !state.bubbleUserBubbleLiquidGlassInput &&
-                                    !state.bubbleUserBubbleWaterGlassInput
-                            when (bubbleImagePickerTarget) {
-                                ThemeSettingsBubbleTarget.AI -> {
-                                    state.onBubbleAiImageUriInputChange(internalUri.toString())
-                                    state.onBubbleAiUseImageInputChange(enabledForAi)
-                                    state.saveThemeSettingsWithCharacterCard {
-                                        state.preferencesManager.saveThemeSettings(
-                                            bubbleAiImageUri = internalUri.toString(),
-                                            bubbleAiUseImage = enabledForAi,
-                                        )
-                                    }
-                                }
-                                ThemeSettingsBubbleTarget.USER -> {
-                                    state.onBubbleUserImageUriInputChange(internalUri.toString())
-                                    state.onBubbleUserUseImageInputChange(enabledForUser)
-                                    state.saveThemeSettingsWithCharacterCard {
-                                        state.preferencesManager.saveThemeSettings(
-                                            bubbleUserImageUri = internalUri.toString(),
-                                            bubbleUserUseImage = enabledForUser,
-                                        )
-                                    }
+                            val internalUriString = internalUri.toString()
+                            state.editorSession.registerStagedAsset(internalUriString)
+                            state.editorSession.update { values ->
+                                when (bubbleImagePickerTarget) {
+                                    ThemeSettingsBubbleTarget.AI ->
+                                        values
+                                            .withString("bubble_ai_image_uri", internalUriString)
+                                            .withBoolean(
+                                                "bubble_ai_use_image",
+                                                !values.requiredBoolean("bubble_ai_bubble_liquid_glass") &&
+                                                    !values.requiredBoolean("bubble_ai_bubble_water_glass"),
+                                            )
+
+                                    ThemeSettingsBubbleTarget.USER ->
+                                        values
+                                            .withString("bubble_user_image_uri", internalUriString)
+                                            .withBoolean(
+                                                "bubble_user_use_image",
+                                                !values.requiredBoolean("bubble_user_bubble_liquid_glass") &&
+                                                    !values.requiredBoolean("bubble_user_bubble_water_glass"),
+                                            )
                                 }
                             }
                             Toast.makeText(
@@ -318,6 +282,7 @@ internal fun rememberThemeSettingsChatRuntime(
                         parseNinePatchBubbleParams(context, uri)
                             ?: parseNinePatchBubbleParams(context, internalUri)
                     if (autoParams == null) {
+                        internalUri.path?.let { path -> File(path).delete() }
                         Toast.makeText(
                             context,
                             context.getString(R.string.theme_copy_failed),
@@ -327,72 +292,46 @@ internal fun rememberThemeSettingsChatRuntime(
                     }
 
                     val internalUriString = internalUri.toString()
+                    state.editorSession.registerStagedAsset(internalUriString)
                     val renderMode = UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH
-                    state.onBubbleImageRenderModeInputChange(renderMode)
-                    when (bubbleImagePickerTarget) {
-                        ThemeSettingsBubbleTarget.AI -> {
-                            val useImage =
-                                !state.bubbleAiBubbleLiquidGlassInput &&
-                                    !state.bubbleAiBubbleWaterGlassInput
-                            state.onBubbleAiImageUriInputChange(internalUriString)
-                            state.onBubbleAiUseImageInputChange(useImage)
-                            state.onBubbleAiImageCropLeftInputChange(autoParams.cropLeftRatio)
-                            state.onBubbleAiImageCropTopInputChange(autoParams.cropTopRatio)
-                            state.onBubbleAiImageCropRightInputChange(autoParams.cropRightRatio)
-                            state.onBubbleAiImageCropBottomInputChange(autoParams.cropBottomRatio)
-                            state.onBubbleAiImageRepeatStartInputChange(autoParams.repeatXStartRatio)
-                            state.onBubbleAiImageRepeatEndInputChange(autoParams.repeatXEndRatio)
-                            state.onBubbleAiImageRepeatYStartInputChange(autoParams.repeatYStartRatio)
-                            state.onBubbleAiImageRepeatYEndInputChange(autoParams.repeatYEndRatio)
-                            state.onBubbleAiImageScaleInputChange(1f)
-                            state.saveThemeSettingsWithCharacterCard {
-                                state.preferencesManager.saveThemeSettings(
-                                    bubbleAiImageUri = internalUriString,
-                                    bubbleAiUseImage = useImage,
-                                    bubbleAiImageCropLeft = autoParams.cropLeftRatio,
-                                    bubbleAiImageCropTop = autoParams.cropTopRatio,
-                                    bubbleAiImageCropRight = autoParams.cropRightRatio,
-                                    bubbleAiImageCropBottom = autoParams.cropBottomRatio,
-                                    bubbleAiImageRepeatStart = autoParams.repeatXStartRatio,
-                                    bubbleAiImageRepeatEnd = autoParams.repeatXEndRatio,
-                                    bubbleAiImageRepeatYStart = autoParams.repeatYStartRatio,
-                                    bubbleAiImageRepeatYEnd = autoParams.repeatYEndRatio,
-                                    bubbleAiImageScale = 1f,
-                                    bubbleImageRenderMode = renderMode,
-                                )
-                            }
-                        }
-                        ThemeSettingsBubbleTarget.USER -> {
-                            val useImage =
-                                !state.bubbleUserBubbleLiquidGlassInput &&
-                                    !state.bubbleUserBubbleWaterGlassInput
-                            state.onBubbleUserImageUriInputChange(internalUriString)
-                            state.onBubbleUserUseImageInputChange(useImage)
-                            state.onBubbleUserImageCropLeftInputChange(autoParams.cropLeftRatio)
-                            state.onBubbleUserImageCropTopInputChange(autoParams.cropTopRatio)
-                            state.onBubbleUserImageCropRightInputChange(autoParams.cropRightRatio)
-                            state.onBubbleUserImageCropBottomInputChange(autoParams.cropBottomRatio)
-                            state.onBubbleUserImageRepeatStartInputChange(autoParams.repeatXStartRatio)
-                            state.onBubbleUserImageRepeatEndInputChange(autoParams.repeatXEndRatio)
-                            state.onBubbleUserImageRepeatYStartInputChange(autoParams.repeatYStartRatio)
-                            state.onBubbleUserImageRepeatYEndInputChange(autoParams.repeatYEndRatio)
-                            state.onBubbleUserImageScaleInputChange(1f)
-                            state.saveThemeSettingsWithCharacterCard {
-                                state.preferencesManager.saveThemeSettings(
-                                    bubbleUserImageUri = internalUriString,
-                                    bubbleUserUseImage = useImage,
-                                    bubbleUserImageCropLeft = autoParams.cropLeftRatio,
-                                    bubbleUserImageCropTop = autoParams.cropTopRatio,
-                                    bubbleUserImageCropRight = autoParams.cropRightRatio,
-                                    bubbleUserImageCropBottom = autoParams.cropBottomRatio,
-                                    bubbleUserImageRepeatStart = autoParams.repeatXStartRatio,
-                                    bubbleUserImageRepeatEnd = autoParams.repeatXEndRatio,
-                                    bubbleUserImageRepeatYStart = autoParams.repeatYStartRatio,
-                                    bubbleUserImageRepeatYEnd = autoParams.repeatYEndRatio,
-                                    bubbleUserImageScale = 1f,
-                                    bubbleImageRenderMode = renderMode,
-                                )
-                            }
+                    state.editorSession.update { values ->
+                        val updated = values.withString("bubble_image_render_mode", renderMode)
+                        when (bubbleImagePickerTarget) {
+                            ThemeSettingsBubbleTarget.AI ->
+                                updated
+                                    .withString("bubble_ai_image_uri", internalUriString)
+                                    .withBoolean(
+                                        "bubble_ai_use_image",
+                                        !values.requiredBoolean("bubble_ai_bubble_liquid_glass") &&
+                                            !values.requiredBoolean("bubble_ai_bubble_water_glass"),
+                                    )
+                                    .withFloat("bubble_ai_image_crop_left", autoParams.cropLeftRatio)
+                                    .withFloat("bubble_ai_image_crop_top", autoParams.cropTopRatio)
+                                    .withFloat("bubble_ai_image_crop_right", autoParams.cropRightRatio)
+                                    .withFloat("bubble_ai_image_crop_bottom", autoParams.cropBottomRatio)
+                                    .withFloat("bubble_ai_image_repeat_start", autoParams.repeatXStartRatio)
+                                    .withFloat("bubble_ai_image_repeat_end", autoParams.repeatXEndRatio)
+                                    .withFloat("bubble_ai_image_repeat_y_start", autoParams.repeatYStartRatio)
+                                    .withFloat("bubble_ai_image_repeat_y_end", autoParams.repeatYEndRatio)
+                                    .withFloat("bubble_ai_image_scale", 1f)
+
+                            ThemeSettingsBubbleTarget.USER ->
+                                updated
+                                    .withString("bubble_user_image_uri", internalUriString)
+                                    .withBoolean(
+                                        "bubble_user_use_image",
+                                        !values.requiredBoolean("bubble_user_bubble_liquid_glass") &&
+                                            !values.requiredBoolean("bubble_user_bubble_water_glass"),
+                                    )
+                                    .withFloat("bubble_user_image_crop_left", autoParams.cropLeftRatio)
+                                    .withFloat("bubble_user_image_crop_top", autoParams.cropTopRatio)
+                                    .withFloat("bubble_user_image_crop_right", autoParams.cropRightRatio)
+                                    .withFloat("bubble_user_image_crop_bottom", autoParams.cropBottomRatio)
+                                    .withFloat("bubble_user_image_repeat_start", autoParams.repeatXStartRatio)
+                                    .withFloat("bubble_user_image_repeat_end", autoParams.repeatXEndRatio)
+                                    .withFloat("bubble_user_image_repeat_y_start", autoParams.repeatYStartRatio)
+                                    .withFloat("bubble_user_image_repeat_y_end", autoParams.repeatYEndRatio)
+                                    .withFloat("bubble_user_image_scale", 1f)
                         }
                     }
 
@@ -421,21 +360,19 @@ internal fun rememberThemeSettingsChatRuntime(
                         when (avatarPickerMode) {
                             ThemeSettingsAvatarPickerMode.USER -> {
                                 AppLogger.d("ThemeSettings", "User avatar saved to: $internalUri")
-                                state.onUserAvatarUriInputChange(internalUri.toString())
-                                state.saveThemeSettingsWithCharacterCard {
-                                    state.preferencesManager.saveThemeSettings(
-                                        customUserAvatarUri = internalUri.toString(),
-                                    )
-                                }
+                                state.editorSession.registerStagedAsset(internalUri.toString())
+                                state.editorSession.setOptionalString(
+                                    "custom_user_avatar_uri",
+                                    internalUri.toString(),
+                                )
                             }
                             ThemeSettingsAvatarPickerMode.AI -> {
                                 AppLogger.d("ThemeSettings", "AI avatar saved to: $internalUri")
-                                state.onAiAvatarUriInputChange(internalUri.toString())
-                                state.saveThemeSettingsWithCharacterCard {
-                                    state.preferencesManager.saveThemeSettings(
-                                        customAiAvatarUri = internalUri.toString(),
-                                    )
-                                }
+                                state.editorSession.registerStagedAsset(internalUri.toString())
+                                state.editorSession.setOptionalString(
+                                    "custom_ai_avatar_uri",
+                                    internalUri.toString(),
+                                )
                             }
                             ThemeSettingsAvatarPickerMode.GLOBAL_USER -> {
                                 AppLogger.d(
@@ -508,24 +445,12 @@ internal fun rememberThemeSettingsChatRuntime(
             bubbleImagePickerLauncher.launch("image/*")
         },
         onClearBubbleUserImage = {
-            state.onBubbleUserImageUriInputChange(null)
-            state.onBubbleUserUseImageInputChange(false)
-            state.saveThemeSettingsWithCharacterCard {
-                state.preferencesManager.saveThemeSettings(
-                    bubbleUserImageUri = "",
-                    bubbleUserUseImage = false,
-                )
-            }
+            state.editorSession.setOptionalString("bubble_user_image_uri", null)
+            state.editorSession.setBoolean("bubble_user_use_image", false)
         },
         onClearBubbleAiImage = {
-            state.onBubbleAiImageUriInputChange(null)
-            state.onBubbleAiUseImageInputChange(false)
-            state.saveThemeSettingsWithCharacterCard {
-                state.preferencesManager.saveThemeSettings(
-                    bubbleAiImageUri = "",
-                    bubbleAiUseImage = false,
-                )
-            }
+            state.editorSession.setOptionalString("bubble_ai_image_uri", null)
+            state.editorSession.setBoolean("bubble_ai_use_image", false)
         },
         avatarImagePicker = avatarImagePicker,
         onAvatarPickerModeChange = {
@@ -539,421 +464,142 @@ internal fun ThemeSettingsChatTab(
     shared: ThemeSettingsShared,
     cardColors: androidx.compose.material3.CardColors,
 ) {
-    val preferencesManager = shared.preferencesManager
+    val editorSession = shared.editorSession
     val displayPreferencesManager = shared.displayPreferencesManager
+    val values by editorSession.values.collectAsState()
     val defaultCursorUserBubbleColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
     val defaultBubbleUserBubbleColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
     val defaultBubbleAiBubbleColor = MaterialTheme.colorScheme.surface.toArgb()
 
-    val chatStyle by preferencesManager.chatStyle.collectAsState(
-        initial = UserPreferencesManager.CHAT_STYLE_CURSOR,
-    )
-    val inputStyle by preferencesManager.inputStyle.collectAsState(
-        initial = UserPreferencesManager.INPUT_STYLE_AGENT,
-    )
-    val bubbleShowAvatar by preferencesManager.bubbleShowAvatar.collectAsState(initial = true)
-    val bubbleWideLayoutEnabled by preferencesManager.bubbleWideLayoutEnabled.collectAsState(initial = false)
-    val cursorUserBubbleFollowTheme by preferencesManager.cursorUserBubbleFollowTheme.collectAsState(initial = true)
-    val cursorUserBubbleLiquidGlass by preferencesManager.cursorUserBubbleLiquidGlass.collectAsState(initial = false)
-    val cursorUserBubbleWaterGlass by preferencesManager.cursorUserBubbleWaterGlass.collectAsState(initial = false)
-    val bubbleUserBubbleLiquidGlass by preferencesManager.bubbleUserBubbleLiquidGlass.collectAsState(initial = false)
-    val bubbleUserBubbleWaterGlass by preferencesManager.bubbleUserBubbleWaterGlass.collectAsState(initial = false)
-    val bubbleAiBubbleLiquidGlass by preferencesManager.bubbleAiBubbleLiquidGlass.collectAsState(initial = false)
-    val bubbleAiBubbleWaterGlass by preferencesManager.bubbleAiBubbleWaterGlass.collectAsState(initial = false)
-    val cursorUserBubbleColor by preferencesManager.cursorUserBubbleColor.collectAsState(initial = null)
-    val bubbleUserBubbleColor by preferencesManager.bubbleUserBubbleColor.collectAsState(initial = null)
-    val bubbleAiBubbleColor by preferencesManager.bubbleAiBubbleColor.collectAsState(initial = null)
-    val bubbleUserTextColor by preferencesManager.bubbleUserTextColor.collectAsState(initial = null)
-    val bubbleAiTextColor by preferencesManager.bubbleAiTextColor.collectAsState(initial = null)
-    val bubbleUserUseCustomFont by preferencesManager.bubbleUserUseCustomFont.collectAsState(initial = false)
-    val bubbleUserFontType by preferencesManager.bubbleUserFontType.collectAsState(
-        initial = UserPreferencesManager.FONT_TYPE_SYSTEM,
-    )
-    val bubbleUserSystemFontName by preferencesManager.bubbleUserSystemFontName.collectAsState(
-        initial = UserPreferencesManager.SYSTEM_FONT_DEFAULT,
-    )
-    val bubbleUserCustomFontPath by preferencesManager.bubbleUserCustomFontPath.collectAsState(initial = null)
-    val bubbleAiUseCustomFont by preferencesManager.bubbleAiUseCustomFont.collectAsState(initial = false)
-    val bubbleAiFontType by preferencesManager.bubbleAiFontType.collectAsState(
-        initial = UserPreferencesManager.FONT_TYPE_SYSTEM,
-    )
-    val bubbleAiSystemFontName by preferencesManager.bubbleAiSystemFontName.collectAsState(
-        initial = UserPreferencesManager.SYSTEM_FONT_DEFAULT,
-    )
-    val bubbleAiCustomFontPath by preferencesManager.bubbleAiCustomFontPath.collectAsState(initial = null)
-    val bubbleUserUseImage by preferencesManager.bubbleUserUseImage.collectAsState(initial = false)
-    val bubbleAiUseImage by preferencesManager.bubbleAiUseImage.collectAsState(initial = false)
-    val bubbleUserImageUri by preferencesManager.bubbleUserImageUri.collectAsState(initial = null)
-    val bubbleAiImageUri by preferencesManager.bubbleAiImageUri.collectAsState(initial = null)
-    val bubbleUserImageCropLeft by preferencesManager.bubbleUserImageCropLeft.collectAsState(initial = 0f)
-    val bubbleUserImageCropTop by preferencesManager.bubbleUserImageCropTop.collectAsState(initial = 0f)
-    val bubbleUserImageCropRight by preferencesManager.bubbleUserImageCropRight.collectAsState(initial = 0f)
-    val bubbleUserImageCropBottom by preferencesManager.bubbleUserImageCropBottom.collectAsState(initial = 0f)
-    val bubbleUserImageRepeatStart by preferencesManager.bubbleUserImageRepeatStart.collectAsState(initial = 0.35f)
-    val bubbleUserImageRepeatEnd by preferencesManager.bubbleUserImageRepeatEnd.collectAsState(initial = 0.65f)
-    val bubbleUserImageRepeatYStart by preferencesManager.bubbleUserImageRepeatYStart.collectAsState(initial = 0.35f)
-    val bubbleUserImageRepeatYEnd by preferencesManager.bubbleUserImageRepeatYEnd.collectAsState(initial = 0.65f)
-    val bubbleUserImageScale by preferencesManager.bubbleUserImageScale.collectAsState(initial = 1f)
-    val bubbleAiImageCropLeft by preferencesManager.bubbleAiImageCropLeft.collectAsState(initial = 0f)
-    val bubbleAiImageCropTop by preferencesManager.bubbleAiImageCropTop.collectAsState(initial = 0f)
-    val bubbleAiImageCropRight by preferencesManager.bubbleAiImageCropRight.collectAsState(initial = 0f)
-    val bubbleAiImageCropBottom by preferencesManager.bubbleAiImageCropBottom.collectAsState(initial = 0f)
-    val bubbleAiImageRepeatStart by preferencesManager.bubbleAiImageRepeatStart.collectAsState(initial = 0.35f)
-    val bubbleAiImageRepeatEnd by preferencesManager.bubbleAiImageRepeatEnd.collectAsState(initial = 0.65f)
-    val bubbleAiImageRepeatYStart by preferencesManager.bubbleAiImageRepeatYStart.collectAsState(initial = 0.35f)
-    val bubbleAiImageRepeatYEnd by preferencesManager.bubbleAiImageRepeatYEnd.collectAsState(initial = 0.65f)
-    val bubbleAiImageScale by preferencesManager.bubbleAiImageScale.collectAsState(initial = 1f)
-    val bubbleImageRenderMode by preferencesManager.bubbleImageRenderMode.collectAsState(
-        initial = UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE,
-    )
-    val bubbleUserRoundedCornersEnabled by preferencesManager.bubbleUserRoundedCornersEnabled.collectAsState(initial = true)
-    val bubbleAiRoundedCornersEnabled by preferencesManager.bubbleAiRoundedCornersEnabled.collectAsState(initial = true)
-    val bubbleUserContentPaddingLeft by preferencesManager.bubbleUserContentPaddingLeft.collectAsState(initial = 12f)
-    val bubbleUserContentPaddingRight by preferencesManager.bubbleUserContentPaddingRight.collectAsState(initial = 12f)
-    val bubbleAiContentPaddingLeft by preferencesManager.bubbleAiContentPaddingLeft.collectAsState(initial = 12f)
-    val bubbleAiContentPaddingRight by preferencesManager.bubbleAiContentPaddingRight.collectAsState(initial = 12f)
-    val userAvatarUri by preferencesManager.customUserAvatarUri.collectAsState(initial = null)
-    val aiAvatarUri by preferencesManager.customAiAvatarUri.collectAsState(initial = null)
+    val chatStyleInput = values.requiredString("chat_style")
+    val inputStyleInput = values.requiredString("input_style")
+    val bubbleShowAvatarInput = values.requiredBoolean("bubble_show_avatar")
+    val bubbleWideLayoutEnabledInput = values.requiredBoolean("bubble_wide_layout_enabled")
+    val cursorUserBubbleFollowThemeInput = values.requiredBoolean("cursor_user_bubble_follow_theme")
+    val cursorUserBubbleLiquidGlassInput = values.requiredBoolean("cursor_user_bubble_liquid_glass")
+    val cursorUserBubbleWaterGlassInput = values.requiredBoolean("cursor_user_bubble_water_glass")
+    val bubbleUserBubbleLiquidGlassInput = values.requiredBoolean("bubble_user_bubble_liquid_glass")
+    val bubbleUserBubbleWaterGlassInput = values.requiredBoolean("bubble_user_bubble_water_glass")
+    val bubbleAiBubbleLiquidGlassInput = values.requiredBoolean("bubble_ai_bubble_liquid_glass")
+    val bubbleAiBubbleWaterGlassInput = values.requiredBoolean("bubble_ai_bubble_water_glass")
+    val cursorUserBubbleColorInput = values.int("cursor_user_bubble_color") ?: defaultCursorUserBubbleColor
+    val bubbleUserBubbleColorInput = values.int("bubble_user_bubble_color") ?: defaultBubbleUserBubbleColor
+    val bubbleAiBubbleColorInput = values.int("bubble_ai_bubble_color") ?: defaultBubbleAiBubbleColor
+    val bubbleUserTextColorInput =
+        values.int("bubble_user_text_color")
+            ?: getTextColorForBackground(Color(bubbleUserBubbleColorInput)).toArgb()
+    val bubbleAiTextColorInput =
+        values.int("bubble_ai_text_color")
+            ?: getTextColorForBackground(Color(bubbleAiBubbleColorInput)).toArgb()
+    val bubbleUserUseCustomFontInput = values.requiredBoolean("bubble_user_use_custom_font")
+    val bubbleUserFontTypeInput = values.requiredString("bubble_user_font_type")
+    val bubbleUserSystemFontNameInput = values.requiredString("bubble_user_system_font_name")
+    val bubbleUserCustomFontPathInput = values.string("bubble_user_custom_font_path")
+    val bubbleAiUseCustomFontInput = values.requiredBoolean("bubble_ai_use_custom_font")
+    val bubbleAiFontTypeInput = values.requiredString("bubble_ai_font_type")
+    val bubbleAiSystemFontNameInput = values.requiredString("bubble_ai_system_font_name")
+    val bubbleAiCustomFontPathInput = values.string("bubble_ai_custom_font_path")
+    val bubbleUserUseImageInput = values.requiredBoolean("bubble_user_use_image")
+    val bubbleAiUseImageInput = values.requiredBoolean("bubble_ai_use_image")
+    val bubbleUserImageUriInput = values.string("bubble_user_image_uri")
+    val bubbleAiImageUriInput = values.string("bubble_ai_image_uri")
+    val bubbleUserImageCropLeftInput = values.requiredFloat("bubble_user_image_crop_left")
+    val bubbleUserImageCropTopInput = values.requiredFloat("bubble_user_image_crop_top")
+    val bubbleUserImageCropRightInput = values.requiredFloat("bubble_user_image_crop_right")
+    val bubbleUserImageCropBottomInput = values.requiredFloat("bubble_user_image_crop_bottom")
+    val bubbleUserImageRepeatStartInput = values.requiredFloat("bubble_user_image_repeat_start")
+    val bubbleUserImageRepeatEndInput = values.requiredFloat("bubble_user_image_repeat_end")
+    val bubbleUserImageRepeatYStartInput = values.requiredFloat("bubble_user_image_repeat_y_start")
+    val bubbleUserImageRepeatYEndInput = values.requiredFloat("bubble_user_image_repeat_y_end")
+    val bubbleUserImageScaleInput = values.requiredFloat("bubble_user_image_scale")
+    val bubbleAiImageCropLeftInput = values.requiredFloat("bubble_ai_image_crop_left")
+    val bubbleAiImageCropTopInput = values.requiredFloat("bubble_ai_image_crop_top")
+    val bubbleAiImageCropRightInput = values.requiredFloat("bubble_ai_image_crop_right")
+    val bubbleAiImageCropBottomInput = values.requiredFloat("bubble_ai_image_crop_bottom")
+    val bubbleAiImageRepeatStartInput = values.requiredFloat("bubble_ai_image_repeat_start")
+    val bubbleAiImageRepeatEndInput = values.requiredFloat("bubble_ai_image_repeat_end")
+    val bubbleAiImageRepeatYStartInput = values.requiredFloat("bubble_ai_image_repeat_y_start")
+    val bubbleAiImageRepeatYEndInput = values.requiredFloat("bubble_ai_image_repeat_y_end")
+    val bubbleAiImageScaleInput = values.requiredFloat("bubble_ai_image_scale")
+    val bubbleImageRenderModeInput = values.requiredString("bubble_image_render_mode")
+    val bubbleUserRoundedCornersEnabledInput = values.requiredBoolean("bubble_rounded_corners_enabled")
+    val bubbleAiRoundedCornersEnabledInput = values.requiredBoolean("bubble_ai_rounded_corners_enabled")
+    val bubbleUserContentPaddingLeftInput = values.requiredFloat("bubble_content_padding_left")
+    val bubbleUserContentPaddingRightInput = values.requiredFloat("bubble_content_padding_right")
+    val bubbleAiContentPaddingLeftInput = values.requiredFloat("bubble_ai_content_padding_left")
+    val bubbleAiContentPaddingRightInput = values.requiredFloat("bubble_ai_content_padding_right")
+    val userAvatarUriInput = values.string("custom_user_avatar_uri")
+    val aiAvatarUriInput = values.string("custom_ai_avatar_uri")
     val globalUserAvatarUri by displayPreferencesManager.globalUserAvatarUri.collectAsState(initial = null)
     val globalUserName by displayPreferencesManager.globalUserName.collectAsState(initial = null)
-    val avatarShape by preferencesManager.avatarShape.collectAsState(
-        initial = UserPreferencesManager.AVATAR_SHAPE_CIRCLE,
-    )
-    val avatarCornerRadius by preferencesManager.avatarCornerRadius.collectAsState(initial = 8f)
-    val showThinkingProcess by preferencesManager.showThinkingProcess.collectAsState(initial = true)
-    val showStatusTags by preferencesManager.showStatusTags.collectAsState(initial = true)
-    val showModelProvider by preferencesManager.showModelProvider.collectAsState(initial = false)
-    val showModelName by preferencesManager.showModelName.collectAsState(initial = false)
-    val showRoleName by preferencesManager.showRoleName.collectAsState(initial = true)
-    val showUserName by preferencesManager.showUserName.collectAsState(initial = true)
-    val showMessageTokenStats by preferencesManager.showMessageTokenStats.collectAsState(initial = false)
-    val showMessageTimingStats by preferencesManager.showMessageTimingStats.collectAsState(initial = false)
-    val showMessageTimestamp by preferencesManager.showMessageTimestamp.collectAsState(initial = false)
-    val showInputProcessingStatus by preferencesManager.showInputProcessingStatus.collectAsState(initial = true)
-    val showChatFloatingDotsAnimation by preferencesManager.showChatFloatingDotsAnimation.collectAsState(initial = true)
-    val recentColors by preferencesManager.recentColorsFlow.collectAsState(initial = emptyList())
-    val userBubbleColor = bubbleUserBubbleColor ?: defaultBubbleUserBubbleColor
-    val aiBubbleColor = bubbleAiBubbleColor ?: defaultBubbleAiBubbleColor
-    val effectiveBubbleUserTextColor =
-        bubbleUserTextColor ?: getTextColorForBackground(Color(userBubbleColor)).toArgb()
-    val effectiveBubbleAiTextColor =
-        bubbleAiTextColor ?: getTextColorForBackground(Color(aiBubbleColor)).toArgb()
+    var globalUserAvatarUriInput by remember(globalUserAvatarUri) { mutableStateOf(globalUserAvatarUri) }
+    var globalUserNameInput by remember(globalUserName) { mutableStateOf(globalUserName) }
+    val avatarShapeInput = values.requiredString("avatar_shape")
+    val avatarCornerRadiusInput = values.requiredFloat("avatar_corner_radius")
+    val showThinkingProcessInput = values.requiredBoolean("show_thinking_process")
+    val showStatusTagsInput = values.requiredBoolean("show_status_tags")
+    val showModelProviderInput = values.requiredBoolean("show_model_provider")
+    val showModelNameInput = values.requiredBoolean("show_model_name")
+    val showRoleNameInput = values.requiredBoolean("show_role_name")
+    val showUserNameInput = values.requiredBoolean("show_user_name")
+    val showMessageTokenStatsInput = values.requiredBoolean("show_message_token_stats")
+    val showMessageTimingStatsInput = values.requiredBoolean("show_message_timing_stats")
+    val showMessageTimestampInput = values.requiredBoolean("show_message_timestamp")
+    val showInputProcessingStatusInput = values.requiredBoolean("show_input_processing_status")
+    val showChatFloatingDotsAnimationInput =
+        values.requiredBoolean("show_chat_floating_dots_animation")
+    val recentColors by editorSession.recentColorsFlow.collectAsState(initial = emptyList())
     var showColorPicker by remember { mutableStateOf(false) }
     var currentColorPickerMode by remember { mutableStateOf("bubbleUserBubble") }
-
-    var chatStyleInput by remember { mutableStateOf(chatStyle) }
-    var inputStyleInput by remember { mutableStateOf(inputStyle) }
-    var bubbleShowAvatarInput by remember { mutableStateOf(bubbleShowAvatar) }
-    var bubbleWideLayoutEnabledInput by remember { mutableStateOf(bubbleWideLayoutEnabled) }
-    var cursorUserBubbleFollowThemeInput by remember { mutableStateOf(cursorUserBubbleFollowTheme) }
-    var cursorUserBubbleLiquidGlassInput by remember { mutableStateOf(cursorUserBubbleLiquidGlass) }
-    var cursorUserBubbleWaterGlassInput by remember { mutableStateOf(cursorUserBubbleWaterGlass) }
-    var bubbleUserBubbleLiquidGlassInput by remember { mutableStateOf(bubbleUserBubbleLiquidGlass) }
-    var bubbleUserBubbleWaterGlassInput by remember { mutableStateOf(bubbleUserBubbleWaterGlass) }
-    var bubbleAiBubbleLiquidGlassInput by remember { mutableStateOf(bubbleAiBubbleLiquidGlass) }
-    var bubbleAiBubbleWaterGlassInput by remember { mutableStateOf(bubbleAiBubbleWaterGlass) }
-    var cursorUserBubbleColorInput by remember { mutableStateOf(cursorUserBubbleColor ?: defaultCursorUserBubbleColor) }
-    var bubbleUserBubbleColorInput by remember { mutableStateOf(userBubbleColor) }
-    var bubbleAiBubbleColorInput by remember { mutableStateOf(aiBubbleColor) }
-    var bubbleUserTextColorInput by remember { mutableStateOf(effectiveBubbleUserTextColor) }
-    var bubbleAiTextColorInput by remember { mutableStateOf(effectiveBubbleAiTextColor) }
-    var bubbleUserUseCustomFontInput by remember { mutableStateOf(bubbleUserUseCustomFont) }
-    var bubbleUserFontTypeInput by remember { mutableStateOf(bubbleUserFontType) }
-    var bubbleUserSystemFontNameInput by remember { mutableStateOf(bubbleUserSystemFontName) }
-    var bubbleUserCustomFontPathInput by remember { mutableStateOf(bubbleUserCustomFontPath) }
-    var bubbleAiUseCustomFontInput by remember { mutableStateOf(bubbleAiUseCustomFont) }
-    var bubbleAiFontTypeInput by remember { mutableStateOf(bubbleAiFontType) }
-    var bubbleAiSystemFontNameInput by remember { mutableStateOf(bubbleAiSystemFontName) }
-    var bubbleAiCustomFontPathInput by remember { mutableStateOf(bubbleAiCustomFontPath) }
-    var bubbleUserUseImageInput by remember { mutableStateOf(bubbleUserUseImage) }
-    var bubbleAiUseImageInput by remember { mutableStateOf(bubbleAiUseImage) }
-    var bubbleUserImageUriInput by remember { mutableStateOf(bubbleUserImageUri) }
-    var bubbleAiImageUriInput by remember { mutableStateOf(bubbleAiImageUri) }
-    var bubbleUserImageCropLeftInput by remember { mutableStateOf(bubbleUserImageCropLeft) }
-    var bubbleUserImageCropTopInput by remember { mutableStateOf(bubbleUserImageCropTop) }
-    var bubbleUserImageCropRightInput by remember { mutableStateOf(bubbleUserImageCropRight) }
-    var bubbleUserImageCropBottomInput by remember { mutableStateOf(bubbleUserImageCropBottom) }
-    var bubbleUserImageRepeatStartInput by remember { mutableStateOf(bubbleUserImageRepeatStart) }
-    var bubbleUserImageRepeatEndInput by remember { mutableStateOf(bubbleUserImageRepeatEnd) }
-    var bubbleUserImageRepeatYStartInput by remember { mutableStateOf(bubbleUserImageRepeatYStart) }
-    var bubbleUserImageRepeatYEndInput by remember { mutableStateOf(bubbleUserImageRepeatYEnd) }
-    var bubbleUserImageScaleInput by remember { mutableStateOf(bubbleUserImageScale) }
-    var bubbleAiImageCropLeftInput by remember { mutableStateOf(bubbleAiImageCropLeft) }
-    var bubbleAiImageCropTopInput by remember { mutableStateOf(bubbleAiImageCropTop) }
-    var bubbleAiImageCropRightInput by remember { mutableStateOf(bubbleAiImageCropRight) }
-    var bubbleAiImageCropBottomInput by remember { mutableStateOf(bubbleAiImageCropBottom) }
-    var bubbleAiImageRepeatStartInput by remember { mutableStateOf(bubbleAiImageRepeatStart) }
-    var bubbleAiImageRepeatEndInput by remember { mutableStateOf(bubbleAiImageRepeatEnd) }
-    var bubbleAiImageRepeatYStartInput by remember { mutableStateOf(bubbleAiImageRepeatYStart) }
-    var bubbleAiImageRepeatYEndInput by remember { mutableStateOf(bubbleAiImageRepeatYEnd) }
-    var bubbleAiImageScaleInput by remember { mutableStateOf(bubbleAiImageScale) }
-    var bubbleImageRenderModeInput by remember { mutableStateOf(bubbleImageRenderMode) }
-    var bubbleUserRoundedCornersEnabledInput by remember { mutableStateOf(bubbleUserRoundedCornersEnabled) }
-    var bubbleAiRoundedCornersEnabledInput by remember { mutableStateOf(bubbleAiRoundedCornersEnabled) }
-    var bubbleUserContentPaddingLeftInput by remember { mutableStateOf(bubbleUserContentPaddingLeft) }
-    var bubbleUserContentPaddingRightInput by remember { mutableStateOf(bubbleUserContentPaddingRight) }
-    var bubbleAiContentPaddingLeftInput by remember { mutableStateOf(bubbleAiContentPaddingLeft) }
-    var bubbleAiContentPaddingRightInput by remember { mutableStateOf(bubbleAiContentPaddingRight) }
-    var userAvatarUriInput by remember { mutableStateOf(userAvatarUri) }
-    var aiAvatarUriInput by remember { mutableStateOf(aiAvatarUri) }
-    var globalUserAvatarUriInput by remember { mutableStateOf(globalUserAvatarUri) }
-    var globalUserNameInput by remember { mutableStateOf(globalUserName) }
-    var avatarShapeInput by remember { mutableStateOf(avatarShape) }
-    var avatarCornerRadiusInput by remember { mutableStateOf(avatarCornerRadius) }
-    var showThinkingProcessInput by remember { mutableStateOf(showThinkingProcess) }
-    var showStatusTagsInput by remember { mutableStateOf(showStatusTags) }
-    var showModelProviderInput by remember { mutableStateOf(showModelProvider) }
-    var showModelNameInput by remember { mutableStateOf(showModelName) }
-    var showRoleNameInput by remember { mutableStateOf(showRoleName) }
-    var showUserNameInput by remember { mutableStateOf(showUserName) }
-    var showMessageTokenStatsInput by remember { mutableStateOf(showMessageTokenStats) }
-    var showMessageTimingStatsInput by remember { mutableStateOf(showMessageTimingStats) }
-    var showMessageTimestampInput by remember { mutableStateOf(showMessageTimestamp) }
-    var showInputProcessingStatusInput by remember { mutableStateOf(showInputProcessingStatus) }
-    var showChatFloatingDotsAnimationInput by remember { mutableStateOf(showChatFloatingDotsAnimation) }
-
-    LaunchedEffect(
-        chatStyle,
-        inputStyle,
-        bubbleShowAvatar,
-        bubbleWideLayoutEnabled,
-        cursorUserBubbleFollowTheme,
-        cursorUserBubbleLiquidGlass,
-        cursorUserBubbleWaterGlass,
-        bubbleUserBubbleLiquidGlass,
-        bubbleUserBubbleWaterGlass,
-        bubbleAiBubbleLiquidGlass,
-        bubbleAiBubbleWaterGlass,
-        cursorUserBubbleColor,
-        userBubbleColor,
-        aiBubbleColor,
-        effectiveBubbleUserTextColor,
-        effectiveBubbleAiTextColor,
-        bubbleUserUseCustomFont,
-        bubbleUserFontType,
-        bubbleUserSystemFontName,
-        bubbleUserCustomFontPath,
-        bubbleAiUseCustomFont,
-        bubbleAiFontType,
-        bubbleAiSystemFontName,
-        bubbleAiCustomFontPath,
-        bubbleUserUseImage,
-        bubbleAiUseImage,
-        bubbleUserImageUri,
-        bubbleAiImageUri,
-        bubbleUserImageCropLeft,
-        bubbleUserImageCropTop,
-        bubbleUserImageCropRight,
-        bubbleUserImageCropBottom,
-        bubbleUserImageRepeatStart,
-        bubbleUserImageRepeatEnd,
-        bubbleUserImageRepeatYStart,
-        bubbleUserImageRepeatYEnd,
-        bubbleUserImageScale,
-        bubbleAiImageCropLeft,
-        bubbleAiImageCropTop,
-        bubbleAiImageCropRight,
-        bubbleAiImageCropBottom,
-        bubbleAiImageRepeatStart,
-        bubbleAiImageRepeatEnd,
-        bubbleAiImageRepeatYStart,
-        bubbleAiImageRepeatYEnd,
-        bubbleAiImageScale,
-        bubbleImageRenderMode,
-        bubbleUserRoundedCornersEnabled,
-        bubbleAiRoundedCornersEnabled,
-        bubbleUserContentPaddingLeft,
-        bubbleUserContentPaddingRight,
-        bubbleAiContentPaddingLeft,
-        bubbleAiContentPaddingRight,
-        userAvatarUri,
-        aiAvatarUri,
-        globalUserAvatarUri,
-        globalUserName,
-        avatarShape,
-        avatarCornerRadius,
-        showThinkingProcess,
-        showStatusTags,
-        showModelProvider,
-        showModelName,
-        showRoleName,
-        showUserName,
-        showMessageTokenStats,
-        showMessageTimingStats,
-        showMessageTimestamp,
-        showInputProcessingStatus,
-        showChatFloatingDotsAnimation,
-    ) {
-        chatStyleInput = chatStyle
-        inputStyleInput = inputStyle
-        bubbleShowAvatarInput = bubbleShowAvatar
-        bubbleWideLayoutEnabledInput = bubbleWideLayoutEnabled
-        cursorUserBubbleFollowThemeInput = cursorUserBubbleFollowTheme
-        cursorUserBubbleLiquidGlassInput = cursorUserBubbleLiquidGlass
-        cursorUserBubbleWaterGlassInput = cursorUserBubbleWaterGlass
-        bubbleUserBubbleLiquidGlassInput = bubbleUserBubbleLiquidGlass
-        bubbleUserBubbleWaterGlassInput = bubbleUserBubbleWaterGlass
-        bubbleAiBubbleLiquidGlassInput = bubbleAiBubbleLiquidGlass
-        bubbleAiBubbleWaterGlassInput = bubbleAiBubbleWaterGlass
-        cursorUserBubbleColorInput = cursorUserBubbleColor ?: defaultCursorUserBubbleColor
-        bubbleUserBubbleColorInput = userBubbleColor
-        bubbleAiBubbleColorInput = aiBubbleColor
-        bubbleUserTextColorInput = effectiveBubbleUserTextColor
-        bubbleAiTextColorInput = effectiveBubbleAiTextColor
-        bubbleUserUseCustomFontInput = bubbleUserUseCustomFont
-        bubbleUserFontTypeInput = bubbleUserFontType
-        bubbleUserSystemFontNameInput = bubbleUserSystemFontName
-        bubbleUserCustomFontPathInput = bubbleUserCustomFontPath
-        bubbleAiUseCustomFontInput = bubbleAiUseCustomFont
-        bubbleAiFontTypeInput = bubbleAiFontType
-        bubbleAiSystemFontNameInput = bubbleAiSystemFontName
-        bubbleAiCustomFontPathInput = bubbleAiCustomFontPath
-        bubbleUserUseImageInput = bubbleUserUseImage
-        bubbleAiUseImageInput = bubbleAiUseImage
-        bubbleUserImageUriInput = bubbleUserImageUri
-        bubbleAiImageUriInput = bubbleAiImageUri
-        bubbleUserImageCropLeftInput = bubbleUserImageCropLeft
-        bubbleUserImageCropTopInput = bubbleUserImageCropTop
-        bubbleUserImageCropRightInput = bubbleUserImageCropRight
-        bubbleUserImageCropBottomInput = bubbleUserImageCropBottom
-        bubbleUserImageRepeatStartInput = bubbleUserImageRepeatStart
-        bubbleUserImageRepeatEndInput = bubbleUserImageRepeatEnd
-        bubbleUserImageRepeatYStartInput = bubbleUserImageRepeatYStart
-        bubbleUserImageRepeatYEndInput = bubbleUserImageRepeatYEnd
-        bubbleUserImageScaleInput = bubbleUserImageScale
-        bubbleAiImageCropLeftInput = bubbleAiImageCropLeft
-        bubbleAiImageCropTopInput = bubbleAiImageCropTop
-        bubbleAiImageCropRightInput = bubbleAiImageCropRight
-        bubbleAiImageCropBottomInput = bubbleAiImageCropBottom
-        bubbleAiImageRepeatStartInput = bubbleAiImageRepeatStart
-        bubbleAiImageRepeatEndInput = bubbleAiImageRepeatEnd
-        bubbleAiImageRepeatYStartInput = bubbleAiImageRepeatYStart
-        bubbleAiImageRepeatYEndInput = bubbleAiImageRepeatYEnd
-        bubbleAiImageScaleInput = bubbleAiImageScale
-        bubbleImageRenderModeInput = bubbleImageRenderMode
-        bubbleUserRoundedCornersEnabledInput = bubbleUserRoundedCornersEnabled
-        bubbleAiRoundedCornersEnabledInput = bubbleAiRoundedCornersEnabled
-        bubbleUserContentPaddingLeftInput = bubbleUserContentPaddingLeft
-        bubbleUserContentPaddingRightInput = bubbleUserContentPaddingRight
-        bubbleAiContentPaddingLeftInput = bubbleAiContentPaddingLeft
-        bubbleAiContentPaddingRightInput = bubbleAiContentPaddingRight
-        userAvatarUriInput = userAvatarUri
-        aiAvatarUriInput = aiAvatarUri
-        globalUserAvatarUriInput = globalUserAvatarUri
-        globalUserNameInput = globalUserName
-        avatarShapeInput = avatarShape
-        avatarCornerRadiusInput = avatarCornerRadius
-        showThinkingProcessInput = showThinkingProcess
-        showStatusTagsInput = showStatusTags
-        showModelProviderInput = showModelProvider
-        showModelNameInput = showModelName
-        showRoleNameInput = showRoleName
-        showUserNameInput = showUserName
-        showMessageTokenStatsInput = showMessageTokenStats
-        showMessageTimingStatsInput = showMessageTimingStats
-        showMessageTimestampInput = showMessageTimestamp
-        showInputProcessingStatusInput = showInputProcessingStatus
-        showChatFloatingDotsAnimationInput = showChatFloatingDotsAnimation
-    }
 
     val bubbleFontPicker = rememberBubbleFontPicker(shared = shared)
     val runtime = rememberThemeSettingsChatRuntime(
         state = ThemeSettingsChatRuntimeState(
             context = shared.context,
             scope = shared.scope,
-            preferencesManager = preferencesManager,
+            editorSession = editorSession,
             displayPreferencesManager = displayPreferencesManager,
-            saveThemeSettingsWithCharacterCard = shared.saveThemeSettingsWithCharacterCard,
-            bubbleUserBubbleLiquidGlassInput = bubbleUserBubbleLiquidGlassInput,
-            bubbleUserBubbleWaterGlassInput = bubbleUserBubbleWaterGlassInput,
-            bubbleAiBubbleLiquidGlassInput = bubbleAiBubbleLiquidGlassInput,
-            bubbleAiBubbleWaterGlassInput = bubbleAiBubbleWaterGlassInput,
-            onBubbleUserUseImageInputChange = { bubbleUserUseImageInput = it },
-            onBubbleAiUseImageInputChange = { bubbleAiUseImageInput = it },
-            onBubbleUserImageUriInputChange = { bubbleUserImageUriInput = it },
-            onBubbleAiImageUriInputChange = { bubbleAiImageUriInput = it },
-            onBubbleUserImageCropLeftInputChange = { bubbleUserImageCropLeftInput = it },
-            onBubbleUserImageCropTopInputChange = { bubbleUserImageCropTopInput = it },
-            onBubbleUserImageCropRightInputChange = { bubbleUserImageCropRightInput = it },
-            onBubbleUserImageCropBottomInputChange = { bubbleUserImageCropBottomInput = it },
-            onBubbleUserImageRepeatStartInputChange = { bubbleUserImageRepeatStartInput = it },
-            onBubbleUserImageRepeatEndInputChange = { bubbleUserImageRepeatEndInput = it },
-            onBubbleUserImageRepeatYStartInputChange = { bubbleUserImageRepeatYStartInput = it },
-            onBubbleUserImageRepeatYEndInputChange = { bubbleUserImageRepeatYEndInput = it },
-            onBubbleUserImageScaleInputChange = { bubbleUserImageScaleInput = it },
-            onBubbleAiImageCropLeftInputChange = { bubbleAiImageCropLeftInput = it },
-            onBubbleAiImageCropTopInputChange = { bubbleAiImageCropTopInput = it },
-            onBubbleAiImageCropRightInputChange = { bubbleAiImageCropRightInput = it },
-            onBubbleAiImageCropBottomInputChange = { bubbleAiImageCropBottomInput = it },
-            onBubbleAiImageRepeatStartInputChange = { bubbleAiImageRepeatStartInput = it },
-            onBubbleAiImageRepeatEndInputChange = { bubbleAiImageRepeatEndInput = it },
-            onBubbleAiImageRepeatYStartInputChange = { bubbleAiImageRepeatYStartInput = it },
-            onBubbleAiImageRepeatYEndInputChange = { bubbleAiImageRepeatYEndInput = it },
-            onBubbleAiImageScaleInputChange = { bubbleAiImageScaleInput = it },
-            onBubbleImageRenderModeInputChange = { bubbleImageRenderModeInput = it },
-            onUserAvatarUriInputChange = { userAvatarUriInput = it },
-            onAiAvatarUriInputChange = { aiAvatarUriInput = it },
             onGlobalUserAvatarUriInputChange = { globalUserAvatarUriInput = it },
         ),
     )
 
     ThemeSettingsChatStyleSection(
         cardColors = cardColors,
+        editorSession = editorSession,
         chatStyleInput = chatStyleInput,
-        onChatStyleInputChange = { chatStyleInput = it },
         inputStyleInput = inputStyleInput,
-        onInputStyleInputChange = { inputStyleInput = it },
         bubbleShowAvatarInput = bubbleShowAvatarInput,
-        onBubbleShowAvatarInputChange = { bubbleShowAvatarInput = it },
         bubbleWideLayoutEnabledInput = bubbleWideLayoutEnabledInput,
-        onBubbleWideLayoutEnabledInputChange = { bubbleWideLayoutEnabledInput = it },
         cursorUserBubbleFollowThemeInput = cursorUserBubbleFollowThemeInput,
-        onCursorUserBubbleFollowThemeInputChange = { cursorUserBubbleFollowThemeInput = it },
         cursorUserBubbleLiquidGlassInput = cursorUserBubbleLiquidGlassInput,
-        onCursorUserBubbleLiquidGlassInputChange = { cursorUserBubbleLiquidGlassInput = it },
         cursorUserBubbleWaterGlassInput = cursorUserBubbleWaterGlassInput,
-        onCursorUserBubbleWaterGlassInputChange = { cursorUserBubbleWaterGlassInput = it },
         bubbleUserBubbleLiquidGlassInput = bubbleUserBubbleLiquidGlassInput,
-        onBubbleUserBubbleLiquidGlassInputChange = { bubbleUserBubbleLiquidGlassInput = it },
         bubbleUserBubbleWaterGlassInput = bubbleUserBubbleWaterGlassInput,
-        onBubbleUserBubbleWaterGlassInputChange = { bubbleUserBubbleWaterGlassInput = it },
         bubbleAiBubbleLiquidGlassInput = bubbleAiBubbleLiquidGlassInput,
-        onBubbleAiBubbleLiquidGlassInputChange = { bubbleAiBubbleLiquidGlassInput = it },
         bubbleAiBubbleWaterGlassInput = bubbleAiBubbleWaterGlassInput,
-        onBubbleAiBubbleWaterGlassInputChange = { bubbleAiBubbleWaterGlassInput = it },
         cursorUserBubbleColorInput = cursorUserBubbleColorInput,
         bubbleUserBubbleColorInput = bubbleUserBubbleColorInput,
         bubbleAiBubbleColorInput = bubbleAiBubbleColorInput,
         bubbleUserTextColorInput = bubbleUserTextColorInput,
         bubbleAiTextColorInput = bubbleAiTextColorInput,
         bubbleUserUseCustomFontInput = bubbleUserUseCustomFontInput,
-        onBubbleUserUseCustomFontInputChange = { bubbleUserUseCustomFontInput = it },
         bubbleUserFontTypeInput = bubbleUserFontTypeInput,
-        onBubbleUserFontTypeInputChange = { bubbleUserFontTypeInput = it },
         bubbleUserSystemFontNameInput = bubbleUserSystemFontNameInput,
-        onBubbleUserSystemFontNameInputChange = { bubbleUserSystemFontNameInput = it },
         bubbleUserCustomFontPathInput = bubbleUserCustomFontPathInput,
-        onBubbleUserCustomFontPathInputChange = { bubbleUserCustomFontPathInput = it },
         onPickBubbleUserFont = bubbleFontPicker.onPickBubbleUserFont,
         bubbleAiUseCustomFontInput = bubbleAiUseCustomFontInput,
-        onBubbleAiUseCustomFontInputChange = { bubbleAiUseCustomFontInput = it },
         bubbleAiFontTypeInput = bubbleAiFontTypeInput,
-        onBubbleAiFontTypeInputChange = { bubbleAiFontTypeInput = it },
         bubbleAiSystemFontNameInput = bubbleAiSystemFontNameInput,
-        onBubbleAiSystemFontNameInputChange = { bubbleAiSystemFontNameInput = it },
         bubbleAiCustomFontPathInput = bubbleAiCustomFontPathInput,
-        onBubbleAiCustomFontPathInputChange = { bubbleAiCustomFontPathInput = it },
         onPickBubbleAiFont = bubbleFontPicker.onPickBubbleAiFont,
         previewUserAvatarUri = userAvatarUriInput ?: globalUserAvatarUriInput,
-        previewAiAvatarUri = aiAvatarUriInput ?: shared.activeThemeTargetAvatarUri,
+        previewAiAvatarUri = aiAvatarUriInput,
         onShowColorPicker = {
             currentColorPickerMode = it
             showColorPicker = true
         },
         bubbleUserUseImageInput = bubbleUserUseImageInput,
-        onBubbleUserUseImageInputChange = { bubbleUserUseImageInput = it },
         bubbleAiUseImageInput = bubbleAiUseImageInput,
-        onBubbleAiUseImageInputChange = { bubbleAiUseImageInput = it },
         bubbleUserImageUriInput = bubbleUserImageUriInput,
         bubbleAiImageUriInput = bubbleAiImageUriInput,
         onPickBubbleUserImage = runtime.onPickBubbleUserImage,
@@ -961,106 +607,63 @@ internal fun ThemeSettingsChatTab(
         onClearBubbleUserImage = runtime.onClearBubbleUserImage,
         onClearBubbleAiImage = runtime.onClearBubbleAiImage,
         bubbleUserImageCropLeftInput = bubbleUserImageCropLeftInput,
-        onBubbleUserImageCropLeftInputChange = { bubbleUserImageCropLeftInput = it },
         bubbleUserImageCropTopInput = bubbleUserImageCropTopInput,
-        onBubbleUserImageCropTopInputChange = { bubbleUserImageCropTopInput = it },
         bubbleUserImageCropRightInput = bubbleUserImageCropRightInput,
-        onBubbleUserImageCropRightInputChange = { bubbleUserImageCropRightInput = it },
         bubbleUserImageCropBottomInput = bubbleUserImageCropBottomInput,
-        onBubbleUserImageCropBottomInputChange = { bubbleUserImageCropBottomInput = it },
         bubbleUserImageRepeatStartInput = bubbleUserImageRepeatStartInput,
-        onBubbleUserImageRepeatStartInputChange = { bubbleUserImageRepeatStartInput = it },
         bubbleUserImageRepeatEndInput = bubbleUserImageRepeatEndInput,
-        onBubbleUserImageRepeatEndInputChange = { bubbleUserImageRepeatEndInput = it },
         bubbleUserImageRepeatYStartInput = bubbleUserImageRepeatYStartInput,
-        onBubbleUserImageRepeatYStartInputChange = { bubbleUserImageRepeatYStartInput = it },
         bubbleUserImageRepeatYEndInput = bubbleUserImageRepeatYEndInput,
-        onBubbleUserImageRepeatYEndInputChange = { bubbleUserImageRepeatYEndInput = it },
         bubbleUserImageScaleInput = bubbleUserImageScaleInput,
-        onBubbleUserImageScaleInputChange = { bubbleUserImageScaleInput = it },
         bubbleAiImageCropLeftInput = bubbleAiImageCropLeftInput,
-        onBubbleAiImageCropLeftInputChange = { bubbleAiImageCropLeftInput = it },
         bubbleAiImageCropTopInput = bubbleAiImageCropTopInput,
-        onBubbleAiImageCropTopInputChange = { bubbleAiImageCropTopInput = it },
         bubbleAiImageCropRightInput = bubbleAiImageCropRightInput,
-        onBubbleAiImageCropRightInputChange = { bubbleAiImageCropRightInput = it },
         bubbleAiImageCropBottomInput = bubbleAiImageCropBottomInput,
-        onBubbleAiImageCropBottomInputChange = { bubbleAiImageCropBottomInput = it },
         bubbleAiImageRepeatStartInput = bubbleAiImageRepeatStartInput,
-        onBubbleAiImageRepeatStartInputChange = { bubbleAiImageRepeatStartInput = it },
         bubbleAiImageRepeatEndInput = bubbleAiImageRepeatEndInput,
-        onBubbleAiImageRepeatEndInputChange = { bubbleAiImageRepeatEndInput = it },
         bubbleAiImageRepeatYStartInput = bubbleAiImageRepeatYStartInput,
-        onBubbleAiImageRepeatYStartInputChange = { bubbleAiImageRepeatYStartInput = it },
         bubbleAiImageRepeatYEndInput = bubbleAiImageRepeatYEndInput,
-        onBubbleAiImageRepeatYEndInputChange = { bubbleAiImageRepeatYEndInput = it },
         bubbleAiImageScaleInput = bubbleAiImageScaleInput,
-        onBubbleAiImageScaleInputChange = { bubbleAiImageScaleInput = it },
         bubbleImageRenderModeInput = bubbleImageRenderModeInput,
-        onBubbleImageRenderModeInputChange = { bubbleImageRenderModeInput = it },
         bubbleUserRoundedCornersEnabledInput = bubbleUserRoundedCornersEnabledInput,
-        onBubbleUserRoundedCornersEnabledInputChange = { bubbleUserRoundedCornersEnabledInput = it },
         bubbleAiRoundedCornersEnabledInput = bubbleAiRoundedCornersEnabledInput,
-        onBubbleAiRoundedCornersEnabledInputChange = { bubbleAiRoundedCornersEnabledInput = it },
         bubbleUserContentPaddingLeftInput = bubbleUserContentPaddingLeftInput,
-        onBubbleUserContentPaddingLeftInputChange = { bubbleUserContentPaddingLeftInput = it },
         bubbleUserContentPaddingRightInput = bubbleUserContentPaddingRightInput,
-        onBubbleUserContentPaddingRightInputChange = { bubbleUserContentPaddingRightInput = it },
         bubbleAiContentPaddingLeftInput = bubbleAiContentPaddingLeftInput,
-        onBubbleAiContentPaddingLeftInputChange = { bubbleAiContentPaddingLeftInput = it },
         bubbleAiContentPaddingRightInput = bubbleAiContentPaddingRightInput,
-        onBubbleAiContentPaddingRightInputChange = { bubbleAiContentPaddingRightInput = it },
-        saveThemeSettingsWithCharacterCard = shared.saveThemeSettingsWithCharacterCard,
-        preferencesManager = preferencesManager,
         showInputStyleControls = false,
     )
 
     ThemeSettingsAvatarSection(
         cardColors = cardColors,
+        editorSession = editorSession,
         scope = shared.scope,
-        preferencesManager = preferencesManager,
         displayPreferencesManager = displayPreferencesManager,
-        saveThemeSettingsWithCharacterCard = shared.saveThemeSettingsWithCharacterCard,
         userAvatarUriInput = userAvatarUriInput,
-        onUserAvatarUriInputChange = { userAvatarUriInput = it },
         globalUserAvatarUriInput = globalUserAvatarUriInput,
         onGlobalUserAvatarUriInputChange = { globalUserAvatarUriInput = it },
         globalUserNameInput = globalUserNameInput,
         onGlobalUserNameInputChange = { globalUserNameInput = it },
         avatarShapeInput = avatarShapeInput,
-        onAvatarShapeInputChange = { avatarShapeInput = it },
         avatarCornerRadiusInput = avatarCornerRadiusInput,
-        onAvatarCornerRadiusInputChange = { avatarCornerRadiusInput = it },
         avatarImagePicker = runtime.avatarImagePicker,
         onAvatarPickerModeChange = runtime.onAvatarPickerModeChange,
     )
 
     ThemeSettingsDisplayOptionsSection(
         cardColors = cardColors,
+        editorSession = editorSession,
         showThinkingProcessInput = showThinkingProcessInput,
-        onShowThinkingProcessInputChange = { showThinkingProcessInput = it },
         showStatusTagsInput = showStatusTagsInput,
-        onShowStatusTagsInputChange = { showStatusTagsInput = it },
         showModelProviderInput = showModelProviderInput,
-        onShowModelProviderInputChange = { showModelProviderInput = it },
         showModelNameInput = showModelNameInput,
-        onShowModelNameInputChange = { showModelNameInput = it },
         showRoleNameInput = showRoleNameInput,
-        onShowRoleNameInputChange = { showRoleNameInput = it },
         showUserNameInput = showUserNameInput,
-        onShowUserNameInputChange = { showUserNameInput = it },
         showMessageTokenStatsInput = showMessageTokenStatsInput,
-        onShowMessageTokenStatsInputChange = { showMessageTokenStatsInput = it },
         showMessageTimingStatsInput = showMessageTimingStatsInput,
-        onShowMessageTimingStatsInputChange = { showMessageTimingStatsInput = it },
         showMessageTimestampInput = showMessageTimestampInput,
-        onShowMessageTimestampInputChange = { showMessageTimestampInput = it },
         showInputProcessingStatusInput = showInputProcessingStatusInput,
-        onShowInputProcessingStatusInputChange = { showInputProcessingStatusInput = it },
         showChatFloatingDotsAnimationInput = showChatFloatingDotsAnimationInput,
-        onShowChatFloatingDotsAnimationInputChange = { showChatFloatingDotsAnimationInput = it },
-        saveThemeSettingsWithCharacterCard = shared.saveThemeSettingsWithCharacterCard,
-        preferencesManager = preferencesManager,
     )
 
     if (showColorPicker) {
@@ -1082,7 +685,7 @@ internal fun ThemeSettingsChatTab(
             bubbleAiTextColorInput = bubbleAiTextColorInput,
             recentColors = recentColors,
             onColorSelected = { _, _, _, _, _, _, _, _, cursorUser, bubbleUser, bubbleAi, userText, aiText ->
-                saveSelectedChatColor(
+                setSelectedChatColor(
                     shared = shared,
                     currentColorPickerMode = currentColorPickerMode,
                     cursorUserBubbleColor = cursorUser,
@@ -1114,17 +717,23 @@ private fun rememberBubbleFontPicker(shared: ThemeSettingsShared): BubbleFontPic
                     val internalUri = FileUtils.copyFileToInternalStorage(context, uri, targetName)
                     if (internalUri != null) {
                         val isUser = targetName == "bubble_user_font"
-                        shared.saveThemeSettingsWithCharacterCard {
+                        val internalUriString = internalUri.toString()
+                        shared.editorSession.registerStagedAsset(internalUriString)
+                        shared.editorSession.update { values ->
                             if (isUser) {
-                                shared.preferencesManager.saveThemeSettings(
-                                    bubbleUserCustomFontPath = internalUri.toString(),
-                                    bubbleUserFontType = UserPreferencesManager.FONT_TYPE_FILE,
-                                )
+                                values
+                                    .withString("bubble_user_custom_font_path", internalUriString)
+                                    .withString(
+                                        "bubble_user_font_type",
+                                        UserPreferencesManager.FONT_TYPE_FILE,
+                                    )
                             } else {
-                                shared.preferencesManager.saveThemeSettings(
-                                    bubbleAiCustomFontPath = internalUri.toString(),
-                                    bubbleAiFontType = UserPreferencesManager.FONT_TYPE_FILE,
-                                )
+                                values
+                                    .withString("bubble_ai_custom_font_path", internalUriString)
+                                    .withString(
+                                        "bubble_ai_font_type",
+                                        UserPreferencesManager.FONT_TYPE_FILE,
+                                    )
                             }
                         }
                         Toast.makeText(
@@ -1161,7 +770,7 @@ private fun rememberBubbleFontPicker(shared: ThemeSettingsShared): BubbleFontPic
     )
 }
 
-private fun saveSelectedChatColor(
+private fun setSelectedChatColor(
     shared: ThemeSettingsShared,
     currentColorPickerMode: String,
     cursorUserBubbleColor: Int?,
@@ -1172,24 +781,22 @@ private fun saveSelectedChatColor(
 ) {
     val selectedColor = cursorUserBubbleColor ?: bubbleUserBubbleColor ?: bubbleAiBubbleColor
         ?: bubbleUserTextColor ?: bubbleAiTextColor
-    selectedColor?.let { shared.scope.launch { shared.preferencesManager.addRecentColor(it) } }
-    shared.saveThemeSettingsWithCharacterCard {
-        when (currentColorPickerMode) {
-            "cursorUserBubble" -> cursorUserBubbleColor?.let {
-                shared.preferencesManager.saveThemeSettings(cursorUserBubbleColor = it)
-            }
-            "bubbleUserBubble" -> bubbleUserBubbleColor?.let {
-                shared.preferencesManager.saveThemeSettings(bubbleUserBubbleColor = it)
-            }
-            "bubbleAiBubble" -> bubbleAiBubbleColor?.let {
-                shared.preferencesManager.saveThemeSettings(bubbleAiBubbleColor = it)
-            }
-            "bubbleUserText" -> bubbleUserTextColor?.let {
-                shared.preferencesManager.saveThemeSettings(bubbleUserTextColor = it)
-            }
-            "bubbleAiText" -> bubbleAiTextColor?.let {
-                shared.preferencesManager.saveThemeSettings(bubbleAiTextColor = it)
-            }
+    selectedColor?.let { shared.scope.launch { shared.editorSession.addRecentColor(it) } }
+    when (currentColorPickerMode) {
+        "cursorUserBubble" -> cursorUserBubbleColor?.let {
+            shared.editorSession.setInt("cursor_user_bubble_color", it)
+        }
+        "bubbleUserBubble" -> bubbleUserBubbleColor?.let {
+            shared.editorSession.setInt("bubble_user_bubble_color", it)
+        }
+        "bubbleAiBubble" -> bubbleAiBubbleColor?.let {
+            shared.editorSession.setInt("bubble_ai_bubble_color", it)
+        }
+        "bubbleUserText" -> bubbleUserTextColor?.let {
+            shared.editorSession.setInt("bubble_user_text_color", it)
+        }
+        "bubbleAiText" -> bubbleAiTextColor?.let {
+            shared.editorSession.setInt("bubble_ai_text_color", it)
         }
     }
 }

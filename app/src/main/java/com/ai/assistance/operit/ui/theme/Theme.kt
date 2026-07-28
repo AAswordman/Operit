@@ -46,8 +46,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_AUTO
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_DARK
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_LIGHT
 import com.google.android.exoplayer2.DefaultLoadControl
@@ -91,56 +93,44 @@ private val LightColorScheme =
 @Composable
 fun OperitTheme(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
+    val activePromptManager = remember { ActivePromptManager.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
+    val activePrompt by activePromptManager.activePromptFlow.collectAsState(
+        initial = ActivePrompt.CharacterCard(CharacterCardManager.DEFAULT_CHARACTER_CARD_ID),
+    )
+    val themeSnapshot = rememberActiveThemePreferenceSnapshot()
 
-    // 获取主题设置
-    val useSystemTheme by preferencesManager.useSystemTheme.collectAsState(initial = true)
-    val themeMode by
-            preferencesManager.themeMode.collectAsState(
-                    initial = UserPreferencesManager.THEME_MODE_LIGHT
-            )
-    val useCustomColors by preferencesManager.useCustomColors.collectAsState(initial = false)
-    val customPrimaryColor by preferencesManager.customPrimaryColor.collectAsState(initial = null)
-    val customSecondaryColor by
-            preferencesManager.customSecondaryColor.collectAsState(initial = null)
-    val onColorMode by preferencesManager.onColorMode.collectAsState(initial = ON_COLOR_MODE_AUTO)
+    fun disableBackgroundForTarget(target: ActivePrompt) {
+        coroutineScope.launch {
+            activePromptManager.mutateActiveThemeForPrompt(target) { values ->
+                values.withBoolean("use_background_image", false)
+            }
+        }
+    }
 
-    // 获取背景图片设置
-    val useBackgroundImage by preferencesManager.useBackgroundImage.collectAsState(initial = false)
-    val backgroundImageUri by preferencesManager.backgroundImageUri.collectAsState(initial = null)
-    val backgroundImageOpacity by
-            preferencesManager.backgroundImageOpacity.collectAsState(initial = 0.3f)
-
-    // 获取背景媒体类型和视频设置
-    val backgroundMediaType by
-            preferencesManager.backgroundMediaType.collectAsState(
-                    initial = UserPreferencesManager.MEDIA_TYPE_IMAGE
-            )
-    val videoBackgroundMuted by
-            preferencesManager.videoBackgroundMuted.collectAsState(initial = true)
-    val videoBackgroundLoop by preferencesManager.videoBackgroundLoop.collectAsState(initial = true)
-
-    // 获取状态栏颜色设置
-    val useCustomStatusBarColor by
-            preferencesManager.useCustomStatusBarColor.collectAsState(initial = false)
-    val customStatusBarColorValue by
-            preferencesManager.customStatusBarColor.collectAsState(initial = null)
-    val statusBarTransparent by
-            preferencesManager.statusBarTransparent.collectAsState(initial = false)
-    val statusBarHidden by
-            preferencesManager.statusBarHidden.collectAsState(initial = false)
-
-    // 获取背景模糊设置
-    val useBackgroundBlur by preferencesManager.useBackgroundBlur.collectAsState(initial = false)
-    val backgroundBlurRadius by preferencesManager.backgroundBlurRadius.collectAsState(initial = 10f)
-
-    // 获取字体设置
-    val useCustomFont by preferencesManager.useCustomFont.collectAsState(initial = false)
-    val fontType by preferencesManager.fontType.collectAsState(initial = UserPreferencesManager.FONT_TYPE_SYSTEM)
-    val systemFontName by preferencesManager.systemFontName.collectAsState(initial = UserPreferencesManager.SYSTEM_FONT_DEFAULT)
-    val customFontPath by preferencesManager.customFontPath.collectAsState(initial = null)
-    val fontScale by preferencesManager.fontScale.collectAsState(initial = 1.0f)
+    val useSystemTheme = themeSnapshot.useSystemTheme
+    val themeMode = themeSnapshot.themeMode
+    val useCustomColors = themeSnapshot.useCustomColors
+    val customPrimaryColor = themeSnapshot.customPrimaryColor
+    val customSecondaryColor = themeSnapshot.customSecondaryColor
+    val onColorMode = themeSnapshot.onColorMode
+    val useBackgroundImage = themeSnapshot.useBackgroundImage
+    val backgroundImageUri = themeSnapshot.backgroundImageUri
+    val backgroundImageOpacity = themeSnapshot.backgroundImageOpacity
+    val backgroundMediaType = themeSnapshot.backgroundMediaType
+    val videoBackgroundMuted = themeSnapshot.videoBackgroundMuted
+    val videoBackgroundLoop = themeSnapshot.videoBackgroundLoop
+    val useCustomStatusBarColor = themeSnapshot.useCustomStatusBarColor
+    val customStatusBarColorValue = themeSnapshot.customStatusBarColor
+    val statusBarTransparent = themeSnapshot.statusBarTransparent
+    val statusBarHidden = themeSnapshot.statusBarHidden
+    val useBackgroundBlur = themeSnapshot.useBackgroundBlur
+    val backgroundBlurRadius = themeSnapshot.backgroundBlurRadius
+    val useCustomFont = themeSnapshot.useCustomFont
+    val fontType = themeSnapshot.fontType
+    val systemFontName = themeSnapshot.systemFontName
+    val customFontPath = themeSnapshot.customFontPath
+    val fontScale = themeSnapshot.fontScale
 
     // 创建自定义 Typography
     val customTypography = remember(useCustomFont, fontType, systemFontName, customFontPath, fontScale) {
@@ -302,12 +292,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                                             "Error loading video background: ${e.message}",
                                             e
                                     )
-                                    // Fallback to no background if video can't be loaded
-                                    coroutineScope.launch {
-                                        preferencesManager.saveThemeSettings(
-                                                useBackgroundImage = false
-                                        )
-                                    }
+                                    disableBackgroundForTarget(activePrompt)
                                 }
                             }
                 } else {
@@ -355,6 +340,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
         val waterGlassState = if (isWaterGlassSupported()) rememberLiquidState() else null
 
         CompositionLocalProvider(
+            LocalThemePreferenceSnapshot provides themeSnapshot,
             LocalLiquidGlassBackdrop provides liquidGlassBackdrop,
             LocalWaterGlassState provides waterGlassState,
         ) {
@@ -377,7 +363,6 @@ fun OperitTheme(content: @Composable () -> Unit) {
 
                 if (useBackgroundImage && backgroundImageUri != null) {
                     val uri = Uri.parse(backgroundImageUri)
-                    val coroutineScope = rememberCoroutineScope()
 
                     if (backgroundMediaType == UserPreferencesManager.MEDIA_TYPE_IMAGE) {
                         val painter =
@@ -411,9 +396,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                                     }
                                 }
 
-                                coroutineScope.launch {
-                                    preferencesManager.saveThemeSettings(useBackgroundImage = false)
-                                }
+                                disableBackgroundForTarget(activePrompt)
                             }
                         }
 

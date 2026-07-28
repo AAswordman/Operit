@@ -12,12 +12,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -30,35 +26,14 @@ import com.ai.assistance.operit.ui.features.settings.components.ChatStyleOption
 internal fun ThemeSettingsInputTab(
     shared: ThemeSettingsShared,
     cardColors: CardColors,
-    onShowSaveSuccessMessage: () -> Unit,
 ) {
-    val preferencesManager = shared.preferencesManager
-    val inputStyle by preferencesManager.inputStyle.collectAsState(
-        initial = UserPreferencesManager.INPUT_STYLE_AGENT,
-    )
-    val chatInputTransparent by preferencesManager.chatInputTransparent.collectAsState(initial = false)
-    val chatInputFloating by preferencesManager.chatInputFloating.collectAsState(initial = false)
-    val chatInputLiquidGlass by preferencesManager.chatInputLiquidGlass.collectAsState(initial = false)
-    val chatInputWaterGlass by preferencesManager.chatInputWaterGlass.collectAsState(initial = false)
-    var inputStyleInput by remember { mutableStateOf(inputStyle) }
-    var chatInputTransparentInput by remember { mutableStateOf(chatInputTransparent) }
-    var chatInputFloatingInput by remember { mutableStateOf(chatInputFloating) }
-    var chatInputLiquidGlassInput by remember { mutableStateOf(chatInputLiquidGlass) }
-    var chatInputWaterGlassInput by remember { mutableStateOf(chatInputWaterGlass) }
-
-    LaunchedEffect(
-        inputStyle,
-        chatInputTransparent,
-        chatInputFloating,
-        chatInputLiquidGlass,
-        chatInputWaterGlass,
-    ) {
-        inputStyleInput = inputStyle
-        chatInputTransparentInput = chatInputTransparent
-        chatInputFloatingInput = chatInputFloating
-        chatInputLiquidGlassInput = chatInputLiquidGlass
-        chatInputWaterGlassInput = chatInputWaterGlass
-    }
+    val editorSession = shared.editorSession
+    val values by editorSession.values.collectAsState()
+    val inputStyle = values.requiredString("input_style")
+    val chatInputTransparent = values.requiredBoolean("chat_input_transparent")
+    val chatInputFloating = values.requiredBoolean("chat_input_floating")
+    val chatInputLiquidGlass = values.requiredBoolean("chat_input_liquid_glass")
+    val chatInputWaterGlass = values.requiredBoolean("chat_input_water_glass")
 
     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -80,30 +55,24 @@ internal fun ThemeSettingsInputTab(
             ) {
                 ChatStyleOption(
                     title = stringResource(id = R.string.input_style_classic),
-                    selected = inputStyleInput == UserPreferencesManager.INPUT_STYLE_CLASSIC,
+                    selected = inputStyle == UserPreferencesManager.INPUT_STYLE_CLASSIC,
                     modifier = Modifier.weight(1f),
                 ) {
-                    inputStyleInput = UserPreferencesManager.INPUT_STYLE_CLASSIC
-                    shared.saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(
-                            inputStyle = UserPreferencesManager.INPUT_STYLE_CLASSIC,
-                        )
-                    }
-                    onShowSaveSuccessMessage()
+                    editorSession.setString(
+                        "input_style",
+                        UserPreferencesManager.INPUT_STYLE_CLASSIC,
+                    )
                 }
 
                 ChatStyleOption(
                     title = stringResource(id = R.string.input_style_agent),
-                    selected = inputStyleInput == UserPreferencesManager.INPUT_STYLE_AGENT,
+                    selected = inputStyle == UserPreferencesManager.INPUT_STYLE_AGENT,
                     modifier = Modifier.weight(1f),
                 ) {
-                    inputStyleInput = UserPreferencesManager.INPUT_STYLE_AGENT
-                    shared.saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(
-                            inputStyle = UserPreferencesManager.INPUT_STYLE_AGENT,
-                        )
-                    }
-                    onShowSaveSuccessMessage()
+                    editorSession.setString(
+                        "input_style",
+                        UserPreferencesManager.INPUT_STYLE_AGENT,
+                    )
                 }
             }
         }
@@ -119,67 +88,31 @@ internal fun ThemeSettingsInputTab(
             ThemeSettingsInputSwitch(
                 title = stringResource(id = R.string.theme_chat_input_transparent),
                 description = stringResource(id = R.string.theme_chat_input_transparent_desc),
-                checked = chatInputTransparentInput,
-                onCheckedChange = {
-                    chatInputTransparentInput = it
-                    shared.saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(chatInputTransparent = it)
-                    }
-                    onShowSaveSuccessMessage()
-                },
+                checked = chatInputTransparent,
+                onCheckedChange = { editorSession.setBoolean("chat_input_transparent", it) },
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ThemeSettingsInputSwitch(
                 title = stringResource(id = R.string.theme_chat_input_floating),
                 description = stringResource(id = R.string.theme_chat_input_floating_desc),
-                checked = chatInputFloatingInput,
-                onCheckedChange = {
-                    chatInputFloatingInput = it
-                    shared.saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(chatInputFloating = it)
-                    }
-                    onShowSaveSuccessMessage()
-                },
+                checked = chatInputFloating,
+                onCheckedChange = { editorSession.setBoolean("chat_input_floating", it) },
             )
 
-            if (chatInputTransparentInput) {
+            if (chatInputTransparent) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 ThemeSettingsInputSwitch(
                     title = stringResource(id = R.string.theme_chat_input_liquid_glass),
                     description = stringResource(id = R.string.theme_chat_input_liquid_glass_desc),
-                    checked = chatInputLiquidGlassInput,
-                    onCheckedChange = {
-                        chatInputLiquidGlassInput = it
-                        if (it) {
-                            chatInputWaterGlassInput = false
-                        }
-                        shared.saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                chatInputLiquidGlass = it,
-                                chatInputWaterGlass = if (it) false else null,
-                            )
-                        }
-                        onShowSaveSuccessMessage()
-                    },
+                    checked = chatInputLiquidGlass,
+                    onCheckedChange = { editorSession.setBoolean("chat_input_liquid_glass", it) },
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 ThemeSettingsInputSwitch(
                     title = stringResource(id = R.string.theme_chat_input_water_glass),
                     description = stringResource(id = R.string.theme_chat_input_water_glass_desc),
-                    checked = chatInputWaterGlassInput,
-                    onCheckedChange = {
-                        chatInputWaterGlassInput = it
-                        if (it) {
-                            chatInputLiquidGlassInput = false
-                        }
-                        shared.saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                chatInputWaterGlass = it,
-                                chatInputLiquidGlass = if (it) false else null,
-                            )
-                        }
-                        onShowSaveSuccessMessage()
-                    },
+                    checked = chatInputWaterGlass,
+                    onCheckedChange = { editorSession.setBoolean("chat_input_water_glass", it) },
                 )
             }
         }
@@ -209,4 +142,3 @@ private fun ThemeSettingsInputSwitch(
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
-

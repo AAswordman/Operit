@@ -35,9 +35,9 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.defaultTool.standard.CookiePrivacyManager
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginDialog
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
@@ -68,7 +68,6 @@ fun SettingsScreen(
         navigateToLayoutAdjustmentSettings: () -> Unit
 ) {
         val context = LocalContext.current
-        val userPreferences = remember { UserPreferencesManager.getInstance(context) }
         val githubAuth = remember { GitHubAuthPreferences.getInstance(context) }
         val scope = rememberCoroutineScope()
         var showGitHubLogin by remember { mutableStateOf(false) }
@@ -87,7 +86,7 @@ fun SettingsScreen(
                 }
         }
 
-        val hasBackgroundImage = userPreferences.useBackgroundImage.collectAsState(initial = false).value
+        val hasBackgroundImage = LocalThemePreferenceSnapshot.current.useBackgroundImage
         
         val cardContainerColor = if (hasBackgroundImage) {
                 MaterialTheme.colorScheme.surface

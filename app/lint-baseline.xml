@@ -41371,17 +41371,6 @@
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.theme_default_character_card` appears to be unused"
-        errorLine1="    &lt;string name=&quot;theme_default_character_card&quot;>默认角色卡&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="6443"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
         message="The resource `R.string.token_price_description` appears to be unused"
         errorLine1="    &lt;string name=&quot;token_price_description&quot;>设置每次API请求的人民币价格&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">

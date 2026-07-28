@@ -19,6 +19,7 @@ import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.model.GroupMemberConfig
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -91,6 +92,13 @@ class CharacterGroupCardManager private constructor(private val context: Context
     internal fun observeActiveCharacterGroupId(): Flow<String?> = activeCharacterGroupCardIdFlow
 
     suspend fun createCharacterGroupCard(group: CharacterGroupCard): String {
+        // Target activation must not interleave with a theme snapshot save.
+        return ActivePromptManager.getInstance(context).runThemeTransition {
+            createCharacterGroupCardLocked(group)
+        }
+    }
+
+    private suspend fun createCharacterGroupCardLocked(group: CharacterGroupCard): String {
         val emojiSourcePrompt = resolveEmojiSourcePrompt()
         val now = System.currentTimeMillis()
         val id = group.id.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
@@ -101,6 +109,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
                 updatedAt = now
             )
         )
+        var activatedGroup = false
 
         dataStore.edit { preferences ->
             val currentList = preferences[CHARACTER_GROUP_LIST]?.toMutableSet() ?: mutableSetOf()
@@ -110,10 +119,14 @@ class CharacterGroupCardManager private constructor(private val context: Context
 
             if (preferences[ACTIVE_CHARACTER_GROUP_ID].isNullOrBlank()) {
                 preferences[ACTIVE_CHARACTER_GROUP_ID] = id
+                activatedGroup = true
             }
         }
 
         createDefaultBindingsForCharacterGroup(normalizedGroup, emojiSourcePrompt)
+        if (activatedGroup) {
+            waifuPreferences.switchToCharacterGroupWaifuSettings(id)
+        }
         return id
     }
 
@@ -144,6 +157,15 @@ class CharacterGroupCardManager private constructor(private val context: Context
     suspend fun deleteCharacterGroupCard(groupId: String) {
         if (groupId.isBlank()) return
 
+        // Target activation must not interleave with a theme snapshot save.
+        ActivePromptManager.getInstance(context).runThemeTransition {
+            deleteCharacterGroupCardLocked(groupId)
+        }
+    }
+
+    private suspend fun deleteCharacterGroupCardLocked(groupId: String) {
+        val groupAvatarUri = userPreferencesManager.getAiAvatarForCharacterGroupFlow(groupId).first()
+        var deletedActiveGroup = false
         dataStore.edit { preferences ->
             val currentList = preferences[CHARACTER_GROUP_LIST]?.toMutableSet() ?: mutableSetOf()
             currentList.remove(groupId)
@@ -151,6 +173,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
             preferences.remove(groupDataKey(groupId))
 
             if (preferences[ACTIVE_CHARACTER_GROUP_ID] == groupId) {
+                deletedActiveGroup = true
                 preferences.remove(ACTIVE_CHARACTER_GROUP_ID)
             }
         }
@@ -158,6 +181,19 @@ class CharacterGroupCardManager private constructor(private val context: Context
         runCatching { userPreferencesManager.deleteCharacterGroupTheme(groupId) }
         runCatching { waifuPreferences.deleteCharacterGroupWaifuSettings(groupId) }
         runCatching { customEmojiRepository.deleteCharacterGroupEmojis(groupId) }
+        runCatching { ChatHistoryManager.getInstance(context).clearCharacterGroupBinding(groupId) }
+        if (isManagedDefaultGroupAvatar(groupAvatarUri, groupId)) {
+            val avatarPath = Uri.parse(groupAvatarUri).path
+            if (!avatarPath.isNullOrBlank()) {
+                runCatching { File(avatarPath).delete() }
+            }
+        }
+
+        if (deletedActiveGroup) {
+            val activeCardId = characterCardManager.observeActiveCharacterCardId().first()
+                ?: CharacterCardManager.DEFAULT_CHARACTER_CARD_ID
+            runCatching { waifuPreferences.switchToCharacterCardWaifuSettings(activeCardId) }
+        }
     }
 
     suspend fun setActiveCharacterGroupCard(groupId: String?) {
@@ -170,7 +206,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
         }
 
         if (!groupId.isNullOrBlank()) {
-            runCatching { userPreferencesManager.switchToCharacterGroupTheme(groupId) }
             runCatching { waifuPreferences.switchToCharacterGroupWaifuSettings(groupId) }
         }
     }
@@ -192,6 +227,19 @@ class CharacterGroupCardManager private constructor(private val context: Context
     }
 
     suspend fun cloneBindingsFromCharacterGroup(sourceGroupId: String, targetGroupId: String) {
+        val activePromptManager = ActivePromptManager.getInstance(context)
+        activePromptManager.runThemeTransition {
+            cloneBindingsFromCharacterGroupLocked(sourceGroupId, targetGroupId)
+            if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterGroup(targetGroupId)) {
+                waifuPreferences.switchToCharacterGroupWaifuSettings(targetGroupId)
+            }
+        }
+    }
+
+    private suspend fun cloneBindingsFromCharacterGroupLocked(
+        sourceGroupId: String,
+        targetGroupId: String,
+    ) {
         runCatching {
             userPreferencesManager.cloneThemeBetweenCharacterGroups(sourceGroupId, targetGroupId)
         }
@@ -207,16 +255,22 @@ class CharacterGroupCardManager private constructor(private val context: Context
         sourceGroupId: String,
         newName: String? = null
     ): String? {
-        val source = getCharacterGroupCard(sourceGroupId) ?: return null
-        val duplicated = source.copy(
-            id = "",
-            name = newName?.takeIf { it.isNotBlank() } ?: source.name,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-        val newId = createCharacterGroupCard(duplicated)
-        cloneBindingsFromCharacterGroup(sourceGroupId, newId)
-        return newId
+        val activePromptManager = ActivePromptManager.getInstance(context)
+        return activePromptManager.runThemeTransition {
+            val source = getCharacterGroupCard(sourceGroupId) ?: return@runThemeTransition null
+            val duplicated = source.copy(
+                id = "",
+                name = newName?.takeIf { it.isNotBlank() } ?: source.name,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            val newId = createCharacterGroupCardLocked(duplicated)
+            cloneBindingsFromCharacterGroupLocked(sourceGroupId, newId)
+            if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterGroup(newId)) {
+                waifuPreferences.switchToCharacterGroupWaifuSettings(newId)
+            }
+            newId
+        }
     }
 
     private fun decodeGroup(json: String): CharacterGroupCard? {
@@ -252,7 +306,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
         group: CharacterGroupCard,
         emojiSourcePrompt: ActivePrompt
     ) {
-        runCatching { userPreferencesManager.copyCurrentThemeToCharacterGroup(group.id) }
+        runCatching { userPreferencesManager.deleteCharacterGroupTheme(group.id) }
         runCatching { waifuPreferences.copyCurrentWaifuSettingsToCharacterGroup(group.id) }
         runCatching { customEmojiRepository.cloneEmojiSet(emojiSourcePrompt, ActivePrompt.CharacterGroup(group.id)) }
         runCatching {
@@ -301,7 +355,10 @@ class CharacterGroupCardManager private constructor(private val context: Context
     ) {
         runCatching {
             val newAvatarUri = buildDefaultGroupAvatar(group)
-            userPreferencesManager.saveAiAvatarForCharacterGroup(group.id, newAvatarUri)
+            ActivePromptManager.getInstance(context).saveAiAvatarForPrompt(
+                ActivePrompt.CharacterGroup(group.id),
+                newAvatarUri,
+            )
 
             if (!previousAvatarUri.isNullOrBlank() && previousAvatarUri != newAvatarUri) {
                 val oldUri = Uri.parse(previousAvatarUri)

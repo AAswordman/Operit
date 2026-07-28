@@ -167,6 +167,45 @@ data class UnifiedMarketDetailReactionsState(
     val options: List<UnifiedMarketDetailReactionOption> = emptyList()
 )
 
+enum class MarketCommentSortOption {
+    NEWEST
+}
+
+private fun sortMarketComments(
+    comments: List<MarketV2Comment>,
+    sort: MarketCommentSortOption
+): List<MarketV2Comment> {
+    if (comments.isEmpty()) return comments
+    val ids = comments.mapTo(mutableSetOf()) { it.id }
+    val roots = mutableListOf<MarketV2Comment>()
+    val childrenByParent = mutableMapOf<String, MutableList<MarketV2Comment>>()
+    comments.forEach { comment ->
+        val parentId = comment.parentId
+        if (parentId.isNullOrBlank() || parentId == comment.id || parentId !in ids) {
+            roots.add(comment)
+        } else {
+            childrenByParent.getOrPut(parentId) { mutableListOf() }.add(comment)
+        }
+    }
+    val sortedRoots =
+        when (sort) {
+            MarketCommentSortOption.NEWEST -> roots.sortedByDescending { it.createdAt }
+        }
+    val result = mutableListOf<MarketV2Comment>()
+    fun appendThread(comment: MarketV2Comment) {
+        result.add(comment)
+        childrenByParent[comment.id]
+            ?.sortedBy { it.createdAt }
+            ?.forEach { appendThread(it) }
+    }
+    sortedRoots.forEach { appendThread(it) }
+    if (result.size < comments.size) {
+        val appended = result.mapTo(mutableSetOf()) { it.id }
+        comments.filterTo(result) { it.id !in appended }
+    }
+    return result
+}
+
 data class UnifiedMarketDetailCommentsState(
     val title: String,
     val comments: List<MarketV2Comment>,
@@ -203,6 +242,11 @@ fun UnifiedMarketDetailScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var commentSortOption by remember { mutableStateOf(MarketCommentSortOption.NEWEST) }
+    val sortedComments =
+        remember(comments.comments, commentSortOption) {
+            sortMarketComments(comments.comments, commentSortOption)
+        }
     val listState = rememberLazyListState()
     val pullToRefreshState = rememberPullToRefreshState()
     val tabHeaderIndex = 2
@@ -251,7 +295,9 @@ fun UnifiedMarketDetailScreen(
             item {
                 UnifiedMarketDetailCommentsSectionHeader(
                     state = comments,
-                    reactions = reactions
+                    reactions = reactions,
+                    sortOption = commentSortOption,
+                    onSortOptionChange = { commentSortOption = it }
                 )
             }
 
@@ -260,7 +306,7 @@ fun UnifiedMarketDetailScreen(
                     UnifiedMarketDetailEmptyCommentsCard()
                 }
             } else {
-                items(comments.comments, key = { it.id }) { comment ->
+                items(sortedComments, key = { it.id }) { comment ->
                     UnifiedMarketDetailCommentCard(
                         comment = comment,
                         isReply = comment.parentId != null,
@@ -926,7 +972,9 @@ private fun UnifiedMarketDetailMetadataRow(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun UnifiedMarketDetailCommentsSectionHeader(
     state: UnifiedMarketDetailCommentsState,
-    reactions: UnifiedMarketDetailReactionsState?
+    reactions: UnifiedMarketDetailReactionsState?,
+    sortOption: MarketCommentSortOption,
+    onSortOptionChange: (MarketCommentSortOption) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1040,6 +1088,44 @@ private fun UnifiedMarketDetailCommentsSectionHeader(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf(
+                    MarketCommentSortOption.NEWEST to stringResource(R.string.market_comment_sort_newest)
+                ).forEach { (option, label) ->
+                    val selected = sortOption == option
+                    Surface(
+                        onClick = { onSortOptionChange(option) },
+                        shape = RoundedCornerShape(8.dp),
+                        color =
+                            if (selected) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                            },
+                        modifier = Modifier.height(26.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                color =
+                                    if (selected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         if (!state.postHint.isNullOrBlank()) {
@@ -1153,6 +1239,7 @@ private fun UnifiedMarketDetailCommentCard(
                             Text(
                                 text = body,
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines =
                                     if (bodyExpanded) {
                                         Int.MAX_VALUE

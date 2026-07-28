@@ -103,6 +103,7 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
 import com.ai.assistance.operit.plugins.chatview.ChatViewEvent
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookParams
@@ -168,127 +169,79 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     // Get background image state
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
-    val useBackgroundImage by preferencesManager.useBackgroundImage.collectAsState(initial = false)
-    val backgroundImageUri by preferencesManager.backgroundImageUri.collectAsState(initial = null)
-    val chatHeaderTransparent by preferencesManager.chatHeaderTransparent.collectAsState(initial = false)
-    val chatInputTransparent by preferencesManager.chatInputTransparent.collectAsState(initial = false)
-    val chatInputFloating by preferencesManager.chatInputFloating.collectAsState(initial = false)
-    val chatInputLiquidGlassRaw by
-        preferencesManager.chatInputLiquidGlass.collectAsState(initial = false)
-    val chatInputWaterGlass by
-        preferencesManager.chatInputWaterGlass.collectAsState(initial = false)
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val useBackgroundImage = themeSnapshot.useBackgroundImage
+    val backgroundImageUri = themeSnapshot.backgroundImageUri
+    val chatHeaderTransparent = themeSnapshot.chatHeaderTransparent
+    val chatInputTransparent = themeSnapshot.chatInputTransparent
+    val chatInputFloating = themeSnapshot.chatInputFloating
+    val chatInputLiquidGlassRaw = themeSnapshot.chatInputLiquidGlass
+    val chatInputWaterGlass = themeSnapshot.chatInputWaterGlass
     val chatInputLiquidGlass = chatInputLiquidGlassRaw && !chatInputWaterGlass
-    val chatHeaderHistoryIconColor by preferencesManager.chatHeaderHistoryIconColor.collectAsState(
-            initial = null
-    )
-    val chatHeaderPipIconColor by preferencesManager.chatHeaderPipIconColor.collectAsState(initial = null)
-    val chatHeaderOverlayMode by preferencesManager.chatHeaderOverlayMode.collectAsState(initial = false)
-    val showInputProcessingStatus by preferencesManager.showInputProcessingStatus.collectAsState(initial = true)
+    val chatHeaderHistoryIconColor = themeSnapshot.chatHeaderHistoryIconColor
+    val chatHeaderPipIconColor = themeSnapshot.chatHeaderPipIconColor
+    val chatHeaderOverlayMode = themeSnapshot.chatHeaderOverlayMode
+    val showInputProcessingStatus = themeSnapshot.showInputProcessingStatus
     val enableEnterToSend by displayPreferencesManager.enableEnterToSend.collectAsState(initial = false)
-    val showChatFloatingDotsAnimation by
-        preferencesManager.showChatFloatingDotsAnimation.collectAsState(initial = true)
+    val showChatFloatingDotsAnimation = themeSnapshot.showChatFloatingDotsAnimation
     val hasBackgroundImageFromPrefs = useBackgroundImage && backgroundImageUri != null
     val effectiveHasBackgroundImage = hasBackgroundImage || hasBackgroundImageFromPrefs
 
     // Collect chat style from preferences
-    val chatStyleSetting by preferencesManager.chatStyle.collectAsState(initial = UserPreferencesManager.CHAT_STYLE_CURSOR)
+    val chatStyleSetting = themeSnapshot.chatStyle
     val chatStyle = remember(chatStyleSetting) {
         when (chatStyleSetting) {
             UserPreferencesManager.CHAT_STYLE_BUBBLE -> ChatStyle.BUBBLE
             else -> ChatStyle.CURSOR
         }
     }
-    val inputStyle by
-        preferencesManager.inputStyle.collectAsState(
-            initial = UserPreferencesManager.INPUT_STYLE_AGENT,
-        )
-    val cursorUserBubbleFollowTheme by
-        preferencesManager.cursorUserBubbleFollowTheme.collectAsState(initial = true)
-    val cursorUserBubbleLiquidGlassRaw by
-        preferencesManager.cursorUserBubbleLiquidGlass.collectAsState(initial = false)
-    val cursorUserBubbleWaterGlass by
-        preferencesManager.cursorUserBubbleWaterGlass.collectAsState(initial = false)
+    val inputStyle = themeSnapshot.inputStyle
+    val cursorUserBubbleFollowTheme = themeSnapshot.cursorUserBubbleFollowTheme
+    val cursorUserBubbleLiquidGlassRaw = themeSnapshot.cursorUserBubbleLiquidGlass
+    val cursorUserBubbleWaterGlass = themeSnapshot.cursorUserBubbleWaterGlass
     val cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlassRaw && !cursorUserBubbleWaterGlass
-    val bubbleUserBubbleLiquidGlassRaw by
-        preferencesManager.bubbleUserBubbleLiquidGlass.collectAsState(initial = false)
-    val bubbleUserBubbleWaterGlass by
-        preferencesManager.bubbleUserBubbleWaterGlass.collectAsState(initial = false)
+    val bubbleUserBubbleLiquidGlassRaw = themeSnapshot.bubbleUserBubbleLiquidGlass
+    val bubbleUserBubbleWaterGlass = themeSnapshot.bubbleUserBubbleWaterGlass
     val bubbleUserBubbleLiquidGlass =
         bubbleUserBubbleLiquidGlassRaw && !bubbleUserBubbleWaterGlass
-    val bubbleAiBubbleLiquidGlassRaw by
-        preferencesManager.bubbleAiBubbleLiquidGlass.collectAsState(initial = false)
-    val bubbleAiBubbleWaterGlass by
-        preferencesManager.bubbleAiBubbleWaterGlass.collectAsState(initial = false)
+    val bubbleAiBubbleLiquidGlassRaw = themeSnapshot.bubbleAiBubbleLiquidGlass
+    val bubbleAiBubbleWaterGlass = themeSnapshot.bubbleAiBubbleWaterGlass
     val bubbleAiBubbleLiquidGlass =
         bubbleAiBubbleLiquidGlassRaw && !bubbleAiBubbleWaterGlass
-    val cursorUserBubbleColorValue by
-        preferencesManager.cursorUserBubbleColor.collectAsState(initial = null)
-    val bubbleUserBubbleColorValue by
-        preferencesManager.bubbleUserBubbleColor.collectAsState(initial = null)
-    val bubbleAiBubbleColorValue by
-        preferencesManager.bubbleAiBubbleColor.collectAsState(initial = null)
-    val bubbleUserTextColorValue by
-        preferencesManager.bubbleUserTextColor.collectAsState(initial = null)
-    val bubbleAiTextColorValue by
-        preferencesManager.bubbleAiTextColor.collectAsState(initial = null)
-    val bubbleUserUseImage by
-        preferencesManager.bubbleUserUseImage.collectAsState(initial = false)
-    val bubbleAiUseImage by
-        preferencesManager.bubbleAiUseImage.collectAsState(initial = false)
-    val bubbleUserImageUri by preferencesManager.bubbleUserImageUri.collectAsState(initial = null)
-    val bubbleAiImageUri by preferencesManager.bubbleAiImageUri.collectAsState(initial = null)
-    val bubbleUserImageCropLeft by
-        preferencesManager.bubbleUserImageCropLeft.collectAsState(initial = 0f)
-    val bubbleUserImageCropTop by
-        preferencesManager.bubbleUserImageCropTop.collectAsState(initial = 0f)
-    val bubbleUserImageCropRight by
-        preferencesManager.bubbleUserImageCropRight.collectAsState(initial = 0f)
-    val bubbleUserImageCropBottom by
-        preferencesManager.bubbleUserImageCropBottom.collectAsState(initial = 0f)
-    val bubbleUserImageRepeatStart by
-        preferencesManager.bubbleUserImageRepeatStart.collectAsState(initial = 0.35f)
-    val bubbleUserImageRepeatEnd by
-        preferencesManager.bubbleUserImageRepeatEnd.collectAsState(initial = 0.65f)
-    val bubbleUserImageRepeatYStart by
-        preferencesManager.bubbleUserImageRepeatYStart.collectAsState(initial = 0.35f)
-    val bubbleUserImageRepeatYEnd by
-        preferencesManager.bubbleUserImageRepeatYEnd.collectAsState(initial = 0.65f)
-    val bubbleUserImageScale by
-        preferencesManager.bubbleUserImageScale.collectAsState(initial = 1f)
-    val bubbleAiImageCropLeft by
-        preferencesManager.bubbleAiImageCropLeft.collectAsState(initial = 0f)
-    val bubbleAiImageCropTop by
-        preferencesManager.bubbleAiImageCropTop.collectAsState(initial = 0f)
-    val bubbleAiImageCropRight by
-        preferencesManager.bubbleAiImageCropRight.collectAsState(initial = 0f)
-    val bubbleAiImageCropBottom by
-        preferencesManager.bubbleAiImageCropBottom.collectAsState(initial = 0f)
-    val bubbleAiImageRepeatStart by
-        preferencesManager.bubbleAiImageRepeatStart.collectAsState(initial = 0.35f)
-    val bubbleAiImageRepeatEnd by
-        preferencesManager.bubbleAiImageRepeatEnd.collectAsState(initial = 0.65f)
-    val bubbleAiImageRepeatYStart by
-        preferencesManager.bubbleAiImageRepeatYStart.collectAsState(initial = 0.35f)
-    val bubbleAiImageRepeatYEnd by
-        preferencesManager.bubbleAiImageRepeatYEnd.collectAsState(initial = 0.65f)
-    val bubbleAiImageScale by
-        preferencesManager.bubbleAiImageScale.collectAsState(initial = 1f)
-    val bubbleImageRenderMode by
-        preferencesManager.bubbleImageRenderMode.collectAsState(
-            initial = UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE,
-        )
-    val bubbleUserRoundedCornersEnabled by
-        preferencesManager.bubbleUserRoundedCornersEnabled.collectAsState(initial = true)
-    val bubbleAiRoundedCornersEnabled by
-        preferencesManager.bubbleAiRoundedCornersEnabled.collectAsState(initial = true)
-    val bubbleUserContentPaddingLeft by
-        preferencesManager.bubbleUserContentPaddingLeft.collectAsState(initial = 12f)
-    val bubbleUserContentPaddingRight by
-        preferencesManager.bubbleUserContentPaddingRight.collectAsState(initial = 12f)
-    val bubbleAiContentPaddingLeft by
-        preferencesManager.bubbleAiContentPaddingLeft.collectAsState(initial = 12f)
-    val bubbleAiContentPaddingRight by
-        preferencesManager.bubbleAiContentPaddingRight.collectAsState(initial = 12f)
+    val cursorUserBubbleColorValue = themeSnapshot.cursorUserBubbleColor
+    val bubbleUserBubbleColorValue = themeSnapshot.bubbleUserBubbleColor
+    val bubbleAiBubbleColorValue = themeSnapshot.bubbleAiBubbleColor
+    val bubbleUserTextColorValue = themeSnapshot.bubbleUserTextColor
+    val bubbleAiTextColorValue = themeSnapshot.bubbleAiTextColor
+    val bubbleUserUseImage = themeSnapshot.bubbleUserUseImage
+    val bubbleAiUseImage = themeSnapshot.bubbleAiUseImage
+    val bubbleUserImageUri = themeSnapshot.bubbleUserImageUri
+    val bubbleAiImageUri = themeSnapshot.bubbleAiImageUri
+    val bubbleUserImageCropLeft = themeSnapshot.bubbleUserImageCropLeft
+    val bubbleUserImageCropTop = themeSnapshot.bubbleUserImageCropTop
+    val bubbleUserImageCropRight = themeSnapshot.bubbleUserImageCropRight
+    val bubbleUserImageCropBottom = themeSnapshot.bubbleUserImageCropBottom
+    val bubbleUserImageRepeatStart = themeSnapshot.bubbleUserImageRepeatStart
+    val bubbleUserImageRepeatEnd = themeSnapshot.bubbleUserImageRepeatEnd
+    val bubbleUserImageRepeatYStart = themeSnapshot.bubbleUserImageRepeatYStart
+    val bubbleUserImageRepeatYEnd = themeSnapshot.bubbleUserImageRepeatYEnd
+    val bubbleUserImageScale = themeSnapshot.bubbleUserImageScale
+    val bubbleAiImageCropLeft = themeSnapshot.bubbleAiImageCropLeft
+    val bubbleAiImageCropTop = themeSnapshot.bubbleAiImageCropTop
+    val bubbleAiImageCropRight = themeSnapshot.bubbleAiImageCropRight
+    val bubbleAiImageCropBottom = themeSnapshot.bubbleAiImageCropBottom
+    val bubbleAiImageRepeatStart = themeSnapshot.bubbleAiImageRepeatStart
+    val bubbleAiImageRepeatEnd = themeSnapshot.bubbleAiImageRepeatEnd
+    val bubbleAiImageRepeatYStart = themeSnapshot.bubbleAiImageRepeatYStart
+    val bubbleAiImageRepeatYEnd = themeSnapshot.bubbleAiImageRepeatYEnd
+    val bubbleAiImageScale = themeSnapshot.bubbleAiImageScale
+    val bubbleImageRenderMode = themeSnapshot.bubbleImageRenderMode
+    val bubbleUserRoundedCornersEnabled = themeSnapshot.bubbleUserRoundedCornersEnabled
+    val bubbleAiRoundedCornersEnabled = themeSnapshot.bubbleAiRoundedCornersEnabled
+    val bubbleUserContentPaddingLeft = themeSnapshot.bubbleUserContentPaddingLeft
+    val bubbleUserContentPaddingRight = themeSnapshot.bubbleUserContentPaddingRight
+    val bubbleAiContentPaddingLeft = themeSnapshot.bubbleAiContentPaddingLeft
+    val bubbleAiContentPaddingRight = themeSnapshot.bubbleAiContentPaddingRight
     // Collect chat area horizontal padding from preferences
     val chatAreaHorizontalPadding by preferencesManager.chatAreaHorizontalPadding.collectAsState(initial = 16f)
 

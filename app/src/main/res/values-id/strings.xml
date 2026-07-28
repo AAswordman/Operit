@@ -4599,10 +4599,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="tool_permissions_description">Secara default, semua alat memerlukan "permintaan" dari Anda. Anda dapat menambahkan pengecualian di bawah ini.</string>
     <string name="global_permission_switch">Sakelar Izin Global</string>
 
-    <string name="current_character">Karakter saat ini: %1$s</string>
-    <string name="current_character_group">Grup karakter saat ini: %1$s</string>
-    <string name="theme_auto_bind_character_card">Pengaturan tema akan otomatis terikat ke kartu karakter ini</string>
-    <string name="theme_auto_bind_character_group">Pengaturan tema akan otomatis terikat ke grup karakter ini</string>
     <string name="enable_custom_font">Aktifkan font kustom</string>
     <string name="use_system_or_custom_font">Gunakan font sistem atau file font kustom</string>
     <string name="font_type_label">Jenis Font</string>
@@ -6859,6 +6855,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="market_sort_updated">Terbaru diperbarui</string>
     <string name="market_sort_downloads">Unduhan</string>
     <string name="market_sort_likes">Suka</string>
+    <string name="market_comment_sort_newest">Terbaru</string>
     <string name="market_stat_downloads_short">Unduh %1$d</string>
     <string name="market_detail_about_title">Tentang</string>
     <string name="market_detail_status_available">Tersedia</string>

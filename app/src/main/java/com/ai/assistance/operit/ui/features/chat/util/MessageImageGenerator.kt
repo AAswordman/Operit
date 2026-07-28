@@ -33,21 +33,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import coil.ImageLoader
 import coil.compose.LocalImageLoader
 import coil.request.CachePolicy
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorStyleChatMessage
 import com.ai.assistance.operit.ui.theme.AppBackgroundLayer
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -111,6 +110,10 @@ object MessageImageGenerator {
                 throw IllegalArgumentException("Message list cannot be empty")
             }
             val allowExpandedThinkingFullHeight = initialThinkingExpanded
+            val themeSnapshot =
+                ActivePromptManager.getInstance(context)
+                    .activeThemePreferenceSnapshotFlow
+                    .first()
             
             // 获取 Activity 和根视图，用于临时附加 ComposeView
             val activity = context.findActivity() ?: throw IllegalStateException("Context is not an Activity.")
@@ -143,29 +146,22 @@ object MessageImageGenerator {
                             .build()
 
                         CompositionLocalProvider(
-                            LocalImageLoader provides softwareImageLoader
+                            LocalImageLoader provides softwareImageLoader,
+                            LocalThemePreferenceSnapshot provides themeSnapshot,
                         ) {
                             MaterialTheme(colorScheme = colorScheme) {
                             // 不再使用 Capturable，直接渲染内容
                             val density = LocalDensity.current
                             val widthDp = with(density) { width.toDp() }
                             val colorScheme = MaterialTheme.colorScheme
-                            val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
-                            val useBackgroundImage by preferencesManager.useBackgroundImage.collectAsState(initial = false)
-                            val backgroundImageUri by preferencesManager.backgroundImageUri.collectAsState(initial = null)
-                            val backgroundImageOpacity by
-                                preferencesManager.backgroundImageOpacity.collectAsState(initial = 0.3f)
-                            val backgroundMediaType by
-                                preferencesManager.backgroundMediaType.collectAsState(
-                                    initial = UserPreferencesManager.MEDIA_TYPE_IMAGE
-                                )
-                            val videoBackgroundMuted by
-                                preferencesManager.videoBackgroundMuted.collectAsState(initial = true)
-                            val videoBackgroundLoop by
-                                preferencesManager.videoBackgroundLoop.collectAsState(initial = true)
-                            val useBackgroundBlur by preferencesManager.useBackgroundBlur.collectAsState(initial = false)
-                            val backgroundBlurRadius by
-                                preferencesManager.backgroundBlurRadius.collectAsState(initial = 10f)
+                            val useBackgroundImage = themeSnapshot.useBackgroundImage
+                            val backgroundImageUri = themeSnapshot.backgroundImageUri
+                            val backgroundImageOpacity = themeSnapshot.backgroundImageOpacity
+                            val backgroundMediaType = themeSnapshot.backgroundMediaType
+                            val videoBackgroundMuted = themeSnapshot.videoBackgroundMuted
+                            val videoBackgroundLoop = themeSnapshot.videoBackgroundLoop
+                            val useBackgroundBlur = themeSnapshot.useBackgroundBlur
+                            val backgroundBlurRadius = themeSnapshot.backgroundBlurRadius
 
 
                             val cardBackgroundColor = if (includeBackground) Color.Transparent else colorScheme.surface

@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -31,7 +30,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,109 +50,27 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.ui.features.settings.components.ChatStyleOption
-import com.ai.assistance.operit.ui.features.settings.components.ColorSelectionItem
-import com.ai.assistance.operit.ui.features.settings.components.ThemeModeOption
 import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageBackgroundSurface
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageStyleConfig
+import com.ai.assistance.operit.ui.features.settings.components.ChatStyleOption
+import com.ai.assistance.operit.ui.features.settings.components.ColorSelectionItem
+import com.ai.assistance.operit.ui.features.settings.components.ThemeModeOption
+import com.ai.assistance.operit.ui.features.settings.screens.theme.ThemeEditorSession
 import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
 import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal typealias SaveThemeSettingsAction = (suspend () -> Unit) -> Unit
-
-@Composable
-internal fun ThemeSettingsCharacterBindingInfoCard(
-    aiAvatarUri: String?,
-    activeCharacterName: String?,
-    isGroupTarget: Boolean,
-    cardColors: CardColors,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        colors = cardColors,
-        shape = RoundedCornerShape(8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (aiAvatarUri != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(Uri.parse(aiAvatarUri)),
-                        contentDescription = stringResource(R.string.character_avatar),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription =
-                            stringResource(R.string.character_card_default_avatar),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text =
-                        if (isGroupTarget) {
-                            stringResource(R.string.current_character_group, activeCharacterName ?: "")
-                        } else {
-                            stringResource(R.string.current_character, activeCharacterName ?: "")
-                        },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text =
-                        if (isGroupTarget) {
-                            stringResource(R.string.theme_auto_bind_character_group)
-                        } else {
-                            stringResource(R.string.theme_auto_bind_character_card)
-                        },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Icon(
-                Icons.Default.Link,
-                contentDescription = stringResource(R.string.bind),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    }
-}
-
 @Composable
 internal fun ThemeSettingsThemeModeSection(
     cardColors: CardColors,
+    editorSession: ThemeEditorSession,
     useSystemThemeInput: Boolean,
-    onUseSystemThemeInputChange: (Boolean) -> Unit,
     themeModeInput: String,
-    onThemeModeInputChange: (String) -> Unit,
-    saveThemeSettingsWithCharacterCard: SaveThemeSettingsAction,
-    preferencesManager: UserPreferencesManager,
 ) {
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.theme_title_mode),
@@ -188,12 +104,7 @@ internal fun ThemeSettingsThemeModeSection(
 
                 Switch(
                     checked = useSystemThemeInput,
-                    onCheckedChange = {
-                        onUseSystemThemeInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(useSystemTheme = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("use_system_theme", it) },
                 )
             }
 
@@ -215,12 +126,10 @@ internal fun ThemeSettingsThemeModeSection(
                         selected = themeModeInput == UserPreferencesManager.THEME_MODE_LIGHT,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            onThemeModeInputChange(UserPreferencesManager.THEME_MODE_LIGHT)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    themeMode = UserPreferencesManager.THEME_MODE_LIGHT,
-                                )
-                            }
+                            editorSession.setString(
+                                "theme_mode",
+                                UserPreferencesManager.THEME_MODE_LIGHT,
+                            )
                         },
                     )
 
@@ -229,12 +138,10 @@ internal fun ThemeSettingsThemeModeSection(
                         selected = themeModeInput == UserPreferencesManager.THEME_MODE_DARK,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            onThemeModeInputChange(UserPreferencesManager.THEME_MODE_DARK)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    themeMode = UserPreferencesManager.THEME_MODE_DARK,
-                                )
-                            }
+                            editorSession.setString(
+                                "theme_mode",
+                                UserPreferencesManager.THEME_MODE_DARK,
+                            )
                         },
                     )
                 }
@@ -246,58 +153,38 @@ internal fun ThemeSettingsThemeModeSection(
 @Composable
 internal fun ThemeSettingsChatStyleSection(
     cardColors: CardColors,
+    editorSession: ThemeEditorSession,
     chatStyleInput: String,
-    onChatStyleInputChange: (String) -> Unit,
     inputStyleInput: String,
-    onInputStyleInputChange: (String) -> Unit,
     bubbleShowAvatarInput: Boolean,
-    onBubbleShowAvatarInputChange: (Boolean) -> Unit,
     bubbleWideLayoutEnabledInput: Boolean,
-    onBubbleWideLayoutEnabledInputChange: (Boolean) -> Unit,
     cursorUserBubbleFollowThemeInput: Boolean,
-    onCursorUserBubbleFollowThemeInputChange: (Boolean) -> Unit,
     cursorUserBubbleLiquidGlassInput: Boolean,
-    onCursorUserBubbleLiquidGlassInputChange: (Boolean) -> Unit,
     cursorUserBubbleWaterGlassInput: Boolean,
-    onCursorUserBubbleWaterGlassInputChange: (Boolean) -> Unit,
     bubbleUserBubbleLiquidGlassInput: Boolean,
-    onBubbleUserBubbleLiquidGlassInputChange: (Boolean) -> Unit,
     bubbleUserBubbleWaterGlassInput: Boolean,
-    onBubbleUserBubbleWaterGlassInputChange: (Boolean) -> Unit,
     bubbleAiBubbleLiquidGlassInput: Boolean,
-    onBubbleAiBubbleLiquidGlassInputChange: (Boolean) -> Unit,
     bubbleAiBubbleWaterGlassInput: Boolean,
-    onBubbleAiBubbleWaterGlassInputChange: (Boolean) -> Unit,
     cursorUserBubbleColorInput: Int,
     bubbleUserBubbleColorInput: Int,
     bubbleAiBubbleColorInput: Int,
     bubbleUserTextColorInput: Int,
     bubbleAiTextColorInput: Int,
     bubbleUserUseCustomFontInput: Boolean,
-    onBubbleUserUseCustomFontInputChange: (Boolean) -> Unit,
     bubbleUserFontTypeInput: String,
-    onBubbleUserFontTypeInputChange: (String) -> Unit,
     bubbleUserSystemFontNameInput: String,
-    onBubbleUserSystemFontNameInputChange: (String) -> Unit,
     bubbleUserCustomFontPathInput: String?,
-    onBubbleUserCustomFontPathInputChange: (String?) -> Unit,
     onPickBubbleUserFont: () -> Unit,
     bubbleAiUseCustomFontInput: Boolean,
-    onBubbleAiUseCustomFontInputChange: (Boolean) -> Unit,
     bubbleAiFontTypeInput: String,
-    onBubbleAiFontTypeInputChange: (String) -> Unit,
     bubbleAiSystemFontNameInput: String,
-    onBubbleAiSystemFontNameInputChange: (String) -> Unit,
     bubbleAiCustomFontPathInput: String?,
-    onBubbleAiCustomFontPathInputChange: (String?) -> Unit,
     onPickBubbleAiFont: () -> Unit,
     previewUserAvatarUri: String?,
     previewAiAvatarUri: String?,
     onShowColorPicker: (String) -> Unit,
     bubbleUserUseImageInput: Boolean,
-    onBubbleUserUseImageInputChange: (Boolean) -> Unit,
     bubbleAiUseImageInput: Boolean,
-    onBubbleAiUseImageInputChange: (Boolean) -> Unit,
     bubbleUserImageUriInput: String?,
     bubbleAiImageUriInput: String?,
     onPickBubbleUserImage: () -> Unit,
@@ -305,57 +192,30 @@ internal fun ThemeSettingsChatStyleSection(
     onClearBubbleUserImage: () -> Unit,
     onClearBubbleAiImage: () -> Unit,
     bubbleUserImageCropLeftInput: Float,
-    onBubbleUserImageCropLeftInputChange: (Float) -> Unit,
     bubbleUserImageCropTopInput: Float,
-    onBubbleUserImageCropTopInputChange: (Float) -> Unit,
     bubbleUserImageCropRightInput: Float,
-    onBubbleUserImageCropRightInputChange: (Float) -> Unit,
     bubbleUserImageCropBottomInput: Float,
-    onBubbleUserImageCropBottomInputChange: (Float) -> Unit,
     bubbleUserImageRepeatStartInput: Float,
-    onBubbleUserImageRepeatStartInputChange: (Float) -> Unit,
     bubbleUserImageRepeatEndInput: Float,
-    onBubbleUserImageRepeatEndInputChange: (Float) -> Unit,
     bubbleUserImageRepeatYStartInput: Float,
-    onBubbleUserImageRepeatYStartInputChange: (Float) -> Unit,
     bubbleUserImageRepeatYEndInput: Float,
-    onBubbleUserImageRepeatYEndInputChange: (Float) -> Unit,
     bubbleUserImageScaleInput: Float,
-    onBubbleUserImageScaleInputChange: (Float) -> Unit,
     bubbleAiImageCropLeftInput: Float,
-    onBubbleAiImageCropLeftInputChange: (Float) -> Unit,
     bubbleAiImageCropTopInput: Float,
-    onBubbleAiImageCropTopInputChange: (Float) -> Unit,
     bubbleAiImageCropRightInput: Float,
-    onBubbleAiImageCropRightInputChange: (Float) -> Unit,
     bubbleAiImageCropBottomInput: Float,
-    onBubbleAiImageCropBottomInputChange: (Float) -> Unit,
     bubbleAiImageRepeatStartInput: Float,
-    onBubbleAiImageRepeatStartInputChange: (Float) -> Unit,
     bubbleAiImageRepeatEndInput: Float,
-    onBubbleAiImageRepeatEndInputChange: (Float) -> Unit,
     bubbleAiImageRepeatYStartInput: Float,
-    onBubbleAiImageRepeatYStartInputChange: (Float) -> Unit,
     bubbleAiImageRepeatYEndInput: Float,
-    onBubbleAiImageRepeatYEndInputChange: (Float) -> Unit,
     bubbleAiImageScaleInput: Float,
-    onBubbleAiImageScaleInputChange: (Float) -> Unit,
     bubbleImageRenderModeInput: String,
-    onBubbleImageRenderModeInputChange: (String) -> Unit,
     bubbleUserRoundedCornersEnabledInput: Boolean,
-    onBubbleUserRoundedCornersEnabledInputChange: (Boolean) -> Unit,
     bubbleAiRoundedCornersEnabledInput: Boolean,
-    onBubbleAiRoundedCornersEnabledInputChange: (Boolean) -> Unit,
     bubbleUserContentPaddingLeftInput: Float,
-    onBubbleUserContentPaddingLeftInputChange: (Float) -> Unit,
     bubbleUserContentPaddingRightInput: Float,
-    onBubbleUserContentPaddingRightInputChange: (Float) -> Unit,
     bubbleAiContentPaddingLeftInput: Float,
-    onBubbleAiContentPaddingLeftInputChange: (Float) -> Unit,
     bubbleAiContentPaddingRightInput: Float,
-    onBubbleAiContentPaddingRightInputChange: (Float) -> Unit,
-    saveThemeSettingsWithCharacterCard: SaveThemeSettingsAction,
-    preferencesManager: UserPreferencesManager,
     showInputStyleControls: Boolean = true,
 ) {
     ThemeSettingsSectionTitle(
@@ -380,12 +240,10 @@ internal fun ThemeSettingsChatStyleSection(
                     selected = chatStyleInput == UserPreferencesManager.CHAT_STYLE_CURSOR,
                     modifier = Modifier.weight(1f),
                 ) {
-                    onChatStyleInputChange(UserPreferencesManager.CHAT_STYLE_CURSOR)
-                    saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(
-                            chatStyle = UserPreferencesManager.CHAT_STYLE_CURSOR,
-                        )
-                    }
+                    editorSession.setString(
+                        "chat_style",
+                        UserPreferencesManager.CHAT_STYLE_CURSOR,
+                    )
                 }
 
                 ChatStyleOption(
@@ -393,12 +251,10 @@ internal fun ThemeSettingsChatStyleSection(
                     selected = chatStyleInput == UserPreferencesManager.CHAT_STYLE_BUBBLE,
                     modifier = Modifier.weight(1f),
                 ) {
-                    onChatStyleInputChange(UserPreferencesManager.CHAT_STYLE_BUBBLE)
-                    saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(
-                            chatStyle = UserPreferencesManager.CHAT_STYLE_BUBBLE,
-                        )
-                    }
+                    editorSession.setString(
+                        "chat_style",
+                        UserPreferencesManager.CHAT_STYLE_BUBBLE,
+                    )
                 }
             }
 
@@ -427,12 +283,10 @@ internal fun ThemeSettingsChatStyleSection(
                             inputStyleInput == UserPreferencesManager.INPUT_STYLE_CLASSIC,
                         modifier = Modifier.weight(1f),
                     ) {
-                        onInputStyleInputChange(UserPreferencesManager.INPUT_STYLE_CLASSIC)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                inputStyle = UserPreferencesManager.INPUT_STYLE_CLASSIC,
-                            )
-                        }
+                        editorSession.setString(
+                            "input_style",
+                            UserPreferencesManager.INPUT_STYLE_CLASSIC,
+                        )
                     }
 
                     ChatStyleOption(
@@ -440,12 +294,10 @@ internal fun ThemeSettingsChatStyleSection(
                         selected = inputStyleInput == UserPreferencesManager.INPUT_STYLE_AGENT,
                         modifier = Modifier.weight(1f),
                     ) {
-                        onInputStyleInputChange(UserPreferencesManager.INPUT_STYLE_AGENT)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                inputStyle = UserPreferencesManager.INPUT_STYLE_AGENT,
-                            )
-                        }
+                        editorSession.setString(
+                            "input_style",
+                            UserPreferencesManager.INPUT_STYLE_AGENT,
+                        )
                     }
                 }
             }
@@ -473,12 +325,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = cursorUserBubbleFollowThemeInput,
                         onCheckedChange = {
-                            onCursorUserBubbleFollowThemeInputChange(it)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    cursorUserBubbleFollowTheme = it,
-                                )
-                            }
+                            editorSession.setBoolean("cursor_user_bubble_follow_theme", it)
                         },
                     )
                 }
@@ -510,16 +357,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = cursorUserBubbleLiquidGlassInput,
                         onCheckedChange = {
-                            onCursorUserBubbleLiquidGlassInputChange(it)
-                            if (it) {
-                                onCursorUserBubbleWaterGlassInputChange(false)
-                            }
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    cursorUserBubbleLiquidGlass = it,
-                                    cursorUserBubbleWaterGlass = if (it) false else null,
-                                )
-                            }
+                            editorSession.setBoolean("cursor_user_bubble_liquid_glass", it)
                         },
                     )
                 }
@@ -551,16 +389,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = cursorUserBubbleWaterGlassInput,
                         onCheckedChange = {
-                            onCursorUserBubbleWaterGlassInputChange(it)
-                            if (it) {
-                                onCursorUserBubbleLiquidGlassInputChange(false)
-                            }
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    cursorUserBubbleWaterGlass = it,
-                                    cursorUserBubbleLiquidGlass = if (it) false else null,
-                                )
-                            }
+                            editorSession.setBoolean("cursor_user_bubble_water_glass", it)
                         },
                     )
                 }
@@ -717,12 +546,7 @@ internal fun ThemeSettingsChatStyleSection(
                     }
                     Switch(
                         checked = bubbleShowAvatarInput,
-                        onCheckedChange = {
-                            onBubbleShowAvatarInputChange(it)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(bubbleShowAvatar = it)
-                            }
-                        },
+                        onCheckedChange = { editorSession.setBoolean("bubble_show_avatar", it) },
                     )
                 }
 
@@ -747,12 +571,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = bubbleWideLayoutEnabledInput,
                         onCheckedChange = {
-                            onBubbleWideLayoutEnabledInputChange(it)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    bubbleWideLayoutEnabled = it,
-                                )
-                            }
+                            editorSession.setBoolean("bubble_wide_layout_enabled", it)
                         },
                     )
                 }
@@ -784,18 +603,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = bubbleUserBubbleLiquidGlassInput,
                         onCheckedChange = {
-                            onBubbleUserBubbleLiquidGlassInputChange(it)
-                            if (it) {
-                                onBubbleUserBubbleWaterGlassInputChange(false)
-                                onBubbleUserUseImageInputChange(false)
-                            }
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    bubbleUserBubbleLiquidGlass = it,
-                                    bubbleUserBubbleWaterGlass = if (it) false else null,
-                                    bubbleUserUseImage = if (it) false else null,
-                                )
-                            }
+                            editorSession.setBoolean("bubble_user_bubble_liquid_glass", it)
                         },
                     )
                 }
@@ -827,18 +635,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = bubbleUserBubbleWaterGlassInput,
                         onCheckedChange = {
-                            onBubbleUserBubbleWaterGlassInputChange(it)
-                            if (it) {
-                                onBubbleUserBubbleLiquidGlassInputChange(false)
-                                onBubbleUserUseImageInputChange(false)
-                            }
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    bubbleUserBubbleWaterGlass = it,
-                                    bubbleUserBubbleLiquidGlass = if (it) false else null,
-                                    bubbleUserUseImage = if (it) false else null,
-                                )
-                            }
+                            editorSession.setBoolean("bubble_user_bubble_water_glass", it)
                         },
                     )
                 }
@@ -870,18 +667,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = bubbleAiBubbleLiquidGlassInput,
                         onCheckedChange = {
-                            onBubbleAiBubbleLiquidGlassInputChange(it)
-                            if (it) {
-                                onBubbleAiBubbleWaterGlassInputChange(false)
-                                onBubbleAiUseImageInputChange(false)
-                            }
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    bubbleAiBubbleLiquidGlass = it,
-                                    bubbleAiBubbleWaterGlass = if (it) false else null,
-                                    bubbleAiUseImage = if (it) false else null,
-                                )
-                            }
+                            editorSession.setBoolean("bubble_ai_bubble_liquid_glass", it)
                         },
                     )
                 }
@@ -913,18 +699,7 @@ internal fun ThemeSettingsChatStyleSection(
                     Switch(
                         checked = bubbleAiBubbleWaterGlassInput,
                         onCheckedChange = {
-                            onBubbleAiBubbleWaterGlassInputChange(it)
-                            if (it) {
-                                onBubbleAiBubbleLiquidGlassInputChange(false)
-                                onBubbleAiUseImageInputChange(false)
-                            }
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    bubbleAiBubbleWaterGlass = it,
-                                    bubbleAiBubbleLiquidGlass = if (it) false else null,
-                                    bubbleAiUseImage = if (it) false else null,
-                                )
-                            }
+                            editorSession.setBoolean("bubble_ai_bubble_water_glass", it)
                         },
                     )
                 }
@@ -957,12 +732,7 @@ internal fun ThemeSettingsChatStyleSection(
                         modifier = Modifier.weight(1f),
                     ) {
                         val mode = UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH
-                        onBubbleImageRenderModeInputChange(mode)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleImageRenderMode = mode,
-                            )
-                        }
+                        editorSession.setString("bubble_image_render_mode", mode)
                     }
                     ChatStyleOption(
                         title =
@@ -976,12 +746,7 @@ internal fun ThemeSettingsChatStyleSection(
                     ) {
                         val mode =
                             UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE
-                        onBubbleImageRenderModeInputChange(mode)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleImageRenderMode = mode,
-                            )
-                        }
+                        editorSession.setString("bubble_image_render_mode", mode)
                     }
                 }
 
@@ -1016,12 +781,7 @@ internal fun ThemeSettingsChatStyleSection(
                         Switch(
                             checked = bubbleUserRoundedCornersEnabledInput,
                             onCheckedChange = {
-                                onBubbleUserRoundedCornersEnabledInputChange(it)
-                                saveThemeSettingsWithCharacterCard {
-                                    preferencesManager.saveThemeSettings(
-                                        bubbleUserRoundedCornersEnabled = it,
-                                    )
-                                }
+                                editorSession.setBoolean("bubble_rounded_corners_enabled", it)
                             },
                         )
                     }
@@ -1037,12 +797,7 @@ internal fun ThemeSettingsChatStyleSection(
                         Switch(
                             checked = bubbleAiRoundedCornersEnabledInput,
                             onCheckedChange = {
-                                onBubbleAiRoundedCornersEnabledInputChange(it)
-                                saveThemeSettingsWithCharacterCard {
-                                    preferencesManager.saveThemeSettings(
-                                        bubbleAiRoundedCornersEnabled = it,
-                                    )
-                                }
+                                editorSession.setBoolean("bubble_ai_rounded_corners_enabled", it)
                             },
                         )
                     }
@@ -1104,34 +859,20 @@ internal fun ThemeSettingsChatStyleSection(
                     title = stringResource(id = R.string.chat_style_bubble_user_font_title),
                     useCustomFont = bubbleUserUseCustomFontInput,
                     onUseCustomFontChange = {
-                        onBubbleUserUseCustomFontInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserUseCustomFont = it)
-                        }
+                        editorSession.setBoolean("bubble_user_use_custom_font", it)
                     },
                     fontType = bubbleUserFontTypeInput,
                     onFontTypeChange = {
-                        onBubbleUserFontTypeInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserFontType = it)
-                        }
+                        editorSession.setString("bubble_user_font_type", it)
                     },
                     systemFontName = bubbleUserSystemFontNameInput,
                     onSystemFontNameChange = {
-                        onBubbleUserSystemFontNameInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleUserSystemFontName = it,
-                            )
-                        }
+                        editorSession.setString("bubble_user_system_font_name", it)
                     },
                     customFontPath = bubbleUserCustomFontPathInput,
                     onPickFont = onPickBubbleUserFont,
                     onClearFont = {
-                        onBubbleUserCustomFontPathInputChange(null)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserCustomFontPath = "")
-                        }
+                        editorSession.setOptionalString("bubble_user_custom_font_path", null)
                     },
                 )
 
@@ -1139,34 +880,20 @@ internal fun ThemeSettingsChatStyleSection(
                     title = stringResource(id = R.string.chat_style_bubble_ai_font_title),
                     useCustomFont = bubbleAiUseCustomFontInput,
                     onUseCustomFontChange = {
-                        onBubbleAiUseCustomFontInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiUseCustomFont = it)
-                        }
+                        editorSession.setBoolean("bubble_ai_use_custom_font", it)
                     },
                     fontType = bubbleAiFontTypeInput,
                     onFontTypeChange = {
-                        onBubbleAiFontTypeInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiFontType = it)
-                        }
+                        editorSession.setString("bubble_ai_font_type", it)
                     },
                     systemFontName = bubbleAiSystemFontNameInput,
                     onSystemFontNameChange = {
-                        onBubbleAiSystemFontNameInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleAiSystemFontName = it,
-                            )
-                        }
+                        editorSession.setString("bubble_ai_system_font_name", it)
                     },
                     customFontPath = bubbleAiCustomFontPathInput,
                     onPickFont = onPickBubbleAiFont,
                     onClearFont = {
-                        onBubbleAiCustomFontPathInputChange(null)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiCustomFontPath = "")
-                        }
+                        editorSession.setOptionalString("bubble_ai_custom_font_path", null)
                     },
                 )
 
@@ -1182,129 +909,85 @@ internal fun ThemeSettingsChatStyleSection(
                         !bubbleUserBubbleLiquidGlassInput && !bubbleUserBubbleWaterGlassInput,
                     description = stringResource(id = R.string.chat_style_bubble_image_desc),
                     onEnabledChange = {
-                        onBubbleUserUseImageInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserUseImage = it)
-                        }
+                        editorSession.setBoolean("bubble_user_use_image", it)
                     },
                     imageUri = bubbleUserImageUriInput,
                     onPickImage = onPickBubbleUserImage,
                     onClearImage = onClearBubbleUserImage,
                     cropLeft = bubbleUserImageCropLeftInput,
                     onCropLeftChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleUserImageCropLeftInputChange(value)
-                    },
-                    onCropLeftChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageCropLeft = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_crop_left",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     cropTop = bubbleUserImageCropTopInput,
                     onCropTopChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleUserImageCropTopInputChange(value)
-                    },
-                    onCropTopChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageCropTop = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_crop_top",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     cropRight = bubbleUserImageCropRightInput,
                     onCropRightChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleUserImageCropRightInputChange(value)
-                    },
-                    onCropRightChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageCropRight = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_crop_right",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     cropBottom = bubbleUserImageCropBottomInput,
                     onCropBottomChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleUserImageCropBottomInputChange(value)
-                    },
-                    onCropBottomChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageCropBottom = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_crop_bottom",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     repeatXStart = bubbleUserImageRepeatStartInput,
                     onRepeatXStartChange = {
                         val maxValue = (bubbleUserImageRepeatEndInput - 0.01f).coerceAtLeast(0.05f)
-                        val value = it.coerceIn(0.05f, maxValue)
-                        onBubbleUserImageRepeatStartInputChange(value)
-                    },
-                    onRepeatXStartChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageRepeatStart = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_repeat_start",
+                            it.coerceIn(0.05f, maxValue),
+                        )
                     },
                     repeatXEnd = bubbleUserImageRepeatEndInput,
                     onRepeatXEndChange = {
                         val minValue = (bubbleUserImageRepeatStartInput + 0.01f).coerceAtMost(0.95f)
-                        val value = it.coerceIn(minValue, 0.95f)
-                        onBubbleUserImageRepeatEndInputChange(value)
-                    },
-                    onRepeatXEndChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageRepeatEnd = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_repeat_end",
+                            it.coerceIn(minValue, 0.95f),
+                        )
                     },
                     repeatYStart = bubbleUserImageRepeatYStartInput,
                     onRepeatYStartChange = {
                         val maxValue = (bubbleUserImageRepeatYEndInput - 0.01f).coerceAtLeast(0.05f)
-                        val value = it.coerceIn(0.05f, maxValue)
-                        onBubbleUserImageRepeatYStartInputChange(value)
-                    },
-                    onRepeatYStartChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageRepeatYStart = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_repeat_y_start",
+                            it.coerceIn(0.05f, maxValue),
+                        )
                     },
                     repeatYEnd = bubbleUserImageRepeatYEndInput,
                     onRepeatYEndChange = {
                         val minValue = (bubbleUserImageRepeatYStartInput + 0.01f).coerceAtMost(0.95f)
-                        val value = it.coerceIn(minValue, 0.95f)
-                        onBubbleUserImageRepeatYEndInputChange(value)
-                    },
-                    onRepeatYEndChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageRepeatYEnd = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_repeat_y_end",
+                            it.coerceIn(minValue, 0.95f),
+                        )
                     },
                     imageScale = bubbleUserImageScaleInput,
                     onImageScaleChange = {
-                        val value = it.coerceIn(0.2f, 3f)
-                        onBubbleUserImageScaleInputChange(value)
-                    },
-                    onImageScaleChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleUserImageScale = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_user_image_scale",
+                            it.coerceIn(0.2f, 3f),
+                        )
                     },
                     contentPaddingLeft = bubbleUserContentPaddingLeftInput,
                     onContentPaddingLeftChange = {
-                        onBubbleUserContentPaddingLeftInputChange(it)
-                    },
-                    onContentPaddingLeftChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleUserContentPaddingLeft = value,
-                            )
-                        }
+                        editorSession.setFloat("bubble_content_padding_left", it)
                     },
                     contentPaddingRight = bubbleUserContentPaddingRightInput,
                     onContentPaddingRightChange = {
-                        onBubbleUserContentPaddingRightInputChange(it)
-                    },
-                    onContentPaddingRightChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleUserContentPaddingRight = value,
-                            )
-                        }
+                        editorSession.setFloat("bubble_content_padding_right", it)
                     },
                 )
 
@@ -1332,129 +1015,85 @@ internal fun ThemeSettingsChatStyleSection(
                             stringResource(id = R.string.chat_style_bubble_image_desc)
                         },
                     onEnabledChange = {
-                        onBubbleAiUseImageInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiUseImage = it)
-                        }
+                        editorSession.setBoolean("bubble_ai_use_image", it)
                     },
                     imageUri = bubbleAiImageUriInput,
                     onPickImage = onPickBubbleAiImage,
                     onClearImage = onClearBubbleAiImage,
                     cropLeft = bubbleAiImageCropLeftInput,
                     onCropLeftChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleAiImageCropLeftInputChange(value)
-                    },
-                    onCropLeftChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageCropLeft = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_crop_left",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     cropTop = bubbleAiImageCropTopInput,
                     onCropTopChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleAiImageCropTopInputChange(value)
-                    },
-                    onCropTopChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageCropTop = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_crop_top",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     cropRight = bubbleAiImageCropRightInput,
                     onCropRightChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleAiImageCropRightInputChange(value)
-                    },
-                    onCropRightChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageCropRight = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_crop_right",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     cropBottom = bubbleAiImageCropBottomInput,
                     onCropBottomChange = {
-                        val value = it.coerceIn(0f, 0.45f)
-                        onBubbleAiImageCropBottomInputChange(value)
-                    },
-                    onCropBottomChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageCropBottom = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_crop_bottom",
+                            it.coerceIn(0f, 0.45f),
+                        )
                     },
                     repeatXStart = bubbleAiImageRepeatStartInput,
                     onRepeatXStartChange = {
                         val maxValue = (bubbleAiImageRepeatEndInput - 0.01f).coerceAtLeast(0.05f)
-                        val value = it.coerceIn(0.05f, maxValue)
-                        onBubbleAiImageRepeatStartInputChange(value)
-                    },
-                    onRepeatXStartChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageRepeatStart = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_repeat_start",
+                            it.coerceIn(0.05f, maxValue),
+                        )
                     },
                     repeatXEnd = bubbleAiImageRepeatEndInput,
                     onRepeatXEndChange = {
                         val minValue = (bubbleAiImageRepeatStartInput + 0.01f).coerceAtMost(0.95f)
-                        val value = it.coerceIn(minValue, 0.95f)
-                        onBubbleAiImageRepeatEndInputChange(value)
-                    },
-                    onRepeatXEndChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageRepeatEnd = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_repeat_end",
+                            it.coerceIn(minValue, 0.95f),
+                        )
                     },
                     repeatYStart = bubbleAiImageRepeatYStartInput,
                     onRepeatYStartChange = {
                         val maxValue = (bubbleAiImageRepeatYEndInput - 0.01f).coerceAtLeast(0.05f)
-                        val value = it.coerceIn(0.05f, maxValue)
-                        onBubbleAiImageRepeatYStartInputChange(value)
-                    },
-                    onRepeatYStartChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageRepeatYStart = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_repeat_y_start",
+                            it.coerceIn(0.05f, maxValue),
+                        )
                     },
                     repeatYEnd = bubbleAiImageRepeatYEndInput,
                     onRepeatYEndChange = {
                         val minValue = (bubbleAiImageRepeatYStartInput + 0.01f).coerceAtMost(0.95f)
-                        val value = it.coerceIn(minValue, 0.95f)
-                        onBubbleAiImageRepeatYEndInputChange(value)
-                    },
-                    onRepeatYEndChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageRepeatYEnd = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_repeat_y_end",
+                            it.coerceIn(minValue, 0.95f),
+                        )
                     },
                     imageScale = bubbleAiImageScaleInput,
                     onImageScaleChange = {
-                        val value = it.coerceIn(0.2f, 3f)
-                        onBubbleAiImageScaleInputChange(value)
-                    },
-                    onImageScaleChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(bubbleAiImageScale = value)
-                        }
+                        editorSession.setFloat(
+                            "bubble_ai_image_scale",
+                            it.coerceIn(0.2f, 3f),
+                        )
                     },
                     contentPaddingLeft = bubbleAiContentPaddingLeftInput,
                     onContentPaddingLeftChange = {
-                        onBubbleAiContentPaddingLeftInputChange(it)
-                    },
-                    onContentPaddingLeftChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleAiContentPaddingLeft = value,
-                            )
-                        }
+                        editorSession.setFloat("bubble_ai_content_padding_left", it)
                     },
                     contentPaddingRight = bubbleAiContentPaddingRightInput,
                     onContentPaddingRightChange = {
-                        onBubbleAiContentPaddingRightInputChange(it)
-                    },
-                    onContentPaddingRightChangeFinished = { value ->
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                bubbleAiContentPaddingRight = value,
-                            )
-                        }
+                        editorSession.setFloat("bubble_ai_content_padding_right", it)
                     },
                 )
 
@@ -1658,37 +1297,26 @@ private fun BubbleImageStyleEditor(
     onClearImage: () -> Unit,
     cropLeft: Float,
     onCropLeftChange: (Float) -> Unit,
-    onCropLeftChangeFinished: (Float) -> Unit,
     cropTop: Float,
     onCropTopChange: (Float) -> Unit,
-    onCropTopChangeFinished: (Float) -> Unit,
     cropRight: Float,
     onCropRightChange: (Float) -> Unit,
-    onCropRightChangeFinished: (Float) -> Unit,
     cropBottom: Float,
     onCropBottomChange: (Float) -> Unit,
-    onCropBottomChangeFinished: (Float) -> Unit,
     repeatXStart: Float,
     onRepeatXStartChange: (Float) -> Unit,
-    onRepeatXStartChangeFinished: (Float) -> Unit,
     repeatXEnd: Float,
     onRepeatXEndChange: (Float) -> Unit,
-    onRepeatXEndChangeFinished: (Float) -> Unit,
     repeatYStart: Float,
     onRepeatYStartChange: (Float) -> Unit,
-    onRepeatYStartChangeFinished: (Float) -> Unit,
     repeatYEnd: Float,
     onRepeatYEndChange: (Float) -> Unit,
-    onRepeatYEndChangeFinished: (Float) -> Unit,
     imageScale: Float,
     onImageScaleChange: (Float) -> Unit,
-    onImageScaleChangeFinished: (Float) -> Unit,
     contentPaddingLeft: Float,
     onContentPaddingLeftChange: (Float) -> Unit,
-    onContentPaddingLeftChangeFinished: (Float) -> Unit,
     contentPaddingRight: Float,
     onContentPaddingRightChange: (Float) -> Unit,
-    onContentPaddingRightChangeFinished: (Float) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -1761,7 +1389,6 @@ private fun BubbleImageStyleEditor(
                         value = cropLeft,
                         range = 0f..0.45f,
                         onValueChange = onCropLeftChange,
-                        onValueChangeFinished = onCropLeftChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                     BubbleStyleSliderRow(
@@ -1769,7 +1396,6 @@ private fun BubbleImageStyleEditor(
                         value = cropTop,
                         range = 0f..0.45f,
                         onValueChange = onCropTopChange,
-                        onValueChangeFinished = onCropTopChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1782,7 +1408,6 @@ private fun BubbleImageStyleEditor(
                         value = cropRight,
                         range = 0f..0.45f,
                         onValueChange = onCropRightChange,
-                        onValueChangeFinished = onCropRightChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                     BubbleStyleSliderRow(
@@ -1790,7 +1415,6 @@ private fun BubbleImageStyleEditor(
                         value = cropBottom,
                         range = 0f..0.45f,
                         onValueChange = onCropBottomChange,
-                        onValueChangeFinished = onCropBottomChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1803,7 +1427,6 @@ private fun BubbleImageStyleEditor(
                         value = repeatXStart,
                         range = 0.05f..0.9f,
                         onValueChange = onRepeatXStartChange,
-                        onValueChangeFinished = onRepeatXStartChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                     BubbleStyleSliderRow(
@@ -1811,7 +1434,6 @@ private fun BubbleImageStyleEditor(
                         value = repeatXEnd,
                         range = ((repeatXStart + 0.01f).coerceAtMost(0.95f))..0.95f,
                         onValueChange = onRepeatXEndChange,
-                        onValueChangeFinished = onRepeatXEndChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1824,7 +1446,6 @@ private fun BubbleImageStyleEditor(
                         value = repeatYStart,
                         range = 0.05f..0.9f,
                         onValueChange = onRepeatYStartChange,
-                        onValueChangeFinished = onRepeatYStartChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                     BubbleStyleSliderRow(
@@ -1832,7 +1453,6 @@ private fun BubbleImageStyleEditor(
                         value = repeatYEnd,
                         range = ((repeatYStart + 0.01f).coerceAtMost(0.95f))..0.95f,
                         onValueChange = onRepeatYEndChange,
-                        onValueChangeFinished = onRepeatYEndChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1841,7 +1461,6 @@ private fun BubbleImageStyleEditor(
                     value = imageScale,
                     range = 0.2f..3f,
                     onValueChange = onImageScaleChange,
-                    onValueChangeFinished = onImageScaleChangeFinished,
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1852,7 +1471,6 @@ private fun BubbleImageStyleEditor(
                         value = contentPaddingLeft,
                         range = 0f..32f,
                         onValueChange = onContentPaddingLeftChange,
-                        onValueChangeFinished = onContentPaddingLeftChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                     BubbleStyleDpSliderRow(
@@ -1860,7 +1478,6 @@ private fun BubbleImageStyleEditor(
                         value = contentPaddingRight,
                         range = 0f..32f,
                         onValueChange = onContentPaddingRightChange,
-                        onValueChangeFinished = onContentPaddingRightChangeFinished,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1875,23 +1492,8 @@ private fun BubbleStyleSliderRow(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
-    onValueChangeFinished: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var lastCommittedValue by remember { mutableStateOf(value) }
-    val latestValue by rememberUpdatedState(value)
-    val latestRange by rememberUpdatedState(range)
-    val latestValueFinishCallback by rememberUpdatedState(onValueChangeFinished)
-    val valueChangeFinished = remember {
-        {
-            val finalValue = latestValue.coerceIn(latestRange.start, latestRange.endInclusive)
-            if (abs(finalValue - lastCommittedValue) > 0.0005f) {
-                latestValueFinishCallback(finalValue)
-                lastCommittedValue = finalValue
-            }
-        }
-    }
-
     Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1912,7 +1514,6 @@ private fun BubbleStyleSliderRow(
         Slider(
             value = value,
             onValueChange = onValueChange,
-            onValueChangeFinished = valueChangeFinished,
             valueRange = range,
         )
     }
@@ -1924,23 +1525,8 @@ private fun BubbleStyleDpSliderRow(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
-    onValueChangeFinished: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var lastCommittedValue by remember { mutableStateOf(value) }
-    val latestValue by rememberUpdatedState(value)
-    val latestRange by rememberUpdatedState(range)
-    val latestValueFinishCallback by rememberUpdatedState(onValueChangeFinished)
-    val valueChangeFinished = remember {
-        {
-            val finalValue = latestValue.coerceIn(latestRange.start, latestRange.endInclusive)
-            if (abs(finalValue - lastCommittedValue) > 0.1f) {
-                latestValueFinishCallback(finalValue)
-                lastCommittedValue = finalValue
-            }
-        }
-    }
-
     Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1961,7 +1547,6 @@ private fun BubbleStyleDpSliderRow(
         Slider(
             value = value,
             onValueChange = onValueChange,
-            onValueChangeFinished = valueChangeFinished,
             valueRange = range,
         )
     }
@@ -2532,30 +2117,18 @@ private fun PreviewChatAvatar(
 @Composable
 internal fun ThemeSettingsDisplayOptionsSection(
     cardColors: CardColors,
+    editorSession: ThemeEditorSession,
     showThinkingProcessInput: Boolean,
-    onShowThinkingProcessInputChange: (Boolean) -> Unit,
     showStatusTagsInput: Boolean,
-    onShowStatusTagsInputChange: (Boolean) -> Unit,
     showModelProviderInput: Boolean,
-    onShowModelProviderInputChange: (Boolean) -> Unit,
     showModelNameInput: Boolean,
-    onShowModelNameInputChange: (Boolean) -> Unit,
     showRoleNameInput: Boolean,
-    onShowRoleNameInputChange: (Boolean) -> Unit,
     showUserNameInput: Boolean,
-    onShowUserNameInputChange: (Boolean) -> Unit,
     showMessageTokenStatsInput: Boolean,
-    onShowMessageTokenStatsInputChange: (Boolean) -> Unit,
     showMessageTimingStatsInput: Boolean,
-    onShowMessageTimingStatsInputChange: (Boolean) -> Unit,
     showMessageTimestampInput: Boolean,
-    onShowMessageTimestampInputChange: (Boolean) -> Unit,
     showInputProcessingStatusInput: Boolean,
-    onShowInputProcessingStatusInputChange: (Boolean) -> Unit,
     showChatFloatingDotsAnimationInput: Boolean,
-    onShowChatFloatingDotsAnimationInputChange: (Boolean) -> Unit,
-    saveThemeSettingsWithCharacterCard: SaveThemeSettingsAction,
-    preferencesManager: UserPreferencesManager,
 ) {
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.display_options_title),
@@ -2582,12 +2155,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 }
                 Switch(
                     checked = showThinkingProcessInput,
-                    onCheckedChange = {
-                        onShowThinkingProcessInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showThinkingProcess = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("show_thinking_process", it) },
                 )
             }
 
@@ -2611,12 +2179,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 }
                 Switch(
                     checked = showModelProviderInput,
-                    onCheckedChange = {
-                        onShowModelProviderInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showModelProvider = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("show_model_provider", it) },
                 )
             }
 
@@ -2640,12 +2203,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 }
                 Switch(
                     checked = showModelNameInput,
-                    onCheckedChange = {
-                        onShowModelNameInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showModelName = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("show_model_name", it) },
                 )
             }
 
@@ -2669,12 +2227,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 }
                 Switch(
                     checked = showRoleNameInput,
-                    onCheckedChange = {
-                        onShowRoleNameInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showRoleName = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("show_role_name", it) },
                 )
             }
 
@@ -2698,12 +2251,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 }
                 Switch(
                     checked = showUserNameInput,
-                    onCheckedChange = {
-                        onShowUserNameInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showUserName = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("show_user_name", it) },
                 )
             }
 
@@ -2728,10 +2276,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 Switch(
                     checked = showMessageTokenStatsInput,
                     onCheckedChange = {
-                        onShowMessageTokenStatsInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showMessageTokenStats = it)
-                        }
+                        editorSession.setBoolean("show_message_token_stats", it)
                     },
                 )
             }
@@ -2757,10 +2302,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 Switch(
                     checked = showMessageTimingStatsInput,
                     onCheckedChange = {
-                        onShowMessageTimingStatsInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showMessageTimingStats = it)
-                        }
+                        editorSession.setBoolean("show_message_timing_stats", it)
                     },
                 )
             }
@@ -2786,10 +2328,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 Switch(
                     checked = showMessageTimestampInput,
                     onCheckedChange = {
-                        onShowMessageTimestampInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showMessageTimestamp = it)
-                        }
+                        editorSession.setBoolean("show_message_timestamp", it)
                     },
                 )
             }
@@ -2814,12 +2353,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 }
                 Switch(
                     checked = showStatusTagsInput,
-                    onCheckedChange = {
-                        onShowStatusTagsInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(showStatusTags = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("show_status_tags", it) },
                 )
             }
 
@@ -2845,12 +2379,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 Switch(
                     checked = showInputProcessingStatusInput,
                     onCheckedChange = {
-                        onShowInputProcessingStatusInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                showInputProcessingStatus = it,
-                            )
-                        }
+                        editorSession.setBoolean("show_input_processing_status", it)
                     },
                 )
             }
@@ -2876,12 +2405,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
                 Switch(
                     checked = showChatFloatingDotsAnimationInput,
                     onCheckedChange = {
-                        onShowChatFloatingDotsAnimationInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(
-                                showChatFloatingDotsAnimation = it,
-                            )
-                        }
+                        editorSession.setBoolean("show_chat_floating_dots_animation", it)
                     },
                 )
             }

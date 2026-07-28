@@ -837,6 +837,15 @@
     <string name="theme_bg_opacity">Background opacity: %1$d%%</string>
     <string name="theme_reset">Reset to Default Theme</string>
     <string name="theme_saved">Settings saved</string>
+    <string name="theme_select_target">Select theme target</string>
+    <string name="theme_unsaved_title">Save theme changes?</string>
+    <string name="theme_unsaved_message">Changes for the current theme target have not been saved.</string>
+    <string name="theme_save_failed">Failed to save theme</string>
+    <string name="theme_save_and_continue">Save and continue</string>
+    <string name="theme_discard_and_continue">Don\'t save</string>
+    <string name="theme_edit_target_character">Current character theme</string>
+    <string name="theme_edit_target_group">Current character group theme</string>
+    <string name="theme_target_switch_failed">Failed to switch theme target</string>
     <string name="theme_video_too_large">Video file is too large and may cause lag or crashes. Please select videos less than 30MB.</string>
     <string name="theme_video_saved">Background video saved</string>
     <string name="theme_image_saved">Background image saved</string>
@@ -4926,10 +4935,6 @@
     <string name="font_file_saved">Font file saved (.%1$s)</string>
     <string name="font_file_save_failed">Failed to save font file</string>
     <string name="unsupported_font_format">Unsupported file format, please select .ttf, .otf or .ttc font file</string>
-    <string name="current_character">Current Character: %1$s</string>
-    <string name="current_character_group">Current Role Group: %1$s</string>
-    <string name="theme_auto_bind_character_card">Theme settings will be automatically bound to this character card</string>
-    <string name="theme_auto_bind_character_group">Theme settings will be automatically bound to this role group</string>
     <string name="enable_custom_font">Enable Custom Font</string>
     <string name="use_system_or_custom_font">Use system font or custom font file</string>
     <string name="font_type_label">Font Type</string>
@@ -7522,6 +7527,7 @@
     <string name="market_sort_updated">Recently updated</string>
     <string name="market_sort_downloads">Downloads</string>
     <string name="market_sort_likes">Likes</string>
+    <string name="market_comment_sort_newest">Newest</string>
     <string name="market_sort_featured">Featured</string>
     <string name="market_filter_featured_only">Featured</string>
     <string name="market_stat_downloads_short">Download %1$d</string>

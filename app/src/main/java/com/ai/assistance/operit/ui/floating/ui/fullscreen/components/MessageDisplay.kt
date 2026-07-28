@@ -16,9 +16,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -27,12 +25,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.chat.components.rememberChatMessageHeightMemory
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 
 /**
  * 消息显示组件
@@ -45,20 +42,13 @@ fun MessageDisplay(
     showSpeechOverlay: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
-    val bubbleUserRoundedCornersEnabled by
-        preferencesManager.bubbleUserRoundedCornersEnabled.collectAsState(initial = true)
-    val bubbleAiRoundedCornersEnabled by
-        preferencesManager.bubbleAiRoundedCornersEnabled.collectAsState(initial = true)
-    val bubbleUserContentPaddingLeft by
-        preferencesManager.bubbleUserContentPaddingLeft.collectAsState(initial = 12f)
-    val bubbleUserContentPaddingRight by
-        preferencesManager.bubbleUserContentPaddingRight.collectAsState(initial = 12f)
-    val bubbleAiContentPaddingLeft by
-        preferencesManager.bubbleAiContentPaddingLeft.collectAsState(initial = 12f)
-    val bubbleAiContentPaddingRight by
-        preferencesManager.bubbleAiContentPaddingRight.collectAsState(initial = 12f)
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val bubbleUserRoundedCornersEnabled = themeSnapshot.bubbleUserRoundedCornersEnabled
+    val bubbleAiRoundedCornersEnabled = themeSnapshot.bubbleAiRoundedCornersEnabled
+    val bubbleUserContentPaddingLeft = themeSnapshot.bubbleUserContentPaddingLeft
+    val bubbleUserContentPaddingRight = themeSnapshot.bubbleUserContentPaddingRight
+    val bubbleAiContentPaddingLeft = themeSnapshot.bubbleAiContentPaddingLeft
+    val bubbleAiContentPaddingRight = themeSnapshot.bubbleAiContentPaddingRight
     val listState = rememberLazyListState()
     val displayMessages =
         messages

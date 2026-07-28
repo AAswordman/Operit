@@ -4157,6 +4157,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="market_sort_updated">Actualizado recientemente</string>
     <string name="market_sort_downloads">Descargas</string>
     <string name="market_sort_likes">Me gusta</string>
+    <string name="market_comment_sort_newest">Más recientes</string>
     <string name="market_stat_downloads_short">Descargas %1$d</string>
     <string name="open_asset">Abrir recurso</string>
     <string name="metadata_title">Metadatos</string>
@@ -4323,10 +4324,6 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="font_file_saved">Archivo de fuente guardado (.%1$s)</string>
     <string name="font_file_save_failed">Error al guardar el archivo de fuente</string>
     <string name="unsupported_font_format">Formato de archivo no compatible. Seleccione un archivo de fuente .ttf, .otf o .ttc</string>
-    <string name="current_character">Personaje actual: %1$s</string>
-    <string name="current_character_group">Grupo de personajes actual: %1$s</string>
-    <string name="theme_auto_bind_character_card">La configuración del tema se vinculará automáticamente a esta tarjeta de personaje</string>
-    <string name="theme_auto_bind_character_group">La configuración del tema se vinculará automáticamente a este grupo de personajes</string>
     <string name="enable_custom_font">Habilitar fuente personalizada</string>
     <string name="use_system_or_custom_font">Usar fuente del sistema o archivo de fuente personalizado</string>
     <string name="font_type_label">Tipo de fuente</string>

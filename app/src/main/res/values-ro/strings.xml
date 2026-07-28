@@ -4630,6 +4630,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="market_sort_updated">Ultimele actualizări</string>
     <string name="market_sort_downloads">Numărul de descărcări</string>
     <string name="market_sort_likes">Numărul de aprecieri</string>
+    <string name="market_comment_sort_newest">Cele mai noi</string>
     <string name="market_sort_featured">Selecție</string>
     <string name="market_filter_featured_only">Selecție</string>
     <string name="market_stat_downloads_short">Descărcare %1$d</string>
@@ -5323,10 +5324,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="font_file_saved">Fișierul cu fonturi a fost salvat (.%1$s)</string>
     <string name="font_file_save_failed">Eșec la salvarea fișierului de fonturi</string>
     <string name="unsupported_font_format">Format de fișier neacceptat. Vă rugăm să selectați .ttf, .otf sau .ttc Fișiere de fonturi</string>
-    <string name="current_character">Personajul actual: %1$s</string>
-    <string name="current_character_group">Discuție de grup a personajelor actuale: %1$s</string>
-    <string name="theme_auto_bind_character_card">Setările temei se vor asocia automat la această carte de rol</string>
-    <string name="theme_auto_bind_character_group">Setările temei se vor aplica automat la această discuție de grup a rolului</string>
     <string name="enable_custom_font">Activarea fonturilor personalizate</string>
     <string name="use_system_or_custom_font">Utilizarea fonturilor de sistem sau a fișierelor de fonturi personalizate</string>
     <string name="font_type_label">Tipul de font</string>

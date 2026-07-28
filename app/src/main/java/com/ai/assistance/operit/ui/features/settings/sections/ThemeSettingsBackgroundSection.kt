@@ -56,6 +56,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.settings.components.MediaTypeOption
+import com.ai.assistance.operit.ui.features.settings.screens.theme.ThemeEditorSession
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
@@ -70,8 +71,7 @@ private fun calculateLuminance(color: Color): Float {
 internal fun ThemeSettingsBackgroundSection(
     cardColors: CardColors,
     context: Context,
-    preferencesManager: UserPreferencesManager,
-    saveThemeSettingsWithCharacterCard: SaveThemeSettingsAction,
+    editorSession: ThemeEditorSession,
     exoPlayer: ExoPlayer,
     launchImageCrop: (Uri) -> Unit,
     mediaPickerLauncher: ManagedActivityResultLauncher<String, Uri?>,
@@ -126,9 +126,7 @@ internal fun ThemeSettingsBackgroundSection(
                     checked = useBackgroundImageInput,
                     onCheckedChange = {
                         onUseBackgroundImageInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(useBackgroundImage = it)
-                        }
+                        editorSession.setBoolean("use_background_image", it)
                     },
                 )
             }
@@ -157,12 +155,10 @@ internal fun ThemeSettingsBackgroundSection(
                                 UserPreferencesManager.MEDIA_TYPE_IMAGE,
                             )
                             if (!backgroundImageUriInput.isNullOrEmpty()) {
-                                saveThemeSettingsWithCharacterCard {
-                                    preferencesManager.saveThemeSettings(
-                                        backgroundMediaType =
-                                            UserPreferencesManager.MEDIA_TYPE_IMAGE,
-                                    )
-                                }
+                                editorSession.setString(
+                                    "background_media_type",
+                                    UserPreferencesManager.MEDIA_TYPE_IMAGE,
+                                )
                             }
                         },
                     )
@@ -178,12 +174,10 @@ internal fun ThemeSettingsBackgroundSection(
                                 UserPreferencesManager.MEDIA_TYPE_VIDEO,
                             )
                             if (!backgroundImageUriInput.isNullOrEmpty()) {
-                                saveThemeSettingsWithCharacterCard {
-                                    preferencesManager.saveThemeSettings(
-                                        backgroundMediaType =
-                                            UserPreferencesManager.MEDIA_TYPE_VIDEO,
-                                    )
-                                }
+                                editorSession.setString(
+                                    "background_media_type",
+                                    UserPreferencesManager.MEDIA_TYPE_VIDEO,
+                                )
                             }
                         },
                     )
@@ -286,11 +280,10 @@ internal fun ThemeSettingsBackgroundSection(
                                     onClick = {
                                         val newMuted = !videoBackgroundMutedInput
                                         onVideoBackgroundMutedInputChange(newMuted)
-                                        saveThemeSettingsWithCharacterCard {
-                                            preferencesManager.saveThemeSettings(
-                                                videoBackgroundMuted = newMuted,
-                                            )
-                                        }
+                                        editorSession.setBoolean(
+                                            "video_background_muted",
+                                            newMuted,
+                                        )
                                     },
                                     modifier =
                                         Modifier.padding(end = 8.dp)
@@ -322,25 +315,19 @@ internal fun ThemeSettingsBackgroundSection(
                                     onClick = {
                                         val newLoop = !videoBackgroundLoopInput
                                         onVideoBackgroundLoopInputChange(newLoop)
-                                        saveThemeSettingsWithCharacterCard {
-                                            preferencesManager.saveThemeSettings(
-                                                videoBackgroundLoop = newLoop,
-                                            )
-
-                                            Toast.makeText(
-                                                context,
-                                                if (newLoop) {
-                                                    context.getString(
-                                                        R.string.theme_loop_enabled,
-                                                    )
-                                                } else {
-                                                    context.getString(
-                                                        R.string.theme_loop_disabled,
-                                                    )
-                                                },
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
-                                        }
+                                        editorSession.setBoolean(
+                                            "video_background_loop",
+                                            newLoop,
+                                        )
+                                        Toast.makeText(
+                                            context,
+                                            if (newLoop) {
+                                                context.getString(R.string.theme_loop_enabled)
+                                            } else {
+                                                context.getString(R.string.theme_loop_disabled)
+                                            },
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                     },
                                     modifier =
                                         Modifier.background(
@@ -464,12 +451,8 @@ internal fun ThemeSettingsBackgroundSection(
                     {
                         val newOpacity = latestOpacity
                         if (abs(lastSavedOpacity - newOpacity) > 0.01f) {
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    backgroundImageOpacity = newOpacity,
-                                )
-                                lastSavedOpacity = newOpacity
-                            }
+                            editorSession.setFloat("background_image_opacity", newOpacity)
+                            lastSavedOpacity = newOpacity
                         }
                     }
                 }
@@ -515,9 +498,7 @@ internal fun ThemeSettingsBackgroundSection(
                         checked = useBackgroundBlurInput,
                         onCheckedChange = {
                             onUseBackgroundBlurInputChange(it)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(useBackgroundBlur = it)
-                            }
+                            editorSession.setBoolean("use_background_blur", it)
                         },
                     )
                 }
@@ -547,12 +528,8 @@ internal fun ThemeSettingsBackgroundSection(
                         {
                             val newBlurRadius = latestBlurRadius
                             if (abs(lastSavedBlurRadius - newBlurRadius) > 0.1f) {
-                                saveThemeSettingsWithCharacterCard {
-                                    preferencesManager.saveThemeSettings(
-                                        backgroundBlurRadius = newBlurRadius,
-                                    )
-                                    lastSavedBlurRadius = newBlurRadius
-                                }
+                                editorSession.setFloat("background_blur_radius", newBlurRadius)
+                                lastSavedBlurRadius = newBlurRadius
                             }
                         }
                     }

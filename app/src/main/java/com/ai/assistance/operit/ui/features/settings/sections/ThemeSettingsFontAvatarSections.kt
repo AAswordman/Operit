@@ -38,6 +38,7 @@ import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.settings.components.AvatarPicker
 import com.ai.assistance.operit.ui.features.settings.components.ChatStyleOption
+import com.ai.assistance.operit.ui.features.settings.screens.theme.ThemeEditorSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -45,18 +46,12 @@ import kotlinx.coroutines.launch
 internal fun ThemeSettingsFontSection(
     cardColors: CardColors,
     context: Context,
-    preferencesManager: UserPreferencesManager,
-    saveThemeSettingsWithCharacterCard: SaveThemeSettingsAction,
+    editorSession: ThemeEditorSession,
     useCustomFontInput: Boolean,
-    onUseCustomFontInputChange: (Boolean) -> Unit,
     fontTypeInput: String,
-    onFontTypeInputChange: (String) -> Unit,
     systemFontNameInput: String,
-    onSystemFontNameInputChange: (String) -> Unit,
     customFontPathInput: String?,
-    onCustomFontPathInputChange: (String?) -> Unit,
     fontScaleInput: Float,
-    onFontScaleInputChange: (Float) -> Unit,
     onPickFont: () -> Unit,
 ) {
     ThemeSettingsSectionTitle(
@@ -84,12 +79,7 @@ internal fun ThemeSettingsFontSection(
                 }
                 Switch(
                     checked = useCustomFontInput,
-                    onCheckedChange = {
-                        onUseCustomFontInputChange(it)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(useCustomFont = it)
-                        }
-                    },
+                    onCheckedChange = { editorSession.setBoolean("use_custom_font", it) },
                 )
             }
 
@@ -109,12 +99,10 @@ internal fun ThemeSettingsFontSection(
                     FilterChip(
                         selected = fontTypeInput == UserPreferencesManager.FONT_TYPE_SYSTEM,
                         onClick = {
-                            onFontTypeInputChange(UserPreferencesManager.FONT_TYPE_SYSTEM)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    fontType = UserPreferencesManager.FONT_TYPE_SYSTEM,
-                                )
-                            }
+                            editorSession.setString(
+                                "font_type",
+                                UserPreferencesManager.FONT_TYPE_SYSTEM,
+                            )
                         },
                         label = { Text(context.getString(R.string.system_font)) },
                     )
@@ -122,12 +110,10 @@ internal fun ThemeSettingsFontSection(
                     FilterChip(
                         selected = fontTypeInput == UserPreferencesManager.FONT_TYPE_FILE,
                         onClick = {
-                            onFontTypeInputChange(UserPreferencesManager.FONT_TYPE_FILE)
-                            saveThemeSettingsWithCharacterCard {
-                                preferencesManager.saveThemeSettings(
-                                    fontType = UserPreferencesManager.FONT_TYPE_FILE,
-                                )
-                            }
+                            editorSession.setString(
+                                "font_type",
+                                UserPreferencesManager.FONT_TYPE_FILE,
+                            )
                         },
                         label = { Text(context.getString(R.string.custom_font_file)) },
                     )
@@ -169,12 +155,7 @@ internal fun ThemeSettingsFontSection(
                                     RadioButton(
                                         selected = systemFontNameInput == fontName,
                                         onClick = {
-                                            onSystemFontNameInputChange(fontName)
-                                            saveThemeSettingsWithCharacterCard {
-                                                preferencesManager.saveThemeSettings(
-                                                    systemFontName = fontName,
-                                                )
-                                            }
+                                            editorSession.setString("system_font_name", fontName)
                                         },
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -221,12 +202,7 @@ internal fun ThemeSettingsFontSection(
                             if (!customFontPathInput.isNullOrEmpty()) {
                                 OutlinedButton(
                                     onClick = {
-                                        onCustomFontPathInputChange(null)
-                                        saveThemeSettingsWithCharacterCard {
-                                            preferencesManager.saveThemeSettings(
-                                                customFontPath = "",
-                                            )
-                                        }
+                                        editorSession.setOptionalString("custom_font_path", null)
                                     },
                                     modifier = Modifier.weight(1f),
                                 ) {
@@ -269,12 +245,7 @@ internal fun ThemeSettingsFontSection(
                 )
                 Slider(
                     value = fontScaleInput,
-                    onValueChange = { onFontScaleInputChange(it) },
-                    onValueChangeFinished = {
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(fontScale = fontScaleInput)
-                        }
-                    },
+                    onValueChange = { editorSession.setFloat("font_scale", it) },
                     valueRange = 0.8f..1.5f,
                     steps = 6,
                 )
@@ -286,20 +257,16 @@ internal fun ThemeSettingsFontSection(
 @Composable
 internal fun ThemeSettingsAvatarSection(
     cardColors: CardColors,
+    editorSession: ThemeEditorSession,
     scope: CoroutineScope,
-    preferencesManager: UserPreferencesManager,
     displayPreferencesManager: DisplayPreferencesManager,
-    saveThemeSettingsWithCharacterCard: SaveThemeSettingsAction,
     userAvatarUriInput: String?,
-    onUserAvatarUriInputChange: (String?) -> Unit,
     globalUserAvatarUriInput: String?,
     onGlobalUserAvatarUriInputChange: (String?) -> Unit,
     globalUserNameInput: String?,
     onGlobalUserNameInputChange: (String?) -> Unit,
     avatarShapeInput: String,
-    onAvatarShapeInputChange: (String) -> Unit,
     avatarCornerRadiusInput: Float,
-    onAvatarCornerRadiusInputChange: (Float) -> Unit,
     avatarImagePicker: ManagedActivityResultLauncher<String, Uri?>,
     onAvatarPickerModeChange: (String) -> Unit,
 ) {
@@ -322,10 +289,7 @@ internal fun ThemeSettingsAvatarSection(
                         avatarImagePicker.launch("image/*")
                     },
                     onAvatarReset = {
-                        onUserAvatarUriInputChange(null)
-                        saveThemeSettingsWithCharacterCard {
-                            preferencesManager.saveThemeSettings(customUserAvatarUri = "")
-                        }
+                        editorSession.setOptionalString("custom_user_avatar_uri", null)
                     },
                 )
 
@@ -425,24 +389,20 @@ internal fun ThemeSettingsAvatarSection(
                     selected = avatarShapeInput == UserPreferencesManager.AVATAR_SHAPE_CIRCLE,
                     modifier = Modifier.weight(1f),
                 ) {
-                    onAvatarShapeInputChange(UserPreferencesManager.AVATAR_SHAPE_CIRCLE)
-                    saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(
-                            avatarShape = UserPreferencesManager.AVATAR_SHAPE_CIRCLE,
-                        )
-                    }
+                    editorSession.setString(
+                        "avatar_shape",
+                        UserPreferencesManager.AVATAR_SHAPE_CIRCLE,
+                    )
                 }
                 ChatStyleOption(
                     title = stringResource(id = R.string.avatar_shape_square),
                     selected = avatarShapeInput == UserPreferencesManager.AVATAR_SHAPE_SQUARE,
                     modifier = Modifier.weight(1f),
                 ) {
-                    onAvatarShapeInputChange(UserPreferencesManager.AVATAR_SHAPE_SQUARE)
-                    saveThemeSettingsWithCharacterCard {
-                        preferencesManager.saveThemeSettings(
-                            avatarShape = UserPreferencesManager.AVATAR_SHAPE_SQUARE,
-                        )
-                    }
+                    editorSession.setString(
+                        "avatar_shape",
+                        UserPreferencesManager.AVATAR_SHAPE_SQUARE,
+                    )
                 }
             }
 
@@ -466,12 +426,7 @@ internal fun ThemeSettingsAvatarSection(
                             onClick = {
                                 val newValue =
                                     (avatarCornerRadiusInput - 1f).coerceIn(0f, 16f)
-                                onAvatarCornerRadiusInputChange(newValue)
-                                saveThemeSettingsWithCharacterCard {
-                                    preferencesManager.saveThemeSettings(
-                                        avatarCornerRadius = newValue,
-                                    )
-                                }
+                                editorSession.setFloat("avatar_corner_radius", newValue)
                             },
                             shape = CircleShape,
                             contentPadding = PaddingValues(0.dp),
@@ -495,12 +450,7 @@ internal fun ThemeSettingsAvatarSection(
                             onClick = {
                                 val newValue =
                                     (avatarCornerRadiusInput + 1f).coerceIn(0f, 16f)
-                                onAvatarCornerRadiusInputChange(newValue)
-                                saveThemeSettingsWithCharacterCard {
-                                    preferencesManager.saveThemeSettings(
-                                        avatarCornerRadius = newValue,
-                                    )
-                                }
+                                editorSession.setFloat("avatar_corner_radius", newValue)
                             },
                             shape = CircleShape,
                             contentPadding = PaddingValues(0.dp),

@@ -4055,6 +4055,7 @@
     <string name="market_sort_updated">최근 업데이트됨</string>
     <string name="market_sort_downloads">다운로드</string>
     <string name="market_sort_likes">좋아요</string>
+    <string name="market_comment_sort_newest">최신순</string>
     <string name="market_stat_downloads_short">다운로드 %1$d회</string>
     <string name="open_asset">리소스 열기</string>
     <string name="metadata_title">메타데이터</string>
@@ -4648,10 +4649,6 @@
     <string name="font_file_saved">글꼴 파일이 저장되었습니다(.%1$s).</string>
     <string name="font_file_save_failed">글꼴 파일 저장 실패</string>
     <string name="unsupported_font_format">지원되지 않는 파일 형식입니다. .ttf, .otf 또는 .ttc 글꼴 파일을 선택하세요.</string>
-    <string name="current_character">현재 캐릭터: %1$s</string>
-    <string name="current_character_group">현재 캐릭터 그룹: %1$s</string>
-    <string name="theme_auto_bind_character_card">테마 설정이 자동으로 이 캐릭터 카드에 바인딩됩니다.</string>
-    <string name="theme_auto_bind_character_group">테마 설정이 자동으로 이 캐릭터 그룹에 바인딩됩니다.</string>
     <string name="enable_custom_font">사용자 정의 글꼴 활성화</string>
     <string name="use_system_or_custom_font">시스템 글꼴 또는 사용자 정의 글꼴 파일 사용</string>
     <string name="font_type_label">글꼴 유형</string>

@@ -2,15 +2,11 @@ package com.ai.assistance.operit.ui.main.components
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalContext
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
 import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
 import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
@@ -30,20 +26,15 @@ data class NavigationDrawerAppearance(
 
 @Composable
 fun rememberNavigationDrawerAppearance(): NavigationDrawerAppearance {
-    val context = LocalContext.current
-    val preferencesManager = remember(context) { UserPreferencesManager.getInstance(context) }
-    val navigationDrawerWaterGlass by
-        preferencesManager.navigationDrawerWaterGlass.collectAsState(initial = false)
-    val navigationDrawerButtonLiquidGlass by
-        preferencesManager.navigationDrawerButtonLiquidGlass.collectAsState(initial = false)
-    val useCustomNavigationDrawerBackgroundColor by
-        preferencesManager.useCustomNavigationDrawerBackgroundColor.collectAsState(initial = false)
-    val customNavigationDrawerBackgroundColor by
-        preferencesManager.customNavigationDrawerBackgroundColor.collectAsState(initial = null)
-    val useCustomNavigationDrawerAccentColor by
-        preferencesManager.useCustomNavigationDrawerAccentColor.collectAsState(initial = false)
-    val customNavigationDrawerAccentColor by
-        preferencesManager.customNavigationDrawerAccentColor.collectAsState(initial = null)
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val navigationDrawerWaterGlass = themeSnapshot.navigationDrawerWaterGlass
+    val navigationDrawerButtonLiquidGlass = themeSnapshot.navigationDrawerButtonLiquidGlass
+    val useCustomNavigationDrawerBackgroundColor =
+        themeSnapshot.useCustomNavigationDrawerBackgroundColor
+    val customNavigationDrawerBackgroundColor =
+        themeSnapshot.customNavigationDrawerBackgroundColor
+    val useCustomNavigationDrawerAccentColor = themeSnapshot.useCustomNavigationDrawerAccentColor
+    val customNavigationDrawerAccentColor = themeSnapshot.customNavigationDrawerAccentColor
 
     val waterGlassEnabled = navigationDrawerWaterGlass && isWaterGlassSupported()
     val buttonLiquidGlassEnabled =

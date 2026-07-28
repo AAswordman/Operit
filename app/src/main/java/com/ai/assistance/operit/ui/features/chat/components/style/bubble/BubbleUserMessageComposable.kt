@@ -61,11 +61,13 @@ import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
 import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
 import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.liquidGlass
 import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
 import com.ai.assistance.operit.ui.theme.waterGlass
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -100,26 +102,19 @@ fun BubbleUserMessageComposable(
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
-    val bubbleShowAvatar by preferencesManager.bubbleShowAvatar.collectAsState(initial = true)
-    val bubbleWideLayoutEnabled by preferencesManager.bubbleWideLayoutEnabled.collectAsState(initial = false)
-    val customUserAvatarUri by preferencesManager.customUserAvatarUri.collectAsState(initial = null)
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val bubbleShowAvatar = themeSnapshot.bubbleShowAvatar
+    val bubbleWideLayoutEnabled = themeSnapshot.bubbleWideLayoutEnabled
+    val customUserAvatarUri = themeSnapshot.customUserAvatarUri
     val globalUserAvatarUri by displayPreferencesManager.globalUserAvatarUri.collectAsState(initial = null)
     val globalUserName by displayPreferencesManager.globalUserName.collectAsState(initial = null)
-    val showUserName by preferencesManager.showUserName.collectAsState(initial = true)
-    val avatarShapePref by preferencesManager.avatarShape.collectAsState(initial = UserPreferencesManager.AVATAR_SHAPE_CIRCLE)
-    val avatarCornerRadius by preferencesManager.avatarCornerRadius.collectAsState(initial = 8f)
-    val bubbleUserUseCustomFont by
-        preferencesManager.bubbleUserUseCustomFont.collectAsState(initial = false)
-    val bubbleUserFontType by
-        preferencesManager.bubbleUserFontType.collectAsState(
-            initial = UserPreferencesManager.FONT_TYPE_SYSTEM,
-        )
-    val bubbleUserSystemFontName by
-        preferencesManager.bubbleUserSystemFontName.collectAsState(
-            initial = UserPreferencesManager.SYSTEM_FONT_DEFAULT,
-        )
-    val bubbleUserCustomFontPath by
-        preferencesManager.bubbleUserCustomFontPath.collectAsState(initial = null)
+    val showUserName = themeSnapshot.showUserName
+    val avatarShapePref = themeSnapshot.avatarShape
+    val avatarCornerRadius = themeSnapshot.avatarCornerRadius
+    val bubbleUserUseCustomFont = themeSnapshot.bubbleUserUseCustomFont
+    val bubbleUserFontType = themeSnapshot.bubbleUserFontType
+    val bubbleUserSystemFontName = themeSnapshot.bubbleUserSystemFontName
+    val bubbleUserCustomFontPath = themeSnapshot.bubbleUserCustomFontPath
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
 
@@ -139,7 +134,7 @@ fun BubbleUserMessageComposable(
     val proxySenderName = if (isHiddenPlaceholder) null else parseResult.proxySenderName
 
     val isProxySender = !proxySenderName.isNullOrBlank()
-    val proxyAvatarUri by remember(proxySenderName) {
+    val proxyAvatarUri by remember(proxySenderName, themeSnapshot.customAiAvatarUri) {
         if (isProxySender) {
             try {
                 runBlocking {
@@ -147,14 +142,14 @@ fun BubbleUserMessageComposable(
                     if (characterCard != null) {
                         preferencesManager.getAiAvatarForCharacterCardFlow(characterCard.id)
                     } else {
-                        preferencesManager.customAiAvatarUri
+                        flowOf(themeSnapshot.customAiAvatarUri)
                     }
                 }
             } catch (_: Exception) {
-                preferencesManager.customAiAvatarUri
+                flowOf(themeSnapshot.customAiAvatarUri)
             }
         } else {
-            preferencesManager.customAiAvatarUri
+            flowOf(themeSnapshot.customAiAvatarUri)
         }
     }.collectAsState(initial = null)
 

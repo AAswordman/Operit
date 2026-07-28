@@ -55,6 +55,7 @@ import com.ai.assistance.operit.ui.main.navigation.RouteEntry
 import com.ai.assistance.operit.ui.main.navigation.LocalRouteInstanceId
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -166,31 +167,21 @@ fun AppContent(
     val drawerNavigationOffsetPx =
         with(density) { if (useTabletLayout) 40.dp.toPx() else 30.dp.toPx() }
     ImeWakeListeningEffect(context = context, density = density)
-    val preferencesManager = UserPreferencesManager.getInstance(context)
-    val useBackgroundImage =
-            preferencesManager.useBackgroundImage.collectAsState(initial = false).value
-    val backgroundImageUri =
-            preferencesManager.backgroundImageUri.collectAsState(initial = null).value
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val useBackgroundImage = themeSnapshot.useBackgroundImage
+    val backgroundImageUri = themeSnapshot.backgroundImageUri
     val hasBackgroundImage = useBackgroundImage && backgroundImageUri != null
 
     // Get toolbar transparency setting
-    val toolbarTransparent =
-            preferencesManager.toolbarTransparent.collectAsState(initial = false).value
+    val toolbarTransparent = themeSnapshot.toolbarTransparent
     
     // Get AppBar custom color settings
-    val useCustomAppBarColor =
-            preferencesManager.useCustomAppBarColor.collectAsState(initial = false).value
-    val customAppBarColor =
-            preferencesManager.customAppBarColor.collectAsState(initial = null).value
+    val useCustomAppBarColor = themeSnapshot.useCustomAppBarColor
+    val customAppBarColor = themeSnapshot.customAppBarColor
 
     // Get AppBar content color settings
-    val forceAppBarContentColor =
-            preferencesManager.forceAppBarContentColor.collectAsState(initial = false).value
-    val appBarContentColorMode =
-            preferencesManager.appBarContentColorMode.collectAsState(
-                            initial = UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_LIGHT
-                    )
-                    .value
+    val forceAppBarContentColor = themeSnapshot.forceAppBarContentColor
+    val appBarContentColorMode = themeSnapshot.appBarContentColorMode
 
     val appBarContentColor =
             if (forceAppBarContentColor) {
@@ -209,8 +200,7 @@ fun AppContent(
     val chatHistories =
             chatHistoryManager.chatHistoriesFlow.collectAsState(initial = emptyList()).value
 
-    // Get custom chat title from preferences
-    val customChatTitle by preferencesManager.customChatTitle.collectAsState(initial = null)
+    val customChatTitle = themeSnapshot.customChatTitle
 
 
     // 当前聊天标题

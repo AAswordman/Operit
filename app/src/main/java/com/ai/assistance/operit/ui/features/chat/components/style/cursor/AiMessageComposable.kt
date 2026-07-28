@@ -25,12 +25,12 @@ import com.ai.assistance.operit.ui.features.chat.components.part.ThinkToolsXmlNo
 import com.ai.assistance.operit.ui.features.chat.components.LinkPreviewDialog
 import com.ai.assistance.operit.util.markdown.toCharStream
 import com.ai.assistance.operit.util.stream.Stream
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.onSizeChanged
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.ProvideAiMarkdownTextLayoutSettings
 
 /**
@@ -54,15 +54,15 @@ fun AiMessageComposable(
     enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
 ) {
     val context = LocalContext.current
-    val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
-    val showThinkingProcess by preferencesManager.showThinkingProcess.collectAsState(initial = true)
-    val showStatusTags by preferencesManager.showStatusTags.collectAsState(initial = true)
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val showThinkingProcess = themeSnapshot.showThinkingProcess
+    val showStatusTags = themeSnapshot.showStatusTags
     val effectiveShowThinkingProcess = if (forceShowThinkingProcess) true else showThinkingProcess
     
-    val showModelProvider by preferencesManager.showModelProvider.collectAsState(initial = false)
-    val showModelName by preferencesManager.showModelName.collectAsState(initial = false)
-    val showRoleName by preferencesManager.showRoleName.collectAsState(initial = true)
+    val showModelProvider = themeSnapshot.showModelProvider
+    val showModelName = themeSnapshot.showModelName
+    val showRoleName = themeSnapshot.showRoleName
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
 
     // 链接预览弹窗状态

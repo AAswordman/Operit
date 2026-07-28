@@ -751,6 +751,15 @@
     <string name="theme_bg_opacity">背景不透明度: %1$d%%</string>
     <string name="theme_reset">重置为默认主题</string>
     <string name="theme_saved">设置已保存</string>
+    <string name="theme_select_target">选择主题对象</string>
+    <string name="theme_unsaved_title">保存主题修改？</string>
+    <string name="theme_unsaved_message">当前主题对象的修改尚未保存。</string>
+    <string name="theme_save_failed">主题保存失败</string>
+    <string name="theme_save_and_continue">保存并继续</string>
+    <string name="theme_discard_and_continue">不保存</string>
+    <string name="theme_edit_target_character">当前角色主题</string>
+    <string name="theme_edit_target_group">当前角色群聊主题</string>
+    <string name="theme_target_switch_failed">切换主题对象失败</string>
     <string name="theme_video_too_large">视频文件过大，可能导致应用卡顿或崩溃。请选择小于30MB的视频。</string>
     <string name="theme_video_saved">背景视频已保存</string>
     <string name="theme_image_saved">背景图片已保存</string>
@@ -4629,6 +4638,7 @@
     <string name="market_sort_updated">最近更新</string>
     <string name="market_sort_downloads">下载量</string>
     <string name="market_sort_likes">点赞量</string>
+    <string name="market_comment_sort_newest">最新</string>
     <string name="market_sort_featured">精选</string>
     <string name="market_filter_featured_only">精选</string>
     <string name="market_stat_downloads_short">下载 %1$d</string>
@@ -5322,10 +5332,6 @@
     <string name="font_file_saved">字体文件已保存 (.%1$s)</string>
     <string name="font_file_save_failed">字体文件保存失败</string>
     <string name="unsupported_font_format">不支持的文件格式，请选择 .ttf, .otf 或 .ttc 字体文件</string>
-    <string name="current_character">当前角色: %1$s</string>
-    <string name="current_character_group">当前角色群聊: %1$s</string>
-    <string name="theme_auto_bind_character_card">主题设置将自动绑定到此角色卡</string>
-    <string name="theme_auto_bind_character_group">主题设置将自动绑定到此角色群聊</string>
     <string name="enable_custom_font">启用自定义字体</string>
     <string name="use_system_or_custom_font">使用系统字体或自定义字体文件</string>
     <string name="font_type_label">字体类型</string>

@@ -265,7 +265,10 @@ class WebChatHttpBridge(
 
     private fun handleBootstrap(): NanoHTTPD.Response {
         val currentChatId = core.currentChatId.value
-        val snapshot = runBlocking { resolveThemePreferenceSnapshot() }
+        val snapshot = runBlocking {
+            val chat = if (currentChatId == null) null else currentChatMeta(currentChatId)
+            resolveThemePreferenceSnapshot(chat)
+        }
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
             WebBootstrapResponse(
@@ -761,7 +764,7 @@ class WebChatHttpBridge(
         }
 
         val page = runBlocking {
-            val structuredRenderPreferences = resolveStructuredRenderPreferences()
+            val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
             when {
                 beforeTimestamp != null -> {
                     val fetchedMessages = chatHistoryManager.loadOlderChatMessages(
@@ -897,7 +900,7 @@ class WebChatHttpBridge(
                         startTimestampInclusive = pageRanges[windowStartPageIndex].startTimestampInclusive,
                         endTimestampInclusive = pageRanges[windowEndPageIndex].endTimestampInclusive
                     )
-                val structuredRenderPreferences = resolveStructuredRenderPreferences()
+                val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
                 WebChatMessagesPage(
                     messages = revealedMessages.map { message ->
                         buildWebMessage(
@@ -961,7 +964,8 @@ class WebChatHttpBridge(
     }
 
     private fun handleTheme(chatId: String): NanoHTTPD.Response {
-        if (runBlocking { currentChatMeta(chatId) } == null) {
+        val chat = runBlocking { currentChatMeta(chatId) }
+        if (chat == null) {
             return jsonResponse(
                 NanoHTTPD.Response.Status.NOT_FOUND,
                 WebErrorResponse("Chat not found")
@@ -969,7 +973,7 @@ class WebChatHttpBridge(
         }
 
         val snapshot = runBlocking {
-            val resolved = resolveThemePreferenceSnapshot()
+            val resolved = resolveThemePreferenceSnapshot(chat)
             val display = resolveDisplayPreferencesSnapshot(resolved)
             buildThemeSnapshot(resolved, display)
         }
@@ -1110,7 +1114,7 @@ class WebChatHttpBridge(
                         )
                         return@use
                     }
-                    val structuredRenderPreferences = resolveStructuredRenderPreferences()
+                    val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
 
                     core.clearAttachments()
                     val addedAttachments = core.getAttachmentDelegate().addAttachments(attachments)
@@ -1707,7 +1711,7 @@ class WebChatHttpBridge(
         chatId: String,
         returnToolStatus: Boolean
     ): WebChatMessage? {
-        val structuredRenderPreferences = resolveStructuredRenderPreferences()
+        val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
         val message = chatHistoryManager.loadChatMessages(chatId, order = "desc", limit = 10)
             .firstOrNull { it.sender.equals("ai", ignoreCase = true) }
             ?: return null
@@ -2210,21 +2214,33 @@ class WebChatHttpBridge(
         }
     }
 
-    private suspend fun resolveStructuredRenderPreferences(): StructuredRenderPreferences {
+    private suspend fun resolveStructuredRenderPreferences(chatId: String): StructuredRenderPreferences {
+        val snapshot = resolveThemePreferenceSnapshot(currentChatMeta(chatId))
         return StructuredRenderPreferences(
-            showThinkingProcess = userPreferencesManager.showThinkingProcess.first(),
+            showThinkingProcess = snapshot.showThinkingProcess,
             toolCollapseMode = displayPreferencesManager.toolCollapseMode.first()
         )
     }
 
-    private suspend fun resolveThemePreferenceSnapshot(): ThemePreferenceSnapshot {
-        return when (val activePrompt = activePromptManager.getActivePrompt()) {
-            is ActivePrompt.CharacterGroup ->
-                userPreferencesManager.resolveThemePreferenceSnapshot(characterGroupId = activePrompt.id)
-
-            is ActivePrompt.CharacterCard ->
-                userPreferencesManager.resolveThemePreferenceSnapshot(characterCardId = activePrompt.id)
+    private suspend fun resolveThemePreferenceSnapshot(chat: ChatHistory?): ThemePreferenceSnapshot {
+        val groupId = chat?.characterGroupId?.trim()?.takeIf { it.isNotBlank() }
+        if (groupId != null) {
+            return userPreferencesManager.resolveThemePreferenceSnapshot(characterGroupId = groupId)
         }
+
+        val cardName = chat?.characterCardName?.trim()?.takeIf { it.isNotBlank() }
+        if (cardName != null) {
+            val matchingCard = characterCardManager.findCharacterCardByName(cardName)
+            if (matchingCard != null) {
+                return userPreferencesManager.resolveThemePreferenceSnapshot(
+                    characterCardId = matchingCard.id,
+                )
+            }
+        }
+
+        return userPreferencesManager.resolveThemePreferenceSnapshot(
+            characterCardId = CharacterCardManager.DEFAULT_CHARACTER_CARD_ID,
+        )
     }
 
     private suspend fun resolveDisplayPreferencesSnapshot(
@@ -2255,12 +2271,6 @@ class WebChatHttpBridge(
         val globalUserAvatarUri = displayPreferencesManager.globalUserAvatarUri.first()
             ?.trim()
             ?.takeIf { it.isNotBlank() }
-        val cursorUserLiquidGlass = userPreferencesManager.cursorUserBubbleLiquidGlass.first()
-        val cursorUserWaterGlass = userPreferencesManager.cursorUserBubbleWaterGlass.first()
-        val bubbleUserLiquidGlass = userPreferencesManager.bubbleUserBubbleLiquidGlass.first()
-        val bubbleUserWaterGlass = userPreferencesManager.bubbleUserBubbleWaterGlass.first()
-        val bubbleAssistantLiquidGlass = userPreferencesManager.bubbleAiBubbleLiquidGlass.first()
-        val bubbleAssistantWaterGlass = userPreferencesManager.bubbleAiBubbleWaterGlass.first()
         val colorScheme = resolveThemeColorScheme(appContext, snapshot)
         return WebThemeSnapshot(
             source = snapshot.source,
@@ -2308,7 +2318,7 @@ class WebChatHttpBridge(
             font = WebFontTheme(
                 type = snapshot.fontType,
                 systemFontName = snapshot.systemFontName,
-                customFontAssetUrl = snapshot.customFontPath?.let {
+                customFontAssetUrl = snapshot.customFontPath?.takeIf { snapshot.useCustomFont }?.let {
                     registerAsset(it, guessMimeType(it))
                 },
                 scale = snapshot.fontScale
@@ -2327,12 +2337,15 @@ class WebChatHttpBridge(
                 assistantBubbleColor = colorToCss(snapshot.bubbleAiBubbleColor),
                 userTextColor = colorToCss(snapshot.bubbleUserTextColor),
                 assistantTextColor = colorToCss(snapshot.bubbleAiTextColor),
-                cursorUserLiquidGlass = cursorUserLiquidGlass && !cursorUserWaterGlass,
-                cursorUserWaterGlass = cursorUserWaterGlass,
-                userLiquidGlass = bubbleUserLiquidGlass && !bubbleUserWaterGlass,
-                userWaterGlass = bubbleUserWaterGlass,
-                assistantLiquidGlass = bubbleAssistantLiquidGlass && !bubbleAssistantWaterGlass,
-                assistantWaterGlass = bubbleAssistantWaterGlass,
+                cursorUserLiquidGlass =
+                    snapshot.cursorUserBubbleLiquidGlass && !snapshot.cursorUserBubbleWaterGlass,
+                cursorUserWaterGlass = snapshot.cursorUserBubbleWaterGlass,
+                userLiquidGlass =
+                    snapshot.bubbleUserBubbleLiquidGlass && !snapshot.bubbleUserBubbleWaterGlass,
+                userWaterGlass = snapshot.bubbleUserBubbleWaterGlass,
+                assistantLiquidGlass =
+                    snapshot.bubbleAiBubbleLiquidGlass && !snapshot.bubbleAiBubbleWaterGlass,
+                assistantWaterGlass = snapshot.bubbleAiBubbleWaterGlass,
                 userRounded = snapshot.bubbleUserRoundedCornersEnabled,
                 assistantRounded = snapshot.bubbleAiRoundedCornersEnabled,
                 userPaddingLeft = snapshot.bubbleUserContentPaddingLeft,

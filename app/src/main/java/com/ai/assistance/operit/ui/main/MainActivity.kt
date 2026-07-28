@@ -101,12 +101,12 @@ class MainActivity : ComponentActivity() {
     private var pendingSharedFileUris: List<Uri>? = null
 
     private var pendingSharedText: String? = null
-    private var pendingShortcutNavItem: NavItem? = null
-    private var pendingShortcutRequestId: Long = 0L
-    private var currentMainNavItem: NavItem = NavItem.AiChat
-    private var pendingRouteId: String? = null
-    private var pendingRouteArgs: Map<String, Any?> = emptyMap()
-    private var pendingRouteRequestId: Long = 0L
+    private var pendingShortcutNavItem by mutableStateOf<NavItem?>(null)
+    private var pendingShortcutRequestId by mutableStateOf(0L)
+    private var currentMainNavItem by mutableStateOf<NavItem>(NavItem.AiChat)
+    private var pendingRouteId by mutableStateOf<String?>(null)
+    private var pendingRouteArgs by mutableStateOf<Map<String, Any?>>(emptyMap())
+    private var pendingRouteRequestId by mutableStateOf(0L)
 
     // 通知权限请求启动器
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -232,7 +232,6 @@ class MainActivity : ComponentActivity() {
         val handledShortcutIntent = handleIntent(intent)
 
         if (handledShortcutIntent) {
-            setAppContent()
             return
         }
         

@@ -4558,10 +4558,6 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="font_file_saved">Fail fon telah disimpan (.%1$s)</string>
     <string name="font_file_save_failed">Gagal menyimpan fail fon</string>
     <string name="unsupported_font_format">Format fail tidak disokong, sila pilih fail fon .ttf, .otf atau .ttc</string>
-    <string name="current_character">Watak semasa: %1$s</string>
-    <string name="current_character_group">Kumpulan watak semasa: %1$s</string>
-    <string name="theme_auto_bind_character_card">Tetapan tema akan diikat secara automatik kepada kad watak ini</string>
-    <string name="theme_auto_bind_character_group">Tetapan tema akan diikat secara automatik kepada kumpulan watak ini</string>
     <string name="enable_custom_font">Dayakan fon tersuai</string>
     <string name="use_system_or_custom_font">Guna fon sistem atau fail fon tersuai</string>
     <string name="font_type_label">Jenis fon</string>
@@ -6857,6 +6853,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="market_sort_updated">Kemas Kini Terkini</string>
     <string name="market_sort_downloads">Muat Turun</string>
     <string name="market_sort_likes">Suka</string>
+    <string name="market_comment_sort_newest">Terbaru</string>
     <string name="market_stat_downloads_short">Muat turun %1$d</string>
     <string name="market_detail_about_title">Pengenalan</string>
     <string name="market_detail_status_available">Tersedia</string>

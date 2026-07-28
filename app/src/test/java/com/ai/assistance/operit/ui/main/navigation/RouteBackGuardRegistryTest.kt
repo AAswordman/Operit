@@ -7,10 +7,10 @@ import org.junit.Test
 
 class RouteBackGuardRegistryTest {
     @Test
-    fun routeWithoutGuard_canNavigateBack() = runTest {
+    fun routeWithoutGuard_canLeaveRoute() = runTest {
         val registry = RouteBackGuardRegistry()
 
-        assertTrue(registry.canNavigateBack("route"))
+        assertTrue(registry.canLeaveRoute("route"))
     }
 
     @Test
@@ -19,8 +19,8 @@ class RouteBackGuardRegistryTest {
         registry.register("guarded") { false }
 
         assertTrue(registry.hasGuard("guarded"))
-        assertFalse(registry.canNavigateBack("guarded"))
-        assertTrue(registry.canNavigateBack("other"))
+        assertFalse(registry.canLeaveRoute("guarded"))
+        assertTrue(registry.canLeaveRoute("other"))
     }
 
     @Test
@@ -32,6 +32,6 @@ class RouteBackGuardRegistryTest {
         unregisterOld()
 
         assertTrue(registry.hasGuard("route"))
-        assertTrue(registry.canNavigateBack("route"))
+        assertTrue(registry.canLeaveRoute("route"))
     }
 }

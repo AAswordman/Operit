@@ -56,9 +56,11 @@ import com.ai.assistance.operit.ui.theme.ProvideAiMarkdownTextLayoutSettings
 import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
 import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
 import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.liquidGlass
 import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
 import com.ai.assistance.operit.ui.theme.waterGlass
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 
 private val ExpandedBubbleLayoutNodeTypes =
@@ -97,33 +99,26 @@ fun BubbleAiMessageComposable(
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
-    val bubbleShowAvatar by preferencesManager.bubbleShowAvatar.collectAsState(initial = true)
-    val bubbleWideLayoutEnabled by preferencesManager.bubbleWideLayoutEnabled.collectAsState(initial = false)
-    val showThinkingProcess by preferencesManager.showThinkingProcess.collectAsState(initial = true)
-    val showStatusTags by preferencesManager.showStatusTags.collectAsState(initial = true)
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val bubbleShowAvatar = themeSnapshot.bubbleShowAvatar
+    val bubbleWideLayoutEnabled = themeSnapshot.bubbleWideLayoutEnabled
+    val showThinkingProcess = themeSnapshot.showThinkingProcess
+    val showStatusTags = themeSnapshot.showStatusTags
     val effectiveShowThinkingProcess = if (forceShowThinkingProcess) true else showThinkingProcess
-    val avatarShapePref by preferencesManager.avatarShape.collectAsState(initial = UserPreferencesManager.AVATAR_SHAPE_CIRCLE)
-    val avatarCornerRadius by preferencesManager.avatarCornerRadius.collectAsState(initial = 8f)
-    val bubbleAiUseCustomFont by
-        preferencesManager.bubbleAiUseCustomFont.collectAsState(initial = false)
-    val bubbleAiFontType by
-        preferencesManager.bubbleAiFontType.collectAsState(
-            initial = UserPreferencesManager.FONT_TYPE_SYSTEM,
-        )
-    val bubbleAiSystemFontName by
-        preferencesManager.bubbleAiSystemFontName.collectAsState(
-            initial = UserPreferencesManager.SYSTEM_FONT_DEFAULT,
-        )
-    val bubbleAiCustomFontPath by
-        preferencesManager.bubbleAiCustomFontPath.collectAsState(initial = null)
+    val avatarShapePref = themeSnapshot.avatarShape
+    val avatarCornerRadius = themeSnapshot.avatarCornerRadius
+    val bubbleAiUseCustomFont = themeSnapshot.bubbleAiUseCustomFont
+    val bubbleAiFontType = themeSnapshot.bubbleAiFontType
+    val bubbleAiSystemFontName = themeSnapshot.bubbleAiSystemFontName
+    val bubbleAiCustomFontPath = themeSnapshot.bubbleAiCustomFontPath
     
-    val showModelProvider by preferencesManager.showModelProvider.collectAsState(initial = false)
-    val showModelName by preferencesManager.showModelName.collectAsState(initial = false)
-    val showRoleName by preferencesManager.showRoleName.collectAsState(initial = true)
+    val showModelProvider = themeSnapshot.showModelProvider
+    val showModelName = themeSnapshot.showModelName
+    val showRoleName = themeSnapshot.showRoleName
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
     
     // 根据角色名获取头像
-    val aiAvatarUri by remember(message.roleName) {
+    val aiAvatarUri by remember(message.roleName, themeSnapshot.customAiAvatarUri) {
         if (message.roleName != null) {
             try {
                 runBlocking {
@@ -131,14 +126,14 @@ fun BubbleAiMessageComposable(
                     if (characterCard != null) {
                         preferencesManager.getAiAvatarForCharacterCardFlow(characterCard.id)
                     } else {
-                        preferencesManager.customAiAvatarUri
+                        flowOf(themeSnapshot.customAiAvatarUri)
                     }
                 }
             } catch (e: Exception) {
-                preferencesManager.customAiAvatarUri
+                flowOf(themeSnapshot.customAiAvatarUri)
             }
         } else {
-            preferencesManager.customAiAvatarUri
+            flowOf(themeSnapshot.customAiAvatarUri)
         }
     }.collectAsState(initial = null)
 

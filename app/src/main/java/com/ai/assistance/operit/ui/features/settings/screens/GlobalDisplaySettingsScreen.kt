@@ -30,6 +30,7 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.services.floating.StatusIndicatorStyle
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -64,7 +65,7 @@ fun GlobalDisplaySettingsScreen(
     val virtualDisplayBitrateKbps by displayPreferencesManager.virtualDisplayBitrateKbps.collectAsState(initial = 3000)
     val keepScreenOn by apiPreferences.keepScreenOnFlow.collectAsState(initial = true)
 
-    val hasBackgroundImage by userPreferences.useBackgroundImage.collectAsState(initial = false)
+    val hasBackgroundImage = LocalThemePreferenceSnapshot.current.useBackgroundImage
     val uiAccessibilityMode by userPreferences.uiAccessibilityMode.collectAsState(initial = false)
     val softwareIdentity by userPreferences.softwareIdentity.collectAsState(
         initial = UserPreferencesManager.SOFTWARE_IDENTITY_OPERIT

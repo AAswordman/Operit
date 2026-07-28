@@ -9,6 +9,8 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -110,11 +112,29 @@ internal fun ThemeSettingsTabbedContent(
 internal fun ThemeSettingsFooter(
     showSaveSuccessMessage: Boolean,
     onShowSaveSuccessMessageChange: (Boolean) -> Unit,
+    saveEnabled: Boolean,
+    isSaving: Boolean,
+    onSave: () -> Unit,
     onReset: () -> Unit,
 ) {
+    Button(
+        onClick = onSave,
+        enabled = saveEnabled,
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+    ) {
+        if (isSaving) {
+            CircularProgressIndicator(
+                modifier = Modifier.padding(end = 8.dp),
+                strokeWidth = 2.dp,
+            )
+        }
+        Text(stringResource(id = R.string.save_action))
+    }
+
     OutlinedButton(
         onClick = onReset,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        enabled = !isSaving,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp),
     ) {
         Text(stringResource(id = R.string.theme_reset))
     }

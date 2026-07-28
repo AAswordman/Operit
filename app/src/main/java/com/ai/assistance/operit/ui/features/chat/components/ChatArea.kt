@@ -79,7 +79,6 @@ import com.ai.assistance.operit.data.model.AiReference
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 
 import androidx.compose.ui.window.PopupProperties
 
@@ -97,6 +96,7 @@ import com.ai.assistance.operit.ui.common.markdown.markdownToPlainTextForCopy
 import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorStyleChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.LatexMathMlConverter
 import java.text.SimpleDateFormat
@@ -222,13 +222,10 @@ fun ChatArea(
     val context = LocalContext.current
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
-    val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
-    val showMessageTokenStats by
-        preferencesManager.showMessageTokenStats.collectAsState(initial = false)
-    val showMessageTimingStats by
-        preferencesManager.showMessageTimingStats.collectAsState(initial = false)
-    val showMessageTimestamp by
-        preferencesManager.showMessageTimestamp.collectAsState(initial = false)
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val showMessageTokenStats = themeSnapshot.showMessageTokenStats
+    val showMessageTimingStats = themeSnapshot.showMessageTimingStats
+    val showMessageTimestamp = themeSnapshot.showMessageTimestamp
     var viewportHeightPx by remember { mutableStateOf(0) }
     val messageAnchors = remember(currentChatId) { mutableStateMapOf<Long, ChatScrollMessageAnchor>() }
     var pendingJumpToMessageTimestamp by remember(currentChatId) { mutableStateOf<Long?>(null) }
