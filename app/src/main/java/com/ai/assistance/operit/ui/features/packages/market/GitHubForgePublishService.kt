@@ -11,6 +11,7 @@ import com.ai.assistance.operit.data.api.MarketV2PublishRequest
 import com.ai.assistance.operit.data.api.MarketV2PublishVersion
 import com.ai.assistance.operit.data.api.MarketV2Version
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
 import com.ai.assistance.operit.util.ToolPkgArtifactMinifier
 import java.io.File
 import java.net.URI
@@ -161,7 +162,18 @@ class GitHubForgePublishService(
                                 ToolPkgArtifactMinifier.minifyArtifactFile(
                                     context = context,
                                     sourceFile = sourceFile,
-                                    isToolPkg = descriptor.type == PublishArtifactType.PACKAGE
+                                    isToolPkg = descriptor.type == PublishArtifactType.PACKAGE,
+                                    marketOrigin =
+                                        if (descriptor.type == PublishArtifactType.SCRIPT) {
+                                            ToolPkgMarketOrigin(
+                                                market = "Operit",
+                                                toolpkgId = descriptor.runtimePackageId,
+                                                version = descriptor.version,
+                                                author = request.localArtifact.author
+                                            )
+                                        } else {
+                                            null
+                                        }
                                 )
                             } else {
                                 sourceFile.readBytes()

@@ -717,7 +717,7 @@ class WebChatHttpBridge(
         }
 
         if (core.activeStreamingChatIds.value.contains(chatId)) {
-            core.cancelMessage(chatId)
+            runBlocking { core.cancelMessageForDestructiveMutation(chatId) }
         }
 
         val deleted = runBlocking { chatHistoryManager.deleteChatHistory(chatId) }

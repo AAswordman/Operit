@@ -40,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +63,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
     companion object {
         private const val TAG = "PackageManager"
         private const val TOOLPKG_TAG = "ToolPkg"
+        private const val SCRIPT_MARKET_ORIGIN_METADATA_KEY = "__operit_market_origin"
         private const val PACKAGES_DIR = "packages" // Directory for packages
         private const val ASSETS_PACKAGES_DIR = "packages" // Directory in assets for packages
         private const val PACKAGE_PREFS = "com.ai.assistance.operit.core.tools.PackageManager"
@@ -797,19 +799,23 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                 }
             }
             ToolPkgSourceType.ASSET -> {
-                val apkFile = File(context.packageResourcePath)
-                buildString {
-                    append("asset|")
-                    append(sourcePath)
-                    append('|')
-                    append(apkFile.length())
-                    append('|')
-                    append(apkFile.lastModified())
-                    append('|')
-                    append(version)
-                    append('|')
-                    append(mainEntry)
-                }
+                buildAssetToolPkgCacheSignature(sourcePath)
+            }
+        }
+    }
+
+    private fun buildAssetToolPkgCacheSignature(sourcePath: String): String? {
+        val apkFile = File(context.packageResourcePath)
+        val assetEntryPath = "assets/${sourcePath.trimStart('/')}"
+        ZipFile(apkFile).use { archive ->
+            val assetEntry = archive.getEntry(assetEntryPath) ?: return null
+            return buildString {
+                append("asset|")
+                append(sourcePath)
+                append('|')
+                append(assetEntry.crc)
+                append('|')
+                append(assetEntry.size)
             }
         }
     }
@@ -1049,6 +1055,13 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         candidate: PackageScanCandidate
     ): PackageScanCandidateResult {
         val stagedPackageLoadErrors = LinkedHashMap<String, String>()
+        val scanStartMs = System.currentTimeMillis()
+        val candidateType =
+            when {
+                candidate.fileName.endsWith(TOOLPKG_EXTENSION, ignoreCase = true) -> "toolpkg"
+                candidate.fileName.endsWith(".js", ignoreCase = true) -> "script"
+                else -> "unsupported"
+            }
         return try {
             when {
                 candidate.fileName.endsWith(".js", ignoreCase = true) && candidate.loadJs != null -> {
@@ -1095,6 +1108,11 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                 phase = phase,
                 packageLoadErrors = stagedPackageLoadErrors,
                 sourcePath = candidate.sourcePath
+            )
+        } finally {
+            // Per-candidate timing is required to attribute aggregate startup scan delays to one package file.
+            logToolPkgInfo(
+                "scan candidate finish, phase=$phase, type=$candidateType, file=${candidate.fileName}, source=${candidate.sourcePath}, errors=${stagedPackageLoadErrors.size}, elapsedMs=${System.currentTimeMillis() - scanStartMs}"
             )
         }
     }
@@ -2343,7 +2361,11 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                 if (!registerToolPkg(loadedFromDestination)) {
                     return "Failed to register toolpkg '$containerName' due to naming conflict"
                 }
-                return "Successfully imported toolpkg: $containerName\nStored at: ${destinationFile.absolutePath}"
+                return buildToolPkgImportSuccessMessage(
+                    containerName = containerName,
+                    destinationFile = destinationFile,
+                    marketOrigin = loadedFromDestination.containerRuntime.marketOrigin
+                )
             }
 
             val packageMetadata =
@@ -2373,10 +2395,79 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             availablePackages[packageMetadata.name] = packageMetadata.copy(isBuiltIn = false)
 
             AppLogger.d(TAG, "Successfully imported external package to: ${destinationFile.absolutePath}")
-            return "Successfully imported package: ${packageMetadata.name}\nStored at: ${destinationFile.absolutePath}"
+            val marketOrigin =
+                readScriptMarketOrigin(
+                    script = destinationFile.readText(),
+                    packageName = packageMetadata.name
+                )
+            return buildScriptImportSuccessMessage(
+                packageName = packageMetadata.name,
+                destinationFile = destinationFile,
+                marketOrigin = marketOrigin
+            )
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error importing package from external storage", e)
             return "Error importing package: ${e.message}"
+        }
+    }
+
+    private fun buildToolPkgImportSuccessMessage(
+        containerName: String,
+        destinationFile: File,
+        marketOrigin: ToolPkgMarketOrigin?
+    ): String {
+        return buildString {
+            append("Successfully imported toolpkg: $containerName")
+            append("\nStored at: ${destinationFile.absolutePath}")
+            appendMarketOriginNotice(marketOrigin, "ToolPkg")
+        }
+    }
+
+    private fun buildScriptImportSuccessMessage(
+        packageName: String,
+        destinationFile: File,
+        marketOrigin: ToolPkgMarketOrigin?
+    ): String {
+        return buildString {
+            append("Successfully imported package: $packageName")
+            append("\nStored at: ${destinationFile.absolutePath}")
+            appendMarketOriginNotice(marketOrigin, "script")
+        }
+    }
+
+    private fun StringBuilder.appendMarketOriginNotice(
+        marketOrigin: ToolPkgMarketOrigin?,
+        artifactType: String
+    ) {
+        marketOrigin?.let { origin ->
+            append("\nSource notice: this is the Operit marketplace $artifactType '")
+            append(origin.toolpkgId)
+            append("' (version: ")
+            append(origin.version)
+            append(", author: ")
+            append(origin.author.joinToString(", "))
+            append("). Please support the original author and beware of resales.")
+        }
+    }
+
+    private fun readScriptMarketOrigin(
+        script: String,
+        packageName: String
+    ): ToolPkgMarketOrigin? {
+        return try {
+            val metadata =
+                org.json.JSONObject(
+                    JsonValue.readHjson(extractMetadataFromJs(script)).toString()
+                )
+            ToolPkgMarketOriginCodec.validateForPackage(
+                origin = ToolPkgMarketOriginCodec.decodeMetadata(
+                    metadata.optString(SCRIPT_MARKET_ORIGIN_METADATA_KEY)
+                ),
+                packageId = packageName
+            )
+        } catch (e: Exception) {
+            AppLogger.d(TAG, "Script marketplace origin is unavailable: ${e.message}")
+            null
         }
     }
 

@@ -960,7 +960,7 @@ class JsEngine(private val context: Context) {
             .ifBlank { null }
     }
 
-    fun executeToolPkgMainRegistrationFunction(
+    internal fun executeToolPkgMainRegistrationFunction(
         script: String,
         functionName: String,
         params: Map<String, Any?> = emptyMap()
@@ -1731,6 +1731,11 @@ class JsEngine(private val context: Context) {
                     result.put(item)
                 }
             return result.toString()
+        }
+
+        @JavascriptInterface
+        fun captureToolPkgMarketOrigin(specJson: String) {
+            toolPkgRegistrationSession.captureMarketOrigin(specJson)
         }
 
         @JavascriptInterface

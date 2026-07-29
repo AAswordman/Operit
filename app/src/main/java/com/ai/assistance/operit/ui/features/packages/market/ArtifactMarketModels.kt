@@ -104,6 +104,7 @@ data class LocalPublishableArtifact(
     val packageName: String,
     val displayName: String,
     val description: String,
+    val author: List<String> = emptyList(),
     val sourceFile: File,
     val hasDeclaredAuthorField: Boolean = false,
     val declaredAuthorSlotCount: Int = 0,

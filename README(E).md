@@ -469,11 +469,11 @@ If Operit AI has been helpful to you, you can voluntarily support its ongoing de
 
 ## 📄 License
 
-This project is licensed under the [GNU LGPLv3](https://www.gnu.org/licenses/lgpl-3.0.html) license.
+This project is licensed under the [LGPL-3.0-only](https://spdx.org/licenses/LGPL-3.0-only.html) license.
 
 In simple terms, this means:
 - You are free to use, modify, and distribute the code of this project.
-- If you modify the code and distribute it, you must also open-source your modified parts under the LGPLv3 license.
+- If you modify the code and distribute it, you must also open-source your modified parts under the LGPL-3.0-only license.
 - For more details, please see the [LICENSE](LICENSE) file.
 
 ---

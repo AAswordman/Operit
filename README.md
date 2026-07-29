@@ -469,11 +469,11 @@ AI自动分类管理记忆，支持时间查询/导入导出/自动总结，智�
 
 ## 📄 许可证
 
-本项目采用 [GNU LGPLv3](https://www.gnu.org/licenses/lgpl-3.0.html) 许可证。
+本项目采用 [LGPL-3.0-only](https://spdx.org/licenses/LGPL-3.0-only.html) 许可证。
 
 简单来说，这意味着：
 - 您可以自由地使用、修改和分发本项目的代码。
-- 如果您修改了代码并进行分发，您也必须以 LGPLv3 许可证开源您修改过的部分。
+- 如果您修改了代码并进行分发，您也必须以 LGPL-3.0-only 许可证开源您修改过的部分。
 - 详细信息请参阅 [LICENSE](LICENSE) 文件。
 
 ---

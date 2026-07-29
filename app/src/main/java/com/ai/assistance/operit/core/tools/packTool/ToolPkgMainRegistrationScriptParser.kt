@@ -113,6 +113,11 @@ internal object ToolPkgMainRegistrationScriptParser {
                     registrations = captured.aiProviders,
                     registryName = TOOLPKG_REGISTRATION_AI_PROVIDER
                 )
+            val marketOrigin =
+                ToolPkgMarketOriginCodec.validateForPackage(
+                    origin = captured.marketOrigin,
+                    packageId = toolPkgId
+                )
             ToolPkgMainRegistrationParseResult.Success(
                 registration =
                     ToolPkgMainRegistration(
@@ -136,7 +141,8 @@ internal object ToolPkgMainRegistrationScriptParser {
                         promptFinalizeHooks = promptFinalizeHooks,
                         promptEstimateFinalizeHooks = promptEstimateFinalizeHooks,
                         summaryGenerateHooks = summaryGenerateHooks,
-                        aiProviders = aiProviders
+                        aiProviders = aiProviders,
+                        marketOrigin = marketOrigin
                     )
             )
         } catch (e: Exception) {
