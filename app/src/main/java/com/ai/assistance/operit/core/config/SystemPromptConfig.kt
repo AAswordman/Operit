@@ -688,6 +688,72 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
     return afterContext.systemPrompt ?: afterComposePrompt
   }
 
+  /**
+   * 获取系统提示词及 hook 注入的动态上下文。
+   * 动态上下文包含时间戳等频繁变化的内容，应注入到动态上下文消息而非系统提示词中。
+   */
+  data class SystemPromptResult(
+      val systemPrompt: String,
+      val dynamicContext: String?
+  )
+
+  /**
+   * 带动态上下文返回的版本，供 DeepSeek 等需要拆分策略的 provider 使用。
+   */
+  suspend fun getSystemPromptWithCustomPromptsAndContext(
+          context: Context,
+          packageManager: PackageManager,
+          chatId: String?,
+          workspacePath: String?,
+          workspaceEnv: String? = null,
+          safBookmarkNames: List<String> = emptyList(),
+          customIntroPrompt: String,
+          useEnglish: Boolean = false,
+          customSystemPromptTemplate: String = "",
+          enableTools: Boolean = true,
+          hasImageRecognition: Boolean = false,
+          chatModelHasDirectImage: Boolean = false,
+          hasAudioRecognition: Boolean = false,
+          hasVideoRecognition: Boolean = false,
+          chatModelHasDirectAudio: Boolean = false,
+          chatModelHasDirectVideo: Boolean = false,
+          useToolCallApi: Boolean = false,
+          toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+          toolVisibility: Map<String, Boolean> = emptyMap(),
+          allowedPackageNames: Set<String>? = null,
+          allowedSkillNames: Set<String>? = null,
+          allowedMcpServerNames: Set<String>? = null,
+          enableGroupOrchestrationHint: Boolean = false,
+          groupOrchestrationRoleName: String = "",
+          groupParticipantNamesText: String = "",
+          hookMetadata: Map<String, Any?> = emptyMap(),
+          dispatchSystemPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchSystemPromptComposeHooks,
+          dispatchToolPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchToolPromptComposeHooks
+  ): SystemPromptResult {
+      val prompt = getSystemPromptWithCustomPrompts(
+          context, packageManager, chatId, workspacePath, workspaceEnv, safBookmarkNames,
+          customIntroPrompt, useEnglish, customSystemPromptTemplate, enableTools,
+          hasImageRecognition, chatModelHasDirectImage, hasAudioRecognition, hasVideoRecognition,
+          chatModelHasDirectAudio, chatModelHasDirectVideo, useToolCallApi, toolExposureMode,
+          toolVisibility, allowedPackageNames, allowedSkillNames, allowedMcpServerNames,
+          enableGroupOrchestrationHint, groupOrchestrationRoleName, groupParticipantNamesText,
+          hookMetadata, dispatchSystemPromptComposeHooks, dispatchToolPromptComposeHooks
+      )
+      // 通过 hook 收集动态上下文
+      val hookContext = dispatchSystemPromptComposeHooks(
+          PromptHookContext(
+              stage = "collect_dynamic_context",
+              chatId = chatId,
+              useEnglish = useEnglish,
+              metadata = hookMetadata
+          )
+      )
+      return SystemPromptResult(
+          systemPrompt = prompt,
+          dynamicContext = hookContext.dynamicContext
+      )
+  }
+
   /** Convenience overload for default prompt generation. */
   suspend fun getSystemPrompt(context: Context, packageManager: PackageManager): String {
     return getSystemPrompt(

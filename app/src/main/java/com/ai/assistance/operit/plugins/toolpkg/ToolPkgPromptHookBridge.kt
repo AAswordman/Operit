@@ -350,6 +350,7 @@ internal object ToolPkgPromptHookBridge {
             put("chatHistory", context.chatHistory.map(::promptTurnToMap))
             put("preparedHistory", context.preparedHistory.map(::promptTurnToMap))
             put("systemPrompt", context.systemPrompt)
+            put("dynamicContext", context.dynamicContext)
             put("toolPrompt", context.toolPrompt)
             put("modelParameters", context.modelParameters)
             put("availableTools", context.availableTools)
@@ -376,10 +377,17 @@ internal object ToolPkgPromptHookBridge {
             chatHistory = mutation.chatHistory ?: context.chatHistory,
             preparedHistory = mutation.preparedHistory ?: context.preparedHistory,
             systemPrompt = mutation.systemPrompt ?: context.systemPrompt,
+            dynamicContext = mergeDynamicContext(context.dynamicContext, mutation.dynamicContext),
             toolPrompt = mutation.toolPrompt ?: context.toolPrompt,
             availableTools = mutation.availableTools ?: context.availableTools,
             metadata = if (mutation.metadata.isEmpty()) context.metadata else context.metadata + mutation.metadata
         )
+    }
+
+    private fun mergeDynamicContext(current: String?, incoming: String?): String? {
+        if (incoming.isNullOrBlank()) return current
+        if (current.isNullOrBlank()) return incoming
+        return "$current\n$incoming"
     }
 
     private fun parsePromptInputMutation(
@@ -461,6 +469,7 @@ internal object ToolPkgPromptHookBridge {
             chatHistory = parsePromptTurns(jsonObject.optJSONArray("chatHistory")),
             preparedHistory = parsePromptTurns(jsonObject.optJSONArray("preparedHistory")),
             systemPrompt = jsonObject.optString("systemPrompt").takeIf { it.isNotBlank() },
+            dynamicContext = jsonObject.optString("dynamicContext").takeIf { it.isNotBlank() },
             toolPrompt = jsonObject.optString("toolPrompt").takeIf { it.isNotBlank() },
             availableTools = parsePromptToolItems(jsonObject.optJSONArray("availableTools")),
             metadata = metadata

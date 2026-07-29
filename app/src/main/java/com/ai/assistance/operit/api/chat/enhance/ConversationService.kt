@@ -568,8 +568,8 @@ class ConversationService(
                     globalToolVisibility = toolPromptVisibility
                 )
 
-                // 获取系统提示词，现在传入workspacePath和识图配置状态
-                val systemPrompt = SystemPromptConfig.getSystemPromptWithCustomPrompts(
+                // 获取系统提示词（及 hook 注入的动态上下文，如时间戳等）
+                val systemPromptResult = SystemPromptConfig.getSystemPromptWithCustomPromptsAndContext(
                     context = context,
                     packageManager = packageManager,
                     chatId = chatId,
@@ -600,6 +600,8 @@ class ConversationService(
                     dispatchSystemPromptComposeHooks = dispatchSystemPromptComposeHooks,
                     dispatchToolPromptComposeHooks = dispatchToolPromptComposeHooks
                 )
+                val systemPrompt = systemPromptResult.systemPrompt
+                val hookDynamicContext = systemPromptResult.dynamicContext
 
                 // 构建waifu特殊规则
                 val waifuRulesText = if(waifuPreferences.enableWaifuModeFlow.first()) buildWaifuRulesText() else ""
@@ -622,7 +624,7 @@ class ConversationService(
                         aiName
                     )
 
-                    // 构建动态上下文（角色卡、waifu规则、用户档案等）
+                    // 构建动态上下文（角色卡、waifu规则、用户档案、hook注入的动态内容如时间戳等）
                     val dynamicContext = buildString {
                         if (avatarMoodRulesText.isNotEmpty()) {
                             append(avatarMoodRulesText)
@@ -637,6 +639,11 @@ class ConversationService(
                             append("\n\n<user_profile source=\"user.md\">\n")
                             append(userProfileMarkdown)
                             append("\n</user_profile>")
+                        }
+                        // Skill 通过 hook 注入的动态上下文（如当前时间）
+                        if (!hookDynamicContext.isNullOrBlank()) {
+                            append("\n\n")
+                            append(hookDynamicContext)
                         }
                     }
 

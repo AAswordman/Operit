@@ -16,6 +16,7 @@ data class PromptHookContext(
     val chatHistory: List<PromptTurn> = emptyList(),
     val preparedHistory: List<PromptTurn> = emptyList(),
     val systemPrompt: String? = null,
+    val dynamicContext: String? = null,  // 动态上下文（时间戳等频繁变化的内容）
     val toolPrompt: String? = null,
     val modelParameters: List<Map<String, Any?>> = emptyList(),
     val availableTools: List<Map<String, Any?>> = emptyList(),
@@ -28,6 +29,7 @@ data class PromptHookMutation(
     val chatHistory: List<PromptTurn>? = null,
     val preparedHistory: List<PromptTurn>? = null,
     val systemPrompt: String? = null,
+    val dynamicContext: String? = null,  // 动态上下文（时间戳等频繁变化的内容），注入到动态上下文消息而非系统提示词
     val toolPrompt: String? = null,
     val availableTools: List<Map<String, Any?>>? = null,
     val metadata: Map<String, Any?> = emptyMap()
@@ -267,9 +269,19 @@ object PromptHookRegistry {
             chatHistory = mutation.chatHistory ?: current.chatHistory,
             preparedHistory = mutation.preparedHistory ?: current.preparedHistory,
             systemPrompt = mutation.systemPrompt ?: current.systemPrompt,
+            dynamicContext = mergeDynamicContext(current.dynamicContext, mutation.dynamicContext),
             toolPrompt = mutation.toolPrompt ?: current.toolPrompt,
             availableTools = mutation.availableTools ?: current.availableTools,
             metadata = mergedMetadata
         )
+    }
+
+    /**
+     * 合并动态上下文：多个 hook 提供的动态上下文追加拼接，而非替换。
+     */
+    private fun mergeDynamicContext(current: String?, incoming: String?): String? {
+        if (incoming.isNullOrBlank()) return current
+        if (current.isNullOrBlank()) return incoming
+        return "$current\n$incoming"
     }
 }
