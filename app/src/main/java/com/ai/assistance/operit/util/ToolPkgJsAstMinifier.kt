@@ -62,10 +62,19 @@ internal class ToolPkgJsAstMinifier(context: Context) : Closeable {
                     var result = root.Terser.minify_sync(String(source), {
                         ecma: 2020,
                         module: /\.mjs$/i.test(normalizedEntryName),
-                        compress: false,
-                        mangle: false,
+                        compress: {
+                            defaults: true,
+                            passes: 3,
+                            toplevel: true
+                        },
+                        mangle: {
+                            toplevel: true,
+                            keep_classnames: false,
+                            keep_fnames: false
+                        },
                         format: {
-                            comments: false
+                            comments: false,
+                            ascii_only: true
                         },
                         sourceMap: false
                     });

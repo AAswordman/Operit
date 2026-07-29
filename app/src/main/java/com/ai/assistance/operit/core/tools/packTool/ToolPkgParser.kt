@@ -164,7 +164,8 @@ internal data class ToolPkgContainerRuntime(
     val promptFinalizeHooks: List<ToolPkgFunctionHookRuntime>,
     val promptEstimateFinalizeHooks: List<ToolPkgFunctionHookRuntime>,
     val summaryGenerateHooks: List<ToolPkgFunctionHookRuntime>,
-    val aiProviders: List<ToolPkgAiProviderRuntime>
+    val aiProviders: List<ToolPkgAiProviderRuntime>,
+    val marketOrigin: ToolPkgMarketOrigin? = null
 )
 
 internal data class ToolPkgLoadResult(
@@ -310,7 +311,8 @@ internal data class ToolPkgMainRegistration(
     val promptFinalizeHooks: List<ToolPkgRegisteredFunctionHook> = emptyList(),
     val promptEstimateFinalizeHooks: List<ToolPkgRegisteredFunctionHook> = emptyList(),
     val summaryGenerateHooks: List<ToolPkgRegisteredFunctionHook> = emptyList(),
-    val aiProviders: List<ToolPkgRegisteredAiProvider> = emptyList()
+    val aiProviders: List<ToolPkgRegisteredAiProvider> = emptyList(),
+    val marketOrigin: ToolPkgMarketOrigin? = null
 )
 
 internal sealed interface ToolPkgMainRegistrationParseResult {
@@ -1315,7 +1317,8 @@ internal object ToolPkgArchiveParser {
                 promptFinalizeHooks = promptFinalizeHooks,
                 promptEstimateFinalizeHooks = promptEstimateFinalizeHooks,
                 summaryGenerateHooks = summaryGenerateHooks,
-                aiProviders = aiProviders
+                aiProviders = aiProviders,
+                marketOrigin = mainRegistration.marketOrigin
             )
 
         return ToolPkgLoadResult(

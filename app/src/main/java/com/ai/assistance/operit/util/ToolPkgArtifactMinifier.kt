@@ -2,27 +2,47 @@ package com.ai.assistance.operit.util
 
 import android.content.Context
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgArchiveParser
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOriginCodec
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import org.hjson.JsonValue
+import org.json.JSONObject
 
 /** Produces standard ToolPkg and script artifacts with executable JavaScript AST-minified. */
 object ToolPkgArtifactMinifier {
-    fun minifyArtifactFile(context: Context, sourceFile: File, isToolPkg: Boolean): ByteArray {
+    internal fun minifyArtifactFile(
+        context: Context,
+        sourceFile: File,
+        isToolPkg: Boolean,
+        marketOrigin: ToolPkgMarketOrigin? = null
+    ): ByteArray {
         return ToolPkgJsAstMinifier(context).use { minifier ->
             if (isToolPkg) {
                 minifyToolPkgArchive(sourceFile, minifier)
             } else {
-                minifyScriptFile(sourceFile, minifier)
+                minifyScriptFile(sourceFile, minifier, marketOrigin)
             }
         }
     }
 
-    private fun minifyScriptFile(sourceFile: File, minifier: ToolPkgJsAstMinifier): ByteArray {
-        return minifyJavaScriptBytes(sourceFile.readBytes(), sourceFile.name, minifier)
+    private fun minifyScriptFile(
+        sourceFile: File,
+        minifier: ToolPkgJsAstMinifier,
+        marketOrigin: ToolPkgMarketOrigin?
+    ): ByteArray {
+        val source = sourceFile.readText(StandardCharsets.UTF_8)
+        val sourceWithOrigin =
+            marketOrigin?.let { origin -> injectScriptMarketOriginIntoMetadata(source, origin) } ?: source
+        return minifyJavaScriptBytes(
+            sourceWithOrigin.toByteArray(StandardCharsets.UTF_8),
+            sourceFile.name,
+            minifier
+        )
     }
 
     private fun minifyToolPkgArchive(sourceFile: File, minifier: ToolPkgJsAstMinifier): ByteArray {
@@ -33,13 +53,16 @@ object ToolPkgArtifactMinifier {
         val manifestEntryName =
             ToolPkgArchiveParser.normalizeZipEntryPath(manifestPreview.entryName)
                 ?: throw IllegalArgumentException("Invalid toolpkg manifest entry name")
+        val mainEntryName =
+            ToolPkgArchiveParser.resolveManifestRelativeZipEntryPath(
+                manifestBasePath,
+                manifestPreview.manifest.main
+            )
+                ?: throw IllegalArgumentException("manifest.main is required")
         val executableEntryNames = linkedSetOf<String>()
         val resourceEntryRoots = linkedSetOf<String>()
 
-        ToolPkgArchiveParser.resolveManifestRelativeZipEntryPath(
-            manifestBasePath,
-            manifestPreview.manifest.main
-        )?.let(executableEntryNames::add)
+        executableEntryNames.add(mainEntryName)
         manifestPreview.manifest.subpackages.forEach { subpackage ->
             ToolPkgArchiveParser.resolveManifestRelativeZipEntryPath(manifestBasePath, subpackage.entry)
                 ?.let(executableEntryNames::add)
@@ -73,7 +96,22 @@ object ToolPkgArtifactMinifier {
                                         resourceEntryRoots
                                     )
                             ) {
-                                minifyJavaScriptBytes(originalBytes, normalizedName, minifier)
+                                minifyJavaScriptBytes(
+                                    bytes = originalBytes,
+                                    entryName = normalizedName,
+                                    minifier = minifier,
+                                    marketOrigin =
+                                        if (normalizedName == mainEntryName) {
+                                            ToolPkgMarketOrigin(
+                                                market = "Operit",
+                                                toolpkgId = manifestPreview.manifest.toolpkgId,
+                                                version = manifestPreview.manifest.version,
+                                                author = manifestPreview.manifest.author
+                                            )
+                                        } else {
+                                            null
+                                        }
+                                )
                             } else {
                                 originalBytes
                             }
@@ -89,10 +127,15 @@ object ToolPkgArtifactMinifier {
     private fun minifyJavaScriptBytes(
         bytes: ByteArray,
         entryName: String,
-        minifier: ToolPkgJsAstMinifier
+        minifier: ToolPkgJsAstMinifier,
+        marketOrigin: ToolPkgMarketOrigin? = null
     ): ByteArray {
         val source = bytes.toString(StandardCharsets.UTF_8)
-        val minified = minifyJavaScriptSourcePreservingMetadata(source, entryName, minifier)
+        // Keep provenance in the executable body so it is minified with the package and not stripped as a comment.
+        val sourceWithOrigin =
+            if (marketOrigin == null) source else "$source\n${ToolPkgMarketOriginCodec.encode(marketOrigin)}"
+        val minified =
+            minifyJavaScriptSourcePreservingMetadata(sourceWithOrigin, entryName, minifier)
         return minified.toByteArray(StandardCharsets.UTF_8)
     }
 
@@ -136,6 +179,20 @@ object ToolPkgArtifactMinifier {
         return first.isWhitespace() || first == '*'
     }
 
+    private fun injectScriptMarketOriginIntoMetadata(
+        source: String,
+        marketOrigin: ToolPkgMarketOrigin
+    ): String {
+        val split = splitLeadingMetadataBlock(source)
+            ?: throw IllegalArgumentException("JavaScript package METADATA block is required for marketplace origin")
+        val metadataContent =
+            leadingMetadataContentPattern.find(split.metadataBlock)?.groupValues?.get(1)
+                ?: throw IllegalArgumentException("JavaScript package METADATA block is invalid")
+        val metadata = JSONObject(JsonValue.readHjson(metadataContent).toString())
+        metadata.put(SCRIPT_MARKET_ORIGIN_METADATA_KEY, ToolPkgMarketOriginCodec.encodeForMetadata(marketOrigin))
+        return "/* METADATA\n${metadata}\n*/${split.body}"
+    }
+
     private fun shouldMinifyToolPkgEntry(
         normalizedName: String,
         executableEntryNames: Set<String>,
@@ -153,4 +210,7 @@ object ToolPkgArtifactMinifier {
         val metadataBlock: String,
         val body: String
     )
+
+    private const val SCRIPT_MARKET_ORIGIN_METADATA_KEY = "__operit_market_origin"
+    private val leadingMetadataContentPattern = Regex("""(?s)/\\*\\s*METADATA\\s*(.*?)\\*/""")
 }

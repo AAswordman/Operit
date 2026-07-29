@@ -126,6 +126,7 @@ class ArtifactMarketViewModel(
                                 packageName = source.packageName,
                                 displayName = source.displayName,
                                 description = source.description,
+                                author = source.author,
                                 sourceFile = File(source.sourcePath),
                                 inferredVersion = source.inferredVersion
                             )

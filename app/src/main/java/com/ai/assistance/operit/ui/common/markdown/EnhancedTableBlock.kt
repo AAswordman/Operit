@@ -93,7 +93,6 @@ fun EnhancedTableBlock(
     val density = LocalDensity.current
     val typography = MaterialTheme.typography
     val textLayoutSettings = LocalAiMarkdownTextLayoutSettings.current
-    val coroutineScope = rememberCoroutineScope()
     val fontFamily = typography.bodyMedium.fontFamily
     val resolver = LocalFontFamilyResolver.current
     val normalTypeface = remember(resolver, fontFamily) {
@@ -109,10 +108,12 @@ fun EnhancedTableBlock(
 
     if (tableData.rows.isEmpty()) return
 
-    var scrollOffsetPx by remember(tableContent) { mutableStateOf(0f) }
-    var dragVelocityPxPerSec by remember(tableContent) { mutableStateOf(0f) }
-    var lastDragEventTimeMs by remember(tableContent) { mutableStateOf(0L) }
-    var flingJob by remember(tableContent) { mutableStateOf<Job?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    // Streaming appends change tableContent repeatedly; the surrounding node identity scopes this state.
+    var scrollOffsetPx by remember { mutableStateOf(0f) }
+    var dragVelocityPxPerSec by remember { mutableStateOf(0f) }
+    var lastDragEventTimeMs by remember { mutableStateOf(0L) }
+    var flingJob by remember { mutableStateOf<Job?>(null) }
     val tableBlockDesc = stringResource(R.string.table_block)
     val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     val headerBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)

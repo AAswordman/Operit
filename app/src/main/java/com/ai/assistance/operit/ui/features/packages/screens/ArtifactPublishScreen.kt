@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -502,22 +503,38 @@ fun ArtifactPublishScreen(
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
+                        modifier = Modifier.weight(1f),
                         selected = !useGitHubReleaseAsset,
                         onClick = {
                             viewModel.clearPendingMarketRegistrationRetry()
                             useGitHubReleaseAsset = false
                         },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        label = { Text(stringResource(R.string.artifact_publish_asset_source_upload)) }
+                        label = {
+                            Text(
+                                text = stringResource(R.string.artifact_publish_asset_source_upload),
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 2,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     )
                     SegmentedButton(
+                        modifier = Modifier.weight(1f),
                         selected = useGitHubReleaseAsset,
                         onClick = {
                             viewModel.clearPendingMarketRegistrationRetry()
                             useGitHubReleaseAsset = true
                         },
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        label = { Text(stringResource(R.string.artifact_publish_asset_source_github_release)) }
+                        label = {
+                            Text(
+                                text = stringResource(R.string.artifact_publish_asset_source_github_release),
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 2,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     )
                 }
                 if (useGitHubReleaseAsset) {

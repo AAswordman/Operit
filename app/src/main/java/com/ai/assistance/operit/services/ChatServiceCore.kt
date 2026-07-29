@@ -289,6 +289,11 @@ class ChatServiceCore(
         messageProcessingDelegate.cancelMessage(chatId)
     }
 
+    suspend fun cancelMessageForDestructiveMutation(chatId: String) {
+        messageCoordinationDelegate.cancelSummaryForDestructiveMutation(chatId)
+        messageProcessingDelegate.cancelMessageForDestructiveMutation(chatId)
+    }
+
     /** 更新用户消息 */
     fun updateUserMessage(message: String) {
         messageProcessingDelegate.updateUserMessage(message)

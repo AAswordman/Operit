@@ -1,9 +1,11 @@
 package com.ai.assistance.operit.core.tools.javascript
 
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOriginCodec
 import org.json.JSONObject
 import org.json.JSONTokener
 
-data class ToolPkgMainRegistrationCapture(
+internal data class ToolPkgMainRegistrationCapture(
     val toolboxUiModules: List<String>,
     val uiRoutes: List<String>,
     val navigationEntries: List<String>,
@@ -24,7 +26,8 @@ data class ToolPkgMainRegistrationCapture(
     val promptFinalizeHooks: List<String>,
     val promptEstimateFinalizeHooks: List<String>,
     val summaryGenerateHooks: List<String>,
-    val aiProviders: List<String>
+    val aiProviders: List<String>,
+    val marketOrigin: ToolPkgMarketOrigin?
 )
 
 private enum class RegistrationBucket {
@@ -54,10 +57,12 @@ private enum class RegistrationBucket {
 internal class JsToolPkgRegistrationSession {
     private val lock = Any()
     private var capture: MutableMap<RegistrationBucket, MutableList<String>>? = null
+    private var marketOrigin: ToolPkgMarketOrigin? = null
 
     fun begin() {
         synchronized(lock) {
             capture = mutableMapOf()
+            marketOrigin = null
         }
     }
 
@@ -106,6 +111,14 @@ internal class JsToolPkgRegistrationSession {
     fun appendAiProvider(specJson: String) =
         append(RegistrationBucket.AI_PROVIDER, specJson)
 
+    fun captureMarketOrigin(specJson: String) {
+        synchronized(lock) {
+            check(capture != null) { "toolpkg registration session is not active" }
+            // Provenance is optional for legacy packages; malformed markers never become trusted metadata.
+            marketOrigin = ToolPkgMarketOriginCodec.parse(specJson)
+        }
+    }
+
     fun finish(executionResult: Any?): ToolPkgMainRegistrationCapture {
         val errorMessage = extractJsExecutionErrorMessage(executionResult)
         if (errorMessage != null) {
@@ -135,7 +148,8 @@ internal class JsToolPkgRegistrationSession {
                 promptFinalizeHooks = read(RegistrationBucket.PROMPT_FINALIZE),
                 promptEstimateFinalizeHooks = read(RegistrationBucket.PROMPT_ESTIMATE_FINALIZE),
                 summaryGenerateHooks = read(RegistrationBucket.SUMMARY_GENERATE),
-                aiProviders = read(RegistrationBucket.AI_PROVIDER)
+                aiProviders = read(RegistrationBucket.AI_PROVIDER),
+                marketOrigin = marketOrigin
             )
         }
     }
@@ -143,6 +157,7 @@ internal class JsToolPkgRegistrationSession {
     fun end() {
         synchronized(lock) {
             capture = null
+            marketOrigin = null
         }
     }
 
@@ -189,6 +204,25 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
                     throw new Error('NativeInterface.' + name + ' is unavailable');
                 }
                 return NativeInterface[name].bind(NativeInterface);
+            }
+
+            function captureMarketOrigin(encoded, key) {
+                if (!Array.isArray(encoded)) {
+                    throw new Error('ToolPkg marketplace origin payload must be an array');
+                }
+                var xorKey = Number(key);
+                if (!Number.isInteger(xorKey) || xorKey < 0 || xorKey > 255) {
+                    throw new Error('ToolPkg marketplace origin key is invalid');
+                }
+                var json = '';
+                for (var index = 0; index < encoded.length; index += 1) {
+                    var value = Number(encoded[index]);
+                    if (!Number.isInteger(value) || value < 0 || value > 255) {
+                        throw new Error('ToolPkg marketplace origin payload byte is invalid');
+                    }
+                    json += String.fromCharCode(value ^ xorKey);
+                }
+                requireNative('captureToolPkgMarketOrigin')(json);
             }
 
             function copyObject(source, excludedKey) {
@@ -460,6 +494,7 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
             }
 
             var api = {
+                _m: captureMarketOrigin,
                 registerToolboxUiModule: function(definition) {
                     registerWithNative(
                         definition,
