@@ -1204,8 +1204,10 @@ open class OpenAIProvider(
      */
     fun buildToolDefinitions(toolPrompts: List<ToolPrompt>): JSONArray {
         val tools = JSONArray()
+        // 按照工具名称进行字典序排序，保证工具列表 JSON 的绝对稳定性，提高缓存命中率
+        val sortedPrompts = toolPrompts.sortedBy { it.name }
 
-        for (tool in toolPrompts) {
+        for (tool in sortedPrompts) {
             tools.put(JSONObject().apply {
                 put("type", "function")
                 put("function", JSONObject().apply {

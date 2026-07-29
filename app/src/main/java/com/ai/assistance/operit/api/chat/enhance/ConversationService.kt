@@ -515,6 +515,7 @@ class ConversationService(
         val effectiveChatHistory = beforeContext.chatHistory
         val preparedHistory = mutableListOf<PromptTurn>()
         var resolvedUseEnglish: Boolean? = null
+        var pendingDynamicContext: PromptTurn? = null
         conversationMutex.withLock {
             // Add system prompt if not already present
             if (!effectiveChatHistory.any { it.kind == PromptTurnKind.SYSTEM }) {
@@ -656,18 +657,15 @@ class ConversationService(
                         )
                     )
 
-                    // 动态上下文作为第二条 SYSTEM 消息插入
+                    // 动态上下文暂存，之后放到历史记录的最后，避免阻断前置历史缓存
                     if (dynamicContext.isNotBlank()) {
                         val dynamicContextWithReplacements = replacePromptPlaceholders(
                             dynamicContext,
                             aiName
                         )
-                        preparedHistory.add(
-                            1,
-                            PromptTurn(
-                                kind = PromptTurnKind.SYSTEM,
-                                content = dynamicContextWithReplacements
-                            )
+                        pendingDynamicContext = PromptTurn(
+                            kind = PromptTurnKind.SYSTEM,
+                            content = dynamicContextWithReplacements
                         )
                     }
                 } else {
@@ -723,6 +721,12 @@ class ConversationService(
                     // Add typed turns as is
                     preparedHistory.add(message)
                 }
+            }
+
+            // 追加动态上下文到对话历史的末尾（最新的一条用户消息之前）
+            // 这保证了前面的 [Static System] + [历史消息] 形成一个完全稳定的公共前缀，极大提升缓存命中率
+            pendingDynamicContext?.let {
+                preparedHistory.add(it)
             }
         }
         val afterContext =
