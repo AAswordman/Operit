@@ -160,8 +160,7 @@ internal fun TokenUsageSummarySection(
                     labelColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 if (totalCachedInputTokens > 0L) {
-                    val totalInput = totalInputTokens + totalCachedInputTokens
-                    val hitRate = if (totalInput > 0) (totalCachedInputTokens * 100.0 / totalInput) else 0.0
+                    val hitRate = if (totalInputTokens > 0) (totalCachedInputTokens * 100.0 / totalInputTokens) else 0.0
                     SummaryLine(
                         label = stringResource(id = R.string.settings_cached_tokens_label),
                         value = "${totalCachedInputTokens} (${String.format("%.1f", hitRate)}%)",
