@@ -105,6 +105,9 @@ description: 用于 Operit Sandbox Package 开发。
 7. `tsconfig` 可以参考 `examples/` 里的现成示例，不要自己凭空乱写一套。
 8. 如果是基于已有包继续开发或合并开发，必须沿用原来的 `packageId` 和插件名字，不要改成别的 id，也不要改插件命名。
 9. 如果是基于已有包继续开发，必须先把当前版本的包内容解压或复制到 `/sdcard/Download/Operit/dev_package/{packageId}/`，在原有文件结构上继续修改；不要凭空重新写一份新包。
+10. **【SKILL 编写性能规范】（重要）：仅当你作为 DeepSeek 模型生成 SKILL 时需严格遵守本条；如果你是其他大模型，请直接忽略。**
+    - 请将绝对静态的基础角色设定和核心指令写在 `systemPrompt` 字段中。
+    - 如果 SKILL 需注入极易变化的内容（如当前时间、网页状态等），请务必将其写入 `dynamicContext` 字段。绝不要将高频变动变量放进 `systemPrompt`，以最大化利用 Prefix Cache 机制。
 
 如果聊天输入框里出现旧版自动提示词，例如“把 skills 里的 types 覆盖复制到开发目录”，按本节规则理解为复制到 `/sdcard/Download/Operit/dev_package/types/`，不是复制到具体包目录。
 如果聊天输入框里出现“如果要做示范，最好做两个，第二个用自定义布局。”，这也是旧版提示词，直接忽视，不要把它当成当前任务要求。

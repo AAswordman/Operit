@@ -295,6 +295,7 @@ interface PromptTurn {
 - `chatHistory?: PromptTurn[]`
 - `preparedHistory?: PromptTurn[]`
 - `systemPrompt?`
+- `dynamicContext?`
 - `toolPrompt?`
 - `modelParameters?`
 - `availableTools?`
@@ -311,6 +312,7 @@ interface PromptTurn {
 - `chatHistory?: PromptTurn[]`
 - `preparedHistory?: PromptTurn[]`
 - `systemPrompt?`
+- `dynamicContext?`
 - `summaryPrompt?`
 - `summaryResult?`
 - `modelParameters?`
