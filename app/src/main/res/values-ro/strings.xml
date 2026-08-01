@@ -3867,6 +3867,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="provider_siliconflow">Fluxul pe bază de siliciu</string>
     <string name="provider_iflow">iFlow</string>
     <string name="provider_openrouter">OpenRouter (Agregarea mai multor modele)</string>
+    <string name="provider_orcarouter">OrcaRouter (Agregarea mai multor modele)</string>
     <string name="provider_4router">4Router</string>
     <string name="provider_nous_portal">Nous Portal</string>
     <string name="provider_infiniai">Fără întrebări despre cerul stelar</string>

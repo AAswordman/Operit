@@ -3352,6 +3352,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="provider_siliconflow">fluxo baseado em silício</string>
     <string name="provider_iflow">iFlow</string>
     <string name="provider_openrouter">OpenRouter (agregação multimodelo)</string>
+    <string name="provider_orcarouter">OrcaRouter (agregação multimodelo)</string>
     <string name="provider_infiniai">Wuwen Xinqiong</string>
     <string name="provider_alipay_bailing">Alipay Bailing modelo grande</string>
     <string name="provider_lmstudio">Estúdio LM (modelo local)</string>

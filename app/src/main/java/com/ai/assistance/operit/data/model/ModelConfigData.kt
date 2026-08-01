@@ -25,6 +25,7 @@ enum class ApiProviderType {
         SILICONFLOW, // 硅基流动
         IFLOW, // iFlow
         OPENROUTER, // OpenRouter (多模型聚合)
+        ORCAROUTER, // OrcaRouter (多模型聚合)
         FOUR_ROUTER, // 4Router
         NOUS_PORTAL, // Nous Portal / Inference API
         INFINIAI, // 无问芯穹

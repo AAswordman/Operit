@@ -114,7 +114,7 @@ AI自动分类管理记忆，支持时间查询/导入导出/自动总结，智�
 
 - 🤖 **Tasker集成**：触发自定义AI代理事件，深度自动化
 - 🌐 **MCP/Skill 市场**：一键安装插件、远程MCP、自动描述、uvx/npx支持
-- 🔌 **多模型支持**：OpenAI Responses API、Claude、Gemini、xAI、Novita、Ollama、NVIDIA、OpenRouter、LMStudio、百灵等
+- 🔌 **多模型支持**：OpenAI Responses API、Claude、Gemini、xAI、Novita、Ollama、NVIDIA、OpenRouter、OrcaRouter、LMStudio、百灵等
 - 🧪 **模型与提示词管理**：多配置/参数自定义、提示词市场
 - 🔐 **权限系统**：工具级权限控制与安全提示
 - 🔑 **密钥池与统计**：批量测试/导入、Token 统计（模型饼图）

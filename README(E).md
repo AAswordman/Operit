@@ -114,7 +114,7 @@ Customize AI personality and speaking style, with character card backup/export (
 
 - 🤖 **Tasker Integration**: Trigger custom AI agent events for deep automation
 - 🌐 **MCP/Skill Marketplace**: One-click plugin installation, remote MCP, auto-description, uvx/npx support
-- 🔌 **Multi-Model Support**: OpenAI Responses API, Claude, Gemini, xAI, Novita, Ollama, NVIDIA, OpenRouter, LMStudio, Bailing, and more
+- 🔌 **Multi-Model Support**: OpenAI Responses API, Claude, Gemini, xAI, Novita, Ollama, NVIDIA, OpenRouter, OrcaRouter, LMStudio, Bailing, and more
 - 🧪 **Model & Prompt Management**: Multi configs/param customization, prompt marketplace
 - 🔐 **Permissions**: Per-tool authorization and safety prompts
 - 🔑 **Key Pool & Stats**: Batch test/import, token usage stats
