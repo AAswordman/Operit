@@ -54,12 +54,12 @@ enum class ApiProviderType {
 }
 
 object ModelConfigDefaults {
-        const val DEFAULT_CONTEXT_LENGTH = 64.0f
-        const val DEFAULT_MAX_CONTEXT_LENGTH = 200.0f
+        const val DEFAULT_CONTEXT_LENGTH = 400.0f
+        const val DEFAULT_MAX_CONTEXT_LENGTH = 1000.0f
         const val DEFAULT_ENABLE_MAX_CONTEXT_MODE = false
-        const val DEFAULT_SUMMARY_TOKEN_THRESHOLD = 0.70f
+        const val DEFAULT_SUMMARY_TOKEN_THRESHOLD = 0.90f
         const val DEFAULT_ENABLE_SUMMARY = true
-        const val DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT = true
+        const val DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT = false
         const val DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD = 16
 }
 
@@ -152,7 +152,7 @@ data class ModelConfigData(
         val enableClaude1hPromptCache: Boolean = false, // 是否启用1小时提示缓存TTL (仅Claude支持)
 
         // Tool Call配置
-        val enableToolCall: Boolean = false, // 是否启用Tool Call接口调用工具（使用模型原生工具调用而非XML格式）
+        val enableToolCall: Boolean = true, // 是否启用Tool Call接口调用工具（使用模型原生工具调用而非XML格式）
 
         // 请求频率限制配置
         val requestLimitPerMinute: Int = 0, // 每分钟最大请求次数，0表示不限流
