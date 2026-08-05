@@ -20,6 +20,8 @@ const LEGACY_ATTACHMENT_ID_PREFIXES = [
 
 const NOTIFICATION_FETCH_LIMIT = 5;
 const APP_USAGE_FETCH_LIMIT = 3;
+// Weather is a pre-send injection path, so the shared Hook deadline bounds its location and HTTP work.
+const WEATHER_INJECTION_STEP_TIMEOUT_SECONDS = 5;
 
 export type ExtraInfoInjectionSettings = {
   masterEnabled: boolean;
@@ -608,13 +610,17 @@ function buildLocationParts(location: any): string[] {
   ].map((item: unknown) => String(item || "").trim()).filter(Boolean);
 }
 
-async function readLocationSnapshot(highAccuracy = false): Promise<{
+async function readLocationSnapshot(
+  highAccuracy = false,
+  timeoutSeconds = 8,
+  includeAddress = true
+): Promise<{
   location: any;
   latitude: number;
   longitude: number;
   addressParts: string[];
 }> {
-  const location = await Tools.System.getLocation(highAccuracy, 8);
+  const location = await Tools.System.getLocation(highAccuracy, timeoutSeconds, includeAddress);
   const latitude = Number(location?.latitude);
   const longitude = Number(location?.longitude);
 
@@ -718,8 +724,8 @@ async function fetchWeatherPayload(
     headers: {
       Accept: "application/json",
     },
-    connect_timeout: 8,
-    read_timeout: 8,
+    connect_timeout: WEATHER_INJECTION_STEP_TIMEOUT_SECONDS,
+    read_timeout: WEATHER_INJECTION_STEP_TIMEOUT_SECONDS,
     validateStatus: false,
   });
 
@@ -743,16 +749,21 @@ async function fetchWeatherPayload(
 async function buildWeatherContent(): Promise<string> {
   const text = resolveExtraInfoI18n();
   const locale = typeof getLang === "function" ? String(getLang() || "") : "";
-  const locationSnapshot = await readLocationSnapshot();
+  const locationSnapshot = await readLocationSnapshot(
+    false,
+    WEATHER_INJECTION_STEP_TIMEOUT_SECONDS,
+    false
+  );
   const payload = await fetchWeatherPayload(
     locationSnapshot.latitude,
     locationSnapshot.longitude,
     locale
   );
   const current = Array.isArray(payload?.current_condition) ? payload.current_condition[0] : null;
-  const locationText = locationSnapshot.addressParts.length
-    ? locationSnapshot.addressParts.join(" / ")
-    : "-";
+  const locationText = formatCoordinates(
+    locationSnapshot.latitude,
+    locationSnapshot.longitude
+  );
   const weatherDesc = normalizeLocale(locale) === "en-US"
     ? String(current?.weatherDesc?.[0]?.value || "").trim()
     : String(current?.lang_zh?.[0]?.value || "").trim();

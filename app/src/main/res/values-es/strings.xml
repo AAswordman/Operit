@@ -6596,6 +6596,10 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="visit_web_wait_time_title">Tiempo de espera de visita web</string>
     <string name="visit_web_wait_time_description">Controla el tiempo de espera de visit_web antes de volver automáticamente después de extraer el contenido de la página. Si se establece en 0 segundos, volverá inmediatamente.</string>
     <string name="visit_web_wait_time_value">%1$d segundos</string>
+    <string name="toolpkg_hook_timeout_title">Tiempo de espera de Hook de ToolPkg</string>
+    <string name="toolpkg_hook_timeout_description">Limita el tiempo total de espera de las cadenas de Hook de entrada de chat, prompt y resumen de ToolPkg en la ruta de envío. Al agotarse el tiempo, se omite el Hook actual y el procesamiento continúa. Predeterminado: 10 segundos. No afecta a la toma de control de respuestas de message_processing.</string>
+    <string name="toolpkg_hook_timeout_value">%1$d segundos</string>
+    <string name="toolpkg_hook_timeout_continue_sending">Un plugin previo al envío agotó el tiempo. Se omitió y el mensaje seguirá enviándose.</string>
     <string name="enable_enter_to_send">Enviar con Enter</string>
     <string name="enable_enter_to_send_description">Al activarlo, al presionar Enter en el campo de entrada del chat se enviará directamente, y la tecla de envío del teclado también se mostrará como enviar.</string>
     <string name="tool_collapse_mode_title">Colapsar herramientas</string>
@@ -7420,6 +7424,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="market_manage_resubmit_confirm_message">Se reenviará "%1$s" a la cola de revisión.</string>
     <string name="market_manage_resubmit_last_state">Última revisión: %1$s</string>
     <string name="market_manage_resubmit_last_reason">Motivo de devolución: %1$s</string>
+    <string name="market_manage_review_detail">Detalles de la revisión: %1$s</string>
     <string name="market_manage_review_dialog_title">Estado de revisión</string>
     <string name="market_manage_resubmit_confirm_warning">Confirme que ha realizado las modificaciones según el motivo de devolución. Después de un envío exitoso, no podrá reenviarlo dentro de las 12 horas locales.</string>
     <string name="market_manage_resubmit_confirm_action">Confirmar envío</string>

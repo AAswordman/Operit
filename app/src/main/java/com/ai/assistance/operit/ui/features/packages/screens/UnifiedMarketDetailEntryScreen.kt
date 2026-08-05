@@ -67,6 +67,7 @@ import com.ai.assistance.operit.ui.features.packages.market.MarketInstallProgres
 import com.ai.assistance.operit.ui.features.packages.market.MarketInstallStage
 import com.ai.assistance.operit.ui.features.packages.market.MarketLocalInstallState
 import com.ai.assistance.operit.ui.features.packages.market.MarketLocalInstallStateKind
+import com.ai.assistance.operit.ui.features.packages.market.MarketAppVersionCompatibilityKind
 import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailAction
 import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailBanner
 import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailCommentDialog
@@ -83,9 +84,9 @@ import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailS
 import com.ai.assistance.operit.ui.features.packages.market.canInstallFromUnifiedMarket
 import com.ai.assistance.operit.ui.features.packages.market.formatMarketDetailCompactDate
 import com.ai.assistance.operit.ui.features.packages.market.formatMarketDetailDate
-import com.ai.assistance.operit.ui.features.packages.market.isUnsupportedByCurrentAppVersion
 import com.ai.assistance.operit.ui.features.packages.market.labelResId
 import com.ai.assistance.operit.ui.features.packages.market.marketDetailInitial
+import com.ai.assistance.operit.ui.features.packages.market.resolveCurrentAppVersionCompatibility
 import com.ai.assistance.operit.ui.features.packages.market.resolveMarketReviewSnapshot
 import com.ai.assistance.operit.ui.features.packages.screens.market.viewmodel.UnifiedMarketDetailViewModel
 
@@ -125,7 +126,8 @@ fun UnifiedMarketDetailEntryScreen(
     val currentReactions = reactionsMap[entryId].orEmpty()
     val installProgress = installStates[entryId]
     val localInstallState = localInstallStates[entryId]
-    val isCurrentAppVersionUnsupported = entry.isUnsupportedByCurrentAppVersion()
+    val currentAppVersionCompatibility = entry.resolveCurrentAppVersionCompatibility()
+    val isCurrentAppVersionUnsupported = currentAppVersionCompatibility != null
     val likes =
         if (currentReactions.isNotEmpty()) {
             currentReactions.sumOf { if (it.reaction.ifBlank { it.content } == "+1") it.total.coerceAtLeast(1) else 0 }
@@ -254,7 +256,29 @@ fun UnifiedMarketDetailEntryScreen(
                 )
             },
         banner =
-            if (isPreviewMode) {
+            if (currentAppVersionCompatibility != null) {
+                UnifiedMarketDetailBanner(
+                    title = stringResource(R.string.market_version_incompatible_title),
+                    message =
+                        when (currentAppVersionCompatibility.kind) {
+                            MarketAppVersionCompatibilityKind.BELOW_MINIMUM ->
+                                stringResource(
+                                    R.string.market_version_too_low_message,
+                                    currentAppVersionCompatibility.currentVersion,
+                                    currentAppVersionCompatibility.requiredVersion
+                                )
+                            MarketAppVersionCompatibilityKind.ABOVE_MAXIMUM ->
+                                stringResource(
+                                    R.string.market_version_too_high_message,
+                                    currentAppVersionCompatibility.currentVersion,
+                                    currentAppVersionCompatibility.requiredVersion
+                                )
+                        },
+                    icon = Icons.Default.Warning,
+                    containerColor = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
+                    contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer
+                )
+            } else if (isPreviewMode) {
                 UnifiedMarketDetailBanner(
                     title = stringResource(R.string.market_detail_preview_title),
                     message = buildPreviewBannerMessage(context, review.state),

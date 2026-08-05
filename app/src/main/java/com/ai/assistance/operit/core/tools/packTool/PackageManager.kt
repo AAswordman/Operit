@@ -1577,7 +1577,8 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         onIntermediateResult: ((Any?) -> Unit)? = null,
         executionContextKey: String? = null,
         runtimeKind: String? = null,
-        dispatchIntermediateOnMain: Boolean = true
+        dispatchIntermediateOnMain: Boolean = true,
+        timeoutMillis: Long? = null
     ): Result<Any?> {
         return toolPkgFacade.runToolPkgMainHook(
             containerPackageName = containerPackageName,
@@ -1590,7 +1591,8 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             onIntermediateResult = onIntermediateResult,
             executionContextKey = executionContextKey,
             runtimeKind = runtimeKind,
-            dispatchIntermediateOnMain = dispatchIntermediateOnMain
+            dispatchIntermediateOnMain = dispatchIntermediateOnMain,
+            timeoutMillis = timeoutMillis
         )
     }
 

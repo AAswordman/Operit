@@ -557,7 +557,7 @@ private fun ThemeSettingsTargetSelector(
             val defaultTarget = ActivePrompt.CharacterCard(CharacterCardManager.DEFAULT_CHARACTER_CARD_ID)
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.theme_default_character_card)) },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                leadingIcon = { ThemeSettingsTargetMenuAvatar(defaultTarget) },
                 trailingIcon = {
                     if (selectedTarget == defaultTarget) {
                         Icon(Icons.Default.Check, contentDescription = null)
@@ -574,7 +574,7 @@ private fun ThemeSettingsTargetSelector(
                     val target = ActivePrompt.CharacterCard(card.id)
                     DropdownMenuItem(
                         text = { Text(card.name) },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        leadingIcon = { ThemeSettingsTargetMenuAvatar(target) },
                         trailingIcon = {
                             if (selectedTarget == target) {
                                 Icon(Icons.Default.Check, contentDescription = null)
@@ -592,7 +592,7 @@ private fun ThemeSettingsTargetSelector(
                     val target = ActivePrompt.CharacterGroup(group.id)
                     DropdownMenuItem(
                         text = { Text(group.name) },
-                        leadingIcon = { Icon(Icons.Default.Groups, contentDescription = null) },
+                        leadingIcon = { ThemeSettingsTargetMenuAvatar(target) },
                         trailingIcon = {
                             if (selectedTarget == target) {
                                 Icon(Icons.Default.Check, contentDescription = null)
@@ -605,6 +605,40 @@ private fun ThemeSettingsTargetSelector(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ThemeSettingsTargetMenuAvatar(target: ActivePrompt) {
+    val context = LocalContext.current
+    val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
+    val avatarUriFlow = remember(target, userPreferencesManager) {
+        when (target) {
+            is ActivePrompt.CharacterCard ->
+                userPreferencesManager.getAiAvatarForCharacterCardFlow(target.id)
+
+            is ActivePrompt.CharacterGroup ->
+                userPreferencesManager.getAiAvatarForCharacterGroupFlow(target.id)
+        }
+    }
+    val avatarUri by avatarUriFlow.collectAsState(initial = null)
+
+    Box(
+        modifier =
+            Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!avatarUri.isNullOrBlank()) {
+            Image(
+                painter = rememberAsyncImagePainter(Uri.parse(avatarUri)),
+                contentDescription = stringResource(R.string.character_avatar),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
         }
     }
 }

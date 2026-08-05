@@ -167,11 +167,22 @@ internal object ToolPkgPromptHookBridge {
         }
 
         val manager = toolPkgPackageManager()
+        val budget = ToolPkgHookExecutionBudget.create()
         var current = context
-        hooks.forEach { hook ->
+        for (hook in hooks) {
             val resolvedHookId = hook.hookId
             val resolvedContainer = hook.containerPackageName
             val resolvedFunction = hook.functionName
+            val timeoutMillis = budget.remainingMillis()
+            if (timeoutMillis == null) {
+                budget.logDeadlineReached(
+                    tag = TAG,
+                    stage = current.stage,
+                    containerPackageName = resolvedContainer,
+                    hookId = resolvedHookId
+                )
+                break
+            }
             val result =
                 manager.runToolPkgMainHook(
                     containerPackageName = resolvedContainer,
@@ -180,8 +191,20 @@ internal object ToolPkgPromptHookBridge {
                     eventName = current.stage,
                     pluginId = resolvedHookId,
                     inlineFunctionSource = hook.functionSource,
-                    eventPayload = buildPromptEventPayload(current)
+                    eventPayload = buildPromptEventPayload(current),
+                    timeoutMillis = timeoutMillis
                 )
+            if (
+                budget.logTimeoutIfPresent(
+                    result = result,
+                    tag = TAG,
+                    stage = current.stage,
+                    containerPackageName = resolvedContainer,
+                    hookId = resolvedHookId
+                )
+            ) {
+                break
+            }
             val decoded =
                 result.getOrElse { error ->
                     AppLogger.e(
@@ -201,7 +224,7 @@ internal object ToolPkgPromptHookBridge {
                             null
                         }
                 }
-            val mutation = parseMutation(decoded, current) ?: return@forEach
+            val mutation = parseMutation(decoded, current) ?: continue
             current = applyMutation(current, mutation)
         }
 

@@ -56,7 +56,7 @@ PR workflow 只有 `contents: read` 权限，不读取仓库 secret，也不上�
 
 ## Android dependencies
 
-JVM lane 只下载 `libs.zip`，完整 Android lane 下载 `libs.zip`、`subpack.zip` 和 `jniLibs.zip` 三个固定归档。`download_android_dependencies.sh` 使用固定 Google Drive file ID；`prepare_android_dependencies.py` 限制成员数量、解压大小、压缩比和文件类型，重建固定输出根目录，只验证本次实际解出的文件，并拒绝越界路径、重复成员及符号链接。`arsc.jar` 已无消费者，`smart-exception` 改由 Maven Central 提供，`android-gif-drawable` 的重复 native 库也不会从归档写入构建目录。默认本地 STT 模型不再来自 Drive 归档，由 Gradle 按 `app/config/stt-model-assets.properties` 获取到生成 assets 目录并校验 SHA-256。
+JVM lane 只下载 `libs.zip`，完整 Android lane 下载 `libs.zip`、`subpack.zip` 和 `jniLibs.zip` 三个固定归档。`download_android_dependencies.sh` 使用固定 Google Drive file ID；`prepare_android_dependencies.py` 限制成员数量、解压大小、压缩比和文件类型，重建固定输出根目录，只验证本次实际解出的文件，并拒绝越界路径、重复成员及符号链接。`arsc.jar` 已无消费者，`smart-exception` 改由 Maven Central 提供，`android-gif-drawable` 的重复 native 库也不会从归档写入构建目录。应用打包前，Gradle 会检查外部构建的 `liboperit_ripgrep.so`，以及本地 FFmpegKit AAR 中 10 个 arm64 native 库；缺失或零长度文件会使打包失败。默认本地 STT 模型不再来自 Drive 归档，由 Gradle 按 `app/config/stt-model-assets.properties` 获取到生成 assets 目录并校验 SHA-256。
 
 这些 Drive 归档目前还没有内容 hash。归档内容寻址与许可证清单继续由[外部制品清单计划](../docs/TODO/refactor_building_sys/3_ExternalArtifactManifest.md)跟踪，在取得并审计真实归档前不记录推测值。STT 模型资产已有逐文件来源和 hash，但 Sherpa NCNN 模型上游元数据尚未声明许可证，发布前仍需完成许可证审计。
 

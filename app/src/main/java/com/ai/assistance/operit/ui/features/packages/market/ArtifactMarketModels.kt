@@ -60,6 +60,17 @@ enum class PublishArtifactType(
     }
 }
 
+enum class MarketAppVersionCompatibilityKind {
+    BELOW_MINIMUM,
+    ABOVE_MAXIMUM
+}
+
+data class MarketAppVersionCompatibility(
+    val kind: MarketAppVersionCompatibilityKind,
+    val currentVersion: String,
+    val requiredVersion: String
+)
+
 fun PublishArtifactType.marketFormatVersion(): String {
     return when (this) {
         PublishArtifactType.SCRIPT -> "script_v2"
@@ -484,26 +495,51 @@ fun isAppVersionSupported(
     minSupportedAppVersion: String?,
     maxSupportedAppVersion: String?
 ): Boolean {
-    val normalizedCurrent = normalizeAppVersionOrNull(appVersion) ?: return true
-    val normalizedMin = normalizeAppVersionOrNull(minSupportedAppVersion)
-    val normalizedMax = normalizeAppVersionOrNull(maxSupportedAppVersion)
-    if (normalizedMin != null && compareAppVersions(normalizedCurrent, normalizedMin) < 0) {
-        return false
+    return resolveAppVersionCompatibility(
+        appVersion = appVersion,
+        minSupportedAppVersion = minSupportedAppVersion,
+        maxSupportedAppVersion = maxSupportedAppVersion
+    ) == null
+}
+
+fun resolveAppVersionCompatibility(
+    appVersion: String,
+    minSupportedAppVersion: String?,
+    maxSupportedAppVersion: String?
+): MarketAppVersionCompatibility? {
+    val current = requireNotNull(parseAppVersionOrNull(appVersion)) {
+        "Current app version must use x.y.z or x.y.z+n format"
     }
-    if (normalizedMax != null && compareAppVersions(normalizedCurrent, normalizedMax) > 0) {
-        return false
+    val minimum = parseAppVersionOrNull(minSupportedAppVersion)
+    if (minimum != null && compareAppVersions(current.toString(), minimum.toString()) < 0) {
+        return MarketAppVersionCompatibility(
+            kind = MarketAppVersionCompatibilityKind.BELOW_MINIMUM,
+            currentVersion = current.toString(),
+            requiredVersion = minimum.toString()
+        )
     }
-    return true
+    val maximum = parseAppVersionOrNull(maxSupportedAppVersion)
+    if (maximum != null && compareAppVersions(current.toString(), maximum.toString()) > 0) {
+        return MarketAppVersionCompatibility(
+            kind = MarketAppVersionCompatibilityKind.ABOVE_MAXIMUM,
+            currentVersion = current.toString(),
+            requiredVersion = maximum.toString()
+        )
+    }
+    return null
+}
+
+fun MarketV2Entry.resolveCurrentAppVersionCompatibility(): MarketAppVersionCompatibility? {
+    val version = latestVersion ?: return null
+    return resolveAppVersionCompatibility(
+        appVersion = BuildConfig.VERSION_NAME,
+        minSupportedAppVersion = version.minAppVer,
+        maxSupportedAppVersion = version.maxAppVer
+    )
 }
 
 fun MarketV2Entry.isUnsupportedByCurrentAppVersion(): Boolean {
-    return latestVersion?.let { version ->
-        !isAppVersionSupported(
-            appVersion = BuildConfig.VERSION_NAME,
-            minSupportedAppVersion = version.minAppVer,
-            maxSupportedAppVersion = version.maxAppVer
-        )
-    } == true
+    return resolveCurrentAppVersionCompatibility() != null
 }
 
 fun isOperit2VersionAllowed(maxSupportedAppVersion: String?): Boolean {

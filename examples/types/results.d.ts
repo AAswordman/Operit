@@ -1702,6 +1702,94 @@ export interface CharacterCardInfo {
     updatedAt: number;
 }
 
+/** Full character-card tool access configuration. */
+export interface CharacterCardToolAccessConfigResultItem {
+    enabled: boolean;
+    allowedBuiltinTools: string[];
+    allowedPackages: string[];
+    allowedSkills: string[];
+    allowedMcpServers: string[];
+}
+
+/** Full character-card configuration. */
+export interface CharacterCardResultItem {
+    id: string;
+    name: string;
+    description: string;
+    characterSetting: string;
+    openingStatement: string;
+    otherContentChat: string;
+    otherContentVoice: string;
+    attachedTagIds: string[];
+    advancedCustomPrompt: string;
+    marks: string;
+    chatModelBindingMode: 'FOLLOW_GLOBAL' | 'FIXED_CONFIG';
+    chatModelConfigId: string | null;
+    chatModelIndex: number;
+    memoryProfileBindingMode: 'FOLLOW_GLOBAL' | 'FIXED_PROFILE';
+    memoryProfileId: string | null;
+    toolAccessConfig: CharacterCardToolAccessConfigResultItem;
+    isDefault: boolean;
+    createdAt: number;
+    updatedAt: number;
+}
+
+/** Full character-card list and active card state. */
+export interface CharacterCardsResultData {
+    totalCount: number;
+    activeCharacterCardId: string | null;
+    cards: CharacterCardResultItem[];
+    toString(): string;
+}
+
+/** One full character-card result. */
+export interface CharacterCardResultData {
+    card: CharacterCardResultItem;
+    activeCharacterCardId: string | null;
+    toString(): string;
+}
+
+export interface CharacterCardCreateResultData {
+    created: boolean;
+    card: CharacterCardResultItem;
+    activeCharacterCardId: string | null;
+    changedFields: string[];
+    toString(): string;
+}
+
+export interface CharacterCardUpdateResultData {
+    updated: boolean;
+    card: CharacterCardResultItem;
+    activeCharacterCardId: string | null;
+    changedFields: string[];
+    toString(): string;
+}
+
+export interface CharacterCardDeleteResultData {
+    deleted: boolean;
+    characterCardId: string;
+    activeCharacterCardId: string | null;
+    toString(): string;
+}
+
+export interface CharacterCardActivationResultData {
+    activeCharacterCardId: string | null;
+    toString(): string;
+}
+
+export interface CharacterCardImportResultData {
+    imported: boolean;
+    card: CharacterCardResultItem;
+    activeCharacterCardId: string | null;
+    toString(): string;
+}
+
+export interface CharacterCardExportResultData {
+    characterCardId: string;
+    tavernJson: string;
+    toString(): string;
+}
+
 /**
  * Chat find result data
  */

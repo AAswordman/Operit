@@ -13,11 +13,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
@@ -32,6 +41,7 @@ import com.ai.assistance.operit.services.floating.StatusIndicatorStyle
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import kotlinx.coroutines.launch
+import java.text.DecimalFormat
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -62,8 +72,13 @@ fun GlobalDisplaySettingsScreen(
     val screenshotQuality by displayPreferencesManager.screenshotQuality.collectAsState(initial = 75)
     val screenshotScalePercent by displayPreferencesManager.screenshotScalePercent.collectAsState(initial = 75)
     val visitWebWaitSeconds by displayPreferencesManager.visitWebWaitSeconds.collectAsState(initial = 0)
+    val toolPkgHookTimeoutSeconds by displayPreferencesManager.toolPkgHookTimeoutSeconds.collectAsState(initial = 10)
     val virtualDisplayBitrateKbps by displayPreferencesManager.virtualDisplayBitrateKbps.collectAsState(initial = 3000)
     val keepScreenOn by apiPreferences.keepScreenOnFlow.collectAsState(initial = true)
+    val convertLongPastedTextToFile by userPreferences.convertLongPastedTextToFile.collectAsState(initial = true)
+    val longPastedTextFileThreshold by userPreferences.longPastedTextFileThreshold.collectAsState(
+        initial = UserPreferencesManager.DEFAULT_LONG_PASTED_TEXT_FILE_THRESHOLD
+    )
 
     val hasBackgroundImage = LocalThemePreferenceSnapshot.current.useBackgroundImage
     val uiAccessibilityMode by userPreferences.uiAccessibilityMode.collectAsState(initial = false)
@@ -84,6 +99,9 @@ fun GlobalDisplaySettingsScreen(
     }
     var visitWebWaitSliderValue by remember(visitWebWaitSeconds) {
         mutableFloatStateOf(visitWebWaitSeconds.toFloat())
+    }
+    var toolPkgHookTimeoutSliderValue by remember(toolPkgHookTimeoutSeconds) {
+        mutableFloatStateOf(toolPkgHookTimeoutSeconds.toFloat())
     }
     var qualitySliderValue by remember(screenshotQuality) {
         mutableFloatStateOf(screenshotQuality.toFloat())
@@ -128,18 +146,21 @@ fun GlobalDisplaySettingsScreen(
     LaunchedEffect(
         collapseModeSliderValue,
         visitWebWaitSliderValue,
+        toolPkgHookTimeoutSliderValue,
         qualitySliderValue,
         scaleSliderValue
     ) {
         val localCollapseMode =
             collapseModeOptions[collapseModeSliderValue.roundToInt().coerceIn(0, collapseModeOptions.lastIndex)]
         val localVisitWebWaitSeconds = visitWebWaitSliderValue.roundToInt().coerceIn(0, 10)
+        val localToolPkgHookTimeoutSeconds = toolPkgHookTimeoutSliderValue.roundToInt().coerceIn(1, 60)
         val localScreenshotQuality = qualitySliderValue.roundToInt().coerceIn(50, 100)
         val localScreenshotScalePercent = scaleSliderValue.roundToInt().coerceIn(50, 100)
 
         val hasPendingSliderChanges =
             localCollapseMode != toolCollapseMode ||
                 localVisitWebWaitSeconds != visitWebWaitSeconds ||
+                localToolPkgHookTimeoutSeconds != toolPkgHookTimeoutSeconds ||
                 localScreenshotQuality != screenshotQuality ||
                 localScreenshotScalePercent != screenshotScalePercent
 
@@ -150,6 +171,7 @@ fun GlobalDisplaySettingsScreen(
         displayPreferencesManager.saveDisplaySettings(
             toolCollapseMode = if (localCollapseMode != toolCollapseMode) localCollapseMode else null,
             visitWebWaitSeconds = if (localVisitWebWaitSeconds != visitWebWaitSeconds) localVisitWebWaitSeconds else null,
+            toolPkgHookTimeoutSeconds = if (localToolPkgHookTimeoutSeconds != toolPkgHookTimeoutSeconds) localToolPkgHookTimeoutSeconds else null,
             screenshotQuality = if (localScreenshotQuality != screenshotQuality) localScreenshotQuality else null,
             screenshotScalePercent = if (localScreenshotScalePercent != screenshotScalePercent) localScreenshotScalePercent else null
         )
@@ -329,6 +351,34 @@ fun GlobalDisplaySettingsScreen(
             )
 
             DisplayToggleItem(
+                title = stringResource(R.string.long_pasted_text_to_file),
+                subtitle = stringResource(R.string.long_pasted_text_to_file_desc),
+                checked = convertLongPastedTextToFile,
+                onCheckedChange = {
+                    scope.launch {
+                        userPreferences.saveConvertLongPastedTextToFile(it)
+                    }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            if (convertLongPastedTextToFile) {
+                EditableNumberSetting(
+                    title = stringResource(R.string.long_pasted_text_threshold),
+                    subtitle = stringResource(R.string.long_pasted_text_threshold_desc),
+                    value = longPastedTextFileThreshold.toFloat(),
+                    onValueChange = { threshold ->
+                        scope.launch {
+                            userPreferences.saveLongPastedTextFileThreshold(threshold.toInt())
+                        }
+                    },
+                    valueRange = 1_000f..100_000f,
+                    unitText = stringResource(R.string.long_pasted_text_threshold_unit),
+                    backgroundColor = componentBackgroundColor
+                )
+            }
+
+            DisplayToggleItem(
                 title = stringResource(R.string.keep_screen_on),
                 subtitle = stringResource(R.string.keep_screen_on_description),
                 checked = keepScreenOn,
@@ -400,6 +450,48 @@ fun GlobalDisplaySettingsScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.visit_web_wait_time_value, visitWebWaitSliderValue.roundToInt()),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(componentBackgroundColor)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.toolpkg_hook_timeout_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.toolpkg_hook_timeout_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Slider(
+                        value = toolPkgHookTimeoutSliderValue,
+                        onValueChange = { toolPkgHookTimeoutSliderValue = it.roundToInt().toFloat() },
+                        valueRange = 1f..60f,
+                        steps = 58,
+                        modifier = Modifier.weight(1f).padding(vertical = 8.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(
+                            R.string.toolpkg_hook_timeout_value,
+                            toolPkgHookTimeoutSliderValue.roundToInt()
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -908,5 +1000,94 @@ private fun DisplayToggleItem(
             checked = checked,
             onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@Composable
+private fun EditableNumberSetting(
+    title: String,
+    subtitle: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    unitText: String,
+    backgroundColor: Color
+) {
+    val focusManager = LocalFocusManager.current
+    val decimalFormat = remember { DecimalFormat("0") }
+    var textValue by remember(value) { mutableStateOf(decimalFormat.format(value)) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(backgroundColor)
+            .padding(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BasicTextField(
+                    value = textValue,
+                    onValueChange = { newText -> textValue = newText },
+                    modifier = Modifier
+                        .width(64.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    textStyle = TextStyle(
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            val enteredValue = textValue.toFloatOrNull()
+                            if (enteredValue != null) {
+                                val constrainedValue = enteredValue.coerceIn(valueRange)
+                                onValueChange(constrainedValue)
+                                textValue = decimalFormat.format(constrainedValue)
+                            }
+                            focusManager.clearFocus()
+                        }
+                    ),
+                    singleLine = true
+                )
+                Text(
+                    text = unitText,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    ),
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+            }
+        }
     }
 }

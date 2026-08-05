@@ -636,8 +636,12 @@ fun getJsToolsDefinition(): String {
                     return toolCall("get_app_usage_time", params);
                 },
                 // 获取设备位置
-                getLocation: (highAccuracy = false, timeout = 10) => 
-                    toolCall("get_device_location", { high_accuracy: !!highAccuracy, timeout: parseInt(timeout) }),
+                getLocation: (highAccuracy = false, timeout = 10, includeAddress = true) =>
+                    toolCall("get_device_location", {
+                        high_accuracy: !!highAccuracy,
+                        timeout: parseInt(timeout),
+                        include_address: !!includeAddress
+                    }),
                 bluetooth: {
                     requestPermission: () => toolCall("request_bluetooth_permission", {}),
                     getState: () => toolCall("get_bluetooth_state", {}),
@@ -1043,6 +1047,57 @@ fun getJsToolsDefinition(): String {
                     const params = { config_id: String(configId ?? "") };
                     if (modelIndex !== undefined && modelIndex !== null) params.model_index = String(modelIndex);
                     return toolCall("test_model_config_connection", params);
+                },
+                listCharacterCards: () => {
+                    return toolCall("list_character_cards_settings", {});
+                },
+                getCharacterCard: (characterCardId) => {
+                    return toolCall("get_character_card", { character_card_id: characterCardId });
+                },
+                createCharacterCard: (options = {}) => {
+                    const params = { ...options };
+                    [
+                        "attached_tag_ids",
+                        "allowed_builtin_tools",
+                        "allowed_packages",
+                        "allowed_skills",
+                        "allowed_mcp_servers"
+                    ].forEach((name) => {
+                        if (Array.isArray(params[name])) {
+                            params[name] = JSON.stringify(params[name]);
+                        }
+                    });
+                    return toolCall("create_character_card", params);
+                },
+                updateCharacterCard: (characterCardId, updates = {}) => {
+                    const params = { ...updates, character_card_id: characterCardId };
+                    [
+                        "attached_tag_ids",
+                        "allowed_builtin_tools",
+                        "allowed_packages",
+                        "allowed_skills",
+                        "allowed_mcp_servers"
+                    ].forEach((name) => {
+                        if (Array.isArray(params[name])) {
+                            params[name] = JSON.stringify(params[name]);
+                        }
+                    });
+                    return toolCall("update_character_card", params);
+                },
+                deleteCharacterCard: (characterCardId) => {
+                    return toolCall("delete_character_card", { character_card_id: characterCardId });
+                },
+                setActiveCharacterCard: (characterCardId) => {
+                    return toolCall("set_active_character_card", { character_card_id: characterCardId });
+                },
+                clearActiveCharacterCard: () => {
+                    return toolCall("clear_active_character_card", {});
+                },
+                importCharacterCardFromTavernJson: (tavernJson) => {
+                    return toolCall("import_character_card_from_tavern_json", { tavern_json: tavernJson });
+                },
+                exportCharacterCardToTavernJson: (characterCardId) => {
+                    return toolCall("export_character_card_to_tavern_json", { character_card_id: characterCardId });
                 }
             },
             // Tasker event

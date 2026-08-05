@@ -14,28 +14,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextOverflow
-import java.text.DecimalFormat
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.defaultTool.standard.CookiePrivacyManager
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginDialog
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
@@ -70,20 +58,12 @@ fun SettingsScreen(
 ) {
         val context = LocalContext.current
         val githubAuth = remember { GitHubAuthPreferences.getInstance(context) }
-        val userPreferences = remember { UserPreferencesManager.getInstance(context) }
         val scope = rememberCoroutineScope()
         var showGitHubLogin by remember { mutableStateOf(false) }
         var showClearCookieConfirm by remember { mutableStateOf(false) }
 
         val isGitHubLoggedIn = githubAuth.isLoggedInFlow.collectAsState(initial = false).value
         val gitHubUser = githubAuth.userInfoFlow.collectAsState(initial = null).value
-        val convertLongPastedTextToFile by
-                userPreferences.convertLongPastedTextToFile.collectAsState(initial = true)
-        val longPastedTextFileThreshold by
-                userPreferences.longPastedTextFileThreshold.collectAsState(
-                        initial = UserPreferencesManager.DEFAULT_LONG_PASTED_TEXT_FILE_THRESHOLD
-                )
-
         // 创建和记住滚动状态，设置为上次保存的位置
         val scrollState = rememberScrollState(SettingsScreenScrollPosition.value)
 
@@ -189,43 +169,6 @@ fun SettingsScreen(
                                 icon = Icons.Default.AspectRatio,
                                 onClick = navigateToLayoutAdjustmentSettings
                         )
-                }
-
-                SettingsSection(
-                        title = stringResource(R.string.settings_section_chat_input),
-                        icon = Icons.Default.Chat,
-                        containerColor = cardContainerColor
-                ) {
-                        CompactToggleWithDescription(
-                                title = stringResource(R.string.long_pasted_text_to_file),
-                                description = stringResource(R.string.long_pasted_text_to_file_desc),
-                                checked = convertLongPastedTextToFile,
-                                onCheckedChange = { enabled ->
-                                        scope.launch {
-                                                userPreferences.saveConvertLongPastedTextToFile(enabled)
-                                        }
-                                }
-                        )
-
-                        if (convertLongPastedTextToFile) {
-                                CompactSlider(
-                                        title = stringResource(R.string.long_pasted_text_threshold),
-                                        subtitle = stringResource(R.string.long_pasted_text_threshold_desc),
-                                        value = longPastedTextFileThreshold.toFloat(),
-                                        onValueChange = { threshold ->
-                                                scope.launch {
-                                                        userPreferences.saveLongPastedTextFileThreshold(
-                                                                threshold.toInt()
-                                                        )
-                                                }
-                                        },
-                                        valueRange = 1_000f..100_000f,
-                                        steps = 0,
-                                        decimalFormatPattern = "0",
-                                        unitText = stringResource(R.string.long_pasted_text_threshold_unit),
-                                        backgroundColor = cardContainerColor
-                                )
-                        }
                 }
 
                 // ======= AI模型配置 =======
@@ -407,7 +350,6 @@ fun SettingsScreen(
                 )
         }
 }
-
 @Composable
 private fun SettingsSection(
         title: String,
@@ -500,138 +442,3 @@ private fun CompactSettingsItem(
                 )
         }
 }
-
-@Composable
-private fun CompactToggleWithDescription(
-        title: String,
-        description: String,
-        checked: Boolean,
-        onCheckedChange: (Boolean) -> Unit
-) {
-        Row(
-                modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text(
-                                text = title,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                                text = description,
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                        )
-                }
-                Switch(
-                        checked = checked,
-                        onCheckedChange = onCheckedChange,
-                        modifier = Modifier.scale(0.8f)
-                )
-        }
-}
-
-@Composable
-private fun CompactSlider(
-        title: String,
-        subtitle: String,
-        value: Float,
-        onValueChange: (Float) -> Unit,
-        valueRange: ClosedFloatingPointRange<Float>,
-        steps: Int,
-        decimalFormatPattern: String,
-        unitText: String? = null,
-        backgroundColor: Color
-) {
-        val focusManager = LocalFocusManager.current
-        val df = remember(decimalFormatPattern) { DecimalFormat(decimalFormatPattern) }
-
-        var sliderValue by remember(value) { mutableStateOf(value) }
-        var textValue by remember(value) { mutableStateOf(df.format(value)) }
-
-        Column(
-                modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(backgroundColor)
-                        .padding(8.dp)
-        ) {
-                Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                        text = title,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                        text = subtitle,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 10.sp
-                                )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                BasicTextField(
-                                        value = textValue,
-                                        onValueChange = { newText ->
-                                                textValue = newText
-                                                newText.toFloatOrNull()?.let {
-                                                        sliderValue = it.coerceIn(valueRange)
-                                                }
-                                        },
-                                        modifier = Modifier
-                                                .width(64.dp)
-                                                .background(
-                                                        MaterialTheme.colorScheme.surfaceVariant,
-                                                        RoundedCornerShape(4.dp)
-                                                )
-                                                .padding(horizontal = 4.dp, vertical = 2.dp),
-                                        textStyle = TextStyle(
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp,
-                                                textAlign = TextAlign.Center
-                                        ),
-                                        keyboardOptions = KeyboardOptions(
-                                                keyboardType = KeyboardType.Number,
-                                                imeAction = ImeAction.Done
-                                        ),
-                                        keyboardActions = KeyboardActions(
-                                                onDone = {
-                                                        val finalValue = textValue.toFloatOrNull()?.coerceIn(valueRange) ?: sliderValue
-                                                        onValueChange(finalValue)
-                                                        textValue = df.format(finalValue)
-                                                        focusManager.clearFocus()
-                                                }
-                                        ),
-                                        singleLine = true
-                                )
-
-                                if (unitText != null) {
-                                        Text(
-                                                text = unitText,
-                                                style = MaterialTheme.typography.bodySmall.copy(
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.sp
-                                                ),
-                                                modifier = Modifier.padding(start = 2.dp)
-                                        )
-                                }
-                        }
-                }
-        }
-}
-

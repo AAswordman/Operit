@@ -60,6 +60,27 @@ class GeminiProvider(
     companion object {
         private const val TAG = "GeminiProvider"
         private const val DEBUG = true // 开启调试日志
+        private const val INCLUDE_THOUGHTS = "includeThoughts"
+        private const val THINKING_LEVEL = "thinkingLevel"
+        private val thinkingLevelsByGlobalQuality =
+            mapOf(
+                1 to "MINIMAL",
+                2 to "LOW",
+                3 to "MEDIUM",
+                4 to "HIGH",
+                5 to "HIGH"
+            )
+
+        internal fun createThinkingConfigFromGlobalQuality(qualityLevel: Int): JSONObject {
+            val thinkingLevel =
+                thinkingLevelsByGlobalQuality[qualityLevel]
+                    ?: throw IllegalArgumentException(
+                        "Gemini thinking supports global quality values 1 through 5; received $qualityLevel."
+                    )
+            return JSONObject()
+                .put(INCLUDE_THOUGHTS, true)
+                .put(THINKING_LEVEL, thinkingLevel)
+        }
     }
 
     // HTTP客户端
@@ -1237,23 +1258,9 @@ class GeminiProvider(
         // 添加生成配置
         val generationConfig = JSONObject()
 
-        if (enableThinking) {
-            val thinkingQualityLevel =
-                runBlocking {
-                    ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
-                }
-            val thinkingConfig = GeminiThinkingConfig.fromGlobalQuality(thinkingQualityLevel)
-            generationConfig.put("thinkingConfig", thinkingConfig)
-            logDebug("已为Gemini模型启用“思考模式”。")
-        }
-
         // 添加模型参数
         for (param in modelParameters) {
             if (param.isEnabled) {
-                if (GeminiThinkingConfig.isReservedParameter(param.apiName)) {
-                    logDebug("Gemini思考参数由全局思考设置控制，忽略模型参数: ${param.apiName}")
-                    continue
-                }
                 when (param.apiName) {
                     "temperature" ->
                             generationConfig.put(
@@ -1301,6 +1308,16 @@ class GeminiProvider(
                     }
                 }
             }
+        }
+
+        if (enableThinking) {
+            val thinkingQualityLevel =
+                runBlocking {
+                    ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
+                }
+            val thinkingConfig = createThinkingConfigFromGlobalQuality(thinkingQualityLevel)
+            generationConfig.put("thinkingConfig", thinkingConfig)
+            logDebug("已为Gemini模型启用“思考模式”。")
         }
 
         json.put("generationConfig", generationConfig)

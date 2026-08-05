@@ -11,7 +11,7 @@ status: complete
 
 ## 修改意图
 
-以单一映射器将全局思考程度转换为 Gemini 的 `thinkingConfig`。模型自定义参数中的思考字段全部从通用生成参数路径移除，避免它们改变全局思考模式的请求结果。
+`GeminiProvider` 直接将全局思考程度转换为 Gemini 的 `thinkingConfig`。该对象在普通模型参数之后写入请求，因此它只由全局思考模式决定。
 
 ## 参数契约
 
@@ -19,7 +19,8 @@ status: complete
 - 全局程度 `1` -> `thinkingConfig.thinkingLevel = MINIMAL`
 - 全局程度 `2` -> `thinkingConfig.thinkingLevel = LOW`
 - 全局程度 `3` -> `thinkingConfig.thinkingLevel = MEDIUM`
-- 全局程度 `4`、`5` -> `thinkingConfig.thinkingLevel = HIGH`
+- 全局程度 `4` -> `thinkingConfig.thinkingLevel = HIGH`
+- 全局程度 `5` -> `thinkingConfig.thinkingLevel = HIGH`
 
 Gemini 仅接受 `thinkingLevel`、`thinkingBudget` 和 `includeThoughts` 作为 `thinkingConfig` 的成员。响应仍由现有 `part.thought` 和 `thoughtSignature` 处理，因此能进入已实现的折叠思考展示。
 

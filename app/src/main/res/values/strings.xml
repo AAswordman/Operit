@@ -4321,6 +4321,7 @@
     <string name="market_manage_resubmit_confirm_message">将把「%1$s」重新提交到审核队列。</string>
     <string name="market_manage_resubmit_last_state">上次审核：%1$s</string>
     <string name="market_manage_resubmit_last_reason">打回原因：%1$s</string>
+    <string name="market_manage_review_detail">审核说明：%1$s</string>
     <string name="market_manage_review_dialog_title">审核状态</string>
     <string name="market_manage_resubmit_confirm_warning">请确认已经按打回原因完成修改。提交成功后，本地 12 小时内不可再次提交。</string>
     <string name="market_manage_resubmit_confirm_action">确认提交</string>
@@ -4647,6 +4648,9 @@
     <string name="unsupported_artifact_version_title">当前软件版本可能不兼容</string>
     <string name="unsupported_artifact_version_message">「%1$s」声明支持的软件版本为 %3$s，当前软件版本是 %2$s。继续下载仍可能失败或不可用。</string>
     <string name="continue_download_anyway">仍然继续下载</string>
+    <string name="market_version_incompatible_title">无法下载：客户端版本不受支持</string>
+    <string name="market_version_too_low_message">当前客户端版本 %1$s 低于该资源要求的最低版本 %2$s。请更新客户端后再下载。</string>
+    <string name="market_version_too_high_message">当前客户端版本 %1$s 高于该资源最高支持的版本 %2$s。请使用受支持的客户端版本。</string>
     <string name="publisher_colon">发布者: %1$s</string>
     <string name="market_registrar_colon">登记者 %1$s</string>
     <string name="downloaded_already">已下载</string>
@@ -7087,6 +7091,10 @@
     <string name="visit_web_wait_time_title">Visit Web 网页访问等待时间</string>
     <string name="visit_web_wait_time_description">控制 visit_web 在提取页面内容后自动返回前的等待时长。设为 0 秒会立即返回。</string>
     <string name="visit_web_wait_time_value">%1$d 秒</string>
+    <string name="toolpkg_hook_timeout_title">前置插件 Hook 超时</string>
+    <string name="toolpkg_hook_timeout_description">限制发送路径上的 ToolPkg 聊天输入、Prompt 和摘要 Hook 链总等待时间。超时会跳过当前 Hook 并继续处理，默认 10 秒；不影响消息处理回复接管。</string>
+    <string name="toolpkg_hook_timeout_value">%1$d 秒</string>
+    <string name="toolpkg_hook_timeout_continue_sending">前置插件响应超时，已跳过并继续发送</string>
     <string name="enable_enter_to_send">回车发送</string>
     <string name="enable_enter_to_send_description">开启后，聊天输入框按回车会直接发送，键盘发送键也会显示为发送。</string>
     <string name="tool_collapse_mode_title">折叠工具</string>

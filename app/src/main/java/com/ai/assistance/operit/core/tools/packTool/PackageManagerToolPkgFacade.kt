@@ -895,7 +895,8 @@ internal class PackageManagerToolPkgFacade(
         onIntermediateResult: ((Any?) -> Unit)? = null,
         executionContextKey: String? = null,
         runtimeKind: String? = null,
-        dispatchIntermediateOnMain: Boolean = true
+        dispatchIntermediateOnMain: Boolean = true,
+        timeoutMillis: Long? = null
     ): Result<Any?> {
         val normalizedPluginId = pluginId?.trim().orEmpty().ifBlank { null }
         val resolvedEventName = eventName?.trim().orEmpty().ifBlank { event }
@@ -991,7 +992,8 @@ internal class PackageManagerToolPkgFacade(
                 functionName = functionName,
                 params = params,
                 onIntermediateResult = onIntermediateResult,
-                dispatchIntermediateOnMain = dispatchIntermediateOnMain
+                dispatchIntermediateOnMain = dispatchIntermediateOnMain,
+                timeoutMillis = timeoutMillis
             )
             if (shouldLogTiming) {
                 logMessageTiming(

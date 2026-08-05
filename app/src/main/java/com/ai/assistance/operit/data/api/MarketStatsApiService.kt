@@ -241,7 +241,9 @@ data class MarketV2PublisherEntrySummary(
     val listingState: String = "",
     val categoryId: String = "",
     val updatedAt: String = "",
-    val reasonCodes: List<String> = emptyList()
+    val reasonCodes: List<String> = emptyList(),
+    val reviewDetail: String? = null,
+    val reviewDetailUpdatedAt: String? = null
 )
 
 @Serializable

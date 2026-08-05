@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.Properties
+import java.util.zip.ZipFile
 import org.gradle.api.tasks.Sync
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -32,6 +33,68 @@ data class SttModelAsset(
     val expectedBytes: Long,
     val expectedSha256: String,
 )
+
+val requiredExternallyBuiltNativeLibraries =
+    listOf(
+        file("src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so"),
+    )
+
+val ffmpegKitLocalAar = file("libs/ffmpeg-kit-local.aar")
+val requiredFfmpegKitArm64Libraries =
+    setOf(
+        "jni/arm64-v8a/libavcodec.so",
+        "jni/arm64-v8a/libavdevice.so",
+        "jni/arm64-v8a/libavfilter.so",
+        "jni/arm64-v8a/libavformat.so",
+        "jni/arm64-v8a/libavutil.so",
+        "jni/arm64-v8a/libc++_shared.so",
+        "jni/arm64-v8a/libffmpegkit.so",
+        "jni/arm64-v8a/libffmpegkit_abidetect.so",
+        "jni/arm64-v8a/libswresample.so",
+        "jni/arm64-v8a/libswscale.so",
+    )
+
+val verifyExternallyBuiltNativeLibraries by tasks.registering {
+    description = "Checks native libraries built outside Gradle before Android packaging."
+    group = "verification"
+    inputs.property(
+        "requiredLibraries",
+        requiredExternallyBuiltNativeLibraries.map { library -> library.path },
+    )
+    inputs.property("ffmpegKitAar", ffmpegKitLocalAar.path)
+    inputs.property("ffmpegKitArm64Libraries", requiredFfmpegKitArm64Libraries)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        val invalidLibraries =
+            requiredExternallyBuiltNativeLibraries.filter { library ->
+                !library.isFile || library.length() == 0L
+            }
+        require(invalidLibraries.isEmpty()) {
+            "Missing or empty externally built native library: " +
+                invalidLibraries.joinToString { library -> library.path } +
+                ". Run tools/native_ripgrep/build_native_ripgrep.ps1 before packaging."
+        }
+
+        require(ffmpegKitLocalAar.isFile && ffmpegKitLocalAar.length() > 0L) {
+            "Missing or empty FFmpegKit AAR: ${ffmpegKitLocalAar.path}. " +
+                "Build it with tools/ffmpeg/build_ffmpeg_kit_wsl.sh and import it with " +
+                "tools/ffmpeg/import_local_ffmpeg_kit.ps1 before packaging."
+        }
+
+        ZipFile(ffmpegKitLocalAar).use { archive ->
+            val invalidEntries =
+                requiredFfmpegKitArm64Libraries.filter { entryName ->
+                    val entry = archive.getEntry(entryName)
+                    entry == null || entry.size <= 0L
+                }
+            require(invalidEntries.isEmpty()) {
+                "FFmpegKit AAR is missing or contains empty arm64 native libraries: " +
+                    invalidEntries.joinToString()
+            }
+        }
+    }
+}
 
 fun sha256(file: File): String {
     val digest = MessageDigest.getInstance("SHA-256")
@@ -222,7 +285,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 45
-        versionName = "1.12.0+7"
+        versionName = "1.12.0+8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -357,6 +420,7 @@ android {
 
 tasks.named("preBuild") {
     dependsOn(syncMainAssets)
+    dependsOn(verifyExternallyBuiltNativeLibraries)
 }
 
 tasks.matching { it.name.matches(Regex("merge.*Assets")) }.configureEach {

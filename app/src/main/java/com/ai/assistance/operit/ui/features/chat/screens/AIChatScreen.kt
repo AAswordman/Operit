@@ -1628,7 +1628,7 @@ private fun ChatInputBottomBar(
     fun showChatInputHookMessage(message: String?) {
         val normalizedMessage = message?.trim().orEmpty()
         if (normalizedMessage.isNotBlank()) {
-            Toast.makeText(context, normalizedMessage, Toast.LENGTH_SHORT).show()
+            actualViewModel.showToast(normalizedMessage)
         }
     }
 
@@ -1723,6 +1723,7 @@ private fun ChatInputBottomBar(
                         return@launch
                     }
                 }
+                showChatInputHookMessage(submitDecision.noticeMessage)
                 val finalText = submitDecision.text ?: item.text
                 val shouldWaitForCancel = cancelCurrentConversation && latestQueueBlocked.value
                 if (shouldWaitForCancel) {
@@ -1813,6 +1814,7 @@ private fun ChatInputBottomBar(
                     return@launch
                 }
             }
+            showChatInputHookMessage(submitDecision.noticeMessage)
 
             val finalText = submitDecision.text ?: userMessage.text
             if (finalText != userMessage.text) {

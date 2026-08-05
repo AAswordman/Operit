@@ -19,7 +19,15 @@ import {
     FunctionModelConfigsResultData,
     FunctionModelConfigResultData,
     FunctionModelBindingResultData,
-    ModelConfigConnectionTestResultData
+    ModelConfigConnectionTestResultData,
+    CharacterCardsResultData,
+    CharacterCardResultData,
+    CharacterCardCreateResultData,
+    CharacterCardUpdateResultData,
+    CharacterCardDeleteResultData,
+    CharacterCardActivationResultData,
+    CharacterCardImportResultData,
+    CharacterCardExportResultData
 } from './results';
 
 /**
@@ -158,6 +166,38 @@ export namespace SoftwareSettings {
         max_concurrent_requests?: number;
     }
 
+    type CharacterCardChatModelBindingMode = 'FOLLOW_GLOBAL' | 'FIXED_CONFIG';
+    type CharacterCardMemoryProfileBindingMode = 'FOLLOW_GLOBAL' | 'FIXED_PROFILE';
+
+    interface CharacterCardWriteOptions {
+        name?: string;
+        description?: string;
+        character_setting?: string;
+        opening_statement?: string;
+        other_content_chat?: string;
+        other_content_voice?: string;
+        /** JSON string array or a string array. */
+        attached_tag_ids?: string | string[];
+        advanced_custom_prompt?: string;
+        marks?: string;
+        chat_model_binding_mode?: CharacterCardChatModelBindingMode;
+        /** Empty string clears the binding id. */
+        chat_model_config_id?: string;
+        chat_model_index?: number;
+        memory_profile_binding_mode?: CharacterCardMemoryProfileBindingMode;
+        /** Empty string clears the binding id. */
+        memory_profile_id?: string;
+        tool_access_enabled?: boolean;
+        /** JSON string array or a string array. */
+        allowed_builtin_tools?: string | string[];
+        /** JSON string array or a string array. */
+        allowed_packages?: string | string[];
+        /** JSON string array or a string array. */
+        allowed_skills?: string | string[];
+        /** JSON string array or a string array. */
+        allowed_mcp_servers?: string | string[];
+    }
+
     /**
      * Read current value of an environment variable.
      * @param key - Environment variable key
@@ -282,4 +322,60 @@ export namespace SoftwareSettings {
         configId: string,
         modelIndex?: number | string
     ): Promise<ModelConfigConnectionTestResultData>;
+
+    /**
+     * List full character-card settings and the current active character card.
+     */
+    function listCharacterCards(): Promise<CharacterCardsResultData>;
+
+    /**
+     * Read one full character-card configuration by id.
+     */
+    function getCharacterCard(characterCardId: string): Promise<CharacterCardResultData>;
+
+    /**
+     * Create a character card. A non-blank name is required.
+     */
+    function createCharacterCard(
+        options: CharacterCardWriteOptions & { name: string }
+    ): Promise<CharacterCardCreateResultData>;
+
+    /**
+     * Update selected editable fields of a character card.
+     */
+    function updateCharacterCard(
+        characterCardId: string,
+        updates: CharacterCardWriteOptions
+    ): Promise<CharacterCardUpdateResultData>;
+
+    /**
+     * Delete a non-default character card.
+     */
+    function deleteCharacterCard(characterCardId: string): Promise<CharacterCardDeleteResultData>;
+
+    /**
+     * Set one existing character card as active.
+     */
+    function setActiveCharacterCard(
+        characterCardId: string
+    ): Promise<CharacterCardActivationResultData>;
+
+    /**
+     * Clear the active character-card selection.
+     */
+    function clearActiveCharacterCard(): Promise<CharacterCardActivationResultData>;
+
+    /**
+     * Import one character card from Tavern JSON.
+     */
+    function importCharacterCardFromTavernJson(
+        tavernJson: string
+    ): Promise<CharacterCardImportResultData>;
+
+    /**
+     * Export one character card in Tavern JSON format.
+     */
+    function exportCharacterCardToTavernJson(
+        characterCardId: string
+    ): Promise<CharacterCardExportResultData>;
 }

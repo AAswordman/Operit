@@ -119,7 +119,10 @@ internal class JsToolPkgRegistrationSession {
 
     fun captureMarketOrigin(specJson: String) {
         synchronized(lock) {
-            check(capture != null) { "toolpkg registration session is not active" }
+            // Marketplace publishing appends this call to the main module. The module can be
+            // evaluated again by runtime hooks after registration has closed, where the marker
+            // must remain harmless instead of aborting the hook execution.
+            if (capture == null) return
             // Provenance is optional for legacy packages; malformed markers never become trusted metadata.
             marketOrigin = ToolPkgMarketOriginCodec.parse(specJson)
         }

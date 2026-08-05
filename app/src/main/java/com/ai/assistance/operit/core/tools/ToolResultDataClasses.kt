@@ -2370,6 +2370,134 @@ data class SpeechServicesTtsPlaybackTestResultData(
     }
 }
 
+/** 角色卡工具访问配置条目 */
+@Serializable
+data class CharacterCardToolAccessConfigResultItem(
+    val enabled: Boolean,
+    val allowedBuiltinTools: List<String>,
+    val allowedPackages: List<String>,
+    val allowedSkills: List<String>,
+    val allowedMcpServers: List<String>
+)
+
+/** 角色卡配置条目 */
+@Serializable
+data class CharacterCardResultItem(
+    val id: String,
+    val name: String,
+    val description: String,
+    val characterSetting: String,
+    val openingStatement: String,
+    val otherContentChat: String,
+    val otherContentVoice: String,
+    val attachedTagIds: List<String>,
+    val advancedCustomPrompt: String,
+    val marks: String,
+    val chatModelBindingMode: String,
+    val chatModelConfigId: String?,
+    val chatModelIndex: Int,
+    val memoryProfileBindingMode: String,
+    val memoryProfileId: String?,
+    val toolAccessConfig: CharacterCardToolAccessConfigResultItem,
+    val isDefault: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+/** 角色卡列表结果 */
+@Serializable
+data class CharacterCardsResultData(
+    val totalCount: Int,
+    val activeCharacterCardId: String?,
+    val cards: List<CharacterCardResultItem>
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Character cards: $totalCount, active=$activeCharacterCardId"
+    }
+}
+
+/** 单张角色卡查询结果 */
+@Serializable
+data class CharacterCardResultData(
+    val card: CharacterCardResultItem,
+    val activeCharacterCardId: String?
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Character card: ${card.id} (${card.name})"
+    }
+}
+
+/** 角色卡创建结果 */
+@Serializable
+data class CharacterCardCreateResultData(
+    val created: Boolean,
+    val card: CharacterCardResultItem,
+    val activeCharacterCardId: String?,
+    val changedFields: List<String>
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Character card created: ${card.id} (${card.name})"
+    }
+}
+
+/** 角色卡更新结果 */
+@Serializable
+data class CharacterCardUpdateResultData(
+    val updated: Boolean,
+    val card: CharacterCardResultItem,
+    val activeCharacterCardId: String?,
+    val changedFields: List<String>
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Character card updated: ${card.id}, changed=${changedFields.size}"
+    }
+}
+
+/** 角色卡删除结果 */
+@Serializable
+data class CharacterCardDeleteResultData(
+    val deleted: Boolean,
+    val characterCardId: String,
+    val activeCharacterCardId: String?
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Character card deleted: $characterCardId"
+    }
+}
+
+/** 角色卡活跃状态更新结果 */
+@Serializable
+data class CharacterCardActivationResultData(
+    val activeCharacterCardId: String?
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Active character card: $activeCharacterCardId"
+    }
+}
+
+/** 角色卡 Tavern JSON 导入结果 */
+@Serializable
+data class CharacterCardImportResultData(
+    val imported: Boolean,
+    val card: CharacterCardResultItem,
+    val activeCharacterCardId: String?
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Character card imported: ${card.id} (${card.name})"
+    }
+}
+
+/** 角色卡 Tavern JSON 导出结果 */
+@Serializable
+data class CharacterCardExportResultData(
+    val characterCardId: String,
+    val tavernJson: String
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Character card exported: $characterCardId"
+    }
+}
+
 /** 模型配置条目 */
 @Serializable
 data class ModelConfigResultItem(

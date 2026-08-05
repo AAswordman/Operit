@@ -6148,6 +6148,10 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="visit_web_wait_time_title">Waktu Tunggu Akses Halaman Web Visit Web</string>
     <string name="visit_web_wait_time_description">Mengontrol durasi tunggu visit_web sebelum kembali otomatis setelah mengekstrak konten halaman. Setel ke 0 detik untuk kembali segera.</string>
     <string name="visit_web_wait_time_value">%1$d detik</string>
+    <string name="toolpkg_hook_timeout_title">Batas Waktu Hook ToolPkg</string>
+    <string name="toolpkg_hook_timeout_description">Membatasi total waktu tunggu rantai Hook input chat, prompt, dan ringkasan ToolPkg pada jalur pengiriman. Saat batas waktu habis, Hook saat ini dilewati dan pemrosesan berlanjut. Nilai bawaan: 10 detik. Tidak memengaruhi pengambilalihan respons message_processing.</string>
+    <string name="toolpkg_hook_timeout_value">%1$d detik</string>
+    <string name="toolpkg_hook_timeout_continue_sending">Plugin sebelum pengiriman kehabisan waktu. Plugin dilewati dan pesan akan tetap dikirim.</string>
     <string name="enable_enter_to_send">Kirim dengan Enter</string>
     <string name="enable_enter_to_send_description">Saat diaktifkan, menekan Enter di kotak input obrolan akan langsung mengirim, dan tombol kirim keyboard juga akan ditampilkan sebagai kirim.</string>
     <string name="tool_collapse_mode_title">Ciutkan Alat</string>
@@ -7353,6 +7357,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="market_manage_resubmit_confirm_message">"%1$s" akan diajukan ulang ke antrian peninjauan.</string>
     <string name="market_manage_resubmit_last_state">Peninjauan terakhir: %1$s</string>
     <string name="market_manage_resubmit_last_reason">Alasan penolakan: %1$s</string>
+    <string name="market_manage_review_detail">Detail peninjauan: %1$s</string>
     <string name="market_manage_review_dialog_title">Status Peninjauan</string>
     <string name="market_manage_resubmit_confirm_warning">Pastikan Anda telah melakukan perubahan sesuai alasan penolakan. Setelah berhasil diajukan, tidak dapat diajukan lagi dalam 12 jam ke depan secara lokal.</string>
     <string name="market_manage_resubmit_confirm_action">Konfirmasi Pengajuan</string>

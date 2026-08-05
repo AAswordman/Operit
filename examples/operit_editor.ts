@@ -6,8 +6,8 @@
     en: "Operit Platform Editor"
   }
   description: {
-    zh: '''Operit 平台配置直改工具包：提供一组可直接读取与修改 Operit 平台设置的工具，覆盖 MCP、Skill、Sandbox Package、功能模型绑定、模型参数、上下文总结与 TTS/STT 语音服务配置。'''
-    en: '''Direct Operit platform configuration toolkit: a collection of tools for reading and directly modifying Operit platform settings, covering MCP, Skill, Sandbox Package, function-model bindings, model parameters, context-summary settings, and TTS/STT speech-service configuration.'''
+    zh: '''Operit 平台配置直改工具包：提供一组可直接读取与修改 Operit 平台设置的工具，覆盖 MCP、Skill、Sandbox Package、角色卡、功能模型绑定、模型参数、上下文总结与 TTS/STT 语音服务配置。'''
+    en: '''Direct Operit platform configuration toolkit: a collection of tools for reading and directly modifying Operit platform settings, covering MCP, Skill, Sandbox Package, character cards, function-model bindings, model parameters, context-summary settings, and TTS/STT speech-service configuration.'''
   }
 
   enabledByDefault: true
@@ -24,6 +24,7 @@
 - 用户提到沙盒包（Package）开关、内置包列表、导入删除路径、包启用状态异常
 - 用户让你排查 Operit 的插件配置路径、部署目录、开关状态、环境变量
 - 用户提到功能模型绑定、模型配置新增/删除/修改、模型连接测试
+- 用户提到角色卡的新增、编辑、删除、激活、酒馆 JSON 导入或导出
 - 用户提到 TTS/STT 语音服务不会配置、参数太多不会填、语音播报/语音识别不可用
 - 问题核心是“配置和部署链路”，而不是普通问答
 
@@ -161,6 +162,18 @@
 - 可先用 `get_function_model_config` 查看对应功能绑定配置里的 `max_tokens` 参数。
 - 对 DeepSeek 来说，默认常见是 4096；可将 `max_tokens_enabled` 打开并把 `max_tokens` 设到 8192 再测试。
 - 对其他模型，先联网确认该模型可支持的输出上限后再设置。
+
+【角色卡管理】
+1) 角色卡是全局配置资产。创建、编辑角色设定、模型绑定、记忆配置、工具白名单、激活与 Tavern JSON 导入导出均使用本包的角色卡工具。
+2) 对话只在创建或发送时引用角色卡；不要把角色卡完整配置管理放进会话操作。
+3) 关键工具：
+- `list_character_cards`：查看完整角色卡列表和当前活跃角色卡。
+- `get_character_card`：读取单张角色卡完整配置。
+- `create_character_card`、`update_character_card`、`delete_character_card`：管理角色卡。
+- `set_active_character_card`、`clear_active_character_card`：管理活跃角色卡。
+- `import_character_card_from_tavern_json`、`export_character_card_to_tavern_json`：与 Tavern JSON 交换单张角色卡。
+4) `attached_tag_ids` 与四个 `allowed_*` 字段都使用 JSON 字符串数组，例如 `["tag-a","tag-b"]`。
+5) 默认角色卡不可删除。更新不会改变角色卡 ID、创建时间或默认属性。
 
 【上下文总结模块（Context Summary）】
 1) 用途：
@@ -1998,6 +2011,349 @@
       ]
     },
     {
+      name: "list_character_cards"
+      description: {
+        zh: '''列出完整角色卡配置及当前活跃角色卡。'''
+        en: '''List full character-card settings and the active character card.'''
+      }
+      parameters: []
+    },
+    {
+      name: "get_character_card"
+      description: {
+        zh: '''按角色卡 ID 获取完整配置。'''
+        en: '''Get one full character-card configuration by id.'''
+      }
+      parameters: [
+        {
+          name: "character_card_id"
+          description: { zh: "角色卡 ID" en: "Character card id" }
+          type: string
+          required: true
+        }
+      ]
+    },
+    {
+      name: "create_character_card"
+      description: {
+        zh: '''创建角色卡。name 必填；列表字段传 JSON 字符串数组。'''
+        en: '''Create a character card. name is required; list fields use JSON string arrays.'''
+      }
+      parameters: [
+        {
+          name: "name"
+          description: { zh: "角色卡名称" en: "Character card name" }
+          type: string
+          required: true
+        },
+        {
+          name: "description"
+          description: { zh: "可选，简介" en: "Optional description" }
+          type: string
+          required: false
+        },
+        {
+          name: "character_setting"
+          description: { zh: "可选，角色设定提示词" en: "Optional character-setting prompt" }
+          type: string
+          required: false
+        },
+        {
+          name: "opening_statement"
+          description: { zh: "可选，开场白" en: "Optional opening statement" }
+          type: string
+          required: false
+        },
+        {
+          name: "other_content_chat"
+          description: { zh: "可选，聊天附加内容" en: "Optional chat content" }
+          type: string
+          required: false
+        },
+        {
+          name: "other_content_voice"
+          description: { zh: "可选，语音附加内容" en: "Optional voice content" }
+          type: string
+          required: false
+        },
+        {
+          name: "attached_tag_ids"
+          description: { zh: "可选，标签 ID 的 JSON 字符串数组" en: "Optional JSON string array of tag ids" }
+          type: string
+          required: false
+        },
+        {
+          name: "advanced_custom_prompt"
+          description: { zh: "可选，高级自定义提示词" en: "Optional advanced custom prompt" }
+          type: string
+          required: false
+        },
+        {
+          name: "marks"
+          description: { zh: "可选，备注" en: "Optional marks" }
+          type: string
+          required: false
+        },
+        {
+          name: "chat_model_binding_mode"
+          description: { zh: "可选，FOLLOW_GLOBAL 或 FIXED_CONFIG" en: "Optional FOLLOW_GLOBAL or FIXED_CONFIG" }
+          type: string
+          required: false
+        },
+        {
+          name: "chat_model_config_id"
+          description: { zh: "可选，固定对话模型配置 ID；空字符串清除" en: "Optional fixed chat-model config id; empty string clears" }
+          type: string
+          required: false
+        },
+        {
+          name: "chat_model_index"
+          description: { zh: "可选，固定对话模型索引" en: "Optional fixed chat-model index" }
+          type: integer
+          required: false
+        },
+        {
+          name: "memory_profile_binding_mode"
+          description: { zh: "可选，FOLLOW_GLOBAL 或 FIXED_PROFILE" en: "Optional FOLLOW_GLOBAL or FIXED_PROFILE" }
+          type: string
+          required: false
+        },
+        {
+          name: "memory_profile_id"
+          description: { zh: "可选，固定记忆配置 ID；空字符串清除" en: "Optional fixed memory-profile id; empty string clears" }
+          type: string
+          required: false
+        },
+        {
+          name: "tool_access_enabled"
+          description: { zh: "可选，启用角色卡工具白名单" en: "Optional switch for the card tool allowlist" }
+          type: boolean
+          required: false
+        },
+        {
+          name: "allowed_builtin_tools"
+          description: { zh: "可选，内置工具名的 JSON 字符串数组" en: "Optional JSON string array of built-in tool names" }
+          type: string
+          required: false
+        },
+        {
+          name: "allowed_packages"
+          description: { zh: "可选，包名的 JSON 字符串数组" en: "Optional JSON string array of package names" }
+          type: string
+          required: false
+        },
+        {
+          name: "allowed_skills"
+          description: { zh: "可选，Skill 名称的 JSON 字符串数组" en: "Optional JSON string array of skill names" }
+          type: string
+          required: false
+        },
+        {
+          name: "allowed_mcp_servers"
+          description: { zh: "可选，MCP 服务名的 JSON 字符串数组" en: "Optional JSON string array of MCP server names" }
+          type: string
+          required: false
+        }
+      ]
+    },
+    {
+      name: "update_character_card"
+      description: {
+        zh: '''按角色卡 ID 更新提供的字段。除 ID 外的字段定义与 create_character_card 一致。'''
+        en: '''Update supplied fields by character-card id. The editable fields match create_character_card.'''
+      }
+      parameters: [
+        {
+          name: "character_card_id"
+          description: { zh: "角色卡 ID" en: "Character card id" }
+          type: string
+          required: true
+        },
+        {
+          name: "name"
+          description: { zh: "可选，角色卡名称" en: "Optional character card name" }
+          type: string
+          required: false
+        },
+        {
+          name: "description"
+          description: { zh: "可选，简介" en: "Optional description" }
+          type: string
+          required: false
+        },
+        {
+          name: "character_setting"
+          description: { zh: "可选，角色设定提示词" en: "Optional character-setting prompt" }
+          type: string
+          required: false
+        },
+        {
+          name: "opening_statement"
+          description: { zh: "可选，开场白" en: "Optional opening statement" }
+          type: string
+          required: false
+        },
+        {
+          name: "other_content_chat"
+          description: { zh: "可选，聊天附加内容" en: "Optional chat content" }
+          type: string
+          required: false
+        },
+        {
+          name: "other_content_voice"
+          description: { zh: "可选，语音附加内容" en: "Optional voice content" }
+          type: string
+          required: false
+        },
+        {
+          name: "attached_tag_ids"
+          description: { zh: "可选，标签 ID 的 JSON 字符串数组" en: "Optional JSON string array of tag ids" }
+          type: string
+          required: false
+        },
+        {
+          name: "advanced_custom_prompt"
+          description: { zh: "可选，高级自定义提示词" en: "Optional advanced custom prompt" }
+          type: string
+          required: false
+        },
+        {
+          name: "marks"
+          description: { zh: "可选，备注" en: "Optional marks" }
+          type: string
+          required: false
+        },
+        {
+          name: "chat_model_binding_mode"
+          description: { zh: "可选，FOLLOW_GLOBAL 或 FIXED_CONFIG" en: "Optional FOLLOW_GLOBAL or FIXED_CONFIG" }
+          type: string
+          required: false
+        },
+        {
+          name: "chat_model_config_id"
+          description: { zh: "可选，固定对话模型配置 ID；空字符串清除" en: "Optional fixed chat-model config id; empty string clears" }
+          type: string
+          required: false
+        },
+        {
+          name: "chat_model_index"
+          description: { zh: "可选，固定对话模型索引" en: "Optional fixed chat-model index" }
+          type: integer
+          required: false
+        },
+        {
+          name: "memory_profile_binding_mode"
+          description: { zh: "可选，FOLLOW_GLOBAL 或 FIXED_PROFILE" en: "Optional FOLLOW_GLOBAL or FIXED_PROFILE" }
+          type: string
+          required: false
+        },
+        {
+          name: "memory_profile_id"
+          description: { zh: "可选，固定记忆配置 ID；空字符串清除" en: "Optional fixed memory-profile id; empty string clears" }
+          type: string
+          required: false
+        },
+        {
+          name: "tool_access_enabled"
+          description: { zh: "可选，启用角色卡工具白名单" en: "Optional switch for the card tool allowlist" }
+          type: boolean
+          required: false
+        },
+        {
+          name: "allowed_builtin_tools"
+          description: { zh: "可选，内置工具名的 JSON 字符串数组" en: "Optional JSON string array of built-in tool names" }
+          type: string
+          required: false
+        },
+        {
+          name: "allowed_packages"
+          description: { zh: "可选，包名的 JSON 字符串数组" en: "Optional JSON string array of package names" }
+          type: string
+          required: false
+        },
+        {
+          name: "allowed_skills"
+          description: { zh: "可选，Skill 名称的 JSON 字符串数组" en: "Optional JSON string array of skill names" }
+          type: string
+          required: false
+        },
+        {
+          name: "allowed_mcp_servers"
+          description: { zh: "可选，MCP 服务名的 JSON 字符串数组" en: "Optional JSON string array of MCP server names" }
+          type: string
+          required: false
+        }
+      ]
+    },
+    {
+      name: "delete_character_card"
+      description: {
+        zh: '''删除非默认角色卡。'''
+        en: '''Delete a non-default character card.'''
+      }
+      parameters: [
+        {
+          name: "character_card_id"
+          description: { zh: "角色卡 ID" en: "Character card id" }
+          type: string
+          required: true
+        }
+      ]
+    },
+    {
+      name: "set_active_character_card"
+      description: {
+        zh: '''将指定角色卡设为活跃角色卡。'''
+        en: '''Set an existing character card as active.'''
+      }
+      parameters: [
+        {
+          name: "character_card_id"
+          description: { zh: "角色卡 ID" en: "Character card id" }
+          type: string
+          required: true
+        }
+      ]
+    },
+    {
+      name: "clear_active_character_card"
+      description: {
+        zh: '''清除当前活跃角色卡。'''
+        en: '''Clear the current active character card.'''
+      }
+      parameters: []
+    },
+    {
+      name: "import_character_card_from_tavern_json"
+      description: {
+        zh: '''从 Tavern JSON 导入一张角色卡。'''
+        en: '''Import one character card from Tavern JSON.'''
+      }
+      parameters: [
+        {
+          name: "tavern_json"
+          description: { zh: "Tavern 角色卡 JSON 内容" en: "Tavern character-card JSON content" }
+          type: string
+          required: true
+        }
+      ]
+    },
+    {
+      name: "export_character_card_to_tavern_json"
+      description: {
+        zh: '''将一张角色卡导出为 Tavern JSON。'''
+        en: '''Export one character card as Tavern JSON.'''
+      }
+      parameters: [
+        {
+          name: "character_card_id"
+          description: { zh: "角色卡 ID" en: "Character card id" }
+          type: string
+          required: true
+        }
+      ]
+    },
+    {
       name: "ping_mcp"
       description: {
         zh: '''直通 use_package 的探测工具：用于快速测试某个 package 是否可被加载（MCP/Skill/Sandbox 三兼容）。'''
@@ -3773,6 +4129,240 @@ async function test_model_config_connection(params?: { config_id?: string; model
   }
 }
 
+type CharacterCardArrayInput = string | string[];
+
+type CharacterCardWriteParams = {
+  name?: string;
+  description?: string;
+  character_setting?: string;
+  opening_statement?: string;
+  other_content_chat?: string;
+  other_content_voice?: string;
+  attached_tag_ids?: CharacterCardArrayInput;
+  advanced_custom_prompt?: string;
+  marks?: string;
+  chat_model_binding_mode?: "FOLLOW_GLOBAL" | "FIXED_CONFIG";
+  chat_model_config_id?: string;
+  chat_model_index?: number;
+  memory_profile_binding_mode?: "FOLLOW_GLOBAL" | "FIXED_PROFILE";
+  memory_profile_id?: string;
+  tool_access_enabled?: boolean;
+  allowed_builtin_tools?: CharacterCardArrayInput;
+  allowed_packages?: CharacterCardArrayInput;
+  allowed_skills?: CharacterCardArrayInput;
+  allowed_mcp_servers?: CharacterCardArrayInput;
+};
+
+function complete_character_card_error(toolName: string, error: unknown) {
+  const message = get_error_message(error);
+  console.error(`[operit_editor] ${toolName} failed: ${message}`, error);
+  complete({
+    success: false,
+    message
+  });
+}
+
+async function list_character_cards() {
+  try {
+    const result = await Tools.SoftwareSettings.listCharacterCards();
+    complete({
+      success: true,
+      message: `Character cards listed: ${result.totalCount}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("list_character_cards", error);
+  }
+}
+
+async function get_character_card(params?: { character_card_id?: string }) {
+  const characterCardId = params?.character_card_id?.trim();
+  if (!characterCardId) {
+    complete({
+      success: false,
+      message: "Missing required parameter: character_card_id"
+    });
+    return;
+  }
+
+  try {
+    const result = await Tools.SoftwareSettings.getCharacterCard(characterCardId);
+    complete({
+      success: true,
+      message: `Character card fetched: ${result.card.name}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("get_character_card", error);
+  }
+}
+
+async function create_character_card(params?: CharacterCardWriteParams) {
+  if (params === undefined) {
+    complete({
+      success: false,
+      message: "Missing required parameter: name"
+    });
+    return;
+  }
+  const name = params.name?.trim();
+  if (!name) {
+    complete({
+      success: false,
+      message: "Missing required parameter: name"
+    });
+    return;
+  }
+
+  try {
+    const { name: _ignoredName, ...options } = params;
+    const result = await Tools.SoftwareSettings.createCharacterCard({
+      ...options,
+      name
+    });
+    complete({
+      success: true,
+      message: `Character card created: ${result.card.name}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("create_character_card", error);
+  }
+}
+
+async function update_character_card(
+  params?: CharacterCardWriteParams & { character_card_id?: string }
+) {
+  const characterCardId = params?.character_card_id?.trim();
+  if (!characterCardId) {
+    complete({
+      success: false,
+      message: "Missing required parameter: character_card_id"
+    });
+    return;
+  }
+  if (params === undefined) {
+    complete({
+      success: false,
+      message: "Missing character card update parameters"
+    });
+    return;
+  }
+
+  try {
+    const { character_card_id: _ignoredCharacterCardId, ...updates } = params;
+    const result = await Tools.SoftwareSettings.updateCharacterCard(characterCardId, updates);
+    complete({
+      success: true,
+      message: `Character card updated: ${result.card.name}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("update_character_card", error);
+  }
+}
+
+async function delete_character_card(params?: { character_card_id?: string }) {
+  const characterCardId = params?.character_card_id?.trim();
+  if (!characterCardId) {
+    complete({
+      success: false,
+      message: "Missing required parameter: character_card_id"
+    });
+    return;
+  }
+
+  try {
+    const result = await Tools.SoftwareSettings.deleteCharacterCard(characterCardId);
+    complete({
+      success: true,
+      message: `Character card deleted: ${result.characterCardId}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("delete_character_card", error);
+  }
+}
+
+async function set_active_character_card(params?: { character_card_id?: string }) {
+  const characterCardId = params?.character_card_id?.trim();
+  if (!characterCardId) {
+    complete({
+      success: false,
+      message: "Missing required parameter: character_card_id"
+    });
+    return;
+  }
+
+  try {
+    const result = await Tools.SoftwareSettings.setActiveCharacterCard(characterCardId);
+    complete({
+      success: true,
+      message: `Active character card set: ${result.activeCharacterCardId}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("set_active_character_card", error);
+  }
+}
+
+async function clear_active_character_card() {
+  try {
+    const result = await Tools.SoftwareSettings.clearActiveCharacterCard();
+    complete({
+      success: true,
+      message: "Active character card cleared.",
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("clear_active_character_card", error);
+  }
+}
+
+async function import_character_card_from_tavern_json(params?: { tavern_json?: string }) {
+  const tavernJson = params?.tavern_json;
+  if (!tavernJson?.trim()) {
+    complete({
+      success: false,
+      message: "Missing required parameter: tavern_json"
+    });
+    return;
+  }
+
+  try {
+    const result = await Tools.SoftwareSettings.importCharacterCardFromTavernJson(tavernJson);
+    complete({
+      success: true,
+      message: `Character card imported: ${result.card.name}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("import_character_card_from_tavern_json", error);
+  }
+}
+
+async function export_character_card_to_tavern_json(params?: { character_card_id?: string }) {
+  const characterCardId = params?.character_card_id?.trim();
+  if (!characterCardId) {
+    complete({
+      success: false,
+      message: "Missing required parameter: character_card_id"
+    });
+    return;
+  }
+
+  try {
+    const result = await Tools.SoftwareSettings.exportCharacterCardToTavernJson(characterCardId);
+    complete({
+      success: true,
+      message: `Character card exported: ${result.characterCardId}.`,
+      data: result
+    });
+  } catch (error: unknown) {
+    complete_character_card_error("export_character_card_to_tavern_json", error);
+  }
+}
+
 async function ping_mcp(params?: { package_name?: string }) {
   try {
     const packageName = (params?.package_name ?? "").trim();
@@ -3822,6 +4412,15 @@ async function ping_mcp(params?: { package_name?: string }) {
     set_context_summary_config,
     set_function_model_config,
     test_model_config_connection,
+    list_character_cards,
+    get_character_card,
+    create_character_card,
+    update_character_card,
+    delete_character_card,
+    set_active_character_card,
+    clear_active_character_card,
+    import_character_card_from_tavern_json,
+    export_character_card_to_tavern_json,
     ping_mcp
   };
 })();
@@ -3849,6 +4448,15 @@ exports.get_context_summary_config = operitEditorPackage.get_context_summary_con
 exports.set_context_summary_config = operitEditorPackage.set_context_summary_config;
 exports.set_function_model_config = operitEditorPackage.set_function_model_config;
 exports.test_model_config_connection = operitEditorPackage.test_model_config_connection;
+exports.list_character_cards = operitEditorPackage.list_character_cards;
+exports.get_character_card = operitEditorPackage.get_character_card;
+exports.create_character_card = operitEditorPackage.create_character_card;
+exports.update_character_card = operitEditorPackage.update_character_card;
+exports.delete_character_card = operitEditorPackage.delete_character_card;
+exports.set_active_character_card = operitEditorPackage.set_active_character_card;
+exports.clear_active_character_card = operitEditorPackage.clear_active_character_card;
+exports.import_character_card_from_tavern_json = operitEditorPackage.import_character_card_from_tavern_json;
+exports.export_character_card_to_tavern_json = operitEditorPackage.export_character_card_to_tavern_json;
 exports.ping_mcp = operitEditorPackage.ping_mcp;
 
 

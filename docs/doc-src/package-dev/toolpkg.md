@@ -31,6 +31,18 @@ ToolPkg.registerAppLifecycleHook(...)
 ToolPkg.registerMessageProcessingPlugin(...)
 ```
 
+## 前置 Hook 超时门禁
+
+宿主在“显示与行为”中提供“前置插件 Hook 超时”设置，取值范围为 1 至 60 秒，默认值为 5 秒。
+
+该限制覆盖同步执行的聊天输入、Prompt 与摘要生成 Hook。一次 bridge 分发内的多个 Hook 共用总等待时间，不会为每个 Hook 重新计算完整超时。
+
+达到截止时间时，宿主会中断当前 QuickJS 执行并忽略该 Hook 的返回值，随后使用此前已累积的上下文继续消息处理。开发者应确保 Hook 能尽快完成，并且不应依赖超时后的副作用。
+
+`message_processing` 的回复接管链保持独立，不使用该设置。
+
+用户通过聊天输入框提交消息时，聊天输入 Hook 的超时会显示一条聊天内提示，说明该 Hook 已被跳过且消息会继续发送。Prompt 与摘要 Hook 的超时仅写入日志，避免在后台阶段重复打扰用户。
+
 此外，全局还声明了一组辅助函数：
 
 - `registerToolPkgToolboxUiModule(...)`

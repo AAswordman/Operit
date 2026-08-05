@@ -116,9 +116,10 @@ export namespace System {
      * Get device location
      * @param highAccuracy - Whether to use high accuracy mode (default: false)
      * @param timeout - Timeout in seconds (default: 10)
+     * @param includeAddress - Whether to resolve a reverse-geocoded address (default: true)
      * @returns Promise resolving to location data
      */
-    function getLocation(highAccuracy?: boolean, timeout?: number): Promise<LocationData>;
+    function getLocation(highAccuracy?: boolean, timeout?: number, includeAddress?: boolean): Promise<LocationData>;
 
     /**
      * Bluetooth operations.

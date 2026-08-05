@@ -10,18 +10,17 @@ status: complete
 
 Google provider 只根据全局思考开关写入 `includeThoughts`，没有读取全局思考强度。Gemini GenerateContent API 要求思考配置置于 `generationConfig.thinkingConfig`，因此当前全局思考程度没有影响 Gemini 3 的实际思考等级。
 
-现有响应解析已将带有 `thought: true` 的 Part 转为 `<think>` 内容，并保留后续请求所需的 `thoughtSignature`。模型自定义参数不参与 Gemini 思考配置，避免配置入口与全局思考模式冲突。
+现有响应解析已将带有 `thought: true` 的 Part 转为 `<think>` 内容，并保留后续请求所需的 `thoughtSignature`。Gemini 的 `thinkingConfig` 在普通模型参数之后由全局思考模式写入。
 
 ## 预期结果
 
 - 全局思考开关开启时发送 `thinkingConfig.includeThoughts = true`
 - 全局思考程度 `1` 至 `5` 映射为 `MINIMAL`、`LOW`、`MEDIUM`、`HIGH`、`HIGH`
-- 所有模型自定义思考参数都不会写入 Gemini 请求
 - 带有 `thought: true` 的响应继续复用现有折叠思考展示
 
 ## 官方参数依据
 
-Gemini GenerateContent REST 参考定义 `generationConfig.thinkingConfig` 的 `includeThoughts`、`thinkingBudget` 和 `thinkingLevel` 字段。Gemini 3 与 2.5 的思考等级范围因模型而异；本应用的全局五档强度中，第五档使用 Gemini 的最高可表达等级 `HIGH`。
+Gemini GenerateContent REST 参考定义 `generationConfig.thinkingConfig` 的 `includeThoughts`、`thinkingBudget` 和 `thinkingLevel` 字段。Gemini 3 与 2.5 的思考等级范围因模型而异；Gemini 3 的全量等级为 `MINIMAL`、`LOW`、`MEDIUM`、`HIGH`。
 
 - [Gemini thinking](https://ai.google.dev/gemini-api/docs/thinking)
 - [Gemini 3 guide](https://ai.google.dev/gemini-api/docs/gemini-3)

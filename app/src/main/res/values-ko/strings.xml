@@ -6208,6 +6208,10 @@
     <string name="visit_web_wait_time_title">웹 방문 대기 시간</string>
     <string name="visit_web_wait_time_description">visit_web이 페이지 콘텐츠를 추출한 뒤 반환하기 전에 대기하는 시간을 설정합니다. 0초로 설정하면 즉시 반환합니다.</string>
     <string name="visit_web_wait_time_value">%1$ds</string>
+    <string name="toolpkg_hook_timeout_title">ToolPkg Hook 제한 시간</string>
+    <string name="toolpkg_hook_timeout_description">전송 경로에서 ToolPkg 채팅 입력, 프롬프트 및 요약 Hook 체인의 총 대기 시간을 제한합니다. 제한 시간이 지나면 현재 Hook을 건너뛰고 처리를 계속합니다. 기본값은 10초입니다. message_processing 응답 인계에는 영향을 주지 않습니다.</string>
+    <string name="toolpkg_hook_timeout_value">%1$d초</string>
+    <string name="toolpkg_hook_timeout_continue_sending">전송 전 플러그인 응답 시간이 초과되었습니다. 해당 플러그인을 건너뛰고 메시지를 계속 전송합니다.</string>
     <string name="enable_enter_to_send">보내려면 Enter를 누르세요.</string>
     <string name="enable_enter_to_send_description">활성화되면 채팅 입력에서 Enter를 누르면 메시지가 직접 전송되고 키보드 보내기 키에도 보내기가 표시됩니다.</string>
     <string name="tool_collapse_mode_title">도구 축소</string>
@@ -7200,6 +7204,7 @@
     <string name="market_manage_resubmit_confirm_message">"%1$s"을(를) 심사 대기열에 다시 제출합니다.</string>
     <string name="market_manage_resubmit_last_state">마지막 심사: %1$s</string>
     <string name="market_manage_resubmit_last_reason">반려 사유: %1$s</string>
+    <string name="market_manage_review_detail">검토 세부사항: %1$s</string>
     <string name="market_manage_review_dialog_title">심사 상태</string>
     <string name="market_manage_resubmit_confirm_warning">반려 사유에 따라 수정을 완료했는지 확인하십시오. 제출 성공 후 12시간 이내에 다시 제출할 수 없습니다.</string>
     <string name="market_manage_resubmit_confirm_action">제출 확인</string>

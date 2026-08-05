@@ -6614,6 +6614,10 @@
     <string name="visit_web_wait_time_title">Visit Web Wait Time</string>
     <string name="visit_web_wait_time_description">Controls how long visit_web waits before returning after page content is extracted. Set to 0 seconds to return immediately.</string>
     <string name="visit_web_wait_time_value">%1$d s</string>
+    <string name="toolpkg_hook_timeout_title">ToolPkg Hook Timeout</string>
+    <string name="toolpkg_hook_timeout_description">Limits the total wait time for ToolPkg chat-input, prompt, and summary hook chains on the send path. On timeout, the current hook is skipped and processing continues. Default: 10 seconds. Does not affect message-processing response takeover.</string>
+    <string name="toolpkg_hook_timeout_value">%1$d s</string>
+    <string name="toolpkg_hook_timeout_continue_sending">A pre-send plugin timed out. It was skipped and the message will continue sending.</string>
     <string name="tool_collapse_mode_title">Collapse Tools</string>
     <string name="tool_collapse_mode_desc">Set the default collapse scope for tool-call groups in messages</string>
     <string name="tool_collapse_mode_read_only">Collapse Multiple Read-only Tools</string>
@@ -7989,6 +7993,7 @@
     <string name="market_manage_resubmit_confirm_message">Will resubmit "%1$s" to the review queue.</string>
     <string name="market_manage_resubmit_last_state">Last review: %1$s</string>
     <string name="market_manage_resubmit_last_reason">Return reason: %1$s</string>
+    <string name="market_manage_review_detail">Review detail: %1$s</string>
     <string name="market_manage_review_dialog_title">Review Status</string>
     <string name="market_manage_resubmit_confirm_warning">Please confirm that modifications have been made according to the return reason. After successful submission, resubmission is not allowed within 12 hours locally.</string>
     <string name="market_manage_resubmit_confirm_action">Confirm Submission</string>

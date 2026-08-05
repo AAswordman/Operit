@@ -42,6 +42,7 @@ data class ChatInputHookResult(
     val action: String = ChatInputSubmitActions.ALLOW,
     val text: String? = null,
     val message: String? = null,
+    val noticeMessage: String? = null,
     val clearInput: Boolean = false,
     val metadata: Map<String, Any?> = emptyMap()
 )
@@ -90,6 +91,7 @@ object ChatInputHookRegistry {
         context: ChatInputHookContext
     ): ChatInputHookResult {
         var current = context.copy(eventName = ChatInputEvents.SUBMIT_REQUESTED)
+        var noticeMessage: String? = null
         for (hook in hooks) {
             val resultOrNull =
                 runCatching { hook.onEvent(current) }
@@ -101,6 +103,9 @@ object ChatInputHookRegistry {
                 continue
             }
             val result = resultOrNull
+            if (!result.noticeMessage.isNullOrBlank()) {
+                noticeMessage = result.noticeMessage
+            }
 
             when (result.action.trim().lowercase()) {
                 ChatInputSubmitActions.BLOCK -> return result.copy(action = ChatInputSubmitActions.BLOCK)
@@ -118,7 +123,8 @@ object ChatInputHookRegistry {
         }
         return ChatInputHookResult(
             action = ChatInputSubmitActions.ALLOW,
-            text = current.text
+            text = current.text,
+            noticeMessage = noticeMessage
         )
     }
 }

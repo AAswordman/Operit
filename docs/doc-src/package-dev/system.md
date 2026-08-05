@@ -151,9 +151,9 @@ getAppUsageTime({
 
 返回 `NotificationData`。
 
-#### `getLocation(highAccuracy?, timeout?)`
+#### `getLocation(highAccuracy?, timeout?, includeAddress?)`
 
-返回 `LocationData`。
+返回 `LocationData`。`includeAddress` 默认是 `true`；设为 `false` 时只返回坐标，跳过系统坐标反查。
 
 ### 蓝牙
 

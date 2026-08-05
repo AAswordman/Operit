@@ -3,6 +3,7 @@ package com.ai.assistance.operit.plugins.toolpkg
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_INPUT
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ChatInputEvents
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ChatInputHook
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ChatInputHookContext
@@ -55,8 +56,24 @@ internal object ToolPkgChatInputHookBridge {
 
         return withContext(Dispatchers.IO) {
             val manager = toolPkgPackageManager()
+            val budget = ToolPkgHookExecutionBudget.create()
             var current = context
+            var timeoutNoticeMessage: String? = null
             for (hook in activeHooks) {
+                val timeoutMillis = budget.remainingMillis()
+                if (timeoutMillis == null) {
+                    budget.logDeadlineReached(
+                        tag = TAG,
+                        stage = current.eventName,
+                        containerPackageName = hook.containerPackageName,
+                        hookId = hook.hookId
+                    )
+                    if (current.eventName == ChatInputEvents.SUBMIT_REQUESTED) {
+                        timeoutNoticeMessage =
+                            context.context.getString(R.string.toolpkg_hook_timeout_continue_sending)
+                    }
+                    break
+                }
                 val result =
                     manager.runToolPkgMainHook(
                         containerPackageName = hook.containerPackageName,
@@ -65,8 +82,24 @@ internal object ToolPkgChatInputHookBridge {
                         eventName = current.eventName,
                         pluginId = hook.hookId,
                         inlineFunctionSource = hook.functionSource,
-                        eventPayload = buildChatInputEventPayload(current)
+                        eventPayload = buildChatInputEventPayload(current),
+                        timeoutMillis = timeoutMillis
                     )
+                if (
+                    budget.logTimeoutIfPresent(
+                        result = result,
+                        tag = TAG,
+                        stage = current.eventName,
+                        containerPackageName = hook.containerPackageName,
+                        hookId = hook.hookId
+                    )
+                ) {
+                    if (current.eventName == ChatInputEvents.SUBMIT_REQUESTED) {
+                        timeoutNoticeMessage =
+                            context.context.getString(R.string.toolpkg_hook_timeout_continue_sending)
+                    }
+                    break
+                }
                 val decoded =
                     result.getOrElse { error ->
                         AppLogger.e(
@@ -112,7 +145,8 @@ internal object ToolPkgChatInputHookBridge {
             if (current.eventName == ChatInputEvents.SUBMIT_REQUESTED) {
                 ChatInputHookResult(
                     action = ChatInputSubmitActions.ALLOW,
-                    text = current.text
+                    text = current.text,
+                    noticeMessage = timeoutNoticeMessage
                 )
             } else {
                 null

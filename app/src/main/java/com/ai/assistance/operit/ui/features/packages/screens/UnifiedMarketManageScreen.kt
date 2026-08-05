@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -359,7 +361,11 @@ private fun MarketManageReviewDialogContent(entry: MarketV2PublisherEntrySummary
         remember(review.reasons) {
             review.reasons.map { reason -> context.getString(reason.labelResId()) }.joinToString(separator = " / ")
         }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val reviewDetail = remember(entry.reviewDetail) { entry.reviewDetail?.trim().orEmpty() }
+    Column(
+        modifier = Modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Text(
             text = stringResource(R.string.market_manage_resubmit_last_state, stateText),
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -367,6 +373,12 @@ private fun MarketManageReviewDialogContent(entry: MarketV2PublisherEntrySummary
         if (reasonText.isNotBlank()) {
             Text(
                 text = stringResource(R.string.market_manage_resubmit_last_reason, reasonText),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (reviewDetail.isNotBlank()) {
+            Text(
+                text = stringResource(R.string.market_manage_review_detail, reviewDetail),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -388,6 +400,7 @@ private fun ManagedEntryCard(
     onDelete: (MarketV2PublisherEntrySummary) -> Unit
 ) {
     val review = remember(entry) { entry.resolveMarketReviewSnapshot() }
+    val reviewDetail = entry.reviewDetail?.trim().orEmpty()
     // A pending listing has no public detail shard, so public-detail actions cannot be opened yet.
     val canOpenPublicEntry = entry.isOpen() && entry.listingState != "pending_listing"
     MarketManageItemCard(
@@ -418,6 +431,15 @@ private fun ManagedEntryCard(
                         MarketManageReviewReasonChip(reason = reason)
                     }
                 }
+            }
+            if (reviewDetail.isNotBlank()) {
+                Text(
+                    text = reviewDetail,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         actions = {

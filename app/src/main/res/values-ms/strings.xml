@@ -6269,6 +6269,10 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="visit_web_wait_time_title">Masa tunggu lawatan web Visit Web</string>
     <string name="visit_web_wait_time_description">Kawal tempoh tunggu visit_web sebelum kembali automatik selepas ekstrak kandungan halaman. Tetapkan 0 saat untuk kembali serta-merta.</string>
     <string name="visit_web_wait_time_value">%1$d saat</string>
+    <string name="toolpkg_hook_timeout_title">Had Masa Hook ToolPkg</string>
+    <string name="toolpkg_hook_timeout_description">Mengehadkan jumlah masa menunggu rantaian Hook input sembang, gesaan dan ringkasan ToolPkg pada laluan penghantaran. Apabila tamat masa, Hook semasa dilangkau dan pemprosesan diteruskan. Lalai: 10 saat. Tidak menjejaskan pengambilalihan respons message_processing.</string>
+    <string name="toolpkg_hook_timeout_value">%1$d saat</string>
+    <string name="toolpkg_hook_timeout_continue_sending">Pemalam sebelum penghantaran tamat masa. Ia dilangkau dan mesej akan terus dihantar.</string>
     <string name="enable_enter_to_send">Hantar dengan Enter</string>
     <string name="enable_enter_to_send_description">Apabila dihidupkan, tekan Enter dalam kotak input sembang akan terus hantar, dan kekunci hantar papan kekunci juga akan dipaparkan sebagai hantar.</string>
     <string name="tool_collapse_mode_title">Alat lipat</string>
@@ -7350,6 +7354,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="market_manage_resubmit_confirm_message">"%1$s" akan dihantar semula ke barisan semakan.</string>
     <string name="market_manage_resubmit_last_state">Semakan Terakhir: %1$s</string>
     <string name="market_manage_resubmit_last_reason">Sebab Dikembalikan: %1$s</string>
+    <string name="market_manage_review_detail">Butiran semakan: %1$s</string>
     <string name="market_manage_review_dialog_title">Status Semakan</string>
     <string name="market_manage_resubmit_confirm_warning">Sila sahkan bahawa pengubahsuaian telah dibuat mengikut sebab pengembalian. Selepas penghantaran berjaya, ia tidak boleh dihantar semula dalam tempoh 12 jam tempatan.</string>
     <string name="market_manage_resubmit_confirm_action">Sahkan Hantar</string>

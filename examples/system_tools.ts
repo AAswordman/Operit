@@ -395,8 +395,8 @@ const SystemTools = (function () {
         return { success: true, message: '成功获取应用使用时长', data: result };
     }
 
-    async function get_device_location(params: { high_accuracy?: boolean, timeout?: number }): Promise<ToolResponse> {
-        const result = await Tools.System.getLocation(params.high_accuracy || false, params.timeout || 10);
+    async function get_device_location(params: { high_accuracy?: boolean, timeout?: number, include_address?: boolean }): Promise<ToolResponse> {
+        const result = await Tools.System.getLocation(params.high_accuracy || false, params.timeout || 10, params.include_address);
         return { success: true, message: '成功获取位置信息', data: result };
     }
 

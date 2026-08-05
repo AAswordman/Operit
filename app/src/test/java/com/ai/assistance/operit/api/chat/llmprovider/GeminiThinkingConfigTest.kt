@@ -10,7 +10,7 @@ class GeminiThinkingConfigTest {
         val expectedLevels = listOf("MINIMAL", "LOW", "MEDIUM", "HIGH", "HIGH")
 
         expectedLevels.forEachIndexed { index, expectedLevel ->
-            val config = GeminiThinkingConfig.fromGlobalQuality(index + 1)
+            val config = GeminiProvider.createThinkingConfigFromGlobalQuality(index + 1)
 
             assertEquals(expectedLevel, config.getString("thinkingLevel"))
         }
@@ -18,16 +18,8 @@ class GeminiThinkingConfigTest {
 
     @Test
     fun `requests thought summaries for every enabled global thinking level`() {
-        val config = GeminiThinkingConfig.fromGlobalQuality(3)
+        val config = GeminiProvider.createThinkingConfigFromGlobalQuality(3)
 
         assertTrue(config.getBoolean("includeThoughts"))
-    }
-
-    @Test
-    fun `reserves Gemini thinking parameter names from model parameters`() {
-        assertTrue(GeminiThinkingConfig.isReservedParameter("thinking_level"))
-        assertTrue(GeminiThinkingConfig.isReservedParameter("thinkingBudget"))
-        assertTrue(GeminiThinkingConfig.isReservedParameter("includeThoughts"))
-        assertTrue(GeminiThinkingConfig.isReservedParameter("thinkingConfig"))
     }
 }

@@ -32,6 +32,19 @@ class JsToolPkgRegistrationTest {
     }
 
     @Test
+    fun `ignores marketplace origin calls outside registration`() {
+        val session = JsToolPkgRegistrationSession()
+        val originJson =
+            "{\"market\":\"Operit\",\"toolpkgId\":\"uuid-generator\",\"version\":\"1.0.2\",\"author\":[\"Original Author\"]}"
+
+        session.captureMarketOrigin(originJson)
+
+        session.begin()
+        assertNull(session.finish(null).marketOrigin)
+        session.end()
+    }
+
+    @Test
     fun `registration bridge exposes encoded marketplace marker method`() {
         val bridge = buildToolPkgRegistrationBridgeScript()
 

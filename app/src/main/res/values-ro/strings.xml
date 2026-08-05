@@ -4296,6 +4296,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="market_manage_resubmit_confirm_message">Se va include „%1$s» Retrimite în coada de verificare.</string>
     <string name="market_manage_resubmit_last_state">Ultima verificare:%1$s</string>
     <string name="market_manage_resubmit_last_reason">Motivul respingerii:%1$s</string>
+    <string name="market_manage_review_detail">Detalii privind evaluarea: %1$s</string>
     <string name="market_manage_review_dialog_title">Starea verificării</string>
     <string name="market_manage_resubmit_confirm_warning">Vă rugăm să vă asigurați că ați efectuat modificările în conformitate cu motivul respingerii. După trimiterea cu succes, la nivel local 12 Nu se poate trimite din nou în decurs de o oră.</string>
     <string name="market_manage_resubmit_confirm_action">Confirmare trimitere</string>
@@ -7058,6 +7059,10 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="visit_web_wait_time_title">Visit Web Timpul de așteptare pentru accesarea paginii web</string>
     <string name="visit_web_wait_time_description">Control visit_web Durata de așteptare înainte de revenirea automată după extragerea conținutului paginii. Setați la 0 Secunda se va întoarce imediat.</string>
     <string name="visit_web_wait_time_value">%1$d secundă</string>
+    <string name="toolpkg_hook_timeout_title">Expirare Hook ToolPkg</string>
+    <string name="toolpkg_hook_timeout_description">Limitează timpul total de așteptare al lanțurilor Hook ToolPkg pentru intrarea de chat, prompt și rezumat pe traseul de trimitere. La expirare, Hook-ul curent este omis, iar procesarea continuă. Valoare implicită: 10 secunde. Nu afectează preluarea răspunsului message_processing.</string>
+    <string name="toolpkg_hook_timeout_value">%1$d secunde</string>
+    <string name="toolpkg_hook_timeout_continue_sending">Un plugin anterior trimiterii a expirat. A fost omis, iar mesajul va continua să fie trimis.</string>
     <string name="enable_enter_to_send">Apăsați Enter pentru a trimite</string>
     <string name="enable_enter_to_send_description">După activare, apăsarea tastei Enter în caseta de introducere a mesajului va trimite direct mesajul, iar butonul de trimitere de pe tastatură va afișa „Trimis”.</string>
     <string name="tool_collapse_mode_title">Instrument de pliere</string>
