@@ -23,6 +23,10 @@
 
 This repository is Operit's Android edition. Operit 2 is a separate second-generation implementation centered on a shared Rust runtime, Flutter clients, and the `operit2` CLI/TUI. It currently includes implementation or build paths for Android, iOS, Windows, macOS, Linux, and Web, with OpenHarmony support under active development. To follow the cross-platform version, visit [Operit 2](https://github.com/AAswordman/Operit2).
 
+<a href="https://github.com/AAswordman/Operit2">
+  <img src="docs/assets/readme/operit2-matrix-cards-en.png" width="100%" alt="Operit 2 cross-platform open-source AI Agent">
+</a>
+
 ## Introduction
 
 **Operit AI** is an open-source AI Agent platform for Android that supports cloud and local models, connecting them to Android system capabilities, terminals, browsers, files, and project workspaces to perform real tasks such as information retrieval, file processing, code development, and device automation through tool calling, workflows, and extensions such as ToolPkg, MCP, and Skills.

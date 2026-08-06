@@ -23,6 +23,10 @@
 
 本仓库是 Operit 的 Android 版。Operit 2 是独立的第二代实现，以 Rust 共享运行时、Flutter 客户端和 `operit2` CLI/TUI 为核心，目前包含 Android、iOS、Windows、macOS、Linux 与 Web 的实现或构建路径，并持续推进 OpenHarmony 适配。想关注跨平台版本，请访问 [Operit 2](https://github.com/AAswordman/Operit2)。
 
+<a href="https://github.com/AAswordman/Operit2">
+  <img src="docs/assets/readme/operit2-matrix-cards-zh-cn.png" width="100%" alt="Operit 2 跨平台开源 AI Agent">
+</a>
+
 ## 项目简介
 
 **Operit AI** 是一个运行在 Android 上的开源 AI Agent 平台，支持接入云端或本地模型，并将模型与 Android 系统、终端、浏览器、文件和项目工作区连接起来，通过工具调用、工作流以及 ToolPkg、MCP、Skill 等扩展能力，完成信息检索、文件处理、代码开发和设备自动化等实际任务。
