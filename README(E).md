@@ -12,7 +12,6 @@
   <br>
   <a href="https://operit.app/"><img src="https://img.shields.io/badge/📖-User_Guide-blue.svg" alt="User Guide"></a>
   <a href="docs/doc-src/dev-core/CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="Contributions Welcome"></a>
-  <a href="https://github.com/AAswordman/Operit/issues"><img src="https://img.shields.io/badge/🐛-Issues-orange.svg" alt="Issues"></a>
 </div>
 
 <div align="center">
@@ -198,6 +197,10 @@ If Operit is useful to you, you can voluntarily support ongoing development and 
 - Support is entirely voluntary and does not unlock features, quotas, updates, answers to questions, or other benefits
 - Choosing not to support does not affect normal use, updates, or access to the source code
 
+## License
+
+The main code in this repository is licensed under [GNU LGPL v3 (LGPL-3.0-only)](https://spdx.org/licenses/LGPL-3.0-only.html). Tools, examples, templates, and third-party dependencies may use other licenses; refer to [LICENSE](LICENSE), the license files in their respective directories, and package metadata for their terms.
+
 ## Star History
 
 <div align="center">
@@ -210,17 +213,8 @@ If Operit is useful to you, you can voluntarily support ongoing development and 
   </a>
 </div>
 
-## License
-
-The main project license is [LGPL-3.0-only](https://spdx.org/licenses/LGPL-3.0-only.html). Third-party components in this repository may use their own licenses; refer to [LICENSE](LICENSE) and the corresponding license files for their terms.
-
-## Feedback
-
-Found a problem or have a suggestion? [Open an issue](https://github.com/AAswordman/Operit/issues) or send an [email](mailto:aaswordsman@foxmail.com). Include reproduction steps, your device model, Android version, and relevant screenshots or screen recordings when possible.
-
 ---
 
 <div align="center">
-  <p><b>If Operit is useful to you, consider giving the project a Star</b></p>
   <sub>Made with ❤️ by the Operit Team</sub>
 </div>

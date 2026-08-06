@@ -12,7 +12,6 @@
   <br>
   <a href="https://operit.app/"><img src="https://img.shields.io/badge/📖-用户指南-blue.svg" alt="用户指南"></a>
   <a href="docs/doc-src/dev-core/CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="欢迎贡献"></a>
-  <a href="https://github.com/AAswordman/Operit/issues"><img src="https://img.shields.io/badge/🐛-Issues-orange.svg" alt="问题反馈"></a>
 </div>
 
 <div align="center">
@@ -198,6 +197,10 @@
 - 赞助完全自愿，不与任何功能、额度、更新、答疑或其他权益挂钩
 - 不赞助不会影响正常使用、获取更新或访问开源代码
 
+## 许可证
+
+仓库主体代码采用 [GNU LGPL v3（LGPL-3.0-only）](https://spdx.org/licenses/LGPL-3.0-only.html)。仓库中的工具、示例、模板和第三方依赖可能采用其他许可证，具体条款以 [LICENSE](LICENSE)、对应目录中的许可证文件和包元数据为准。
+
 ## Star History
 
 <div align="center">
@@ -210,17 +213,8 @@
   </a>
 </div>
 
-## 许可证
-
-本项目主许可证为 [LGPL-3.0-only](https://spdx.org/licenses/LGPL-3.0-only.html)。仓库包含的第三方组件可能采用各自的许可证，具体条款以 [LICENSE](LICENSE) 及对应许可证文件为准。
-
-## 问题反馈
-
-遇到问题或有建议，欢迎 [提交 Issue](https://github.com/AAswordman/Operit/issues) 或发送 [Email](mailto:aaswordsman@foxmail.com)。请尽量提供复现步骤、设备型号、Android 版本，以及相关截图或录屏。
-
 ---
 
 <div align="center">
-  <p><b>如果 Operit 对您有帮助，欢迎给项目一个 Star</b></p>
   <sub>Made with ❤️ by the Operit Team</sub>
 </div>
