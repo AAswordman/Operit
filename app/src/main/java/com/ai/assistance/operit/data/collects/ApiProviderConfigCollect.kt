@@ -151,6 +151,11 @@ object ApiProviderConfigs {
             defaultApiEndpoint = "https://openrouter.ai/api/v1/chat/completions"
         ),
         ProviderApiConfig(
+            providerType = ApiProviderType.ORCAROUTER,
+            defaultModelName = "anthropic/claude-sonnet-4.6",
+            defaultApiEndpoint = "https://api.orcarouter.ai/v1/chat/completions"
+        ),
+        ProviderApiConfig(
             providerType = ApiProviderType.FOUR_ROUTER,
             defaultModelName = "gpt-5.4-mini",
             defaultApiEndpoint = "https://4router.net/v1/chat/completions"

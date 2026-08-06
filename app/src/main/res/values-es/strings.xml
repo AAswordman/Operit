@@ -1241,6 +1241,7 @@
     <string name="provider_siliconflow">SiliconFlow</string>
     <string name="provider_iflow">iFlow</string>
     <string name="provider_openrouter">OpenRouter (Hub Multi-modelo)</string>
+    <string name="provider_orcarouter">OrcaRouter (Hub Multi-modelo)</string>
     <string name="provider_infiniai">InfiniAI</string>
     <string name="provider_lmstudio">LM Studio (modelo local)</string>
     <string name="provider_ollama">Ollama (modelo local)</string>

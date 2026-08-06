@@ -3262,6 +3262,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="provider_siliconflow">SiliconFlow</string>
     <string name="provider_iflow">iFlow</string>
     <string name="provider_openrouter">OpenRouter (Agregasi Multi-Model)</string>
+    <string name="provider_orcarouter">OrcaRouter (Agregasi Multi-Model)</string>
     <string name="provider_infiniai">Infiniai</string>
     <string name="provider_alipay_bailing">Model Bailing Alipay</string>
     <string name="provider_lmstudio">LM Studio (model lokal)</string>

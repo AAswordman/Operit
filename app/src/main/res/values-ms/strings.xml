@@ -3261,6 +3261,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="provider_siliconflow">SiliconFlow</string>
     <string name="provider_iflow">iFlow</string>
     <string name="provider_openrouter">OpenRouter (agregasi pelbagai model)</string>
+    <string name="provider_orcarouter">OrcaRouter (agregasi pelbagai model)</string>
     <string name="provider_infiniai">Infinigence-AI</string>
     <string name="provider_alipay_bailing">Model Bailing Alipay</string>
     <string name="provider_lmstudio">LM Studio (model tempatan)</string>

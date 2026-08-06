@@ -3489,6 +3489,7 @@
     <string name="provider_siliconflow">실리콘플로우</string>
     <string name="provider_iflow">iFlow</string>
     <string name="provider_openrouter">OpenRouter(다중 모델 허브)</string>
+    <string name="provider_orcarouter">OrcaRouter(다중 모델 허브)</string>
     <string name="provider_4router">4Router</string>
     <string name="provider_nous_portal">Nous Portal</string>
     <string name="provider_infiniai">InfiniAI</string>
