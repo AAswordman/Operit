@@ -39,6 +39,43 @@ This repository is Operit's Android edition. Operit 2 is a separate second-gener
 - **Long-term memory and characters**: Manage graph-based memory, chat history, character cards, and multi-character conversations, with an independent set of capabilities assigned to each character
 - **Composable extensions and automation**: Combine tools through the unified marketplace, workflows, and system integrations to create repeatable task flows
 
+## Feature Showcase
+
+<!-- Place the 2:1 six-scenario showcase image here. -->
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<b>Agent Task Execution</b><br>
+From understanding a request and calling tools to delivering the result, showing the complete task flow
+</td>
+<td width="50%" valign="top">
+<b>Models and Local Inference</b><br>
+Cloud models, local models, and assigning models to different tasks
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<b>Android and Browser Automation</b><br>
+App operations, web access, and browser-agent execution
+</td>
+<td width="50%" valign="top">
+<b>Project Workspace and Terminal</b><br>
+Files, code, live previews, Ubuntu terminal, and project workflows
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<b>Memory and Characters</b><br>
+Long-term memory, character cards, independent capabilities, and group chats
+</td>
+<td width="50%" valign="top">
+<b>Marketplace and Workflows</b><br>
+ToolPkg, MCP, Skills, the marketplace, and visual automation flows
+</td>
+</tr>
+</table>
+
 ## Main Features
 
 <details>
