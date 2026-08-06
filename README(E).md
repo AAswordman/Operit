@@ -133,15 +133,7 @@ This repository is Operit's Android edition. Operit 2 is a separate second-gener
 
 Installation: Download the APK → Install and launch → Follow the setup flow to configure models and permissions → Start using Operit
 
-## Data, Models, and Exposed Services
-
-- **Local data**: The application stores chats, characters, memories, and model configurations on the device; in-app backups, Android system backups, and user-initiated exports may copy this data
-- **Cloud models**: Built-in cloud connectors send requests directly from your device to the provider endpoint you configure; Operit does not host chat inference or relay these chat requests
-- **Local models**: MNN and llama.cpp run inference on the device; once model files are prepared, they can be used without connecting to a cloud model provider
-- **Other network features**: The marketplace, announcements, update checks, GitHub sign-in, and any MCP, search, speech, or drawing services you enable connect to their respective network services
-- **Third-party extensions**: Scripts, ToolPkg, MCP services, and Skills may connect to external services described by their authors; review their source and documentation before installation and authorization
-- **Exposed services**: Web Chat and the HTTP API are disabled by default; when enabled, they listen on device network interfaces. Chat and API requests require a bearer token, while asset links use a separate access path, so expose the service only to authorized users on trusted networks
-- **On-device app integration**: Android intents and broadcasts are independent of the HTTP switch and token and support local automation tools such as Tasker; use them only with trusted applications
+> **Data and network boundaries:** Chats, characters, memories, and model configurations are stored locally by the app. Cloud-model requests are sent from your device to the provider endpoint you configure; Operit does not host chat inference. Marketplace, MCP, Skill, speech, and drawing features may connect to third-party services. Web Chat/HTTP API are disabled by default; review network exposure and bearer-token settings before enabling them, and use Android intent/broadcast integrations only with trusted apps.
 
 ## Project Evolution
 
