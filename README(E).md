@@ -21,9 +21,7 @@
 
 ## Introduction
 
-**Operit AI** is an extensible AI agent application that runs on Android devices. It connects model conversations with files, terminals, browsers, app interfaces, project workspaces, and automation capabilities, allowing the AI not only to answer questions but also to execute real tasks on the device.
-
-Chat records and model configurations are stored on your device. You can connect your own cloud model services or run local models through MNN or llama.cpp. Scripts, ToolPkg, MCP, Skills, and workflows form an extensible tool ecosystem.
+**Operit AI** is an open-source AI Agent platform for Android that supports cloud and local models, connecting them to Android system capabilities, terminals, browsers, files, and project workspaces to perform real tasks such as information retrieval, file processing, code development, and device automation through tool calling, workflows, and extensions such as ToolPkg, MCP, and Skills.
 
 ## Highlights
 
