@@ -41,7 +41,9 @@
 
 ## 功能展示
 
-<!-- 2:1 六场景横向展示图放在这里。 -->
+<a href="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png">
+  <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png" width="100%" alt="Agent 任务执行：从需求输入、工具执行与 Diff 审查，到实时预览调试和结果交付">
+</a>
 
 <table>
 <tr>

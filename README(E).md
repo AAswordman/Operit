@@ -41,7 +41,9 @@ This repository is Operit's Android edition. Operit 2 is a separate second-gener
 
 ## Feature Showcase
 
-<!-- Place the 2:1 six-scenario showcase image here. -->
+<a href="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png">
+  <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png" width="100%" alt="Agent task execution: from request input and tool execution to live preview, debugging, and delivery">
+</a>
 
 <table>
 <tr>
