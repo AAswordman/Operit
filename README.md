@@ -57,6 +57,7 @@
 <a href="docs/assets/readme/operit-plugin-ecosystem-agent-creation-2400x1000-v3.png">
   <img src="docs/assets/readme/operit-plugin-ecosystem-agent-creation-2400x1000-v3.png" width="100%" alt="插件生态与 Agent 创建演示">
 </a>
+
 ## 主要功能
 
 <details>
