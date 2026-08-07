@@ -290,8 +290,7 @@ fun ArtifactPublishScreen(
     ) {
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             )
         ) {
             Column(
@@ -306,7 +305,7 @@ fun ArtifactPublishScreen(
                             else -> stringResource(R.string.publish_description)
                         },
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
                     text =
@@ -315,7 +314,8 @@ fun ArtifactPublishScreen(
                             isContinuationMode -> continuationDescription
                             else -> stringResource(R.string.artifact_publish_info_description)
                         },
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
@@ -360,8 +360,7 @@ fun ArtifactPublishScreen(
         } else if (activePublishContext != null) {
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.32f),
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.32f)
                 )
             ) {
                 Column(
@@ -371,6 +370,7 @@ fun ArtifactPublishScreen(
                     Text(
                         text = stringResource(R.string.artifact_publish_publish_update_version),
                         style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         fontWeight = FontWeight.SemiBold
                     )
                     if (lockedDisplayName.isNotBlank()) {
@@ -380,13 +380,13 @@ fun ArtifactPublishScreen(
                                 lockedDisplayName
                             ),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                     Text(
                         text = stringResource(R.string.artifact_publish_package_name_auto_inherited),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
