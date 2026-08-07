@@ -45,6 +45,9 @@
   <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png" width="100%" alt="Agent 任务执行：从需求输入、工具执行与 Diff 审查，到实时预览调试和结果交付">
 </a>
 
+<a href="docs/assets/readme/operit-android-automation-2400x1000-v2.png">
+  <img src="docs/assets/readme/operit-android-automation-2400x1000-v2.png" width="100%" alt="Android 自动化演示">
+</a>
 <table>
 <tr>
 <td width="50%" valign="top">

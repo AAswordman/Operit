@@ -45,6 +45,10 @@ This repository is Operit's Android edition. Operit 2 is a separate second-gener
   <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png" width="100%" alt="Agent task execution: from request input and tool execution to live preview, debugging, and delivery">
 </a>
 
+<a href="docs/assets/readme/operit-android-automation-2400x1000-v2.png">
+  <img src="docs/assets/readme/operit-android-automation-2400x1000-v2.png" width="100%" alt="Android automation demo">
+</a>
+
 <table>
 <tr>
 <td width="50%" valign="top">
