@@ -1229,6 +1229,7 @@ private fun UnifiedMarketDetailCommentCard(
                     Text(
                         text = comment.author.login,
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
                     if (body.isNotBlank()) {
