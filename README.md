@@ -41,46 +41,22 @@
 
 ## 功能展示
 
-<a href="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png">
-  <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png" width="100%" alt="Agent 任务执行：从需求输入、工具执行与 Diff 审查，到实时预览调试和结果交付">
+<a href="docs/assets/readme/operit-agent-task-flow-2400x1000-v3.png">
+  <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v3.png" width="100%" alt="Agent 任务执行：从需求输入、工具执行与 Diff 审查，到实时预览调试和结果交付">
 </a>
 
 <a href="docs/assets/readme/operit-android-automation-2400x1000-v2.png">
   <img src="docs/assets/readme/operit-android-automation-2400x1000-v2.png" width="100%" alt="Android 自动化演示">
 </a>
-<table>
-<tr>
-<td width="50%" valign="top">
-<b>Agent 任务执行</b><br>
-从需求理解、工具调用到结果交付，展示完整的任务执行链路
-</td>
-<td width="50%" valign="top">
-<b>模型与本地推理</b><br>
-展示云端模型、本地模型和按任务分配模型的使用方式
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<b>Android 与浏览器自动化</b><br>
-展示应用操作、网页访问和浏览器 Agent 的执行过程
-</td>
-<td width="50%" valign="top">
-<b>项目工作区与终端</b><br>
-展示文件、代码、实时预览、Ubuntu 终端和项目协作
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<b>记忆与角色</b><br>
-展示长期记忆、角色卡、独立能力和多角色对话
-</td>
-<td width="50%" valign="top">
-<b>扩展市场与工作流</b><br>
-展示 ToolPkg、MCP、Skill、市场和可视化自动化流程
-</td>
-</tr>
-</table>
-
+<a href="docs/assets/readme/operit-memory-multicharacter-chat-2400x1000-v2.png">
+  <img src="docs/assets/readme/operit-memory-multicharacter-chat-2400x1000-v2.png" width="100%" alt="记忆与多角色对话演示">
+</a>
+<a href="docs/assets/readme/operit-workspace-ubuntu-workflow-2400x1000.png">
+  <img src="docs/assets/readme/operit-workspace-ubuntu-workflow-2400x1000.png" width="100%" alt="工作区与 Ubuntu 工作流演示">
+</a>
+<a href="docs/assets/readme/operit-plugin-ecosystem-agent-creation-2400x1000-v3.png">
+  <img src="docs/assets/readme/operit-plugin-ecosystem-agent-creation-2400x1000-v3.png" width="100%" alt="插件生态与 Agent 创建演示">
+</a>
 ## 主要功能
 
 <details>

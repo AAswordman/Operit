@@ -41,46 +41,25 @@ This repository is Operit's Android edition. Operit 2 is a separate second-gener
 
 ## Feature Showcase
 
-<a href="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png">
-  <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v2.png" width="100%" alt="Agent task execution: from request input and tool execution to live preview, debugging, and delivery">
+<a href="docs/assets/readme/operit-agent-task-flow-2400x1000-v3.png">
+  <img src="docs/assets/readme/operit-agent-task-flow-2400x1000-v3.png" width="100%" alt="Agent task execution: from request input and tool execution to live preview, debugging, and delivery">
 </a>
 
 <a href="docs/assets/readme/operit-android-automation-2400x1000-v2.png">
   <img src="docs/assets/readme/operit-android-automation-2400x1000-v2.png" width="100%" alt="Android automation demo">
 </a>
 
-<table>
-<tr>
-<td width="50%" valign="top">
-<b>Agent Task Execution</b><br>
-From understanding a request and calling tools to delivering the result, showing the complete task flow
-</td>
-<td width="50%" valign="top">
-<b>Models and Local Inference</b><br>
-Cloud models, local models, and assigning models to different tasks
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<b>Android and Browser Automation</b><br>
-App operations, web access, and browser-agent execution
-</td>
-<td width="50%" valign="top">
-<b>Project Workspace and Terminal</b><br>
-Files, code, live previews, Ubuntu terminal, and project workflows
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<b>Memory and Characters</b><br>
-Long-term memory, character cards, independent capabilities, and group chats
-</td>
-<td width="50%" valign="top">
-<b>Marketplace and Workflows</b><br>
-ToolPkg, MCP, Skills, the marketplace, and visual automation flows
-</td>
-</tr>
-</table>
+<a href="docs/assets/readme/operit-memory-multicharacter-chat-2400x1000-v2.png">
+  <img src="docs/assets/readme/operit-memory-multicharacter-chat-2400x1000-v2.png" width="100%" alt="Memory and multi-character chat demo">
+</a>
+
+<a href="docs/assets/readme/operit-workspace-ubuntu-workflow-2400x1000.png">
+  <img src="docs/assets/readme/operit-workspace-ubuntu-workflow-2400x1000.png" width="100%" alt="Workspace and Ubuntu workflow demo">
+</a>
+
+<a href="docs/assets/readme/operit-plugin-ecosystem-agent-creation-2400x1000-v3.png">
+  <img src="docs/assets/readme/operit-plugin-ecosystem-agent-creation-2400x1000-v3.png" width="100%" alt="Plugin ecosystem and agent creation demo">
+</a>
 
 ## Main Features
 
