@@ -344,12 +344,18 @@ fun ArtifactPublishScreen(
                                 append(context.getString(R.string.artifact_publish_file_locked))
                             }
                         }.ifBlank { context.getString(R.string.artifact_publish_only_description_versions_editable) }
+                    // The translucent container cannot infer onSurfaceVariant; explicit colors prevent
+                    // these labels from inheriting a mismatched foreground in dark themes.
                     Text(
                         text = stringResource(R.string.artifact_publish_current_artifact),
                         style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Text(initialInfo.title.ifBlank { selectorDisplayName })
+                    Text(
+                        text = initialInfo.title.ifBlank { selectorDisplayName },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         text = summaryText,
                         style = MaterialTheme.typography.bodySmall,
