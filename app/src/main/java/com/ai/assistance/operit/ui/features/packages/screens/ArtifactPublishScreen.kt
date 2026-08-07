@@ -290,7 +290,8 @@ fun ArtifactPublishScreen(
     ) {
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
         ) {
             Column(
@@ -359,7 +360,8 @@ fun ArtifactPublishScreen(
         } else if (activePublishContext != null) {
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.32f)
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.32f),
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             ) {
                 Column(
