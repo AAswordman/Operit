@@ -9,7 +9,7 @@ export function registerToolPkg(): boolean {
     runtime: "compose_dsl",
     screen: opencodeDashboardScreen,
     params: {},
-    keepAlive: true,
+    keepAlive: false,
     title: {
       zh: "OpenCode",
       en: "OpenCode",
