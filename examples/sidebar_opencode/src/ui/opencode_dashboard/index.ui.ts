@@ -235,7 +235,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
     {
       fillMaxSize: true,
       onLoad: async () => {
-        if (!initialized) {
+        if (!initialized || !serverUrl) {
           setInitialized(true);
           await ensureServer();
         }
