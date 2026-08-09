@@ -241,7 +241,15 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             handler.getToolPermissionSystem().checkToolPermission(proxiedTool)
         }
         if (!hasPermission) {
-            val errorMessage = "User cancelled the tool execution."
+            val llmDenialReason =
+                handler.getToolPermissionSystem().consumeLlmDenialReason(proxiedTool.name)
+            val errorMessage = if (llmDenialReason != null) {
+                "The system has rejected this tool execution: $llmDenialReason. " +
+                    "Either revise the parameters per the rejection reason and try again, " +
+                    "or abort this tool invocation entirely."
+            } else {
+                "User cancelled the tool execution."
+            }
             handler.notifyToolPermissionChecked(
                 proxiedTool,
                 granted = false,

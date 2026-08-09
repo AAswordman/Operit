@@ -452,16 +452,25 @@ object ToolExecutionManager {
         if (hasPromptForPermission) {
             // 检查权限，如果需要则弹出权限请求界面
             val toolPermissionSystem = toolHandler.getToolPermissionSystem()
-            val hasPermission = toolPermissionSystem.checkToolPermission(permissionTool)
+            val hasPermission =
+                toolPermissionSystem.checkToolPermission(permissionTool, invocation.rawText)
 
-            // 如果权限被拒绝，创建错误结果
+            // 如果权限被拒绝，创建错误结果; 审批模型拒绝时附带其理由
             if (!hasPermission) {
+                val llmDenialReason = toolPermissionSystem.consumeLlmDenialReason(permissionTool.name)
+                val errorMessage = if (llmDenialReason != null) {
+                    "The system has rejected this tool execution: $llmDenialReason. " +
+                        "Either revise the parameters per the rejection reason and try again, " +
+                        "or abort this tool invocation entirely."
+                } else {
+                    "User cancelled the tool execution."
+                }
                 val errorResult =
                     ToolResult(
                         toolName = resolvedTarget.displayName,
                         success = false,
                         result = StringResultData(""),
-                        error = "User cancelled the tool execution."
+                        error = errorMessage
                     )
                 toolHandler.notifyToolPermissionChecked(
                     permissionTool,

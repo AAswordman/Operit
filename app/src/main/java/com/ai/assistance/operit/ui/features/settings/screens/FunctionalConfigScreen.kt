@@ -697,6 +697,22 @@ fun FunctionConfigCard(
                                                         .collect { chunk -> buffer.append(chunk) }
                                                     buffer.toString()
                                                 }
+                                                FunctionType.TOOL_APPROVAL -> {
+                                                    val parameters =
+                                                        modelConfigManager.getModelParametersForConfig(configWithSelectedModel.id)
+                                                    val prompt =
+                                                        "Connection test: you are a tool-call approval reviewer. Return {\"decision\":\"approve\",\"reason\":\"connection test\"} only."
+                                                    val buffer = StringBuilder()
+                                                    service.sendMessage(
+                                                        context,
+                                                        listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                                                        parameters,
+                                                        stream = false,
+                                                        enableRetry = false
+                                                    )
+                                                        .collect { chunk -> buffer.append(chunk) }
+                                                    buffer.toString()
+                                                }
                                             }
                                             testResult = Result.success(result)
                                         } catch (e: Exception) {
@@ -940,6 +956,7 @@ fun getFunctionDisplayName(functionType: FunctionType): String {
         FunctionType.IMAGE_RECOGNITION -> stringResource(id = R.string.function_type_image_recognition)
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_type_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_type_video_recognition)
+        FunctionType.TOOL_APPROVAL -> stringResource(id = R.string.function_type_tool_approval)
     }
 }
 
@@ -958,5 +975,6 @@ fun getFunctionDescription(functionType: FunctionType): String {
         FunctionType.IMAGE_RECOGNITION -> stringResource(id = R.string.function_desc_image_recognition)
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_desc_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_desc_video_recognition)
+        FunctionType.TOOL_APPROVAL -> stringResource(id = R.string.function_desc_tool_approval)
     }
 }

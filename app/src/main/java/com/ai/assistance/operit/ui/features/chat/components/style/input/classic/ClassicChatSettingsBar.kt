@@ -229,6 +229,7 @@ fun ClassicChatSettingsBar(
         when (if (enableTools) permissionLevel else PermissionLevel.FORBID) {
             PermissionLevel.FORBID -> stringResource(R.string.agent_menu_permission_disabled)
             PermissionLevel.ASK -> stringResource(R.string.permission_level_ask)
+            PermissionLevel.LLM -> stringResource(R.string.permission_level_llm)
             PermissionLevel.ALLOW -> stringResource(R.string.permission_level_allow)
         }
     val behaviorSummary =
@@ -1143,6 +1144,7 @@ private fun ToolPermissionSettingItem(
                     when (level) {
                         PermissionLevel.FORBID -> stringResource(R.string.agent_menu_permission_disabled)
                         PermissionLevel.ASK -> stringResource(R.string.permission_level_ask)
+                        PermissionLevel.LLM -> stringResource(R.string.permission_level_llm)
                         PermissionLevel.ALLOW -> stringResource(R.string.permission_level_allow)
                     }
                 Box(

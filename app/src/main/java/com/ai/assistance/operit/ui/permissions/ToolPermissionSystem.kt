@@ -5,13 +5,22 @@ import android.os.Handler
 import android.os.Looper
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.LocaleUtils
 import androidx.compose.material3.ColorScheme
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.core.chat.hooks.PromptTurn
+import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
+import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
+import com.ai.assistance.operit.data.preferences.ModelConfigManager
+import org.json.JSONObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +42,7 @@ private val Context.toolPermissionsDataStore: DataStore<Preferences> by preferen
 enum class PermissionLevel {
     ALLOW,      // Allow automatically without asking
     ASK,        // Always ask
+    LLM,        // Approval model decides; hands over to the user when it cannot decide
     FORBID;     // Never allow
 
     companion object {
@@ -41,6 +51,7 @@ enum class PermissionLevel {
                 "ALLOW" -> ALLOW
                 "CAUTION" -> ASK
                 "ASK" -> ASK
+                "LLM" -> LLM
                 "FORBID" -> FORBID
                 else -> ASK  // Default to ASK
             }
@@ -56,16 +67,16 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     companion object {
         private const val TAG = "ToolPermissionSystem"
         private const val PERMISSION_REQUEST_TIMEOUT_MS = 60000L // 60 seconds timeout
-        
+
         // DataStore keys
         private val MASTER_SWITCH = stringPreferencesKey("master_switch")
-        
+
         // Default permission setting
         private val DEFAULT_MASTER_SWITCH = PermissionLevel.ASK.name
-        
+
         @Volatile
         private var INSTANCE: ToolPermissionSystem? = null
-        
+
         fun getInstance(context: Context): ToolPermissionSystem {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: ToolPermissionSystem(context.applicationContext).also { INSTANCE = it }
@@ -188,7 +199,7 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     /**
      * Check if a tool is allowed to execute
      */
-    suspend fun checkToolPermission(tool: AITool): Boolean {
+    suspend fun checkToolPermission(tool: AITool, toolInvocationRawText: String? = null): Boolean {
         AppLogger.d(TAG, "Starting permission check: ${tool.name}")
         
         val preferences = context.toolPermissionsDataStore.data.first()
@@ -201,10 +212,118 @@ class ToolPermissionSystem private constructor(private val context: Context) {
         return when (permissionLevel) {
             PermissionLevel.ALLOW -> true
             PermissionLevel.ASK -> requestPermission(tool)
+            PermissionLevel.LLM -> when (requestLlmApproval(tool, toolInvocationRawText)) {
+                LlmApprovalDecision.APPROVE -> true
+                LlmApprovalDecision.DENY -> false
+                // ASK: 模型明确表示无法自主判断; null: API 错误或输出不符合约定
+                // 两者按产品设计都转交用户手动确认, 复用 ASK 档的弹窗流程
+                LlmApprovalDecision.ASK, null -> requestPermission(tool)
+            }
             PermissionLevel.FORBID -> false
         }
     }
-    
+
+    private enum class LlmApprovalDecision { APPROVE, DENY, ASK }
+
+    // 最近一次 LLM 拒绝的 (toolName -> reason), 供调用方生成带理由的拒绝结果
+    @Volatile
+    private var lastLlmDenial: Pair<String, String>? = null
+
+    /**
+     * 取出指定工具最近一次由审批模型给出的拒绝理由, 取出后即清除。
+     * 返回 null 表示该工具最近的拒绝并非来自审批模型 (如用户手动拒绝)。
+     */
+    fun consumeLlmDenialReason(toolName: String): String? {
+        val denial = lastLlmDenial ?: return null
+        if (denial.first != toolName) return null
+        lastLlmDenial = null
+        return denial.second
+    }
+
+    /**
+     * 调用审批模型决定是否允许工具调用。
+     * decision 为必填字段: approve 放行, deny 拒绝, ask 表示模型无法自主判断需转人工;
+     * 返回 null 表示输出不符合约定 (API 错误 / 不是合法 JSON / decision 缺失或非法),
+     * 调用方对 ASK 与 null 都转交用户手动确认。
+     */
+    private suspend fun requestLlmApproval(tool: AITool, toolInvocationRawText: String?): LlmApprovalDecision? {
+        return try {
+            // 没有拿到调用原文时按同样的标签格式重建, 保证审批模型看到的始终是工具调用原文
+            val rawText = toolInvocationRawText?.takeIf { it.isNotBlank() } ?: buildToolInvocationText(tool)
+            val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+            val prompt = FunctionalPrompts.buildToolApprovalPrompt(rawText, useEnglish)
+
+            val service = EnhancedAIService.getAIServiceForFunction(context, FunctionType.TOOL_APPROVAL)
+            val functionalConfigManager = FunctionalConfigManager(context)
+            functionalConfigManager.initializeIfNeeded()
+            val modelConfigManager = ModelConfigManager(context)
+            val mapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.TOOL_APPROVAL)
+            val modelParameters = modelConfigManager.getModelParametersForConfig(mapping.configId)
+
+            val sb = StringBuilder()
+            service.sendMessage(
+                context = context,
+                chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                modelParameters = modelParameters,
+                enableThinking = false,
+                stream = false,
+                availableTools = null
+            ).collect { chunk -> sb.append(chunk) }
+
+            val text = sb.toString().trim()
+            val start = text.indexOf('{')
+            val end = text.lastIndexOf('}')
+            if (start < 0 || end <= start) {
+                AppLogger.w(TAG, "LLM approval output has no JSON object for ${tool.name}: $text")
+                return null
+            }
+            val obj = JSONObject(text.substring(start, end + 1))
+            val decision = obj.optString("decision", "").trim().lowercase()
+            val reason = obj.optString("reason", "")
+            when (decision) {
+                "approve" -> {
+                    AppLogger.d(TAG, "LLM approval approved ${tool.name}: $reason")
+                    LlmApprovalDecision.APPROVE
+                }
+                "deny" -> {
+                    AppLogger.d(TAG, "LLM approval denied ${tool.name}: $reason")
+                    lastLlmDenial = tool.name to reason.ifBlank { "No reason provided" }
+                    LlmApprovalDecision.DENY
+                }
+                "ask" -> {
+                    AppLogger.d(TAG, "LLM approval asked for manual review of ${tool.name}: $reason")
+                    LlmApprovalDecision.ASK
+                }
+                else -> {
+                    // decision 为必填字段, 缺失或取值非法说明输出不符合约定
+                    AppLogger.w(TAG, "LLM approval returned invalid decision '$decision' for ${tool.name}")
+                    null
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "LLM approval failed for ${tool.name}, handing over to user", e)
+            null
+        }
+    }
+
+    private fun buildToolInvocationText(tool: AITool): String {
+        return buildString {
+            append("<tool name=\"")
+            append(tool.name)
+            append("\">")
+            tool.parameters.forEach { parameter ->
+                append("<param name=\"")
+                append(parameter.name)
+                append("\">")
+                append(parameter.value)
+                append("</param>")
+            }
+            append("</tool>")
+        }
+    }
+
     /**
      * Request permission from the user to execute a tool
      */

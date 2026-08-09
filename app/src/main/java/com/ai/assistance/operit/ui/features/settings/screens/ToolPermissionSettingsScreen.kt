@@ -30,6 +30,8 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import com.ai.assistance.operit.ui.permissions.ToolPermissionSystem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,6 +174,15 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
                 onToolToggled = { toolName -> handlePermissionChange(toolName, PermissionLevel.FORBID) }
             )
         }
+        item {
+            PermissionGroup(
+                level = PermissionLevel.LLM,
+                allTools = allTools,
+                toolsInLevel = toolPermissions.filterValues { it == PermissionLevel.LLM }.keys,
+                toolHandler = toolHandler,
+                onToolToggled = { toolName -> handlePermissionChange(toolName, PermissionLevel.LLM) }
+            )
+        }
     }
 }
 
@@ -200,6 +211,11 @@ private fun PermissionGroup(
             stringResource(R.string.permission_level_ask),
             stringResource(R.string.permission_level_ask_description),
             MaterialTheme.colorScheme.secondary
+        )
+        PermissionLevel.LLM -> Triple(
+            stringResource(R.string.permission_level_llm),
+            stringResource(R.string.permission_level_llm_description),
+            MaterialTheme.colorScheme.tertiary
         )
     }
 
@@ -396,6 +412,7 @@ fun CompactPermissionLevelSelector(
                     text = when (level) {
                         PermissionLevel.ALLOW -> stringResource(R.string.permission_level_allow)
                         PermissionLevel.ASK -> stringResource(R.string.permission_level_ask)
+                        PermissionLevel.LLM -> stringResource(R.string.permission_level_llm)
                         PermissionLevel.FORBID -> stringResource(R.string.forbid)
                     },
                     color = textColor,

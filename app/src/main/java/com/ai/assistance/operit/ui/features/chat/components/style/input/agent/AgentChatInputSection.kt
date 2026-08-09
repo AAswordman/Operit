@@ -2747,6 +2747,7 @@ private fun AgentToolsPermissionGroupItem(
         when (effectiveLevel) {
             PermissionLevel.ALLOW -> stringResource(R.string.permission_level_allow)
             PermissionLevel.ASK -> stringResource(R.string.permission_level_ask)
+            PermissionLevel.LLM -> stringResource(R.string.permission_level_llm)
             PermissionLevel.FORBID -> stringResource(R.string.agent_menu_permission_disabled)
         }
 
@@ -2826,6 +2827,7 @@ private fun AgentPermissionSegmentedControl(
                 when (level) {
                     PermissionLevel.ALLOW -> stringResource(R.string.permission_level_allow)
                     PermissionLevel.ASK -> stringResource(R.string.permission_level_ask)
+                    PermissionLevel.LLM -> stringResource(R.string.permission_level_llm)
                     PermissionLevel.FORBID -> stringResource(R.string.agent_menu_permission_disabled)
                 }
             Box(

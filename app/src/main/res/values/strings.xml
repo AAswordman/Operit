@@ -2973,6 +2973,7 @@
     <string name="function_type_image_recognition">图像识别</string>
     <string name="function_type_audio_recognition">音频识别</string>
     <string name="function_type_video_recognition">视频识别</string>
+    <string name="function_type_tool_approval">工具审批</string>
     
     <!-- Function Descriptions -->
     <string name="function_desc_chat">主要的对话功能，用于与用户进行日常对话交互</string>
@@ -2986,6 +2987,7 @@
     <string name="function_desc_role_response_planner">用于在群组中动态决定本轮发言顺序与跳过策略，支持多轮讨论</string>
     <string name="function_desc_image_recognition">用于图像内容识别和分析，调用read_file工具读取图片时支持intent参数进行深度理解。建议使用支持视觉的多模态模型。</string>
     <string name="function_desc_audio_recognition">用于音频内容识别和分析，调用read_file工具读取音频时可使用intent参数进行深度理解（如转写/总结/识别说话内容）。建议使用支持音频输入或高质量转写的模型。</string>
+    <string name="function_desc_tool_approval">用于审批是否允许智能体工具调用的模型。建议绑定响应快、成本低的模型。</string>
     <string name="function_desc_video_recognition">用于视频内容识别和分析，调用read_file工具读取视频时可使用intent参数进行深度理解（如抽帧理解/场景描述/对话总结）。建议使用支持视频/图像输入的多模态模型。</string>
     
     <!-- Functional Prompt Config Screen -->
@@ -5361,6 +5363,8 @@
     <string name="permission_level_forbid_description">这些工具永远不会运行。</string>
     <string name="permission_level_ask">询问</string>
     <string name="permission_level_ask_description">所有工具的默认行为。</string>
+    <string name="permission_level_llm">智能审批</string>
+    <string name="permission_level_llm_description">由审批模型自动决定允许或拒绝；模型无法判断、接口出错或输出无法解析时，转交用户手动确认。</string>
     <string name="add_tool">添加工具</string>
     <string name="no_tools_in_group">此组中未添加任何工具。</string>
     <string name="remove_tool">移除</string>

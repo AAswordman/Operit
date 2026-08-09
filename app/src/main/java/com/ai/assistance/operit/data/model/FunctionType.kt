@@ -12,5 +12,6 @@ enum class FunctionType {
     ROLE_RESPONSE_PLANNER, // 角色回答顺序规划
     IMAGE_RECOGNITION, // 图像识别
     AUDIO_RECOGNITION, // 音频识别
-    VIDEO_RECOGNITION // 视频识别
+    VIDEO_RECOGNITION, // 视频识别
+    TOOL_APPROVAL // 工具调用智能审批
 }

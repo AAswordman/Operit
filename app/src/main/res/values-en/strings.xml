@@ -4460,11 +4460,13 @@
     <string name="function_type_image_recognition">Image Recognition</string>
     <string name="function_type_audio_recognition">Audio Recognition</string>
     <string name="function_type_video_recognition">Video Recognition</string>
+    <string name="function_type_tool_approval">Tool Approval</string>
 
     <!-- Function Descriptions -->
     <string name="function_desc_translation">Provides multi-language translation functionality, supporting language conversion of text content. It is recommended to use models that support multiple languages.</string>
     <string name="function_desc_image_recognition">Used for image content recognition and analysis, supports intent parameter when calling read_file tool for deep understanding. Recommend using multimodal models with vision capabilities.</string>
     <string name="function_desc_audio_recognition">Used for audio content recognition and analysis. When calling read_file for audio, you can pass an intent for deeper understanding (e.g., transcription, summarization, speaker content). Recommend using models that support audio input or high-quality transcription.</string>
+    <string name="function_desc_tool_approval">Model used to review whether agent tool calls are allowed. A fast, low-cost model is recommended.</string>
     <string name="function_desc_video_recognition">Used for video content recognition and analysis. When calling read_file for video, you can pass an intent for deeper understanding (e.g., frame-based understanding, scene description, dialogue summary). Recommend using multimodal models that support video/image input.</string>
 
     <!-- Model Configuration -->
@@ -4941,6 +4943,8 @@
     <string name="permission_level_forbid_description">These tools will never run.</string>
     <string name="permission_level_ask">Ask</string>
     <string name="permission_level_ask_description">Default behavior for all tools.</string>
+    <string name="permission_level_llm">Auto Review</string>
+    <string name="permission_level_llm_description">An approval model decides automatically; when it cannot decide, the API fails, or the output cannot be parsed, the request is handed over to the user.</string>
     <string name="add_tool">Add Tool</string>
     <string name="no_tools_in_group">No tools added to this group.</string>
     <string name="remove_tool">Remove</string>
