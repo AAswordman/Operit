@@ -2,7 +2,7 @@
 title: Storage self-healing
 fork: https://github.com/luojiaping/Operit
 branch: fix-issue-
-status: post-release-hardening-in-progress
+status: implementation-complete
 ---
 
 # Storage self-healing
@@ -48,7 +48,9 @@ lease. Existing read access remains available while the main process owns storag
 5. [Startup and repair process](5_StartupAndRepairProcess.md)
 6. [Verification and documentation](6_VerificationAndDocumentation.md)
 
-The 2026-08-10 physical-recovery regression work continues in steps 4 and 6. TTS storage is
-being redesigned separately and is not part of this correction.
+The 2026-08-10 physical-recovery regression correction is complete. Implementation commit
+`41c50f81` passed the origin `Android Build` workflow with `assembleDebug` in
+[run 31332997568](https://github.com/luojiaping/Operit/actions/runs/31332997568). TTS storage is
+being redesigned separately and was not part of this correction.
 
-[IN PROGRESS]
+[DONE]

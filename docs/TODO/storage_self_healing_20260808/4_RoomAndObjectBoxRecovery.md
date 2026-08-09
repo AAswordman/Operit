@@ -1,6 +1,6 @@
 # Room and ObjectBox recovery
 
-Status: post-release hardening in progress
+Status: completed
 
 ## Old implementation
 
@@ -59,4 +59,8 @@ part of this correction.
 - A corrupt ObjectBox live file is copied byte-for-byte to quarantine before a verified slot replaces it
 - Without a verified ObjectBox slot, the corrupt live file remains present and the preservation event is recorded
 
-[IN PROGRESS]
+Implementation commit `41c50f81` passed `assembleDebug` in the origin `Android Build`
+[run 31332997568](https://github.com/luojiaping/Operit/actions/runs/31332997568). The dispatch did
+not run JVM unit tests or Android instrumentation tests.
+
+[DONE]

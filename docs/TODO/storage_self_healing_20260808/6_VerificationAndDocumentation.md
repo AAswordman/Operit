@@ -1,6 +1,6 @@
 # Verification and documentation
 
-Status: post-release hardening in progress; Android compilation delegated to origin GitHub Actions
+Status: completed; Android compilation passed in origin GitHub Actions
 
 ## Change
 
@@ -53,6 +53,11 @@ Local compilation, build, and test commands remain disabled. The user authorized
 - Add an ObjectBox classification unit test for content-corruption and operational error codes
 - Add ObjectBox scenarios with and without verified slots, preserving a marker entity and the original corrupt payload
 - Keep all captured device credentials and local evidence outside the repository and CI artifacts
-- Compile the rebased branch with the origin `Android Build` workflow after push
+- Compile the rebased implementation commit with the origin `Android Build` workflow after push
 
-[IN PROGRESS]
+Implementation commit `41c50f81` passed `assembleDebug` in
+[run 31332997568](https://github.com/luojiaping/Operit/actions/runs/31332997568), and the workflow
+uploaded artifact `operit-android-118`. The dispatch used `run_unit_tests=false`; the added Android
+instrumentation tests were not executed.
+
+[DONE]
