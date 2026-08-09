@@ -9,8 +9,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.toMutablePreferences
-import androidx.datastore.preferences.core.toPreferences
 import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
 import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
 import com.ai.assistance.operit.data.persistence.StorageProfileIdPolicy
@@ -30,7 +28,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.ai.assistance.operit.data.db.ObjectBoxManager

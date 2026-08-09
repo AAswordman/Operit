@@ -10,8 +10,6 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.toMutablePreferences
-import androidx.datastore.preferences.core.toPreferences
 import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
 import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
 import com.ai.assistance.operit.data.persistence.mergeNormalizedJsonFields
@@ -33,13 +31,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromJsonElement
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToJsonElement
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 
@@ -320,14 +318,17 @@ class ApiPreferences private constructor(private val context: Context) {
 
             val booleanKeys =
                 listOf(
-                    KEEP_SCREEN_ON to DEFAULT_KEEP_SCREEN_ON,
-                    ENABLE_THINKING_MODE to DEFAULT_ENABLE_THINKING_MODE,
-                    ENABLE_MEMORY_AUTO_UPDATE to DEFAULT_ENABLE_MEMORY_AUTO_UPDATE,
-                    ENABLE_AUTO_READ to DEFAULT_ENABLE_AUTO_READ,
-                    ENABLE_TOOLS to DEFAULT_ENABLE_TOOLS,
-                    DISABLE_STREAM_OUTPUT to DEFAULT_DISABLE_STREAM_OUTPUT,
-                    DISABLE_USER_PREFERENCE_DESCRIPTION to
+                    // DataStore 1.0 defines Key.to as Preferences.Pair, which is not destructurable.
+                    kotlin.Pair(KEEP_SCREEN_ON, DEFAULT_KEEP_SCREEN_ON),
+                    kotlin.Pair(ENABLE_THINKING_MODE, DEFAULT_ENABLE_THINKING_MODE),
+                    kotlin.Pair(ENABLE_MEMORY_AUTO_UPDATE, DEFAULT_ENABLE_MEMORY_AUTO_UPDATE),
+                    kotlin.Pair(ENABLE_AUTO_READ, DEFAULT_ENABLE_AUTO_READ),
+                    kotlin.Pair(ENABLE_TOOLS, DEFAULT_ENABLE_TOOLS),
+                    kotlin.Pair(DISABLE_STREAM_OUTPUT, DEFAULT_DISABLE_STREAM_OUTPUT),
+                    kotlin.Pair(
+                        DISABLE_USER_PREFERENCE_DESCRIPTION,
                         DEFAULT_DISABLE_USER_PREFERENCE_DESCRIPTION
+                    )
                 )
             booleanKeys.forEach { (key, defaultValue) ->
                 val raw = originalValues[key.name]
@@ -347,8 +348,8 @@ class ApiPreferences private constructor(private val context: Context) {
             }
 
             listOf(
-                MAX_IMAGE_HISTORY_USER_TURNS to DEFAULT_MAX_IMAGE_HISTORY_USER_TURNS,
-                MAX_MEDIA_HISTORY_USER_TURNS to DEFAULT_MAX_MEDIA_HISTORY_USER_TURNS
+                kotlin.Pair(MAX_IMAGE_HISTORY_USER_TURNS, DEFAULT_MAX_IMAGE_HISTORY_USER_TURNS),
+                kotlin.Pair(MAX_MEDIA_HISTORY_USER_TURNS, DEFAULT_MAX_MEDIA_HISTORY_USER_TURNS)
             ).forEach { (key, defaultValue) ->
                 val raw = originalValues[key.name]
                 if (raw != null && (raw !is Int || raw < 0)) replaceInt(key, defaultValue)

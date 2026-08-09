@@ -56,27 +56,27 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun tokenUsageDao(): TokenUsageDao
 
-    companion object {
-        const val DATABASE_VERSION = 21
+    internal data class SnapshotFile(
+        val relativePath: String,
+        val file: File
+    )
 
-        internal data class SnapshotFile(
-            val relativePath: String,
-            val file: File
-        )
-
-        internal class SnapshotExport internal constructor(
-            val files: List<SnapshotFile>,
-            private val stagingDirectory: File
-        ) : Closeable {
-            override fun close() {
-                if (stagingDirectory.exists() && !stagingDirectory.deleteRecursively()) {
-                    AppLogger.w(
-                        "AppDatabase",
-                        "Failed to remove Room raw snapshot staging directory"
-                    )
-                }
+    internal class SnapshotExport internal constructor(
+        val files: List<SnapshotFile>,
+        private val stagingDirectory: File
+    ) : Closeable {
+        override fun close() {
+            if (stagingDirectory.exists() && !stagingDirectory.deleteRecursively()) {
+                AppLogger.w(
+                    "AppDatabase",
+                    "Failed to remove Room raw snapshot staging directory"
+                )
             }
         }
+    }
+
+    companion object {
+        const val DATABASE_VERSION = 21
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
