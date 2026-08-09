@@ -1,10 +1,9 @@
 package com.ai.assistance.operit.data.backup
 
 import android.content.Context
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ai.assistance.operit.data.db.AppDatabase
+import com.ai.assistance.operit.data.persistence.StorageProcessLock
 import com.ai.assistance.operit.data.stats.TokenUsageRepository
-import com.ai.assistance.operit.util.AppLogger
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -72,13 +71,6 @@ object RoomDatabaseBackupManager {
             throw IllegalStateException("Database file not found: ${dbFile.absolutePath}")
         }
 
-        try {
-            val sqliteDb: SupportSQLiteDatabase = AppDatabase.getDatabase(context).openHelper.writableDatabase
-            sqliteDb.query("PRAGMA wal_checkpoint(FULL)").close()
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "wal_checkpoint failed", e)
-        }
-
         val operitDir = OperitBackupDirs.roomDbDir()
 
         val targetFile = File(operitDir, "${AUTO_BACKUP_FILE_PREFIX}${day}.zip")
@@ -88,14 +80,7 @@ object RoomDatabaseBackupManager {
             tmpFile.delete()
         }
 
-        val walFile = File(dbFile.absolutePath + "-wal")
-        val shmFile = File(dbFile.absolutePath + "-shm")
-
-        writeZip(tmpFile, mapOf(
-            DB_NAME to dbFile,
-            "${DB_NAME}-wal" to walFile,
-            "${DB_NAME}-shm" to shmFile
-        ))
+        writeValidatedZip(context, tmpFile)
 
         if (targetFile.exists()) {
             targetFile.delete()
@@ -114,13 +99,6 @@ object RoomDatabaseBackupManager {
             throw IllegalStateException("Database file not found: ${dbFile.absolutePath}")
         }
 
-        try {
-            val sqliteDb: SupportSQLiteDatabase = AppDatabase.getDatabase(context).openHelper.writableDatabase
-            sqliteDb.query("PRAGMA wal_checkpoint(FULL)").close()
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "wal_checkpoint failed", e)
-        }
-
         val operitDir = OperitBackupDirs.roomDbDir()
 
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))
@@ -131,14 +109,7 @@ object RoomDatabaseBackupManager {
             tmpFile.delete()
         }
 
-        val walFile = File(dbFile.absolutePath + "-wal")
-        val shmFile = File(dbFile.absolutePath + "-shm")
-
-        writeZip(tmpFile, mapOf(
-            DB_NAME to dbFile,
-            "${DB_NAME}-wal" to walFile,
-            "${DB_NAME}-shm" to shmFile
-        ))
+        writeValidatedZip(context, tmpFile)
 
         if (targetFile.exists()) {
             targetFile.delete()
@@ -200,6 +171,25 @@ object RoomDatabaseBackupManager {
                     }
                 }
                 zos.closeEntry()
+            }
+        }
+    }
+
+    private fun writeValidatedZip(context: Context, outputFile: File) {
+        StorageProcessLock.withExclusiveAccess(context, "room-database-backup") {
+            AppDatabase.getDatabase(context).openHelper.writableDatabase
+            val snapshot = AppDatabase.stageForSnapshotExport(context)
+            try {
+                val copiedDb = snapshot.files.single().file
+                check(copiedDb.isFile) {
+                    "Room backup staging did not produce $DB_NAME"
+                }
+                writeZip(
+                    outputFile,
+                    mapOf(DB_NAME to copiedDb)
+                )
+            } finally {
+                snapshot.close()
             }
         }
     }

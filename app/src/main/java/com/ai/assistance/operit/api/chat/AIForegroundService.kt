@@ -719,6 +719,7 @@ class AIForegroundService : Service() {
     private var lastAppliedRuntimeTaskViewHidden: Boolean? = null
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var storageReady = false
     private val chatRuntimeHolder by lazy { ChatRuntimeHolder.getInstance(applicationContext) }
     private val wakePrefs by lazy { WakeWordPreferences(applicationContext) }
     @Volatile
@@ -923,8 +924,22 @@ class AIForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        val operitApplication = application as OperitApplication
+        if (OperitApplication.storageStartupState !=
+            OperitApplication.StorageStartupState.READY
+        ) {
+            AppLogger.e(
+                TAG,
+                "AI foreground service refused because storage state=" +
+                    OperitApplication.storageStartupState
+            )
+            isRunning.set(false)
+            stopSelf()
+            return
+        }
+        storageReady = true
         isRunning.set(true)
-        (application as OperitApplication).initializeMainApplication()
+        operitApplication.initializeMainApplication()
         wakeListeningSuspendedForIme = lastRequestedImeVisible
         AppLogger.d(TAG, "AI 前台服务创建。")
         chatRuntimeHolder
@@ -1080,6 +1095,10 @@ class AIForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!storageReady) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (intent?.action == ACTION_EXIT_APP) {
             isRunning.set(false)
             updateAiBusyState(false)
@@ -1274,6 +1293,11 @@ class AIForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        if (!storageReady) {
+            super.onDestroy()
+            isRunning.set(false)
+            return
+        }
         val stoppedPort = externalHttpCurrentPort ?: externalHttpStateFlow.value.port
         runCatching {
             externalHttpServer?.stopServer()

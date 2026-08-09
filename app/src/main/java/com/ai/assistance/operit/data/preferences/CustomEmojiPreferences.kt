@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.CustomEmoji
 import com.ai.assistance.operit.util.AppLogger
@@ -17,7 +17,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.customEmojiDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "custom_emoji_settings")
+    recoverablePreferencesDataStore(name = "custom_emoji_settings")
 
 /**
  * 自定义表情 DataStore Preferences 管理类

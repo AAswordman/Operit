@@ -3,12 +3,17 @@ package com.ai.assistance.operit.data.preferences
 import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.mergeNormalizedJsonFields
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.data.backup.OperitBackupDirs
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardToolAccessConfig
+import com.ai.assistance.operit.data.model.getValidModelIndex
 import com.ai.assistance.operit.data.model.PromptTag
 import com.ai.assistance.operit.data.model.TagType
 import com.ai.assistance.operit.data.model.TavernCharacterCard
@@ -31,8 +36,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToJsonElement
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject as KotlinJsonObject
 
 import java.util.UUID
 import com.ai.assistance.operit.util.AppLogger
@@ -43,7 +50,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Context.characterCardDataStore by preferencesDataStore(
+private val Context.characterCardDataStore by recoverablePreferencesDataStore(
     name = "character_cards"
 )
 
@@ -52,7 +59,8 @@ private val Context.characterCardDataStore by preferencesDataStore(
  */
 class CharacterCardManager private constructor(private val context: Context) {
     
-    private val dataStore = context.characterCardDataStore
+    private val dataStore
+        get() = context.characterCardDataStore
     private val tagManager = PromptTagManager.getInstance(context)
     // 添加UserPreferencesManager引用用于主题管理
     private val userPreferencesManager = UserPreferencesManager.getInstance(context)
@@ -68,6 +76,30 @@ class CharacterCardManager private constructor(private val context: Context) {
         const val DEFAULT_CHARACTER_CARD_ID = "default_character"
 
         const val DEFAULT_CHARACTER_NAME = "Operit"
+
+        private const val CHARACTER_RECORD_PREFIX = "character_card_"
+        private val CHARACTER_RECORD_SUFFIXES =
+            listOf(
+                "_tool_access_config_json",
+                "_memory_profile_binding_mode",
+                "_chat_model_binding_mode",
+                "_advanced_custom_prompt",
+                "_other_content_voice",
+                "_other_content_chat",
+                "_chat_model_config_id",
+                "_memory_profile_id",
+                "_character_setting",
+                "_opening_statement",
+                "_attached_tag_ids",
+                "_chat_model_index",
+                "_other_content",
+                "_description",
+                "_is_default",
+                "_created_at",
+                "_updated_at",
+                "_marks",
+                "_name"
+            ).sortedByDescending { it.length }
         
         @Volatile
         private var INSTANCE: CharacterCardManager? = null
@@ -357,6 +389,40 @@ class CharacterCardManager private constructor(private val context: Context) {
             ChatHistoryManager.getInstance(context).renameCharacterCardInChats(previousName, card.name)
         }
     }
+
+    internal suspend fun clearMemoryProfileBindings(memoryProfileId: String) {
+        dataStore.edit { preferences ->
+            val bindingSuffix = "_memory_profile_id"
+            val matchingBindingKeys =
+                preferences.asMap().entries
+                    .asSequence()
+                    .filter { (key, value) ->
+                        key.name.startsWith(CHARACTER_RECORD_PREFIX) &&
+                            key.name.endsWith(bindingSuffix) &&
+                            value == memoryProfileId
+                    }
+                    .map { (key, _) -> key.name }
+                    .toList()
+            val updatedAt = System.currentTimeMillis()
+            matchingBindingKeys.forEach { bindingKeyName ->
+                val cardId =
+                    bindingKeyName
+                        .removePrefix(CHARACTER_RECORD_PREFIX)
+                        .removeSuffix(bindingSuffix)
+                if (cardId.isNotBlank()) {
+                    preferences.remove(stringPreferencesKey(bindingKeyName))
+                    preferences[
+                        stringPreferencesKey(
+                            "${CHARACTER_RECORD_PREFIX}${cardId}_memory_profile_binding_mode"
+                        )
+                    ] = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL
+                    preferences[
+                        longPreferencesKey("${CHARACTER_RECORD_PREFIX}${cardId}_updated_at")
+                    ] = updatedAt
+                }
+            }
+        }
+    }
     
     // 删除角色卡
     suspend fun deleteCharacterCard(id: String) {
@@ -504,6 +570,261 @@ class CharacterCardManager private constructor(private val context: Context) {
     }
     
     // 初始化默认角色卡
+    suspend fun repairPersistedState(): Boolean {
+        val modelConfigs = ModelConfigManager(context).getPersistedConfigsForRecovery()
+        val validMemorySpaceIds = userPreferencesManager.getPersistedMemorySpaceIdsForRecovery()
+        return repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.CHARACTER_CARDS,
+            dataStore = dataStore
+        ) { current ->
+            val originalValues = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            fun setString(name: String, value: String) {
+                removeName(name)
+                mutable[stringPreferencesKey(name)] = value
+                issues += name
+            }
+
+            fun recordIdForKey(keyName: String): String? {
+                if (!keyName.startsWith(CHARACTER_RECORD_PREFIX)) return null
+                CHARACTER_RECORD_SUFFIXES.forEach { suffix ->
+                    if (keyName.endsWith(suffix)) {
+                        return keyName
+                            .removePrefix(CHARACTER_RECORD_PREFIX)
+                            .removeSuffix(suffix)
+                            .takeIf { it.isNotBlank() }
+                    }
+                }
+                return null
+            }
+
+            val storedRecordIds =
+                originalValues.keys.mapNotNull(::recordIdForKey).toMutableSet()
+            val indexedRecordIds =
+                (originalValues[CHARACTER_CARD_LIST.name] as? Set<*>)
+                    ?.filterIsInstance<String>()
+                    ?.filter { it.isNotBlank() }
+                    ?.toSet()
+                    .orEmpty()
+            val recordIds = (storedRecordIds + indexedRecordIds).toMutableSet()
+
+            val plainStringDefaults =
+                mapOf(
+                    "name" to DEFAULT_CHARACTER_NAME,
+                    "description" to "",
+                    "character_setting" to "",
+                    "opening_statement" to "",
+                    "other_content" to "",
+                    "other_content_chat" to "",
+                    "other_content_voice" to "",
+                    "advanced_custom_prompt" to "",
+                    "marks" to ""
+                )
+            val now = System.currentTimeMillis()
+
+            if (DEFAULT_CHARACTER_CARD_ID !in storedRecordIds) {
+                setupDefaultCharacterCard(mutable, DEFAULT_CHARACTER_CARD_ID)
+                recordIds += DEFAULT_CHARACTER_CARD_ID
+                issues += "${CHARACTER_RECORD_PREFIX}${DEFAULT_CHARACTER_CARD_ID}"
+            }
+
+            recordIds.forEach { id ->
+                plainStringDefaults.forEach { (suffix, defaultValue) ->
+                    val keyName = "${CHARACTER_RECORD_PREFIX}${id}_$suffix"
+                    val raw = originalValues[keyName]
+                    if (raw != null && raw !is String) setString(keyName, defaultValue)
+                }
+
+                val nameKey = "${CHARACTER_RECORD_PREFIX}${id}_name"
+                if (originalValues[nameKey] == null) {
+                    setString(
+                        nameKey,
+                        if (id == DEFAULT_CHARACTER_CARD_ID) DEFAULT_CHARACTER_NAME else id
+                    )
+                }
+
+                val attachedName = "${CHARACTER_RECORD_PREFIX}${id}_attached_tag_ids"
+                val attachedRaw = originalValues[attachedName]
+                if (attachedRaw != null &&
+                    (attachedRaw !is Set<*> || attachedRaw.any { it !is String })
+                ) {
+                    val repairedTags =
+                        (attachedRaw as? Set<*>)?.filterIsInstance<String>()?.toSet() ?: emptySet()
+                    removeName(attachedName)
+                    mutable[stringSetPreferencesKey(attachedName)] = repairedTags
+                    issues += attachedName
+                }
+
+                val chatModeName = "${CHARACTER_RECORD_PREFIX}${id}_chat_model_binding_mode"
+                val chatModeRaw = originalValues[chatModeName]
+                var normalizedChatMode =
+                    CharacterCardChatModelBindingMode.normalize(chatModeRaw as? String)
+                if (chatModeRaw != null) {
+                    if (chatModeRaw !is String || normalizedChatMode != chatModeRaw) {
+                        setString(chatModeName, normalizedChatMode)
+                    }
+                }
+
+                val memoryModeName = "${CHARACTER_RECORD_PREFIX}${id}_memory_profile_binding_mode"
+                val memoryModeRaw = originalValues[memoryModeName]
+                var normalizedMemoryMode =
+                    CharacterCardMemoryProfileBindingMode.normalize(memoryModeRaw as? String)
+                if (memoryModeRaw != null) {
+                    if (memoryModeRaw !is String || normalizedMemoryMode != memoryModeRaw) {
+                        setString(memoryModeName, normalizedMemoryMode)
+                    }
+                }
+
+                val chatConfigName = "${CHARACTER_RECORD_PREFIX}${id}_chat_model_config_id"
+                val chatConfigRaw = originalValues[chatConfigName]
+                val chatConfigId = (chatConfigRaw as? String)?.takeIf { it.isNotBlank() }
+                val selectedModelConfig = chatConfigId?.let(modelConfigs::get)
+                if (chatConfigRaw != null && selectedModelConfig == null) {
+                    removeName(chatConfigName)
+                    issues += chatConfigName
+                }
+                if (normalizedChatMode == CharacterCardChatModelBindingMode.FIXED_CONFIG &&
+                    selectedModelConfig == null
+                ) {
+                    normalizedChatMode = CharacterCardChatModelBindingMode.FOLLOW_GLOBAL
+                    setString(chatModeName, normalizedChatMode)
+                }
+
+                val modelIndexName = "${CHARACTER_RECORD_PREFIX}${id}_chat_model_index"
+                val modelIndexRaw = originalValues[modelIndexName]
+                val requestedModelIndex = (modelIndexRaw as? Int) ?: 0
+                val normalizedModelIndex =
+                    if (normalizedChatMode == CharacterCardChatModelBindingMode.FIXED_CONFIG &&
+                        selectedModelConfig != null
+                    ) {
+                        getValidModelIndex(
+                            selectedModelConfig.modelName,
+                            requestedModelIndex
+                        )
+                    } else {
+                        requestedModelIndex.coerceAtLeast(0)
+                    }
+                if (modelIndexRaw != null &&
+                    (modelIndexRaw !is Int || modelIndexRaw != normalizedModelIndex)
+                ) {
+                    removeName(modelIndexName)
+                    mutable[intPreferencesKey(modelIndexName)] = normalizedModelIndex
+                    issues += modelIndexName
+                }
+
+                val memoryProfileName = "${CHARACTER_RECORD_PREFIX}${id}_memory_profile_id"
+                val memoryProfileRaw = originalValues[memoryProfileName]
+                val memoryProfileId =
+                    (memoryProfileRaw as? String)?.takeIf { it.isNotBlank() }
+                val hasValidMemoryProfile =
+                    memoryProfileId != null && memoryProfileId in validMemorySpaceIds
+                if (memoryProfileRaw != null && !hasValidMemoryProfile) {
+                    removeName(memoryProfileName)
+                    issues += memoryProfileName
+                }
+                if (normalizedMemoryMode == CharacterCardMemoryProfileBindingMode.FIXED_PROFILE &&
+                    !hasValidMemoryProfile
+                ) {
+                    normalizedMemoryMode = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL
+                    setString(memoryModeName, normalizedMemoryMode)
+                }
+
+                val defaultName = "${CHARACTER_RECORD_PREFIX}${id}_is_default"
+                val defaultRaw = originalValues[defaultName]
+                val expectedDefault = id == DEFAULT_CHARACTER_CARD_ID
+                if (defaultRaw !is Boolean || defaultRaw != expectedDefault) {
+                    removeName(defaultName)
+                    mutable[booleanPreferencesKey(defaultName)] = expectedDefault
+                    issues += defaultName
+                }
+
+                listOf("created_at", "updated_at").forEach { suffix ->
+                    val keyName = "${CHARACTER_RECORD_PREFIX}${id}_$suffix"
+                    val raw = originalValues[keyName]
+                    if (raw !is Long || raw <= 0L) {
+                        removeName(keyName)
+                        mutable[longPreferencesKey(keyName)] = now
+                        issues += keyName
+                    }
+                }
+
+                val toolAccessName = "${CHARACTER_RECORD_PREFIX}${id}_tool_access_config_json"
+                val toolAccessRaw = originalValues[toolAccessName]
+                if (toolAccessRaw != null) {
+                    val parsed =
+                        if (toolAccessRaw is String) {
+                            try {
+                                toolAccessConfigJson
+                                    .decodeFromString<CharacterCardToolAccessConfig>(toolAccessRaw)
+                            } catch (e: Exception) {
+                                AppLogger.e(
+                                    "CharacterCardManager",
+                                    "Repairing invalid persisted character tool access configuration",
+                                    e
+                                )
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    if (parsed == null) {
+                        removeName(toolAccessName)
+                        issues += toolAccessName
+                    } else {
+                        val normalized = parsed.normalized()
+                        if (normalized != parsed) {
+                            val repairedElement =
+                                mergeNormalizedJsonFields(
+                                    persisted =
+                                        toolAccessConfigJson.parseToJsonElement(
+                                            requireNotNull(toolAccessRaw as? String)
+                                        ),
+                                    decoded = toolAccessConfigJson.encodeToJsonElement(parsed),
+                                    normalized =
+                                        toolAccessConfigJson.encodeToJsonElement(normalized)
+                                )
+                            if (repairedElement is KotlinJsonObject && repairedElement.isEmpty()) {
+                                removeName(toolAccessName)
+                            } else {
+                                setString(toolAccessName, repairedElement.toString())
+                            }
+                            issues += toolAccessName
+                        }
+                    }
+                }
+            }
+
+            val currentIndex =
+                (originalValues[CHARACTER_CARD_LIST.name] as? Set<*>)
+                    ?.filterIsInstance<String>()
+                    ?.filter { it.isNotBlank() }
+                    ?.toSet()
+            if (currentIndex != recordIds) {
+                removeName(CHARACTER_CARD_LIST.name)
+                mutable[CHARACTER_CARD_LIST] = recordIds
+                issues += CHARACTER_CARD_LIST.name
+            }
+
+            val activeRaw = originalValues[ACTIVE_CHARACTER_CARD_ID.name]
+            if (activeRaw != null && (activeRaw !is String || activeRaw !in recordIds)) {
+                removeName(ACTIVE_CHARACTER_CARD_ID.name)
+                issues += ACTIVE_CHARACTER_CARD_ID.name
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
+    }
+
+    suspend fun getPersistedCharacterCardIdsForRecovery(): Set<String> =
+        context.characterCardDataStore.data.first()[CHARACTER_CARD_LIST].orEmpty()
+
     suspend fun initializeIfNeeded() {
         var isInitialized = false
         dataStore.edit { preferences ->

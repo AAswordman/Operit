@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.LocaleList
+import android.os.Process
 import com.ai.assistance.operit.util.AppLogger
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -50,6 +51,7 @@ import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingScreenW
 import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingState
 import com.ai.assistance.operit.ui.features.startup.screens.LocalPluginLoadingState
 import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingStateRegistry
+import com.ai.assistance.operit.ui.recovery.DataRecoveryActivity
 import com.ai.assistance.operit.ui.theme.OperitTheme
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
 import com.ai.assistance.operit.util.AnrMonitor
@@ -157,7 +159,14 @@ class MainActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
         // 获取当前设置的语言
-        val code = LocaleUtils.getCurrentLanguage(newBase)
+        val code =
+            if (OperitApplication.storageStartupState ==
+                OperitApplication.StorageStartupState.READY
+            ) {
+                LocaleUtils.getCurrentLanguage(newBase)
+            } else {
+                LocaleUtils.LanguageCodes.AUTO
+            }
         val locale = LocaleUtils.getLocaleForLanguageCode(code, newBase)
         val config = Configuration(newBase.resources.configuration)
 
@@ -180,6 +189,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (OperitApplication.storageStartupState !=
+            OperitApplication.StorageStartupState.READY
+        ) {
+            AppLogger.e(
+                TAG,
+                "Routing to data recovery because storage state=${OperitApplication.storageStartupState}",
+                OperitApplication.storageStartupError
+                    ?: IllegalStateException("Storage is owned by another process")
+            )
+            startActivity(Intent(this, DataRecoveryActivity::class.java))
+            finishAffinity()
+            Process.killProcess(Process.myPid())
+            return
+        }
         lastOrientation = resources.configuration.orientation
         AppLogger.d(TAG, "onCreate: Android SDK version: ${Build.VERSION.SDK_INT}")
 

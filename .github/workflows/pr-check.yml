@@ -68,6 +68,11 @@ jobs:
             --base "${{ steps.plan.outputs.base_sha }}" \
             --candidate "${{ steps.plan.outputs.candidate_sha }}"
 
+      - name: Check storage ownership
+        id: storage-ownership
+        continue-on-error: true
+        run: python3 ci/script/check_storage_ownership.py
+
       - name: Check Markdown links
         id: markdown
         continue-on-error: true
@@ -140,6 +145,7 @@ jobs:
           PLAN_OUTCOME: ${{ steps.plan.outcome }}
           GATE_TESTS_OUTCOME: ${{ steps.gate-tests.outcome }}
           HYGIENE_OUTCOME: ${{ steps.hygiene.outcome }}
+          STORAGE_OWNERSHIP_OUTCOME: ${{ steps.storage-ownership.outcome }}
           MARKDOWN_OUTCOME: ${{ steps.markdown.outcome }}
           LOCALIZATION_OUTCOME: ${{ steps.localization.outcome }}
           YAML_OUTCOME: ${{ steps.yaml.outcome }}
@@ -172,6 +178,7 @@ jobs:
           check_stage candidate true "$PLAN_OUTCOME"
           check_stage gate-tests true "$GATE_TESTS_OUTCOME"
           check_stage hygiene true "$HYGIENE_OUTCOME"
+          check_stage storage-ownership true "$STORAGE_OWNERSHIP_OUTCOME"
           check_stage markdown true "$MARKDOWN_OUTCOME"
           check_stage localization "$LOCALIZATION_REQUIRED" "$LOCALIZATION_OUTCOME"
           check_stage yaml "$YAML_REQUIRED" "$YAML_OUTCOME"

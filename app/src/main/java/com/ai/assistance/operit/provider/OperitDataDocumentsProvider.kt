@@ -3,10 +3,13 @@ package com.ai.assistance.operit.provider
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.os.CancellationSignal
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsProvider
 import android.webkit.MimeTypeMap
+import com.ai.assistance.operit.data.persistence.StorageProcessLock
 import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.io.FileNotFoundException
@@ -113,14 +116,51 @@ class OperitDataDocumentsProvider : DocumentsProvider() {
         if (file.isDirectory) {
             throw FileNotFoundException("Document is a directory: $documentId")
         }
-        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.parseMode(mode))
+        val parsedMode = ParcelFileDescriptor.parseMode(mode)
+        if (mode == "r") {
+            return ParcelFileDescriptor.open(file, parsedMode)
+        }
+
+        val providerContext = requireNotNull(context).applicationContext
+        val lease =
+            StorageProcessLock.acquireDescriptorLease(
+                providerContext,
+                "operit-data-provider:$documentId"
+            )
+        return try {
+            ParcelFileDescriptor.open(
+                file,
+                parsedMode,
+                Handler(Looper.getMainLooper()),
+                ParcelFileDescriptor.OnCloseListener { error ->
+                    try {
+                        if (error != null) {
+                            AppLogger.e(TAG, "Write descriptor closed with an error", error)
+                        }
+                    } finally {
+                        try {
+                            lease.close()
+                        } catch (e: Exception) {
+                            AppLogger.e(TAG, "Failed to release write descriptor lease", e)
+                        }
+                    }
+                }
+            )
+        } catch (e: Exception) {
+            try {
+                lease.close()
+            } catch (closeError: Exception) {
+                AppLogger.e(TAG, "Failed to release rejected write descriptor lease", closeError)
+            }
+            throw e
+        }
     }
 
     override fun createDocument(
         parentDocumentId: String,
         mimeType: String,
         displayName: String
-    ): String {
+    ): String = withWriteAccess("create:$parentDocumentId") {
         val parent = getExistingFile(parentDocumentId)
         if (!parent.isDirectory) {
             throw IllegalArgumentException("Parent is not a directory: $parentDocumentId")
@@ -139,47 +179,50 @@ class OperitDataDocumentsProvider : DocumentsProvider() {
         if (!created) {
             throw IllegalStateException("Failed to create document: ${target.path}")
         }
-        return getDocIdForFile(target)
+        getDocIdForFile(target)
     }
 
     override fun deleteDocument(documentId: String) {
-        if (documentId == DOC_ID_ROOT) {
-            throw IllegalArgumentException("Cannot delete Operit data root")
-        }
+        withWriteAccess("delete:$documentId") {
+            if (documentId == DOC_ID_ROOT) {
+                throw IllegalArgumentException("Cannot delete Operit data root")
+            }
 
-        val file = getExistingFile(documentId)
-        val deleted = if (file.isDirectory) {
-            file.deleteRecursively()
-        } else {
-            file.delete()
-        }
-        if (!deleted) {
-            throw IllegalStateException("Failed to delete document: ${file.path}")
+            val file = getExistingFile(documentId)
+            val deleted = if (file.isDirectory) {
+                file.deleteRecursively()
+            } else {
+                file.delete()
+            }
+            if (!deleted) {
+                throw IllegalStateException("Failed to delete document: ${file.path}")
+            }
         }
     }
 
-    override fun renameDocument(documentId: String, displayName: String): String {
-        if (documentId == DOC_ID_ROOT) {
-            throw IllegalArgumentException("Cannot rename Operit data root")
-        }
+    override fun renameDocument(documentId: String, displayName: String): String =
+        withWriteAccess("rename:$documentId") {
+            if (documentId == DOC_ID_ROOT) {
+                throw IllegalArgumentException("Cannot rename Operit data root")
+            }
 
-        val source = getExistingFile(documentId)
-        val parent = source.parentFile ?: throw IllegalArgumentException("Document has no parent")
-        val target = resolveChildFile(parent, displayName)
-        if (target.exists()) {
-            throw IllegalStateException("Target document already exists: ${target.path}")
+            val source = getExistingFile(documentId)
+            val parent = source.parentFile ?: throw IllegalArgumentException("Document has no parent")
+            val target = resolveChildFile(parent, displayName)
+            if (target.exists()) {
+                throw IllegalStateException("Target document already exists: ${target.path}")
+            }
+            if (!source.renameTo(target)) {
+                throw IllegalStateException("Failed to rename document: ${source.path}")
+            }
+            getDocIdForFile(target)
         }
-        if (!source.renameTo(target)) {
-            throw IllegalStateException("Failed to rename document: ${source.path}")
-        }
-        return getDocIdForFile(target)
-    }
 
     override fun moveDocument(
         sourceDocumentId: String,
         sourceParentDocumentId: String,
         targetParentDocumentId: String
-    ): String {
+    ): String = withWriteAccess("move:$sourceDocumentId") {
         if (sourceDocumentId == DOC_ID_ROOT) {
             throw IllegalArgumentException("Cannot move Operit data root")
         }
@@ -202,7 +245,7 @@ class OperitDataDocumentsProvider : DocumentsProvider() {
         if (!source.renameTo(target)) {
             throw IllegalStateException("Failed to move document: ${source.path}")
         }
-        return getDocIdForFile(target)
+        getDocIdForFile(target)
     }
 
     override fun isChildDocument(parentDocumentId: String, documentId: String): Boolean {
@@ -317,4 +360,11 @@ class OperitDataDocumentsProvider : DocumentsProvider() {
         val childPath = child.canonicalFile.path
         return childPath == parentPath || childPath.startsWith(parentPath + File.separator)
     }
+
+    private fun <T> withWriteAccess(owner: String, block: () -> T): T =
+        StorageProcessLock.withExclusiveAccess(
+            requireNotNull(context).applicationContext,
+            "operit-data-provider:$owner",
+            block
+        )
 }

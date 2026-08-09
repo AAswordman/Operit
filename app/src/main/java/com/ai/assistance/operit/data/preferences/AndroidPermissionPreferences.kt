@@ -6,7 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
 private val Context.androidPermissionDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "android_permission_preferences")
+        recoverablePreferencesDataStore(name = "android_permission_preferences")
 
 enum class RootCommandExecutionMode {
     AUTO,

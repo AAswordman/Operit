@@ -7,14 +7,14 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
-private val Context.externalHttpApiDataStore: DataStore<Preferences> by preferencesDataStore(
+private val Context.externalHttpApiDataStore: DataStore<Preferences> by recoverablePreferencesDataStore(
     name = "external_http_api_preferences"
 )
 

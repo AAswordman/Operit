@@ -3,6 +3,7 @@ package com.ai.assistance.operit.data.preferences
 import android.content.Context
 import android.util.AtomicFile
 import com.ai.assistance.operit.data.model.LegacyUserProfile
+import com.ai.assistance.operit.data.persistence.StorageProfileIdPolicy
 import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.io.FileOutputStream
@@ -106,8 +107,12 @@ class MemorySpaceProfileDocumentRepository private constructor(private val conte
     suspend fun delete(memorySpaceId: String) {
         initialize()
         writeMutex.withLock {
-            documentFile(memorySpaceId).delete()
-            profileDirectory(memorySpaceId).delete()
+            val directory = profileDirectory(memorySpaceId)
+            if (directory.exists() && !directory.deleteRecursively()) {
+                throw IllegalStateException(
+                    "Failed to delete memory-space profile documents: $memorySpaceId"
+                )
+            }
         }
     }
 
@@ -221,7 +226,15 @@ class MemorySpaceProfileDocumentRepository private constructor(private val conte
     }
 
     private fun profileDirectory(memorySpaceId: String): File {
-        return File(profileRoot, memorySpaceId)
+        require(StorageProfileIdPolicy.isSafeMemorySpaceId(memorySpaceId)) {
+            "Invalid memory space ID"
+        }
+        val canonicalRoot = profileRoot.canonicalFile
+        val directory = File(canonicalRoot, memorySpaceId).canonicalFile
+        require(directory.parentFile == canonicalRoot) {
+            "Memory space ID must resolve to a direct profile directory"
+        }
+        return directory
     }
 
     private fun documentFile(memorySpaceId: String): File {

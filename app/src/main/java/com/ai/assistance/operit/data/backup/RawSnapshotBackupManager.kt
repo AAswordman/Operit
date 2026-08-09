@@ -7,6 +7,12 @@ import android.os.Looper
 import android.util.AtomicFile
 import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.data.db.ObjectBoxManager
+import com.ai.assistance.operit.data.persistence.RecoverablePreferenceDataStores
+import com.ai.assistance.operit.data.persistence.RoomRecoveryStorage
+import com.ai.assistance.operit.data.persistence.StorageProcessLock
+import com.ai.assistance.operit.data.persistence.StorageProfileIdPolicy
+import com.ai.assistance.operit.data.persistence.StorageRecoveryCoordinator
+import com.ai.assistance.operit.data.persistence.StorageReplacementGate
 import com.ai.assistance.operit.data.stats.TokenUsageRepository
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.OperitPaths
@@ -23,6 +29,9 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.system.measureTimeMillis
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -38,6 +47,7 @@ object RawSnapshotBackupManager {
 
     private const val TAG = "RawSnapshotBackup"
     private const val FORMAT_VERSION = 1
+
     private const val ZIP_PREFIX = "operit_raw_snapshot_"
 
     private const val ENTRY_MANIFEST = "manifest.json"
@@ -48,9 +58,25 @@ object RawSnapshotBackupManager {
     private const val ENTRY_SHARED_PREFS = "payload/shared_prefs/"
     private const val ENTRY_DATASTORE = "payload/datastore/"
     private const val ENTRY_DATABASES = "payload/databases/"
+    private val REQUIRED_MANIFEST_INCLUDES =
+        listOf(
+            ENTRY_FILES,
+            ENTRY_EXTERNAL_FILES,
+            ENTRY_SHARED_PREFS,
+            ENTRY_DATASTORE,
+            ENTRY_DATABASES
+        )
 
     private val terminalTopLevelDirNames = setOf("usr", "tmp", "bin")
+    private val roomDatabaseFileNames =
+        setOf(
+            RoomRecoveryStorage.DATABASE_NAME,
+            "${RoomRecoveryStorage.DATABASE_NAME}-wal",
+            "${RoomRecoveryStorage.DATABASE_NAME}-shm",
+            "${RoomRecoveryStorage.DATABASE_NAME}-journal"
+        )
 
+    private val mutex = Mutex()
     private val mainHandler = Handler(Looper.getMainLooper())
 
     @Serializable
@@ -64,6 +90,11 @@ object RawSnapshotBackupManager {
 
     data class SnapshotOptions(
         val includeTerminalData: Boolean = false
+    )
+
+    private data class StagedZipFile(
+        val relativePath: String,
+        val file: File
     )
 
     enum class ExportProgress {
@@ -108,155 +139,294 @@ object RawSnapshotBackupManager {
         onProgress: ((ExportProgressInfo) -> Unit)? = null
     ): File = withContext(Dispatchers.IO) {
         TokenUsageRepository.withDatabaseAccess {
-            AppLogger.i(TAG, "export start (includeTerminalData=${options.includeTerminalData})")
-            withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.PREPARING)) }
-            val exportDir = OperitBackupDirs.rawSnapshotDir()
-            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))
-            val outFile = File(exportDir, "$ZIP_PREFIX$timestamp.zip")
-            val tmpFile = File(exportDir, "${outFile.name}.tmp")
-
-            if (tmpFile.exists()) {
-                tmpFile.delete()
-            }
-
-            val dataDir = context.dataDir
-            val externalFilesDir = requireNotNull(context.getExternalFilesDir(null)) {
-                "External files dir is unavailable"
-            }
-            val sharedPrefsDir = File(dataDir, "shared_prefs")
-            val datastoreDir = File(dataDir, "datastore")
-            val databasesDir = File(dataDir, "databases")
-
+            mutex.withLock {
+                requireSnapshotProcess(context)
+            val lease = StorageProcessLock.acquireOperationLease(context, "raw-snapshot-export")
+            val repairProcess = StorageProcessLock.isRepairProcess(context)
+            var objectBoxSnapshot: ObjectBoxManager.SnapshotExport? = null
+            var roomSnapshot: AppDatabase.SnapshotExport? = null
             try {
-                val sqliteDb = AppDatabase.getDatabase(context).openHelper.writableDatabase
-                sqliteDb.query("PRAGMA wal_checkpoint(FULL)").close()
-            } catch (e: Exception) {
-                AppLogger.w(TAG, "wal_checkpoint failed", e)
-            }
-
-            val includes = listOf(
-                ENTRY_FILES,
-                ENTRY_EXTERNAL_FILES,
-                ENTRY_SHARED_PREFS,
-                ENTRY_DATASTORE,
-                ENTRY_DATABASES
-            )
-            val manifest = Manifest(
-                formatVersion = FORMAT_VERSION,
-                packageName = context.packageName,
-                createdAt = System.currentTimeMillis(),
-                includes = includes,
-                includeTerminalData = options.includeTerminalData
-            )
-
-            ZipOutputStream(BufferedOutputStream(FileOutputStream(tmpFile))).use { zos ->
-                zos.putNextEntry(ZipEntry(ENTRY_MANIFEST))
-                zos.write(json.encodeToString(manifest).toByteArray(Charsets.UTF_8))
-                zos.closeEntry()
-
-                val alwaysExcluded = OperitPaths.rawSnapshotExcludedFilesTopLevelDirNames()
-                val excludedNames = if (options.includeTerminalData) {
-                    alwaysExcluded
+                AppLogger.i(TAG, "export start (includeTerminalData=${options.includeTerminalData})")
+                withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.PREPARING)) }
+                if (repairProcess) {
+                    RecoverablePreferenceDataStores.closeAllAndAwait()
+                    AppDatabase.closeDatabase()
+                    ObjectBoxManager.closeAllForSnapshotExport()
+                    RoomRecoveryStorage.checkpointClosed(context)
+                    AppDatabase.getDatabase(context).openHelper.writableDatabase
+                    AppDatabase.closeDatabase()
                 } else {
-                    alwaysExcluded + terminalTopLevelDirNames
+                    // Main-process repositories retain Room DAOs and ObjectBox stores. Closing
+                    // them here would break the released settings-screen export contract.
+                    RecoverablePreferenceDataStores.checkpointKnownStores(context)
+                    AppDatabase.getDatabase(context).openHelper.writableDatabase
                 }
-                withContext(Dispatchers.Main) {
-                    onProgress?.invoke(ExportProgressInfo(stage = ExportProgress.SCANNING_FILES, scannedFiles = 0))
-                }
-                val filesTotalCount = totalFilesForZip(
-                    dir = context.filesDir,
-                    entryPrefix = ENTRY_FILES,
-                    excludedTopLevelDirNames = excludedNames,
-                    onScannedCountChanged = { scanned ->
-                        if (onProgress != null) {
-                            mainHandler.post {
-                                onProgress.invoke(
-                                    ExportProgressInfo(stage = ExportProgress.SCANNING_FILES, scannedFiles = scanned)
-                                )
-                            }
-                        }
+                val stagedRoomSnapshot =
+                    AppDatabase.stageForSnapshotExport(context).also { snapshot ->
+                        roomSnapshot = snapshot
                     }
-                )
-                withContext(Dispatchers.Main) {
-                    onProgress?.invoke(
-                        ExportProgressInfo(stage = ExportProgress.SCANNING_FILES, scannedFiles = filesTotalCount)
-                    )
+                val stagedRoomFiles =
+                    stagedRoomSnapshot.files.map { snapshotFile ->
+                        StagedZipFile(snapshotFile.relativePath, snapshotFile.file)
+                    }
+                val stagedObjectBoxSnapshot =
+                    ObjectBoxManager.stageAllForSnapshotExport(context).also { snapshot ->
+                        objectBoxSnapshot = snapshot
+                    }
+                val stagedObjectBoxFiles = stagedObjectBoxSnapshot.files
+                    .map { snapshotFile ->
+                        StagedZipFile(snapshotFile.relativePath, snapshotFile.file)
+                    }
+                val exportDir = OperitBackupDirs.rawSnapshotDir()
+                val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))
+                val outFile = File(exportDir, "$ZIP_PREFIX$timestamp.zip")
+                val tmpFile = File(exportDir, "${outFile.name}.tmp")
+
+                if (tmpFile.exists()) {
+                    tmpFile.delete()
                 }
-                withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_FILES, 0)) }
-                val filesMs = measureTimeMillis {
-                    addDirToZip(
-                        zos = zos,
-                        dir = context.filesDir,
-                        entryPrefix = ENTRY_FILES,
-                        excludedTopLevelDirNames = excludedNames,
-                        totalFiles = filesTotalCount,
-                        onPercentChanged = { percent ->
-                            if (onProgress != null) {
-                                mainHandler.post {
-                                    onProgress.invoke(ExportProgressInfo(ExportProgress.ZIPPING_FILES, percent))
+
+                val dataDir = context.dataDir
+                val externalFilesDir = requireNotNull(context.getExternalFilesDir(null)) {
+                    "External files dir is unavailable"
+                }
+                val sharedPrefsDir = File(dataDir, "shared_prefs")
+                val datastoreDir = File(dataDir, "datastore")
+                val databasesDir = File(dataDir, "databases")
+
+                val manifest =
+                    Manifest(
+                        formatVersion = FORMAT_VERSION,
+                        packageName = context.packageName,
+                        createdAt = System.currentTimeMillis(),
+                        includes = REQUIRED_MANIFEST_INCLUDES,
+                        includeTerminalData = options.includeTerminalData
+                    )
+
+                ZipOutputStream(BufferedOutputStream(FileOutputStream(tmpFile))).use { zos ->
+                    zos.putNextEntry(ZipEntry(ENTRY_MANIFEST))
+                    zos.write(json.encodeToString(manifest).toByteArray(Charsets.UTF_8))
+                    zos.closeEntry()
+
+                    val alwaysExcluded = OperitPaths.rawSnapshotExcludedFilesTopLevelDirNames()
+                    val excludedNames =
+                        if (options.includeTerminalData) {
+                            alwaysExcluded
+                        } else {
+                            alwaysExcluded + terminalTopLevelDirNames
+                        }
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(
+                            ExportProgressInfo(
+                                stage = ExportProgress.SCANNING_FILES,
+                                scannedFiles = 0
+                            )
+                        )
+                    }
+                    val filesTotalCount =
+                        totalFilesForZip(
+                            dir = context.filesDir,
+                            entryPrefix = ENTRY_FILES,
+                            excludedTopLevelDirNames = excludedNames,
+                            excludeObjectBoxDirectories = true,
+                            onScannedCountChanged = { scanned ->
+                                if (onProgress != null) {
+                                    mainHandler.post {
+                                        onProgress.invoke(
+                                            ExportProgressInfo(
+                                                stage = ExportProgress.SCANNING_FILES,
+                                                scannedFiles = scanned
+                                            )
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    )
-                }
-                withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_FILES, 100)) }
-                AppLogger.i(TAG, "export add files done in ${filesMs}ms (excludedTopLevel=${excludedNames.size})")
-
-                val externalFilesTotalCount = totalFilesForZip(
-                    dir = externalFilesDir,
-                    entryPrefix = ENTRY_EXTERNAL_FILES,
-                    excludedTopLevelDirNames = emptySet()
-                )
-                withContext(Dispatchers.Main) {
-                    onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_EXTERNAL_FILES, 0))
-                }
-                val externalFilesMs = measureTimeMillis {
-                    addDirToZip(
-                        zos = zos,
-                        dir = externalFilesDir,
-                        entryPrefix = ENTRY_EXTERNAL_FILES,
-                        totalFiles = externalFilesTotalCount,
-                        onPercentChanged = { percent ->
-                            if (onProgress != null) {
-                                mainHandler.post {
-                                    onProgress.invoke(
-                                        ExportProgressInfo(ExportProgress.ZIPPING_EXTERNAL_FILES, percent)
-                                    )
+                        ) + stagedObjectBoxFiles.size
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(
+                            ExportProgressInfo(
+                                stage = ExportProgress.SCANNING_FILES,
+                                scannedFiles = filesTotalCount
+                            )
+                        )
+                    }
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(
+                            ExportProgressInfo(ExportProgress.ZIPPING_FILES, 0)
+                        )
+                    }
+                    val filesMs =
+                        measureTimeMillis {
+                            val regularFilesWritten =
+                                addDirToZip(
+                                    zos = zos,
+                                    dir = context.filesDir,
+                                    entryPrefix = ENTRY_FILES,
+                                    excludedTopLevelDirNames = excludedNames,
+                                    totalFiles = filesTotalCount,
+                                    excludeObjectBoxDirectories = true,
+                                    onPercentChanged = { percent ->
+                                        if (onProgress != null) {
+                                            mainHandler.post {
+                                                onProgress.invoke(
+                                                    ExportProgressInfo(
+                                                        ExportProgress.ZIPPING_FILES,
+                                                        percent
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            addStagedSnapshotToZip(
+                                zos = zos,
+                                entryPrefix = ENTRY_FILES,
+                                files = stagedObjectBoxFiles,
+                                processedBefore = regularFilesWritten,
+                                totalFiles = filesTotalCount,
+                                onPercentChanged = { percent ->
+                                    if (onProgress != null) {
+                                        mainHandler.post {
+                                            onProgress.invoke(
+                                                ExportProgressInfo(
+                                                    ExportProgress.ZIPPING_FILES,
+                                                    percent
+                                                )
+                                            )
+                                        }
+                                    }
                                 }
+                            )
+                        }
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(
+                            ExportProgressInfo(ExportProgress.ZIPPING_FILES, 100)
+                        )
+                    }
+                    AppLogger.i(
+                        TAG,
+                        "export add files done in ${filesMs}ms " +
+                            "(excludedTopLevel=${excludedNames.size})"
+                    )
+
+                    val externalFilesTotalCount =
+                        totalFilesForZip(
+                            dir = externalFilesDir,
+                            entryPrefix = ENTRY_EXTERNAL_FILES,
+                            excludedTopLevelDirNames = emptySet()
+                        )
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(
+                            ExportProgressInfo(ExportProgress.ZIPPING_EXTERNAL_FILES, 0)
+                        )
+                    }
+                    val externalFilesMs =
+                        measureTimeMillis {
+                            addDirToZip(
+                                zos = zos,
+                                dir = externalFilesDir,
+                                entryPrefix = ENTRY_EXTERNAL_FILES,
+                                totalFiles = externalFilesTotalCount,
+                                onPercentChanged = { percent ->
+                                    if (onProgress != null) {
+                                        mainHandler.post {
+                                            onProgress.invoke(
+                                                ExportProgressInfo(
+                                                    ExportProgress.ZIPPING_EXTERNAL_FILES,
+                                                    percent
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(
+                            ExportProgressInfo(ExportProgress.ZIPPING_EXTERNAL_FILES, 100)
+                        )
+                    }
+                    AppLogger.i(
+                        TAG,
+                        "export add external_files done in ${externalFilesMs}ms"
+                    )
+
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(
+                            ExportProgressInfo(ExportProgress.ZIPPING_SHARED_PREFS)
+                        )
+                    }
+                    val sharedPrefsMs =
+                        measureTimeMillis {
+                            addDirToZip(zos, sharedPrefsDir, ENTRY_SHARED_PREFS)
+                        }
+                    AppLogger.i(TAG, "export add shared_prefs done in ${sharedPrefsMs}ms")
+
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_DATASTORE))
+                    }
+                    val datastoreMs =
+                        measureTimeMillis { addDirToZip(zos, datastoreDir, ENTRY_DATASTORE) }
+                    AppLogger.i(TAG, "export add datastore done in ${datastoreMs}ms")
+
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_DATABASES))
+                    }
+                    val databasesMs =
+                        measureTimeMillis {
+                            addDirToZip(
+                                zos,
+                                databasesDir,
+                                ENTRY_DATABASES,
+                                excludedTopLevelDirNames = roomDatabaseFileNames
+                            )
+                            addStagedSnapshotToZip(
+                                zos = zos,
+                                entryPrefix = ENTRY_DATABASES,
+                                files = stagedRoomFiles,
+                                processedBefore = 0,
+                                totalFiles = 0,
+                                onPercentChanged = null
+                            )
+                        }
+                    AppLogger.i(TAG, "export add databases done in ${databasesMs}ms")
+                }
+
+                withContext(Dispatchers.Main) {
+                    onProgress?.invoke(ExportProgressInfo(ExportProgress.FINALIZING))
+                }
+                if (outFile.exists()) {
+                    outFile.delete()
+                }
+
+                if (!tmpFile.renameTo(outFile)) {
+                    tmpFile.copyTo(outFile, overwrite = true)
+                    tmpFile.delete()
+                }
+
+                AppLogger.i(TAG, "export done: ${outFile.absolutePath} (${outFile.length()} bytes)")
+                outFile
+            } finally {
+                withContext(NonCancellable + Dispatchers.IO) {
+                    try {
+                        try {
+                            try {
+                                objectBoxSnapshot?.close()
+                            } finally {
+                                roomSnapshot?.close()
+                            }
+                        } finally {
+                            if (repairProcess) {
+                                RecoverablePreferenceDataStores.closeAllAndAwait()
+                                AppDatabase.closeDatabase()
+                                ObjectBoxManager.closeAll()
                             }
                         }
-                    )
+                    } finally {
+                        lease.close()
+                    }
                 }
-                withContext(Dispatchers.Main) {
-                    onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_EXTERNAL_FILES, 100))
-                }
-                AppLogger.i(TAG, "export add external_files done in ${externalFilesMs}ms")
-
-                withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_SHARED_PREFS)) }
-                val sharedPrefsMs = measureTimeMillis { addDirToZip(zos, sharedPrefsDir, ENTRY_SHARED_PREFS) }
-                AppLogger.i(TAG, "export add shared_prefs done in ${sharedPrefsMs}ms")
-
-                withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_DATASTORE)) }
-                val datastoreMs = measureTimeMillis { addDirToZip(zos, datastoreDir, ENTRY_DATASTORE) }
-                AppLogger.i(TAG, "export add datastore done in ${datastoreMs}ms")
-
-                withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_DATABASES)) }
-                val databasesMs = measureTimeMillis { addDirToZip(zos, databasesDir, ENTRY_DATABASES) }
-                AppLogger.i(TAG, "export add databases done in ${databasesMs}ms")
             }
-
-            withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.FINALIZING)) }
-            if (outFile.exists()) {
-                outFile.delete()
-            }
-
-            if (!tmpFile.renameTo(outFile)) {
-                tmpFile.copyTo(outFile, overwrite = true)
-                tmpFile.delete()
-            }
-
-            AppLogger.i(TAG, "export done: ${outFile.absolutePath} (${outFile.length()} bytes)")
-            outFile
         }
     }
 
@@ -266,11 +436,28 @@ object RawSnapshotBackupManager {
         onProgress: ((RestoreProgress) -> Unit)? = null
     ) = withContext(Dispatchers.IO) {
         TokenUsageRepository.withDatabaseRestore {
+            mutex.withLock {
+                requireSnapshotProcess(context)
             val cacheZip = File.createTempFile("raw_snapshot_restore_", ".zip", context.cacheDir)
-            val workDir = File(context.cacheDir, "raw_snapshot_restore_work").apply {
-                if (exists()) deleteRecursively()
-                mkdirs()
+            val workDir = File(context.cacheDir, "raw_snapshot_restore_work")
+            if (workDir.exists()) {
+                check(workDir.deleteRecursively()) {
+                    "Failed to remove previous raw snapshot restore work directory"
+                }
             }
+            check(workDir.mkdirs()) {
+                "Failed to create raw snapshot restore work directory"
+            }
+            val lease =
+                try {
+                    StorageProcessLock.acquireOperationLease(context, "raw-snapshot-restore")
+                } catch (e: Exception) {
+                    cacheZip.delete()
+                    workDir.deleteRecursively()
+                    throw e
+            }
+            var storageOwnersClosed = false
+            var replacementLease: StorageReplacementGate.ReplacementLease? = null
 
             try {
                 AppLogger.i(TAG, "restore start uri=$uri")
@@ -284,16 +471,84 @@ object RawSnapshotBackupManager {
 
                 AppLogger.i(TAG, "restore cached zip: ${cacheZip.absolutePath} (${cacheZip.length()} bytes)")
 
-                AppDatabase.closeDatabase()
-                ObjectBoxManager.closeAll()
-
-                AppLogger.i(TAG, "restore closed databases (room + objectbox)")
-
                 withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.EXTRACTING) }
                 val manifest = extractZipToWorkDir(cacheZip, workDir)
 
                 val payloadDir = File(workDir, "payload")
+                validatePayloadShape(manifest, payloadDir)
                 val externalFilesPayloadDir = File(payloadDir, "external_files")
+                val roomPayload = File(payloadDir, "databases/${RoomRecoveryStorage.DATABASE_NAME}")
+                val roomSidecarPayloads =
+                    listOf("-wal", "-shm", "-journal").map { suffix ->
+                        File(roomPayload.absolutePath + suffix)
+                    }
+                if (roomPayload.exists() && !roomPayload.isFile) {
+                    throw IllegalArgumentException(
+                        "Raw snapshot Room database payload is not a regular file"
+                    )
+                }
+                roomSidecarPayloads.forEach { sidecar ->
+                    if (sidecar.exists() && !sidecar.isFile) {
+                        throw IllegalArgumentException(
+                            "Raw snapshot Room sidecar is not a regular file: ${sidecar.name}"
+                        )
+                    }
+                }
+                if (!roomPayload.isFile && roomSidecarPayloads.any { it.exists() }) {
+                    throw IllegalArgumentException(
+                        "Raw snapshot contains Room sidecars without the main database"
+                    )
+                }
+                if (roomPayload.isFile &&
+                    !RoomRecoveryStorage.validateDatabaseSet(context, roomPayload)
+                ) {
+                    throw IllegalArgumentException("Raw snapshot contains an invalid Room database")
+                }
+                val filesPayload = File(payloadDir, "files")
+                val filesPayloadEntries =
+                    if (filesPayload.exists()) {
+                        filesPayload.listFiles()
+                            ?: throw IllegalArgumentException(
+                                "Raw snapshot files payload cannot be enumerated"
+                            )
+                    } else {
+                        emptyArray<File>()
+                    }
+                filesPayloadEntries
+                    .filter { file ->
+                        file.name == "objectbox" || file.name.startsWith("objectbox_")
+                    }
+                    .forEach { objectBoxPayload ->
+                        val profileId =
+                            if (objectBoxPayload.name == "objectbox") {
+                                "default"
+                            } else {
+                                objectBoxPayload.name.removePrefix("objectbox_")
+                            }
+                        if (!StorageProfileIdPolicy.isSafeMemorySpaceId(profileId)) {
+                            throw IllegalArgumentException(
+                                "Raw snapshot ObjectBox profile ID is invalid"
+                            )
+                        }
+                        if (!objectBoxPayload.isDirectory) {
+                            throw IllegalArgumentException(
+                                "Raw snapshot ObjectBox payload is not a directory: " +
+                                    objectBoxPayload.name
+                            )
+                        }
+                        if (!File(objectBoxPayload, "data.mdb").isFile) {
+                            throw IllegalArgumentException(
+                                "Raw snapshot contains an ObjectBox directory without data.mdb: " +
+                                    objectBoxPayload.name
+                            )
+                        }
+                        if (!ObjectBoxManager.validateRecoveryDirectory(context, objectBoxPayload)) {
+                            throw IllegalArgumentException(
+                                "Raw snapshot contains an invalid ObjectBox database: " +
+                                    objectBoxPayload.name
+                            )
+                        }
+                    }
 
                 val alwaysExcluded = OperitPaths.rawSnapshotExcludedFilesTopLevelDirNames()
 
@@ -303,6 +558,14 @@ object RawSnapshotBackupManager {
                     File(payloadDir, "files/$dirName").exists()
                 }.toSet()
                 val preservedNames = preservedTerminalNames + preservedAlwaysExcludedNames
+                val externalFilesDir =
+                    if (externalFilesPayloadDir.exists()) {
+                        requireNotNull(context.getExternalFilesDir(null)) {
+                            "External files dir is unavailable"
+                        }
+                    } else {
+                        null
+                    }
 
                 AppLogger.i(
                     TAG,
@@ -312,34 +575,90 @@ object RawSnapshotBackupManager {
                 AppLogger.i(TAG, "restore replace dirs (preserveTerminalTopLevel=${preservedNames.isNotEmpty()})")
 
                 withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.REPLACING_FILES) }
-                replaceDirContents(File(payloadDir, "files"), context.filesDir, preservedTopLevelDirNames = preservedNames)
-                if (externalFilesPayloadDir.exists()) {
-                    val externalFilesDir = requireNotNull(context.getExternalFilesDir(null)) {
-                        "External files dir is unavailable"
-                    }
-                    withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.REPLACING_EXTERNAL_FILES) }
-                    replaceDirContents(externalFilesPayloadDir, externalFilesDir)
-                }
-                withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.REPLACING_SHARED_PREFS) }
-                replaceDirContents(File(payloadDir, "shared_prefs"), File(context.dataDir, "shared_prefs"))
-                withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.REPLACING_DATASTORE) }
-                replaceDirContents(File(payloadDir, "datastore"), File(context.dataDir, "datastore"))
-                withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.REPLACING_DATABASES) }
-                replaceDirContents(File(payloadDir, "databases"), File(context.dataDir, "databases"))
 
-                withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.FINALIZING) }
-                AppLogger.i(TAG, "restore done: ${manifest.packageName}")
+                // Keep the released settings-screen owners alive until the archive, all imported
+                // databases, and replacement preconditions have passed validation. Once this flag
+                // is set, final cleanup must finish closing even if a later replacement fails.
+                val activeReplacement = StorageReplacementGate.acquire()
+                replacementLease = activeReplacement
+                activeReplacement.withAccess {
+                    storageOwnersClosed = true
+                    AppDatabase.closeDatabase()
+                    ObjectBoxManager.closeAllForReplacement()
+                    RecoverablePreferenceDataStores.closeAllAndAwait()
+
+                    AppLogger.i(TAG, "restore closed databases after payload validation")
+
+                    replaceDirContents(
+                        File(payloadDir, "files"),
+                        context.filesDir,
+                        preservedTopLevelDirNames = preservedNames
+                    )
+                    if (externalFilesDir != null) {
+                        withContext(Dispatchers.Main) {
+                            onProgress?.invoke(RestoreProgress.REPLACING_EXTERNAL_FILES)
+                        }
+                        replaceDirContents(externalFilesPayloadDir, externalFilesDir)
+                    }
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(RestoreProgress.REPLACING_SHARED_PREFS)
+                    }
+                    replaceDirContents(
+                        File(payloadDir, "shared_prefs"),
+                        File(context.dataDir, "shared_prefs")
+                    )
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(RestoreProgress.REPLACING_DATASTORE)
+                    }
+                    replaceDirContents(
+                        File(payloadDir, "datastore"),
+                        File(context.dataDir, "datastore")
+                    )
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(RestoreProgress.REPLACING_DATABASES)
+                    }
+                    replaceDirContents(
+                        File(payloadDir, "databases"),
+                        File(context.dataDir, "databases")
+                    )
+
+                    withContext(Dispatchers.Main) {
+                        onProgress?.invoke(RestoreProgress.FINALIZING)
+                    }
+                    StorageRecoveryCoordinator.archiveSnapshotsBeforeRawRestoreRecovery(
+                        context.applicationContext
+                    )
+                    RoomRecoveryStorage.invalidatePreparedState()
+                    ObjectBoxManager.invalidatePreparedState()
+                    StorageRecoveryCoordinator.recoverPreferences(context.applicationContext)
+                    AppLogger.i(TAG, "restore done: ${manifest.packageName}")
+                }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "restore failed", e)
                 throw e
             } finally {
-                try {
-                    cacheZip.delete()
-                } catch (_: Exception) {
-                }
-                try {
-                    workDir.deleteRecursively()
-                } catch (_: Exception) {
+                withContext(NonCancellable + Dispatchers.IO) {
+                    try {
+                        if (storageOwnersClosed) {
+                            RecoverablePreferenceDataStores.closeAllAndAwait()
+                            AppDatabase.closeDatabase()
+                            ObjectBoxManager.closeAll()
+                        }
+                        try {
+                            cacheZip.delete()
+                        } catch (_: Exception) {
+                        }
+                        try {
+                            workDir.deleteRecursively()
+                        } catch (_: Exception) {
+                        }
+                    } finally {
+                        try {
+                            replacementLease?.close()
+                        } finally {
+                            lease.close()
+                        }
+                    }
                 }
             }
         }
@@ -347,10 +666,15 @@ object RawSnapshotBackupManager {
 
     private fun extractZipToWorkDir(zipFile: File, workDir: File): Manifest {
         val payloadRoot = File(workDir, "payload")
-        payloadRoot.mkdirs()
+        check(payloadRoot.mkdirs() || payloadRoot.isDirectory) {
+            "Failed to create raw snapshot payload root"
+        }
+        val payloadCanonical = payloadRoot.canonicalFile
 
         var manifestText: String? = null
         var extractedPayloadFiles = 0
+        val extractedEntryNames = mutableSetOf<String>()
+        val extractedTargetPaths = mutableSetOf<String>()
 
         val buffer = ByteArray(64 * 1024)
         val extractMs = measureTimeMillis {
@@ -359,7 +683,12 @@ object RawSnapshotBackupManager {
                     val entry = zis.nextEntry ?: break
                     val name = entry.name
 
-                    if (entry.isDirectory) {
+                    if (!extractedEntryNames.add(name)) {
+                        zis.closeEntry()
+                        throw IllegalArgumentException("Invalid backup zip: duplicate entry $name")
+                    }
+
+                    if (entry.isDirectory && !name.startsWith(ENTRY_PAYLOAD_PREFIX)) {
                         zis.closeEntry()
                         continue
                     }
@@ -377,11 +706,27 @@ object RawSnapshotBackupManager {
                     }
 
                     val target = File(workDir, name)
-                    val workCanonical = workDir.canonicalFile
                     val targetCanonical = target.canonicalFile
-                    if (!targetCanonical.path.startsWith(workCanonical.path + File.separator)) {
+                    val isPayloadRoot = targetCanonical == payloadCanonical
+                    val isPayloadChild =
+                        targetCanonical.path.startsWith(payloadCanonical.path + File.separator)
+                    if (!isPayloadRoot && !isPayloadChild) {
                         zis.closeEntry()
                         throw IllegalArgumentException("Invalid zip entry path: $name")
+                    }
+                    if (!extractedTargetPaths.add(targetCanonical.path)) {
+                        zis.closeEntry()
+                        throw IllegalArgumentException(
+                            "Invalid backup zip: duplicate target path $name"
+                        )
+                    }
+
+                    if (entry.isDirectory) {
+                        check(target.mkdirs() || target.isDirectory) {
+                            "Failed to create raw snapshot payload directory: $name"
+                        }
+                        zis.closeEntry()
+                        continue
                     }
 
                     target.parentFile?.mkdirs()
@@ -416,15 +761,32 @@ object RawSnapshotBackupManager {
         return manifest
     }
 
+    private fun validatePayloadShape(manifest: Manifest, payloadDir: File) {
+        if (manifest.includes != REQUIRED_MANIFEST_INCLUDES) {
+            throw IllegalArgumentException("Raw snapshot manifest has an incomplete payload list")
+        }
+        check(payloadDir.isDirectory) { "Raw snapshot payload root is not a directory" }
+        REQUIRED_MANIFEST_INCLUDES.forEach { entryPrefix ->
+            val relative = entryPrefix.removePrefix(ENTRY_PAYLOAD_PREFIX).removeSuffix("/")
+            val directory = File(payloadDir, relative)
+            if (directory.exists() && !directory.isDirectory) {
+                throw IllegalArgumentException(
+                    "Raw snapshot payload category is not a directory: $relative"
+                )
+            }
+        }
+    }
+
     private fun addDirToZip(
         zos: ZipOutputStream,
         dir: File,
         entryPrefix: String,
         excludedTopLevelDirNames: Set<String> = emptySet(),
         totalFiles: Int = 0,
-        onPercentChanged: ((Int) -> Unit)? = null
-    ) {
-        if (!dir.exists() || !dir.isDirectory) return
+        onPercentChanged: ((Int) -> Unit)? = null,
+        excludeObjectBoxDirectories: Boolean = false
+    ): Int {
+        if (!dir.exists() || !dir.isDirectory) return 0
 
         val baseCanonical = dir.canonicalFile
         val buffer = ByteArray(64 * 1024)
@@ -434,12 +796,25 @@ object RawSnapshotBackupManager {
         var lastPercent = -1
 
         dir.walkTopDown().onEnter { currentDir ->
-            !shouldPruneDirForZip(currentDir, dir, entryPrefix, excludedTopLevelDirNames)
+            !shouldPruneDirForZip(
+                currentDir,
+                dir,
+                entryPrefix,
+                excludedTopLevelDirNames,
+                excludeObjectBoxDirectories
+            )
         }.forEach { f ->
             if (!f.isFile) return@forEach
 
             val canonical = f.canonicalFile
-            if (shouldSkipForZip(canonical, baseCanonical, entryPrefix, excludedTopLevelDirNames)) {
+            if (shouldSkipForZip(
+                    canonical,
+                    baseCanonical,
+                    entryPrefix,
+                    excludedTopLevelDirNames,
+                    excludeObjectBoxDirectories
+                )
+            ) {
                 if (canonical.name == "lock.mdb" && canonical.parentFile?.name?.startsWith("objectbox") == true) {
                     AppLogger.w(TAG, "export skip objectbox lock file: ${canonical.absolutePath}")
                 }
@@ -464,8 +839,57 @@ object RawSnapshotBackupManager {
             }
             zos.closeEntry()
 
+            processedFiles++
             if (totalFiles > 0 && onPercentChanged != null) {
-                processedFiles++
+                val percent = ((processedFiles * 100) / totalFiles).coerceIn(0, 100)
+                if (percent != lastPercent) {
+                    lastPercent = percent
+                    onPercentChanged(percent)
+                }
+            }
+        }
+        return processedFiles
+    }
+
+    private fun addStagedSnapshotToZip(
+        zos: ZipOutputStream,
+        entryPrefix: String,
+        files: List<StagedZipFile>,
+        processedBefore: Int,
+        totalFiles: Int,
+        onPercentChanged: ((Int) -> Unit)?
+    ) {
+        val buffer = ByteArray(64 * 1024)
+        val writtenEntryNames = mutableSetOf<String>()
+        var processedFiles = processedBefore
+        var lastPercent = -1
+        files.forEach { snapshotFile ->
+            check(snapshotFile.file.isFile) {
+                "Raw snapshot staged data file is missing"
+            }
+            val relativePath = snapshotFile.relativePath.replace(File.separatorChar, '/')
+            check(!relativePath.startsWith('/') &&
+                relativePath.split('/').none { segment -> segment.isBlank() || segment == ".." }
+            ) {
+                "Invalid raw snapshot staged entry path"
+            }
+            val entryName = entryPrefix + relativePath
+            check(writtenEntryNames.add(entryName)) {
+                "Duplicate raw snapshot staged entry: $entryName"
+            }
+
+            zos.putNextEntry(ZipEntry(entryName))
+            BufferedInputStream(FileInputStream(snapshotFile.file)).use { input ->
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read <= 0) break
+                    zos.write(buffer, 0, read)
+                }
+            }
+            zos.closeEntry()
+
+            processedFiles++
+            if (totalFiles > 0 && onPercentChanged != null) {
                 val percent = ((processedFiles * 100) / totalFiles).coerceIn(0, 100)
                 if (percent != lastPercent) {
                     lastPercent = percent
@@ -479,7 +903,8 @@ object RawSnapshotBackupManager {
         currentDir: File,
         baseDir: File,
         entryPrefix: String,
-        excludedTopLevelDirNames: Set<String>
+        excludedTopLevelDirNames: Set<String>,
+        excludeObjectBoxDirectories: Boolean
     ): Boolean {
         if (currentDir == baseDir) return false
         val parent = currentDir.parentFile ?: return false
@@ -487,6 +912,7 @@ object RawSnapshotBackupManager {
 
         val name = currentDir.name
         if (excludedTopLevelDirNames.contains(name)) return true
+        if (excludeObjectBoxDirectories && isObjectBoxDirectoryName(name)) return true
 
         if (entryPrefix == ENTRY_FILES) {
             if (name.startsWith("sherpa-ncnn-")) return true
@@ -499,7 +925,8 @@ object RawSnapshotBackupManager {
         canonical: File,
         baseCanonical: File,
         entryPrefix: String,
-        excludedTopLevelDirNames: Set<String>
+        excludedTopLevelDirNames: Set<String>,
+        excludeObjectBoxDirectories: Boolean
     ): Boolean {
         if (!canonical.path.startsWith(baseCanonical.path + File.separator)) return true
 
@@ -513,6 +940,7 @@ object RawSnapshotBackupManager {
         if (excludedTopLevelDirNames.isNotEmpty() && excludedTopLevelDirNames.contains(top)) {
             return true
         }
+        if (excludeObjectBoxDirectories && isObjectBoxDirectoryName(top)) return true
 
         if (entryPrefix == ENTRY_FILES) {
             if (top.startsWith("sherpa-ncnn-")) {
@@ -540,10 +968,14 @@ object RawSnapshotBackupManager {
         return false
     }
 
+    private fun isObjectBoxDirectoryName(name: String): Boolean =
+        name == "objectbox" || name.startsWith("objectbox_")
+
     private fun totalFilesForZip(
         dir: File,
         entryPrefix: String,
         excludedTopLevelDirNames: Set<String>,
+        excludeObjectBoxDirectories: Boolean = false,
         onScannedCountChanged: ((Int) -> Unit)? = null
     ): Int {
         if (!dir.exists() || !dir.isDirectory) return 0
@@ -553,11 +985,24 @@ object RawSnapshotBackupManager {
         var lastReported = 0
         var lastReportAtMs = 0L
         dir.walkTopDown().onEnter { currentDir ->
-            !shouldPruneDirForZip(currentDir, dir, entryPrefix, excludedTopLevelDirNames)
+            !shouldPruneDirForZip(
+                currentDir,
+                dir,
+                entryPrefix,
+                excludedTopLevelDirNames,
+                excludeObjectBoxDirectories
+            )
         }.forEach { f ->
             if (!f.isFile) return@forEach
             val canonical = f.canonicalFile
-            if (shouldSkipForZip(canonical, baseCanonical, entryPrefix, excludedTopLevelDirNames)) return@forEach
+            if (shouldSkipForZip(
+                    canonical,
+                    baseCanonical,
+                    entryPrefix,
+                    excludedTopLevelDirNames,
+                    excludeObjectBoxDirectories
+                )
+            ) return@forEach
             total++
 
             if (onScannedCountChanged != null) {
@@ -577,13 +1022,24 @@ object RawSnapshotBackupManager {
         toDir: File,
         preservedTopLevelDirNames: Set<String> = emptySet()
     ) {
-        if (!toDir.exists()) {
-            toDir.mkdirs()
+        if (toDir.exists()) {
+            check(toDir.isDirectory) {
+                "Raw snapshot target is not a directory: ${toDir.absolutePath}"
+            }
+        } else {
+            check(toDir.mkdirs()) {
+                "Failed to create raw snapshot target: ${toDir.absolutePath}"
+            }
         }
 
         // A raw snapshot is a complete restore point. Keeping entries that are absent from the
         // snapshot leaves newer migration markers behind and changes how restored data is read.
-        toDir.listFiles()?.forEach { existing ->
+        val existingEntries =
+            toDir.listFiles()
+                ?: throw IllegalStateException(
+                    "Failed to enumerate raw snapshot target: ${toDir.absolutePath}"
+                )
+        existingEntries.forEach { existing ->
             if (!preservedTopLevelDirNames.contains(existing.name)) {
                 check(existing.deleteRecursively()) {
                     "Failed to remove stale snapshot entry: ${existing.absolutePath}"
@@ -628,9 +1084,10 @@ object RawSnapshotBackupManager {
                 val atomicFile = AtomicFile(target)
                 var output: FileOutputStream? = null
                 try {
-                    output = atomicFile.startWrite()
-                    canonical.inputStream().use { input -> input.copyTo(output) }
-                    atomicFile.finishWrite(output)
+                    val stream = atomicFile.startWrite()
+                    output = stream
+                    canonical.inputStream().use { input -> input.copyTo(stream) }
+                    atomicFile.finishWrite(stream)
                 } catch (error: Throwable) {
                     output?.let(atomicFile::failWrite)
                     throw error
@@ -651,5 +1108,17 @@ object RawSnapshotBackupManager {
             out.write(buffer, 0, read)
         }
         return out.toByteArray()
+    }
+
+    private fun requireSnapshotProcess(context: Context) {
+        // The released settings screen invokes this manager in the main process. It is safe only
+        // while that process still owns the same cross-process lease used by :repair.
+        check(
+            StorageProcessLock.isRepairProcess(context) ||
+                (StorageProcessLock.isMainProcess(context) &&
+                    StorageProcessLock.mainProcessOwnsStorage())
+        ) {
+            "Raw snapshots require the storage-owning main process or the repair process"
+        }
     }
 }

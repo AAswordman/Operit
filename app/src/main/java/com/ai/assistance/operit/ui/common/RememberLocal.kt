@@ -14,7 +14,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
@@ -25,7 +25,8 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
 
 // 定义一个用于UI偏好设置的DataStore实例
-val Context.uiPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "ui_preferences")
+val Context.uiPreferencesDataStore: DataStore<Preferences> by
+    recoverablePreferencesDataStore(name = "ui_preferences")
 
 @Suppress("UNCHECKED_CAST")
 @Composable
@@ -99,4 +100,4 @@ inline fun <reified T> rememberLocal(
             override fun component2(): (T) -> Unit = { value = it }
         }
     }
-} 
+}

@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
+import com.ai.assistance.operit.util.AppLogger
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -9,7 +10,13 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.toMutablePreferences
+import androidx.datastore.preferences.core.toPreferences
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.mergeNormalizedJsonFields
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.BillingMode
 import com.ai.assistance.operit.data.model.FunctionType
@@ -20,23 +27,32 @@ import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.stats.ReleasedProviderModelKeyDecoder
 import com.ai.assistance.operit.data.stats.ModelPriceSettings
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromJsonElement
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToJsonElement
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 // Define the DataStore at the module level
 private val Context.apiDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "api_settings")
+        recoverablePreferencesDataStore(name = "api_settings")
 
 private fun validReleasedUsdToCnyRate(stored: Float?): Double? =
     stored?.takeIf { it.isFinite() && it > 0f }?.toDouble()
 
 class ApiPreferences private constructor(private val context: Context) {
+
+    private val persistenceJson = Json { ignoreUnknownKeys = true }
 
     // Define our preferences keys
     companion object {
@@ -222,35 +238,274 @@ class ApiPreferences private constructor(private val context: Context) {
         val name: String
     )
 
+    private data class PersistedSafBookmark(
+        val value: SafBookmark,
+        val element: JsonObject
+    )
+
+    private data class SafBookmarkNormalization(
+        val encoded: String,
+        val changed: Boolean
+    )
+
+    private fun decodeSafBookmarks(raw: String): List<PersistedSafBookmark> =
+        persistenceJson.parseToJsonElement(raw).jsonArray.map { element ->
+            PersistedSafBookmark(
+                value = persistenceJson.decodeFromJsonElement(element),
+                element = element.jsonObject
+            )
+        }
+
+    private fun normalizeSafBookmarks(raw: String): SafBookmarkNormalization {
+        val retained = mutableListOf<JsonObject>()
+        var changed = false
+        persistenceJson.parseToJsonElement(raw).jsonArray.forEach { element ->
+            try {
+                persistenceJson.decodeFromJsonElement<SafBookmark>(element)
+                retained += element.jsonObject
+            } catch (e: Exception) {
+                changed = true
+                AppLogger.e("ApiPreferences", "Repairing an invalid SAF bookmark", e)
+            }
+        }
+        return SafBookmarkNormalization(
+            encoded = if (changed) JsonArray(retained).toString() else raw,
+            changed = changed
+        )
+    }
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.API_SETTINGS,
+            dataStore = context.apiDataStore
+        ) { current ->
+            val originalValues = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            fun replaceString(key: Preferences.Key<String>, value: String) {
+                removeName(key.name)
+                mutable[key] = value
+                issues += key.name
+            }
+
+            fun replaceBoolean(key: Preferences.Key<Boolean>, value: Boolean) {
+                removeName(key.name)
+                mutable[key] = value
+                issues += key.name
+            }
+
+            fun replaceInt(key: Preferences.Key<Int>, value: Int) {
+                removeName(key.name)
+                mutable[key] = value
+                issues += key.name
+            }
+
+            fun replaceFloat(key: Preferences.Key<Float>, value: Float) {
+                removeName(key.name)
+                mutable[key] = value
+                issues += key.name
+            }
+
+            fun replaceLong(name: String, value: Long) {
+                removeName(name)
+                mutable[longPreferencesKey(name)] = value
+                issues += name
+            }
+
+            val booleanKeys =
+                listOf(
+                    KEEP_SCREEN_ON to DEFAULT_KEEP_SCREEN_ON,
+                    ENABLE_THINKING_MODE to DEFAULT_ENABLE_THINKING_MODE,
+                    ENABLE_MEMORY_AUTO_UPDATE to DEFAULT_ENABLE_MEMORY_AUTO_UPDATE,
+                    ENABLE_AUTO_READ to DEFAULT_ENABLE_AUTO_READ,
+                    ENABLE_TOOLS to DEFAULT_ENABLE_TOOLS,
+                    DISABLE_STREAM_OUTPUT to DEFAULT_DISABLE_STREAM_OUTPUT,
+                    DISABLE_USER_PREFERENCE_DESCRIPTION to
+                        DEFAULT_DISABLE_USER_PREFERENCE_DESCRIPTION
+                )
+            booleanKeys.forEach { (key, defaultValue) ->
+                val raw = originalValues[key.name]
+                if (raw != null && raw !is Boolean) replaceBoolean(key, defaultValue)
+            }
+
+            val rawThinkingQuality = originalValues[THINKING_QUALITY_LEVEL.name]
+            if (rawThinkingQuality != null) {
+                val normalized =
+                    (rawThinkingQuality as? Int)?.coerceIn(
+                        MIN_THINKING_QUALITY_LEVEL,
+                        MAX_THINKING_QUALITY_LEVEL
+                    ) ?: DEFAULT_THINKING_QUALITY_LEVEL
+                if (rawThinkingQuality !is Int || normalized != rawThinkingQuality) {
+                    replaceInt(THINKING_QUALITY_LEVEL, normalized)
+                }
+            }
+
+            listOf(
+                MAX_IMAGE_HISTORY_USER_TURNS to DEFAULT_MAX_IMAGE_HISTORY_USER_TURNS,
+                MAX_MEDIA_HISTORY_USER_TURNS to DEFAULT_MAX_MEDIA_HISTORY_USER_TURNS
+            ).forEach { (key, defaultValue) ->
+                val raw = originalValues[key.name]
+                if (raw != null && (raw !is Int || raw < 0)) replaceInt(key, defaultValue)
+            }
+
+            val rawPrompt = originalValues[CUSTOM_SYSTEM_PROMPT_TEMPLATE.name]
+            if (rawPrompt != null && rawPrompt !is String) {
+                replaceString(CUSTOM_SYSTEM_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT_TEMPLATE)
+            }
+
+            fun validateJson(
+                key: Preferences.Key<String>,
+                defaultValue: String,
+                validator: (String) -> Unit
+            ) {
+                val raw = originalValues[key.name] ?: return
+                val valid =
+                    if (raw is String) {
+                        try {
+                            validator(raw)
+                            true
+                        } catch (e: Exception) {
+                            AppLogger.e("ApiPreferences", "Repairing invalid JSON in ${key.name}", e)
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                if (!valid) replaceString(key, defaultValue)
+            }
+
+            val rawBookmarks = originalValues[SAF_BOOKMARKS_JSON.name]
+            if (rawBookmarks != null) {
+                val normalized =
+                    if (rawBookmarks is String) {
+                        try {
+                            normalizeSafBookmarks(rawBookmarks)
+                        } catch (e: Exception) {
+                            AppLogger.e("ApiPreferences", "Repairing invalid SAF bookmarks", e)
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                when {
+                    normalized == null -> replaceString(SAF_BOOKMARKS_JSON, "[]")
+                    normalized.changed -> replaceString(SAF_BOOKMARKS_JSON, normalized.encoded)
+                }
+            }
+            validateJson(FEATURE_TOGGLES_JSON, DEFAULT_FEATURE_TOGGLES_JSON) {
+                Json.decodeFromString<Map<String, Boolean>>(it)
+            }
+            validateJson(TOOL_PROMPT_VISIBILITY_JSON, DEFAULT_TOOL_PROMPT_VISIBILITY_JSON) {
+                Json.decodeFromString<Map<String, Boolean>>(it)
+            }
+            listOf(TOOL_PROMPT_ORDER_JSON, PLUGIN_ORDER_JSON, SKILL_ORDER_JSON).forEach { key ->
+                validateJson(key, DEFAULT_TOOL_PROMPT_ORDER_JSON) {
+                    Json.decodeFromString<List<String>>(it)
+                }
+            }
+            validateJson(CUSTOM_PARAMETERS, DEFAULT_CUSTOM_PARAMETERS) {
+                Json.parseToJsonElement(it).jsonArray
+            }
+
+            val exchangeRateRaw = originalValues[USD_TO_CNY_EXCHANGE_RATE.name]
+            if (exchangeRateRaw != null &&
+                (exchangeRateRaw !is Float || !exchangeRateRaw.isFinite() || exchangeRateRaw <= 0f)
+            ) {
+                replaceFloat(USD_TO_CNY_EXCHANGE_RATE, 7.2f)
+            }
+
+            originalValues.forEach { (name, raw) ->
+                when {
+                    name.startsWith("token_input_") ||
+                        name.startsWith("token_cached_input_") ||
+                        name.startsWith("token_output_") -> {
+                        val normalized = readTokenCountValue(raw).coerceAtLeast(0L)
+                        if (raw !is Long || raw != normalized) replaceLong(name, normalized)
+                    }
+                    name.startsWith("request_count_") -> {
+                        val normalized = (raw as? Int)?.coerceAtLeast(0) ?: 0
+                        if (raw !is Int || raw != normalized) {
+                            removeName(name)
+                            mutable[intPreferencesKey(name)] = normalized
+                            issues += name
+                        }
+                    }
+                    name.startsWith("model_input_price_") ||
+                        name.startsWith("model_cached_input_price_") ||
+                        name.startsWith("model_output_price_") ||
+                        name.startsWith("price_per_request_") -> {
+                        val normalized =
+                            (raw as? Float)?.takeIf { it.isFinite() && it >= 0f } ?: 0f
+                        if (raw !is Float || raw != normalized) {
+                            removeName(name)
+                            mutable[floatPreferencesKey(name)] = normalized
+                            issues += name
+                        }
+                    }
+                    name.startsWith("billing_mode_") -> {
+                        val normalized =
+                            (raw as? String)?.uppercase(Locale.ROOT)
+                                ?.takeIf { it == "TOKEN" || it == "COUNT" }
+                                ?: "TOKEN"
+                        if (raw !is String || raw != normalized) {
+                            removeName(name)
+                            mutable[stringPreferencesKey(name)] = normalized
+                            issues += name
+                        }
+                    }
+                }
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
+
     val safBookmarksFlow: Flow<List<SafBookmark>> =
         context.apiDataStore.data.map { preferences ->
-            val json = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
-            runCatching { Json.decodeFromString<List<SafBookmark>>(json) }.getOrElse { emptyList() }
+            val raw = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
+            try {
+                decodeSafBookmarks(raw).map(PersistedSafBookmark::value)
+            } catch (e: Exception) {
+                AppLogger.e("ApiPreferences", "Invalid SAF bookmarks reached a live reader", e)
+                emptyList()
+            }
         }
 
     suspend fun addSafBookmark(uri: String, name: String) {
         context.apiDataStore.edit { preferences ->
-            val existing =
-                runCatching {
-                    val json = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
-                    Json.decodeFromString<List<SafBookmark>>(json)
-                }.getOrElse { emptyList() }
-
-            val updated = (existing.filterNot { it.uri == uri } + SafBookmark(uri = uri, name = name))
-                .sortedBy { it.name.lowercase() }
-            preferences[SAF_BOOKMARKS_JSON] = Json.encodeToString(updated)
+            val existing = decodeSafBookmarks(preferences[SAF_BOOKMARKS_JSON] ?: "[]")
+            val bookmark = SafBookmark(uri = uri, name = name)
+            val previous = existing.firstOrNull { it.value.uri == uri }
+            val encodedBookmark =
+                if (previous == null) {
+                    persistenceJson.encodeToJsonElement(bookmark).jsonObject
+                } else {
+                    mergeNormalizedJsonFields(
+                        persisted = previous.element,
+                        decoded = persistenceJson.encodeToJsonElement(previous.value),
+                        normalized = persistenceJson.encodeToJsonElement(bookmark)
+                    ).jsonObject
+                }
+            val updated =
+                (existing.filterNot { it.value.uri == uri } +
+                    PersistedSafBookmark(bookmark, encodedBookmark))
+                    .sortedBy { it.value.name.lowercase(Locale.ROOT) }
+            preferences[SAF_BOOKMARKS_JSON] =
+                JsonArray(updated.map(PersistedSafBookmark::element)).toString()
         }
     }
 
     suspend fun removeSafBookmark(uri: String) {
         context.apiDataStore.edit { preferences ->
-            val existing =
-                runCatching {
-                    val json = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
-                    Json.decodeFromString<List<SafBookmark>>(json)
-                }.getOrElse { emptyList() }
-            val updated = existing.filterNot { it.uri == uri }
-            preferences[SAF_BOOKMARKS_JSON] = Json.encodeToString(updated)
+            val existing = decodeSafBookmarks(preferences[SAF_BOOKMARKS_JSON] ?: "[]")
+            val updated = existing.filterNot { it.value.uri == uri }
+            preferences[SAF_BOOKMARKS_JSON] =
+                JsonArray(updated.map(PersistedSafBookmark::element)).toString()
         }
     }
 

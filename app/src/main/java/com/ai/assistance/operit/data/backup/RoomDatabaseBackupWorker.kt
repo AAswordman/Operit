@@ -3,6 +3,7 @@ package com.ai.assistance.operit.data.backup
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.util.AppLogger
 
 class RoomDatabaseBackupWorker(
@@ -16,6 +17,16 @@ class RoomDatabaseBackupWorker(
     }
 
     override suspend fun doWork(): Result {
+        if (OperitApplication.storageStartupState !=
+            OperitApplication.StorageStartupState.READY
+        ) {
+            AppLogger.e(
+                TAG,
+                "Room backup refused because storage state=" +
+                    OperitApplication.storageStartupState
+            )
+            return Result.failure()
+        }
         val force = inputData.getBoolean(KEY_FORCE, false)
         val preferences = RoomDatabaseBackupPreferences.getInstance(applicationContext)
 

@@ -37,6 +37,11 @@ import com.ai.assistance.operit.core.workflow.WorkflowSchedulerInitializer
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupPreferences
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupScheduler
 import com.ai.assistance.operit.data.db.AppDatabase
+import com.ai.assistance.operit.data.db.ObjectBoxManager
+import com.ai.assistance.operit.data.persistence.RecoverablePreferenceDataStores
+import com.ai.assistance.operit.data.persistence.StorageProcessLock
+import com.ai.assistance.operit.data.persistence.StorageRecoveryCoordinator
+import com.ai.assistance.operit.data.persistence.StorageReplacementGate
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -77,6 +82,16 @@ import kotlinx.serialization.json.Json
 /** Application class for Operit */
 class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.Provider {
 
+    enum class StorageStartupState {
+        STARTING,
+        READY,
+        BUSY,
+        RECOVERY_REQUIRED,
+        NON_MAIN_PROCESS
+    }
+
+    private var startupRecoveryGate: StorageReplacementGate.ReplacementLease? = null
+
     companion object {
         /** Global JSON instance with custom serializers */
         lateinit var json: Json
@@ -92,6 +107,14 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
         // 全局ImageLoader实例，用于高效缓存图片
         lateinit var globalImageLoader: ImageLoader
+            private set
+
+        @Volatile
+        var storageStartupState: StorageStartupState = StorageStartupState.STARTING
+            private set
+
+        @Volatile
+        var storageStartupError: Throwable? = null
             private set
 
         private const val TAG = "OperitApplication"
@@ -123,10 +146,6 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         appStartupTimeMs = startTime
         instance = this
 
-        // Workers and receivers can cold-start the process without creating an Activity.
-        // Initialize process-wide preference dependencies before those entry points can run.
-        initAndroidPermissionPreferences(applicationContext)
-
         configureOpenMpEnvironment()
         Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(this))
 
@@ -139,9 +158,48 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         }
 
         globalImageLoader = ImageLoader.Builder(this).build()
+
+        if (!StorageProcessLock.isMainProcess(this)) {
+            storageStartupState = StorageStartupState.NON_MAIN_PROCESS
+            return
+        }
+        try {
+            if (!StorageProcessLock.acquireMainProcessLease(this)) {
+                storageStartupState = StorageStartupState.BUSY
+                return
+            }
+            val recoveryGate =
+                startupRecoveryGate
+                    ?: StorageReplacementGate.acquire().also { startupRecoveryGate = it }
+            storageStartupError = null
+            // Providers are published before Application.onCreate. Carry explicit access while
+            // startup repair runs so an early provider call cannot open a storage owner first.
+            runBlocking(Dispatchers.IO) {
+                recoveryGate.withAccess {
+                    StorageRecoveryCoordinator.recoverPreferences(applicationContext)
+                    // Workers and receivers can cold-start the main process without an Activity.
+                    initAndroidPermissionPreferences(applicationContext)
+                }
+            }
+            recoveryGate.close()
+            startupRecoveryGate = null
+            storageStartupState = StorageStartupState.READY
+        } catch (e: Exception) {
+            storageStartupError = e
+            storageStartupState = StorageStartupState.RECOVERY_REQUIRED
+            AppLogger.e(TAG, "Storage startup recovery failed", e)
+            runBlocking(Dispatchers.IO) {
+                RecoverablePreferenceDataStores.closeAllAndAwait()
+            }
+            StorageProcessLock.releaseMainProcessLease()
+        }
     }
 
     fun initializeMainApplication() {
+        if (storageStartupState != StorageStartupState.READY) {
+            AppLogger.e(TAG, "Main initialization refused: storage state=$storageStartupState")
+            return
+        }
         synchronized(mainInitializationLock) {
             if (mainApplicationInitialized) {
                 return
@@ -569,9 +627,26 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
     override fun attachBaseContext(base: Context) {
         configureOpenMpEnvironment()
+        if (StorageProcessLock.isMainProcess(base)) {
+            try {
+                val ownsStorage =
+                    StorageProcessLock.mainProcessOwnsStorage() ||
+                        StorageProcessLock.acquireMainProcessLease(base)
+                if (!ownsStorage) {
+                    storageStartupState = StorageStartupState.BUSY
+                } else if (startupRecoveryGate == null) {
+                    startupRecoveryGate = StorageReplacementGate.acquire()
+                }
+            } catch (e: Exception) {
+                storageStartupError = e
+                storageStartupState = StorageStartupState.RECOVERY_REQUIRED
+                AppLogger.e(TAG, "Unable to acquire the early main-process storage lease", e)
+            }
+        }
         // 在基础上下文附加前应用语言设置
         try {
-            val code = LocaleUtils.getCurrentLanguage(base)
+            // Persistent preferences are not opened until onCreate completes recovery.
+            val code = LocaleUtils.LanguageCodes.AUTO
             val locale = LocaleUtils.getLocaleForLanguageCode(code, base)
             val config = Configuration(base.resources.configuration)
 
@@ -597,6 +672,16 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
     override fun onTerminate() {
         super.onTerminate()
+        if (StorageProcessLock.mainProcessOwnsStorage()) {
+            AppDatabase.closeDatabase()
+            ObjectBoxManager.closeAll()
+            runBlocking(Dispatchers.IO) {
+                RecoverablePreferenceDataStores.closeAllAndAwait()
+            }
+            StorageProcessLock.releaseMainProcessLease()
+        }
+        startupRecoveryGate?.close()
+        startupRecoveryGate = null
         if (!mainApplicationInitialized) {
             return
         }

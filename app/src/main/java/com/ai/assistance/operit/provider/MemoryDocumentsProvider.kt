@@ -13,7 +13,9 @@ import android.provider.DocumentsProvider
 import android.util.Base64
 import android.util.Log
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.persistence.StorageProcessLock
 import com.ai.assistance.operit.data.model.Memory
 import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.repository.MemoryRepository
@@ -63,6 +65,13 @@ class MemoryDocumentsProvider : DocumentsProvider() {
     private val writeBackExecutor = Executors.newSingleThreadExecutor()
 
     private fun requireProviderContext(): Context {
+        check(
+            OperitApplication.storageStartupState ==
+                OperitApplication.StorageStartupState.READY &&
+                StorageProcessLock.mainProcessOwnsStorage()
+        ) {
+            "Memory storage is unavailable until startup recovery completes"
+        }
         return context ?: throw IllegalStateException("Context is null")
     }
 
@@ -77,6 +86,12 @@ class MemoryDocumentsProvider : DocumentsProvider() {
     override fun onCreate(): Boolean {
         return try {
             val context = context ?: return false
+            if (!StorageProcessLock.mainProcessOwnsStorage()) {
+                AppLogger.w(
+                    TAG,
+                    "Memory provider published while storage is owned by another process"
+                )
+            }
             AppLogger.bindContext(context)
             Log.d(TAG, "onCreate package=${context.packageName}")
             AppLogger.d(TAG, "MemoryDocumentsProvider initialized for ${context.packageName}")
@@ -339,7 +354,7 @@ class MemoryDocumentsProvider : DocumentsProvider() {
         }
 
         val repo = getRepository(ref.profileId)
-        val context = context ?: throw IllegalStateException("Context is null")
+        val context = requireProviderContext()
         val handler = Handler(Looper.getMainLooper())
 
         val wantsWrite = mode.contains('w') || mode.contains('W')
@@ -493,7 +508,7 @@ class MemoryDocumentsProvider : DocumentsProvider() {
 
     override fun renameDocument(documentId: String, displayName: String): String? {
         AppLogger.d(TAG, "renameDocument documentId=$documentId displayName=$displayName")
-        val prefs = UserPreferencesManager.getInstance(context ?: throw IllegalStateException("Context is null"))
+        val prefs = UserPreferencesManager.getInstance(requireProviderContext())
         val cleanName = displayName.trim().trim('/').trim()
         if (cleanName.isBlank()) {
             throw IllegalArgumentException("displayName is blank")
@@ -637,7 +652,7 @@ class MemoryDocumentsProvider : DocumentsProvider() {
 
             is DocRef.Profile -> {
                 requireProfileExists(ref.profileId)
-                val prefs = UserPreferencesManager.getInstance(context ?: throw IllegalStateException("Context is null"))
+                val prefs = UserPreferencesManager.getInstance(requireProviderContext())
                 val profile = runBlocking { prefs.getMemorySpaceFlow(ref.profileId).first() }
                 val displayName = getProfileDisplayName(profile)
 
