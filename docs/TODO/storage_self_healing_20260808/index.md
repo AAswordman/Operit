@@ -2,7 +2,7 @@
 title: Storage self-healing
 fork: https://github.com/luojiaping/Operit
 branch: fix-issue-
-status: implementation-complete
+status: post-release-hardening-in-progress
 ---
 
 # Storage self-healing
@@ -48,4 +48,7 @@ lease. Existing read access remains available while the main process owns storag
 5. [Startup and repair process](5_StartupAndRepairProcess.md)
 6. [Verification and documentation](6_VerificationAndDocumentation.md)
 
-[DONE]
+The 2026-08-10 physical-recovery regression work continues in steps 4 and 6. TTS storage is
+being redesigned separately and is not part of this correction.
+
+[IN PROGRESS]

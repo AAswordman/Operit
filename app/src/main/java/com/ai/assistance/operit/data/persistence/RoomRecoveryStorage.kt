@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.persistence
 
 import android.content.Context
+import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteDatabaseCorruptException
 import android.util.AtomicFile
@@ -41,6 +42,18 @@ object RoomRecoveryStorage {
 
     private class UnsupportedDatabaseVersionException(val version: Int) :
         IllegalStateException("Room database version $version is newer than this application")
+
+    private class PreservingCorruptionHandler : DatabaseErrorHandler {
+        var corruptionReported: Boolean = false
+            private set
+
+        override fun onCorruption(database: SQLiteDatabase) {
+            corruptionReported = true
+            // Android's default handler deletes the source before openDatabase returns. Recovery
+            // must retain it until quarantine succeeds, so validation only records this signal.
+            AppLogger.e(TAG, "SQLite reported Room corruption; source retained: ${database.path}")
+        }
+    }
 
     fun prepareForOpen(context: Context) {
         synchronized(lock) {
@@ -246,12 +259,14 @@ object RoomRecoveryStorage {
     }
 
     private fun checkpointAndValidate(context: Context, databaseFile: File): Boolean {
+        val corruptionHandler = PreservingCorruptionHandler()
         val version =
             try {
                 SQLiteDatabase.openDatabase(
                     databaseFile.absolutePath,
                     null,
-                    SQLiteDatabase.OPEN_READWRITE
+                    SQLiteDatabase.OPEN_READWRITE,
+                    corruptionHandler
                 ).use { database ->
                     database.rawQuery("PRAGMA wal_checkpoint(FULL)", null).use { cursor ->
                         if (cursor.moveToFirst() &&
@@ -268,6 +283,10 @@ object RoomRecoveryStorage {
                 AppLogger.e(TAG, "Room database validation failed: ${databaseFile.name}", e)
                 return false
             } catch (e: Exception) {
+                if (corruptionHandler.corruptionReported) {
+                    AppLogger.e(TAG, "Room database open reported corruption", e)
+                    return false
+                }
                 if (hasCause<SQLiteDatabaseCorruptException>(e)) {
                     AppLogger.e(TAG, "Room database validation found wrapped corruption", e)
                     return false
@@ -278,16 +297,22 @@ object RoomRecoveryStorage {
                     e
                 )
             }
+        if (corruptionHandler.corruptionReported) {
+            AppLogger.e(TAG, "Room database validation received a corruption signal")
+            return false
+        }
         return validateRoomVersionAndSchema(context, databaseFile, version)
     }
 
     private fun validateSnapshot(context: Context, databaseFile: File): Boolean {
+        val corruptionHandler = PreservingCorruptionHandler()
         val version =
             try {
                 SQLiteDatabase.openDatabase(
                     databaseFile.absolutePath,
                     null,
-                    SQLiteDatabase.OPEN_READONLY
+                    SQLiteDatabase.OPEN_READONLY,
+                    corruptionHandler
                 ).use { database ->
                     if (!checkQuickCheck(database)) return false
                     readUserVersion(database)
@@ -296,6 +321,10 @@ object RoomRecoveryStorage {
                 AppLogger.e(TAG, "Room snapshot is corrupt: ${databaseFile.name}", e)
                 return false
             } catch (e: Exception) {
+                if (corruptionHandler.corruptionReported) {
+                    AppLogger.e(TAG, "Room snapshot open reported corruption", e)
+                    return false
+                }
                 if (hasCause<SQLiteDatabaseCorruptException>(e)) {
                     AppLogger.e(TAG, "Room snapshot validation found wrapped corruption", e)
                     return false
@@ -306,6 +335,10 @@ object RoomRecoveryStorage {
                     e
                 )
             }
+        if (corruptionHandler.corruptionReported) {
+            AppLogger.e(TAG, "Room snapshot validation received a corruption signal")
+            return false
+        }
         return validateRoomVersionAndSchema(context, databaseFile, version)
     }
 

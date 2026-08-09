@@ -8,6 +8,7 @@ import com.ai.assistance.operit.data.persistence.StorageRecoveryException
 import com.ai.assistance.operit.data.persistence.StorageReplacementGate
 import com.ai.assistance.operit.util.AppLogger
 import io.objectbox.BoxStore
+import io.objectbox.exception.DbException
 import io.objectbox.exception.FileCorruptException
 import io.objectbox.reactive.DataSubscription
 import java.io.Closeable
@@ -23,6 +24,9 @@ object ObjectBoxManager {
     private const val TAG = "ObjectBoxManager"
     private const val CHECKPOINT_DELAY_SECONDS = 15L
     private const val CHECKPOINT_MAX_RETRY_DELAY_SECONDS = 15L * 60L
+    private const val MDBX_PAGE_NOTFOUND = -30797
+    private const val MDBX_CORRUPTED = -30796
+    private const val MDBX_INVALID = -30793
 
     private class StoreEntry(
         val context: Context,
@@ -262,12 +266,9 @@ object ObjectBoxManager {
                 store = openStore(context, directory)
                 store.validate(0L, true)
                 true
-            } catch (e: FileCorruptException) {
-                AppLogger.e(TAG, "ObjectBox page validation found corrupt data", e)
-                false
             } catch (e: Exception) {
-                if (hasCause<FileCorruptException>(e)) {
-                    AppLogger.e(TAG, "ObjectBox validation found wrapped page corruption", e)
+                if (isObjectBoxContentCorruption(e)) {
+                    AppLogger.e(TAG, "ObjectBox validation found corrupt data", e)
                     return false
                 }
                 AppLogger.e(TAG, "ObjectBox validation could not complete", e)
@@ -282,16 +283,28 @@ object ObjectBoxManager {
         }
     }
 
-    private inline fun <reified T : Throwable> hasCause(error: Throwable): Boolean {
+    internal fun isObjectBoxContentCorruption(error: Throwable): Boolean {
         var current: Throwable? = error
         while (current != null) {
-            if (current is T) return true
+            if (current is FileCorruptException) return true
+            if (current is DbException && isMdbxContentCorruption(current.errorCode)) return true
             val cause = current.cause
             if (cause === current) break
             current = cause
         }
         return false
     }
+
+    private fun isMdbxContentCorruption(errorCode: Int): Boolean =
+        when (errorCode) {
+            // libmdbx defines these as a missing page, corrupt database, or invalid file header.
+            // ObjectBox 5.3 exposes them as plain DbException, so classify by code, never text.
+            // Version, locking, access, capacity, and I/O errors must remain operational failures.
+            MDBX_PAGE_NOTFOUND,
+            MDBX_CORRUPTED,
+            MDBX_INVALID -> true
+            else -> false
+        }
 
     private fun installRecoveryTracking(entry: StoreEntry) {
         if (entry.changeSubscription != null || entry.store.isClosed) return

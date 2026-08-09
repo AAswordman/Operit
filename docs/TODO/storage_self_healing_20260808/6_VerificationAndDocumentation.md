@@ -1,6 +1,6 @@
 # Verification and documentation
 
-Status: implementation completed; Android compilation delegated to origin GitHub Actions
+Status: post-release hardening in progress; Android compilation delegated to origin GitHub Actions
 
 ## Change
 
@@ -46,4 +46,13 @@ Local compilation, build, and test commands remain disabled. The user authorized
 - Added `docs/doc-src/dev-core/STORAGE_RECOVERY.md`
 - Local Gradle compilation and tests are intentionally not run; the authorized Android compilation is executed by the origin repository's GitHub Actions workflow after push
 
-[DONE]
+## 2026-08-10 regression verification
+
+- Add a Room assertion that a corrupt source remains available until its byte-identical quarantine copy exists
+- Add Room scenarios with and without verified slots, including recovery-event assertions
+- Add an ObjectBox classification unit test for content-corruption and operational error codes
+- Add ObjectBox scenarios with and without verified slots, preserving a marker entity and the original corrupt payload
+- Keep all captured device credentials and local evidence outside the repository and CI artifacts
+- Compile the rebased branch with the origin `Android Build` workflow after push
+
+[IN PROGRESS]

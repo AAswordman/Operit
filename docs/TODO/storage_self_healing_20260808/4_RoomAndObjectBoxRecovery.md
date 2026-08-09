@@ -1,6 +1,6 @@
 # Room and ObjectBox recovery
 
-Status: completed
+Status: post-release hardening in progress
 
 ## Old implementation
 
@@ -35,4 +35,28 @@ closed-state copies through `ObjectBoxManager`.
 - Active ObjectBox stores publish a fully validated stable copy 15 seconds after the latest change, with bounded exponential retry after checkpoint failure
 - Invalid profile IDs and non-directory profile paths are quarantined without being opened
 
-[DONE]
+## 2026-08-10 physical-corruption regression
+
+Device evidence exposed two validation-boundary defects in the released implementation. Android's
+default SQLite corruption handler could delete a corrupt Room live file before the recovery code
+copied it to quarantine. ObjectBox could report an invalid MDBX file as a plain `DbException`, which
+left the quarantine and slot-selection branches unreachable.
+
+This correction does not change any published path, storage format, recovery metadata, or event
+schema. It also does not add retry behavior. TTS storage is being redesigned separately and is not
+part of this correction.
+
+### Additional acceptance
+
+- Room validation installs a non-deleting SQLite corruption handler for live files and slots
+- A Room corruption signal remains corruption even when the final open exception has another type
+- A corrupt Room live file is copied byte-for-byte to quarantine before a verified slot replaces it
+- Without a verified Room slot, the corrupt live file remains present and the preservation event is recorded
+- An operational Room open failure remains an error and does not trigger replacement
+- An invalid Room slot remains available for diagnosis and does not prevent checking the other slot
+- ObjectBox recognizes only `FileCorruptException` and the documented MDBX content-corruption codes
+- ObjectBox version, locking, access, capacity, and I/O failures do not trigger replacement
+- A corrupt ObjectBox live file is copied byte-for-byte to quarantine before a verified slot replaces it
+- Without a verified ObjectBox slot, the corrupt live file remains present and the preservation event is recorded
+
+[IN PROGRESS]

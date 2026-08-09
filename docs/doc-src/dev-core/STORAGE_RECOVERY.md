@@ -95,6 +95,8 @@ Room 在 singleton 构建前执行以下校验：
 4. 将关闭状态的数据库复制到隔离文件名，删除隔离副本的 `room_master_table`，再通过真实 Room builder 强制完成迁移和实际表、列、外键、索引 schema 校验，不能只信 identity hash。
 5. 只有全部校验通过的关闭状态数据库才能写入双 slot 快照。
 
+直接打开 live 和恢复槽执行 SQLite 校验时，必须显式安装只记录损坏信号、绝不删除文件的 `DatabaseErrorHandler`。Android 默认损坏处理器会在 `openDatabase` 返回前删除数据库，使损坏源无法隔离，并可能把最终异常改变为文件不存在。只要本次打开收到损坏信号，即使顶层异常类型随后发生变化，也必须按确定损坏处理；没有损坏信号的权限、空间、路径和 I/O 异常仍中止自动替换。
+
 恢复前会复制 live DB、WAL、SHM 和 journal 到隔离区。快照的文件长度、SHA-256、SQLite 完整性和 Room schema 都必须通过验证。live 主数据库缺失但存在有效 slot 时也会恢复；只有 sidecar、没有主数据库和有效 slot 时保留 sidecar 并进入数据救援。主数据库路径被目录占位时，目录树和空子目录必须递归保全；存在有效 slot 时才删除占位路径并恢复，没有有效 slot 时保留原路径并进入数据救援。主数据库仍为普通文件、只有 sidecar 被目录占位时，先递归隔离并移除无效 sidecar，再对原主库执行完整性和 schema 校验。损坏或残缺状态没有有效快照时不创建空 Room 数据库，也不覆盖 live 文件。
 
 首次创建 Room 数据库时，singleton 尚未交给调用方。创建路径会强制打开并关闭该实例，发布第一份已验证快照后再重建 singleton，避免首装进程被系统结束时长期没有恢复槽位。
@@ -105,7 +107,7 @@ Room 在 singleton 构建前执行以下校验：
 
 记忆空间元数据修复会读取仍含 `data.mdb` 的 ObjectBox 目录。ObjectBox 预检还会从有效恢复槽位元数据发现 live 目录已经完全缺失的 profile，先恢复其数据库，再把 profile ID 交给逻辑修复。即使 DataStore 索引或记录同时丢失，这些 profile ID 也会重新进入记忆空间索引并生成最小元数据。关闭 profile 后以及 live store 打开或全页校验失败时都会清除进程内 preflight 标记，下一次打开必须重新校验。
 
-ObjectBox 按记忆空间分别校验和恢复。打开 live store 之前先复制 `data.mdb` 到缓存目录，通过 `BoxStore.validate(0L, true)` 校验全部页。只有异常本身或 cause 链中的 `FileCorruptException` 表示数据库页损坏并允许进入恢复；模型不兼容、权限、空间不足和其他打开异常会保留 live 文件并终止自动替换。Room 对 `SQLiteDatabaseCorruptException` 使用相同的 cause 链规则。
+ObjectBox 按记忆空间分别校验和恢复。打开 live store 之前先复制 `data.mdb` 到缓存目录，通过 `BoxStore.validate(0L, true)` 校验全部页。异常本身或 cause 链中的 `FileCorruptException` 表示数据库页损坏；ObjectBox 5.3.0 以普通 `DbException` 暴露的 `MDBX_PAGE_NOTFOUND`、`MDBX_CORRUPTED` 和 `MDBX_INVALID` 也属于确定的存储内容损坏。分类必须使用结构化错误码，禁止匹配异常文字。版本不兼容、锁冲突、权限、空间不足、I/O 和未知错误会保留 live 文件并终止自动替换。
 
 两个 `data.mdb` slot 都带格式版本、profile ID、序号、文件长度和 SHA-256。每个 slot 在发布后还会通过临时 BoxStore 再验证一次。恢复只影响损坏的 profile；`data.mdb` 缺失、被目录占位或 ObjectBox 数据库目录本身被文件占位时，只有存在有效 slot 才在递归隔离原路径后恢复。有效 `data.mdb` 旁的 `lock.mdb` 被目录占位时，先递归隔离整个 profile，再移除无效 lock 路径并继续全页校验。只有 `lock.mdb` 或其他残片且没有有效 slot 时，保全目录并进入数据救援，不创建空 ObjectBox 数据库。用户主动删除记忆空间时，恢复 slot 先原子移入 deletion quarantine 并退出自动发现，再删除 live 目录；任一步失败都向调用方报错。即使 live 删除失败，旧 slot 也只保留作人工救援，不能在下次启动复活用户已选择删除的记忆空间。
 
@@ -159,6 +161,8 @@ DocumentsProvider 的 `r` 模式保持已发布行为，可以在主进程运行
 3. 检查对应 slot 的 metadata、长度和 SHA-256，不要直接编辑 slot。
 4. 从 `quarantine/` 复制损坏源进行离线分析，不要在 live 目录上运行修复工具。
 5. 若事件为 `newer_version_preserved`，使用能识别该 schema 的新版本应用，禁止用旧 slot 覆盖。
+
+识别出物理损坏但没有有效槽位时，必须同时看到 `preserved_without_snapshot` 事件和对应隔离目录。缺少其中任一项都表示恢复流程在保全边界之前异常退出，不能把它解释为正常的数据救援结果。
 
 ## 协作检查
 
