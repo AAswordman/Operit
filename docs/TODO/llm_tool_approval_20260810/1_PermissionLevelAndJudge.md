@@ -13,8 +13,9 @@ ToolPermissionSystem 的 PermissionLevel 仅有 ALLOW、ASK、FORBID 三个值�
 - reviewer 必须返回带 review_id 的完整结构化结果，包括 decision、risk_level、user_authorization 与 reason；
 - host 对 critical 风险、无授权动作及未明确授权的 high 风险执行强制策略，不能只依赖模型给出的 approve；
 - 审核前先绑定 host 注入的 package context，审核与执行复用同一份最终参数；
-- 权限检查直接返回包含拒绝来源、原因与是否中断回合的结构化结果，不再通过 singleton 全局变量传递拒绝理由；
-- 同一消息执行上下文共享动作指纹和拒绝计数；重复已拒动作或连续拒绝达到阈值时打开 circuit breaker，中断本模型回合并跳过尚未执行的动作。
+- 权限检查直接返回包含拒绝来源与原因的结构化结果，不再通过 singleton 全局变量传递拒绝理由；
+- 同一消息执行上下文共享动作指纹和连续拒绝计数；任一次审批通过都会清零连续拒绝计数；
+- 连续两次拒绝后锁定本消息执行上下文的全部后续工具调用，但把拒绝结果回传主模型，由主模型停止调用工具并请求用户在新消息中书面授权。
 
 ## 新实现结果
 

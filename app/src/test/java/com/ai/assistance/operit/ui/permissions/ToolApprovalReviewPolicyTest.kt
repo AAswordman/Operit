@@ -143,16 +143,50 @@ class ToolApprovalReviewPolicyTest {
     }
 
     @Test
-    fun circuitBreakerBlocksRepeatedActionAndOpensAtLimit() {
+    fun circuitBreakerLocksAfterTwoConsecutiveDenials() {
         val breaker = PermissionReviewCircuitBreaker(denialLimit = 2)
 
         assertNull(breaker.rejectionBeforeReview("first"))
         assertEquals(false, breaker.recordAutomaticDenial("first", "first reason"))
-        assertTrue(breaker.rejectionBeforeReview("first")!!.contains("already denied"))
         assertNull(breaker.rejectionBeforeReview("second"))
         assertEquals(true, breaker.recordAutomaticDenial("second", "second reason"))
-        assertTrue(breaker.rejectionBeforeReview("third")!!.contains("suspended"))
+        val rejection = requireNotNull(breaker.rejectionAfterLock())
+        assertTrue(rejection.reviewLocked)
+        assertTrue(rejection.reason.contains("locked"))
         assertEquals(listOf("first reason", "second reason"), breaker.denialHistory().map { it.reason })
+    }
+
+    @Test
+    fun approvalClearsConsecutiveDenialCount() {
+        val breaker = PermissionReviewCircuitBreaker(denialLimit = 2)
+
+        assertEquals(false, breaker.recordAutomaticDenial("first", "first reason"))
+        breaker.recordApproval()
+        assertEquals(false, breaker.recordAutomaticDenial("second", "second reason"))
+        assertNull(breaker.rejectionAfterLock())
+        assertEquals(true, breaker.recordAutomaticDenial("third", "third reason"))
+        assertTrue(requireNotNull(breaker.rejectionAfterLock()).reviewLocked)
+    }
+
+    @Test
+    fun repeatedDeniedActionCountsTowardConsecutiveLimit() {
+        val breaker = PermissionReviewCircuitBreaker(denialLimit = 2)
+
+        assertEquals(false, breaker.recordAutomaticDenial("first", "first reason"))
+        val rejection = requireNotNull(breaker.rejectionBeforeReview("first"))
+        assertTrue(rejection.reviewLocked)
+        assertTrue(rejection.reason.contains("repeated attempt"))
+        assertTrue(requireNotNull(breaker.rejectionAfterLock()).reviewLocked)
+    }
+
+    @Test
+    fun approvalDoesNotUnlockCurrentTurnAfterLimit() {
+        val breaker = PermissionReviewCircuitBreaker(denialLimit = 2)
+
+        assertEquals(false, breaker.recordAutomaticDenial("first", "first reason"))
+        assertEquals(true, breaker.recordAutomaticDenial("second", "second reason"))
+        breaker.recordApproval()
+        assertTrue(requireNotNull(breaker.rejectionAfterLock()).reviewLocked)
     }
 
     private fun response(

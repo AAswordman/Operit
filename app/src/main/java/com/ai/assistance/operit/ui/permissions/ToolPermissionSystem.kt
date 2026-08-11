@@ -216,6 +216,14 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     ): ToolPermissionDecision {
         AppLogger.d(TAG, "Starting permission check: ${tool.name}")
 
+        circuitBreaker?.rejectionAfterLock()?.let { rejection ->
+            AppLogger.w(TAG, "Permission review lock denied ${tool.name}: ${rejection.reason}")
+            return permissionDeniedByCircuitBreaker(
+                reason = rejection.reason,
+                reviewLocked = true,
+            )
+        }
+
         val preferences = context.toolPermissionsDataStore.data.first()
         val masterSwitch = PermissionLevel.fromString(preferences[MASTER_SWITCH] ?: DEFAULT_MASTER_SWITCH)
         val key = toolPermissionKey(tool.name)
@@ -226,7 +234,12 @@ class ToolPermissionSystem private constructor(private val context: Context) {
         return when (permissionLevel) {
             PermissionLevel.ALLOW -> ToolPermissionDecision.Allowed
             PermissionLevel.ASK ->
-                if (requestPermission(tool)) ToolPermissionDecision.Allowed else permissionDeniedByUser()
+                if (requestPermission(tool)) {
+                    circuitBreaker?.recordApproval()
+                    ToolPermissionDecision.Allowed
+                } else {
+                    permissionDeniedByUser()
+                }
             PermissionLevel.FORBID -> permissionDeniedBySettings()
             PermissionLevel.LLM -> requestLlmApprovalDetailed(tool, reviewContext, circuitBreaker)
         }
@@ -260,9 +273,15 @@ class ToolPermissionSystem private constructor(private val context: Context) {
                 priorDenials = circuitBreaker?.denialHistory().orEmpty(),
             )
 
-        circuitBreaker?.rejectionBeforeReview(request.actionFingerprint)?.let { reason ->
-            AppLogger.w(TAG, "Permission review circuit breaker denied ${tool.name}: $reason")
-            return permissionDeniedByCircuitBreaker(reason)
+        circuitBreaker?.rejectionBeforeReview(request.actionFingerprint)?.let { rejection ->
+            AppLogger.w(
+                TAG,
+                "Permission review circuit breaker denied ${tool.name}: ${rejection.reason}",
+            )
+            return permissionDeniedByCircuitBreaker(
+                reason = rejection.reason,
+                reviewLocked = rejection.reviewLocked,
+            )
         }
 
         val response = sendApprovalReviewRequest(request)
@@ -278,25 +297,32 @@ class ToolPermissionSystem private constructor(private val context: Context) {
         return when (reviewDecision?.outcome) {
             LlmApprovalReviewOutcome.APPROVE -> {
                 AppLogger.d(TAG, "LLM approval approved ${tool.name}: ${reviewDecision.reason}")
+                circuitBreaker?.recordApproval()
                 ToolPermissionDecision.Allowed
             }
 
             LlmApprovalReviewOutcome.DENY -> {
                 AppLogger.w(TAG, "LLM approval denied ${tool.name}: ${reviewDecision.reason}")
-                val opensBreaker =
+                val reviewLocked =
                     circuitBreaker?.recordAutomaticDenial(
                         actionFingerprint = request.actionFingerprint,
                         reason = reviewDecision.reason,
                     ) == true
                 permissionDeniedByAutomaticReview(
                     reason = reviewDecision.reason,
-                    interruptTurn = opensBreaker,
+                    reviewLocked = reviewLocked,
                 )
             }
 
             // ASK: 模型明确表示无法自主判断; null: API 错误或输出不符合约定
-            LlmApprovalReviewOutcome.ASK, null ->
-                if (requestPermission(tool)) ToolPermissionDecision.Allowed else permissionDeniedByUser()
+            LlmApprovalReviewOutcome.ASK, null -> {
+                if (requestPermission(tool)) {
+                    circuitBreaker?.recordApproval()
+                    ToolPermissionDecision.Allowed
+                } else {
+                    permissionDeniedByUser()
+                }
+            }
         }
     }
 

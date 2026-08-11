@@ -27,7 +27,6 @@ internal sealed interface ToolPermissionDecision {
     data class Denied(
         val source: ToolPermissionDenialSource,
         val rejection: String,
-        val interruptTurn: Boolean = false,
     ) : ToolPermissionDecision
 }
 
@@ -82,25 +81,48 @@ internal data class PermissionReviewDenialRecord(
     val reason: String,
 )
 
+internal data class PermissionReviewPrecheckRejection(
+    val reason: String,
+    val reviewLocked: Boolean,
+)
+
 internal class PermissionReviewCircuitBreaker(
     private val denialLimit: Int = DEFAULT_DENIAL_LIMIT,
 ) {
     private val lock = Any()
     private val denialRecords = mutableListOf<PermissionReviewDenialRecord>()
     private val deniedActionFingerprints = mutableSetOf<String>()
-    private var denialCount = 0
+    private var consecutiveDenialCount = 0
+    private var reviewLocked = false
 
     init {
         require(denialLimit > 0) { "denialLimit must be positive" }
     }
 
-    fun rejectionBeforeReview(actionFingerprint: String): String? = synchronized(lock) {
-        when {
-            actionFingerprint in deniedActionFingerprints ->
-                "This exact action was already denied during the current model turn."
+    fun rejectionAfterLock(): PermissionReviewPrecheckRejection? = synchronized(lock) {
+        if (reviewLocked) lockedRejection() else null
+    }
 
-            denialCount >= denialLimit ->
-                "Automatic permission review is suspended for the current model turn after repeated denials."
+    fun rejectionBeforeReview(
+        actionFingerprint: String,
+    ): PermissionReviewPrecheckRejection? = synchronized(lock) {
+        when {
+            reviewLocked -> lockedRejection()
+
+            actionFingerprint in deniedActionFingerprints -> {
+                val reviewLocked = recordConsecutiveDenialLocked()
+                PermissionReviewPrecheckRejection(
+                    reason =
+                        if (reviewLocked) {
+                            "This exact action was already denied during the current model turn. " +
+                                "The repeated attempt reached the consecutive-denial limit and " +
+                                "locked permission review for the rest of this model turn."
+                        } else {
+                            "This exact action was already denied during the current model turn."
+                        },
+                    reviewLocked = reviewLocked,
+                )
+            }
 
             else -> null
         }
@@ -110,7 +132,7 @@ internal class PermissionReviewCircuitBreaker(
         denialRecords.toList()
     }
 
-    /** Returns true when this denial opens the breaker. */
+    /** Returns true when this denial locks permission review for the rest of the model turn. */
     fun recordAutomaticDenial(actionFingerprint: String, reason: String): Boolean = synchronized(lock) {
         deniedActionFingerprints.add(actionFingerprint)
         denialRecords.add(
@@ -119,9 +141,30 @@ internal class PermissionReviewCircuitBreaker(
                 reason = reason.trim().take(MAX_DENIAL_REASON_CHARS),
             )
         )
-        denialCount += 1
-        denialCount >= denialLimit
+        recordConsecutiveDenialLocked()
     }
+
+    /** An approval breaks the denial streak without forgetting actions denied earlier. */
+    fun recordApproval() = synchronized(lock) {
+        if (!reviewLocked) {
+            consecutiveDenialCount = 0
+        }
+    }
+
+    private fun recordConsecutiveDenialLocked(): Boolean {
+        if (reviewLocked) return true
+        consecutiveDenialCount += 1
+        reviewLocked = consecutiveDenialCount >= denialLimit
+        return reviewLocked
+    }
+
+    private fun lockedRejection() =
+        PermissionReviewPrecheckRejection(
+            reason =
+                "Automatic permission review is locked for the current model turn after " +
+                    "consecutive denials.",
+            reviewLocked = true,
+        )
 
     companion object {
         private const val DEFAULT_DENIAL_LIMIT = 2
@@ -367,25 +410,38 @@ internal fun permissionDeniedByUser(): ToolPermissionDecision.Denied =
 
 internal fun permissionDeniedByAutomaticReview(
     reason: String,
-    interruptTurn: Boolean,
+    reviewLocked: Boolean,
 ): ToolPermissionDecision.Denied {
     val normalizedReason = reason.trim().take(1_000).ifBlank { "No reason provided." }
     return ToolPermissionDecision.Denied(
         source = ToolPermissionDenialSource.AUTOMATIC_REVIEW,
         rejection =
             "Automatic permission review denied this action: $normalizedReason " +
-                "Do not retry, rephrase, split, encode, delegate, or use another tool or path " +
-                "to work around this denial. Ask the user for explicit authorization or choose " +
-                "a genuinely different safe action.",
-        interruptTurn = interruptTurn,
+                if (reviewLocked) {
+                    "The consecutive-denial limit is now reached. No further tool calls can be " +
+                        "approved during this model turn. Stop calling tools and ask the user for " +
+                        "explicit written authorization in a new message."
+                } else {
+                    "Do not retry, rephrase, split, encode, delegate, or use another tool or path " +
+                        "to work around this denial. Ask the user for explicit authorization or " +
+                        "choose a genuinely different safe action."
+                },
     )
 }
 
-internal fun permissionDeniedByCircuitBreaker(reason: String): ToolPermissionDecision.Denied =
+internal fun permissionDeniedByCircuitBreaker(
+    reason: String,
+    reviewLocked: Boolean,
+): ToolPermissionDecision.Denied =
     ToolPermissionDecision.Denied(
         source = ToolPermissionDenialSource.CIRCUIT_BREAKER,
         rejection =
-            "$reason Do not retry, rephrase, split, encode, delegate, or use another tool or " +
-                "path to bypass earlier denials.",
-        interruptTurn = true,
+            if (reviewLocked) {
+                "$reason No further tool calls can be approved during this model turn. Stop " +
+                    "calling tools and ask the user for explicit written authorization in a new " +
+                    "message."
+            } else {
+                "$reason Do not retry, rephrase, split, encode, delegate, or use another tool or " +
+                    "path to bypass the earlier denial."
+            },
     )

@@ -2104,7 +2104,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             )
             val config = modelSnapshot.config
             val permissionReviewContext = buildToolPermissionReviewContext(context, chatId)
-            val toolExecutionRound = ToolExecutionManager.executeInvocations(
+            val allToolResults = ToolExecutionManager.executeInvocations(
                 invocations = toolInvocations,
                 context = this@EnhancedAIService.context,
                 toolHandler = toolHandler,
@@ -2117,25 +2117,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                 reviewContext = permissionReviewContext,
                 circuitBreaker = context.permissionReviewCircuitBreaker
             )
-
-            if (toolExecutionRound.interruptTurn) {
-                AppLogger.w(TAG, "权限熔断生效，中断当前模型回合，不把工具结果回传模型继续。")
-                finalizeAssistantResponse(
-                    context = context,
-                    content = context.roundManager.getDisplayContent(),
-                    enableMemoryAutoUpdate = enableMemoryAutoUpdate,
-                    onNonFatalError = onNonFatalError,
-                    isSubTask = isSubTask,
-                    chatId = chatId,
-                    characterName = characterName,
-                    avatarUri = avatarUri,
-                    notifyReplyOverride = notifyReplyOverride,
-                    memorySpaceIdOverride = memorySpaceIdOverride
-                )
-                return@launch
-            }
-
-            val allToolResults = toolExecutionRound.results
 
             if (allToolResults.isNotEmpty()) {
                 AppLogger.d(TAG, "所有工具结果收集完毕，准备最终处理。")
