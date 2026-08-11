@@ -17,7 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.ai.assistance.operit.ui.common.NavItem
@@ -30,7 +29,6 @@ import com.ai.assistance.operit.ui.main.components.CollapsedDrawerContent
 import com.ai.assistance.operit.ui.main.components.DrawerContent
 import com.ai.assistance.operit.ui.main.components.rememberNavigationDrawerAppearance
 import com.ai.assistance.operit.ui.main.screens.Screen
-import com.ai.assistance.operit.ui.theme.waterGlass
 import kotlinx.coroutines.CoroutineScope
 import androidx.compose.foundation.layout.RowScope
 
@@ -119,19 +117,9 @@ fun TabletLayout(
                         modifier =
                                 Modifier.width(animatedSidebarWidth)
                                         .fillMaxHeight()
-                                        .waterGlass(
-                                                enabled = drawerAppearance.waterGlassEnabled,
-                                                shape = MaterialTheme.shapes.medium,
-                                                containerColor = drawerAppearance.containerColor,
-                                                shadowElevation = 4.dp,
-                                                borderWidth = 0.7.dp,
-                                                overlayAlphaBoost = 0.04f
-                                        )
                                         .zIndex(2f), // 确保侧边栏在主内容之上
-                        shadowElevation = if (drawerAppearance.waterGlassEnabled) 0.dp else 4.dp,
-                        color =
-                                if (drawerAppearance.waterGlassEnabled) Color.Transparent
-                                else drawerAppearance.containerColor
+                        shadowElevation = 4.dp,
+                        color = drawerAppearance.containerColor
                 ) {
                         Crossfade(
                                 targetState = isSidebarContentExpanded,

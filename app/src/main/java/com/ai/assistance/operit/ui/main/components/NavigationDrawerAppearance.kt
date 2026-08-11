@@ -8,8 +8,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
 
 data class NavigationDrawerAppearance(
     val containerColor: Color,
@@ -20,15 +18,13 @@ data class NavigationDrawerAppearance(
     val selectedContainerColor: Color,
     val selectedContentColor: Color,
     val dividerColor: Color,
-    val waterGlassEnabled: Boolean,
-    val buttonLiquidGlassEnabled: Boolean,
+    val waterGlassEnabled: Boolean = false,
+    val buttonLiquidGlassEnabled: Boolean = false,
 )
 
 @Composable
 fun rememberNavigationDrawerAppearance(): NavigationDrawerAppearance {
     val themeSnapshot = LocalThemePreferenceSnapshot.current
-    val navigationDrawerWaterGlass = themeSnapshot.navigationDrawerWaterGlass
-    val navigationDrawerButtonLiquidGlass = themeSnapshot.navigationDrawerButtonLiquidGlass
     val useCustomNavigationDrawerBackgroundColor =
         themeSnapshot.useCustomNavigationDrawerBackgroundColor
     val customNavigationDrawerBackgroundColor =
@@ -36,9 +32,6 @@ fun rememberNavigationDrawerAppearance(): NavigationDrawerAppearance {
     val useCustomNavigationDrawerAccentColor = themeSnapshot.useCustomNavigationDrawerAccentColor
     val customNavigationDrawerAccentColor = themeSnapshot.customNavigationDrawerAccentColor
 
-    val waterGlassEnabled = navigationDrawerWaterGlass && isWaterGlassSupported()
-    val buttonLiquidGlassEnabled =
-        navigationDrawerButtonLiquidGlass && isLiquidGlassSupported()
     val defaultTitleColor = MaterialTheme.colorScheme.primary
     val defaultStatusColor = MaterialTheme.colorScheme.primary
     val defaultDividerColor = defaultTitleColor.copy(alpha = 0.42f)
@@ -68,8 +61,8 @@ fun rememberNavigationDrawerAppearance(): NavigationDrawerAppearance {
                 } else {
                     defaultDividerColor
                 },
-            waterGlassEnabled = waterGlassEnabled,
-            buttonLiquidGlassEnabled = buttonLiquidGlassEnabled,
+            waterGlassEnabled = false,
+            buttonLiquidGlassEnabled = false,
         )
 
     val customColorValue = customNavigationDrawerBackgroundColor
@@ -111,7 +104,7 @@ fun rememberNavigationDrawerAppearance(): NavigationDrawerAppearance {
             } else {
                 accentColor.copy(alpha = 0.42f)
             },
-        waterGlassEnabled = waterGlassEnabled,
-        buttonLiquidGlassEnabled = buttonLiquidGlassEnabled,
+        waterGlassEnabled = false,
+        buttonLiquidGlassEnabled = false,
     )
 }

@@ -61,7 +61,6 @@ import com.ai.assistance.operit.ui.common.NavItem
 import com.ai.assistance.operit.ui.main.screens.ScreenRouteRegistry
 import com.ai.assistance.operit.ui.main.navigation.NavigationEntrySpec
 import com.ai.assistance.operit.ui.main.screens.Screen
-import com.ai.assistance.operit.ui.theme.liquidGlass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -298,18 +297,7 @@ fun CollapsedDrawerContent(
 
                 Surface(
                         modifier =
-                                Modifier.size(44.dp)
-                                        .liquidGlass(
-                                                enabled = appearance.buttonLiquidGlassEnabled,
-                                                shape = CircleShape,
-                                                containerColor = appearance.buttonContainerColor,
-                                                shadowElevation = 5.dp,
-                                                borderWidth = 0.5.dp,
-                                                blurRadius = 14.dp,
-                                                overlayAlphaBoost = 0.05f,
-                                                enableLens = false
-                                        )
-                                        .clip(CircleShape),
+                                Modifier.size(44.dp).clip(CircleShape),
                         color = Color.Transparent,
                         shape = CircleShape
                 ) {
@@ -333,30 +321,15 @@ fun CollapsedDrawerContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 for (item in navItems) {
-                        val selectedGlassOverlayColor =
-                                if (selectedItem == item) {
-                                        appearance.selectedContainerColor.copy(alpha = 0.18f)
-                                } else {
-                                        Color.Transparent
-                                }
                         Surface(
                                 modifier =
                                         Modifier.padding(vertical = 8.dp)
                                                 .size(44.dp)
-                                                .liquidGlass(
-                                                        enabled = appearance.buttonLiquidGlassEnabled,
-                                                        shape = CircleShape,
-                                                        containerColor =
-                                                                appearance.buttonContainerColor,
-                                                        shadowElevation =
-                                                                if (selectedItem == item) 6.dp else 5.dp,
-                                                        borderWidth = 0.5.dp,
-                                                        blurRadius = 14.dp,
-                                                        overlayAlphaBoost = 0.05f,
-                                                        enableLens = false
-                                                )
                                                 .clip(CircleShape)
-                                                .background(selectedGlassOverlayColor),
+                                                .background(
+                                                        if (selectedItem == item) appearance.selectedContainerColor.copy(alpha = 0.12f)
+                                                        else Color.Transparent
+                                                ),
                                 color = Color.Transparent,
                                 shape = CircleShape
                         ) {
@@ -372,11 +345,7 @@ fun CollapsedDrawerContent(
                                                 contentDescription = stringResource(id = item.titleResId),
                                                 tint =
                                                         if (selectedItem == item) {
-                                                                if (appearance.buttonLiquidGlassEnabled) {
-                                                                        appearance.selectedContentColor
-                                                                } else {
-                                                                        appearance.titleColor
-                                                                }
+                                                                appearance.selectedContentColor
                                                         } else {
                                                                 appearance.itemColor
                                                         },
@@ -394,29 +363,15 @@ fun CollapsedDrawerContent(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         pluginEntries.forEach { entry ->
-                                val selectedGlassOverlayColor =
-                                        if (selectedRouteId == entry.routeId) {
-                                                appearance.selectedContainerColor.copy(alpha = 0.18f)
-                                        } else {
-                                                Color.Transparent
-                                        }
                                 Surface(
                                         modifier =
                                                 Modifier.padding(vertical = 8.dp)
                                                         .size(44.dp)
-                                                        .liquidGlass(
-                                                                enabled = appearance.buttonLiquidGlassEnabled,
-                                                                shape = CircleShape,
-                                                                containerColor = appearance.buttonContainerColor,
-                                                                shadowElevation =
-                                                                        if (selectedRouteId == entry.routeId) 6.dp else 5.dp,
-                                                                borderWidth = 0.5.dp,
-                                                                blurRadius = 14.dp,
-                                                                overlayAlphaBoost = 0.05f,
-                                                                enableLens = false
-                                                        )
                                                         .clip(CircleShape)
-                                                        .background(selectedGlassOverlayColor),
+                                                        .background(
+                                                                if (selectedRouteId == entry.routeId) appearance.selectedContainerColor.copy(alpha = 0.12f)
+                                                                else Color.Transparent
+                                                        ),
                                         color = Color.Transparent,
                                         shape = CircleShape
                                 ) {
@@ -426,11 +381,7 @@ fun CollapsedDrawerContent(
                                                         contentDescription = entry.title,
                                                         tint =
                                                                 if (selectedRouteId == entry.routeId) {
-                                                                        if (appearance.buttonLiquidGlassEnabled) {
-                                                                                appearance.selectedContentColor
-                                                                        } else {
-                                                                                appearance.titleColor
-                                                                        }
+                                                                        appearance.selectedContentColor
                                                                 } else {
                                                                         appearance.itemColor
                                                                 },
@@ -616,41 +567,20 @@ private fun SidebarQuickActionCard(
         appearance: NavigationDrawerAppearance,
         onClick: () -> Unit
 ) {
-        val itemShape = RoundedCornerShape(12.dp)
-        val selectedGlassOverlayColor =
-                if (selected) {
-                        appearance.selectedContainerColor.copy(alpha = 0.18f)
-                } else {
-                        Color.Transparent
-                }
-        val accentColor = appearance.selectedContentColor
+        val itemShape = RoundedCornerShape(16.dp)
         Surface(
                 modifier =
-                        modifier.height(76.dp)
-                                .liquidGlass(
-                                        enabled = appearance.buttonLiquidGlassEnabled,
-                                        shape = itemShape,
-                                        containerColor = appearance.buttonContainerColor,
-                                        shadowElevation = if (selected) 4.dp else 2.dp,
-                                        borderWidth = 0.5.dp,
-                                        blurRadius = 16.dp,
-                                        overlayAlphaBoost = 0.04f,
-                                        enableLens = false
-                                )
+                        modifier.height(52.dp)
                                 .clip(itemShape)
-                                .background(selectedGlassOverlayColor),
+                                .background(
+                                        if (selected) appearance.selectedContainerColor.copy(alpha = 0.12f)
+                                        else appearance.buttonContainerColor.copy(alpha = 0.06f)
+                                ),
                 onClick = onClick,
-                color =
-                        if (appearance.buttonLiquidGlassEnabled) {
-                                Color.Transparent
-                        } else if (selected) {
-                                appearance.selectedContainerColor
-                        } else {
-                                Color.Transparent
-                        },
+                color = Color.Transparent,
                 shape = itemShape
         ) {
-                Box(modifier = Modifier.fillMaxWidth().height(76.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().height(52.dp)) {
                         if (selected) {
                                 Box(
                                         modifier = Modifier
@@ -659,7 +589,7 @@ private fun SidebarQuickActionCard(
                                                 .height(2.dp)
                                                 .padding(bottom = 4.dp)
                                                 .clip(RoundedCornerShape(2.dp))
-                                                .background(accentColor.copy(alpha = 0.7f))
+                                                .background(appearance.selectedContentColor.copy(alpha = 0.7f))
                                 )
                         }
                         SidebarQuickActionBadge(
@@ -685,7 +615,7 @@ private fun SidebarQuickActionCard(
                                                 else appearance.itemColor,
                                         modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                         text = label,
                                         style = MaterialTheme.typography.labelMedium.copy(
@@ -779,40 +709,19 @@ private fun BottomShortcutDrawerItem(
         appearance: NavigationDrawerAppearance,
         onClick: () -> Unit
 ) {
-        val itemShape = RoundedCornerShape(14.dp)
-        val selectedGlassOverlayColor =
-                if (selected) {
-                        appearance.selectedContainerColor.copy(alpha = 0.18f)
-                } else {
-                        Color.Transparent
-                }
-        val accentColor = appearance.selectedContentColor
+        val itemShape = RoundedCornerShape(16.dp)
 
         Surface(
                 modifier =
                         modifier
-                                .height(68.dp)
-                                .liquidGlass(
-                                        enabled = appearance.buttonLiquidGlassEnabled,
-                                        shape = itemShape,
-                                        containerColor = appearance.buttonContainerColor,
-                                        shadowElevation = if (selected) 6.dp else 4.dp,
-                                        borderWidth = 0.5.dp,
-                                        blurRadius = 12.dp,
-                                        overlayAlphaBoost = 0.04f,
-                                        enableLens = false
-                                )
+                                .height(52.dp)
                                 .clip(itemShape)
-                                .background(selectedGlassOverlayColor),
+                                .background(
+                                        if (selected) appearance.selectedContainerColor.copy(alpha = 0.12f)
+                                        else appearance.buttonContainerColor.copy(alpha = 0.06f)
+                                ),
                 onClick = onClick,
-                color =
-                        if (appearance.buttonLiquidGlassEnabled) {
-                                Color.Transparent
-                        } else if (selected) {
-                                appearance.selectedContainerColor
-                        } else {
-                                Color.Transparent
-                        },
+                color = Color.Transparent,
                 shape = itemShape
         ) {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -821,10 +730,10 @@ private fun BottomShortcutDrawerItem(
                                         modifier = Modifier
                                                 .align(Alignment.TopCenter)
                                                 .fillMaxWidth(0.4f)
-                                                .height(2.5.dp)
+                                                .height(2.dp)
                                                 .padding(top = 4.dp)
                                                 .clip(RoundedCornerShape(2.dp))
-                                                .background(accentColor.copy(alpha = 0.7f))
+                                                .background(appearance.selectedContentColor.copy(alpha = 0.7f))
                                 )
                         }
                         Column(
@@ -840,7 +749,7 @@ private fun BottomShortcutDrawerItem(
                                                 else appearance.itemColor,
                                         modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.height(5.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                         text = stringResource(id = item.titleResId),
                                         style = MaterialTheme.typography.labelSmall.copy(

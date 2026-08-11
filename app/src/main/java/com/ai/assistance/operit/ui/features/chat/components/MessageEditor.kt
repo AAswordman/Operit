@@ -152,8 +152,8 @@ fun MessageEditor(
             modifier = Modifier
                 .widthIn(max = 520.dp)
                 .fillMaxWidth(0.9f)
-                .shadow(elevation = 8.dp, shape = RoundedCornerShape(20.dp)),
-            shape = RoundedCornerShape(20.dp),
+                .shadow(elevation = 8.dp, shape = RoundedCornerShape(28.dp)),
+            shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 1.dp
         ) {
@@ -599,8 +599,8 @@ private fun TagEditorDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .shadow(elevation = 8.dp, shape = RoundedCornerShape(20.dp)),
-            shape = RoundedCornerShape(20.dp),
+                .shadow(elevation = 8.dp, shape = RoundedCornerShape(28.dp)),
+            shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 2.dp
         ) {
