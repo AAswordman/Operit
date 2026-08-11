@@ -433,9 +433,7 @@ fun BubbleUserMessageComposable(
                         }
                     } else {
                         Surface(
-                            modifier =
-                                bubbleModifier
-
+                            modifier = bubbleModifier,
                             shape = bubbleShape,
                             color = effectiveBackgroundColor,
                             tonalElevation =
@@ -447,7 +445,7 @@ fun BubbleUserMessageComposable(
                         ) {
                             if (isHiddenPlaceholder) {
                                 Box(
-                                    modifier =
+modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
                                             top = 0.dp,
@@ -552,9 +550,7 @@ fun BubbleUserMessageComposable(
                         }
                     } else {
                         Surface(
-                            modifier =
-                                bubbleModifier
-
+                            modifier = bubbleModifier,
                             shape = bubbleShape,
                             color = effectiveBackgroundColor,
                             tonalElevation =
@@ -566,7 +562,7 @@ fun BubbleUserMessageComposable(
                         ) {
                             if (isHiddenPlaceholder) {
                                 Box(
-                                    modifier =
+modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
                                             top = 0.dp,

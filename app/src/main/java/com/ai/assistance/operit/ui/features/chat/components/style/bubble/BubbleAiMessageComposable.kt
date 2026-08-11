@@ -413,9 +413,7 @@ fun BubbleAiMessageComposable(
                         }
                     } else {
                         Surface(
-                            modifier =
-                                bubbleModifier
-
+                            modifier = bubbleModifier,
                             shape = bubbleShape,
                             color = backgroundColor,
                             tonalElevation = 2.dp,
@@ -595,9 +593,7 @@ fun BubbleAiMessageComposable(
                         }
                     } else {
                         Surface(
-                            modifier =
-                                bubbleModifier
-
+                            modifier = bubbleModifier,
                             shape = bubbleShape,
                             color = backgroundColor,
                             tonalElevation = 2.dp
