@@ -55,14 +55,14 @@ fun ChatHeader(
                 if (runningTaskCount >= 2) {
                         Surface(
                                 onClick = onToggleChatHistorySelector,
-                                modifier = Modifier.height(32.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.height(44.dp),
+                                shape = RoundedCornerShape(22.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 tonalElevation = 0.dp,
                                 shadowElevation = 0.dp
                         ) {
                                 Row(
-                                        modifier = Modifier.height(32.dp).padding(start = 6.dp, end = 10.dp),
+                                        modifier = Modifier.height(44.dp).padding(start = 6.dp, end = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
@@ -87,7 +87,7 @@ fun ChatHeader(
                 } else {
                         Box(
                                 modifier =
-                                        Modifier.size(32.dp)
+                                        Modifier.size(48.dp)
                                                 .background(
                                                         color =
                                                                 if (showChatHistorySelector)
@@ -112,7 +112,7 @@ fun ChatHeader(
                                                                 else
                                                                         MaterialTheme.colorScheme.onSurface
                                                                                 .copy(alpha = 0.7f),
-                                                modifier = Modifier.size(20.dp)
+                                                modifier = Modifier.size(24.dp)
                                         )
                                 }
                         }
@@ -120,7 +120,7 @@ fun ChatHeader(
 
                 Box(
                         modifier =
-                                Modifier.size(32.dp)
+                                Modifier.size(48.dp)
                                         .background(
                                                 color =
                                                         if (isFloatingMode)
@@ -145,7 +145,7 @@ fun ChatHeader(
                                                         else
                                                                 MaterialTheme.colorScheme.onSurface
                                                                         .copy(alpha = 0.7f),
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(24.dp)
                                 )
                         }
                 }

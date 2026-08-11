@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.main.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,29 +61,41 @@ fun CompactNavigationDrawerItem(
             color = Color.Transparent,
             shape = itemShape
     ) {
-        Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint =
-                            if (selected) appearance.selectedContentColor
-                            else appearance.itemColor,
-                    modifier = Modifier.size(22.dp)
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint =
+                                if (selected) appearance.selectedContentColor
+                                else appearance.itemColor,
+                        modifier = Modifier.size(22.dp)
+                )
 
-            Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
-            Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                    color =
-                            if (selected) appearance.selectedContentColor
-                            else appearance.itemColor
-            )
+                Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                        color =
+                                if (selected) appearance.selectedContentColor
+                                else appearance.itemColor
+                )
+            }
+            if (selected) {
+                Box(
+                        modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 16.dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF2D7FF9))
+                )
+            }
         }
     }
 }

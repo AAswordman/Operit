@@ -34,10 +34,10 @@ fun rememberNavigationDrawerAppearance(): NavigationDrawerAppearance {
 
     val defaultTitleColor = MaterialTheme.colorScheme.primary
     val defaultStatusColor = MaterialTheme.colorScheme.primary
-    val defaultDividerColor = defaultTitleColor.copy(alpha = 0.42f)
+    val defaultDividerColor = Color(0xFFECECEC)
     val defaultAppearance =
         NavigationDrawerAppearance(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = Color(0xFFFAFAFA),
             titleColor =
                 if (useCustomNavigationDrawerAccentColor) {
                     customNavigationDrawerAccentColor?.let(::Color) ?: defaultTitleColor

@@ -71,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
@@ -506,6 +507,8 @@ fun AgentChatInputSection(
     val inputContainerColor =
         when {
             chatInputTransparent -> Color.Transparent
+            chatInputFloating && isDarkTheme -> darkModeInputColor
+            chatInputFloating -> Color.White
             isDarkTheme && hasBackgroundImage -> darkModeInputColor.copy(alpha = 0.82f)
             isDarkTheme -> darkModeInputColor
             hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
@@ -648,7 +651,7 @@ fun AgentChatInputSection(
 
     val floatingContainerModifier =
         if (chatInputFloating) {
-            modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+            modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         } else {
             modifier
         }
@@ -753,7 +756,7 @@ fun AgentChatInputSection(
 
             val inputCardShape =
                 if (chatInputFloating) {
-                    RoundedCornerShape(22.dp)
+                    RoundedCornerShape(28.dp)
                 } else {
                     RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 }
@@ -765,23 +768,29 @@ fun AgentChatInputSection(
                     MaterialTheme.colorScheme.surface
                 }
             val inputContainerEffectModifier =
-                if (isDarkTheme) {
+                if (chatInputFloating) {
+                    Modifier.shadow(
+                        elevation = 8.dp,
+                        shape = inputCardShape,
+                        clip = false,
+                    )
+                } else if (isDarkTheme) {
                     Modifier.topEdgeHighlight(
                         shape = inputCardShape,
                         lineColor =
                             MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = if (chatInputFloating) 0.03f else 0.05f,
+                                alpha = 0.05f,
                             ),
                         glowColor =
                             MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = if (chatInputFloating) 0.008f else 0.015f,
+                                alpha = 0.015f,
                             ),
-                        glowHeight = if (chatInputFloating) 1.dp else 2.dp,
+                        glowHeight = 2.dp,
                     )
                 } else {
                     Modifier.outerDiffuseShadow(
                         shape = inputCardShape,
-                        spread = if (chatInputFloating) 3.dp else 6.dp,
+                        spread = 6.dp,
                     )
                 }
 
@@ -818,7 +827,7 @@ fun AgentChatInputSection(
                                 style = inputTextStyle,
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = if (chatInputFloating) 52.dp else 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
                         textStyle = inputTextStyle,
                         maxLines = 6,
                         minLines = 1,
@@ -1097,7 +1106,7 @@ fun AgentChatInputSection(
                                     style = inputTextStyle,
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = if (chatInputFloating) 52.dp else 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
                             textStyle = inputTextStyle,
                             maxLines = 6,
                             minLines = 1,

@@ -425,7 +425,7 @@ fun OperitApp(
     }
 
     // Calculate drawer width for phone mode
-    val drawerWidth = (screenWidthDp * 0.75).dp // Drawer width is 3/4 of screen width
+    val drawerWidth = 320.dp // 固定 320dp 侧边栏宽度（ChatGPT 风格极简设计规范）
 
     // Main app container
     Box(modifier = Modifier.fillMaxSize().background(Color.Transparent)) {

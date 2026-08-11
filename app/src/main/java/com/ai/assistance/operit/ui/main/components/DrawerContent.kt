@@ -584,12 +584,11 @@ private fun SidebarQuickActionCard(
                         if (selected) {
                                 Box(
                                         modifier = Modifier
-                                                .align(Alignment.BottomCenter)
-                                                .fillMaxWidth(0.5f)
-                                                .height(2.dp)
-                                                .padding(bottom = 4.dp)
-                                                .clip(RoundedCornerShape(2.dp))
-                                                .background(appearance.selectedContentColor.copy(alpha = 0.7f))
+                                                .align(Alignment.TopEnd)
+                                                .padding(top = 8.dp, end = 8.dp)
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF2D7FF9))
                                 )
                         }
                         SidebarQuickActionBadge(
@@ -728,12 +727,11 @@ private fun BottomShortcutDrawerItem(
                         if (selected) {
                                 Box(
                                         modifier = Modifier
-                                                .align(Alignment.TopCenter)
-                                                .fillMaxWidth(0.4f)
-                                                .height(2.dp)
-                                                .padding(top = 4.dp)
-                                                .clip(RoundedCornerShape(2.dp))
-                                                .background(appearance.selectedContentColor.copy(alpha = 0.7f))
+                                                .align(Alignment.TopEnd)
+                                                .padding(top = 8.dp, end = 8.dp)
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF2D7FF9))
                                 )
                         }
                         Column(
