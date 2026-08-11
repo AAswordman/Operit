@@ -14,6 +14,8 @@ import com.ai.assistance.operit.data.preferences.ResolvedCharacterCardToolAccess
 import com.ai.assistance.operit.integrations.tasker.triggerAIAgentAction
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
+import com.ai.assistance.operit.ui.permissions.ToolPermissionDecision
+import com.ai.assistance.operit.ui.permissions.ToolPermissionDenialSource
 import com.ai.assistance.operit.util.LocaleUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -237,19 +239,24 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             )
         }
 
-        val hasPermission = runBlocking {
-            handler.getToolPermissionSystem().checkToolPermission(proxiedTool)
+        val runtimeContext = ToolExecutionManager.currentToolRuntimeContext()
+        val decision = runBlocking {
+            handler.getToolPermissionSystem().checkToolPermissionDetailed(
+                tool = proxiedTool,
+                reviewContext = runtimeContext?.permissionReviewContext,
+                circuitBreaker = runtimeContext?.permissionReviewCircuitBreaker
+            )
         }
-        if (!hasPermission) {
-            val llmDenialReason =
-                handler.getToolPermissionSystem().consumeLlmDenialReason(proxiedTool.name)
-            val errorMessage = if (llmDenialReason != null) {
-                "The system has rejected this tool execution: $llmDenialReason. " +
-                    "Either revise the parameters per the rejection reason and try again, " +
-                    "or abort this tool invocation entirely."
-            } else {
-                "User cancelled the tool execution."
+        val errorMessage =
+            when (decision) {
+                ToolPermissionDecision.Allowed -> null
+                is ToolPermissionDecision.Denied ->
+                    when (decision.source) {
+                        ToolPermissionDenialSource.USER -> "User cancelled the tool execution."
+                        else -> decision.rejection
+                    }
             }
+        if (errorMessage != null) {
             handler.notifyToolPermissionChecked(
                 proxiedTool,
                 granted = false,

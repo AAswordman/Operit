@@ -13,14 +13,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.core.chat.hooks.PromptTurn
-import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
-import org.json.JSONObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -197,62 +193,118 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     }
     
     /**
-     * Check if a tool is allowed to execute
+     * Check if a tool is allowed to execute.
+     * 供同步 / 无父会话上下文路径使用 (如 CLI 代理), 只返回是否放行。
      */
-    suspend fun checkToolPermission(tool: AITool, toolInvocationRawText: String? = null): Boolean {
+    suspend fun checkToolPermission(tool: AITool): Boolean {
+        return when (checkToolPermissionDetailed(tool)) {
+            ToolPermissionDecision.Allowed -> true
+            is ToolPermissionDecision.Denied -> false
+        }
+    }
+
+    /**
+     * 带完整上下文的结构化权限检查:
+     * - ALLOW / FORBID 直接由设置决定
+     * - ASK 弹出用户确认
+     * - LLM 由审批模型基于父会话证据裁决, 并受本轮熔断器约束
+     */
+    internal suspend fun checkToolPermissionDetailed(
+        tool: AITool,
+        reviewContext: ToolPermissionReviewContext? = null,
+        circuitBreaker: PermissionReviewCircuitBreaker? = null,
+    ): ToolPermissionDecision {
         AppLogger.d(TAG, "Starting permission check: ${tool.name}")
-        
+
         val preferences = context.toolPermissionsDataStore.data.first()
         val masterSwitch = PermissionLevel.fromString(preferences[MASTER_SWITCH] ?: DEFAULT_MASTER_SWITCH)
         val key = toolPermissionKey(tool.name)
         val overrideLevel = preferences[key]?.let { PermissionLevel.fromString(it) }
-        
+
         val permissionLevel = overrideLevel ?: masterSwitch
-        
+
         return when (permissionLevel) {
-            PermissionLevel.ALLOW -> true
-            PermissionLevel.ASK -> requestPermission(tool)
-            PermissionLevel.LLM -> when (requestLlmApproval(tool, toolInvocationRawText)) {
-                LlmApprovalDecision.APPROVE -> true
-                LlmApprovalDecision.DENY -> false
-                // ASK: 模型明确表示无法自主判断; null: API 错误或输出不符合约定
-                // 两者按产品设计都转交用户手动确认, 复用 ASK 档的弹窗流程
-                LlmApprovalDecision.ASK, null -> requestPermission(tool)
-            }
-            PermissionLevel.FORBID -> false
+            PermissionLevel.ALLOW -> ToolPermissionDecision.Allowed
+            PermissionLevel.ASK ->
+                if (requestPermission(tool)) ToolPermissionDecision.Allowed else permissionDeniedByUser()
+            PermissionLevel.FORBID -> permissionDeniedBySettings()
+            PermissionLevel.LLM -> requestLlmApprovalDetailed(tool, reviewContext, circuitBreaker)
         }
-    }
-
-    private enum class LlmApprovalDecision { APPROVE, DENY, ASK }
-
-    // 最近一次 LLM 拒绝的 (toolName -> reason), 供调用方生成带理由的拒绝结果
-    @Volatile
-    private var lastLlmDenial: Pair<String, String>? = null
-
-    /**
-     * 取出指定工具最近一次由审批模型给出的拒绝理由, 取出后即清除。
-     * 返回 null 表示该工具最近的拒绝并非来自审批模型 (如用户手动拒绝)。
-     */
-    fun consumeLlmDenialReason(toolName: String): String? {
-        val denial = lastLlmDenial ?: return null
-        if (denial.first != toolName) return null
-        lastLlmDenial = null
-        return denial.second
     }
 
     /**
      * 调用审批模型决定是否允许工具调用。
-     * decision 为必填字段: approve 放行, deny 拒绝, ask 表示模型无法自主判断需转人工;
-     * 返回 null 表示输出不符合约定 (API 错误 / 不是合法 JSON / decision 缺失或非法),
-     * 调用方对 ASK 与 null 都转交用户手动确认。
+     * 审批请求由 ToolApprovalReviewPolicy 基于父会话证据构建;
+     * 同动作重复尝试或本回合拒绝过多由熔断器在请求前拦截。
+     * ASK 与 null (API 错误 / 输出不符合约定) 按产品设计都转交用户手动确认。
      */
-    private suspend fun requestLlmApproval(tool: AITool, toolInvocationRawText: String?): LlmApprovalDecision? {
-        return try {
-            // 没有拿到调用原文时按同样的标签格式重建, 保证审批模型看到的始终是工具调用原文
-            val rawText = toolInvocationRawText?.takeIf { it.isNotBlank() } ?: buildToolInvocationText(tool)
-            val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
-            val prompt = FunctionalPrompts.buildToolApprovalPrompt(rawText, useEnglish)
+    private suspend fun requestLlmApprovalDetailed(
+        tool: AITool,
+        reviewContext: ToolPermissionReviewContext?,
+        circuitBreaker: PermissionReviewCircuitBreaker?,
+    ): ToolPermissionDecision {
+        val effectiveContext =
+            reviewContext ?: ToolPermissionReviewContext(
+                conversationHistory = emptyList(),
+                liveAssistantContent = "",
+                workspacePath = null,
+                workspaceEnv = null,
+                conversationLabel = null,
+            )
+        val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+        val request =
+            ToolApprovalReviewPolicy.buildRequest(
+                tool = tool,
+                reviewContext = effectiveContext,
+                useEnglish = useEnglish,
+                priorDenials = circuitBreaker?.denialHistory().orEmpty(),
+            )
 
+        circuitBreaker?.rejectionBeforeReview(request.actionFingerprint)?.let { reason ->
+            AppLogger.w(TAG, "Permission review circuit breaker denied ${tool.name}: $reason")
+            return permissionDeniedByCircuitBreaker(reason)
+        }
+
+        val response = sendApprovalReviewRequest(request)
+        val reviewDecision =
+            response?.let {
+                ToolApprovalReviewPolicy.parseAndEnforce(
+                    response = it,
+                    expectedReviewId = request.reviewId,
+                    hasUserAuthorizationEvidence = effectiveContext.hasUserAuthorizationEvidence,
+                )
+            }
+
+        return when (reviewDecision?.outcome) {
+            LlmApprovalReviewOutcome.APPROVE -> {
+                AppLogger.d(TAG, "LLM approval approved ${tool.name}: ${reviewDecision.reason}")
+                ToolPermissionDecision.Allowed
+            }
+
+            LlmApprovalReviewOutcome.DENY -> {
+                AppLogger.w(TAG, "LLM approval denied ${tool.name}: ${reviewDecision.reason}")
+                val opensBreaker =
+                    circuitBreaker?.recordAutomaticDenial(
+                        actionFingerprint = request.actionFingerprint,
+                        reason = reviewDecision.reason,
+                    ) == true
+                permissionDeniedByAutomaticReview(
+                    reason = reviewDecision.reason,
+                    interruptTurn = opensBreaker,
+                )
+            }
+
+            // ASK: 模型明确表示无法自主判断; null: API 错误或输出不符合约定
+            LlmApprovalReviewOutcome.ASK, null ->
+                if (requestPermission(tool)) ToolPermissionDecision.Allowed else permissionDeniedByUser()
+        }
+    }
+
+    /**
+     * 向审批模型发送审批请求并返回原始输出; 失败时返回 null 交由调用方转人工。
+     */
+    private suspend fun sendApprovalReviewRequest(request: ToolApprovalReviewRequest): String? {
+        return try {
             val service = EnhancedAIService.getAIServiceForFunction(context, FunctionType.TOOL_APPROVAL)
             val functionalConfigManager = FunctionalConfigManager(context)
             functionalConfigManager.initializeIfNeeded()
@@ -263,64 +315,19 @@ class ToolPermissionSystem private constructor(private val context: Context) {
             val sb = StringBuilder()
             service.sendMessage(
                 context = context,
-                chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                chatHistory = request.messages,
                 modelParameters = modelParameters,
                 enableThinking = false,
                 stream = false,
                 availableTools = null
             ).collect { chunk -> sb.append(chunk) }
 
-            val text = sb.toString().trim()
-            val start = text.indexOf('{')
-            val end = text.lastIndexOf('}')
-            if (start < 0 || end <= start) {
-                AppLogger.w(TAG, "LLM approval output has no JSON object for ${tool.name}: $text")
-                return null
-            }
-            val obj = JSONObject(text.substring(start, end + 1))
-            val decision = obj.optString("decision", "").trim().lowercase()
-            val reason = obj.optString("reason", "")
-            when (decision) {
-                "approve" -> {
-                    AppLogger.d(TAG, "LLM approval approved ${tool.name}: $reason")
-                    LlmApprovalDecision.APPROVE
-                }
-                "deny" -> {
-                    AppLogger.d(TAG, "LLM approval denied ${tool.name}: $reason")
-                    lastLlmDenial = tool.name to reason.ifBlank { "No reason provided" }
-                    LlmApprovalDecision.DENY
-                }
-                "ask" -> {
-                    AppLogger.d(TAG, "LLM approval asked for manual review of ${tool.name}: $reason")
-                    LlmApprovalDecision.ASK
-                }
-                else -> {
-                    // decision 为必填字段, 缺失或取值非法说明输出不符合约定
-                    AppLogger.w(TAG, "LLM approval returned invalid decision '$decision' for ${tool.name}")
-                    null
-                }
-            }
+            sb.toString().trim()
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            AppLogger.w(TAG, "LLM approval failed for ${tool.name}, handing over to user", e)
+            AppLogger.w(TAG, "LLM approval failed for review ${request.reviewId}, handing over to user", e)
             null
-        }
-    }
-
-    private fun buildToolInvocationText(tool: AITool): String {
-        return buildString {
-            append("<tool name=\"")
-            append(tool.name)
-            append("\">")
-            tool.parameters.forEach { parameter ->
-                append("<param name=\"")
-                append(parameter.name)
-                append("\">")
-                append(parameter.value)
-                append("</param>")
-            }
-            append("</tool>")
         }
     }
 

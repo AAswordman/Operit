@@ -14,6 +14,10 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
+import com.ai.assistance.operit.ui.permissions.PermissionReviewCircuitBreaker
+import com.ai.assistance.operit.ui.permissions.ToolPermissionDecision
+import com.ai.assistance.operit.ui.permissions.ToolPermissionDenialSource
+import com.ai.assistance.operit.ui.permissions.ToolPermissionReviewContext
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
@@ -44,14 +48,27 @@ object ToolExecutionManager {
     private const val PACKAGE_CALLER_CARD_ID_PARAM = "__operit_package_caller_card_id"
     private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
 
-    data class ToolRuntimeContext(
+    internal data class ToolRuntimeContext(
         val callerCardId: String? = null,
-        val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
+        val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        val permissionReviewContext: ToolPermissionReviewContext? = null,
+        val permissionReviewCircuitBreaker: PermissionReviewCircuitBreaker? = null
     )
 
     private data class ResolvedToolTarget(
         val tool: AITool,
         val displayName: String
+    )
+
+    internal data class ToolPermissionCheckResult(
+        val granted: Boolean,
+        val errorResult: ToolResult? = null,
+        val interruptTurn: Boolean = false
+    )
+
+    internal data class ToolExecutionRound(
+        val results: List<ToolResult>,
+        val interruptTurn: Boolean = false
     )
 
     private fun ensureEndsWithNewline(content: String): String {
@@ -289,6 +306,20 @@ object ToolExecutionManager {
             }
             forwardedParameters.add(ToolParameter(name = key, value = valueString))
         }
+        listOf(
+            PACKAGE_CALLER_NAME_PARAM,
+            PACKAGE_CHAT_ID_PARAM,
+            PACKAGE_CALLER_CARD_ID_PARAM
+        ).forEach { contextParamName ->
+            val contextValue =
+                tool.parameters
+                    .firstOrNull { it.name == contextParamName }
+                    ?.value
+                    ?.takeIf { it.isNotBlank() }
+            if (contextValue != null && forwardedParameters.none { it.name == contextParamName }) {
+                forwardedParameters.add(ToolParameter(contextParamName, contextValue))
+            }
+        }
         return forwardedParameters
     }
 
@@ -417,13 +448,18 @@ object ToolExecutionManager {
      *
      * @param toolHandler The AIToolHandler instance to use for permission checks
      * @param invocation The tool invocation to check permissions for
-     * @return A pair containing (has permission, error result if no permission)
+     * @param toolExposureMode The tool exposure mode
+     * @param reviewContext 审批模型裁决所需的父会话证据上下文
+     * @param circuitBreaker 本轮模型回合内的权限熔断器, 阻止重复尝试同一被拒动作
+     * @return 结构化权限检查结果, 含拒绝来源与是否中断回合
      */
-    suspend fun checkToolPermission(
+    internal suspend fun checkToolPermission(
         toolHandler: AIToolHandler,
         invocation: ToolInvocation,
-        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
-    ): Pair<Boolean, ToolResult?> {
+        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        reviewContext: ToolPermissionReviewContext? = null,
+        circuitBreaker: PermissionReviewCircuitBreaker? = null
+    ): ToolPermissionCheckResult {
         val resolvedTarget = resolveToolTarget(invocation.tool)
         val permissionTool =
             if (toolExposureMode == ToolExposureMode.CLI &&
@@ -443,7 +479,7 @@ object ToolExecutionManager {
                 granted = true,
                 reason = "CLI public tool"
             )
-            return Pair(true, null)
+            return ToolPermissionCheckResult(granted = true)
         }
 
         // 检查是否强制拒绝权限（deny_tool标记）
@@ -452,19 +488,22 @@ object ToolExecutionManager {
         if (hasPromptForPermission) {
             // 检查权限，如果需要则弹出权限请求界面
             val toolPermissionSystem = toolHandler.getToolPermissionSystem()
-            val hasPermission =
-                toolPermissionSystem.checkToolPermission(permissionTool, invocation.rawText)
+            val permissionDecision =
+                toolPermissionSystem.checkToolPermissionDetailed(
+                    tool = permissionTool,
+                    reviewContext = reviewContext,
+                    circuitBreaker = circuitBreaker
+                )
 
-            // 如果权限被拒绝，创建错误结果; 审批模型拒绝时附带其理由
-            if (!hasPermission) {
-                val llmDenialReason = toolPermissionSystem.consumeLlmDenialReason(permissionTool.name)
-                val errorMessage = if (llmDenialReason != null) {
-                    "The system has rejected this tool execution: $llmDenialReason. " +
-                        "Either revise the parameters per the rejection reason and try again, " +
-                        "or abort this tool invocation entirely."
-                } else {
-                    "User cancelled the tool execution."
-                }
+            // 权限被拒绝时按拒绝来源生成对应的错误结果
+            if (permissionDecision is ToolPermissionDecision.Denied) {
+                val errorMessage =
+                    when (permissionDecision.source) {
+                        ToolPermissionDenialSource.USER ->
+                            "User cancelled the tool execution."
+
+                        else -> permissionDecision.rejection
+                    }
                 val errorResult =
                     ToolResult(
                         toolName = resolvedTarget.displayName,
@@ -477,11 +516,15 @@ object ToolExecutionManager {
                     granted = false,
                     reason = errorResult.error
                 )
-                return Pair(false, errorResult)
+                return ToolPermissionCheckResult(
+                    granted = false,
+                    errorResult = errorResult,
+                    interruptTurn = permissionDecision.interruptTurn
+                )
             }
 
             toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
-            return Pair(true, null)
+            return ToolPermissionCheckResult(granted = true)
         }
 
         toolHandler.notifyToolPermissionChecked(
@@ -489,7 +532,7 @@ object ToolExecutionManager {
             granted = true,
             reason = "Permission check bypassed by deny_tool tag."
         )
-        return Pair(true, null)
+        return ToolPermissionCheckResult(granted = true)
     }
 
     /**
@@ -499,9 +542,11 @@ object ToolExecutionManager {
      * @param toolHandler AIToolHandler 的实例。
      * @param packageManager PackageManager 的实例。
      * @param collector 用于实时输出结果的 StreamCollector。
-     * @return 所有工具执行结果的列表。
+     * @param reviewContext 审批模型裁决所需的父会话证据上下文。
+     * @param circuitBreaker 本轮模型回合内的权限熔断器。
+     * @return 本轮工具执行结果; interruptTurn 为 true 表示熔断生效, 不应把结果回传模型继续。
      */
-    suspend fun executeInvocations(
+    internal suspend fun executeInvocations(
         invocations: List<ToolInvocation>,
         context: Context,
         toolHandler: AIToolHandler,
@@ -510,8 +555,10 @@ object ToolExecutionManager {
         toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         callerName: String? = null,
         callerChatId: String? = null,
-        callerCardId: String? = null
-    ): List<ToolResult> = coroutineScope {
+        callerCardId: String? = null,
+        reviewContext: ToolPermissionReviewContext? = null,
+        circuitBreaker: PermissionReviewCircuitBreaker? = null
+    ): ToolExecutionRound = coroutineScope {
         // 默认工具注册现在可能在启动阶段被延后；这里确保在真正执行工具前已完成注册
         // registerDefaultTools() 是幂等且线程安全的，可安全重复调用
         withContext(Dispatchers.Default) {
@@ -532,13 +579,33 @@ object ToolExecutionManager {
         val toolRuntimeContext =
             ToolRuntimeContext(
                 callerCardId = callerCardId,
-                toolExposureMode = toolExposureMode
+                toolExposureMode = toolExposureMode,
+                permissionReviewContext = reviewContext,
+                permissionReviewCircuitBreaker = circuitBreaker
             )
+        val boundInvocations =
+            if (callerName.isNullOrBlank() && callerChatId.isNullOrBlank() && callerCardId.isNullOrBlank()) {
+                invocations
+            } else {
+                val jsPackageNames = packageManager.getAvailablePackages().keys
+                invocations.map { invocation ->
+                    injectPackageCallContext(
+                        invocation = invocation,
+                        jsPackageNames = jsPackageNames,
+                        callerName = callerName,
+                        callerChatId = callerChatId,
+                        callerCardId = callerCardId
+                    )
+                }
+            }
+
+        // Host-controlled package context is bound before review and reused for execution.
+        // This keeps the reviewed action identical to the action that reaches the executor.
 
         // 1. 顶层工具暴露模式拦截
         val toolExposurePermittedInvocations = mutableListOf<ToolInvocation>()
         val toolExposureDeniedResults = mutableListOf<ToolResult>()
-        for (invocation in invocations) {
+        for (invocation in boundInvocations) {
             val deniedResult = buildToolExposureDeniedResult(context, invocation, toolExposureMode)
             if (deniedResult == null) {
                 toolExposurePermittedInvocations.add(invocation)
@@ -578,17 +645,25 @@ object ToolExecutionManager {
         val permittedInvocations = mutableListOf<ToolInvocation>()
         val hookDeniedResults = mutableListOf<ToolResult>()
         val permissionDeniedResults = mutableListOf<ToolResult>()
+        var interruptTurn = false
         for (invocation in roleCardPermittedInvocations) {
             toolHandler.notifyToolCallRequested(invocation.tool)
             val interceptionTool = resolveToolTarget(invocation.tool).tool
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
                 AIToolHookDecision.Allow -> {
-                    val (hasPermission, errorResult) =
-                        checkToolPermission(toolHandler, invocation, toolExposureMode)
-                    if (hasPermission) {
+                    val checkResult =
+                        checkToolPermission(
+                            toolHandler = toolHandler,
+                            invocation = invocation,
+                            toolExposureMode = toolExposureMode,
+                            reviewContext = reviewContext,
+                            circuitBreaker = circuitBreaker
+                        )
+                    if (checkResult.granted) {
                         permittedInvocations.add(invocation)
                     } else {
-                        errorResult?.let {
+                        interruptTurn = interruptTurn || checkResult.interruptTurn
+                        checkResult.errorResult?.let {
                             permissionDeniedResults.add(it)
                             val toolResultStatusContent =
                                 ConversationMarkupManager.formatToolResultForMessage(it)
@@ -613,21 +688,34 @@ object ToolExecutionManager {
             }
         }
 
-        val injectedInvocations =
-            if (callerName.isNullOrBlank() && callerChatId.isNullOrBlank() && callerCardId.isNullOrBlank()) {
-                permittedInvocations
-            } else {
-                val jsPackageNames = packageManager.getAvailablePackages().keys
+        if (interruptTurn) {
+            val skippedResults =
                 permittedInvocations.map { invocation ->
-                    injectPackageCallContext(
-                        invocation = invocation,
-                        jsPackageNames = jsPackageNames,
-                        callerName = callerName,
-                        callerChatId = callerChatId,
-                        callerCardId = callerCardId
-                    )
+                    ToolResult(
+                        toolName = resolveDisplayToolName(invocation.tool),
+                        success = false,
+                        result = StringResultData(""),
+                        error =
+                            "Tool execution skipped because the automatic permission review " +
+                                "circuit breaker opened."
+                    ).also { result ->
+                        toolHandler.notifyToolExecutionResult(invocation.tool, result)
+                        toolHandler.notifyToolExecutionFinished(invocation.tool)
+                        val statusContent =
+                            ConversationMarkupManager.formatToolResultForMessage(result)
+                        collector.emit(ensureEndsWithNewline(statusContent))
+                    }
                 }
-            }
+            return@coroutineScope ToolExecutionRound(
+                results =
+                    toolExposureDeniedResults +
+                        roleCardDeniedResults +
+                        hookDeniedResults +
+                        permissionDeniedResults +
+                        skippedResults,
+                interruptTurn = true
+            )
+        }
 
         // 4. 按并行/串行对工具进行分组
         val parallelizableToolNames = setOf(
@@ -635,7 +723,7 @@ object ToolExecutionManager {
             "find_files", "file_info", "grep_code", "calculate", "ffmpeg_info",
             "visit_web", "download_file"
         )
-        val (parallelInvocations, serialInvocations) = injectedInvocations.partition {
+        val (parallelInvocations, serialInvocations) = permittedInvocations.partition {
             parallelizableToolNames.contains(
                 it.tool.name
             )
@@ -676,14 +764,18 @@ object ToolExecutionManager {
         parallelJobs.awaitAll()
 
         // 6. 按原始顺序重新排序结果
-        val orderedAggregated = injectedInvocations.mapNotNull { executionResults[it] }
+        val orderedAggregated = permittedInvocations.mapNotNull { executionResults[it] }
 
         // 7. 组合所有结果并返回
-        toolExposureDeniedResults +
-            roleCardDeniedResults +
-            hookDeniedResults +
-            permissionDeniedResults +
-            orderedAggregated
+        ToolExecutionRound(
+            results =
+                toolExposureDeniedResults +
+                    roleCardDeniedResults +
+                    hookDeniedResults +
+                    permissionDeniedResults +
+                    orderedAggregated,
+            interruptTurn = interruptTurn
+        )
     }
 
     /**

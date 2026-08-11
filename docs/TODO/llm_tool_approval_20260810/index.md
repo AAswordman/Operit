@@ -19,8 +19,11 @@ status: complete
 
 - 权限设置的全局开关与按工具分组出现第四档「智能审批」，存储沿用 tool_permission_<name> 键，旧值不受影响
 - 功能模型配置中新增「工具审批」功能类型，用户可为审批绑定独立模型，默认使用默认配置
-- 审批提示词随 FunctionalPrompts 统一维护，提供中英双语，不对用户开放编辑；decision 为必填，approve 放行、deny 拒绝、ask 表示模型无法自主判断转人工
-- 审批模型看到的是工具调用原文 <tool name=""><param name=""></param></tool>，无需再拼装参数结构
+- 审批策略通过独立 SYSTEM 消息下发；USER 消息只承载父会话、工作区与最终规范化工具动作等不可信证据
+- 审批模型返回带 review_id 的严格结构化结果：decision、risk_level、user_authorization 与 reason；字段缺失、类型非法或解析失败时转人工
+- host 强制拒绝 critical 风险、无用户授权及未明确授权的 high 风险动作，不能由 reviewer 的 approve 覆盖
+- 审核前绑定 host 注入的 package context，审核与执行复用同一份最终参数
+- 同一消息执行上下文共享动作指纹与拒绝计数；重复已拒动作或连续拒绝达到阈值时打开 circuit breaker 并中断本模型回合
 - 审批接口异常或输出无法解析时转交询问弹窗，超时行为与询问档一致
 
 ## 步骤

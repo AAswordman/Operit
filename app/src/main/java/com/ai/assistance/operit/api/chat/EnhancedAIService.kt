@@ -41,6 +41,9 @@ import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
+import com.ai.assistance.operit.ui.permissions.PermissionReviewCircuitBreaker
+import com.ai.assistance.operit.ui.permissions.ToolPermissionReviewContext
 import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamCollector
@@ -430,7 +433,11 @@ class EnhancedAIService private constructor(private val context: Context) {
         val isConversationActive: AtomicBoolean = AtomicBoolean(true),
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
-        var modelExecutionSnapshot: ModelExecutionSnapshot? = null
+        var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
+        var workspacePath: String? = null,
+        var workspaceEnv: String? = null,
+        val permissionReviewCircuitBreaker: PermissionReviewCircuitBreaker =
+            PermissionReviewCircuitBreaker()
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -941,7 +948,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                 MessageExecutionContext(
                     executionId = nextExecutionContextId.incrementAndGet(),
                     conversationHistory = chatHistory.toMutableList(),
-                    eventChannel = eventChannel
+                    eventChannel = eventChannel,
+                    workspacePath = workspacePath,
+                    workspaceEnv = workspaceEnv
                 )
             registerExecutionContext(execContext)
             var hadFatalError = false
@@ -2094,7 +2103,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                 chatModelIndexOverride
             )
             val config = modelSnapshot.config
-            val allToolResults = ToolExecutionManager.executeInvocations(
+            val permissionReviewContext = buildToolPermissionReviewContext(context, chatId)
+            val toolExecutionRound = ToolExecutionManager.executeInvocations(
                 invocations = toolInvocations,
                 context = this@EnhancedAIService.context,
                 toolHandler = toolHandler,
@@ -2103,8 +2113,29 @@ class EnhancedAIService private constructor(private val context: Context) {
                 toolExposureMode = ToolExposureMode.resolve(config.apiProviderType),
                 callerName = characterName,
                 callerChatId = chatId,
-                callerCardId = roleCardId
+                callerCardId = roleCardId,
+                reviewContext = permissionReviewContext,
+                circuitBreaker = context.permissionReviewCircuitBreaker
             )
+
+            if (toolExecutionRound.interruptTurn) {
+                AppLogger.w(TAG, "权限熔断生效，中断当前模型回合，不把工具结果回传模型继续。")
+                finalizeAssistantResponse(
+                    context = context,
+                    content = context.roundManager.getDisplayContent(),
+                    enableMemoryAutoUpdate = enableMemoryAutoUpdate,
+                    onNonFatalError = onNonFatalError,
+                    isSubTask = isSubTask,
+                    chatId = chatId,
+                    characterName = characterName,
+                    avatarUri = avatarUri,
+                    notifyReplyOverride = notifyReplyOverride,
+                    memorySpaceIdOverride = memorySpaceIdOverride
+                )
+                return@launch
+            }
+
+            val allToolResults = toolExecutionRound.results
 
             if (allToolResults.isNotEmpty()) {
                 AppLogger.d(TAG, "所有工具结果收集完毕，准备最终处理。")
@@ -2163,6 +2194,31 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
     }
 
+
+    /**
+     * 构建审批模型裁决所需的父会话证据上下文:
+     * 会话历史、当前实时助手内容、工作区路径与环境、会话标题。
+     */
+    private suspend fun buildToolPermissionReviewContext(
+        context: MessageExecutionContext,
+        chatId: String?
+    ): ToolPermissionReviewContext {
+        val label =
+            if (chatId.isNullOrBlank()) {
+                null
+            } else {
+                runCatching {
+                    ChatHistoryManager.getInstance(this@EnhancedAIService.context).getChatTitle(chatId)
+                }.getOrNull()
+            }
+        return ToolPermissionReviewContext(
+            conversationHistory = context.conversationHistory.toList(),
+            liveAssistantContent = context.roundManager.getDisplayContent(),
+            workspacePath = context.workspacePath,
+            workspaceEnv = context.workspaceEnv,
+            conversationLabel = label
+        )
+    }
 
     /** Process tool execution result - simplified version without callbacks */
     private suspend fun processToolResults(
