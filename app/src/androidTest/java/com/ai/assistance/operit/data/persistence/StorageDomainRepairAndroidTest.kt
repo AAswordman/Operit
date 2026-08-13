@@ -2,9 +2,11 @@ package com.ai.assistance.operit.data.persistence
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.test.core.app.ApplicationProvider
@@ -12,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
@@ -20,6 +23,8 @@ import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.stats.TokenCostCurrency
+import com.ai.assistance.operit.data.stats.TokenStatsPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
@@ -39,6 +44,29 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class StorageDomainRepairAndroidTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
+
+    @Test
+    fun tokenStatsRepairRemovesInvalidScalarsAndConverges() = runBlocking {
+        val store =
+            RecoverablePreferenceDataStores.get(context, PreferenceStoreCatalog.TOKEN_STATS)
+        store.edit { preferences ->
+            preferences.clear()
+            preferences[stringPreferencesKey("target_currency")] = "BROKEN_CURRENCY"
+            preferences[doublePreferencesKey("usd_to_cny_rate")] = Double.NaN
+            preferences[longPreferencesKey("time_range_start")] = 2_000L
+            preferences[longPreferencesKey("time_range_end")] = 1_000L
+            preferences[longPreferencesKey("imported_at_ms")] = -1L
+        }
+        val manager = TokenStatsPreferences(context)
+
+        assertTrue(manager.repairPersistedState())
+        assertFalse(manager.repairPersistedState())
+        assertEquals(PricingCurrency.CNY, manager.loadTargetCurrency())
+        assertEquals(TokenCostCurrency.DEFAULT_USD_TO_CNY_RATE, manager.loadRateWithEstimate().first, 0.0)
+        assertTrue(manager.loadRateWithEstimate().second)
+        assertEquals(null, manager.loadTimeRange())
+        assertEquals(null, manager.importedAtMs())
+    }
 
     @Test
     fun speechRepairPersistsCanonicalValuesAndConverges() = runBlocking {

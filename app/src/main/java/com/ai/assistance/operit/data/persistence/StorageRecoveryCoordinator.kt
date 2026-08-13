@@ -9,6 +9,7 @@ import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.SpeechServiceProfilesPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.db.ObjectBoxManager
+import com.ai.assistance.operit.data.stats.TokenStatsPreferences
 import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.util.UUID
@@ -46,6 +47,7 @@ object StorageRecoveryCoordinator {
             repairedStoreCount++
         }
         if (ApiPreferences.getInstance(appContext).repairPersistedState()) repairedStoreCount++
+        if (TokenStatsPreferences(appContext).repairPersistedState()) repairedStoreCount++
 
         val modelConfigManager = ModelConfigManager(appContext)
         if (modelConfigManager.repairPersistedState()) repairedStoreCount++

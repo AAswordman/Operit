@@ -23,6 +23,7 @@ object PreferenceStoreCatalog {
     const val PROMPT_TAGS = "prompt_tags"
     const val SPEECH_SERVICE_PROFILES = "speech_service_profiles"
     const val SPEECH_SERVICES = "speech_services_preferences"
+    const val TOKEN_STATS = "token_stats_preferences"
     const val TOOL_PERMISSIONS = "tool_permissions"
     const val UI_PREFERENCES = "ui_preferences"
     const val URL_CONFIG = "url_config"
@@ -49,6 +50,7 @@ object PreferenceStoreCatalog {
             PROMPT_TAGS,
             SPEECH_SERVICE_PROFILES,
             SPEECH_SERVICES,
+            TOKEN_STATS,
             TOOL_PERMISSIONS,
             UI_PREFERENCES,
             URL_CONFIG,

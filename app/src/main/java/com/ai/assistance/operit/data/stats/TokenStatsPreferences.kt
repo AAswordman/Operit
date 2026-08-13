@@ -7,12 +7,17 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.toMutablePreferences
+import androidx.datastore.preferences.core.toPreferences
 import com.ai.assistance.operit.data.collects.PricingCurrency
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import kotlinx.coroutines.flow.first
 
 private val Context.tokenStatsDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "token_stats_preferences")
+    recoverablePreferencesDataStore(name = "token_stats_preferences")
 
 /** Scalar statistics settings. Structured usage, grouping, and pricing stay in Room. */
 internal class TokenStatsPreferences(context: Context) {
@@ -24,7 +29,54 @@ internal class TokenStatsPreferences(context: Context) {
         private val IMPORTED_AT = longPreferencesKey("imported_at_ms")
     }
 
-    private val dataStore = context.applicationContext.tokenStatsDataStore
+    private val appContext = context.applicationContext
+    private val dataStore = appContext.tokenStatsDataStore
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = appContext,
+            storeName = PreferenceStoreCatalog.TOKEN_STATS,
+            dataStore = dataStore,
+        ) { current ->
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            val rawCurrency = current.asMap()[TARGET_CURRENCY]
+            if (rawCurrency != null) {
+                val normalizedCurrency =
+                    (rawCurrency as? String)?.let { stored ->
+                        PricingCurrency.entries.firstOrNull { it.name == stored }?.name
+                    }
+                if (normalizedCurrency == null) {
+                    mutable[TARGET_CURRENCY] = PricingCurrency.CNY.name
+                    issues += TARGET_CURRENCY.name
+                }
+            }
+
+            val rawRate = current.asMap()[USD_TO_CNY_RATE]
+            if (rawRate != null && (rawRate !is Double || !rawRate.isFinite() || rawRate <= 0.0)) {
+                mutable.remove(USD_TO_CNY_RATE)
+                issues += USD_TO_CNY_RATE.name
+            }
+
+            val rawStart = current.asMap()[TIME_RANGE_START]
+            val rawEnd = current.asMap()[TIME_RANGE_END]
+            val validRange = rawStart is Long && rawEnd is Long && rawEnd > rawStart
+            if ((rawStart != null || rawEnd != null) && !validRange) {
+                mutable.remove(TIME_RANGE_START)
+                mutable.remove(TIME_RANGE_END)
+                issues += TIME_RANGE_START.name
+                issues += TIME_RANGE_END.name
+            }
+
+            val rawImportedAt = current.asMap()[IMPORTED_AT]
+            if (rawImportedAt != null && (rawImportedAt !is Long || rawImportedAt <= 0L)) {
+                mutable.remove(IMPORTED_AT)
+                issues += IMPORTED_AT.name
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
 
     suspend fun importedAtMs(): Long? = dataStore.data.first()[IMPORTED_AT]
 

@@ -12,5 +12,5 @@
 
 - [x] `:mnn:assembleDebug --no-build-cache --no-daemon`：本地 Windows Android NDK 构建成功
 - [x] `:app:testDebugUnitTest --no-build-cache --no-daemon`：本地 JVM 单测成功
-- [ ] 云端 `Candidate checks` 全绿
-- [ ] PR #926 使用普通 merge 合并到 `main`
+- [x] 云端 `Candidate checks` 全绿，见 [run 31482824401](https://github.com/AAswordman/Operit/actions/runs/31482824401)
+- [x] PR #926 使用普通 merge 合并到 `main`，merge commit 为 `f83e69cb`

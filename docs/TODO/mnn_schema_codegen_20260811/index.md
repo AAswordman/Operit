@@ -21,6 +21,12 @@ PR #926 的 JVM 单测已经通过，但完整 Android 门禁在 `:mnn:buildCMak
 
 MNN 源码和 generated headers 来自同一个 fetched revision，干净 CI 工作区能够编译 `:mnn`，并且 `Candidate checks` 全部通过后再合并 PR #926。
 
+## 2026-08-13 dependency revision correction
+
+Android Build run 121 resolved floating MNN `master` to `d68305cf2476a7dc319643ba7c62f44e2bc5246b` and failed while linking `libMNN.so`. That upstream revision declares and calls `Omni::qwenVideoProcess`, but compiles its definition only with `LLM_SUPPORT_VISION`; Operit's non-vision build therefore has an undefined symbol.
+
+`llm/mnn/CMakeLists.txt` now pins MNN to `af19bb571ea089d2f6f56fd79a6347c8a243b7df`, the direct parent of the broken revision. Upstream [Android Build run 60](https://github.com/AAswordman/Operit/actions/runs/31691225858) fetched this exact revision and completed the full Gradle build, including MNN native compilation; that workflow failed only in its later JVM-test step. Future MNN upgrades must select an explicit commit and pass a clean Android native build before changing the pin. Existing local CMake caches that resolved `master` must be cleared before validating a new default revision.
+
 ## 关联
 
 - 分支：`fix/jvm-json-test-runtime`

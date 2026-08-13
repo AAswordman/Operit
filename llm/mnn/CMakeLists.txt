@@ -9,7 +9,7 @@ operit_prepare_git_source(
     OPERIT_MNN_BINARY_DIR
     mnn
     "https://github.com/alibaba/MNN.git"
-    "master"
+    "af19bb571ea089d2f6f56fd79a6347c8a243b7df"
 )
 
 operit_prepare_git_source(

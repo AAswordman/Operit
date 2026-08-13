@@ -1,6 +1,6 @@
 # Verification and documentation
 
-Status: completed; Android compilation passed in origin GitHub Actions
+Status: implementation complete; each final upstream-aligned SHA requires origin Android compilation
 
 ## Change
 
@@ -29,6 +29,7 @@ Local compilation, build, and test commands remain disabled. The user authorized
 - Room and ObjectBox fixtures also cover restoration after the primary database file is missing
 - Added idempotence assertions for speech, model, character, and memory-space repair
 - Added independent TTS/STT profile migration, field-salvage, idempotence, and physical-recovery assertions
+- Added token-statistics scalar repair and idempotence assertions for the twenty-fourth Preferences store
 - Added forward-field preservation while TTS, model, role tool access, role group, and memory-space records require known-field normalization
 - Added a role-group assertion that reversed JSON array order is repaired from persisted `orderIndex` without changing the intended member order
 - Added per-entry API bookmark salvage and future-field preservation assertions
@@ -53,6 +54,7 @@ Local compilation, build, and test commands remain disabled. The user authorized
 - Add Room scenarios with and without verified slots, including recovery-event assertions
 - Add an ObjectBox classification unit test for content-corruption and operational error codes
 - Add ObjectBox scenarios with and without verified slots, preserving a marker entity and the original corrupt payload
+- Add an ObjectBox assertion that a corrupt newest slot is rejected while an older verified slot restores the marker
 - Keep all captured device credentials and local evidence outside the repository and CI artifacts
 - Compile the rebased implementation commit with the origin `Android Build` workflow after push
 
@@ -60,5 +62,26 @@ Implementation commit `41c50f81` passed `assembleDebug` in
 [run 31332997568](https://github.com/luojiaping/Operit/actions/runs/31332997568), and the workflow
 uploaded artifact `operit-android-118`. The dispatch used `run_unit_tests=false`; the added Android
 instrumentation tests were not executed.
+
+## 2026-08-13 upstream alignment verification
+
+- Rebased the recovery implementation onto upstream `main` commit `9cb9afb2`
+- Preserved the upstream Room schema version 21 and `MIGRATION_20_21` token-statistics tables in the
+  recovery candidate builder
+- Added `token_stats_preferences` to the recovery catalog and startup logical repair
+- Retained upstream independent TTS/STT profiles and applied the recovery contract to both the new
+  profile store and its released one-time migration source
+- Pinned MNN to the explicit revision documented in the Android building guide after a floating
+  upstream `master` revision caused an unrelated native link failure
+- Re-ran static ownership and conflict-marker inspection after the rebase; 24 catalog entries map to
+  24 recoverable owners, `api_settings` has one owner, and direct DataStore factories remain confined
+  to the registry
+- Did not run local Gradle compilation, JVM unit tests, or Android instrumentation tests
+- Documented D01, R01, R02, F03, O01, O02, M01, and F01 cold-start fault-injection checks; the
+  device runs remain pending and must not be inferred from compilation or unexecuted fixtures
+
+The earlier run 118 validates the pre-rebase implementation commit only. A new origin `Android
+Build` dispatch with `assembleDebug` and `run_unit_tests=false` must validate the final pushed SHA;
+its run and artifact are intentionally not claimed before that workflow completes.
 
 [DONE]

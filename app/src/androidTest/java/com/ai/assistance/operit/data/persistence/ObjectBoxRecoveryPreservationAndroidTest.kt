@@ -10,9 +10,12 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -23,6 +26,12 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ObjectBoxRecoveryPreservationAndroidTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
+
+    private data class SnapshotSlot(
+        val dataFile: File,
+        val metadataFile: File,
+        val sequence: Long
+    )
 
     private data class RecoveryEventObservation(
         val id: String,
@@ -116,6 +125,47 @@ class ObjectBoxRecoveryPreservationAndroidTest {
         }
     }
 
+    @Test
+    fun corruptNewestSnapshotDoesNotBlockOlderVerifiedSlotOrDeleteIt() {
+        val profileId = uniqueProfileId("older_slot")
+        val markerUuid = "objectbox_older_slot_marker_${UUID.randomUUID()}"
+        val markerContent = "marker retained in both ObjectBox recovery slots"
+        val corruptLivePayload = "objectbox-live-corruption-with-corrupt-newest-slot".toByteArray()
+        val corruptSlotPayload = "objectbox-newest-slot-corruption".toByteArray()
+        val quarantineBefore = quarantineNames()
+        val eventIdsBefore = recoveryEventIds()
+
+        try {
+            prepareMarkerAndDualSlots(profileId, markerUuid, markerContent)
+            refreshDualSlots(profileId)
+            val newestSlot = newestSnapshotSlot(recoveryProfileDirectory(profileId))
+            newestSlot.dataFile.writeBytes(corruptSlotPayload)
+            rewriteSnapshotIntegrity(newestSlot, corruptSlotPayload)
+            liveDataFile(profileId).writeBytes(corruptLivePayload)
+            ObjectBoxManager.invalidatePreparedState()
+
+            ObjectBoxManager.preflightAll(context)
+
+            val recoveredStore = ObjectBoxManager.get(context, profileId)
+            val recoveredMarker =
+                recoveredStore.boxFor<Memory>().all.single { memory ->
+                    memory.uuid == markerUuid
+                }
+            assertEquals(markerContent, recoveredMarker.content)
+            assertArrayEquals(corruptSlotPayload, newestSlot.dataFile.readBytes())
+
+            val quarantine = findNewProfileQuarantine(profileId, quarantineBefore)
+            assertArrayEquals(corruptLivePayload, File(quarantine, "data.mdb").readBytes())
+            assertNewObjectBoxEvent(
+                eventIdsBefore,
+                "objectbox_corruption",
+                "restored_snapshot"
+            )
+        } finally {
+            cleanupTestProfile(profileId, heldSnapshotDirectory = null)
+        }
+    }
+
     private fun prepareMarkerAndDualSlots(
         profileId: String,
         markerUuid: String,
@@ -141,6 +191,41 @@ class ObjectBoxRecoveryPreservationAndroidTest {
             assertTrue(File(directory, "data.$slot.mdb").isFile)
             assertTrue(File(directory, "data.$slot.json").isFile)
         }
+    }
+
+    private fun refreshDualSlots(profileId: String) {
+        ObjectBoxManager.get(context, profileId)
+        ObjectBoxManager.close(profileId)
+        ObjectBoxManager.invalidatePreparedState()
+        assertDualSlots(recoveryProfileDirectory(profileId))
+    }
+
+    private fun newestSnapshotSlot(directory: File): SnapshotSlot =
+        (0..1)
+            .map { slot ->
+                val metadataFile = File(directory, "data.$slot.json")
+                val metadata = Json.parseToJsonElement(metadataFile.readText()).jsonObject
+                SnapshotSlot(
+                    dataFile = File(directory, "data.$slot.mdb"),
+                    metadataFile = metadataFile,
+                    sequence = checkNotNull(metadata["sequence"]).jsonPrimitive.long
+                )
+            }
+            .maxBy { it.sequence }
+
+    private fun rewriteSnapshotIntegrity(slot: SnapshotSlot, payload: ByteArray) {
+        val metadata = Json.parseToJsonElement(slot.metadataFile.readText()).jsonObject
+        val rewritten =
+            buildJsonObject {
+                metadata.forEach { (key, value) ->
+                    when (key) {
+                        "size" -> put(key, JsonPrimitive(payload.size.toLong()))
+                        "sha256" -> put(key, JsonPrimitive(sha256(payload)))
+                        else -> put(key, value)
+                    }
+                }
+            }
+        slot.metadataFile.writeText(rewritten.toString())
     }
 
     private fun cleanupTestProfile(profileId: String, heldSnapshotDirectory: File?) {
@@ -222,6 +307,11 @@ class ObjectBoxRecoveryPreservationAndroidTest {
                 .joinToString("") { byte -> "%02x".format(byte) }
         return "${readable}_$hash"
     }
+
+    private fun sha256(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(bytes)
+            .joinToString("") { byte -> "%02x".format(byte) }
 
     private fun deleteIfPresent(file: File) {
         if (file.exists()) check(file.deleteRecursively())

@@ -55,4 +55,11 @@ independent TTS/STT profile work extends the same recovery contract to `speech_s
 its implementation and verification record live in
 [`speech_service_profiles_20260810`](../speech_service_profiles_20260810/).
 
+The 2026-08-13 alignment is based on upstream `main` commit `9cb9afb2`. It preserves the upstream
+Room version 21 token-statistics schema, registers `token_stats_preferences` as the twenty-fourth
+recoverable Preferences store, and retains the upstream TTS/STT profile implementation. MNN is
+pinned to an explicit verified source revision because a later floating `master` revision broke the
+non-vision native link. The earlier run 118 validates only its recorded pre-rebase commit; every
+later final pushed SHA requires its own origin `assembleDebug` dispatch with JVM tests disabled.
+
 [DONE]
