@@ -65,7 +65,7 @@ instrumentation tests were not executed.
 
 ## 2026-08-13 upstream alignment verification
 
-- Rebased the recovery implementation onto upstream `main` commit `9cb9afb2`
+- Rebased the recovery implementation onto upstream `main` commit `e2fb823e`
 - Preserved the upstream Room schema version 21 and `MIGRATION_20_21` token-statistics tables in the
   recovery candidate builder
 - Added `token_stats_preferences` to the recovery catalog and startup logical repair
@@ -79,6 +79,10 @@ instrumentation tests were not executed.
 - Did not run local Gradle compilation, JVM unit tests, or Android instrumentation tests
 - Documented D01, R01, R02, F03, O01, O02, M01, and F01 cold-start fault-injection checks; the
   device runs remain pending and must not be inferred from compilation or unexecuted fixtures
+- Origin Android Build run 122 reached Kotlin compilation and exposed three integration defects:
+  invalid DataStore 1.0.0 imports, two unclosed raw-snapshot lambdas, and an incorrectly qualified
+  companion JSON-path token type. The defects were corrected before the next dispatch; run 122 did
+  not produce an APK and is not build evidence for the corrected commit.
 
 The earlier run 118 validates the pre-rebase implementation commit only. A new origin `Android
 Build` dispatch with `assembleDebug` and `run_unit_tests=false` must validate the final pushed SHA;
