@@ -21,6 +21,7 @@ object PreferenceStoreCatalog {
     const val MODEL_CONFIGS = "model_configs"
     const val PERSONA_CARD_CHAT_HISTORY = "persona_card_chat_history"
     const val PROMPT_TAGS = "prompt_tags"
+    const val SPEECH_SERVICE_PROFILES = "speech_service_profiles"
     const val SPEECH_SERVICES = "speech_services_preferences"
     const val TOOL_PERMISSIONS = "tool_permissions"
     const val UI_PREFERENCES = "ui_preferences"
@@ -46,6 +47,7 @@ object PreferenceStoreCatalog {
             MODEL_CONFIGS,
             PERSONA_CARD_CHAT_HISTORY,
             PROMPT_TAGS,
+            SPEECH_SERVICE_PROFILES,
             SPEECH_SERVICES,
             TOOL_PERMISSIONS,
             UI_PREFERENCES,

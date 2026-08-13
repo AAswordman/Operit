@@ -2594,6 +2594,8 @@
     <string name="speech_services_profile_loading">Loading speech profiles...</string>
     <string name="speech_services_profile_migrated_tts">Migrated TTS configuration</string>
     <string name="speech_services_profile_migrated_stt">Migrated STT configuration</string>
+    <string name="speech_services_profile_default_tts">Default TTS configuration</string>
+    <string name="speech_services_profile_default_stt">Default STT configuration</string>
     <string name="speech_services_tts_speech_rate_value">Speech rate: %1$.2fx</string>
     <string name="speech_services_tts_pitch_value">Pitch: %1$.2fx</string>
     <string name="speech_services_service_type">Service Type</string>

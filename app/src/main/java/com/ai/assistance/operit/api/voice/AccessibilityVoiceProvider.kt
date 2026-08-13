@@ -5,7 +5,6 @@ import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
 import com.ai.assistance.operit.util.AppLogger
 import java.util.ArrayDeque
 import java.util.Locale
@@ -15,7 +14,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
@@ -27,7 +25,9 @@ import kotlinx.coroutines.withContext
 class SimpleVoiceProvider(
     private val context: Context,
     initialLocaleTag: String = "",
-    initialVoiceId: String = ""
+    initialVoiceId: String = "",
+    private val defaultSpeechRate: Float,
+    private val defaultPitch: Float,
 ) : VoiceService {
     companion object {
         private const val TAG = "SimpleVoiceProvider"
@@ -305,9 +305,8 @@ class SimpleVoiceProvider(
                 }
             }
 
-            val prefs = SpeechServicesPreferences(context.applicationContext)
-            val effectiveRate = rate ?: prefs.ttsSpeechRateFlow.first()
-            val effectivePitch = pitch ?: prefs.ttsPitchFlow.first()
+            val effectiveRate = rate ?: defaultSpeechRate
+            val effectivePitch = pitch ?: defaultPitch
             val queueSizeBefore = synchronized(queueLock) { queuedUtterances.size }
             AppLogger.d(
                 TAG,

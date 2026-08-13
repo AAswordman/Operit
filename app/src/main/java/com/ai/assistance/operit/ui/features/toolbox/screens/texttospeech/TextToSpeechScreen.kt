@@ -126,7 +126,9 @@ fun TextToSpeechScreen(navController: NavController) {
                         provider = SimpleVoiceProvider(
                                 context = context.applicationContext,
                                 initialLocaleTag = ttsLocaleTagInput,
-                                initialVoiceId = ttsVoiceIdInput
+                                initialVoiceId = ttsVoiceIdInput,
+                                defaultSpeechRate = activeTtsProfile.speechRate,
+                                defaultPitch = activeTtsProfile.pitch,
                         )
                         simpleTtsVoices = provider.getAvailableVoices()
                 } catch (e: Exception) {

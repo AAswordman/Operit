@@ -43,8 +43,8 @@ copied it to quarantine. ObjectBox could report an invalid MDBX file as a plain 
 left the quarantine and slot-selection branches unreachable.
 
 This correction does not change any published path, storage format, recovery metadata, or event
-schema. It also does not add retry behavior. TTS storage is being redesigned separately and is not
-part of this correction.
+schema. It also does not add retry behavior. Independent TTS/STT profile recovery was added later
+without changing the Room or ObjectBox replacement contract described here.
 
 ### Additional acceptance
 

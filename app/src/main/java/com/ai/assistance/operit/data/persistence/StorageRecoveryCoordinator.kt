@@ -6,7 +6,7 @@ import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
-import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
+import com.ai.assistance.operit.data.preferences.SpeechServiceProfilesPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.util.AppLogger
@@ -39,11 +39,13 @@ object StorageRecoveryCoordinator {
         ObjectBoxManager.preflightAll(appContext)
 
         var repairedStoreCount = 0
+        if (SpeechServiceProfilesPreferences(appContext).initializeAndRepair()) {
+            repairedStoreCount++
+        }
         if (userPreferencesManager.repairPersistedState()) {
             repairedStoreCount++
         }
         if (ApiPreferences.getInstance(appContext).repairPersistedState()) repairedStoreCount++
-        if (SpeechServicesPreferences(appContext).repairPersistedState()) repairedStoreCount++
 
         val modelConfigManager = ModelConfigManager(appContext)
         if (modelConfigManager.repairPersistedState()) repairedStoreCount++

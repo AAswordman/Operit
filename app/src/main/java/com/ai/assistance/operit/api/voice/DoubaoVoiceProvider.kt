@@ -6,7 +6,9 @@ import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
 class DoubaoVoiceProvider(
     context: Context,
     private val config: SpeechServicesPreferences.TtsHttpConfig,
-) : HttpVoiceProvider(context) {
+    defaultSpeechRate: Float,
+    defaultPitch: Float,
+) : HttpVoiceProvider(context, defaultSpeechRate, defaultPitch) {
 
     companion object {
         const val DEFAULT_ENDPOINT_URL = "https://openspeech.bytedance.com/api/v1/tts"

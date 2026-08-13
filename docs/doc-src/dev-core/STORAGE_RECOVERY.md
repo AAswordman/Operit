@@ -6,7 +6,7 @@
 
 自动自愈覆盖以下数据库与数据库式配置存储：
 
-- `PreferenceStoreCatalog` 登记的 22 个 Preferences DataStore 文件
+- `PreferenceStoreCatalog` 登记的 23 个 Preferences DataStore 文件
 - Room 数据库 `app_database`
 - 默认 ObjectBox 数据库 `files/objectbox/`
 - 每个记忆空间独立的 ObjectBox 数据库 `files/objectbox_<profileId>/`
@@ -18,7 +18,7 @@ SharedPreferences、缓存、插件包、聊天导出文件和其他用户可编
 
 该机制在已发布版本之后加入，以下接口不得改名或迁移：
 
-- 22 个 DataStore 文件名及其 Preferences key
+- 23 个 DataStore 文件名及其 Preferences key
 - Room 名称 `app_database`
 - ObjectBox 默认目录与 `objectbox_<profileId>` 目录
 - 修复进程名 `:repair` 和崩溃进程名 `:crash`
@@ -80,6 +80,8 @@ Room 与 ObjectBox 的物理预检必须先于记忆空间、角色及其他逻�
 逻辑修复通过 `repairPreferenceState` 在 DataStore actor 内提交。修复函数必须幂等，在提交前对计算出的结果再次运行验证；仍有问题时拒绝提交。原始逻辑状态先写入隔离区，事件只记录修复 key 数量，不记录 key 名和值。
 
 逻辑配置采用可识别字段校验。有效 JSON 不因空白、字段顺序或当前版本不认识的附加字段而重新编码；只有解析失败或已知字段的语义规范化确实改变状态时才写回，避免旧版本启动时删除新版本字段。已知字段确实需要修正时，修复器按原始 JSON 与当前版本可识别字段做差量合并；对象中的未知字段以及未改变数组元素中的未知字段仍保留。TTS HTTP 配置、模型与自定义参数、记忆空间、角色工具权限、角色群组和 SAF 书签遵守该规则。SAF 书签按条目验证，单条坏记录不会清空其他可解码书签。功能模型映射按条目解析，未知的未来功能条目保留原始 JSON；旧版本正常保存、重置已知功能映射时也必须带回这些未知条目。
+
+`speech_service_profiles` 在 Preferences 物理预检完成后、任何语音业务 owner 读取配置前执行启动初始化与逻辑修复。已发布的 `speech_services_preferences` 仅在 `speech_profiles_migration_version` marker 未完成时作为一次性迁移源；marker 提交后，`speech_service_profiles` 是 TTS/STT profile 的唯一运行时数据源，正常初始化不再读取旧 store。首次迁移、创建缺失的 profile 域与无需改动的正常初始化都不上报 corruption 事件。可解码的 Preferences 中出现 profile 逻辑缺陷时不上报 protobuf corruption：profile JSON 根无法解析或不是数组时重建对应 TTS/STT 域；根数组合法时逐项解析并修正已知字段，不因单个 profile 损坏而删除其他条目。需要写回的条目按原始 JSON 差量合并，保留 profile、HTTP/VITS 子对象与 pipeline step 中未知的未来字段。
 
 模型、角色、角色群组和记忆空间的稳定记录 ID 优先保留。单条结构化记录无法解码时，损坏原文保留在隔离区，live 状态以同一 ID 重建最小可用记录；索引独有但记录缺失的角色和群组也按同一规则重建，避免一次局部损坏把整个配置及其引用删除。
 
@@ -144,7 +146,7 @@ DocumentsProvider 的 `r` 模式保持已发布行为，可以在主进程运行
 
 ## 性能与空间代价
 
-启动会读取 22 个 Preferences 文件、校验 Room 页与真实 Room schema，并对每个已发现 ObjectBox profile 执行全页验证。数据库越大，首次启动校验越久；该成本是阻止损坏数据进入业务 owner 的必要边界，不能通过跳过页或只检查 metadata 缩短。
+启动会读取 23 个 Preferences 文件、校验 Room 页与真实 Room schema，并对每个已发现 ObjectBox profile 执行全页验证。数据库越大，首次启动校验越久；该成本是阻止损坏数据进入业务 owner 的必要边界，不能通过跳过页或只检查 metadata 缩短。
 
 每个 Preferences、Room 和 ObjectBox 存储保留两个恢复 slot。稳定状态的额外空间大约是两份可恢复 payload，加上不自动清理的损坏源隔离副本。ObjectBox 活库 checkpoint 在 cache 中短暂再占用一份 `data.mdb`；设备空间不足时 checkpoint 失败会保留 live 数据并记录日志，不会把未完成副本发布为恢复 slot。
 
@@ -163,6 +165,17 @@ DocumentsProvider 的 `r` 模式保持已发布行为，可以在主进程运行
 5. 若事件为 `newer_version_preserved`，使用能识别该 schema 的新版本应用，禁止用旧 slot 覆盖。
 
 识别出物理损坏但没有有效槽位时，必须同时看到 `preserved_without_snapshot` 事件和对应隔离目录。缺少其中任一项都表示恢复流程在保全边界之前异常退出，不能把它解释为正常的数据救援结果。
+
+### `speech_service_profiles` 手工破坏检查
+
+以已完成一次正常启动、两个恢复槽已生成的测试账号为基线。每次注入前强制停止应用，注入后启动主进程，检查 live Preferences、两个 slot、隔离副本和 `events.json`：
+
+1. **protobuf 物理损坏**：把 live `speech_service_profiles.preferences_pb` 改成无法解码的字节。启动应在逻辑修复前触发 corruption handler，隔离原文件，用序号最大的有效 slot 恢复 live，随后 profile 初始化正常完成。
+2. **profile 根 JSON 损坏**：保持 protobuf 可解码，把 `tts_profiles` 或 `stt_profiles` 改为非法 JSON 或非数组根。启动应记录 logical corruption，重建仅对应的 profile 域并持久化有效当前 ID，不记录 protobuf corruption。
+3. **单字段损坏**：在合法 profile 数组中把一个已知枚举、数值或 pipeline step 字段改成非法值，同时添加未知字段。启动应只修正损坏条目的已知字段，其他 profile 不变，所有未知字段仍保留；再次启动不应产生新的逻辑修复。
+4. **悬空当前 ID**：把 `current_tts_profile_id` 或 `current_stt_profile_id` 改为数组中不存在的 ID。启动应在同一次原子修复中将当前 ID 指向实际存在的 profile，且业务 owner 不得观察到悬空状态。
+5. **双 slot 损坏**：同时改坏 `speech_service_profiles` 的两个 envelope 或 payload 校验值，再破坏 live protobuf。启动应隔离 live 损坏源、创建空 schema，然后由 profile 逻辑修复建立最小可用域；不得把无法验证的 slot 复制回 live。
+6. **新版本 marker 保留**：在可解码 live 中把 `speech_profiles_migration_version` 设为高于当前实现的整数，并保留一个未知 profile 字段。启动应在任何写入前报告格式不兼容并进入数据救援，保留 live、marker 和 profile JSON 原值，也不执行旧 store 迁移。
 
 ## 协作检查
 

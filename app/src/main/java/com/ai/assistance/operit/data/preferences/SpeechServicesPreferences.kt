@@ -18,6 +18,7 @@ import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.util.AppLogger
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -31,10 +32,23 @@ private val Context.speechServicesDataStore: DataStore<Preferences> by
 /**
  * Legacy single-config store for speech services.
  *
- * New code manages profiles through [SpeechServiceProfilesPreferences]. This store remains the
- * active-profile projection consumed by existing providers and published-version integrations.
+ * New code manages profiles through [SpeechServiceProfilesPreferences]. This released store is
+ * retained only as the source for the one-time migration into independent profiles.
  */
 class SpeechServicesPreferences(private val context: Context) {
+
+    internal data class PublishedSpeechState(
+        val hasTtsValues: Boolean,
+        val hasSttValues: Boolean,
+        val ttsServiceType: VoiceServiceFactory.VoiceServiceType,
+        val ttsHttpConfig: TtsHttpConfig,
+        val ttsVitsPackageConfig: VitsTtsPackageConfig,
+        val ttsCleanerRegexs: List<String>,
+        val ttsSpeechRate: Float,
+        val ttsPitch: Float,
+        val sttServiceType: SpeechServiceFactory.SpeechServiceType,
+        val sttHttpConfig: SttHttpConfig,
+    )
 
     private val dataStore
         get() = context.speechServicesDataStore
@@ -246,6 +260,48 @@ class SpeechServicesPreferences(private val context: Context) {
 
     val sttHttpConfigFlow: Flow<SttHttpConfig> = dataStore.data.map { prefs ->
         parseSttHttpConfig(prefs[STT_HTTP_CONFIG])
+    }
+
+    /** Reads every released speech setting from one Preferences snapshot for migration. */
+    internal suspend fun readMigrationSeed(): PublishedSpeechState {
+        val preferences = dataStore.data.first()
+        val values = preferences.asMap().entries.associate { it.key.name to it.value }
+        val ttsKeys =
+            setOf(
+                TTS_SERVICE_TYPE.name,
+                TTS_HTTP_CONFIG.name,
+                TTS_VITS_PACKAGE_CONFIG.name,
+                TTS_CLEANER_REGEXS.name,
+                TTS_SPEECH_RATE.name,
+                TTS_PITCH.name,
+            )
+        val sttKeys = setOf(STT_SERVICE_TYPE.name, STT_HTTP_CONFIG.name)
+        val cleanerValues = values[TTS_CLEANER_REGEXS.name] as? Set<*>
+
+        return PublishedSpeechState(
+            hasTtsValues = values.keys.any(ttsKeys::contains),
+            hasSttValues = values.keys.any(sttKeys::contains),
+            ttsServiceType = parseTtsServiceType(values[TTS_SERVICE_TYPE.name] as? String),
+            ttsHttpConfig = parseTtsHttpConfig(values[TTS_HTTP_CONFIG.name] as? String),
+            ttsVitsPackageConfig =
+                parseVitsConfig(values[TTS_VITS_PACKAGE_CONFIG.name] as? String),
+            ttsCleanerRegexs =
+                if (cleanerValues == null) {
+                    DEFAULT_TTS_CLEANER_REGEXS
+                } else {
+                    validCleanerRegexs(cleanerValues).toList()
+                },
+            ttsSpeechRate =
+                (values[TTS_SPEECH_RATE.name] as? Float)
+                    ?.takeIf(::isValidSpeechScalar)
+                    ?: DEFAULT_TTS_SPEECH_RATE,
+            ttsPitch =
+                (values[TTS_PITCH.name] as? Float)
+                    ?.takeIf(::isValidSpeechScalar)
+                    ?: DEFAULT_TTS_PITCH,
+            sttServiceType = parseSttServiceType(values[STT_SERVICE_TYPE.name] as? String),
+            sttHttpConfig = parseSttHttpConfig(values[STT_HTTP_CONFIG.name] as? String),
+        )
     }
 
     suspend fun repairPersistedState(): Boolean =

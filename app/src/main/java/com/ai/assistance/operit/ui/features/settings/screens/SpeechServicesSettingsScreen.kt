@@ -133,14 +133,6 @@ fun SpeechServicesSettingsScreen(
     var sttProfileError by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(profilePrefs) {
-        try {
-            profilePrefs.ensureMigrated()
-        } catch (error: Exception) {
-            AppLogger.e("SpeechServicesSettings", "Failed to migrate speech service profiles", error)
-        }
-    }
-
     LaunchedEffect(ttsProfileError, sttProfileError) {
         val message = ttsProfileError ?: sttProfileError
         if (message != null) {
@@ -365,7 +357,9 @@ fun SpeechServicesSettingsScreen(
             provider = SimpleVoiceProvider(
                 context = context.applicationContext,
                 initialLocaleTag = ttsLocaleTagInput,
-                initialVoiceId = ttsVoiceIdInput
+                initialVoiceId = ttsVoiceIdInput,
+                defaultSpeechRate = ttsSpeechRateInput,
+                defaultPitch = ttsPitchInput,
             )
             simpleTtsVoices = provider.getAvailableVoices()
         } catch (e: Exception) {

@@ -50,7 +50,9 @@ lease. Existing read access remains available while the main process owns storag
 
 The 2026-08-10 physical-recovery regression correction is complete. Implementation commit
 `41c50f81` passed the origin `Android Build` workflow with `assembleDebug` in
-[run 31332997568](https://github.com/luojiaping/Operit/actions/runs/31332997568). TTS storage is
-being redesigned separately and was not part of this correction.
+[run 31332997568](https://github.com/luojiaping/Operit/actions/runs/31332997568). The later
+independent TTS/STT profile work extends the same recovery contract to `speech_service_profiles`;
+its implementation and verification record live in
+[`speech_service_profiles_20260810`](../speech_service_profiles_20260810/).
 
 [DONE]

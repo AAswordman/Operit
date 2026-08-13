@@ -2648,6 +2648,8 @@
     <string name="speech_services_profile_loading">正在加载配置档案…</string>
     <string name="speech_services_profile_migrated_tts">迁移的 TTS 配置</string>
     <string name="speech_services_profile_migrated_stt">迁移的 STT 配置</string>
+    <string name="speech_services_profile_default_tts">默认 TTS 配置</string>
+    <string name="speech_services_profile_default_stt">默认 STT 配置</string>
     <string name="speech_services_tts_speech_rate_value">语速: %1$.2fx</string>
     <string name="speech_services_tts_pitch_value">音调: %1$.2fx</string>
     <string name="speech_services_service_type">服务类型</string>

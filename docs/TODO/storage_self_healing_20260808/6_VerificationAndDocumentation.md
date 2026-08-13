@@ -21,13 +21,14 @@ Local compilation, build, and test commands remain disabled. The user authorized
 ## Recorded result
 
 - Added the storage ownership CI script and its isolated Python unit tests
-- Added Android fault fixtures for all 22 Preferences stores, Room, and ObjectBox
+- Added Android fault fixtures for every cataloged Preferences store, Room, and ObjectBox
 - Preferences fault fixtures assert that a checkpointed marker survives physical corruption, a missing live file, and a live path replaced by a directory
 - Room fixtures cover recursive quarantine and restoration when the primary database path and a sidecar are replaced by directories
 - ObjectBox fixtures cover recovery when `data.mdb` is replaced by a directory
 - ObjectBox fixtures cover recursive quarantine when `lock.mdb` is replaced by a directory
 - Room and ObjectBox fixtures also cover restoration after the primary database file is missing
 - Added idempotence assertions for speech, model, character, and memory-space repair
+- Added independent TTS/STT profile migration, field-salvage, idempotence, and physical-recovery assertions
 - Added forward-field preservation while TTS, model, role tool access, role group, and memory-space records require known-field normalization
 - Added a role-group assertion that reversed JSON array order is repaired from persisted `orderIndex` without changing the intended member order
 - Added per-entry API bookmark salvage and future-field preservation assertions

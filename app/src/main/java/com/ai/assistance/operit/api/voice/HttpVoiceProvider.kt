@@ -18,7 +18,6 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
@@ -44,7 +43,9 @@ import okhttp3.Response
  * 此实现通过HTTP请求获取TTS音频数据，支持配置不同的TTS服务端点
  */
 open class HttpVoiceProvider(
-    private val context: Context
+    private val context: Context,
+    private val defaultSpeechRate: Float,
+    private val defaultPitch: Float,
 ) : VoiceService {
 
     private var httpConfig: SpeechServicesPreferences.TtsHttpConfig = SpeechServicesPreferences.DEFAULT_HTTP_TTS_PRESET
@@ -105,11 +106,6 @@ open class HttpVoiceProvider(
         data class Binary(val payload: BinaryPayload) : PipelineValue
         data class Text(val value: String) : PipelineValue
         data class JsonData(val value: JsonElement) : PipelineValue
-    }
-
-    private sealed interface JsonPathToken {
-        data class Key(val name: String) : JsonPathToken
-        data class Index(val index: Int) : JsonPathToken
     }
 
     private val jsonParser =
@@ -218,9 +214,8 @@ open class HttpVoiceProvider(
             return null
         }
 
-        val prefs = SpeechServicesPreferences(context.applicationContext)
-        val effectiveRate = request.rate ?: prefs.ttsSpeechRateFlow.first()
-        val effectivePitch = request.pitch ?: prefs.ttsPitchFlow.first()
+        val effectiveRate = request.rate ?: defaultSpeechRate
+        val effectivePitch = request.pitch ?: defaultPitch
 
         try {
             // 生成缓存键
@@ -546,7 +541,7 @@ open class HttpVoiceProvider(
                 )
             }
             if (type == HttpTtsResponsePipelineStep.TYPE_PICK) {
-                runCatching { parseJsonPath(step.path) }.getOrElse {
+                runCatching { HttpTtsResponsePipelineStep.requireValidPickPath(step.path) }.getOrElse {
                     throw TtsException(
                         context.getString(
                             R.string.http_tts_response_pipeline_invalid_step,
@@ -878,19 +873,19 @@ open class HttpVoiceProvider(
         rawPath: String,
         stepIndex: Int
     ): JsonElement {
-        val tokens = parseJsonPath(rawPath)
+        val tokens = HttpTtsResponsePipelineStep.parseJsonPath(rawPath)
         var current = root
         for (token in tokens) {
             current =
                 when (token) {
-                    is JsonPathToken.Key -> {
+                    is HttpTtsResponsePipelineStep.JsonPathToken.Key -> {
                         val obj = current as? JsonObject
                             ?: throw buildJsonPathReadException(root, rawPath, stepIndex)
                         obj[token.name]
                             ?: throw buildJsonPathReadException(root, rawPath, stepIndex)
                     }
 
-                    is JsonPathToken.Index -> {
+                    is HttpTtsResponsePipelineStep.JsonPathToken.Index -> {
                         val arr = current as? kotlinx.serialization.json.JsonArray
                             ?: throw buildJsonPathReadException(root, rawPath, stepIndex)
                         arr.getOrNull(token.index)
@@ -916,44 +911,6 @@ open class HttpVoiceProvider(
             ),
             errorBody = rawResponse
         )
-    }
-
-    private fun parseJsonPath(rawPath: String): List<JsonPathToken> {
-        val trimmed = rawPath.trim()
-        if (trimmed.isBlank() || trimmed == "$") return emptyList()
-
-        val normalized =
-            trimmed.removePrefix("$").let {
-                if (it.startsWith(".")) it.removePrefix(".") else it
-            }
-
-        val tokens = mutableListOf<JsonPathToken>()
-        var cursor = 0
-        while (cursor < normalized.length) {
-            when (normalized[cursor]) {
-                '.' -> cursor++
-                '[' -> {
-                    val end = normalized.indexOf(']', cursor + 1)
-                    require(end > cursor) { "Invalid json path: $rawPath" }
-                    val indexText = normalized.substring(cursor + 1, end).trim()
-                    val index = indexText.toIntOrNull()
-                        ?: throw IllegalArgumentException("Invalid json path index: $rawPath")
-                    tokens += JsonPathToken.Index(index)
-                    cursor = end + 1
-                }
-
-                else -> {
-                    val start = cursor
-                    while (cursor < normalized.length && normalized[cursor] != '.' && normalized[cursor] != '[') {
-                        cursor++
-                    }
-                    val key = normalized.substring(start, cursor)
-                    require(key.isNotBlank()) { "Invalid json path: $rawPath" }
-                    tokens += JsonPathToken.Key(key)
-                }
-            }
-        }
-        return tokens
     }
 
     /**
