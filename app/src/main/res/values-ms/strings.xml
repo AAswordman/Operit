@@ -7329,11 +7329,6 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="title_activity_data_recovery">Pemulihan Data</string>
     <string name="shortcut_data_recovery">Pemulihan Data</string>
     <string name="memory_space_select">Pilih Ruang Memori</string>
-    <string name="memory_space_create">Cipta Ruang Memori Baharu</string>
-    <string name="memory_space_rename">Namakan Semula Ruang Memori</string>
-    <string name="memory_space_delete">Padam Ruang Memori</string>
-    <string name="memory_space_name">Nama Ruang Memori</string>
-    <string name="memory_space_delete_warning">Adakah anda pasti mahu memadam "%1$s" dan semua memori di dalamnya? Tindakan ini tidak boleh dibatalkan.</string>
     <string name="settings_privacy_data_cleanup">Privasi &amp; Pembersihan Data</string>
     <string name="settings_clear_cookies">Kosongkan Kuki</string>
     <string name="settings_clear_cookies_subtitle">Kosongkan kuki yang disimpan oleh alat carian, pakej Pelayar dan pelayar terbina dalam</string>

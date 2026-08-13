@@ -7332,11 +7332,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="title_activity_data_recovery">Pemulihan Data</string>
     <string name="shortcut_data_recovery">Pemulihan Data</string>
     <string name="memory_space_select">Pilih Ruang Memori</string>
-    <string name="memory_space_create">Buat Ruang Memori Baru</string>
-    <string name="memory_space_rename">Ubah Nama Ruang Memori</string>
-    <string name="memory_space_delete">Hapus Ruang Memori</string>
-    <string name="memory_space_name">Nama Ruang Memori</string>
-    <string name="memory_space_delete_warning">Yakin ingin menghapus "%1$s" beserta semua memori di dalamnya? Tindakan ini tidak dapat dibatalkan.</string>
     <string name="settings_privacy_data_cleanup">Privasi &amp; Pembersihan Data</string>
     <string name="settings_clear_cookies">Hapus Cookie</string>
     <string name="settings_clear_cookies_subtitle">Hapus cookie yang disimpan oleh alat pencarian, paket Browser, dan browser bawaan</string>

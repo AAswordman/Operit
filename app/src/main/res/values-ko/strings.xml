@@ -7179,11 +7179,6 @@
     <string name="title_activity_data_recovery">데이터 복구</string>
     <string name="shortcut_data_recovery">데이터 복구</string>
     <string name="memory_space_select">메모리 공간 선택</string>
-    <string name="memory_space_create">새 메모리 공간 만들기</string>
-    <string name="memory_space_rename">메모리 공간 이름 바꾸기</string>
-    <string name="memory_space_delete">메모리 공간 삭제</string>
-    <string name="memory_space_name">메모리 공간 이름</string>
-    <string name="memory_space_delete_warning">"%1$s" 및 그 안의 모든 기억을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</string>
     <string name="settings_privacy_data_cleanup">개인정보 및 데이터 정리</string>
     <string name="settings_clear_cookies">쿠키 삭제</string>
     <string name="settings_clear_cookies_subtitle">검색 도구, Browser 패키지 및 내장 브라우저에 저장된 쿠키 삭제</string>

@@ -145,6 +145,9 @@ set(MNN_BUILD_FOR_ANDROID_COMMAND ON CACHE BOOL "Build from command" FORCE)
 
 # 启用 LLM 支持及相关优化
 set(MNN_BUILD_LLM ON CACHE BOOL "Build LLM support" FORCE)
+# The Android app links the LLM library but does not ship MNN command-line demos.
+# Upstream's Qwen3 TTS demo has extra audio sources that are not part of this build.
+set(MNN_LLM_BUILD_DEMO OFF CACHE BOOL "Build LLM demos" FORCE)
 set(MNN_LOW_MEMORY ON CACHE BOOL "Use low memory mode" FORCE)
 set(MNN_SUPPORT_TRANSFORMER_FUSE ON CACHE BOOL "Support transformer fuse" FORCE)
 set(MNN_CPU_WEIGHT_DEQUANT_GEMM ON CACHE BOOL "CPU weight dequant gemm" FORCE)

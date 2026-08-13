@@ -7169,11 +7169,6 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="title_activity_data_recovery">Recuperação de dados</string>
     <string name="shortcut_data_recovery">Recuperação de dados</string>
     <string name="memory_space_select">Selecionar espaço de memória</string>
-    <string name="memory_space_create">Criar espaço de memória</string>
-    <string name="memory_space_rename">Renomear espaço de memória</string>
-    <string name="memory_space_delete">Excluir espaço de memória</string>
-    <string name="memory_space_name">Nome do espaço de memória</string>
-    <string name="memory_space_delete_warning">Tem certeza de que deseja excluir "%1$s" e todas as memórias contidas nele? Esta ação não pode ser desfeita.</string>
     <string name="settings_privacy_data_cleanup">Privacidade e limpeza de dados</string>
     <string name="settings_clear_cookies">Limpar cookies</string>
     <string name="settings_clear_cookies_subtitle">Limpar cookies salvos pela ferramenta de busca, pacotes Browser e navegador integrado</string>

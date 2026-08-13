@@ -3102,11 +3102,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="memory">Amintiri</string>
     <string name="memory_desc">Selectarea unui spațiu de memorie independent pentru dialogul curent</string>
     <string name="memory_space_select">Selectați spațiul de stocare</string>
-    <string name="memory_space_create">Crearea unui spațiu de memorie nou</string>
-    <string name="memory_space_rename">Redenumirea spațiului de memorie</string>
-    <string name="memory_space_delete">Ștergerea spațiului de memorie</string>
-    <string name="memory_space_name">Denumirea spațiului de memorie</string>
-    <string name="memory_space_delete_warning">Confirmați ștergerea „%1$s”și toate amintirile conținute în acesta? Această operațiune nu poate fi anulată.</string>
     <string name="memory_auto_update">Salvarea automată a datelor</string>
     <string name="memory_auto_update_desc">După activare, la finalul rundei curente, conținutul propus va fi mai întâi adăugat în coada de memorie pe termen lung, iar pe durata de funcționare a aplicației va fi organizat periodic în fundal și înregistrat în baza de date.</string>
     <string name="memory_auto_update_runtime_status">Numărul de amintiri care urmează să fie extrase%1$d, până la următoarea salvare%2$dminute</string>
