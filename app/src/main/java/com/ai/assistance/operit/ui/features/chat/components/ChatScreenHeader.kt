@@ -143,11 +143,12 @@ fun ChatScreenHeader(
             modifier =
                     modifier
                             .fillMaxWidth()
+                            .height(88.dp)
                             .background(
                                     if (chatHeaderTransparent) Color.Transparent
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                    else MaterialTheme.colorScheme.surface
                             )
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                            .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -181,11 +182,9 @@ fun ChatScreenHeader(
                         0f
                     }
 
-            // 使用一个状态来跟踪是否显示详细信息
             val (showDetailedStats, setShowDetailedStats) = remember { mutableStateOf(false) }
 
             Box {
-                // 主要显示（圆环进度）
                 val progress = (contextUsagePercentage / 100f).coerceIn(0f, 1f)
                 val animatedProgress by animateFloatAsState(targetValue = progress, label = "TokenProgressAnimation")
                 val progressColor = when {
@@ -197,8 +196,8 @@ fun ChatScreenHeader(
                 Box(
                     modifier = Modifier
                         .clickable { setShowDetailedStats(!showDetailedStats) }
-                        .size(32.dp)
-                        .padding(3.dp),
+                        .size(36.dp)
+                        .padding(4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
@@ -217,7 +216,6 @@ fun ChatScreenHeader(
                     )
                 }
 
-                // 简化的下拉框
                 DropdownMenu(
                         expanded = showDetailedStats,
                         onDismissRequest = { setShowDetailedStats(false) },

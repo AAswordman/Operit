@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.main.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,7 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,10 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.ui.theme.liquidGlass
 
 /** Displays a header in the navigation drawer */
 @Composable
@@ -44,65 +46,56 @@ fun CompactNavigationDrawerItem(
         appearance: NavigationDrawerAppearance,
         onClick: () -> Unit
 ) {
-    val itemShape = MaterialTheme.shapes.small
-    val glassBaseColor = appearance.buttonContainerColor
-    val selectedGlassOverlayColor =
-            if (selected) {
-                    appearance.selectedContainerColor.copy(alpha = 0.18f)
-            } else {
-                    Color.Transparent
-            }
+    val itemShape = RoundedCornerShape(14.dp)
     Surface(
             modifier =
                     Modifier.fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 4.dp)
-                            .height(40.dp)
-                            .liquidGlass(
-                                    enabled = appearance.buttonLiquidGlassEnabled,
-                                    shape = itemShape,
-                                    containerColor = glassBaseColor,
-                                    shadowElevation = if (selected) 6.dp else 4.dp,
-                                    borderWidth = 0.5.dp,
-                                    blurRadius = 12.dp,
-                                    overlayAlphaBoost = 0.04f,
-                                    enableLens = false
-                            )
+                            .height(52.dp)
                             .clip(itemShape)
-                            .background(selectedGlassOverlayColor),
+                            .background(
+                                    if (selected) appearance.selectedContainerColor.copy(alpha = 0.12f)
+                                    else Color.Transparent
+                            ),
             onClick = onClick,
-            color =
-                    if (appearance.buttonLiquidGlassEnabled) {
-                            Color.Transparent
-                    } else if (selected) {
-                            appearance.selectedContainerColor
-                    } else {
-                            Color.Transparent
-                    },
+            color = Color.Transparent,
             shape = itemShape
     ) {
-        Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint =
-                            if (selected) appearance.selectedContentColor
-                            else appearance.itemColor,
-                    modifier = Modifier.size(20.dp)
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint =
+                                if (selected) appearance.selectedContentColor
+                                else appearance.itemColor,
+                        modifier = Modifier.size(22.dp)
+                )
 
-            Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
-            Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                    color =
-                            if (selected) appearance.selectedContentColor
-                            else appearance.itemColor
-            )
+                Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                        color =
+                                if (selected) appearance.selectedContentColor
+                                else appearance.itemColor
+                )
+            }
+            if (selected) {
+                Box(
+                        modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 16.dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF2D7FF9))
+                )
+            }
         }
     }
 }

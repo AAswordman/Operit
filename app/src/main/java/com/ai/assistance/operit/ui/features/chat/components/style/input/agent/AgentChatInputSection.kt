@@ -71,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
@@ -149,10 +150,6 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.r
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
-import com.ai.assistance.operit.ui.theme.liquidGlass
-import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.ChatUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -510,6 +507,8 @@ fun AgentChatInputSection(
     val inputContainerColor =
         when {
             chatInputTransparent -> Color.Transparent
+            chatInputFloating && isDarkTheme -> darkModeInputColor
+            chatInputFloating -> Color.White
             isDarkTheme && hasBackgroundImage -> darkModeInputColor.copy(alpha = 0.82f)
             isDarkTheme -> darkModeInputColor
             hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
@@ -652,7 +651,7 @@ fun AgentChatInputSection(
 
     val floatingContainerModifier =
         if (chatInputFloating) {
-            modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+            modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         } else {
             modifier
         }
@@ -757,38 +756,41 @@ fun AgentChatInputSection(
 
             val inputCardShape =
                 if (chatInputFloating) {
-                    RoundedCornerShape(22.dp)
+                    RoundedCornerShape(28.dp)
                 } else {
                     RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 }
-            val inputLiquidGlassEnabled =
-                chatInputTransparent && chatInputLiquidGlass && !chatInputWaterGlass && isLiquidGlassSupported()
-            val inputWaterGlassEnabled =
-                chatInputTransparent && chatInputWaterGlass && isWaterGlassSupported()
-            val inputLiquidGlassTint =
+
+            val inputTint =
                 if (isDarkTheme) {
                     darkModeInputColor
                 } else {
                     MaterialTheme.colorScheme.surface
                 }
             val inputContainerEffectModifier =
-                if (isDarkTheme) {
+                if (chatInputFloating) {
+                    Modifier.shadow(
+                        elevation = 8.dp,
+                        shape = inputCardShape,
+                        clip = false,
+                    )
+                } else if (isDarkTheme) {
                     Modifier.topEdgeHighlight(
                         shape = inputCardShape,
                         lineColor =
                             MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = if (chatInputFloating) 0.03f else 0.05f,
+                                alpha = 0.05f,
                             ),
                         glowColor =
                             MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = if (chatInputFloating) 0.008f else 0.015f,
+                                alpha = 0.015f,
                             ),
-                        glowHeight = if (chatInputFloating) 1.dp else 2.dp,
+                        glowHeight = 2.dp,
                     )
                 } else {
                     Modifier.outerDiffuseShadow(
                         shape = inputCardShape,
-                        spread = if (chatInputFloating) 3.dp else 6.dp,
+                        spread = 6.dp,
                     )
                 }
 
@@ -800,30 +802,9 @@ fun AgentChatInputSection(
                             .fillMaxWidth()
                             .padding(top = if (chatInputFloating) 2.dp else 4.dp)
                             .then(inputContainerEffectModifier)
-                            .waterGlass(
-                                enabled = inputWaterGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.7.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.04f else 0.08f,
-                            )
-                            .liquidGlass(
-                                enabled = inputLiquidGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.42.dp,
-                                blurRadius = if (chatInputFloating) 16.dp else 20.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.06f else 0.10f,
-                            )
                             .clip(inputCardShape)
                             .background(
-                                if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    inputContainerColor
-                                }
+                                inputContainerColor
                             ),
                 ) {
                 Column(
@@ -846,7 +827,7 @@ fun AgentChatInputSection(
                                 style = inputTextStyle,
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = if (chatInputFloating) 52.dp else 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
                         textStyle = inputTextStyle,
                         maxLines = 6,
                         minLines = 1,
@@ -1100,30 +1081,9 @@ fun AgentChatInputSection(
                             .fillMaxWidth()
                             .padding(top = if (chatInputFloating) 2.dp else 4.dp)
                             .then(inputContainerEffectModifier)
-                            .waterGlass(
-                                enabled = inputWaterGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.7.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.04f else 0.08f,
-                            )
-                            .liquidGlass(
-                                enabled = inputLiquidGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.42.dp,
-                                blurRadius = if (chatInputFloating) 16.dp else 20.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.06f else 0.10f,
-                            )
                             .clip(inputCardShape)
                             .background(
-                                if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    inputContainerColor
-                                }
+                                inputContainerColor
                             ),
                 ) {
                     Column(
@@ -1146,7 +1106,7 @@ fun AgentChatInputSection(
                                     style = inputTextStyle,
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = if (chatInputFloating) 52.dp else 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
                             textStyle = inputTextStyle,
                             maxLines = 6,
                             minLines = 1,

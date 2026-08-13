@@ -69,10 +69,6 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.P
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.PendingQueueMessageItem
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
-import com.ai.assistance.operit.ui.theme.liquidGlass
-import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.ChatUtils
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
@@ -251,10 +247,7 @@ fun ClassicChatInputSection(
         hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
         else -> MaterialTheme.colorScheme.surface
     }
-    val inputLiquidGlassEnabled =
-        chatInputTransparent && chatInputLiquidGlass && !chatInputWaterGlass && isLiquidGlassSupported()
-    val inputWaterGlassEnabled =
-        chatInputTransparent && chatInputWaterGlass && isWaterGlassSupported()
+
     val containerShape = if (chatInputFloating) RoundedCornerShape(22.dp) else RoundedCornerShape(0.dp)
     val containerModifier =
         if (chatInputFloating) {
@@ -267,36 +260,15 @@ fun ClassicChatInputSection(
         modifier =
             containerModifier
                 .then(
-                    if (chatInputFloating && !inputLiquidGlassEnabled && !inputWaterGlassEnabled) {
+                    if (chatInputFloating) {
                         Modifier.shadow(4.dp, containerShape, clip = false)
                     } else {
                         Modifier
                     }
                 )
-                .waterGlass(
-                    enabled = inputWaterGlassEnabled,
-                    shape = containerShape,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    shadowElevation = if (chatInputFloating) 10.dp else 14.dp,
-                    borderWidth = 0.7.dp,
-                    overlayAlphaBoost = if (chatInputFloating) 0.04f else 0.08f,
-                )
-                .liquidGlass(
-                    enabled = inputLiquidGlassEnabled,
-                    shape = containerShape,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    shadowElevation = if (chatInputFloating) 10.dp else 14.dp,
-                    borderWidth = 0.42.dp,
-                    blurRadius = if (chatInputFloating) 16.dp else 20.dp,
-                    overlayAlphaBoost = if (chatInputFloating) 0.06f else 0.10f,
-                )
                 .clip(containerShape)
                 .background(
-                    if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                        Color.Transparent
-                    } else {
-                        surfaceColor
-                    }
+                    surfaceColor
                 ),
     ) {
         Column {
@@ -544,11 +516,7 @@ fun ClassicChatInputSection(
                                     )
                                     .clip(classicInputShape)
                                     .background(
-                                        if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                                            Color.Transparent
-                                        } else {
-                                            MaterialTheme.colorScheme.surface
-                                        }
+                                        MaterialTheme.colorScheme.surface
                                     )
                                     .padding(start = 14.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,

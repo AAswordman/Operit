@@ -67,10 +67,6 @@ import com.ai.assistance.operit.ui.features.chat.components.attachments.Attachme
 import com.ai.assistance.operit.ui.features.chat.components.attachments.ChatAttachment
 import com.ai.assistance.operit.ui.features.chat.components.style.common.HiddenUserMessagePlaceholderContent
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
-import com.ai.assistance.operit.ui.theme.liquidGlass
-import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.ImageBitmapLimiter
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.ChatMarkupRegex
@@ -233,9 +229,7 @@ fun UserMessageComposable(
             }
         }
 
-        val waterGlassEnabled = !isHiddenPlaceholder && enableWaterGlass && isWaterGlassSupported()
-        val liquidGlassEnabled =
-            !isHiddenPlaceholder && !waterGlassEnabled && enableLiquidGlass && isLiquidGlassSupported()
+
 
         // Message bubble
         Card(
@@ -248,31 +242,9 @@ fun UserMessageComposable(
                         Modifier.fillMaxWidth()
                     }
                 )
-                .waterGlass(
-                    enabled = waterGlassEnabled,
-                    shape = RoundedCornerShape(8.dp),
-                    containerColor = effectiveBackgroundColor,
-                    shadowElevation = 10.dp,
-                    borderWidth = 0.7.dp,
-                    overlayAlphaBoost = 0.08f,
-                )
-                .liquidGlass(
-                    enabled = liquidGlassEnabled,
-                    shape = RoundedCornerShape(8.dp),
-                    containerColor = effectiveBackgroundColor,
-                    shadowElevation = 10.dp,
-                    borderWidth = 0.28.dp,
-                    blurRadius = 28.dp,
-                    overlayAlphaBoost = 0.10f,
-                    enableLens = false,
-                ),
+,
             colors = CardDefaults.cardColors(
-                containerColor =
-                    if (liquidGlassEnabled || waterGlassEnabled) {
-                        Color.Transparent
-                    } else {
-                        effectiveBackgroundColor
-                    },
+                containerColor = effectiveBackgroundColor,
             ),
             shape = RoundedCornerShape(8.dp)
         ) {

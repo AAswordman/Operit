@@ -59,12 +59,8 @@ import com.ai.assistance.operit.util.ImageBitmapLimiter
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
-import com.ai.assistance.operit.ui.theme.liquidGlass
 import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
-import com.ai.assistance.operit.ui.theme.waterGlass
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
@@ -202,11 +198,8 @@ fun BubbleUserMessageComposable(
                     ),
             )
         }
-    val waterGlassEnabled = !isHiddenPlaceholder && enableWaterGlass && isWaterGlassSupported()
-    val liquidGlassEnabled =
-        !isHiddenPlaceholder && !waterGlassEnabled && enableLiquidGlass && isLiquidGlassSupported()
     val effectiveBubbleImageStyle =
-        if (isHiddenPlaceholder || liquidGlassEnabled || waterGlassEnabled) {
+        if (isHiddenPlaceholder) {
             null
         } else {
             bubbleImageStyle
@@ -440,35 +433,11 @@ fun BubbleUserMessageComposable(
                         }
                     } else {
                         Surface(
-                            modifier =
-                                bubbleModifier
-                                    .waterGlass(
-                                        enabled = waterGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = effectiveBackgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.7.dp,
-                                        overlayAlphaBoost = 0.08f,
-                                    )
-                                    .liquidGlass(
-                                        enabled = liquidGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = effectiveBackgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.28.dp,
-                                        blurRadius = 28.dp,
-                                        overlayAlphaBoost = 0.10f,
-                                        enableLens = false,
-                                    ),
+                            modifier = bubbleModifier,
                             shape = bubbleShape,
-                            color =
-                                if (liquidGlassEnabled || waterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    effectiveBackgroundColor
-                                },
+                            color = effectiveBackgroundColor,
                             tonalElevation =
-                                if (liquidGlassEnabled || waterGlassEnabled || isHiddenPlaceholder) {
+                                if (isHiddenPlaceholder) {
                                     0.dp
                                 } else {
                                     2.dp
@@ -476,7 +445,7 @@ fun BubbleUserMessageComposable(
                         ) {
                             if (isHiddenPlaceholder) {
                                 Box(
-                                    modifier =
+modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
                                             top = 0.dp,
@@ -581,35 +550,11 @@ fun BubbleUserMessageComposable(
                         }
                     } else {
                         Surface(
-                            modifier =
-                                bubbleModifier
-                                    .waterGlass(
-                                        enabled = waterGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = effectiveBackgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.7.dp,
-                                        overlayAlphaBoost = 0.08f,
-                                    )
-                                    .liquidGlass(
-                                        enabled = liquidGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = effectiveBackgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.28.dp,
-                                        blurRadius = 28.dp,
-                                        overlayAlphaBoost = 0.10f,
-                                        enableLens = false,
-                                    ),
+                            modifier = bubbleModifier,
                             shape = bubbleShape,
-                            color =
-                                if (liquidGlassEnabled || waterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    effectiveBackgroundColor
-                                },
+                            color = effectiveBackgroundColor,
                             tonalElevation =
-                                if (liquidGlassEnabled || waterGlassEnabled || isHiddenPlaceholder) {
+                                if (isHiddenPlaceholder) {
                                     0.dp
                                 } else {
                                     2.dp
@@ -617,7 +562,7 @@ fun BubbleUserMessageComposable(
                         ) {
                             if (isHiddenPlaceholder) {
                                 Box(
-                                    modifier =
+modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
                                             top = 0.dp,

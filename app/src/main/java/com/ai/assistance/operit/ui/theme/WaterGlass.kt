@@ -1,23 +1,24 @@
 package com.ai.assistance.operit.ui.theme
 
 import android.os.Build
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import io.github.fletchmckee.liquid.LiquidState
-import io.github.fletchmckee.liquid.liquid
 
-val LocalWaterGlassState = compositionLocalOf<LiquidState?> { null }
+/**
+ * WaterGlass effect stub.
+ *
+ * The original glass-morphism effect has been removed in favor of a flat,
+ * minimal design. This file retains the API surface (CompositionLocal,
+ * support check, and Modifier extension) for forward compatibility, but
+ * the extension is now a no-op.
+ */
+val LocalWaterGlassState = compositionLocalOf<Any?> { null }
 
 private const val WaterGlassMinApi = Build.VERSION_CODES.TIRAMISU
 
@@ -31,75 +32,4 @@ fun Modifier.waterGlass(
     shadowElevation: Dp = 14.dp,
     borderWidth: Dp = 1.dp,
     overlayAlphaBoost: Float = 0f,
-): Modifier {
-    if (!enabled) {
-        return this
-    }
-
-    val liquidState = if (isWaterGlassSupported()) LocalWaterGlassState.current else null
-    val isLightGlass = containerColor.luminance() >= 0.5f
-    if (liquidState == null) {
-        val fallbackTintAlpha = if (isLightGlass) 0.14f else 0.22f
-        val fallbackBorder =
-            if (isLightGlass) {
-                Color.White.copy(alpha = 0.26f)
-            } else {
-                Color.White.copy(alpha = 0.14f)
-            }
-        val fallbackGloss =
-            if (isLightGlass) {
-                Color.White.copy(alpha = 0.10f)
-            } else {
-                Color.White.copy(alpha = 0.05f)
-            }
-
-        return this
-            .shadow(
-                elevation = shadowElevation,
-                shape = shape,
-                clip = false,
-                ambientColor = Color.Black.copy(alpha = if (isLightGlass) 0.10f else 0.18f),
-                spotColor = Color.Black.copy(alpha = if (isLightGlass) 0.10f else 0.18f),
-            )
-            .border(width = borderWidth.coerceAtLeast(0.6.dp), color = fallbackBorder, shape = shape)
-            .background(color = containerColor.copy(alpha = fallbackTintAlpha), shape = shape)
-            .drawWithContent {
-                drawContent()
-                drawRect(fallbackGloss)
-            }
-    }
-    val tintAlpha = if (isLightGlass) 0.09f else 0.16f
-    val surfaceTint = containerColor.copy(alpha = (tintAlpha + overlayAlphaBoost).coerceIn(0f, 0.56f))
-    val borderColor =
-        if (isLightGlass) {
-            Color.White.copy(alpha = 0.18f)
-        } else {
-            Color.White.copy(alpha = 0.10f)
-        }
-    val shadowColor =
-        if (isLightGlass) {
-            Color.Black.copy(alpha = 0.10f)
-        } else {
-            Color.Black.copy(alpha = 0.18f)
-        }
-
-    return this
-        .shadow(
-            elevation = shadowElevation,
-            shape = shape,
-            clip = false,
-            ambientColor = shadowColor,
-            spotColor = shadowColor,
-        )
-        .border(width = borderWidth, color = borderColor, shape = shape)
-        .liquid(liquidState) {
-            this.shape = shape
-            this.frost = if (isLightGlass) 6.dp else 8.dp
-            this.curve = if (isLightGlass) 0.40f else 0.30f
-            this.refraction = if (isLightGlass) 0.12f else 0.09f
-            this.dispersion = if (isLightGlass) 0.18f else 0.13f
-            this.saturation = if (isLightGlass) 0.40f else 0.32f
-            this.contrast = if (isLightGlass) 1.22f else 1.40f
-            this.tint = surfaceTint
-        }
-}
+): Modifier = this

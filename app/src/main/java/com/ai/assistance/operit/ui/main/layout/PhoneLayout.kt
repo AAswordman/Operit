@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -47,7 +46,6 @@ import com.ai.assistance.operit.ui.main.components.DrawerContent
 import com.ai.assistance.operit.ui.main.components.rememberNavigationDrawerAppearance
 import com.ai.assistance.operit.ui.main.screens.GestureStateHolder
 import com.ai.assistance.operit.ui.main.screens.Screen
-import com.ai.assistance.operit.ui.theme.waterGlass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -80,85 +78,45 @@ fun PhoneLayout(
         topBarActions: @Composable RowScope.() -> Unit = {},
         topBarTitleContent: TopBarTitleContent? = null
 ) {
-        // 使用 updateTransition 来创建更复杂的动画
+        // 使用 updateTransition 创建顺滑的无弹抽屉动画
         val transition = updateTransition(drawerState.targetValue, label = "drawer_transition")
         val drawerTopInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-
         val drawerProgress by
                 transition.animateFloat(
                         label = "drawerProgress",
                         transitionSpec = {
-                                if (targetState == DrawerValue.Open) {
-                                        spring(
-                                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                                stiffness = 1000f
-                                        )
-                                } else {
-                                        spring(
-                                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                                stiffness = 1000f
-                                        )
-                                }
+                                spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                )
                         }
                 ) { state -> if (state == DrawerValue.Open) 1f else 0f }
-
-        // 抽屉动画状态
         val isDrawerOpen =
                 drawerState.currentValue == DrawerValue.Open ||
                         drawerState.targetValue == DrawerValue.Open
-
-        val contentTranslationX =
-                if (enableNavigationAnimation) {
-                        drawerWidth * (0.82f * drawerProgress)
-                } else {
-                        drawerWidth * drawerProgress
-                }
-        val contentTranslationY =
-                if (enableNavigationAnimation) 12.dp * drawerProgress else 0.dp
-        val contentScale =
-                if (enableNavigationAnimation) 1f - (0.08f * drawerProgress) else 1f
-        val contentRotationY =
-                if (enableNavigationAnimation) -7f * drawerProgress else 0f
-        val contentCornerRadius =
-                if (enableNavigationAnimation) 24.dp * drawerProgress else 0.dp
-        val contentShadowElevation =
-                if (enableNavigationAnimation) 18.dp * drawerProgress else 0.dp
-
+        // 极简动画：仅保留水平平移和轻微阴影
+        val contentTranslationX = drawerWidth * (0.82f * drawerProgress)
+        val contentShadowElevation = 12.dp * drawerProgress
         val drawerOffset = -drawerWidth * (1f - drawerProgress)
-        val sidebarElevation =
-                if (enableNavigationAnimation) 16.dp * drawerProgress
-                else 3.dp * drawerProgress
-        val drawerScale =
-                if (enableNavigationAnimation) 0.92f + (0.08f * drawerProgress)
-                else 1f
-        val drawerContentAlpha =
-                if (enableNavigationAnimation) 0.72f + (0.28f * drawerProgress)
-                else 0.8f + (0.2f * drawerProgress)
-        val scrimColor = Color.Transparent
-
+        val scrimColor = Color.Black.copy(alpha = 0.32f * drawerProgress)
+        val drawerAppearance = rememberNavigationDrawerAppearance()
+        val drawerShape =
+                MaterialTheme.shapes.medium.copy(
+                        topEnd = CornerSize(20.dp),
+                        bottomEnd = CornerSize(20.dp),
+                        topStart = CornerSize(0.dp),
+                        bottomStart = CornerSize(0.dp)
+                )
         // 侧边栏相关拖拽状态
         var currentDrag by remember { mutableStateOf(0f) }
         var verticalDrag by remember { mutableStateOf(0f) }
         val dragThreshold = 40f
-
-        val drawerAppearance = rememberNavigationDrawerAppearance()
-        val drawerShape =
-                MaterialTheme.shapes.medium.copy(
-                        topEnd = CornerSize(16.dp),
-                        bottomEnd = CornerSize(16.dp),
-                        topStart = CornerSize(0.dp),
-                        bottomStart = CornerSize(0.dp)
-                )
-
-        // 拖拽状态 - 用于控制抽屉拉出和关闭
         val draggableState = rememberDraggableState { delta ->
-                // 如果内部手势已被消费，则不处理全局拖拽
                 if (!GestureStateHolder.isChatScreenGestureConsumed) {
                         currentDrag += delta
-
                         if (!isDrawerOpen &&
-                                        currentDrag > dragThreshold &&
-                                        Math.abs(currentDrag) > Math.abs(verticalDrag)
+                                currentDrag > dragThreshold &&
+                                Math.abs(currentDrag) > Math.abs(verticalDrag)
                         ) {
                                 scope.launch {
                                         drawerState.open()
@@ -166,7 +124,6 @@ fun PhoneLayout(
                                         verticalDrag = 0f
                                 }
                         }
-
                         if (isDrawerOpen && currentDrag < -dragThreshold) {
                                 scope.launch {
                                         drawerState.close()
@@ -176,8 +133,6 @@ fun PhoneLayout(
                         }
                 }
         }
-
-        // 使用Box布局来手动控制抽屉和内容的位置关系
         Box(
                 modifier =
                         Modifier.fillMaxSize()
@@ -199,29 +154,22 @@ fun PhoneLayout(
                                                         verticalDrag += delta
                                                 },
                                         orientation = Orientation.Vertical,
-                                        onDragStarted = { /* 不需要额外操作 */},
-                                        onDragStopped = { /* 不需要额外操作 */}
+                                        onDragStarted = {},
+                                        onDragStopped = {}
                                 )
         ) {
-                // 主内容区域 - 使用自定义布局修饰符优化性能
-                // 该修饰符只会影响布局，不会触发内容重组
+                // 主内容区域 - 仅平移，不旋转不缩放
                 Surface(
                     modifier =
                             Modifier.fillMaxSize()
                                     .graphicsLayer {
                                             translationX = contentTranslationX.toPx()
-                                            translationY = contentTranslationY.toPx()
-                                            scaleX = contentScale
-                                            scaleY = contentScale
-                                            rotationY = contentRotationY
-                                            transformOrigin = TransformOrigin(0f, 0.5f)
                                     }
                                     .zIndex(1f),
-                    shape = RoundedCornerShape(contentCornerRadius),
+                    shape = RoundedCornerShape(0.dp),
                     color = Color.Transparent,
                     shadowElevation = contentShadowElevation
                 ) {
-                    // 普通调用AppContent，但由于我们的优化，它不会在动画时重组
                     AppContent(
                         currentRouteEntry = currentRouteEntry,
                         currentScreen = currentScreen,
@@ -236,7 +184,7 @@ fun PhoneLayout(
                         enableNavigationAnimation = enableNavigationAnimation,
                         navigationTransitionSource = navigationTransitionSource,
                         onScreenChange = onScreenChange,
-                        onToggleSidebar = { /* Not used in phone layout */},
+                        onToggleSidebar = {},
                         navigateToTokenConfig = navigateToTokenConfig,
                         canGoBack = canGoBack,
                         onGoBack = onGoBack,
@@ -245,18 +193,7 @@ fun PhoneLayout(
                         titleContent = topBarTitleContent
                     )
                 }
-
-                // // 添加一个小方块，填充圆角和工具栏之间的空隙
-                // Box(
-                //         modifier =
-                //                 Modifier.width(16.dp)
-                //                         .height(64.dp)
-                //                         .offset(x = drawerOffset + drawerWidth - 16.dp)
-                //                         .background(MaterialTheme.colorScheme.primary)
-                //                         .zIndex(1f)
-                // )
-
-                // 抽屉内容，从左侧滑动进入 - 使用缓存内容
+                // 抽屉内容 - 仅平移，不缩放不透明度动画
                 Surface(
                         modifier =
                                 Modifier.width(drawerWidth)
@@ -264,27 +201,11 @@ fun PhoneLayout(
                                         .fillMaxHeight()
                                         .graphicsLayer {
                                                 translationX = drawerOffset.toPx()
-                                                scaleX = drawerScale
-                                                scaleY = drawerScale
-                                                alpha = drawerContentAlpha
-                                                transformOrigin = TransformOrigin(0f, 0.5f)
                                         }
-                                        .waterGlass(
-                                                enabled = drawerAppearance.waterGlassEnabled,
-                                                shape = drawerShape,
-                                                containerColor = drawerAppearance.containerColor,
-                                                shadowElevation = sidebarElevation,
-                                                borderWidth = 0.7.dp,
-                                                overlayAlphaBoost =
-                                                        if (enableNavigationAnimation) 0.07f
-                                                        else 0.04f
-                                        )
                                         .zIndex(2f),
                         shape = drawerShape,
-                        color =
-                                if (drawerAppearance.waterGlassEnabled) Color.Transparent
-                                else drawerAppearance.containerColor,
-                        shadowElevation = if (drawerAppearance.waterGlassEnabled) 0.dp else sidebarElevation
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 0.dp
                 ) {
                         DrawerContent(
                                 navItems = navItems,
@@ -301,8 +222,7 @@ fun PhoneLayout(
                                 onNavigationEntrySelected = onNavigationEntrySelected
                         )
                 }
-
-                // 在主内容上方放置遮罩层，阻止右侧内容继续响应点击
+                // 遮罩层 - 柔和暗色 scrim
                 if (isDrawerOpen) {
                         Box(
                                 modifier = Modifier.fillMaxSize().zIndex(1.5f)
