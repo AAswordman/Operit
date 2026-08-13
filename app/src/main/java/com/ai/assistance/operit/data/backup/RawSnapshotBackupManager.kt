@@ -429,6 +429,7 @@ object RawSnapshotBackupManager {
             }
         }
     }
+    }
 
     suspend fun restoreFromBackupUri(
         context: Context,
@@ -662,6 +663,7 @@ object RawSnapshotBackupManager {
                 }
             }
         }
+    }
     }
 
     private fun extractZipToWorkDir(zipFile: File, workDir: File): Manifest {

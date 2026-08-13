@@ -878,14 +878,14 @@ open class HttpVoiceProvider(
         for (token in tokens) {
             current =
                 when (token) {
-                    is HttpTtsResponsePipelineStep.JsonPathToken.Key -> {
+                    is HttpTtsResponsePipelineStep.Companion.JsonPathToken.Key -> {
                         val obj = current as? JsonObject
                             ?: throw buildJsonPathReadException(root, rawPath, stepIndex)
                         obj[token.name]
                             ?: throw buildJsonPathReadException(root, rawPath, stepIndex)
                     }
 
-                    is HttpTtsResponsePipelineStep.JsonPathToken.Index -> {
+                    is HttpTtsResponsePipelineStep.Companion.JsonPathToken.Index -> {
                         val arr = current as? kotlinx.serialization.json.JsonArray
                             ?: throw buildJsonPathReadException(root, rawPath, stepIndex)
                         arr.getOrNull(token.index)
