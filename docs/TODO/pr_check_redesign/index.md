@@ -17,7 +17,7 @@ status: completed
 
 - 所有技术检查只运行在 GitHub 生成的 merge candidate 上
 - 使用 candidate 第一父提交到 candidate 的净差异分类和归责
-- 每个 PR 只产生一个技术检查状态
+- 每个 PR 保留一个聚合技术检查状态，并允许专项 job 单独展示诊断
 - PR 标题、正文、Issue 和 checklist 不参与自动阻断
 - 按资源、JVM 和完整构建三个层级运行 Android 检查
 - fork PR 不接收 secret，也不上传 APK 或 AAB
@@ -46,7 +46,7 @@ Issue 自动整理、发布签名、业务代码和仓库 ruleset 不在本次�
 ## 完成情况
 
 - 旧 `PR Required` workflow、模板策略 job 和聚合器已删除
-- 新 workflow 只生成一个 `Candidate checks` 技术状态
+- 新 workflow 保留 `Candidate checks` 聚合状态，并按作用域展示专项 job
 - 快速检查和 Android 分层均使用 candidate 第一父差异
 - PR 不读取 secret，也不上传 APK/AAB
 - 已添加门禁、归责、Markdown 和 ZIP 安全测试

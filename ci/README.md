@@ -34,20 +34,23 @@ python3 -B ci/script/check_localizations.py --base "$BASE_SHA" --candidate "$CAN
 
 ## PR check lanes
 
-每个 PR 只产生一个 `Candidate checks` 技术状态。快速检查会先收集全部诊断，失败后不启动耗时阶段。
+每个 PR 保留一个 `Candidate checks` 聚合技术状态，并在适用时显示独立的 `Android build`
+和 `Android JVM tests` job。快速检查会先收集全部诊断，失败后不启动耗时阶段。
 
 - 所有改动：空白、冲突标记、JSON/XML 语法和门禁单元测试；变更 YAML 时使用 Psych AST 与 actionlint 1.7.12 检查
 - 所有改动：比较 base/candidate 两棵 Git tree，只阻断 candidate 新增的本地断链；删除被文档引用的非 Markdown 文件也会检查
 - 本地化：按 locale、资源类型和 key 比较，只阻断 candidate 引入或实际触碰的错误
 - 翻译资源：运行 AAPT2 resource compile 检查资源语法，不执行 resource link 或完整 Android 构建
 - Kotlin/Java 和普通 Android 资源：运行 JVM unit tests
-- Native、Gradle 和构建输入：运行 assemble 与 JVM unit tests
+- Kotlin/Java 和普通 Android 资源：由 `Android JVM tests` job 运行 JVM unit tests
+- Native、Gradle 和构建输入：由 `Android build` job 单独运行 assemble；同一作用域的 JVM unit tests 在独立 job 运行
 - WebChat：运行 TypeScript typecheck 与 Vite build
 - ToolPkg：重建并核对 GitHub 示例，按独立锁文件编译 WASM 示例，再构建测试集合和生产白名单集合；JSON manifest 声明的入口与 WASM 文件必须存在且进入归档
 
 根项目、`web-chat` 和独立的 `examples/toolpkg_wasm_demo` 分别提交 `package-lock.json`，CI 使用 `npm ci` 安装确定的依赖树。
 
-PR workflow 只有 `contents: read` 权限，不读取仓库 secret，也不上传 APK/AAB。`Android Build` 是独立的可信 main/手工构建 workflow。
+PR workflow 只有 `contents: read` 权限，不读取仓库 secret，也不上传 APK/AAB。`Android Build`
+是只负责编译和打包的可信 main/手工构建 workflow，`Android Tests` 单独负责可信 main/手工 JVM 单测。
 
 ## Diagnostics
 

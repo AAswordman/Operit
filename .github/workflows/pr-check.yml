@@ -22,10 +22,20 @@ env:
   MANUAL_DEPS_DIR: manual-deps
 
 jobs:
-  candidate:
-    name: Candidate checks
+  fast:
+    name: Fast checks
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    outputs:
+      base_sha: ${{ steps.plan.outputs.base_sha }}
+      head_sha: ${{ steps.plan.outputs.head_sha }}
+      candidate_sha: ${{ steps.plan.outputs.candidate_sha }}
+      android_resources: ${{ steps.plan.outputs.android_resources }}
+      android_jvm: ${{ steps.plan.outputs.android_jvm }}
+      android_instrumentation: ${{ steps.plan.outputs.android_instrumentation }}
+      android_full: ${{ steps.plan.outputs.android_full }}
+      web: ${{ steps.plan.outputs.web }}
+      toolpkg: ${{ steps.plan.outputs.toolpkg }}
 
     steps:
       - name: Checkout merge candidate
@@ -183,8 +193,7 @@ jobs:
       - name: Set up Node.js
         if: >-
           steps.plan.outputs.web == 'true' ||
-          steps.plan.outputs.toolpkg == 'true' ||
-          steps.plan.outputs.android_full == 'true'
+          steps.plan.outputs.toolpkg == 'true'
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -192,26 +201,24 @@ jobs:
       - name: Install JavaScript dependencies
         if: >-
           steps.plan.outputs.web == 'true' ||
-          steps.plan.outputs.toolpkg == 'true' ||
-          steps.plan.outputs.android_full == 'true'
+          steps.plan.outputs.toolpkg == 'true'
         env:
           WEB_REQUIRED: ${{ steps.plan.outputs.web }}
           TOOLPKG_REQUIRED: ${{ steps.plan.outputs.toolpkg }}
-          FULL_ANDROID_REQUIRED: ${{ steps.plan.outputs.android_full }}
         shell: bash
         run: |
           set -euo pipefail
           npm install -g pnpm@10.34.5
-          if [[ "$TOOLPKG_REQUIRED" == "true" || "$FULL_ANDROID_REQUIRED" == "true" ]]; then
+          if [[ "$TOOLPKG_REQUIRED" == "true" ]]; then
             npm ci --no-audit --no-fund
             npm --prefix examples/toolpkg_wasm_demo ci --no-audit --no-fund
           fi
-          if [[ "$WEB_REQUIRED" == "true" || "$FULL_ANDROID_REQUIRED" == "true" ]]; then
+          if [[ "$WEB_REQUIRED" == "true" ]]; then
             npm --prefix web-chat ci --no-audit --no-fund
           fi
 
       - name: Check WebChat
-        if: steps.plan.outputs.web == 'true' || steps.plan.outputs.android_full == 'true'
+        if: steps.plan.outputs.web == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -219,9 +226,7 @@ jobs:
           npm run build:webchat
 
       - name: Check bundled ToolPkg packages
-        if: steps.plan.outputs.toolpkg == 'true' || steps.plan.outputs.android_full == 'true'
-        env:
-          TOOLPKG_REQUIRED: ${{ steps.plan.outputs.toolpkg }}
+        if: steps.plan.outputs.toolpkg == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -231,46 +236,20 @@ jobs:
           test -s examples/toolpkg_wasm_demo/main.js
           test -s examples/toolpkg_wasm_demo/modules/core.wasm
           test -s examples/toolpkg_wasm_demo/dist/toolpkg_wasm_demo.toolpkg
-          if [[ "$TOOLPKG_REQUIRED" == "true" ]]; then
-            python3 tools/example_packages/sync_example_packages.py --mode test --no-hot-reload
-          fi
+          python3 tools/example_packages/sync_example_packages.py --mode test --no-hot-reload
           python3 tools/example_packages/sync_example_packages.py --no-hot-reload
 
-      - name: Set up JDK
-        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
       - name: Set up Android SDK
-        if: >-
-          steps.plan.outputs.android_resources == 'true' ||
-          steps.plan.outputs.android_jvm == 'true' ||
-          steps.plan.outputs.android_full == 'true'
+        if: steps.plan.outputs.android_resources == 'true'
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
 
       - name: Install required Android toolchain
         if: >-
-          steps.plan.outputs.android_resources == 'true' ||
-          steps.plan.outputs.android_jvm == 'true' ||
-          steps.plan.outputs.android_full == 'true'
-        env:
-          JVM_REQUIRED: ${{ steps.plan.outputs.android_jvm }}
-          FULL_REQUIRED: ${{ steps.plan.outputs.android_full }}
+          steps.plan.outputs.android_resources == 'true'
         shell: bash
         run: |
           set -euo pipefail
           packages=("build-tools;$ANDROID_BUILD_TOOLS_VERSION")
-          if [[ "$JVM_REQUIRED" == "true" || "$FULL_REQUIRED" == "true" ]]; then
-            packages+=("platform-tools" "platforms;android-34" "platforms;android-36")
-          fi
-          if [[ "$JVM_REQUIRED" == "true" || "$FULL_REQUIRED" == "true" ]]; then
-            packages+=("ndk;$ANDROID_NDK_VERSION")
-          fi
-          if [[ "$FULL_REQUIRED" == "true" ]]; then
-            packages+=("cmake;$ANDROID_CMAKE_VERSION")
-          fi
           sdkmanager --install "${packages[@]}"
 
       - name: Compile changed Android resources
@@ -284,8 +263,30 @@ jobs:
             -o "$output"
           test -s "$output"
 
+  android_build:
+    name: Android build
+    needs: fast
+    if: >-
+      needs.fast.result == 'success' &&
+      needs.fast.outputs.android_full == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout merge candidate
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
       - name: Initialize terminal submodule
-        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -293,54 +294,50 @@ jobs:
           git submodule update --init --recursive --depth 1 terminal
           git submodule status -- terminal
 
-      - name: Configure secret-free Android build
-        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
+      - name: Set up JDK
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+
+      - name: Install required Android toolchain
         shell: bash
         run: |
           set -euo pipefail
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-
-      - name: Restore JVM dependency cache
-        id: cache-jvm-deps
-        if: steps.plan.outputs.android_jvm == 'true'
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
-        with:
-          path: ${{ env.MANUAL_DEPS_DIR }}
-          key: android-jvm-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
-
-      - name: Download JVM dependencies
-        if: steps.plan.outputs.android_jvm == 'true' && steps.cache-jvm-deps.outputs.cache-hit != 'true'
-        run: bash ci/script/download_android_dependencies.sh jvm "$MANUAL_DEPS_DIR"
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "platforms;android-36" \
+            "build-tools;$ANDROID_BUILD_TOOLS_VERSION" \
+            "ndk;$ANDROID_NDK_VERSION" \
+            "cmake;$ANDROID_CMAKE_VERSION"
 
       - name: Restore full Android dependency cache
         id: cache-full-deps
-        if: steps.plan.outputs.android_full == 'true'
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ${{ env.MANUAL_DEPS_DIR }}
           key: android-full-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
 
       - name: Restore generated STT asset cache
-        if: steps.plan.outputs.android_full == 'true'
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: app/build/generated/stt-model-assets
           key: stt-model-assets-${{ runner.os }}-${{ hashFiles('app/config/stt-model-assets.properties') }}
 
       - name: Download full Android dependencies
-        if: steps.plan.outputs.android_full == 'true' && steps.cache-full-deps.outputs.cache-hit != 'true'
+        if: steps.cache-full-deps.outputs.cache-hit != 'true'
         run: bash ci/script/download_android_dependencies.sh full "$MANUAL_DEPS_DIR"
 
-      - name: Prepare JVM dependencies
-        if: steps.plan.outputs.android_jvm == 'true'
-        run: |
-          python3 ci/script/prepare_android_dependencies.py \
-            --profile jvm \
-            --archives "$MANUAL_DEPS_DIR" \
-            --repository "$GITHUB_WORKSPACE"
-
       - name: Prepare full Android dependencies
-        if: steps.plan.outputs.android_full == 'true'
         run: |
           python3 ci/script/prepare_android_dependencies.py \
             --profile full \
@@ -348,7 +345,6 @@ jobs:
             --repository "$GITHUB_WORKSPACE"
 
       - name: Restore native ripgrep cache
-        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
@@ -358,7 +354,6 @@ jobs:
           key: native-ripgrep-arm64-${{ runner.os }}-${{ hashFiles('tools/native_ripgrep/Cargo.lock') }}
 
       - name: Build native ripgrep
-        if: steps.plan.outputs.android_jvm == 'true' || steps.plan.outputs.android_full == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -376,10 +371,170 @@ jobs:
             app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
           test -s app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
 
-      - name: Run Android JVM checks
-        if: steps.plan.outputs.android_jvm == 'true'
+      - name: Install JavaScript dependencies for Android assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g pnpm@10.34.5
+          npm ci --no-audit --no-fund
+          npm --prefix web-chat ci --no-audit --no-fund
+
+      - name: Build WebChat assets
+        run: npm run build:webchat
+
+      - name: Sync bundled ToolPkg packages
+        run: |
+          set -euo pipefail
+          npm run build:examples:github
+          python3 tools/example_packages/sync_example_packages.py --no-hot-reload
+
+      - name: Configure secret-free Android build
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Run Android build
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace --no-build-cache --no-daemon
+
+  android_tests:
+    name: Android JVM tests
+    needs: fast
+    if: >-
+      needs.fast.result == 'success' &&
+      (needs.fast.outputs.android_jvm == 'true' || needs.fast.outputs.android_full == 'true')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout merge candidate
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Initialize terminal submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync -- terminal
+          git submodule update --init --recursive --depth 1 terminal
+          git submodule status -- terminal
+
+      - name: Set up JDK
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+
+      - name: Install required Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "platforms;android-36" \
+            "build-tools;$ANDROID_BUILD_TOOLS_VERSION" \
+            "ndk;$ANDROID_NDK_VERSION"
+
+      - name: Restore JVM dependency cache
+        id: cache-jvm-deps
+        if: needs.fast.outputs.android_full != 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ env.MANUAL_DEPS_DIR }}
+          key: android-jvm-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
+
+      - name: Restore full Android dependency cache
+        id: cache-full-deps
+        if: needs.fast.outputs.android_full == 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ env.MANUAL_DEPS_DIR }}
+          key: android-full-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
+
+      - name: Restore generated STT asset cache
+        if: needs.fast.outputs.android_full == 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: app/build/generated/stt-model-assets
+          key: stt-model-assets-${{ runner.os }}-${{ hashFiles('app/config/stt-model-assets.properties') }}
+
+      - name: Download JVM dependencies
+        if: needs.fast.outputs.android_full != 'true' && steps.cache-jvm-deps.outputs.cache-hit != 'true'
+        run: bash ci/script/download_android_dependencies.sh jvm "$MANUAL_DEPS_DIR"
+
+      - name: Download full Android dependencies
+        if: needs.fast.outputs.android_full == 'true' && steps.cache-full-deps.outputs.cache-hit != 'true'
+        run: bash ci/script/download_android_dependencies.sh full "$MANUAL_DEPS_DIR"
+
+      - name: Prepare JVM dependencies
+        if: needs.fast.outputs.android_full != 'true'
+        run: |
+          python3 ci/script/prepare_android_dependencies.py \
+            --profile jvm \
+            --archives "$MANUAL_DEPS_DIR" \
+            --repository "$GITHUB_WORKSPACE"
+
+      - name: Prepare full Android dependencies
+        if: needs.fast.outputs.android_full == 'true'
+        run: |
+          python3 ci/script/prepare_android_dependencies.py \
+            --profile full \
+            --archives "$MANUAL_DEPS_DIR" \
+            --repository "$GITHUB_WORKSPACE"
+
+      - name: Restore native ripgrep cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tools/native_ripgrep/target
+          key: native-ripgrep-arm64-${{ runner.os }}-${{ hashFiles('tools/native_ripgrep/Cargo.lock') }}
+
+      - name: Build native ripgrep
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+          rustup toolchain install 1.88.0 --profile minimal
+          rustup target add --toolchain 1.88.0 aarch64-linux-android
+          cargo +1.88.0 build \
+            --manifest-path tools/native_ripgrep/Cargo.toml \
+            --release \
+            --target aarch64-linux-android \
+            --locked
+          install -Dm755 \
+            tools/native_ripgrep/target/aarch64-linux-android/release/liboperit_ripgrep.so \
+            app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+          test -s app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+
+      - name: Configure secret-free Android build
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Run Android JVM tests
         env:
-          INSTRUMENTATION_REQUIRED: ${{ steps.plan.outputs.android_instrumentation }}
+          INSTRUMENTATION_REQUIRED: ${{ needs.fast.outputs.android_instrumentation }}
         shell: bash
         run: |
           set -euo pipefail
@@ -390,16 +545,49 @@ jobs:
           fi
           ./gradlew "${tasks[@]}" --stacktrace --no-build-cache --no-daemon
 
-      - name: Run full Android checks
-        if: steps.plan.outputs.android_full == 'true'
+  candidate:
+    name: Candidate checks
+    needs: [fast, android_build, android_tests]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Require selected checks
         env:
-          INSTRUMENTATION_REQUIRED: ${{ steps.plan.outputs.android_instrumentation }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          ANDROID_BUILD_REQUIRED: ${{ needs.fast.outputs.android_full }}
+          ANDROID_BUILD_RESULT: ${{ needs.android_build.result }}
+          ANDROID_TESTS_REQUIRED: ${{ needs.fast.outputs.android_jvm == 'true' || needs.fast.outputs.android_full == 'true' }}
+          ANDROID_TESTS_RESULT: ${{ needs.android_tests.result }}
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x ./gradlew
-          tasks=("assembleDebug" ":app:testDebugUnitTest")
-          if [[ "$INSTRUMENTATION_REQUIRED" == "true" ]]; then
-            tasks+=(":app:compileDebugAndroidTestKotlin" ":app:compileDebugAndroidTestJavaWithJavac")
+          failures=0
+
+          check_stage() {
+            local name="$1"
+            local required="$2"
+            local outcome="$3"
+            printf '| <code>%s</code> | <code>%s</code> | <code>%s</code> |\n' \
+              "$name" "$required" "$outcome" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$required" == "true" && "$outcome" != "success" ]]; then
+              echo "Required check failed: $name ($outcome)" >&2
+              failures=$((failures + 1))
+            fi
+          }
+
+          {
+            echo "## Candidate check decision"
+            echo
+            echo '| Stage | Required | Outcome |'
+            echo '| --- | --- | --- |'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          check_stage fast true "$FAST_RESULT"
+          check_stage android-build "$ANDROID_BUILD_REQUIRED" "$ANDROID_BUILD_RESULT"
+          check_stage android-jvm-tests "$ANDROID_TESTS_REQUIRED" "$ANDROID_TESTS_RESULT"
+
+          if (( failures > 0 )); then
+            exit 1
           fi
-          ./gradlew "${tasks[@]}" --stacktrace --no-build-cache --no-daemon

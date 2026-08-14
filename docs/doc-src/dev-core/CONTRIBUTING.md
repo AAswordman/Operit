@@ -139,16 +139,19 @@ ci: add localization checks
 
 ## CI 检查
 
-PR 会进入 [PR Check workflow](../../../.github/workflows/pr-check.yml)，并只生成一个 `Candidate checks` 技术状态。检查运行在 GitHub 为 PR 与当前 `main` 生成的 merge candidate 上：
+PR 会进入 [PR Check workflow](../../../.github/workflows/pr-check.yml)，并保留一个 `Candidate checks`
+聚合技术状态；适用时还会显示独立的 `Android build` 和 `Android JVM tests` job。检查运行在
+GitHub 为 PR 与当前 `main` 生成的 merge candidate 上：
 
 - 快速检查：差异空白、冲突标记、JSON/XML/YAML、Actions、本地 Markdown 链接和门禁单元测试
 - 本地化：按 locale 和资源 key 归责类型、重复项、占位符及 locale 配置错误
 - 翻译资源：执行 AAPT2 resource compile，不启动完整 Android 构建
-- Kotlin/Java：执行 JVM 单测
-- Native、Gradle 和构建输入：执行 assemble 与 JVM 单测
+- Kotlin/Java：由 `Android JVM tests` job 执行 JVM 单测
+- Native、Gradle 和构建输入：由 `Android build` job 执行 assemble，JVM 单测由独立 job 执行
 - WebChat 和 ToolPkg：对应路径变化时执行专项检查，完整 Android lane 也会准备最终打包输入
 
-快速检查会在同一 job 中收集可修诊断，再统一给出一次结果。既有且未被本 PR 触碰的问题只作为计数提示。请查看 step summary 和文件 annotation 后更新 PR。
+快速检查会在一个 job 中收集可修诊断，再由 `Candidate checks` 聚合所有适用 job 的结果。
+既有且未被本 PR 触碰的问题只作为计数提示。请查看 step summary、job 结果和文件 annotation 后更新 PR。
 
 ## 社区项目与衍生项目
 

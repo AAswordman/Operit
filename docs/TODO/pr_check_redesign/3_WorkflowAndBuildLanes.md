@@ -11,19 +11,19 @@ status: completed
 
 ## 新实现
 
-PR 只产生一个 `Candidate checks` job，并按作用域顺序执行：
+PR 保留 `Candidate checks` 聚合 job，并按作用域执行以下专项 job：
 
 1. 候选契约、门禁单元测试和快速检查
 2. 翻译资源的 AAPT2 syntax compile
 3. WebChat 和 ToolPkg 专项检查
 4. Kotlin/Java 改动的 JVM test 与 Android lint
-5. native、Gradle 和构建输入改动的完整 assemble、JVM test 与 lint
+5. native、Gradle 和构建输入改动的独立 Android assemble 与 JVM test
 
 快速检查失败后不会启动耗时阶段。PR workflow 只有 `contents: read` 权限，不读取 secret，不上传 APK/AAB。可信的 main 和手工 Android 构建保留独立 workflow。
 
 ## 验收
 
-- PR 页面最多出现一个技术红灯
+- PR 页面保留一个聚合技术红灯，并显示专项 job 的具体失败原因
 - 纯翻译改动不启动完整 assemble
 - fork PR 日志和产物中不存在仓库 secret
 - Android 构建只初始化当前存在且实际需要的公共 submodule
