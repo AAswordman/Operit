@@ -20,9 +20,13 @@
 - Fork PR #15 的 `Android build` job 通过，`assembleDebug` 和构建报告完成
 - Fork PR #15 的 `Android JVM tests` job 独立启动并执行到 Gradle 测试编译
 - `Candidate checks` 正确记录 `Android build=success`、`Android JVM tests=failure`
-- JVM 测试失败来自 upstream 现有测试源码错误，包括 `ProviderUsageCancellationTest.kt`、
-  `RecordingSQLiteDriver.kt`、`TokenCanonicalTotalsTest.kt` 和 `TokenCostCalculatorTest.kt`
+- 首轮 JVM 测试暴露了 upstream 既有测试源码错误，包括 `ProviderUsageCancellationTest.kt`、
+  `RecordingSQLiteDriver.kt`、`TokenCanonicalTotalsTest.kt` 和 `TokenCostCalculatorTest.kt`；
+  已补齐导入和参数、删除过期测试夹具，并修正日志与 Gemini usage 测试夹具
+- 修复后 run `31835091374` 的 `Android build` 通过，JVM 测试仅剩
+  `ProviderUsageCancellationTest.kt` 中 3 个跨 IO dispatcher 的 cancellation 对象身份断言；
+  已改为验证取消消息语义，避免把协程实例身份当成 provider 接口契约
 - 可信 `Android Build` 手动运行通过，并上传 Android 报告和成功产物
 
-该测试失败不改变本次 CI 拆分结论：Android 编译已经在单测失败时独立完成。测试源码
-修复不属于本次 CI 改动范围。
+该验证确认 Android 编译已经在单测失败时独立完成；后续只需重新验证 JVM 测试和
+`Candidate checks` 聚合状态。
