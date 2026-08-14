@@ -2,7 +2,7 @@
 title: PR Check Android 构建与单测拆分
 repo: https://github.com/luojiaping/Operit
 upstream: https://github.com/AAswordman/Operit
-status: in_progress
+status: verified_with_existing_test_failures
 ---
 
 # PR Check Android 构建与单测拆分
@@ -37,8 +37,9 @@ PR Check 的完整 Android lane 在同一个 job 中执行 `assembleDebug` 和
 
 ## 当前状态
 
-- [ ] 完成 PR workflow 的 build/test job 拆分
-- [ ] 完成可信 Android workflow 的纯构建化
-- [ ] 补齐独立测试 workflow 和文档
-- [ ] 通过静态检查与相关单元测试
-- [ ] 在 fork 的 PR/Actions 上验证
+- [x] 完成 PR workflow 的 build/test job 拆分
+- [x] 完成可信 Android workflow 的纯构建化
+- [x] 补齐独立测试 workflow 和文档
+- [x] 通过 YAML、actionlint 和 CI 门禁单元测试
+- [x] 在 fork 的 PR/Actions 上验证 build/test job 独立执行
+- [ ] 修复 upstream 既有 Android JVM 测试源码错误
