@@ -73,7 +73,6 @@ class TokenCostCalculatorTest {
                     tokenPricing(
                         inputPricePerMillion = 0.0,
                         cachedInputPricePerMillion = 0.0,
-                        cacheWritePricePerMillion = 0.0,
                         outputPricePerMillion = 0.0,
                         source = PricingSource.UNKNOWN,
                     ),
@@ -96,6 +95,7 @@ class TokenCostCalculatorTest {
                         currency = PricingCurrency.CNY,
                         inputPricePerMillion = 0.0,
                         cachedInputPricePerMillion = 0.0,
+                        cacheWritePricePerMillion = 0.0,
                         outputPricePerMillion = 0.0,
                         pricePerRequest = 0.02,
                         source = PricingSource.USER,
