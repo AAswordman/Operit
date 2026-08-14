@@ -556,9 +556,9 @@ jobs:
       - name: Require selected checks
         env:
           FAST_RESULT: ${{ needs.fast.result }}
-          ANDROID_BUILD_REQUIRED: ${{ needs.fast.outputs.android_full }}
+          ANDROID_BUILD_REQUIRED: ${{ needs.fast.result == 'success' && needs.fast.outputs.android_full == 'true' }}
           ANDROID_BUILD_RESULT: ${{ needs.android_build.result }}
-          ANDROID_TESTS_REQUIRED: ${{ needs.fast.outputs.android_jvm == 'true' || needs.fast.outputs.android_full == 'true' }}
+          ANDROID_TESTS_REQUIRED: ${{ needs.fast.result == 'success' && (needs.fast.outputs.android_jvm == 'true' || needs.fast.outputs.android_full == 'true') }}
           ANDROID_TESTS_RESULT: ${{ needs.android_tests.result }}
         shell: bash
         run: |
