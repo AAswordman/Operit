@@ -221,6 +221,8 @@ fun BubbleAiMessageComposable(
             null
         }
     }
+    val hasScrollableTable =
+        rendererState.renderNodes.any { node -> node.type == MarkdownProcessorType.TABLE }
     val shouldUseExpandedBubbleLayout =
         rendererState.renderNodes.any { node -> node.type in ExpandedBubbleLayoutNodeTypes }
     val sizeTrackingModifier =
@@ -367,6 +369,9 @@ fun BubbleAiMessageComposable(
                     val bubbleModifier =
                         Modifier
                             .widthIn(max = maxBubbleWidth)
+                            // A table needs the bubble's bounded width as its viewport; otherwise
+                            // it measures at its content width and has no horizontal overflow to drag.
+                            .then(if (hasScrollableTable) Modifier.fillMaxWidth() else Modifier)
                             .defaultMinSize(minHeight = 44.dp)
                     val renderContent: @Composable () -> Unit = {
                         key(message.timestamp) {
@@ -572,6 +577,9 @@ fun BubbleAiMessageComposable(
                     val bubbleModifier =
                         Modifier
                             .widthIn(max = maxBubbleWidth)
+                            // A table needs the bubble's bounded width as its viewport; otherwise
+                            // it measures at its content width and has no horizontal overflow to drag.
+                            .then(if (hasScrollableTable) Modifier.fillMaxWidth() else Modifier)
                             .defaultMinSize(minHeight = 44.dp)
                     val renderContent: @Composable () -> Unit = {
                         // 使用 message.timestamp 作为 key，确保在重组期间，
