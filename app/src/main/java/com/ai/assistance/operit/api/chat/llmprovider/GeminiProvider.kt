@@ -271,6 +271,11 @@ class GeminiProvider(
         val thoughtSignature: String?
     )
 
+    private data class GeminiContentExtractionResult(
+        val content: String,
+        val usage: com.ai.assistance.operit.data.stats.ProviderUsageSnapshot?
+    )
+
     private fun encodeGeminiThoughtSignature(signature: String): String {
         return Base64.encodeToString(signature.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
     }
@@ -1430,6 +1435,10 @@ class GeminiProvider(
         var jsonCount = 0
         var contentCount = 0
 
+        suspend fun reportUsage(usage: com.ai.assistance.operit.data.stats.ProviderUsageSnapshot?) {
+            usage?.let { onUsageReported?.invoke(it, attemptNumber) }
+        }
+
         // 恢复JSON累积逻辑，用于处理分段JSON
         val completeJsonBuilder = StringBuilder()
         var isCollectingJson = false
@@ -1461,7 +1470,8 @@ class GeminiProvider(
                             val json = JSONObject(data)
                             jsonCount++
 
-                            val content = extractContentFromJson(context, json, requestId, onTokensUpdated, onUsageReported, attemptNumber)
+                            val extraction = extractContentFromJson(context, json, requestId, onTokensUpdated)
+                            val content = extraction.content
                             if (content.isNotEmpty()) {
                                 contentCount++
                                 logDebug("提取SSE内容，长度: ${content.length}")
@@ -1470,6 +1480,7 @@ class GeminiProvider(
                                 // 只发送新增的内容
                                 streamCollector.emit(content)
                             }
+                            reportUsage(extraction.usage)
                         } catch (e: CancellationException) {
                             throw e
                         } catch (e: IOException) {
@@ -1523,15 +1534,14 @@ class GeminiProvider(
                                                 val jsonObject = jsonContent.optJSONObject(i)
                                                 if (jsonObject != null) {
                                                     jsonCount++
-                                                    val content =
+                                                    val extraction =
                                                             extractContentFromJson(
                                                                     context,
                                                                     jsonObject,
                                                                     requestId,
-                                                                    onTokensUpdated,
-                                                                    onUsageReported,
-                                                                    attemptNumber
+                                                                    onTokensUpdated
                                                             )
+                                                    val content = extraction.content
                                                     if (content.isNotEmpty()) {
                                                         contentCount++
                                                         logDebug(
@@ -1542,6 +1552,7 @@ class GeminiProvider(
                                                         // 只发送这个单独对象产生的内容
                                                         streamCollector.emit(content)
                                                     }
+                                                    reportUsage(extraction.usage)
                                                 }
                                             }
                                         }
@@ -1592,24 +1603,28 @@ class GeminiProvider(
                             for (i in 0 until jsonContent.length()) {
                                 val jsonObject = jsonContent.optJSONObject(i) ?: continue
                                 jsonCount++
-                                val content = extractContentFromJson(context, jsonObject, requestId, onTokensUpdated, onUsageReported, attemptNumber)
+                                val extraction = extractContentFromJson(context, jsonObject, requestId, onTokensUpdated)
+                                val content = extraction.content
                                 if (content.isNotEmpty()) {
                                     contentCount++
                                     logDebug("从最终JSON数组[$i]提取内容，长度: ${content.length}")
                                     receivedContent.append(content)
                                     streamCollector.emit(content)
                                 }
+                                reportUsage(extraction.usage)
                             }
                         }
                         is JSONObject -> {
                             jsonCount++
-                            val content = extractContentFromJson(context, jsonContent, requestId, onTokensUpdated, onUsageReported, attemptNumber)
+                            val extraction = extractContentFromJson(context, jsonContent, requestId, onTokensUpdated)
+                            val content = extraction.content
                             if (content.isNotEmpty()) {
                                 contentCount++
                                 logDebug("从最终JSON对象提取内容，长度: ${content.length}")
                                 receivedContent.append(content)
                                 streamCollector.emit(content)
                             }
+                            reportUsage(extraction.usage)
                         }
                     }
                 } catch (e: CancellationException) {
@@ -1656,6 +1671,10 @@ class GeminiProvider(
     ) {
         AppLogger.d(TAG, "开始处理非流式响应")
         val responseBody = response.body ?: throw IOException(context.getString(R.string.gemini_response_empty))
+
+        suspend fun reportUsage(usage: com.ai.assistance.operit.data.stats.ProviderUsageSnapshot?) {
+            usage?.let { onUsageReported?.invoke(it, attemptNumber) }
+        }
         
         try {
             val responseText = responseBody.string()
@@ -1665,7 +1684,8 @@ class GeminiProvider(
             val json = JSONObject(responseText)
             
             // 提取内容
-            val content = extractContentFromJson(context, json, requestId, onTokensUpdated, onUsageReported, attemptNumber)
+            val extraction = extractContentFromJson(context, json, requestId, onTokensUpdated)
+            val content = extraction.content
             
             if (content.isNotEmpty()) {
                 receivedContent.append(content)
@@ -1678,6 +1698,7 @@ class GeminiProvider(
                 logDebug("未检测到内容，发送空格")
                 streamCollector.emit(" ")
             }
+            reportUsage(extraction.usage)
             
             // 确保思考模式正确结束
             if (isInThinkingMode) {
@@ -1700,13 +1721,12 @@ class GeminiProvider(
         context: Context,
         json: JSONObject,
         requestId: String,
-        onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
-        onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)? = null,
-        attemptNumber: Int = 1
-    ): String {
+        onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit
+    ): GeminiContentExtractionResult {
         val contentBuilder = StringBuilder()
         val searchSourcesBuilder = StringBuilder()
         val pendingThoughtSignatures = mutableListOf<String>()
+        var usage: com.ai.assistance.operit.data.stats.ProviderUsageSnapshot? = null
 
         try {
             throwIfGeminiErrorPayload(context, json)
@@ -1739,9 +1759,7 @@ class GeminiProvider(
                         tokenCacheManager.cachedInputTokenCount,
                         tokenCacheManager.outputTokenCount
                     )
-                    onUsageReported?.let { callback ->
-                        ProviderUsageNormalizer.gemini(usageMetadata)?.let { callback(it, attemptNumber) }
-                    }
+                    usage = ProviderUsageNormalizer.gemini(usageMetadata)
                 }
             }
 
@@ -1749,7 +1767,7 @@ class GeminiProvider(
             val candidates = json.optJSONArray("candidates")
             if (candidates == null || candidates.length() == 0) {
                 logDebug("未找到候选项")
-                return ""
+                return GeminiContentExtractionResult("", usage)
             }
 
             // 处理第一个candidate
@@ -1833,14 +1851,14 @@ class GeminiProvider(
             val content = candidate.optJSONObject("content")
             if (content == null) {
                 logDebug("未找到content对象")
-                return ""
+                return GeminiContentExtractionResult("", usage)
             }
 
             // 提取parts数组
             val parts = content.optJSONArray("parts")
             if (parts == null || parts.length() == 0) {
                 logDebug("未找到parts数组或为空")
-                return ""
+                return GeminiContentExtractionResult("", usage)
             }
 
             // 遍历parts，提取text内容和functionCall
@@ -1970,14 +1988,14 @@ class GeminiProvider(
                 contentBuilder.toString()
             }
             
-            return finalContent
+            return GeminiContentExtractionResult(finalContent, usage)
         } catch (e: CancellationException) {
             throw e
         } catch (e: IOException) {
             throw e
         } catch (e: Exception) {
             logError("提取内容时发生错误: ${e.message}", e)
-            return ""
+            return GeminiContentExtractionResult("", usage)
         }
     }
 

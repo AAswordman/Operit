@@ -18,6 +18,8 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.fail
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
 import org.mockito.kotlin.any
@@ -26,6 +28,19 @@ import org.mockito.kotlin.whenever
 import java.io.IOException
 
 class ProviderUsageCancellationTest {
+
+    private var previousSystemLogEnabled = true
+
+    @Before
+    fun disableAndroidSystemLogForJvmTests() {
+        previousSystemLogEnabled = AppLogger.enableSystemLog
+        AppLogger.enableSystemLog = false
+    }
+
+    @After
+    fun restoreAndroidSystemLog() {
+        AppLogger.enableSystemLog = previousSystemLogEnabled
+    }
 
     @Test
     fun `OpenAI streaming usage callback cancellation propagates unchanged`() {
@@ -78,6 +93,7 @@ class ProviderUsageCancellationTest {
         val context = mock<Context>()
         whenever(context.applicationContext).thenReturn(context)
         whenever(context.getString(any<Int>())).thenReturn("status")
+        whenever(context.getString(any<Int>(), any())).thenReturn("status")
 
         Mockito.mockStatic(AppLogger::class.java).use {
             runBlocking {
@@ -110,6 +126,7 @@ class ProviderUsageCancellationTest {
         val context = mock<Context>()
         whenever(context.applicationContext).thenReturn(context)
         whenever(context.getString(any<Int>())).thenReturn("status")
+        whenever(context.getString(any<Int>(), any())).thenReturn("status")
 
         Mockito.mockStatic(AppLogger::class.java).use {
             runBlocking {

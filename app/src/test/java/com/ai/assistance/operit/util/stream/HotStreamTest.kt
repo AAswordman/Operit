@@ -1,17 +1,34 @@
 package com.ai.assistance.operit.util.stream
 
+import com.ai.assistance.operit.util.AppLogger
 import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.fail
+import org.junit.Before
 import org.junit.Test
 
 class HotStreamTest {
+
+    private var previousSystemLogEnabled = true
+
+    @Before
+    fun disableAndroidSystemLogForJvmTests() {
+        previousSystemLogEnabled = AppLogger.enableSystemLog
+        AppLogger.enableSystemLog = false
+    }
+
+    @After
+    fun restoreAndroidSystemLog() {
+        AppLogger.enableSystemLog = previousSystemLogEnabled
+    }
+
     @Test
     fun shareForwardsUpstreamFailureAfterReplayingPartialContent() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)

@@ -1,11 +1,27 @@
 package com.ai.assistance.operit.api.chat.library
 
+import com.ai.assistance.operit.util.AppLogger
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Before
 import org.junit.Test
 
 class MemoryAnalysisProtocolTest {
+
+    private var previousSystemLogEnabled = true
+
+    @Before
+    fun disableAndroidSystemLogForJvmTests() {
+        previousSystemLogEnabled = AppLogger.enableSystemLog
+        AppLogger.enableSystemLog = false
+    }
+
+    @After
+    fun restoreAndroidSystemLog() {
+        AppLogger.enableSystemLog = previousSystemLogEnabled
+    }
 
     @Test
     fun parseAnalysisResult_acceptsObjectProtocolWithoutMainEvent() {
