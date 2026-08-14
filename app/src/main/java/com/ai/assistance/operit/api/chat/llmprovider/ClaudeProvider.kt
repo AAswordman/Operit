@@ -1374,6 +1374,7 @@ class ClaudeProvider(
         maxRetries: Int,
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
+        onRetryAccepted: suspend () -> Unit,
         buildRetryMessage: (String, Int) -> String
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
@@ -1399,6 +1400,8 @@ class ClaudeProvider(
             )
         }
 
+        // A terminal failure must retain its streamed text; only a replacement request discards it.
+        onRetryAccepted()
         val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
         AppLogger.w("AIService", "【Claude】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
         if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
@@ -1983,10 +1986,10 @@ class ClaudeProvider(
                 return@stream
             } catch (e: Exception) {
                 lastException = e
-                emitRollback(requestSavepointId)
 
                 // 检测 thinking type 不兼容错误，自动翻转格式并立即重试
                 if (enableThinking && !thinkingFormatFlipped && isThinkingTypeError(e)) {
+                    emitRollback(requestSavepointId)
                     flipThinkingFormat()
                     thinkingFormatFlipped = true
                     onNonFatalError(
@@ -1998,15 +2001,17 @@ class ClaudeProvider(
                     AppLogger.w("AIService", "【Claude】Thinking格式不兼容，已自动切换，准备立即重试")
                 } else {
                     retryCount = handleRetryableError(
-                        context,
-                        e,
-                        retryCount,
-                        maxRetries,
-                        enableRetry,
-                        onNonFatalError
-                    ) { errorText, retryNumber ->
-                        context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
-                    }
+                        context = context,
+                        exception = e,
+                        retryCount = retryCount,
+                        maxRetries = maxRetries,
+                        enableRetry = enableRetry,
+                        onNonFatalError = onNonFatalError,
+                        onRetryAccepted = { emitRollback(requestSavepointId) },
+                        buildRetryMessage = { errorText, retryNumber ->
+                            context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
+                        },
+                    )
                 }
             } finally {
                 activeCall = null

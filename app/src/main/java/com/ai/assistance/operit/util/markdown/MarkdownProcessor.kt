@@ -82,8 +82,16 @@ fun Stream<String>.toCharStream(): Stream<Char> {
             }
         }
     }
-    val carrier = this as? TextStreamEventCarrier ?: return charStream
-    return charStream.withTextEventChannel(carrier.eventChannel)
+    var result: Stream<Char> = charStream
+    val carrier = this as? TextStreamEventCarrier
+    if (carrier != null) {
+        result = result.withTextEventChannel(carrier.eventChannel)
+    }
+    val rollbackPrefix = this as? StreamRollbackPrefix
+    if (rollbackPrefix != null) {
+        result = result.withRollbackPrefix(rollbackPrefix.rollbackPrefix)
+    }
+    return result
 }
 
 /** Markdown结果处理器 - 生成MarkdownNode模型 */

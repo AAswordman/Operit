@@ -314,13 +314,13 @@ fun <T> Stream<T>.share(
             // 这个Job现在是scope的直接子Job
             upstreamJob =
                     scope.launch {
+                        var completionCause: Throwable? = null
                         try {
                             this@share.collect { value -> sharedStream.emit(value) }
+                        } catch (error: Throwable) {
+                            completionCause = error
                         } finally {
-                            // 当上游流完成或被取消时，我们不再需要这个共享流。
-                            // 但由于SharedFlow本身不会"关闭"，依赖协程的结构化并发来清理是最好的方式。
-                            // 此处的finally确保了协程在任何情况下（完成、取消、异常）都能结束。
-                            sharedStream.close() // 关闭流以允许收集器完成
+                            sharedStream.close(completionCause)
                             onComplete()
                         }
                     }
@@ -333,12 +333,15 @@ fun <T> Stream<T>.share(
                         if (count > 0 && upstreamJob?.isActive != true) {
                             upstreamJob =
                                     scope.launch {
+                                        var completionCause: Throwable? = null
                                         try {
                                             this@share.collect { emittedValue ->
                                                 sharedStream.emit(emittedValue)
                                             }
+                                        } catch (error: Throwable) {
+                                            completionCause = error
                                         } finally {
-                                            sharedStream.close() // 关闭流以允许收集器完成
+                                            sharedStream.close(completionCause)
                                             onComplete()
                                         }
                                     }
@@ -354,10 +357,13 @@ fun <T> Stream<T>.share(
                     )
                     // Fallback to EAGERLY behavior
                     scope.launch {
+                        var completionCause: Throwable? = null
                         try {
                             this@share.collect { value -> sharedStream.emit(value) }
+                        } catch (error: Throwable) {
+                            completionCause = error
                         } finally {
-                            sharedStream.close() // 关闭流以允许收集器完成
+                            sharedStream.close(completionCause)
                             onComplete()
                         }
                     }

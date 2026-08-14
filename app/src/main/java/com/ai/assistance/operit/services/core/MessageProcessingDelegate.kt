@@ -874,6 +874,7 @@ class MessageProcessingDelegate(
             val activeChatId = chatId
             var serviceForTurnComplete: EnhancedAIService? = null
             var shouldNotifyTurnComplete = false
+            var shouldFinalizeInterruptedMessage = false
             var finalInputStateAfterSend: EnhancedInputProcessingState? = null
             var isWaifuModeEnabled = false
             var didStreamAutoRead = false
@@ -1478,6 +1479,7 @@ class MessageProcessingDelegate(
                     cancellationToPropagate = e
                 } else {
                     AppLogger.e(TAG, "发送消息时出错", e)
+                    shouldFinalizeInterruptedMessage = true
                     setChatInputProcessingState(
                         chatId,
                         EnhancedInputProcessingState.Error(context.getString(R.string.message_send_failed, e.message))
@@ -1486,8 +1488,18 @@ class MessageProcessingDelegate(
                 }
             } finally {
                 val finalizeMessageStartTime = messageTimingNow()
+                val interruptedTurn =
+                    if (shouldFinalizeInterruptedMessage) chatRuntime.activeStreamingTurn else null
                 val deferTurnCompleteToAsyncJob =
-                    if (cancellationToPropagate == null) {
+                    if (interruptedTurn != null && chatId != null) {
+                        // Network errors can arrive after partial output; do not overwrite it as a completed reply.
+                        detachStreamingAiMessage(
+                            chatId = chatId,
+                            activeTurn = interruptedTurn,
+                            snapshot = readCurrentTurnCancellationSnapshot(chatId),
+                        )
+                        false
+                    } else if (cancellationToPropagate == null) {
                         finalizeMessageAndNotify(
                             chatId = chatId,
                             activeChatId = activeChatId,
