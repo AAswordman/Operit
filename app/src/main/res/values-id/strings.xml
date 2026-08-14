@@ -3030,7 +3030,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="chat_start_ai_computer_failed">Gagal memulai komputer AI: %1$s</string>
     <string name="chat_ai_computer_closed_due_to_workspace">Komputer AI telah ditutup (karena membuka ruang kerja)</string>
     <string name="thinking_mode">Mode berpikir</string>
-    <string name="thinking_mode_desc">Saat ini mendukung model Gemini, Qwen3, Claude, Doubao, NVIDIA, Silicon Flow, dan MNN lokal, dapat mengaktifkan pemikiran bawaan.</string>
+    <string name="thinking_mode_desc">Mengontrol pemikiran bawaan model dan tingkat intensitasnya. Perilaku sebenarnya bergantung pada model dan penyedia saat ini; beberapa model mungkin hanya mendukung pengaktifan atau penonaktifan.</string>
     <string name="details">Detail</string>
     <string name="model_selection">Pemilihan model</string>
     <string name="prompt_selection">Pemilihan prompt</string>

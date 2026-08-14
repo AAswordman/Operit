@@ -3329,7 +3329,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_start_ai_computer_failed">PornireAIEroare la computer: %1$s</string>
     <string name="chat_ai_computer_closed_due_to_workspace">AIComputerul a fost oprit (din cauza deschiderii spațiului de lucru)</string>
     <string name="thinking_mode">Modul de gândire</string>
-    <string name="thinking_mode_desc">În prezent, se acceptăGemini,Qwen3,Claude, chifle cu fasole,NVIDIA, curgerea pe bază de siliciu șiMNNModel local, capabil să activeze gândirea integrată.</string>
+    <string name="thinking_mode_desc">Controlează raționamentul integrat al modelului și intensitatea acestuia. Comportamentul efectiv depinde de modelul și furnizorul curent; unele modele pot permite doar activarea sau dezactivarea.</string>
     <string name="details">Detalii</string>
     <string name="model_selection">Alegerea modelului</string>
     <string name="prompt_selection">Alegerea cuvintelor-cheie</string>

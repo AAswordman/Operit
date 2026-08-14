@@ -3374,7 +3374,7 @@
     <string name="chat_start_ai_computer_failed">启动AI电脑失败: %1$s</string>
     <string name="chat_ai_computer_closed_due_to_workspace">AI电脑已关闭（由于打开工作区）</string>
     <string name="thinking_mode">思考模式</string>
-    <string name="thinking_mode_desc">目前支持Gemini、Qwen3、Claude、豆包、NVIDIA、硅基流动和MNN本地模型，能够启用内置的思考。</string>
+    <string name="thinking_mode_desc">控制模型的内置思考开关与思考程度。实际效果取决于当前模型和服务提供商，部分模型可能仅支持开关。</string>
     <string name="details">详情</string>
     <string name="model_selection">模型选择</string>
     <string name="prompt_selection">提示词选择</string>

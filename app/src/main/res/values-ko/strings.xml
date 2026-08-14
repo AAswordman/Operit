@@ -2999,7 +2999,7 @@
     <string name="chat_start_ai_computer_failed">AI 컴퓨터 시작 실패: %1$s</string>
     <string name="chat_ai_computer_closed_due_to_workspace">AI 컴퓨터 닫힘(작업 공간 열림)</string>
     <string name="thinking_mode">사고 모드</string>
-    <string name="thinking_mode_desc">현재 Gemini, Qwen3, Claude, Doubao, NVIDIA, SiliconFlow 및 MNN 로컬 모델을 지원하며, 내장 사고 기능을 활성화합니다.</string>
+    <string name="thinking_mode_desc">모델의 내장 사고 사용 여부와 사고 강도를 조절합니다. 실제 동작은 현재 모델과 서비스 제공업체에 따라 다르며, 일부 모델은 켜기/끄기만 지원할 수 있습니다.</string>
     <string name="details">세부정보</string>
     <string name="model_selection">모델 선택</string>
     <string name="prompt_selection">프롬프트 선택</string>

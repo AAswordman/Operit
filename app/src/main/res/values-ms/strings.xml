@@ -2761,7 +2761,7 @@
     <string name="chat_start_ai_computer_failed">Gagal memulakan komputer AI: %1$s</string>
     <string name="chat_ai_computer_closed_due_to_workspace">Komputer AI telah ditutup (kerana membuka ruang kerja)</string>
     <string name="thinking_mode">Mod berfikir</string>
-    <string name="thinking_mode_desc">Kini menyokong model tempatan Gemini, Qwen3, Claude, Doubao, NVIDIA, Silicon Flow dan MNN, mampu mengaktifkan pemikiran terbina dalam.</string>
+    <string name="thinking_mode_desc">Mengawal pemikiran terbina dalam model dan tahap keamatannya. Tingkah laku sebenar bergantung pada model dan penyedia semasa; sesetengah model mungkin hanya menyokong kawalan hidup atau mati.</string>
     <string name="details">Butiran</string>
     <string name="model_selection">Pemilihan model</string>
     <string name="prompt_selection">Pemilihan petunjuk</string>
