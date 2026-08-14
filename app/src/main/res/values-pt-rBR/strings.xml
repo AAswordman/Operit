@@ -2877,7 +2877,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="chat_start_ai_computer_failed">Falha ao iniciar o computador AI: %1$s</string>
     <string name="chat_ai_computer_closed_due_to_workspace">O computador AI está fechado (devido ao espaço de trabalho aberto)</string>
     <string name="thinking_mode">Modelo de pensamento</string>
-    <string name="thinking_mode_desc">Atualmente suporta Gemini, Qwen3, Claude, Doubao, NVIDIA, fluxo baseado em silício e modelos locais MNN, permitindo pensamento integrado.</string>
+    <string name="thinking_mode_desc">Controla o raciocínio integrado do modelo e sua intensidade. O comportamento real depende do modelo e do provedor atuais; alguns modelos podem oferecer apenas a opção de ativar ou desativar.</string>
     <string name="details">Detalhes</string>
     <string name="model_selection">Seleção de modelo</string>
     <string name="prompt_selection">Seleção imediata de palavras</string>

@@ -16,6 +16,11 @@ interface TextStreamEventCarrier {
     val eventChannel: SharedStream<TextStreamEvent>
 }
 
+/** Marks a replacement stream with content already rendered before a rollback. */
+internal interface StreamRollbackPrefix {
+    val rollbackPrefix: String
+}
+
 interface RevisableTextStream : Stream<String>, TextStreamEventCarrier
 
 interface RevisableSharedTextStream : SharedStream<String>, RevisableTextStream
@@ -109,6 +114,11 @@ private class DelegatingRevisableCharStream(
     }
 }
 
+private class DelegatingRollbackPrefixCharStream(
+    private val upstream: Stream<Char>,
+    override val rollbackPrefix: String,
+) : Stream<Char> by upstream, StreamRollbackPrefix
+
 fun Stream<String>.withEventChannel(eventChannel: SharedStream<TextStreamEvent>): Stream<String> {
     if (this is RevisableTextStream && this.eventChannel === eventChannel) {
         return this
@@ -130,6 +140,13 @@ fun Stream<Char>.withTextEventChannel(eventChannel: SharedStream<TextStreamEvent
         return this
     }
     return DelegatingRevisableCharStream(this, eventChannel)
+}
+
+internal fun Stream<Char>.withRollbackPrefix(rollbackPrefix: String): Stream<Char> {
+    if (this is StreamRollbackPrefix && this.rollbackPrefix == rollbackPrefix) {
+        return this
+    }
+    return DelegatingRollbackPrefixCharStream(this, rollbackPrefix)
 }
 
 fun Stream<String>.shareRevisable(

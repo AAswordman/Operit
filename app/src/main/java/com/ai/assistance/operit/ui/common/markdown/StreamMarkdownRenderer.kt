@@ -60,6 +60,7 @@ import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.markdown.SmartString
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamInterceptor
+import com.ai.assistance.operit.util.stream.StreamRollbackPrefix
 import com.ai.assistance.operit.util.stream.share
 import com.ai.assistance.operit.util.stream.splitBy as streamSplitBy
 import com.ai.assistance.operit.util.stream.stream
@@ -164,6 +165,33 @@ private fun appendInlineChunk(
 
 private fun canMergeWithHtmlBreak(node: MarkdownNode?): Boolean {
     return node?.type == MarkdownProcessorType.PLAIN_TEXT
+}
+
+private fun replaceRollbackTail(
+    nodes: SnapshotStateList<MarkdownNode>,
+    rollbackNodes: List<MarkdownNode>,
+    conversionCache: MutableMap<Int, Pair<Int, MarkdownNodeStable>>,
+    xmlNodeStreams: MutableMap<Int, Stream<String>>,
+) {
+    var sharedPrefixSize = 0
+    val comparisonLimit = minOf(nodes.size, rollbackNodes.size)
+    while (
+        sharedPrefixSize < comparisonLimit &&
+            nodes[sharedPrefixSize].toStableNode() == rollbackNodes[sharedPrefixSize].toStableNode()
+    ) {
+        sharedPrefixSize++
+    }
+
+    while (nodes.size > sharedPrefixSize) {
+        nodes.removeAt(nodes.lastIndex)
+    }
+    nodes.addAll(rollbackNodes.drop(sharedPrefixSize))
+    conversionCache.keys
+        .filter { it >= sharedPrefixSize }
+        .forEach { conversionCache.remove(it) }
+    xmlNodeStreams.keys
+        .filter { it >= sharedPrefixSize }
+        .forEach { xmlNodeStreams.remove(it) }
 }
 
 private fun appendHtmlBreakNode(
@@ -384,9 +412,9 @@ fun StreamMarkdownRenderer(
     // XML 节点子流映射
     val xmlNodeStreams = rendererState.xmlNodeStreams
 
-    // 当流实例变化时，获得一个稳定的渲染器ID
-    val rendererId = remember(markdownStream) { 
-        val id = "renderer-${System.identityHashCode(markdownStream)}"
+    // A rollback replaces the transport stream, not the message renderer that owns the prefix.
+    val rendererId = remember(rendererState) {
+        val id = "renderer-${System.identityHashCode(rendererState)}"
         rendererState.updateRendererId(id)
         id
     }
@@ -402,7 +430,9 @@ fun StreamMarkdownRenderer(
                 rendererId = rendererId,
                 scope = scope,
             )
-        }
+    }
+
+    val rollbackPrefix = (markdownStream as? StreamRollbackPrefix)?.rollbackPrefix
 
     // 创建一个中间流，用于拦截和批处理渲染更新
     val interceptedStream =
@@ -429,17 +459,47 @@ fun StreamMarkdownRenderer(
     LaunchedEffect(interceptedStream) {
         // 移除时间计算变量和日志
 
-        // 重置状态
-        nodes.clear()
-        renderNodes.clear()
-        conversionCache.clear()
-        rendererState.collectedContent.clear()
-        xmlNodeStreams.clear()
-        rendererState.streamParsingCompletedSuccessfully = false
+        if (rollbackPrefix == null) {
+            nodes.clear()
+            renderNodes.clear()
+            conversionCache.clear()
+            rendererState.collectedContent.clear()
+            xmlNodeStreams.clear()
+            rendererState.streamParsingCompletedSuccessfully = false
+        } else {
+            val rollbackNodes =
+                withContext(Dispatchers.Default) {
+                    parseMarkdownToNodes(rollbackPrefix)
+                }
+            // Keep nodes that still match the prefix so only the revoked tail is redrawn.
+            replaceRollbackTail(
+                nodes = nodes,
+                rollbackNodes = rollbackNodes,
+                conversionCache = conversionCache,
+                xmlNodeStreams = xmlNodeStreams,
+            )
+            rendererState.collectedContent.replace(rollbackPrefix)
+            rendererState.streamParsingCompletedSuccessfully = false
+            synchronizeRenderNodes(
+                nodes,
+                renderNodes,
+                conversionCache,
+                nodeAnimationStates,
+                xmlNodeStreams,
+                rendererId,
+                scope,
+            )
+        }
 
         try {
             var pendingHtmlBreakCount = 0
-            interceptedStream.nativeMarkdownSplitByBlock(flushIntervalMs = RENDER_INTERVAL_MS).collect { blockGroup ->
+            interceptedStream
+                .nativeMarkdownSplitByBlock(
+                    flushIntervalMs = RENDER_INTERVAL_MS,
+                    maxDeltaChars = null,
+                    initialContent = rollbackPrefix ?: "",
+                )
+                .collect { blockGroup ->
                 val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
 
                 if (blockType == MarkdownProcessorType.HTML_BREAK) {
@@ -473,10 +533,15 @@ fun StreamMarkdownRenderer(
                         tempBlockType != MarkdownProcessorType.TABLE &&
                         tempBlockType != MarkdownProcessorType.XML_BLOCK
 
+                val rollbackContinuesCurrentBlock =
+                    rollbackPrefix != null &&
+                        pendingHtmlBreakCount == 0 &&
+                        nodes.lastOrNull()?.type == tempBlockType
                 val mergeWithPrevious =
-                    pendingHtmlBreakCount > 0 &&
+                    (pendingHtmlBreakCount > 0 &&
                         tempBlockType == MarkdownProcessorType.PLAIN_TEXT &&
-                        canMergeWithHtmlBreak(nodes.lastOrNull())
+                        canMergeWithHtmlBreak(nodes.lastOrNull())) ||
+                        rollbackContinuesCurrentBlock
 
                 if (pendingHtmlBreakCount > 0 && !mergeWithPrevious) {
                     appendHtmlBreakNode(nodes, pendingHtmlBreakCount)
@@ -509,7 +574,14 @@ fun StreamMarkdownRenderer(
                 if (isInlineContainer) {
                     var pendingLineBreakState = PendingLineBreakState(count = pendingHtmlBreakCount)
 
-                    blockStream.nativeMarkdownSplitByInline(flushIntervalMs = RENDER_INTERVAL_MS).collect { inlineGroup ->
+                    blockStream
+                        .nativeMarkdownSplitByInline(
+                            flushIntervalMs = RENDER_INTERVAL_MS,
+                            maxDeltaChars = null,
+                            initialContent =
+                                if (rollbackContinuesCurrentBlock) newNode.content.toString() else "",
+                        )
+                        .collect { inlineGroup ->
                         val originalInlineType = inlineGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
                         val isInlineLatex = originalInlineType == MarkdownProcessorType.INLINE_LATEX
                         val tempInlineType =

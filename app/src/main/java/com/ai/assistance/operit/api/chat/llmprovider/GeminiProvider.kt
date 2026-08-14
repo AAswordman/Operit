@@ -1027,6 +1027,7 @@ class GeminiProvider(
         maxRetries: Int,
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
+        onRetryAccepted: suspend () -> Unit,
         buildRetryMessage: (String, Int) -> String
     ): Int {
         if (exception is UserCancellationException || exception is kotlinx.coroutines.CancellationException) {
@@ -1052,6 +1053,8 @@ class GeminiProvider(
             )
         }
 
+        // A terminal failure must retain its streamed text; only a replacement request discards it.
+        onRetryAccepted()
         val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
         AppLogger.w(TAG, "$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
         if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, TAG)) {
@@ -1196,17 +1199,18 @@ class GeminiProvider(
                 return@stream
             } catch (e: Exception) {
                 lastException = e
-                emitRollback(requestSavepointId)
                 retryCount = handleRetryableError(
-                    context,
-                    e,
-                    retryCount,
-                    maxRetries,
-                    enableRetry,
-                    onNonFatalError
-                ) { errorText, retryNumber ->
-                    context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
-                }
+                    context = context,
+                    exception = e,
+                    retryCount = retryCount,
+                    maxRetries = maxRetries,
+                    enableRetry = enableRetry,
+                    onNonFatalError = onNonFatalError,
+                    onRetryAccepted = { emitRollback(requestSavepointId) },
+                    buildRetryMessage = { errorText, retryNumber ->
+                        context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
+                    },
+                )
             }
         }
 

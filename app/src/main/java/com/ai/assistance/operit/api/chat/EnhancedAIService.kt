@@ -1234,7 +1234,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                 throw e
             } catch (e: Exception) {
                 // 用户取消导致的 Socket closed 是预期行为，不应作为错误处理
-                if (e.message?.contains("Socket closed", ignoreCase = true) == true) {
+                val isSocketClosed = e.message?.contains("Socket closed", ignoreCase = true) == true
+                if (isSocketClosed) {
                     if (isExecutionContextActive(execContext)) {
                         AppLogger.d(TAG, "Stream was cancelled by the user (Socket closed).")
                     } else {
@@ -1251,8 +1252,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                 }
 
                 // 发生无法处理的错误时，也应停止服务，但用户取消除外
-                if (e.message?.contains("Socket closed", ignoreCase = true) != true) {
+                if (!isSocketClosed) {
                     if (!isSubTask) stopAiService()
+                    throw e
                 }
             } finally {
                 try {

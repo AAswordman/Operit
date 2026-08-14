@@ -5,6 +5,8 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
+import com.ai.assistance.operit.util.stream.TextStreamEventType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -20,6 +22,7 @@ import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import java.io.IOException
 
 class ProviderUsageCancellationTest {
 
@@ -55,6 +58,20 @@ class ProviderUsageCancellationTest {
         )
     }
 
+    @Test
+    fun `OpenAI terminal stream failure preserves emitted content without rollback`() {
+        assertTerminalFailureDoesNotRollback(
+            provider = openAiProvider(OPENAI_STREAM_RESPONSE, "text/event-stream"),
+        )
+    }
+
+    @Test
+    fun `Gemini terminal stream failure preserves emitted content without rollback`() {
+        assertTerminalFailureDoesNotRollback(
+            provider = geminiProvider(GEMINI_STREAM_RESPONSE, "text/event-stream"),
+        )
+    }
+
     private fun assertUsageCancellationPropagates(provider: AIService, stream: Boolean) {
         val expected = CancellationException("usage observer cancelled")
         val context = mock<Context>()
@@ -84,6 +101,43 @@ class ProviderUsageCancellationTest {
                 } catch (actual: CancellationException) {
                     assertSame(expected, actual)
                 }
+            }
+        }
+    }
+
+    private fun assertTerminalFailureDoesNotRollback(provider: AIService) {
+        val context = mock<Context>()
+        whenever(context.applicationContext).thenReturn(context)
+        whenever(context.getString(any<Int>())).thenReturn("status")
+
+        Mockito.mockStatic(AppLogger::class.java).use {
+            runBlocking {
+                val response =
+                    provider.sendMessage(
+                        context = context,
+                        chatHistory = listOf(PromptTurn(PromptTurnKind.USER, "Hi")),
+                        modelParameters = emptyList(),
+                        enableThinking = false,
+                        stream = true,
+                        availableTools = null,
+                        preserveThinkInHistory = false,
+                        onTokensUpdated = { _, _, _ -> },
+                        onUsageReported = { _, _ -> throw IOException("network interrupted") },
+                        onNonFatalError = {},
+                        enableRetry = false,
+                        statsCategory = null,
+                    )
+                val received = StringBuilder()
+                try {
+                    response.collect { chunk -> received.append(chunk) }
+                    fail("terminal stream failure must propagate")
+                } catch (_: IOException) {
+                    // The generated response is retained for interrupted-message finalization.
+                }
+
+                val events = (response as TextStreamEventCarrier).eventChannel.replayCache
+                assertEquals("answer", received.toString())
+                assertEquals(listOf(TextStreamEventType.SAVEPOINT), events.map { it.eventType })
             }
         }
     }

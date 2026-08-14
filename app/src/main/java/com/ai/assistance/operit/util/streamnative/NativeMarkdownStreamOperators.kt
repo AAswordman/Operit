@@ -23,6 +23,7 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
     debugTag: String,
     flushIntervalMs: Long? = null,
     maxDeltaChars: Int? = null,
+    initialContent: String = "",
 ): Stream<StreamGroup<MarkdownProcessorType?>> {
     val upstream = this
 
@@ -43,8 +44,13 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
 
                 launch {
                     val session = sessionFactory()
-                    val fullContent = StringBuilder()
+                    val fullContent = StringBuilder(initialContent)
                     val deltaBuffer = StringBuilder()
+
+                    if (initialContent.isNotEmpty()) {
+                        // Restore parser state without re-emitting the already rendered rollback prefix.
+                        session.push(initialContent)
+                    }
 
                     val mutex = Mutex()
                     val flushMutex = Mutex()
@@ -216,6 +222,7 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
     debugTag: String,
     flushIntervalMs: Long? = null,
     maxDeltaChars: Int? = null,
+    initialContent: String = "",
 ): Stream<StreamGroup<MarkdownProcessorType?>> {
     val upstream = this
 
@@ -236,8 +243,13 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
 
                 launch {
                     val session = sessionFactory()
-                    val fullContent = StringBuilder()
+                    val fullContent = StringBuilder(initialContent)
                     val deltaBuffer = StringBuilder()
+
+                    if (initialContent.isNotEmpty()) {
+                        // Restore inline parser state without re-emitting the already rendered prefix.
+                        session.push(initialContent)
+                    }
 
                     val mutex = Mutex()
                     val flushMutex = Mutex()
@@ -415,6 +427,19 @@ fun Stream<Char>.nativeMarkdownSplitByBlock(
         maxDeltaChars = maxDeltaChars,
     )
 
+internal fun Stream<Char>.nativeMarkdownSplitByBlock(
+    flushIntervalMs: Long?,
+    maxDeltaChars: Int?,
+    initialContent: String,
+): Stream<StreamGroup<MarkdownProcessorType?>> =
+    nativeMarkdownSplitBySession(
+        sessionFactory = { NativeMarkdownSplitter.createBlockSession() },
+        debugTag = "NativeMarkdownBlockSplitBy",
+        flushIntervalMs = flushIntervalMs,
+        maxDeltaChars = maxDeltaChars,
+        initialContent = initialContent,
+    )
+
 fun Stream<Char>.nativeMarkdownSplitByInline(
     flushIntervalMs: Long? = null,
     maxDeltaChars: Int? = null,
@@ -424,6 +449,19 @@ fun Stream<Char>.nativeMarkdownSplitByInline(
         debugTag = "NativeMarkdownInlineSplitBy",
         flushIntervalMs = flushIntervalMs,
         maxDeltaChars = maxDeltaChars,
+    )
+
+internal fun Stream<Char>.nativeMarkdownSplitByInline(
+    flushIntervalMs: Long?,
+    maxDeltaChars: Int?,
+    initialContent: String,
+): Stream<StreamGroup<MarkdownProcessorType?>> =
+    nativeMarkdownSplitBySession(
+        sessionFactory = { NativeMarkdownSplitter.createInlineSession() },
+        debugTag = "NativeMarkdownInlineSplitBy",
+        flushIntervalMs = flushIntervalMs,
+        maxDeltaChars = maxDeltaChars,
+        initialContent = initialContent,
     )
 
 @JvmName("nativeMarkdownSplitByBlockString")
@@ -448,4 +486,18 @@ fun Stream<String>.nativeMarkdownSplitByInline(
         debugTag = "NativeMarkdownInlineSplitBy",
         flushIntervalMs = flushIntervalMs,
         maxDeltaChars = maxDeltaChars,
+    )
+
+@JvmName("nativeMarkdownSplitByInlineStringWithInitialContent")
+internal fun Stream<String>.nativeMarkdownSplitByInline(
+    flushIntervalMs: Long?,
+    maxDeltaChars: Int?,
+    initialContent: String,
+): Stream<StreamGroup<MarkdownProcessorType?>> =
+    nativeMarkdownSplitBySessionString(
+        sessionFactory = { NativeMarkdownSplitter.createInlineSession() },
+        debugTag = "NativeMarkdownInlineSplitBy",
+        flushIntervalMs = flushIntervalMs,
+        maxDeltaChars = maxDeltaChars,
+        initialContent = initialContent,
     )
