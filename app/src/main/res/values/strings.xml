@@ -1695,6 +1695,7 @@
     <string name="exit_multi_select">退出多选</string>
     <string name="select_all_messages">全选</string>
     <string name="clear_selection">取消</string>
+    <string name="multi_select_actions">操作</string>
     <string name="delete_selected">删除选中</string>
     <string name="share_selected">分享</string>
     <string name="add_selected_to_memory">纳入总结记忆</string>

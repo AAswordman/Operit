@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "toolpkg_id": "com.operit.sidebar_deepseek_harness",
+  "version": "0.1.0",
+  "main": "dist/main.js",
+  "display_name": {
+    "zh": "DeepSeek Harness",
+    "en": "DeepSeek Harness",
+    "default": "DeepSeek Harness"
+  },
+  "description": {
+    "zh": "在 Operit 侧边栏中承载本机 Linux Runtime 运行的 DeepSeek Harness Web 界面。",
+    "en": "Embeds the DeepSeek Harness Web interface running from the local Linux runtime in the Operit sidebar.",
+    "default": "Embeds DeepSeek Harness Web from the local Linux runtime."
+  },
+  "enabled_by_default": true,
+  "subpackages": [],
+  "resources": [],
+  "workflow_templates": [],
+  "workspace_templates": []
+}

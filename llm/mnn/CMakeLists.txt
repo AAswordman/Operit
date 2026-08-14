@@ -4,12 +4,19 @@ project("mnn_jni")
 
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/operit_git_source.cmake")
 
+# Pin MNN to the commit behind the latest stable 3.6.1 release. Using the
+# release commit keeps every native configure reproducible across machines.
+set(OPERIT_MNN_STABLE_COMMIT "d407447ed56c4121a11ccbd266dc184ca1ead0c2")
+# Migrate every existing cache value, including configurations created from
+# master, so Android Studio cannot reuse a different MNN snapshot.
+set(OPERIT_MNN_GIT_REF "${OPERIT_MNN_STABLE_COMMIT}" CACHE STRING "Git ref used to fetch mnn" FORCE)
+
 operit_prepare_git_source(
     MNN_SOURCE_DIR
     OPERIT_MNN_BINARY_DIR
     mnn
     "https://github.com/alibaba/MNN.git"
-    "master"
+    "${OPERIT_MNN_GIT_REF}"
 )
 
 operit_prepare_git_source(

@@ -781,6 +781,7 @@
     <string name="exit_multi_select">Exit Multi-select</string>
     <string name="select_all_messages">Select all</string>
     <string name="clear_selection">Cancel</string>
+    <string name="multi_select_actions">Actions</string>
     <string name="delete_selected">Delete Selected</string>
     <string name="share_selected">Share</string>
     <string name="add_selected_to_memory">Add to summary memory</string>
