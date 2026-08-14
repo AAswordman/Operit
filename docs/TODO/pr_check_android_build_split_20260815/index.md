@@ -2,7 +2,7 @@
 title: PR Check Android 构建与单测拆分
 repo: https://github.com/luojiaping/Operit
 upstream: https://github.com/AAswordman/Operit
-status: awaiting_fork_ci_revalidation
+status: verified
 ---
 
 # PR Check Android 构建与单测拆分
@@ -43,4 +43,4 @@ PR Check 的完整 Android lane 在同一个 job 中执行 `assembleDebug` 和
 - [x] 通过 YAML、actionlint 和 CI 门禁单元测试
 - [x] 在 fork 的 PR/Actions 上验证 build/test job 独立执行
 - [x] 修复 fork 验证暴露的 Android JVM 测试源码与测试夹具错误
-- [ ] 完成 cancellation 断言修正后的 fork Actions 验证
+- [x] 完成 cancellation 断言修正后的 fork Actions 验证

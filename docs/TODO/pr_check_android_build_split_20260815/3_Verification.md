@@ -26,7 +26,9 @@
 - 修复后 run `31835091374` 的 `Android build` 通过，JVM 测试仅剩
   `ProviderUsageCancellationTest.kt` 中 3 个跨 IO dispatcher 的 cancellation 对象身份断言；
   已改为验证取消消息语义，避免把协程实例身份当成 provider 接口契约
+- Fork PR #14 的 run `31839888120` 已全部通过：`Fast checks`、`Android JVM tests`、
+  `Android build` 和 `Candidate checks` 均为 success
 - 可信 `Android Build` 手动运行通过，并上传 Android 报告和成功产物
 
-该验证确认 Android 编译已经在单测失败时独立完成；后续只需重新验证 JVM 测试和
+该验证确认 Android 编译已经在单测失败时独立完成，且最新 run 已验证 JVM 测试和
 `Candidate checks` 聚合状态。
