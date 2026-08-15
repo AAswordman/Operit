@@ -7113,6 +7113,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="speech_services_doubao_voice_id_placeholder">Contoh: BV700_V2_streaming</string>
     <string name="speech_services_doubao_voice_id_hint">Isi voice_type yang disediakan oleh konsol suara Doubao.</string>
     <string name="chat_delete_message_confirm_message">Apakah Anda yakin ingin menghapus pesan ini? Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="chat_delete_selected_messages_confirm">Hapus %1$d pesan yang dipilih? Tindakan ini tidak dapat dibatalkan.</string>
     <string name="pin_chat">Sematkan Obrolan</string>
     <string name="unpin_chat">Lepas Sematan</string>
     <string name="provider_mimo">Xiaomi MiMo</string>
