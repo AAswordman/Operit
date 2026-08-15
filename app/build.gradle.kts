@@ -406,9 +406,7 @@ android {
         }
         
         ndk {
-            // Explicitly specify the ABIs we package for the app process.
-            // terminal now also ships x86_64 runtime binaries for the Android Studio emulator,
-            // while the rest of the app remains primarily ARM-focused.
+            // Keep native compilation aligned with the app's only supported ABI.
             abiFilters.addAll(listOf("arm64-v8a"))
         }
 

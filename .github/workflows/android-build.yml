@@ -57,6 +57,8 @@ env:
   NODE_VERSION: '22'
   ANDROID_NDK_VERSION: '25.1.8937393'
   ANDROID_CMAKE_VERSION: '3.22.1'
+  ANDROID_API_LEVEL: '26'
+  RUST_VERSION: '1.88.0'
   MANUAL_DEPS_DIR: manual-deps
 
 jobs:
@@ -92,6 +94,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
 
       - name: Set up Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -113,6 +116,13 @@ jobs:
             "build-tools;35.0.0" \
             "ndk;$ANDROID_NDK_VERSION" \
             "cmake;$ANDROID_CMAKE_VERSION"
+
+      - name: Restore Android CMake source cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            **/.cxx/operit_deps/*-src
+          key: android-cmake-sources-${{ runner.os }}-${{ runner.arch }}-arm64-v8a-ndk-${{ env.ANDROID_NDK_VERSION }}-cmake-${{ env.ANDROID_CMAKE_VERSION }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt', '**/*.cmake', '**/build.gradle.kts', 'gradle.properties') }}
 
       - name: Restore Android dependency cache
         id: cache-manual-deps
@@ -145,17 +155,17 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             tools/native_ripgrep/target
-          key: native-ripgrep-arm64-${{ runner.os }}-${{ hashFiles('tools/native_ripgrep/Cargo.lock') }}
+          key: native-ripgrep-arm64-${{ runner.os }}-${{ runner.arch }}-ndk-${{ env.ANDROID_NDK_VERSION }}-api-${{ env.ANDROID_API_LEVEL }}-rust-${{ env.RUST_VERSION }}-${{ hashFiles('tools/native_ripgrep/Cargo.toml', 'tools/native_ripgrep/Cargo.lock', 'tools/native_ripgrep/**/*.rs', 'tools/native_ripgrep/build_native_ripgrep.ps1') }}
 
       - name: Build native ripgrep
         shell: bash
         run: |
           set -euo pipefail
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
-          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
-          rustup toolchain install 1.88.0 --profile minimal
-          rustup target add --toolchain 1.88.0 aarch64-linux-android
-          cargo +1.88.0 build \
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup target add --toolchain "$RUST_VERSION" aarch64-linux-android
+          cargo "+$RUST_VERSION" build \
             --manifest-path tools/native_ripgrep/Cargo.toml \
             --release \
             --target aarch64-linux-android \
@@ -201,7 +211,7 @@ jobs:
             *) echo "Unsupported workflow event: $EVENT_NAME" >&2; exit 2 ;;
           esac
           chmod +x ./gradlew
-          ./gradlew "$gradle_task" --stacktrace --no-build-cache --no-daemon
+          ./gradlew "$gradle_task" --stacktrace --no-daemon
 
       - name: Upload Android reports
         if: always()

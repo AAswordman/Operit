@@ -46,6 +46,8 @@ env:
   JAVA_VERSION: '21'
   ANDROID_BUILD_TOOLS_VERSION: '35.0.0'
   ANDROID_NDK_VERSION: '25.1.8937393'
+  ANDROID_API_LEVEL: '26'
+  RUST_VERSION: '1.88.0'
   MANUAL_DEPS_DIR: manual-deps
 
 jobs:
@@ -81,6 +83,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
@@ -127,17 +130,17 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             tools/native_ripgrep/target
-          key: native-ripgrep-arm64-${{ runner.os }}-${{ hashFiles('tools/native_ripgrep/Cargo.lock') }}
+          key: native-ripgrep-arm64-${{ runner.os }}-${{ runner.arch }}-ndk-${{ env.ANDROID_NDK_VERSION }}-api-${{ env.ANDROID_API_LEVEL }}-rust-${{ env.RUST_VERSION }}-${{ hashFiles('tools/native_ripgrep/Cargo.toml', 'tools/native_ripgrep/Cargo.lock', 'tools/native_ripgrep/**/*.rs', 'tools/native_ripgrep/build_native_ripgrep.ps1') }}
 
       - name: Build native ripgrep
         shell: bash
         run: |
           set -euo pipefail
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
-          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
-          rustup toolchain install 1.88.0 --profile minimal
-          rustup target add --toolchain 1.88.0 aarch64-linux-android
-          cargo +1.88.0 build \
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup target add --toolchain "$RUST_VERSION" aarch64-linux-android
+          cargo "+$RUST_VERSION" build \
             --manifest-path tools/native_ripgrep/Cargo.toml \
             --release \
             --target aarch64-linux-android \
@@ -154,7 +157,7 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Run JVM unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-build-cache --no-daemon
+        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
 
       - name: Upload Android test reports
         if: always()
