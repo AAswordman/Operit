@@ -2,7 +2,7 @@
 title: Android CI 缓存与 ARM64 构建优化
 repo: https://github.com/luojiaping/Operit
 upstream: https://github.com/AAswordman/Operit
-status: in-progress
+status: verified
 ---
 
 # Android CI 缓存与 ARM64 构建优化
@@ -31,8 +31,17 @@ DragonBones native module 没有声明 ABI 过滤器，而应用和其他 native
 
 ## 验证
 
-- [ ] 通过 workflow YAML、仓库门禁和 diff 检查
-- [ ] 推送 `ci/android-cache-optimization` 到 fork
-- [ ] 在 fork PR 中验证 Android build 与 Android JVM tests
-- [ ] 连续运行确认 Gradle、CMake source 和 native ripgrep cache 命中
-- [ ] 确认 APK 只包含 `lib/arm64-v8a/`
+- [x] 通过 workflow YAML、仓库门禁和 diff 检查
+- [x] 推送 `ci/android-cache-optimization` 到 fork
+- [x] 在 fork PR [#16](https://github.com/luojiaping/Operit/pull/16) 中验证 Android build 与 Android JVM tests
+- [x] 连续运行确认 Gradle、CMake source 和 native ripgrep cache 命中
+- [x] 构建日志中的 native packaging 路径仅使用 `lib/arm64-v8a/`
+
+## 结果
+
+Fork run `31875454511` 的两次尝试均通过 `Fast checks`、`Android JVM tests`、`Android build` 和 `Candidate checks`。
+
+- 首次 Android build：Gradle `24m31s`，`329` 个 actionable tasks 中 `29` 个来自 cache；CMake source cache 首次 miss，完成后保存约 `337 MB`
+- 第二次 Android build：Gradle `15m46s`，job 总耗时约 `17m51s`，`329` 个 actionable tasks 中 `116` 个来自 cache
+- 第二次日志确认 Gradle wrapper/dependency、CMake source 和 native ripgrep cache 均命中
+- Android JVM tests 从首次约 `11m04s` 降至第二次约 `2m28s`
