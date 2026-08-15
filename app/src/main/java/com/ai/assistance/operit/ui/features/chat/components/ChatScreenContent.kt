@@ -859,7 +859,7 @@ fun ChatScreenContent(
             AlertDialog(
                 onDismissRequest = { showDeleteSelectedConfirmDialog = false },
                 title = { Text(stringResource(R.string.confirm_delete)) },
-                text = { Text("Delete ${selectedMessageIndices.size} selected messages? This cannot be undone.") },
+                text = { Text(stringResource(R.string.chat_delete_selected_messages_confirm, selectedMessageIndices.size)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
