@@ -2817,6 +2817,7 @@
     <string name="chat_delete_single_variant_unavailable">삭제할 수 있는 단일 메시지 후보가 없습니다.</string>
     <string name="chat_delete_single_variant_failed">단일 메시지 삭제 실패: %1$s</string>
     <string name="chat_delete_message_confirm_message">이 메시지를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.</string>
+    <string name="chat_delete_selected_messages_confirm">선택한 %1$d개의 메시지를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.</string>
     <string name="chat_switch_variant_failed">답장 전환 실패: %1$s</string>
     <string name="chat_message_variant_counter">%1$d/%2$d</string>
     <string name="chat_previous_variant">이전 답변</string>
