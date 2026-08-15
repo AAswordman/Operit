@@ -7864,6 +7864,7 @@
     <string name="chat_delete_single_variant_unavailable">No single message candidates available for deletion</string>
     <string name="chat_delete_single_variant_failed">Failed to delete single message: %1$s</string>
     <string name="chat_delete_message_confirm_message">Are you sure you want to delete this message? This action cannot be undone.</string>
+    <string name="chat_delete_selected_messages_confirm">Delete %1$d selected messages? This cannot be undone.</string>
 
     <string name="quick_plugin_creator_title">Quickly Create Your Plugin</string>
     <string name="quick_plugin_creator_desc">Cannot find the plugin you want in the built-in list or marketplace? Create your own.</string>
