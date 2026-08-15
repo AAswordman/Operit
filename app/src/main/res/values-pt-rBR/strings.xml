@@ -6950,7 +6950,10 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="speech_services_doubao_voice_id_placeholder">Exemplo: BV700_V2_streaming</string>
     <string name="speech_services_doubao_voice_id_hint">Preencha o voice_type fornecido no console de voz do Doubao.</string>
     <string name="chat_delete_message_confirm_message">Tem certeza de que deseja excluir esta mensagem? Esta ação não pode ser desfeita.</string>
-    <string name="chat_delete_selected_messages_confirm">Excluir %1$d mensagens selecionadas? Esta ação não pode ser desfeita.</string>
+    <plurals name="chat_delete_selected_messages_confirm">
+        <item quantity="one">Excluir %1$d mensagem selecionada? Esta ação não pode ser desfeita.</item>
+        <item quantity="other">Excluir %1$d mensagens selecionadas? Esta ação não pode ser desfeita.</item>
+    </plurals>
     <string name="pin_chat">Fixar chat</string>
     <string name="unpin_chat">Desafixar chat</string>
     <string name="provider_mimo">Xiaomi MiMo</string>

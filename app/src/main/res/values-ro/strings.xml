@@ -3136,7 +3136,11 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_delete_single_variant_unavailable">În mesajul curent nu există nicio candidatură unică care să poată fi ștersă</string>
     <string name="chat_delete_single_variant_failed">Eșecul ștergerii unui mesaj individual: %1$s</string>
     <string name="chat_delete_message_confirm_message">Sunteți sigur că doriți să ștergeți acest mesaj? Această acțiune nu poate fi anulată.</string>
-    <string name="chat_delete_selected_messages_confirm">Ștergeți %1$d mesaje selectate? Această acțiune nu poate fi anulată.</string>
+    <plurals name="chat_delete_selected_messages_confirm">
+        <item quantity="one">Ștergeți %1$d mesaj selectat? Această acțiune nu poate fi anulată.</item>
+        <item quantity="few">Ștergeți %1$d mesaje selectate? Această acțiune nu poate fi anulată.</item>
+        <item quantity="other">Ștergeți %1$d mesaje selectate? Această acțiune nu poate fi anulată.</item>
+    </plurals>
     <string name="chat_switch_variant_failed">Eșec la comutarea răspunsului: %1$s</string>
     <string name="chat_message_variant_counter">%1$d/%2$d</string>
     <string name="chat_previous_variant">Răspunsul anterior</string>

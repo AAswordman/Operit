@@ -7110,7 +7110,9 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="speech_services_doubao_voice_id_placeholder">Contoh: BV700_V2_streaming</string>
     <string name="speech_services_doubao_voice_id_hint">Isikan voice_type yang disediakan oleh konsol pertuturan Doubao.</string>
     <string name="chat_delete_message_confirm_message">Adakah anda pasti mahu memadamkan mesej ini? Tindakan ini tidak boleh dibatalkan.</string>
-    <string name="chat_delete_selected_messages_confirm">Padam %1$d mesej yang dipilih? Tindakan ini tidak boleh dibatalkan.</string>
+    <plurals name="chat_delete_selected_messages_confirm">
+        <item quantity="other">Padam %1$d mesej yang dipilih? Tindakan ini tidak boleh dibatalkan.</item>
+    </plurals>
     <string name="pin_chat">Semat Sembang</string>
     <string name="unpin_chat">Nyahsemat Sembang</string>
     <string name="provider_mimo">Xiaomi MiMo</string>

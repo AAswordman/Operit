@@ -3181,7 +3181,9 @@
     <string name="chat_delete_single_variant_unavailable">当前消息没有可删除的单次候选</string>
     <string name="chat_delete_single_variant_failed">删除单次消息失败: %1$s</string>
     <string name="chat_delete_message_confirm_message">确定要删除这条消息吗？此操作不可恢复。</string>
-    <string name="chat_delete_selected_messages_confirm">确定要删除选中的 %1$d 条消息吗？此操作不可恢复。</string>
+    <plurals name="chat_delete_selected_messages_confirm">
+        <item quantity="other">确定要删除选中的 %1$d 条消息吗？此操作不可恢复。</item>
+    </plurals>
     <string name="chat_switch_variant_failed">切换回答失败: %1$s</string>
     <string name="chat_message_variant_counter">%1$d/%2$d</string>
     <string name="chat_previous_variant">上一条回答</string>
