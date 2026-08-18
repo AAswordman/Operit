@@ -2510,6 +2510,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="functional_model_config_desc">Defina configurações de modelo separadas para funções diferentes para que cada função possa usar as configurações de API mais apropriadas.</string>
     <string name="manage_all_model_configs">Gerencie todas as configurações do modelo</string>
     <string name="manage_model_configs_desc">Gerenciar configuração do modelo</string>
+    <string name="follow_chat_model_for_all_functions">Sincronizar todas as funções com o modelo de conversa atual</string>
     <string name="reset_all_functions_to_default">Redefinir todas as funções para a configuração padrão</string>
     <string name="current_config_label">Configuração atual: %1$s</string>
     <string name="default_config">Configuração padrão</string>

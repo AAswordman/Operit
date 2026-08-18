@@ -2698,6 +2698,7 @@
     <string name="functional_model_config_desc">Tetapkan konfigurasi model berasingan untuk fungsi yang berbeza, membolehkan setiap fungsi menggunakan tetapan API yang paling sesuai.</string>
     <string name="manage_all_model_configs">Urus semua konfigurasi model</string>
     <string name="manage_model_configs_desc">Urus konfigurasi model</string>
+    <string name="follow_chat_model_for_all_functions">Samakan semua fungsi dengan model sembang semasa</string>
     <string name="reset_all_functions_to_default">Tetapkan semula semua fungsi kepada konfigurasi lalai</string>
     <string name="current_config_label">Konfigurasi semasa: %1$s</string>
     <string name="default_config">Konfigurasi lalai</string>

@@ -2607,6 +2607,7 @@
     <string name="functional_model_config_desc">각 기능에 대해 별도의 모델 구성을 설정하여 각 기능이 가장 적합한 API 설정을 사용할 수 있도록 합니다.</string>
     <string name="manage_all_model_configs">모든 모델 구성 관리</string>
     <string name="manage_model_configs_desc">모델 구성 관리</string>
+    <string name="follow_chat_model_for_all_functions">모든 기능을 현재 대화 모델에 맞추기</string>
     <string name="reset_all_functions_to_default">모든 기능을 기본 구성으로 재설정</string>
     <string name="current_config_label">현재 구성: %1$s</string>
     <string name="default_config">기본 구성</string>

@@ -2943,6 +2943,7 @@
     <string name="functional_model_config_desc">为不同功能设置单独的模型配置，使每个功能都能使用最适合的API设置。</string>
     <string name="manage_all_model_configs">管理所有模型配置</string>
     <string name="manage_model_configs_desc">管理模型配置</string>
+    <string name="follow_chat_model_for_all_functions">全部跟随当前对话模型</string>
     <string name="reset_all_functions_to_default">重置所有功能至默认配置</string>
     <string name="current_config_label">当前配置: %1$s</string>
     <string name="default_config">默认配置</string>

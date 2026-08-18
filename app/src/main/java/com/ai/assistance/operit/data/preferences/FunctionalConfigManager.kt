@@ -151,6 +151,13 @@ class FunctionalConfigManager(private val context: Context) {
         setConfigForFunction(functionType, DEFAULT_CONFIG_ID)
     }
 
+    // 让全部功能跟随当前对话功能的配置，包含多模型索引
+    suspend fun followChatConfigForAllFunctions() {
+        val chatMapping = getConfigMappingForFunction(FunctionType.CHAT)
+        val mapping = FunctionType.values().associateWith { chatMapping }
+        saveFunctionConfigMappingWithIndex(mapping)
+    }
+
     // 重置所有功能配置为默认
     suspend fun resetAllFunctionConfigs() {
         val defaultMapping = FunctionType.values().associateWith { FunctionConfigMapping(DEFAULT_CONFIG_ID, 0) }

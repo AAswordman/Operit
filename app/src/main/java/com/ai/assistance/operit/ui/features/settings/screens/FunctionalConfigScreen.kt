@@ -191,6 +191,31 @@ fun FunctionalConfigScreen(
                 }
 
                 item {
+                    // 跟随当前对话模型按钮
+                    OutlinedButton(
+                            onClick = {
+                                scope.launch {
+                                    functionalConfigManager.followChatConfigForAllFunctions()
+                                    // 刷新所有服务实例
+                                    EnhancedAIService.refreshAllServices(context)
+                                    showSaveSuccess = true
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    ) {
+                        Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(id = R.string.follow_chat_model_for_all_functions))
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     // 重置按钮
                     OutlinedButton(
                             onClick = {

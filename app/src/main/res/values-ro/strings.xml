@@ -2905,6 +2905,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="functional_model_config_desc">Configurarea unor setări separate pentru fiecare funcție, astfel încât fiecare funcție să poată utiliza cea mai potrivităAPISetări.</string>
     <string name="manage_all_model_configs">Gestionarea tuturor configurațiilor modelelor</string>
     <string name="manage_model_configs_desc">Configurarea modelului de gestionare</string>
+    <string name="follow_chat_model_for_all_functions">Sincronizarea tuturor funcțiilor cu modelul de conversație curent</string>
     <string name="reset_all_functions_to_default">Resetarea tuturor funcțiilor la setările implicite</string>
     <string name="current_config_label">Configurația actuală: %1$s</string>
     <string name="default_config">Configurația implicită</string>

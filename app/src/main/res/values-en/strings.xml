@@ -2862,6 +2862,7 @@
     <string name="functional_model_config_desc">Set separate model configurations for different functions, allowing each function to use the most suitable API settings.</string>
     <string name="manage_all_model_configs">Manage All Model Configurations</string>
     <string name="manage_model_configs_desc">Manage Model Configurations</string>
+    <string name="follow_chat_model_for_all_functions">Sync All Functions to Current Chat Model</string>
     <string name="reset_all_functions_to_default">Reset All Functions to Default Configuration</string>
     <string name="current_config_label">Current Configuration: %1$s</string>
     <string name="default_config">Default Configuration</string>
