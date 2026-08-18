@@ -8244,5 +8244,6 @@
     <string name="token_stats_detail_tokens">Token 明细</string>
     <string name="token_stats_detail_close">关闭</string>
     <string name="token_stats_detail_open">点击查看详细数据</string>
+    <string name="markdown_link_not_openable">该链接指向文档内部的引用，无法打开</string>
 
 </resources>

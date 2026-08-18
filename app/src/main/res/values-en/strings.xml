@@ -8253,5 +8253,6 @@
     <string name="token_stats_detail_tokens">Token breakdown</string>
     <string name="token_stats_detail_close">Close</string>
     <string name="token_stats_detail_open">Tap to view details</string>
+    <string name="markdown_link_not_openable">This link points to a reference inside the document and cannot be opened</string>
 
 </resources>

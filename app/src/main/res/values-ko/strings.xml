@@ -7256,4 +7256,5 @@
     <string name="artifact_publish_load_github_releases">Release 로드</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Release 자산</string>
+    <string name="markdown_link_not_openable">이 링크는 문서 내부의 참조를 가리켜서 열 수 없습니다</string>
 </resources>

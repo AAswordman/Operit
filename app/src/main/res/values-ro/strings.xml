@@ -8003,5 +8003,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="notification_kind_review_rejected">Nu a fost aprobat</string>
     <string name="notification_kind_review_changes">Trebuie modificat</string>
     <string name="notification_kind_entry_curated">Selectat în selecția de top</string>
+    <string name="markdown_link_not_openable">Acest link indică o referință din interiorul documentului și nu poate fi deschis</string>
 
 </resources>

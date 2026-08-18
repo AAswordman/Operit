@@ -7406,4 +7406,5 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="artifact_publish_load_github_releases">Muat Siaran</string>
     <string name="artifact_publish_github_release">Siaran GitHub</string>
     <string name="artifact_publish_github_release_asset">Aset Siaran</string>
+    <string name="markdown_link_not_openable">Pautan ini menghala ke rujukan dalam dokumen dan tidak boleh dibuka</string>
 </resources>

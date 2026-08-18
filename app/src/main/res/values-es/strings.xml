@@ -7477,4 +7477,5 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="artifact_publish_load_github_releases">Cargar Release</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Activo de Release</string>
+    <string name="markdown_link_not_openable">Este enlace apunta a una referencia dentro del documento y no se puede abrir</string>
 </resources>

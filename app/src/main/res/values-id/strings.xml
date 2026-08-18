@@ -7409,4 +7409,5 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="artifact_publish_load_github_releases">Muat Release</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Aset Release</string>
+    <string name="markdown_link_not_openable">Tautan ini menunjuk ke referensi di dalam dokumen dan tidak dapat dibuka</string>
 </resources>
