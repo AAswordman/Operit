@@ -1553,6 +1553,10 @@ export interface ChatInfo {
     outputTokens: number;
     /** Bound character card name (if any) */
     characterCardName?: string | null;
+    /** ID of the character card bound to this chat, resolved from characterCardName */
+    characterCardId?: string | null;
+    /** Bound character group ID, set only for group chats */
+    characterGroupId?: string | null;
 }
 
 /**

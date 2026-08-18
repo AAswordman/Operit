@@ -2021,7 +2021,9 @@ data class ChatListResultData(
         val isCurrent: Boolean,
         val inputTokens: Long,
         val outputTokens: Long,
-        val characterCardName: String? = null
+        val characterCardName: String? = null,
+        val characterCardId: String? = null,
+        val characterGroupId: String? = null
     )
     
     override fun toString(): String {
@@ -2042,6 +2044,12 @@ data class ChatListResultData(
                 sb.appendLine("Message Count: ${chat.messageCount}")
                 if (!chat.characterCardName.isNullOrBlank()) {
                     sb.appendLine("Character Card: ${chat.characterCardName}")
+                }
+                if (!chat.characterCardId.isNullOrBlank()) {
+                    sb.appendLine("Character Card ID: ${chat.characterCardId}")
+                }
+                if (!chat.characterGroupId.isNullOrBlank()) {
+                    sb.appendLine("Character Group ID: ${chat.characterGroupId}")
                 }
                 sb.appendLine("Token Statistics: Input ${chat.inputTokens} / Output ${chat.outputTokens}")
                 sb.appendLine("Created: ${chat.createdAt}")

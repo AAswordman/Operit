@@ -139,10 +139,22 @@ class StandardChatManagerTool(private val context: Context) {
         }
     }
 
+    /** 角色卡名到角色卡ID的映射，同名时取第一张，与 findCharacterCardByName 的选取一致 */
+    private suspend fun buildCharacterCardIdsByName(chats: List<ChatHistory>): Map<String, String> {
+        if (chats.none { !it.characterCardName.isNullOrBlank() }) {
+            return emptyMap()
+        }
+        return CharacterCardManager.getInstance(appContext)
+            .getAllCharacterCards()
+            .groupBy { it.name }
+            .mapValues { (_, cards) -> cards.first().id }
+    }
+
     private fun buildChatInfo(
         chat: ChatHistory,
         messageCounts: Map<String, Int>,
-        currentChatId: String?
+        currentChatId: String?,
+        characterCardIdsByName: Map<String, String>
     ): ChatListResultData.ChatInfo {
         return ChatListResultData.ChatInfo(
             id = chat.id,
@@ -153,7 +165,11 @@ class StandardChatManagerTool(private val context: Context) {
             isCurrent = currentChatId != null && chat.id == currentChatId,
             inputTokens = chat.inputTokens,
             outputTokens = chat.outputTokens,
-            characterCardName = chat.characterCardName
+            characterCardName = chat.characterCardName,
+            characterCardId = chat.characterCardName
+                ?.takeIf { it.isNotBlank() }
+                ?.let { characterCardIdsByName[it] },
+            characterGroupId = chat.characterGroupId
         )
     }
 
@@ -554,7 +570,13 @@ class StandardChatManagerTool(private val context: Context) {
                 )
             }
 
-            val chatInfo = buildChatInfo(matched[targetIndex], messageCounts, currentChatId)
+            val selectedChat = matched[targetIndex]
+            val chatInfo = buildChatInfo(
+                selectedChat,
+                messageCounts,
+                currentChatId,
+                buildCharacterCardIdsByName(listOf(selectedChat))
+            )
             ToolResult(
                 toolName = tool.name,
                 success = true,
@@ -1202,8 +1224,10 @@ class StandardChatManagerTool(private val context: Context) {
                     if (sortOrder == "asc") av.compareTo(bv) else bv.compareTo(av)
                 }
 
-            val chatInfoList = matched.take(limit).map { chat ->
-                buildChatInfo(chat, messageCounts, currentChatId)
+            val visibleChats = matched.take(limit)
+            val characterCardIdsByName = buildCharacterCardIdsByName(visibleChats)
+            val chatInfoList = visibleChats.map { chat ->
+                buildChatInfo(chat, messageCounts, currentChatId, characterCardIdsByName)
             }
 
             ToolResult(
