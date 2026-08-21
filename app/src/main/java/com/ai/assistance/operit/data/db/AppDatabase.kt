@@ -1,6 +1,12 @@
 package com.ai.assistance.operit.data.db
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteAccessPermException
+import android.database.sqlite.SQLiteCantOpenDatabaseException
+import android.database.sqlite.SQLiteDiskIOException
+import android.database.sqlite.SQLiteFullException
+import android.database.sqlite.SQLiteReadOnlyDatabaseException
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -16,6 +22,14 @@ import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
+import com.ai.assistance.operit.data.persistence.RoomRecoveryStorage
+import com.ai.assistance.operit.data.persistence.StorageReplacementGate
+import com.ai.assistance.operit.util.AppLogger
+import java.io.Closeable
+import java.io.File
+import java.io.IOException
+import java.util.UUID
+
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
     entities = [
@@ -29,18 +43,44 @@ import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
+
     /** 获取聊天DAO */
     abstract fun chatDao(): ChatDao
 
     /** 获取消息DAO */
     abstract fun messageDao(): MessageDao
+
     abstract fun messageVariantDao(): MessageVariantDao
+
     abstract fun chatContentDao(): ChatContentDao
+
     abstract fun tokenUsageDao(): TokenUsageDao
 
+    internal data class SnapshotFile(
+        val relativePath: String,
+        val file: File
+    )
+
+    internal class SnapshotExport internal constructor(
+        val files: List<SnapshotFile>,
+        private val stagingDirectory: File
+    ) : Closeable {
+        override fun close() {
+            if (stagingDirectory.exists() && !stagingDirectory.deleteRecursively()) {
+                AppLogger.w(
+                    "AppDatabase",
+                    "Failed to remove Room raw snapshot staging directory"
+                )
+            }
+        }
+    }
+
     companion object {
+        const val DATABASE_VERSION = 21
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
+        private var databaseContext: Context? = null
 
         // 定义从版本1到2的迁移
         private val MIGRATION_1_2 =
@@ -381,50 +421,252 @@ abstract class AppDatabase : RoomDatabase() {
 
         /** 获取数据库实例，单例模式 */
         fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE
-                ?: synchronized(this) {
-                    val instance =
-                        Room.databaseBuilder(
-                            context.applicationContext,
-                            AppDatabase::class.java,
-                            "app_database"
-                        )
-                            .addMigrations(
-                                MIGRATION_1_2,
-                                MIGRATION_2_3,
-                                MIGRATION_3_4,
-                                MIGRATION_4_5,
-                                MIGRATION_5_6,
-                                MIGRATION_6_7,
-                                MIGRATION_7_8,
-                                MIGRATION_8_9,
-                                MIGRATION_9_10,
-                                MIGRATION_10_11,
-                                MIGRATION_11_12,
-                                MIGRATION_12_13,
-                                MIGRATION_13_14,
-                                MIGRATION_14_15,
-                                MIGRATION_15_16,
-                                MIGRATION_16_17,
-                                MIGRATION_17_18,
-                                MIGRATION_18_19,
-                                MIGRATION_19_20,
-                                MIGRATION_20_21
-                            ) // 添加新的迁移
-                            .build()
-                    INSTANCE = instance
-                    instance
+            return StorageReplacementGate.withStorageAccess {
+                INSTANCE
+                    ?: synchronized(this) {
+                        INSTANCE
+                            ?: run {
+                                val appContext = context.applicationContext
+                                val wasMissing =
+                                    !appContext.getDatabasePath(RoomRecoveryStorage.DATABASE_NAME)
+                                        .isFile
+                                RoomRecoveryStorage.prepareForOpen(appContext)
+                                var instance =
+                                    buildDatabase(appContext, RoomRecoveryStorage.DATABASE_NAME)
+                                if (wasMissing) {
+                                    try {
+                                        try {
+                                            instance.openHelper.writableDatabase
+                                        } finally {
+                                            instance.close()
+                                        }
+                                        RoomRecoveryStorage.checkpointClosed(appContext)
+                                        RoomRecoveryStorage.prepareForOpen(appContext)
+                                    } catch (e: Exception) {
+                                        RoomRecoveryStorage.invalidatePreparedState()
+                                        throw e
+                                    }
+                                    instance =
+                                        buildDatabase(appContext, RoomRecoveryStorage.DATABASE_NAME)
+                                }
+                                databaseContext = appContext
+                                INSTANCE = instance
+                                instance
+                            }
+                    }
                 }
         }
 
         fun closeDatabase() {
             synchronized(this) {
+                val context = databaseContext
                 try {
                     INSTANCE?.close()
                 } finally {
                     INSTANCE = null
+                    databaseContext = null
+                }
+                if (context != null) {
+                    try {
+                        RoomRecoveryStorage.checkpointClosed(context)
+                    } catch (e: Exception) {
+                        AppLogger.e("AppDatabase", "Failed to checkpoint closed Room database", e)
+                    }
+                } else {
+                    // Startup preflight can complete without constructing the singleton. A later
+                    // raw replacement must still force the imported database through validation.
+                    RoomRecoveryStorage.invalidatePreparedState()
                 }
             }
+        }
+
+        /**
+         * Keeps the singleton monitor held from close through replacement. Without this boundary,
+         * a background repository can reopen Room after close and race the raw file replacement.
+         */
+        fun replaceWithVerifiedDatabase(
+            context: Context,
+            replacementDatabaseFile: File,
+            reason: String
+        ) {
+            synchronized(this) {
+                closeDatabase()
+                RoomRecoveryStorage.replaceWithVerifiedDatabase(
+                    context.applicationContext,
+                    replacementDatabaseFile,
+                    reason
+                )
+            }
+        }
+
+        /**
+         * Opens an isolated copy through Room so page-valid SQLite files with a damaged Room
+         * schema never become recovery snapshots.
+         */
+        internal fun validateRecoveryCandidate(context: Context, candidate: File): Boolean {
+            if (!candidate.isFile) return false
+            val appContext = context.applicationContext
+            val validationName =
+                "room_recovery_validation_${UUID.randomUUID().toString().replace("-", "")}"
+            val validationFile = appContext.getDatabasePath(validationName)
+            validationFile.parentFile?.mkdirs()
+            return try {
+                candidate.copyTo(validationFile, overwrite = false)
+                // Room normally trusts a matching identity hash. Removing the identity table from
+                // this isolated copy forces RoomOpenHelper to compare the actual tables, columns,
+                // foreign keys, and indexes before the candidate can become a recovery snapshot.
+                SQLiteDatabase.openDatabase(
+                    validationFile.absolutePath,
+                    null,
+                    SQLiteDatabase.OPEN_READWRITE
+                ).use { database ->
+                    database.execSQL("DROP TABLE IF EXISTS `room_master_table`")
+                }
+                val database = buildDatabase(appContext, validationName)
+                try {
+                    database.openHelper.writableDatabase
+                    true
+                } finally {
+                    database.close()
+                }
+            } catch (e: Exception) {
+                AppLogger.e("AppDatabase", "Room schema validation failed", e)
+                if (isOperationalValidationFailure(e)) throw e
+                false
+            } finally {
+                databaseFiles(validationFile).forEach { file ->
+                    if (file.exists() && !file.delete()) {
+                        AppLogger.w(
+                            "AppDatabase",
+                            "Failed to delete Room validation file: ${file.name}"
+                        )
+                    }
+                }
+            }
+        }
+
+        internal fun stageForSnapshotExport(context: Context): SnapshotExport {
+            val appContext = context.applicationContext
+            val stagingDirectory =
+                File(appContext.cacheDir, "room_raw_export_${UUID.randomUUID()}")
+            check(stagingDirectory.mkdirs()) {
+                "Failed to create Room raw snapshot staging directory"
+            }
+            val stagedDatabase = File(stagingDirectory, RoomRecoveryStorage.DATABASE_NAME)
+
+            try {
+                synchronized(this) {
+                    val instance = INSTANCE
+                    if (instance != null) {
+                        instance.runInTransaction(Runnable {
+                            copyDatabaseForSnapshot(appContext, stagedDatabase)
+                        })
+                    } else {
+                        copyDatabaseForSnapshot(appContext, stagedDatabase)
+                    }
+                }
+
+                check(RoomRecoveryStorage.validateDatabaseSet(appContext, stagedDatabase)) {
+                    "Room raw snapshot copy failed database and schema validation"
+                }
+                databaseFiles(stagedDatabase).drop(1).forEach { sidecar ->
+                    if (sidecar.exists() && !sidecar.deleteRecursively()) {
+                        throw IllegalStateException(
+                            "Failed to remove Room raw snapshot sidecar: ${sidecar.name}"
+                        )
+                    }
+                }
+                check(stagedDatabase.isFile) {
+                    "Room raw snapshot validation removed the staged database"
+                }
+                return SnapshotExport(
+                    files =
+                        listOf(
+                            SnapshotFile(
+                                relativePath = RoomRecoveryStorage.DATABASE_NAME,
+                                file = stagedDatabase
+                            )
+                        ),
+                    stagingDirectory = stagingDirectory
+                )
+            } catch (e: Exception) {
+                if (!stagingDirectory.deleteRecursively()) {
+                    AppLogger.w(
+                        "AppDatabase",
+                        "Failed to clean rejected Room raw snapshot staging directory"
+                    )
+                }
+                throw e
+            }
+        }
+
+        private fun copyDatabaseForSnapshot(context: Context, target: File) {
+            val source = context.getDatabasePath(RoomRecoveryStorage.DATABASE_NAME)
+            check(source.isFile) { "Room raw snapshot source database is missing" }
+            source.copyTo(target, overwrite = false)
+
+            val sourceWal = File(source.absolutePath + "-wal")
+            if (sourceWal.exists()) {
+                check(sourceWal.isFile) { "Room raw snapshot WAL path is not a file" }
+                sourceWal.copyTo(File(target.absolutePath + "-wal"), overwrite = false)
+            }
+        }
+
+        private fun buildDatabase(context: Context, databaseName: String): AppDatabase =
+            Room.databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                databaseName
+            )
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                    MIGRATION_6_7,
+                    MIGRATION_7_8,
+                    MIGRATION_8_9,
+                    MIGRATION_9_10,
+                    MIGRATION_10_11,
+                    MIGRATION_11_12,
+                    MIGRATION_12_13,
+                    MIGRATION_13_14,
+                    MIGRATION_14_15,
+                    MIGRATION_15_16,
+                    MIGRATION_16_17,
+                    MIGRATION_17_18,
+                    MIGRATION_18_19,
+                    MIGRATION_19_20,
+                    MIGRATION_20_21
+                )
+                .build()
+
+        private fun databaseFiles(databaseFile: File): List<File> =
+            listOf(
+                databaseFile,
+                File(databaseFile.absolutePath + "-wal"),
+                File(databaseFile.absolutePath + "-shm"),
+                File(databaseFile.absolutePath + "-journal")
+            )
+
+        private fun isOperationalValidationFailure(error: Throwable): Boolean {
+            var current: Throwable? = error
+            while (current != null) {
+                if (current is IOException ||
+                    current is SQLiteAccessPermException ||
+                    current is SQLiteCantOpenDatabaseException ||
+                    current is SQLiteDiskIOException ||
+                    current is SQLiteFullException ||
+                    current is SQLiteReadOnlyDatabaseException
+                ) {
+                    return true
+                }
+                val cause = current.cause
+                if (cause === current) break
+                current = cause
+            }
+            return false
         }
     }
 }

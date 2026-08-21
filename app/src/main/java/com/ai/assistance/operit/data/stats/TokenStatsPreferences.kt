@@ -7,12 +7,12 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.data.collects.PricingCurrency
+import com.ai.assistance.operit.data.persistence.managedPreferencesDataStore
 import kotlinx.coroutines.flow.first
 
 private val Context.tokenStatsDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "token_stats_preferences")
+    managedPreferencesDataStore(name = "token_stats_preferences")
 
 /** Scalar statistics settings. Structured usage, grouping, and pricing stay in Room. */
 internal class TokenStatsPreferences(context: Context) {

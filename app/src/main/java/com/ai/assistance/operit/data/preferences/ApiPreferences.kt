@@ -1,17 +1,23 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
+import com.ai.assistance.operit.util.AppLogger
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.mergeNormalizedJsonFields
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ParameterCategory
 import com.ai.assistance.operit.data.model.ParameterValueType
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -20,12 +26,20 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 // Define the DataStore at the module level
 private val Context.apiDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "api_settings")
+        recoverablePreferencesDataStore(name = "api_settings")
 
 class ApiPreferences private constructor(private val context: Context) {
+
+    private val persistenceJson = Json { ignoreUnknownKeys = true }
 
     // Define our preferences keys
     companion object {
@@ -162,35 +176,216 @@ class ApiPreferences private constructor(private val context: Context) {
         val name: String
     )
 
+    private data class PersistedSafBookmark(
+        val value: SafBookmark,
+        val element: JsonObject
+    )
+
+    private data class SafBookmarkNormalization(
+        val encoded: String,
+        val changed: Boolean
+    )
+
+    private fun decodeSafBookmarks(raw: String): List<PersistedSafBookmark> =
+        persistenceJson.parseToJsonElement(raw).jsonArray.map { element ->
+            PersistedSafBookmark(
+                value = persistenceJson.decodeFromJsonElement(element),
+                element = element.jsonObject
+            )
+        }
+
+    private fun normalizeSafBookmarks(raw: String): SafBookmarkNormalization {
+        val retained = mutableListOf<JsonObject>()
+        var changed = false
+        persistenceJson.parseToJsonElement(raw).jsonArray.forEach { element ->
+            try {
+                persistenceJson.decodeFromJsonElement<SafBookmark>(element)
+                retained += element.jsonObject
+            } catch (e: Exception) {
+                changed = true
+                AppLogger.e("ApiPreferences", "Repairing an invalid SAF bookmark", e)
+            }
+        }
+        return SafBookmarkNormalization(
+            encoded = if (changed) JsonArray(retained).toString() else raw,
+            changed = changed
+        )
+    }
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.API_SETTINGS,
+            dataStore = context.apiDataStore
+        ) { current ->
+            val originalValues = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            fun replaceString(key: Preferences.Key<String>, value: String) {
+                removeName(key.name)
+                mutable[key] = value
+                issues += key.name
+            }
+
+            fun replaceBoolean(key: Preferences.Key<Boolean>, value: Boolean) {
+                removeName(key.name)
+                mutable[key] = value
+                issues += key.name
+            }
+
+            fun replaceInt(key: Preferences.Key<Int>, value: Int) {
+                removeName(key.name)
+                mutable[key] = value
+                issues += key.name
+            }
+
+            val booleanKeys =
+                listOf(
+                    // DataStore 1.0 defines Key.to as Preferences.Pair, which is not destructurable.
+                    kotlin.Pair(KEEP_SCREEN_ON, DEFAULT_KEEP_SCREEN_ON),
+                    kotlin.Pair(ENABLE_THINKING_MODE, DEFAULT_ENABLE_THINKING_MODE),
+                    kotlin.Pair(ENABLE_MEMORY_AUTO_UPDATE, DEFAULT_ENABLE_MEMORY_AUTO_UPDATE),
+                    kotlin.Pair(ENABLE_AUTO_READ, DEFAULT_ENABLE_AUTO_READ),
+                    kotlin.Pair(ENABLE_TOOLS, DEFAULT_ENABLE_TOOLS),
+                    kotlin.Pair(DISABLE_STREAM_OUTPUT, DEFAULT_DISABLE_STREAM_OUTPUT),
+                    kotlin.Pair(
+                        DISABLE_USER_PREFERENCE_DESCRIPTION,
+                        DEFAULT_DISABLE_USER_PREFERENCE_DESCRIPTION
+                    )
+                )
+            booleanKeys.forEach { (key, defaultValue) ->
+                val raw = originalValues[key.name]
+                if (raw != null && raw !is Boolean) replaceBoolean(key, defaultValue)
+            }
+
+            val rawThinkingQuality = originalValues[THINKING_QUALITY_LEVEL.name]
+            if (rawThinkingQuality != null) {
+                val normalized =
+                    (rawThinkingQuality as? Int)?.coerceIn(
+                        MIN_THINKING_QUALITY_LEVEL,
+                        MAX_THINKING_QUALITY_LEVEL
+                    ) ?: DEFAULT_THINKING_QUALITY_LEVEL
+                if (rawThinkingQuality !is Int || normalized != rawThinkingQuality) {
+                    replaceInt(THINKING_QUALITY_LEVEL, normalized)
+                }
+            }
+
+            listOf(
+                kotlin.Pair(MAX_IMAGE_HISTORY_USER_TURNS, DEFAULT_MAX_IMAGE_HISTORY_USER_TURNS),
+                kotlin.Pair(MAX_MEDIA_HISTORY_USER_TURNS, DEFAULT_MAX_MEDIA_HISTORY_USER_TURNS)
+            ).forEach { (key, defaultValue) ->
+                val raw = originalValues[key.name]
+                if (raw != null && (raw !is Int || raw < 0)) replaceInt(key, defaultValue)
+            }
+
+            val rawPrompt = originalValues[CUSTOM_SYSTEM_PROMPT_TEMPLATE.name]
+            if (rawPrompt != null && rawPrompt !is String) {
+                replaceString(CUSTOM_SYSTEM_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT_TEMPLATE)
+            }
+
+            fun validateJson(
+                key: Preferences.Key<String>,
+                defaultValue: String,
+                validator: (String) -> Unit
+            ) {
+                val raw = originalValues[key.name] ?: return
+                val valid =
+                    if (raw is String) {
+                        try {
+                            validator(raw)
+                            true
+                        } catch (e: Exception) {
+                            AppLogger.e("ApiPreferences", "Repairing invalid JSON in ${key.name}", e)
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                if (!valid) replaceString(key, defaultValue)
+            }
+
+            val rawBookmarks = originalValues[SAF_BOOKMARKS_JSON.name]
+            if (rawBookmarks != null) {
+                val normalized =
+                    if (rawBookmarks is String) {
+                        try {
+                            normalizeSafBookmarks(rawBookmarks)
+                        } catch (e: Exception) {
+                            AppLogger.e("ApiPreferences", "Repairing invalid SAF bookmarks", e)
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                when {
+                    normalized == null -> replaceString(SAF_BOOKMARKS_JSON, "[]")
+                    normalized.changed -> replaceString(SAF_BOOKMARKS_JSON, normalized.encoded)
+                }
+            }
+            validateJson(FEATURE_TOGGLES_JSON, DEFAULT_FEATURE_TOGGLES_JSON) {
+                Json.decodeFromString<Map<String, Boolean>>(it)
+            }
+            validateJson(TOOL_PROMPT_VISIBILITY_JSON, DEFAULT_TOOL_PROMPT_VISIBILITY_JSON) {
+                Json.decodeFromString<Map<String, Boolean>>(it)
+            }
+            listOf(TOOL_PROMPT_ORDER_JSON, PLUGIN_ORDER_JSON, SKILL_ORDER_JSON).forEach { key ->
+                validateJson(key, DEFAULT_TOOL_PROMPT_ORDER_JSON) {
+                    Json.decodeFromString<List<String>>(it)
+                }
+            }
+            validateJson(CUSTOM_PARAMETERS, DEFAULT_CUSTOM_PARAMETERS) {
+                Json.parseToJsonElement(it).jsonArray
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
+
     val safBookmarksFlow: Flow<List<SafBookmark>> =
         context.apiDataStore.data.map { preferences ->
-            val json = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
-            runCatching { Json.decodeFromString<List<SafBookmark>>(json) }.getOrElse { emptyList() }
+            val raw = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
+            try {
+                decodeSafBookmarks(raw).map(PersistedSafBookmark::value)
+            } catch (e: Exception) {
+                AppLogger.e("ApiPreferences", "Invalid SAF bookmarks reached a live reader", e)
+                emptyList()
+            }
         }
 
     suspend fun addSafBookmark(uri: String, name: String) {
         context.apiDataStore.edit { preferences ->
-            val existing =
-                runCatching {
-                    val json = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
-                    Json.decodeFromString<List<SafBookmark>>(json)
-                }.getOrElse { emptyList() }
-
-            val updated = (existing.filterNot { it.uri == uri } + SafBookmark(uri = uri, name = name))
-                .sortedBy { it.name.lowercase() }
-            preferences[SAF_BOOKMARKS_JSON] = Json.encodeToString(updated)
+            val existing = decodeSafBookmarks(preferences[SAF_BOOKMARKS_JSON] ?: "[]")
+            val bookmark = SafBookmark(uri = uri, name = name)
+            val previous = existing.firstOrNull { it.value.uri == uri }
+            val encodedBookmark =
+                if (previous == null) {
+                    persistenceJson.encodeToJsonElement(bookmark).jsonObject
+                } else {
+                    mergeNormalizedJsonFields(
+                        persisted = previous.element,
+                        decoded = persistenceJson.encodeToJsonElement(previous.value),
+                        normalized = persistenceJson.encodeToJsonElement(bookmark)
+                    ).jsonObject
+                }
+            val updated =
+                (existing.filterNot { it.value.uri == uri } +
+                    PersistedSafBookmark(bookmark, encodedBookmark))
+                    .sortedBy { it.value.name.lowercase(Locale.ROOT) }
+            preferences[SAF_BOOKMARKS_JSON] =
+                JsonArray(updated.map(PersistedSafBookmark::element)).toString()
         }
     }
 
     suspend fun removeSafBookmark(uri: String) {
         context.apiDataStore.edit { preferences ->
-            val existing =
-                runCatching {
-                    val json = preferences[SAF_BOOKMARKS_JSON] ?: "[]"
-                    Json.decodeFromString<List<SafBookmark>>(json)
-                }.getOrElse { emptyList() }
-            val updated = existing.filterNot { it.uri == uri }
-            preferences[SAF_BOOKMARKS_JSON] = Json.encodeToString(updated)
+            val existing = decodeSafBookmarks(preferences[SAF_BOOKMARKS_JSON] ?: "[]")
+            val updated = existing.filterNot { it.value.uri == uri }
+            preferences[SAF_BOOKMARKS_JSON] =
+                JsonArray(updated.map(PersistedSafBookmark::element)).toString()
         }
     }
 

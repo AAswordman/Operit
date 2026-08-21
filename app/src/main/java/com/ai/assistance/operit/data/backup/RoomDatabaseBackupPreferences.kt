@@ -8,13 +8,13 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.databaseBackupDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "database_backup_settings")
+    recoverablePreferencesDataStore(name = "database_backup_settings")
 
 class RoomDatabaseBackupPreferences private constructor(private val context: Context) {
 

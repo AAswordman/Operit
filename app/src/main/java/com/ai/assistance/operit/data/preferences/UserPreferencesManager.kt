@@ -9,11 +9,15 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.StorageProfileIdPolicy
+import com.ai.assistance.operit.data.persistence.mergeNormalizedJsonFields
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.LegacyUserProfile
 import com.ai.assistance.operit.data.model.MemorySpace
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -21,14 +25,28 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import com.ai.assistance.operit.data.db.ObjectBoxManager
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils.LanguageCodes
+import java.io.File
 
 private val Context.userPreferencesDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "user_preferences")
+        recoverablePreferencesDataStore(name = "user_preferences")
+
+private val userPreferencesJson = Json { ignoreUnknownKeys = true }
+private val userPreferencesRepairJson = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+}
 
 // 向后兼容的全局实例访问方式
 val preferencesManager: UserPreferencesManager
@@ -54,6 +72,12 @@ data class LegacyUserProfileSnapshot(
 )
 
 class UserPreferencesManager private constructor(private val context: Context) {
+    private data class RepairedLegacyProfile(
+        val value: LegacyUserProfile,
+        val raw: JsonObject,
+        val hasIssue: Boolean
+    )
+
     companion object {
         @Volatile
         private var INSTANCE: UserPreferencesManager? = null
@@ -77,6 +101,8 @@ class UserPreferencesManager private constructor(private val context: Context) {
         // Memory spaces replace preference profiles while retaining their stable identifiers.
         private val ACTIVE_MEMORY_SPACE_ID = stringPreferencesKey("active_memory_space_id")
         private val MEMORY_SPACE_LIST = stringPreferencesKey("memory_space_list")
+        private const val PENDING_MEMORY_SPACE_DELETION_PREFIX =
+            "storage_recovery_pending_memory_space_delete_"
 
         // 应用语言设置
         private val APP_LANGUAGE = stringPreferencesKey("app_language")
@@ -390,6 +416,320 @@ class UserPreferencesManager private constructor(private val context: Context) {
         }
     }
 
+    private val memorySpaceDeletionMutex = Mutex()
+
+    private fun objectBoxProfileIdsOnDisk(): List<String> {
+        val entries =
+            context.filesDir.listFiles()
+                ?: throw IllegalStateException("Failed to enumerate ObjectBox memory profiles")
+        return entries
+            .asSequence()
+            .filter { file ->
+                file.isDirectory &&
+                    File(file, "data.mdb").isFile &&
+                    (file.name == "objectbox" || file.name.startsWith("objectbox_"))
+            }
+            .mapNotNull { directory ->
+                if (directory.name == "objectbox") {
+                    DEFAULT_PROFILE_ID
+                } else {
+                    directory.name.removePrefix("objectbox_").takeIf { it.isNotBlank() }
+                }
+            }
+            .filter(StorageProfileIdPolicy::isSafeMemorySpaceId)
+            .distinct()
+            .sorted()
+            .toList()
+    }
+
+    private fun parseAndRepairLegacyProfile(
+        rawText: String,
+        profileId: String
+    ): RepairedLegacyProfile? {
+        val parsed =
+            try {
+                userPreferencesJson.parseToJsonElement(rawText) as? JsonObject
+            } catch (e: Exception) {
+                AppLogger.e(
+                    "UserPreferencesManager",
+                    "Repairing unreadable persisted legacy profile",
+                    e
+                )
+                null
+            }
+        return parsed?.let { repairLegacyProfileObject(it, profileId) }
+    }
+
+    private fun repairLegacyProfileObject(
+        raw: JsonObject,
+        profileId: String
+    ): RepairedLegacyProfile {
+        val defaults =
+            userPreferencesRepairJson
+                .encodeToJsonElement(createDefaultProfile(profileId))
+                .jsonObject
+        val decodeCandidate = defaults.toMutableMap()
+        val repairedRaw = raw.toMutableMap()
+        var hasIssue = false
+
+        defaults.forEach { (fieldName, defaultValue) ->
+            val persistedValue = raw[fieldName] ?: return@forEach
+            val candidate = JsonObject(decodeCandidate + (fieldName to persistedValue))
+            try {
+                userPreferencesRepairJson.decodeFromJsonElement<LegacyUserProfile>(candidate)
+                decodeCandidate[fieldName] = persistedValue
+            } catch (e: Exception) {
+                AppLogger.e(
+                    "UserPreferencesManager",
+                    "Repairing malformed legacy profile field: $fieldName",
+                    e
+                )
+                repairedRaw[fieldName] = defaultValue
+                hasIssue = true
+            }
+        }
+
+        listOf("id", "name").forEach { fieldName ->
+            if (fieldName !in repairedRaw) {
+                repairedRaw[fieldName] = requireNotNull(defaults[fieldName])
+                hasIssue = true
+            }
+        }
+
+        val decodableRaw = JsonObject(repairedRaw)
+        val decoded =
+            userPreferencesRepairJson.decodeFromJsonElement<LegacyUserProfile>(decodableRaw)
+        val normalized =
+            decoded.copy(
+                id = profileId,
+                name = decoded.name.ifBlank {
+                    if (profileId == DEFAULT_PROFILE_ID) "Default" else profileId
+                }
+            )
+        if (normalized != decoded) hasIssue = true
+        val normalizedRaw =
+            if (normalized == decoded) {
+                decodableRaw
+            } else {
+                mergeNormalizedJsonFields(
+                    persisted = decodableRaw,
+                    decoded = userPreferencesJson.encodeToJsonElement(decoded),
+                    normalized = userPreferencesJson.encodeToJsonElement(normalized)
+                ).jsonObject
+            }
+        return RepairedLegacyProfile(normalized, normalizedRaw, hasIssue)
+    }
+
+    suspend fun repairPersistedState(): Boolean {
+        val objectBoxProfileIds = objectBoxProfileIdsOnDisk()
+        return repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.USER_PREFERENCES,
+            dataStore = context.userPreferencesDataStore
+        ) { current ->
+            val originalValues = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            fun replaceString(name: String, value: String) {
+                removeName(name)
+                mutable[stringPreferencesKey(name)] = value
+                issues += name
+            }
+
+            fun decodeIds(raw: Any?, label: String): List<String>? {
+                if (raw !is String) return null
+                return try {
+                    val decoded = userPreferencesJson.decodeFromString<List<String>>(raw)
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                    val valid = decoded.filter(StorageProfileIdPolicy::isSafeMemorySpaceId)
+                    if (valid.size != decoded.size) {
+                        AppLogger.w(
+                            "UserPreferencesManager",
+                            "Repairing unsafe persisted $label identifiers"
+                        )
+                    }
+                    valid
+                } catch (e: Exception) {
+                    AppLogger.e(
+                        "UserPreferencesManager",
+                        "Repairing invalid persisted $label index",
+                        e
+                    )
+                    null
+                }
+            }
+
+            val memoryRecordKeyNames =
+                originalValues.keys
+                    .asSequence()
+                    .filter { it.startsWith("memory_space_") && it != MEMORY_SPACE_LIST.name }
+                    .toList()
+            val memoryRecordIds =
+                memoryRecordKeyNames
+                    .asSequence()
+                    .map { keyName -> keyName.removePrefix("memory_space_") }
+                    .filter(StorageProfileIdPolicy::isSafeMemorySpaceId)
+                    .toSortedSet()
+            memoryRecordKeyNames
+                .filter { keyName ->
+                    !StorageProfileIdPolicy.isSafeMemorySpaceId(
+                        keyName.removePrefix("memory_space_")
+                    )
+                }
+                .forEach { keyName ->
+                    removeName(keyName)
+                    issues += keyName
+                }
+            val hasMemoryState =
+                MEMORY_SPACE_LIST.name in originalValues ||
+                    ACTIVE_MEMORY_SPACE_ID.name in originalValues ||
+                    memoryRecordIds.isNotEmpty() ||
+                    objectBoxProfileIds.isNotEmpty()
+            if (hasMemoryState) {
+                val rawList = originalValues[MEMORY_SPACE_LIST.name]
+                val listedIds = decodeIds(rawList, "memory space").orEmpty()
+                val canonicalIds = linkedSetOf(DEFAULT_PROFILE_ID)
+                canonicalIds += listedIds
+                canonicalIds += memoryRecordIds
+                canonicalIds += objectBoxProfileIds
+
+                canonicalIds.forEach { id ->
+                    val keyName = "memory_space_$id"
+                    val raw = originalValues[keyName]
+                    val decoded =
+                        if (raw is String) {
+                            try {
+                                userPreferencesJson.decodeFromString<MemorySpace>(raw)
+                            } catch (e: Exception) {
+                                AppLogger.e(
+                                    "UserPreferencesManager",
+                                    "Repairing invalid persisted memory space",
+                                    e
+                                )
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    val normalized =
+                        decoded?.copy(
+                            id = id,
+                            name = decoded.name.ifBlank {
+                                if (id == DEFAULT_PROFILE_ID) "Default" else id
+                            }
+                        ) ?: MemorySpace(
+                            id = id,
+                            name = if (id == DEFAULT_PROFILE_ID) "Default" else id
+                        )
+                    if (raw !is String || decoded != normalized) {
+                        val encoded =
+                            if (raw is String && decoded != null) {
+                                mergeNormalizedJsonFields(
+                                    persisted = userPreferencesJson.parseToJsonElement(raw),
+                                    decoded = userPreferencesJson.encodeToJsonElement(decoded),
+                                    normalized = userPreferencesJson.encodeToJsonElement(normalized)
+                                ).toString()
+                            } else {
+                                userPreferencesJson.encodeToString(normalized)
+                            }
+                        replaceString(keyName, encoded)
+                    }
+                }
+
+                val canonicalList = canonicalIds.toList()
+                val encodedList = userPreferencesJson.encodeToString(canonicalList)
+                if (rawList !is String || rawList != encodedList) {
+                    replaceString(MEMORY_SPACE_LIST.name, encodedList)
+                }
+
+                val activeRaw = originalValues[ACTIVE_MEMORY_SPACE_ID.name]
+                if (activeRaw != null &&
+                    (activeRaw !is String || activeRaw !in canonicalIds)
+                ) {
+                    replaceString(ACTIVE_MEMORY_SPACE_ID.name, DEFAULT_PROFILE_ID)
+                }
+            }
+
+            val legacyRecordKeyNames =
+                originalValues.keys
+                    .asSequence()
+                    .filter { it.startsWith("profile_") && it != PROFILE_LIST.name }
+                    .toList()
+            val legacyRecordIds =
+                legacyRecordKeyNames
+                    .asSequence()
+                    .map { keyName -> keyName.removePrefix("profile_") }
+                    .filter(StorageProfileIdPolicy::isSafeMemorySpaceId)
+                    .toSortedSet()
+            legacyRecordKeyNames
+                .filter { keyName ->
+                    !StorageProfileIdPolicy.isSafeMemorySpaceId(
+                        keyName.removePrefix("profile_")
+                    )
+                }
+                .forEach { keyName ->
+                    removeName(keyName)
+                    issues += keyName
+                }
+            val hasLegacyState =
+                PROFILE_LIST.name in originalValues ||
+                    ACTIVE_PROFILE_ID.name in originalValues ||
+                    legacyRecordIds.isNotEmpty()
+            if (hasLegacyState) {
+                val rawList = originalValues[PROFILE_LIST.name]
+                val listedIds = decodeIds(rawList, "legacy profile").orEmpty()
+                val canonicalIds = linkedSetOf(DEFAULT_PROFILE_ID)
+                canonicalIds += listedIds
+                canonicalIds += legacyRecordIds
+                canonicalIds += objectBoxProfileIds
+
+                canonicalIds.forEach { id ->
+                    val keyName = "profile_$id"
+                    val raw = originalValues[keyName]
+                    val repaired =
+                        (raw as? String)?.let { parseAndRepairLegacyProfile(it, id) }
+                    val normalized = repaired?.value ?: createDefaultProfile(id)
+                    if (raw !is String || repaired == null || repaired.hasIssue) {
+                        replaceString(
+                            keyName,
+                            repaired?.raw?.toString()
+                                ?: userPreferencesJson.encodeToString(normalized)
+                        )
+                    }
+                }
+
+                val canonicalList = canonicalIds.toList()
+                val encodedList = userPreferencesJson.encodeToString(canonicalList)
+                if (rawList !is String || rawList != encodedList) {
+                    replaceString(PROFILE_LIST.name, encodedList)
+                }
+
+                val activeRaw = originalValues[ACTIVE_PROFILE_ID.name]
+                if (activeRaw != null &&
+                    (activeRaw !is String || activeRaw !in canonicalIds)
+                ) {
+                    replaceString(ACTIVE_PROFILE_ID.name, DEFAULT_PROFILE_ID)
+                }
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
+    }
+
+    suspend fun getPersistedMemorySpaceIdsForRecovery(): Set<String> {
+        val preferences = context.userPreferencesDataStore.data.first()
+        val currentIds = decodeIdList(preferences[MEMORY_SPACE_LIST])
+        val legacyIds = decodeIdList(preferences[PROFILE_LIST])
+        val directoryIds = objectBoxProfileIdsOnDisk()
+        return (currentIds + legacyIds + directoryIds).toSet()
+    }
+
     val activeMemorySpaceIdFlow: Flow<String> =
         context.userPreferencesDataStore.data.map { preferences ->
             preferences[ACTIVE_MEMORY_SPACE_ID] ?: DEFAULT_PROFILE_ID
@@ -398,7 +738,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     val memorySpaceListFlow: Flow<List<String>> =
         context.userPreferencesDataStore.data.map { preferences ->
             preferences[MEMORY_SPACE_LIST]
-                ?.let { Json.decodeFromString<List<String>>(it) }
+                ?.let { userPreferencesJson.decodeFromString<List<String>>(it) }
                 .orEmpty()
         }
 
@@ -424,7 +764,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
                 requireNotNull(preferences[stringPreferencesKey("memory_space_$targetId")]) {
                     "Missing memory space metadata: $targetId"
                 }
-            Json.decodeFromString<MemorySpace>(encoded)
+            userPreferencesJson.decodeFromString<MemorySpace>(encoded)
         }
     }
 
@@ -443,8 +783,9 @@ class UserPreferencesManager private constructor(private val context: Context) {
         context.userPreferencesDataStore.edit { preferences ->
             val ids = decodeIdList(preferences[MEMORY_SPACE_LIST]).toMutableList()
             if (!ids.contains(id)) ids.add(id)
-            preferences[MEMORY_SPACE_LIST] = Json.encodeToString(ids)
-            preferences[stringPreferencesKey("memory_space_$id")] = Json.encodeToString(space)
+            preferences[MEMORY_SPACE_LIST] = userPreferencesJson.encodeToString(ids)
+            preferences[stringPreferencesKey("memory_space_$id")] =
+                userPreferencesJson.encodeToString(space)
             if (preferences[ACTIVE_MEMORY_SPACE_ID] == null) {
                 preferences[ACTIVE_MEMORY_SPACE_ID] = id
             }
@@ -463,34 +804,110 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     suspend fun updateMemorySpace(space: MemorySpace) {
         context.userPreferencesDataStore.edit { preferences ->
-            preferences[stringPreferencesKey("memory_space_${space.id}")] = Json.encodeToString(space)
+            preferences[stringPreferencesKey("memory_space_${space.id}")] =
+                userPreferencesJson.encodeToString(space)
+        }
+    }
+
+    internal suspend fun beginMemorySpaceDeletion(memorySpaceId: String) {
+        require(memorySpaceId != DEFAULT_PROFILE_ID) { "The default memory space cannot be deleted" }
+        require(StorageProfileIdPolicy.isSafeMemorySpaceId(memorySpaceId)) {
+            "Invalid memory space ID"
+        }
+        context.userPreferencesDataStore.edit { preferences ->
+            val listedIds = decodeIdList(preferences[MEMORY_SPACE_LIST])
+            val hasMetadata =
+                preferences.asMap().keys.any { key ->
+                    key.name == "memory_space_$memorySpaceId"
+                }
+            val markerName = pendingMemorySpaceDeletionKeyName(memorySpaceId)
+            val alreadyPending = preferences.asMap().keys.any { key -> key.name == markerName }
+            require(memorySpaceId in listedIds || hasMetadata || alreadyPending) {
+                "Unknown memory space: $memorySpaceId"
+            }
+            preferences[booleanPreferencesKey(markerName)] = true
+        }
+    }
+
+    internal suspend fun completePendingMemorySpaceDeletions() {
+        memorySpaceDeletionMutex.withLock {
+            val pendingIds = repairAndReadPendingMemorySpaceDeletionIds()
+            pendingIds.sorted().forEach { memorySpaceId ->
+                CharacterCardManager.getInstance(context)
+                    .clearMemoryProfileBindings(memorySpaceId)
+                MemorySpaceProfileDocumentRepository.getInstance(context).delete(memorySpaceId)
+                ObjectBoxManager.delete(context, memorySpaceId)
+                context.userPreferencesDataStore.edit { preferences ->
+                    val ids = decodeIdList(preferences[MEMORY_SPACE_LIST]).toMutableList()
+                    ids.removeAll { id -> id == memorySpaceId }
+                    preferences[MEMORY_SPACE_LIST] =
+                        userPreferencesJson.encodeToString(ids.distinct())
+                    preferences.remove(stringPreferencesKey("memory_space_$memorySpaceId"))
+                    if (preferences[ACTIVE_MEMORY_SPACE_ID] == memorySpaceId) {
+                        preferences[ACTIVE_MEMORY_SPACE_ID] = DEFAULT_PROFILE_ID
+                    }
+                    removePreferenceByName(
+                        preferences,
+                        pendingMemorySpaceDeletionKeyName(memorySpaceId)
+                    )
+                }
+            }
         }
     }
 
     suspend fun deleteMemorySpace(memorySpaceId: String) {
         if (memorySpaceId == DEFAULT_PROFILE_ID) return
-        val characterCardManager = CharacterCardManager.getInstance(context)
-        characterCardManager.getAllCharacterCards()
-            .filter { it.memoryProfileId == memorySpaceId }
-            .forEach { card ->
-                characterCardManager.updateCharacterCard(
-                    card.copy(
-                        memoryProfileBindingMode = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL,
-                        memoryProfileId = null
-                    )
-                )
-            }
-        context.userPreferencesDataStore.edit { preferences ->
-            val ids = decodeIdList(preferences[MEMORY_SPACE_LIST]).toMutableList()
-            ids.remove(memorySpaceId)
-            preferences[MEMORY_SPACE_LIST] = Json.encodeToString(ids)
-            preferences.remove(stringPreferencesKey("memory_space_$memorySpaceId"))
-            if (preferences[ACTIVE_MEMORY_SPACE_ID] == memorySpaceId) {
-                preferences[ACTIVE_MEMORY_SPACE_ID] = DEFAULT_PROFILE_ID
-            }
+        beginMemorySpaceDeletion(memorySpaceId)
+        completePendingMemorySpaceDeletions()
+    }
+
+    private suspend fun repairAndReadPendingMemorySpaceDeletionIds(): Set<String> {
+        var pendingIds = emptySet<String>()
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.USER_PREFERENCES,
+            dataStore = context.userPreferencesDataStore
+        ) { current ->
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+            val discoveredIds = linkedSetOf<String>()
+            current.asMap().entries
+                .filter { (key, _) ->
+                    key.name.startsWith(PENDING_MEMORY_SPACE_DELETION_PREFIX)
+                }
+                .forEach { (key, value) ->
+                    val keyName = key.name
+                    val memorySpaceId =
+                        keyName.removePrefix(PENDING_MEMORY_SPACE_DELETION_PREFIX)
+                    // A deletion marker is authorization; coercing any other value risks data loss.
+                    if (memorySpaceId == DEFAULT_PROFILE_ID ||
+                        !StorageProfileIdPolicy.isSafeMemorySpaceId(memorySpaceId)
+                    ) {
+                        removePreferenceByName(mutable, keyName)
+                        issues += keyName
+                    } else if (value is Boolean && value) {
+                        discoveredIds += memorySpaceId
+                    } else {
+                        removePreferenceByName(mutable, keyName)
+                        issues += keyName
+                    }
+                }
+            pendingIds = discoveredIds
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
         }
-        MemorySpaceProfileDocumentRepository.getInstance(context).delete(memorySpaceId)
-        ObjectBoxManager.delete(context, memorySpaceId)
+        return pendingIds
+    }
+
+    private fun pendingMemorySpaceDeletionKeyName(memorySpaceId: String): String =
+        "$PENDING_MEMORY_SPACE_DELETION_PREFIX$memorySpaceId"
+
+    private fun removePreferenceByName(
+        preferences: MutablePreferences,
+        keyName: String
+    ) {
+        preferences.asMap().keys
+            .filter { key -> key.name == keyName }
+            .forEach { key -> preferences.remove(key) }
     }
 
     suspend fun readLegacyUserProfiles(): LegacyUserProfileSnapshot {
@@ -508,7 +925,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
                     requireNotNull(preferences[stringPreferencesKey("memory_space_$id")]) {
                         "Missing migrated memory space metadata: $id"
                     }
-                val name = Json.decodeFromString<MemorySpace>(encoded).name
+                val name = userPreferencesJson.decodeFromString<MemorySpace>(encoded).name
                 LegacyUserProfile(id = id, name = name)
             }
             return LegacyUserProfileSnapshot(
@@ -525,7 +942,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
             if (encoded == null) {
                 createDefaultProfile(id)
             } else {
-                Json.decodeFromString<LegacyUserProfile>(encoded)
+                parseAndRepairLegacyProfile(encoded, id)?.value ?: createDefaultProfile(id)
             }
         }
         val hasLegacyCategoryLocks =
@@ -548,7 +965,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
                 }
             val ids = profiles.map { it.id }.distinct().toMutableList()
             if (!ids.contains(DEFAULT_PROFILE_ID)) ids.add(0, DEFAULT_PROFILE_ID)
-            preferences[MEMORY_SPACE_LIST] = Json.encodeToString(ids)
+            preferences[MEMORY_SPACE_LIST] = userPreferencesJson.encodeToString(ids)
             val activeId = snapshot.activeProfileId.takeIf(ids::contains) ?: DEFAULT_PROFILE_ID
             preferences[ACTIVE_MEMORY_SPACE_ID] = activeId
             profiles.forEach { profile ->
@@ -561,7 +978,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
                     profileAutoUpdateLocked = snapshot.hasLegacyCategoryLocks
                 )
                 preferences[stringPreferencesKey("memory_space_${profile.id}")] =
-                    Json.encodeToString(space)
+                    userPreferencesJson.encodeToString(space)
                 preferences.remove(stringPreferencesKey("profile_${profile.id}"))
             }
             preferences.remove(ACTIVE_PROFILE_ID)
@@ -576,7 +993,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private fun decodeIdList(encoded: String?): List<String> {
-        return encoded?.let { Json.decodeFromString<List<String>>(it) }.orEmpty()
+        return encoded?.let { userPreferencesJson.decodeFromString<List<String>>(it) }.orEmpty()
     }
 
     private fun createDefaultProfile(profileId: String): LegacyUserProfile {

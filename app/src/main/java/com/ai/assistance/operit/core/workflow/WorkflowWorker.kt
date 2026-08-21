@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.core.workflow
 
 import android.content.Context
+import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.util.AppLogger
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -24,6 +25,16 @@ class WorkflowWorker(
     }
 
     override suspend fun doWork(): Result {
+        if (OperitApplication.storageStartupState !=
+            OperitApplication.StorageStartupState.READY
+        ) {
+            AppLogger.e(
+                TAG,
+                "Workflow refused because storage state=" +
+                    OperitApplication.storageStartupState
+            )
+            return Result.failure()
+        }
         val workflowId = inputData.getString(KEY_WORKFLOW_ID)
         val triggerNodeId = inputData.getString(KEY_TRIGGER_NODE_ID)
         

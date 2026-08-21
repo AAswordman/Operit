@@ -4,7 +4,7 @@ import android.content.Context
 import com.ai.assistance.operit.R
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import com.ai.assistance.operit.data.model.PromptTag
 import com.ai.assistance.operit.data.model.TagType
 
@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 
-private val Context.promptTagDataStore by preferencesDataStore(
+private val Context.promptTagDataStore by recoverablePreferencesDataStore(
     name = "prompt_tags"
 )
 

@@ -7,14 +7,17 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
-private val Context.externalHttpApiDataStore: DataStore<Preferences> by preferencesDataStore(
+private val Context.externalHttpApiDataStore: DataStore<Preferences> by recoverablePreferencesDataStore(
     name = "external_http_api_preferences"
 )
 
@@ -39,6 +42,53 @@ class ExternalHttpApiPreferences private constructor(private val context: Contex
     val bearerTokenFlow: Flow<String> =
         context.externalHttpApiDataStore.data.map { preferences ->
             preferences[KEY_BEARER_TOKEN].orEmpty()
+        }
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.EXTERNAL_HTTP_API,
+            dataStore = context.externalHttpApiDataStore
+        ) { current ->
+            val values = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            fun replaceEnabled(value: Boolean) {
+                removeName(KEY_ENABLED.name)
+                mutable[KEY_ENABLED] = value
+                issues += KEY_ENABLED.name
+            }
+
+            val rawEnabled = values[KEY_ENABLED.name]
+            var enabled = rawEnabled as? Boolean ?: false
+            if (rawEnabled != null && rawEnabled !is Boolean) {
+                replaceEnabled(false)
+                enabled = false
+            }
+
+            val rawPort = values[KEY_PORT.name]
+            if (rawPort != null && (rawPort !is Int || !isValidPort(rawPort))) {
+                removeName(KEY_PORT.name)
+                mutable[KEY_PORT] = DEFAULT_PORT
+                issues += KEY_PORT.name
+            }
+
+            val rawBearer = values[KEY_BEARER_TOKEN.name]
+            val bearerToken = rawBearer as? String
+            if (rawBearer != null && rawBearer !is String) {
+                removeName(KEY_BEARER_TOKEN.name)
+                issues += KEY_BEARER_TOKEN.name
+            }
+            if (enabled && bearerToken.isNullOrBlank()) {
+                replaceEnabled(false)
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
         }
 
     suspend fun setEnabled(enabled: Boolean) {

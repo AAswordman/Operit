@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.application.OperitApplication
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +18,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.wakeWordPreferencesDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "wake_word_preferences")
+    recoverablePreferencesDataStore(name = "wake_word_preferences")
 
 class WakeWordPreferences(private val context: Context) {
 

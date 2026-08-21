@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -17,7 +17,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 
 private val Context.webSessionHistoryDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "web_session_browser_store")
+    recoverablePreferencesDataStore(name = "web_session_browser_store")
 
 internal class WebSessionHistoryStore private constructor(private val context: Context) {
 

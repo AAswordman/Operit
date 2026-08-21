@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.Flow
 
 class MimoVoiceProvider(
     private val context: Context,
-    private val config: SpeechServicesPreferences.TtsHttpConfig
+    private val config: SpeechServicesPreferences.TtsHttpConfig,
+    defaultSpeechRate: Float,
+    defaultPitch: Float,
 ) : VoiceService {
 
     companion object {
@@ -44,7 +46,7 @@ class MimoVoiceProvider(
             )
     }
 
-    private val delegate = HttpVoiceProvider(context)
+    private val delegate = HttpVoiceProvider(context, defaultSpeechRate, defaultPitch)
     private var selectedVoiceId: String = config.voiceId.ifBlank { DEFAULT_VOICE_ID }
 
     override val isInitialized: Boolean

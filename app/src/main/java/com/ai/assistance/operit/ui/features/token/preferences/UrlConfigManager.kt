@@ -5,7 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.token.model.TabConfig
 import com.ai.assistance.operit.ui.features.token.model.UrlConfig
@@ -16,7 +16,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.urlConfigDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "url_config")
+    recoverablePreferencesDataStore(name = "url_config")
 
 class UrlConfigManager(private val context: Context) {
     companion object {

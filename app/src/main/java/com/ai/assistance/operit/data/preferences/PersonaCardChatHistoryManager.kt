@@ -2,14 +2,14 @@ package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
 import androidx.datastore.preferences.core.*
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-private val Context.personaCardChatDataStore by preferencesDataStore(
+private val Context.personaCardChatDataStore by recoverablePreferencesDataStore(
     name = "persona_card_chat_history"
 )
 

@@ -6,7 +6,7 @@ import com.ai.assistance.operit.util.AppLogger
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.backup.OperitBackupDirs
 import com.ai.assistance.operit.data.db.AppDatabase
@@ -70,7 +70,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 // 仅保留这个DataStore用于存储当前聊天ID
-private val Context.currentChatIdDataStore by preferencesDataStore(name = "current_chat_id")
+private val Context.currentChatIdDataStore by recoverablePreferencesDataStore(name = "current_chat_id")
 
 data class ChatExportProgress(
     val isLongText: Boolean,

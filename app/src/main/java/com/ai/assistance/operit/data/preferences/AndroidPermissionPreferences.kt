@@ -6,15 +6,19 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
 private val Context.androidPermissionDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "android_permission_preferences")
+        recoverablePreferencesDataStore(name = "android_permission_preferences")
 
 enum class RootCommandExecutionMode {
     AUTO,
@@ -83,6 +87,58 @@ class AndroidPermissionPreferences(private val context: Context) {
             context.androidPermissionDataStore.data.map { preferences ->
                 normalizeSuCommand(preferences[CUSTOM_SU_COMMAND])
             }
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.ANDROID_PERMISSION,
+            dataStore = context.androidPermissionDataStore
+        ) { current ->
+            val values = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun replaceString(key: Preferences.Key<String>, value: String) {
+                mutable.asMap().keys.filter { it.name == key.name }.forEach { mutable.remove(it) }
+                mutable[key] = value
+                issues += key.name
+            }
+
+            val rawLevel = values[PREFERRED_PERMISSION_LEVEL.name]
+            if (rawLevel != null) {
+                val normalized =
+                    (rawLevel as? String)
+                        ?.uppercase(Locale.ROOT)
+                        ?.takeIf { candidate ->
+                            AndroidPermissionLevel.values().any { it.name == candidate }
+                        }
+                        ?: AndroidPermissionLevel.STANDARD.name
+                if (rawLevel !is String || rawLevel != normalized) {
+                    replaceString(PREFERRED_PERMISSION_LEVEL, normalized)
+                }
+            }
+
+            val rawMode = values[ROOT_EXECUTION_MODE.name]
+            if (rawMode != null) {
+                val normalized =
+                    (rawMode as? String)
+                        ?.uppercase(Locale.ROOT)
+                        ?.takeIf { candidate ->
+                            RootCommandExecutionMode.values().any { it.name == candidate }
+                        }
+                        ?: RootCommandExecutionMode.AUTO.name
+                if (rawMode !is String || rawMode != normalized) {
+                    replaceString(ROOT_EXECUTION_MODE, normalized)
+                }
+            }
+
+            val rawCommand = values[CUSTOM_SU_COMMAND.name]
+            if (rawCommand != null && (rawCommand !is String || rawCommand.isBlank())) {
+                replaceString(CUSTOM_SU_COMMAND, DEFAULT_SU_COMMAND)
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
 
     /**
      * 保存首选权限级别

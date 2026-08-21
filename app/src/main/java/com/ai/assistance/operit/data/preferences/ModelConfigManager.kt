@@ -6,9 +6,12 @@ import com.ai.assistance.operit.R
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.mergeNormalizedJsonFields
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.data.model.CustomParameterData
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelConfigDefaults
@@ -20,20 +23,25 @@ import com.ai.assistance.operit.data.model.StandardModelParameters
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ApiKeyInfo
 import java.util.UUID
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
 
 // 为ModelConfig创建专用的DataStore
 private val Context.modelConfigDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "model_configs")
-
-// 获取ApiPreferences的DataStore
-private val Context.apiDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "api_settings")
+        recoverablePreferencesDataStore(name = "model_configs")
 
 class ModelConfigManager(private val context: Context) {
 
@@ -59,14 +67,511 @@ class ModelConfigManager(private val context: Context) {
         ignoreUnknownKeys = true
         isLenient = true
     }
+    private val repairJson = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        encodeDefaults = true
+    }
+    private val supportedMnnForwardTypes = setOf(0, 3, 4, 6, 7)
+
+    private data class RepairedConfig(
+        val value: ModelConfigData,
+        val raw: JsonObject,
+        val hasIssue: Boolean
+    )
+
+    private data class RepairedApiKeyInfo(
+        val value: ApiKeyInfo,
+        val raw: JsonObject,
+        val hasIssue: Boolean
+    )
+
+    private data class RepairedApiKeyPool(
+        val raw: JsonArray,
+        val hasIssue: Boolean
+    )
+
+    private fun decodeConfigList(raw: String?): List<String> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return try {
+            json.decodeFromString<List<String>>(raw)
+                .filter { it.isNotBlank() }
+                .distinct()
+        } catch (e: Exception) {
+            AppLogger.e("ModelConfigManager", "Invalid persisted model configuration index", e)
+            emptyList()
+        }
+    }
 
     // 获取所有配置ID列表
     val configListFlow: Flow<List<String>> =
             context.modelConfigDataStore.data.map { preferences ->
-                val configList = preferences[CONFIG_LIST_KEY] ?: ""
-                if (configList.isEmpty()) emptyList()
-                else json.decodeFromString<List<String>>(configList)
+                decodeConfigList(preferences[CONFIG_LIST_KEY])
             }
+
+    private fun normalizeConfig(config: ModelConfigData, recordId: String): ModelConfigData {
+        fun finiteOrDefault(value: Float, defaultValue: Float): Float =
+            if (value.isFinite()) value else defaultValue
+
+        val customParameters =
+            try {
+                normalizeCustomParameters(config.customParameters)
+            } catch (e: Exception) {
+                AppLogger.e("ModelConfigManager", "Repairing invalid custom model parameters", e)
+                "[]"
+            }
+        val customHeaders =
+            try {
+                json.parseToJsonElement(config.customHeaders).jsonObject
+                config.customHeaders
+            } catch (e: Exception) {
+                AppLogger.e("ModelConfigManager", "Repairing invalid custom model headers", e)
+                "{}"
+            }
+        val currentKeyIndex =
+            if (config.apiKeyPool.isEmpty()) 0
+            else config.currentKeyIndex.coerceIn(0, config.apiKeyPool.lastIndex)
+        val rotationMode =
+            config.keyRotationMode.takeIf { it == "ROUND_ROBIN" || it == "RANDOM" }
+                ?: "ROUND_ROBIN"
+
+        return config.copy(
+            id = recordId,
+            name = config.name.ifBlank {
+                if (recordId == DEFAULT_CONFIG_ID) context.getString(R.string.model_config_default_name)
+                else context.getString(R.string.model_config_config_id, recordId)
+            },
+            currentKeyIndex = currentKeyIndex,
+            keyRotationMode = rotationMode,
+            maxTokens = config.maxTokens.coerceAtLeast(1),
+            temperature = finiteOrDefault(config.temperature, StandardModelParameters.DEFAULT_TEMPERATURE)
+                .coerceIn(0.0f, 2.0f),
+            topP = finiteOrDefault(config.topP, StandardModelParameters.DEFAULT_TOP_P)
+                .coerceIn(0.0f, 1.0f),
+            topK = config.topK.coerceIn(0, 100),
+            presencePenalty =
+                finiteOrDefault(
+                    config.presencePenalty,
+                    StandardModelParameters.DEFAULT_PRESENCE_PENALTY
+                ).coerceIn(-2.0f, 2.0f),
+            frequencyPenalty =
+                finiteOrDefault(
+                    config.frequencyPenalty,
+                    StandardModelParameters.DEFAULT_FREQUENCY_PENALTY
+                ).coerceIn(-2.0f, 2.0f),
+            repetitionPenalty =
+                finiteOrDefault(
+                    config.repetitionPenalty,
+                    StandardModelParameters.DEFAULT_REPETITION_PENALTY
+                ).coerceIn(0.0f, 2.0f),
+            customParameters = customParameters,
+            customHeaders = customHeaders,
+            contextLength =
+                finiteOrDefault(config.contextLength, ModelConfigDefaults.DEFAULT_CONTEXT_LENGTH)
+                    .coerceAtLeast(1.0f),
+            maxContextLength =
+                finiteOrDefault(
+                    config.maxContextLength,
+                    ModelConfigDefaults.DEFAULT_MAX_CONTEXT_LENGTH
+                ).coerceAtLeast(1.0f),
+            summaryTokenThreshold =
+                finiteOrDefault(
+                    config.summaryTokenThreshold,
+                    ModelConfigDefaults.DEFAULT_SUMMARY_TOKEN_THRESHOLD
+                ).coerceIn(0.0f, 1.0f),
+            summaryMessageCountThreshold = config.summaryMessageCountThreshold.coerceAtLeast(1),
+            mnnForwardType =
+                config.mnnForwardType.takeIf { it in supportedMnnForwardTypes } ?: 0,
+            mnnThreadCount = config.mnnThreadCount.coerceAtLeast(1),
+            llamaThreadCount = config.llamaThreadCount.coerceAtLeast(1),
+            llamaContextSize = config.llamaContextSize.coerceAtLeast(1),
+            llamaBatchSize = config.llamaBatchSize.coerceAtLeast(1),
+            llamaUBatchSize = config.llamaUBatchSize.coerceAtLeast(1),
+            llamaGpuLayers = config.llamaGpuLayers.coerceAtLeast(0),
+            requestLimitPerMinute = config.requestLimitPerMinute.coerceAtLeast(0),
+            maxConcurrentRequests = config.maxConcurrentRequests.coerceAtLeast(0)
+        )
+    }
+
+    private fun normalizeCustomParameters(raw: String): String {
+        val persisted = json.parseToJsonElement(raw) as? JsonArray
+            ?: throw IllegalArgumentException("Custom model parameters must be a JSON array")
+        val normalizedElements = mutableListOf<JsonElement>()
+        var changed = false
+        persisted.forEach { element ->
+            val decoded =
+                try {
+                    json.decodeFromJsonElement<CustomParameterData>(element)
+                } catch (e: Exception) {
+                    AppLogger.e(
+                        "ModelConfigManager",
+                        "Repairing an unreadable custom model parameter",
+                        e
+                    )
+                    changed = true
+                    return@forEach
+                }
+            val normalized = normalizeCustomParameter(decoded)
+            if (normalized == null) {
+                changed = true
+                return@forEach
+            }
+            if (normalized == decoded) {
+                normalizedElements += element
+            } else {
+                changed = true
+                normalizedElements +=
+                    mergeNormalizedJsonFields(
+                        persisted = element,
+                        decoded = json.encodeToJsonElement(decoded),
+                        normalized = json.encodeToJsonElement(normalized)
+                    )
+            }
+        }
+        return if (changed) JsonArray(normalizedElements).toString() else raw
+    }
+
+    private fun normalizeCustomParameter(data: CustomParameterData): CustomParameterData? {
+        val valueTypeName = data.valueType.trim().uppercase(Locale.ROOT)
+        val valueType = ParameterValueType.values().firstOrNull { it.name == valueTypeName }
+            ?: return null
+        val categoryName = data.category.trim().uppercase(Locale.ROOT)
+        val category = ParameterCategory.values().firstOrNull { it.name == categoryName }
+            ?: return null
+
+        val normalizedValues =
+            try {
+                when (valueType) {
+                    ParameterValueType.INT -> {
+                        data.defaultValue.toInt()
+                        data.currentValue.toInt()
+                        data.minValue?.toInt()
+                        data.maxValue?.toInt()
+                        data.defaultValue to data.currentValue
+                    }
+                    ParameterValueType.FLOAT -> {
+                        require(data.defaultValue.toFloat().isFinite())
+                        require(data.currentValue.toFloat().isFinite())
+                        require(data.minValue?.toFloat()?.isFinite() != false)
+                        require(data.maxValue?.toFloat()?.isFinite() != false)
+                        data.defaultValue to data.currentValue
+                    }
+                    ParameterValueType.BOOLEAN -> {
+                        val defaultValue =
+                            data.defaultValue.trim().lowercase(Locale.ROOT).toBooleanStrictOrNull()
+                                ?: return null
+                        val currentValue =
+                            data.currentValue.trim().lowercase(Locale.ROOT).toBooleanStrictOrNull()
+                                ?: return null
+                        defaultValue.toString() to currentValue.toString()
+                    }
+                    ParameterValueType.STRING,
+                    ParameterValueType.OBJECT -> data.defaultValue to data.currentValue
+                }
+            } catch (e: Exception) {
+                AppLogger.e(
+                    "ModelConfigManager",
+                    "Repairing invalid typed custom model parameter",
+                    e
+                )
+                return null
+            }
+
+        return data.copy(
+            defaultValue = normalizedValues.first,
+            currentValue = normalizedValues.second,
+            valueType = valueType.name,
+            category = category.name
+        )
+    }
+
+    private fun reconstructConfig(recordId: String): ModelConfigData =
+        if (recordId == DEFAULT_CONFIG_ID) {
+            createFreshDefaultConfig()
+        } else {
+            normalizeConfig(
+                ModelConfigData(
+                    id = recordId,
+                    name = context.getString(R.string.model_config_config_id, recordId)
+                ),
+                recordId
+            )
+        }
+
+    private fun repairApiKeyPool(element: JsonElement): RepairedApiKeyPool {
+        val persisted = element as? JsonArray
+            ?: return RepairedApiKeyPool(JsonArray(emptyList()), true)
+        val reservedIds =
+            persisted.mapNotNull { item ->
+                val raw = item as? JsonObject ?: return@mapNotNull null
+                val primitive = raw["id"] as? JsonPrimitive
+                primitive?.takeIf { it.isString }?.contentOrNull?.takeIf { it.isNotBlank() }
+            }.toSet()
+        val usedIds = linkedSetOf<String>()
+        val repairedRaw = mutableListOf<JsonObject>()
+        var hasIssue = false
+
+        persisted.forEachIndexed { index, item ->
+            val raw = item as? JsonObject
+            if (raw == null) {
+                hasIssue = true
+                return@forEachIndexed
+            }
+            val primitiveId = raw["id"] as? JsonPrimitive
+            val rawId = primitiveId?.takeIf { it.isString }?.contentOrNull
+            val targetId =
+                rawId?.takeIf { it.isNotBlank() && it !in usedIds }
+                    ?: deterministicApiKeyRepairId(index + 1, reservedIds, usedIds)
+            val repaired = repairApiKeyInfo(raw, targetId)
+            usedIds += repaired.value.id
+            repairedRaw += repaired.raw
+            hasIssue = hasIssue || repaired.hasIssue
+        }
+        return RepairedApiKeyPool(JsonArray(repairedRaw), hasIssue)
+    }
+
+    private fun repairApiKeyInfo(raw: JsonObject, targetId: String): RepairedApiKeyInfo {
+        val defaults =
+            repairJson.encodeToJsonElement(ApiKeyInfo(id = targetId, key = "")).jsonObject
+        val decodeCandidate = defaults.toMutableMap()
+        val repairedRaw = raw.toMutableMap()
+        var hasIssue =
+            (raw["id"] as? JsonPrimitive)
+                ?.takeIf { it.isString }
+                ?.contentOrNull != targetId
+
+        defaults.forEach { (fieldName, defaultValue) ->
+            val persistedValue = raw[fieldName] ?: return@forEach
+            val candidate = JsonObject(decodeCandidate + (fieldName to persistedValue))
+            try {
+                repairJson.decodeFromJsonElement<ApiKeyInfo>(candidate)
+                decodeCandidate[fieldName] = persistedValue
+            } catch (e: Exception) {
+                AppLogger.e(
+                    "ModelConfigManager",
+                    "Repairing malformed API key pool field: $fieldName",
+                    e
+                )
+                repairedRaw[fieldName] = defaultValue
+                hasIssue = true
+            }
+        }
+
+        listOf("id", "key").forEach { fieldName ->
+            if (fieldName !in repairedRaw) {
+                repairedRaw[fieldName] = requireNotNull(defaults[fieldName])
+                hasIssue = true
+            }
+        }
+
+        val decodableRaw = JsonObject(repairedRaw)
+        val decoded = repairJson.decodeFromJsonElement<ApiKeyInfo>(decodableRaw)
+        val normalized =
+            decoded.copy(
+                id = targetId,
+                usageCount = decoded.usageCount.coerceAtLeast(0L),
+                lastUsed = decoded.lastUsed.coerceAtLeast(0L),
+                errorCount = decoded.errorCount.coerceAtLeast(0L)
+            )
+        if (normalized != decoded) hasIssue = true
+        val normalizedRaw =
+            if (normalized == decoded) {
+                decodableRaw
+            } else {
+                mergeNormalizedJsonFields(
+                    persisted = decodableRaw,
+                    decoded = json.encodeToJsonElement(decoded),
+                    normalized = json.encodeToJsonElement(normalized)
+                ).jsonObject
+            }
+        return RepairedApiKeyInfo(normalized, normalizedRaw, hasIssue)
+    }
+
+    private fun deterministicApiKeyRepairId(
+        ordinal: Int,
+        reservedIds: Set<String>,
+        usedIds: Set<String>
+    ): String {
+        val base = "repaired-api-key-$ordinal"
+        if (base !in reservedIds && base !in usedIds) return base
+        var suffix = 2
+        while ("$base-$suffix" in reservedIds || "$base-$suffix" in usedIds) suffix++
+        return "$base-$suffix"
+    }
+
+    private fun repairConfigObject(raw: JsonObject, recordId: String): RepairedConfig {
+        val defaults =
+            repairJson.encodeToJsonElement(reconstructConfig(recordId)).jsonObject
+        val decodeCandidate = defaults.toMutableMap()
+        val repairedRaw = raw.toMutableMap()
+        var hasIssue = false
+
+        raw["apiKeyPool"]?.let { persistedPool ->
+            val repairedPool = repairApiKeyPool(persistedPool)
+            decodeCandidate["apiKeyPool"] = repairedPool.raw
+            repairedRaw["apiKeyPool"] = repairedPool.raw
+            hasIssue = repairedPool.hasIssue
+        }
+
+        defaults.forEach { (fieldName, defaultValue) ->
+            if (fieldName == "apiKeyPool") return@forEach
+            val persistedValue = raw[fieldName] ?: return@forEach
+            val candidate = JsonObject(decodeCandidate + (fieldName to persistedValue))
+            try {
+                repairJson.decodeFromJsonElement<ModelConfigData>(candidate)
+                decodeCandidate[fieldName] = persistedValue
+            } catch (e: Exception) {
+                AppLogger.e(
+                    "ModelConfigManager",
+                    "Repairing malformed model configuration field: $fieldName",
+                    e
+                )
+                repairedRaw[fieldName] = defaultValue
+                hasIssue = true
+            }
+        }
+
+        val rawProviderTypeId = raw["apiProviderTypeId"]
+        if (rawProviderTypeId != null &&
+            ((rawProviderTypeId as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull == null)
+        ) {
+            val providerType =
+                repairJson.decodeFromJsonElement<ModelConfigData>(JsonObject(decodeCandidate))
+                    .apiProviderType
+            val providerTypeId = JsonPrimitive(providerType.name)
+            decodeCandidate["apiProviderTypeId"] = providerTypeId
+            repairedRaw["apiProviderTypeId"] = providerTypeId
+            hasIssue = true
+        }
+
+        // These are the only fields without serialization defaults.
+        listOf("id", "name").forEach { fieldName ->
+            if (fieldName !in repairedRaw) {
+                repairedRaw[fieldName] = requireNotNull(defaults[fieldName])
+                hasIssue = true
+            }
+        }
+
+        val decodableRaw = JsonObject(repairedRaw)
+        val decoded = repairJson.decodeFromJsonElement<ModelConfigData>(decodableRaw)
+        val normalized =
+            normalizeConfig(decoded, recordId).let { config ->
+                if (config.apiProviderTypeId.isBlank()) {
+                    config.copy(apiProviderTypeId = config.apiProviderType.name)
+                } else {
+                    config
+                }
+            }
+        if (normalized != decoded) hasIssue = true
+        val normalizedRaw =
+            if (normalized == decoded) {
+                decodableRaw
+            } else {
+                mergeNormalizedJsonFields(
+                    persisted = decodableRaw,
+                    decoded = json.encodeToJsonElement(decoded),
+                    normalized = json.encodeToJsonElement(normalized)
+                ).jsonObject
+            }
+        return RepairedConfig(normalized, normalizedRaw, hasIssue)
+    }
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.MODEL_CONFIGS,
+            dataStore = context.modelConfigDataStore
+        ) { current ->
+            val originalValues = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            val validConfigs = linkedMapOf<String, ModelConfigData>()
+            originalValues.keys
+                .filter { it.startsWith("config_") && it != CONFIG_LIST_KEY.name }
+                .sorted()
+                .forEach { keyName ->
+                    val recordId = keyName.removePrefix("config_")
+                    if (recordId.isBlank()) {
+                        removeName(keyName)
+                        issues += keyName
+                        return@forEach
+                    }
+                    val raw = originalValues[keyName]
+                    val parsed =
+                        if (raw is String) {
+                            try {
+                                json.parseToJsonElement(raw) as? JsonObject
+                            } catch (e: Exception) {
+                                AppLogger.e(
+                                    "ModelConfigManager",
+                                    "Repairing invalid persisted model configuration",
+                                    e
+                                )
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    if (parsed == null) {
+                        removeName(keyName)
+                        val reconstructed = reconstructConfig(recordId)
+                        mutable[stringPreferencesKey(keyName)] =
+                            json.encodeToString(reconstructed)
+                        validConfigs[recordId] = reconstructed
+                        issues += keyName
+                        return@forEach
+                    }
+
+                    val repaired = repairConfigObject(parsed, recordId)
+                    validConfigs[recordId] = repaired.value
+                    if (repaired.hasIssue) {
+                        removeName(keyName)
+                        mutable[stringPreferencesKey(keyName)] =
+                            repaired.raw.toString()
+                        issues += keyName
+                    }
+                }
+
+            if (DEFAULT_CONFIG_ID !in validConfigs) {
+                val defaultConfig = createFreshDefaultConfig()
+                validConfigs[DEFAULT_CONFIG_ID] = defaultConfig
+                val keyName = "config_$DEFAULT_CONFIG_ID"
+                removeName(keyName)
+                mutable[stringPreferencesKey(keyName)] = json.encodeToString(defaultConfig)
+                issues += keyName
+            }
+
+            val rawList = originalValues[CONFIG_LIST_KEY.name]
+            val persistedOrder = decodeConfigList(rawList as? String)
+            val repairedOrder =
+                buildList {
+                    add(DEFAULT_CONFIG_ID)
+                    addAll(persistedOrder.filter { it != DEFAULT_CONFIG_ID && it in validConfigs })
+                    addAll(
+                        validConfigs.keys
+                            .filter { it != DEFAULT_CONFIG_ID && it !in persistedOrder }
+                            .sorted()
+                    )
+                }.distinct()
+            val encodedOrder = json.encodeToString(repairedOrder)
+            if (rawList !is String || rawList != encodedOrder) {
+                removeName(CONFIG_LIST_KEY.name)
+                mutable[CONFIG_LIST_KEY] = encodedOrder
+                issues += CONFIG_LIST_KEY.name
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
+
+    suspend fun getPersistedConfigsForRecovery(): Map<String, ModelConfigData> =
+        configListFlow.first().mapNotNull { id ->
+            getModelConfig(id)?.let { id to it }
+        }.toMap()
 
     // 删除获取当前活跃配置ID的流
 
@@ -135,6 +640,7 @@ class ModelConfigManager(private val context: Context) {
                 try {
                     json.decodeFromString<ModelConfigData>(configJson)
                 } catch (e: Exception) {
+                    AppLogger.e("ModelConfigManager", "Invalid persisted model configuration $configId", e)
                     // 如果解析失败，回退到创建一个新配置
                     if (configId == DEFAULT_CONFIG_ID) {
                         createFreshDefaultConfig()
@@ -174,6 +680,7 @@ class ModelConfigManager(private val context: Context) {
                             try {
                                 json.decodeFromString<ModelConfigData>(configJson)
                             } catch (e: Exception) {
+                                AppLogger.e("ModelConfigManager", "Invalid persisted model configuration $configId", e)
                                 if (configId == DEFAULT_CONFIG_ID) {
                                     createFreshDefaultConfig()
                                 } else {

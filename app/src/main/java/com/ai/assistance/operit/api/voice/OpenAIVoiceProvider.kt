@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
 import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.io.FileOutputStream
@@ -13,7 +12,6 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +31,8 @@ class OpenAIVoiceProvider(
     private val endpointUrl: String,
     private val apiKey: String,
     private val model: String,
-    initialVoiceId: String
+    initialVoiceId: String,
+    private val defaultSpeechRate: Float,
 ) : VoiceService {
 
     companion object {
@@ -135,8 +134,7 @@ class OpenAIVoiceProvider(
                     stop()
                 }
 
-                val prefs = SpeechServicesPreferences(context.applicationContext)
-                val effectiveRate = rate ?: prefs.ttsSpeechRateFlow.first()
+                val effectiveRate = rate ?: defaultSpeechRate
 
                 val requestModel = extraParams["model"]?.takeIf { it.isNotBlank() } ?: model
                 val requestVoice = extraParams["voice"]?.takeIf { it.isNotBlank() } ?: voiceId

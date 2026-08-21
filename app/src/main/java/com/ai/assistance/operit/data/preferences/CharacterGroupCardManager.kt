@@ -14,13 +14,19 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.model.GroupMemberConfig
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
+import com.ai.assistance.operit.util.AppLogger
 import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -32,7 +38,7 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.ceil
 
-private val Context.characterGroupCardDataStore by preferencesDataStore(
+private val Context.characterGroupCardDataStore by recoverablePreferencesDataStore(
     name = "character_groups"
 )
 
@@ -41,12 +47,27 @@ private val Context.characterGroupCardDataStore by preferencesDataStore(
  */
 class CharacterGroupCardManager private constructor(private val context: Context) {
 
-    private val dataStore = context.characterGroupCardDataStore
+    private val dataStore
+        get() = context.characterGroupCardDataStore
     private val gson = Gson()
     private val characterCardManager = CharacterCardManager.getInstance(context)
     private val userPreferencesManager = UserPreferencesManager.getInstance(context)
     private val waifuPreferences = WaifuPreferences.getInstance(context)
     private val customEmojiRepository by lazy { CustomEmojiRepository.getInstance(context) }
+
+    private data class StoredGroupMemberPayload(
+        val characterCardId: String? = null,
+        val orderIndex: Int? = null
+    )
+
+    private data class StoredGroupPayload(
+        val id: String? = null,
+        val name: String? = null,
+        val description: String? = null,
+        val members: List<StoredGroupMemberPayload?>? = null,
+        val createdAt: Long? = null,
+        val updatedAt: Long? = null
+    )
 
     companion object {
         private val CHARACTER_GROUP_LIST = stringSetPreferencesKey("character_group_list")
@@ -218,6 +239,164 @@ class CharacterGroupCardManager private constructor(private val context: Context
         return allCharacterGroupCardsFlow.first()
     }
 
+    suspend fun repairPersistedState(): Boolean {
+        val validCharacterIds = characterCardManager.getPersistedCharacterCardIdsForRecovery()
+        return repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.CHARACTER_GROUPS,
+            dataStore = dataStore
+        ) { current ->
+            val originalValues = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            val recordPattern = Regex("^character_group_(.+)_data$")
+            val storedRecordIds =
+                originalValues.keys
+                    .mapNotNull { key -> recordPattern.matchEntire(key)?.groupValues?.get(1) }
+                    .filter { it.isNotBlank() }
+                    .toSet()
+            val indexedRecordIds =
+                (originalValues[CHARACTER_GROUP_LIST.name] as? Set<*>)
+                    ?.filterIsInstance<String>()
+                    ?.filter { it.isNotBlank() }
+                    ?.toSet()
+                    .orEmpty()
+            val recordIds = storedRecordIds + indexedRecordIds
+            val validGroups = linkedSetOf<String>()
+            val now = System.currentTimeMillis()
+
+            recordIds.sorted().forEach { id ->
+                val keyName = "character_group_${id}_data"
+                val raw = originalValues[keyName]
+                val payload =
+                    if (raw is String) {
+                        try {
+                            gson.fromJson(raw, StoredGroupPayload::class.java)
+                        } catch (e: Exception) {
+                            AppLogger.e(
+                                "CharacterGroupCardManager",
+                                "Repairing invalid persisted character group",
+                                e
+                            )
+                            null
+                        }
+                    } else {
+                        null
+                    }
+
+                if (payload == null) {
+                    removeName(keyName)
+                    mutable[stringPreferencesKey(keyName)] =
+                        gson.toJson(
+                            CharacterGroupCard(
+                                id = id,
+                                name = id,
+                                members = emptyList(),
+                                createdAt = now,
+                                updatedAt = now
+                            )
+                        )
+                    issues += keyName
+                    validGroups += id
+                    return@forEach
+                }
+
+                val rawMembers = payload.members.orEmpty().filterNotNull()
+                // Persisted orderIndex is authoritative; damaged JSON array order must not reorder a group.
+                val normalizedMemberIds =
+                    rawMembers
+                        .withIndex()
+                        .filter { (_, member) ->
+                            val characterId =
+                                member.characterCardId?.takeIf(String::isNotBlank)
+                            characterId != null && characterId in validCharacterIds
+                        }
+                        .sortedWith(
+                            compareBy<IndexedValue<StoredGroupMemberPayload>>(
+                                { indexed -> indexed.value.orderIndex ?: Int.MAX_VALUE },
+                                { indexed -> indexed.index }
+                            )
+                        )
+                        .mapNotNull { indexed -> indexed.value.characterCardId }
+                        .distinct()
+                val normalizedMembers =
+                    normalizedMemberIds.mapIndexed { index, characterId ->
+                        GroupMemberConfig(characterCardId = characterId, orderIndex = index)
+                    }
+                val normalized =
+                    CharacterGroupCard(
+                        id = id,
+                        name = payload.name.orEmpty(),
+                        description = payload.description.orEmpty(),
+                        members = normalizedMembers,
+                        createdAt = payload.createdAt?.takeIf { it > 0L } ?: now,
+                        updatedAt = payload.updatedAt?.takeIf { it > 0L } ?: now
+                    )
+                val memberOrderWasCanonical =
+                    payload.members.orEmpty().size == rawMembers.size &&
+                    rawMembers.size == normalizedMembers.size &&
+                        rawMembers.mapIndexed { index, member ->
+                            member.characterCardId == normalizedMembers[index].characterCardId &&
+                                member.orderIndex == index
+                        }.all { it }
+                val needsRepair =
+                    raw !is String ||
+                        payload.id != id ||
+                        payload.name == null ||
+                        payload.description == null ||
+                        payload.members == null ||
+                        payload.createdAt == null ||
+                        payload.createdAt <= 0L ||
+                        payload.updatedAt == null ||
+                        payload.updatedAt <= 0L ||
+                        !memberOrderWasCanonical
+                if (needsRepair) {
+                    removeName(keyName)
+                    val persistedObject =
+                        JsonParser.parseString(requireNotNull(raw as? String)).asJsonObject
+                    val decodedKnown = gson.toJsonTree(payload).asJsonObject
+                    val normalizedKnown = gson.toJsonTree(normalized).asJsonObject
+                    val repairedObject = JsonObject()
+                    persistedObject.entrySet().forEach { (name, element) ->
+                        repairedObject.add(name, element)
+                    }
+                    normalizedKnown.entrySet().forEach { (name, element) ->
+                        if (decodedKnown.get(name) != element) {
+                            repairedObject.add(name, element)
+                        }
+                    }
+                    mutable[stringPreferencesKey(keyName)] = gson.toJson(repairedObject)
+                    issues += keyName
+                }
+                validGroups += id
+            }
+
+            val currentIndex =
+                (originalValues[CHARACTER_GROUP_LIST.name] as? Set<*>)
+                    ?.filterIsInstance<String>()
+                    ?.filter { it.isNotBlank() }
+                    ?.toSet()
+            if (currentIndex != validGroups) {
+                removeName(CHARACTER_GROUP_LIST.name)
+                mutable[CHARACTER_GROUP_LIST] = validGroups
+                issues += CHARACTER_GROUP_LIST.name
+            }
+
+            val activeRaw = originalValues[ACTIVE_CHARACTER_GROUP_ID.name]
+            if (activeRaw != null && (activeRaw !is String || activeRaw !in validGroups)) {
+                removeName(ACTIVE_CHARACTER_GROUP_ID.name)
+                issues += ACTIVE_CHARACTER_GROUP_ID.name
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
+    }
+
     suspend fun initializeIfNeeded() {
         dataStore.edit { preferences ->
             if (preferences[CHARACTER_GROUP_LIST] == null) {
@@ -274,9 +453,12 @@ class CharacterGroupCardManager private constructor(private val context: Context
     }
 
     private fun decodeGroup(json: String): CharacterGroupCard? {
-        return runCatching {
-            gson.fromJson(json, CharacterGroupCard::class.java)
-        }.getOrNull()?.let { normalizeGroup(it) }
+        return try {
+            gson.fromJson(json, CharacterGroupCard::class.java)?.let { normalizeGroup(it) }
+        } catch (e: Exception) {
+            AppLogger.e("CharacterGroupCardManager", "Invalid persisted character group", e)
+            null
+        }
     }
 
     private fun normalizeGroup(group: CharacterGroupCard): CharacterGroupCard {

@@ -36,7 +36,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -46,7 +45,8 @@ import org.json.JSONObject
 
 class VitsVoiceProvider(
     private val context: Context,
-    private val config: SpeechServicesPreferences.VitsTtsPackageConfig
+    private val config: SpeechServicesPreferences.VitsTtsPackageConfig,
+    private val defaultSpeechRate: Float,
 ) : VoiceService {
 
     private companion object {
@@ -334,8 +334,7 @@ class VitsVoiceProvider(
             ?: throw TtsException(context.getString(R.string.vits_tts_error_init_failed))
 
         try {
-            val prefs = SpeechServicesPreferences(context.applicationContext)
-            val effectiveRate = request.rate ?: prefs.ttsSpeechRateFlow.first()
+            val effectiveRate = request.rate ?: defaultSpeechRate
             val ids = tokenize(request.text, activeConfig, request.extraParams)
             if (ids.isEmpty()) {
                 throw TtsException(context.getString(R.string.vits_tts_error_tokenize_failed, "empty token ids"))

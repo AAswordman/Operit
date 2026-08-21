@@ -27,90 +27,101 @@ object VoiceServiceFactory {
         VITS_TTS,
     }
 
-    /**
-     * 创建语音服务实例 (现在从Preferences中读取配置)
-     *
-     * @param context 应用上下文
-     * @return 对应类型的VoiceService实例
-     */
-    fun createVoiceService(
-        context: Context
-    ): VoiceService {
+    /** Creates a voice service from one complete active-profile snapshot. */
+    fun createVoiceService(context: Context): VoiceService {
         val profiles = SpeechServiceProfilesPreferences(context)
-        // 使用runBlocking同步获取配置，这在工厂方法中是可接受的
-        return runBlocking {
-            val profile = profiles.getCurrentTtsProfile()
+        val profile = runBlocking { profiles.getCurrentTtsProfile() }
+        return createVoiceService(context, profile)
+    }
 
-            when (profile.serviceType) {
-                VoiceServiceType.SIMPLE_TTS -> {
-                    SimpleVoiceProvider(
-                        context = context,
-                        initialLocaleTag = profile.httpConfig.localeTag,
-                        initialVoiceId = profile.httpConfig.voiceId
-                    )
-                }
-                VoiceServiceType.HTTP_TTS -> {
-                    HttpVoiceProvider(context).apply {
-                        setConfiguration(profile.httpConfig)
-                    }
-                }
-                VoiceServiceType.OPENAI_WS_TTS -> {
-                    OpenAIRealtimeVoiceProvider(
-                        context = context,
-                        endpointUrl = profile.httpConfig.urlTemplate,
-                        apiKey = profile.httpConfig.apiKey,
-                        model = profile.httpConfig.modelName,
-                        initialVoiceId = profile.httpConfig.voiceId
-                    )
-                }
-                VoiceServiceType.SILICONFLOW_TTS -> {
-                    SiliconFlowVoiceProvider(
-                        context = context,
-                        apiKey = profile.httpConfig.apiKey,
-                        initialVoiceId = profile.httpConfig.voiceId,
-                        initialModelName = profile.httpConfig.modelName
-                    )
-                }
-                VoiceServiceType.MINIMAX_TTS -> {
-                    MiniMaxVoiceProvider(
-                        context = context,
-                        config = profile.httpConfig
-                    )
-                }
-                VoiceServiceType.MIMO_TTS -> {
-                    MimoVoiceProvider(
-                        context = context,
-                        config = profile.httpConfig
-                    )
-                }
-                VoiceServiceType.DOUBAO_TTS -> {
-                    DoubaoVoiceProvider(
-                        context = context,
-                        config = profile.httpConfig
-                    )
-                }
-                VoiceServiceType.OPENAI_TTS -> {
-                    OpenAIVoiceProvider(
-                        context = context,
-                        endpointUrl = profile.httpConfig.urlTemplate,
-                        apiKey = profile.httpConfig.apiKey,
-                        model = profile.httpConfig.modelName,
-                        initialVoiceId = profile.httpConfig.voiceId
-                    )
-                }
-                VoiceServiceType.VITS_TTS -> {
-                    VitsVoiceProvider(
-                        context = context,
-                        config = profile.vitsConfig
-                    )
+    private fun createVoiceService(
+        context: Context,
+        profile: SpeechServiceProfilesPreferences.TtsProfile,
+    ): VoiceService =
+        when (profile.serviceType) {
+            VoiceServiceType.SIMPLE_TTS -> {
+                SimpleVoiceProvider(
+                    context = context,
+                    initialLocaleTag = profile.httpConfig.localeTag,
+                    initialVoiceId = profile.httpConfig.voiceId,
+                    defaultSpeechRate = profile.speechRate,
+                    defaultPitch = profile.pitch,
+                )
+            }
+            VoiceServiceType.HTTP_TTS -> {
+                HttpVoiceProvider(
+                    context = context,
+                    defaultSpeechRate = profile.speechRate,
+                    defaultPitch = profile.pitch,
+                ).apply {
+                    setConfiguration(profile.httpConfig)
                 }
             }
+            VoiceServiceType.OPENAI_WS_TTS -> {
+                OpenAIRealtimeVoiceProvider(
+                    context = context,
+                    endpointUrl = profile.httpConfig.urlTemplate,
+                    apiKey = profile.httpConfig.apiKey,
+                    model = profile.httpConfig.modelName,
+                    initialVoiceId = profile.httpConfig.voiceId,
+                    defaultSpeechRate = profile.speechRate,
+                )
+            }
+            VoiceServiceType.SILICONFLOW_TTS -> {
+                SiliconFlowVoiceProvider(
+                    context = context,
+                    apiKey = profile.httpConfig.apiKey,
+                    initialVoiceId = profile.httpConfig.voiceId,
+                    initialModelName = profile.httpConfig.modelName,
+                    defaultSpeechRate = profile.speechRate,
+                )
+            }
+            VoiceServiceType.MINIMAX_TTS -> {
+                MiniMaxVoiceProvider(
+                    context = context,
+                    config = profile.httpConfig,
+                    defaultSpeechRate = profile.speechRate,
+                    defaultPitch = profile.pitch,
+                )
+            }
+            VoiceServiceType.MIMO_TTS -> {
+                MimoVoiceProvider(
+                    context = context,
+                    config = profile.httpConfig,
+                    defaultSpeechRate = profile.speechRate,
+                    defaultPitch = profile.pitch,
+                )
+            }
+            VoiceServiceType.DOUBAO_TTS -> {
+                DoubaoVoiceProvider(
+                    context = context,
+                    config = profile.httpConfig,
+                    defaultSpeechRate = profile.speechRate,
+                    defaultPitch = profile.pitch,
+                )
+            }
+            VoiceServiceType.OPENAI_TTS -> {
+                OpenAIVoiceProvider(
+                    context = context,
+                    endpointUrl = profile.httpConfig.urlTemplate,
+                    apiKey = profile.httpConfig.apiKey,
+                    model = profile.httpConfig.modelName,
+                    initialVoiceId = profile.httpConfig.voiceId,
+                    defaultSpeechRate = profile.speechRate,
+                )
+            }
+            VoiceServiceType.VITS_TTS -> {
+                VitsVoiceProvider(
+                    context = context,
+                    config = profile.vitsConfig,
+                    defaultSpeechRate = profile.speechRate,
+                )
+            }
         }
-    }
 
     // 单例实例缓存
     private var instance: VoiceService? = null
-    private var currentProfileId: String? = null
+    private var currentProfileSnapshot: SpeechServiceProfilesPreferences.TtsProfile? = null
 
     /**
      * 获取语音服务单例实例
@@ -118,22 +129,24 @@ object VoiceServiceFactory {
      * @param context 应用上下文
      * @return VoiceService实例
      */
+    @Synchronized
     fun getInstance(context: Context): VoiceService {
         val profiles = SpeechServiceProfilesPreferences(context)
-        val selectedProfileId = runBlocking { profiles.getCurrentTtsProfile().id }
+        val profile = runBlocking { profiles.getCurrentTtsProfile() }
 
-        if (instance == null || selectedProfileId != currentProfileId) {
+        if (instance == null || profile != currentProfileSnapshot) {
             instance?.shutdown()
-            instance = createVoiceService(context)
-            currentProfileId = selectedProfileId
+            instance = createVoiceService(context, profile)
+            currentProfileSnapshot = profile
         }
         return instance!!
     }
 
     /** 重置单例实例 在需要更改语音服务类型或释放资源时调用 */
+    @Synchronized
     fun resetInstance() {
         instance?.shutdown()
         instance = null
-        currentProfileId = null
+        currentProfileSnapshot = null
     }
 }

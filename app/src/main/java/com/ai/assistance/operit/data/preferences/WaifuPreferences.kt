@@ -7,13 +7,13 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.waifuDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "waifu_settings")
+    recoverablePreferencesDataStore(name = "waifu_settings")
 
 class WaifuPreferences private constructor(private val context: Context) {
 

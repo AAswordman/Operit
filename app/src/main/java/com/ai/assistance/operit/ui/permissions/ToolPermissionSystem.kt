@@ -10,7 +10,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
 import com.ai.assistance.operit.data.model.AITool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +28,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 // Define DataStore
-private val Context.toolPermissionsDataStore: DataStore<Preferences> by preferencesDataStore(name = "tool_permissions")
+private val Context.toolPermissionsDataStore: DataStore<Preferences> by
+    recoverablePreferencesDataStore(name = "tool_permissions")
 
 /**
  * Permission levels for tool operations
@@ -122,6 +126,38 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     fun registerOperationDescription(toolName: String, descriptionGenerator: (AITool) -> String) {
         operationDescriptionRegistry[toolName] = descriptionGenerator
     }
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.TOOL_PERMISSIONS,
+            dataStore = context.toolPermissionsDataStore
+        ) { current ->
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+            current.asMap().forEach { (key, value) ->
+                val keyName = key.name
+                if (keyName != MASTER_SWITCH.name && !keyName.startsWith("tool_permission_")) {
+                    return@forEach
+                }
+                val normalized =
+                    when (value) {
+                        PermissionLevel.ALLOW.name -> PermissionLevel.ALLOW.name
+                        PermissionLevel.ASK.name -> PermissionLevel.ASK.name
+                        PermissionLevel.FORBID.name -> PermissionLevel.FORBID.name
+                        "CAUTION" -> PermissionLevel.ASK.name
+                        else -> PermissionLevel.ASK.name
+                    }
+                if (value !is String || value != normalized) {
+                    mutable.asMap().keys
+                        .filter { it.name == keyName }
+                        .forEach { mutable.remove(it) }
+                    mutable[stringPreferencesKey(keyName)] = normalized
+                    issues += keyName
+                }
+            }
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
     
     /**
      * Save permission level settings

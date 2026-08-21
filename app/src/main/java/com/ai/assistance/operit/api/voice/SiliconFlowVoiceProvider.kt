@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -13,7 +12,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +34,8 @@ class SiliconFlowVoiceProvider(
     private val context: Context,
     private val apiKey: String,
     initialVoiceId: String,
-    private val initialModelName: String = ""
+    private val initialModelName: String = "",
+    private val defaultSpeechRate: Float,
 ) : VoiceService {
     companion object {
         private const val TAG = "SiliconFlowVoiceProvider"
@@ -196,8 +195,7 @@ class SiliconFlowVoiceProvider(
                 return null
             }
 
-            val prefs = SpeechServicesPreferences(context.applicationContext)
-            val effectiveRate = request.rate ?: prefs.ttsSpeechRateFlow.first()
+            val effectiveRate = request.rate ?: defaultSpeechRate
 
             val strippedInput = request.text.replace(Regex("<[^>]+>"), "").trim()
             if (strippedInput.isBlank()) {

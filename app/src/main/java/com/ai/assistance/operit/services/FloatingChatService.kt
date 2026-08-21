@@ -80,6 +80,7 @@ class FloatingChatService : Service(), FloatingWindowCallback {
 
     // 聊天服务核心 - 整合所有业务逻辑
     private lateinit var chatCore: ChatServiceCore
+    private var storageReady = false
 
     private var lastCrashTime = 0L
     private var crashCount = 0
@@ -199,7 +200,20 @@ class FloatingChatService : Service(), FloatingWindowCallback {
 
     override fun onCreate() {
         super.onCreate()
-        (application as OperitApplication).initializeMainApplication()
+        val operitApplication = application as OperitApplication
+        if (OperitApplication.storageStartupState !=
+            OperitApplication.StorageStartupState.READY
+        ) {
+            AppLogger.e(
+                TAG,
+                "Floating service refused because storage state=" +
+                    OperitApplication.storageStartupState
+            )
+            stopSelf()
+            return
+        }
+        storageReady = true
+        operitApplication.initializeMainApplication()
         AppLogger.d(TAG, "onCreate")
 
         instance = this
@@ -368,6 +382,10 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!storageReady) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         AppLogger.d(TAG, "onStartCommand")
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -580,6 +598,12 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     }
 
     override fun onDestroy() {
+        if (!storageReady) {
+            instance = null
+            serviceScope.cancel()
+            super.onDestroy()
+            return
+        }
         try {
             AIForegroundService.setWakeListeningSuspendedForFloatingFullscreen(
                 applicationContext,

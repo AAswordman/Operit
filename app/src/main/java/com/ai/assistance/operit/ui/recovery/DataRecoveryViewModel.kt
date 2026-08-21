@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.data.backup.RawSnapshotBackupManager
 import com.ai.assistance.operit.data.db.AppDatabase
+import com.ai.assistance.operit.data.persistence.StorageProcessLock
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,7 +54,14 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (isQueryStatement(sql)) {
-                    val result = executeQuery(sql)
+                    val result =
+                        StorageProcessLock.withExclusiveAccess(context, "recovery-sql-query") {
+                            try {
+                                executeQuery(sql)
+                            } finally {
+                                AppDatabase.closeDatabase()
+                            }
+                        }
                     withContext(Dispatchers.Main) {
                         _state.value =
                             _state.value.copy(
@@ -64,8 +72,15 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                             )
                     }
                 } else {
-                    writableDatabase().execSQL(sql)
-                    val affectedRows = queryChanges()
+                    val affectedRows =
+                        StorageProcessLock.withExclusiveAccess(context, "recovery-sql-write") {
+                            try {
+                                writableDatabase().execSQL(sql)
+                                queryChanges()
+                            } finally {
+                                AppDatabase.closeDatabase()
+                            }
+                        }
                     withContext(Dispatchers.Main) {
                         _state.value =
                             _state.value.copy(

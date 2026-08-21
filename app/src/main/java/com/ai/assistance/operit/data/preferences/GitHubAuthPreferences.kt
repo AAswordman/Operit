@@ -7,7 +7,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.ai.assistance.operit.data.persistence.PreferenceStateRepairResult
+import com.ai.assistance.operit.data.persistence.PreferenceStoreCatalog
+import com.ai.assistance.operit.data.persistence.recoverablePreferencesDataStore
+import com.ai.assistance.operit.data.persistence.repairPreferenceState
+import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -17,7 +21,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.githubAuthDataStore: DataStore<Preferences> by
-    preferencesDataStore(name = "github_auth_preferences")
+    recoverablePreferencesDataStore(name = "github_auth_preferences")
 
 @Serializable
 data class GitHubUser(
@@ -39,6 +43,7 @@ data class GitHubUser(
 class GitHubAuthPreferences(private val context: Context) {
 
     companion object {
+        private const val TAG = "GitHubAuthPreferences"
         const val GITHUB_SCOPE = "notifications,public_repo,user:email,read:user"
         private const val REQUIRED_AUTH_VERSION = 3
         
@@ -93,6 +98,101 @@ class GitHubAuthPreferences(private val context: Context) {
         return authVersion >= REQUIRED_AUTH_VERSION && grantedScopes.containsAll(requiredScopes)
     }
 
+    private fun decodeUserInfo(raw: String): GitHubUser? =
+        try {
+            json.decodeFromString<GitHubUser>(raw)
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Invalid persisted GitHub user information", e)
+            null
+        }
+
+    suspend fun repairPersistedState(): Boolean =
+        repairPreferenceState(
+            context = context,
+            storeName = PreferenceStoreCatalog.GITHUB_AUTH,
+            dataStore = context.githubAuthDataStore
+        ) { current ->
+            val values = current.asMap().entries.associate { it.key.name to it.value }
+            val mutable = current.toMutablePreferences()
+            val issues = linkedSetOf<String>()
+
+            fun removeName(name: String) {
+                mutable.asMap().keys.filter { it.name == name }.forEach { mutable.remove(it) }
+            }
+
+            fun replaceLoggedIn(value: Boolean) {
+                removeName(IS_LOGGED_IN.name)
+                mutable[IS_LOGGED_IN] = value
+                issues += IS_LOGGED_IN.name
+            }
+
+            fun validString(key: Preferences.Key<String>): String? {
+                val raw = values[key.name] ?: return null
+                if (raw is String) return raw
+                removeName(key.name)
+                issues += key.name
+                return null
+            }
+
+            fun validLong(
+                key: Preferences.Key<Long>,
+                predicate: (Long) -> Boolean
+            ): Long? {
+                val raw = values[key.name] ?: return null
+                if (raw is Long && predicate(raw)) return raw
+                removeName(key.name)
+                issues += key.name
+                return null
+            }
+
+            val rawLoggedIn = values[IS_LOGGED_IN.name]
+            var loggedIn = rawLoggedIn as? Boolean ?: false
+            if (rawLoggedIn != null && rawLoggedIn !is Boolean) {
+                replaceLoggedIn(false)
+                loggedIn = false
+            }
+
+            val accessToken = validString(ACCESS_TOKEN)
+            validString(TOKEN_TYPE)
+            validString(REFRESH_TOKEN)
+            val userInfoText = validString(USER_INFO)
+            val grantedScope = validString(GRANTED_SCOPE)
+            val transactionId = validString(ACTIVE_OAUTH_TRANSACTION_ID)
+            val deliveryCredential = validString(ACTIVE_OAUTH_DELIVERY_CREDENTIAL)
+
+            val rawTokenExpiresAt = values[TOKEN_EXPIRES_AT.name]
+            val tokenExpiresAt = validLong(TOKEN_EXPIRES_AT) { it > 0L }
+            validLong(LAST_LOGIN_TIME) { it >= 0L }
+            val authVersion = validLong(AUTH_VERSION) { it >= 0L }
+            val activeExpiresAt = validLong(ACTIVE_OAUTH_EXPIRES_AT) { it > 0L }
+
+            var userInfoValid = userInfoText != null
+            if (userInfoText != null && decodeUserInfo(userInfoText) == null) {
+                removeName(USER_INFO.name)
+                issues += USER_INFO.name
+                userInfoValid = false
+            }
+
+            if (activeExpiresAt != null &&
+                (transactionId.isNullOrBlank() || deliveryCredential.isNullOrBlank())
+            ) {
+                removeName(ACTIVE_OAUTH_EXPIRES_AT.name)
+                issues += ACTIVE_OAUTH_EXPIRES_AT.name
+            }
+
+            val authStateConsistent =
+                accessToken?.isNotBlank() == true &&
+                    userInfoValid &&
+                    authVersion != null && authVersion >= REQUIRED_AUTH_VERSION &&
+                    (rawTokenExpiresAt == null || tokenExpiresAt != null) &&
+                    parseScopeSet(grantedScope).containsAll(requiredScopes)
+            if (loggedIn && !authStateConsistent) {
+                replaceLoggedIn(false)
+            }
+
+            PreferenceStateRepairResult(mutable.toPreferences(), issues)
+        }
+
     // 登录状态Flow
     val isLoggedInFlow: Flow<Boolean> = context.githubAuthDataStore.data.map { preferences ->
         (preferences[IS_LOGGED_IN] ?: false) && isAuthSessionCurrent(preferences)
@@ -110,11 +210,7 @@ class GitHubAuthPreferences(private val context: Context) {
         }
         val userInfoJson = preferences[USER_INFO]
         if (userInfoJson != null) {
-            try {
-                json.decodeFromString<GitHubUser>(userInfoJson)
-            } catch (e: Exception) {
-                null
-            }
+            decodeUserInfo(userInfoJson)
         } else {
             null
         }
@@ -203,11 +299,7 @@ class GitHubAuthPreferences(private val context: Context) {
         }
         val userInfoJson = preferences[USER_INFO]
         return if (userInfoJson != null) {
-            try {
-                json.decodeFromString<GitHubUser>(userInfoJson)
-            } catch (e: Exception) {
-                null
-            }
+            decodeUserInfo(userInfoJson)
         } else {
             null
         }
