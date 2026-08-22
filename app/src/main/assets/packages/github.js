@@ -228,6 +228,7 @@
       "parameters": [
         { "name": "command", "description": { "zh": "要执行的命令", "en": "Command to execute." }, "type": "string", "required": true },
         { "name": "session_name", "description": { "zh": "会话名（可选，默认 github_tools_session）", "en": "Session name (optional; default: github_tools_session)." }, "type": "string", "required": false },
+        { "name": "timeout_ms", "description": { "zh": "超时时间（毫秒，默认120000）", "en": "Timeout in milliseconds (default 120000)." }, "type": "number", "required": false },
         { "name": "close", "description": { "zh": "是否执行后关闭会话", "en": "Whether to close the session after execution." }, "type": "boolean", "required": false }
       ]
     },
@@ -802,21 +803,97 @@ async function overwriteLocalFile(params) {
 }
 
 // src/local/terminal.ts
+var DEFAULT_SESSION_NAME = "github_tools_session";
+var DEFAULT_TIMEOUT_MS = 120000;
 var terminalSessionId = null;
+var terminalSessionName = null;
+var sessionCreationPromise = null;
+function normalizeSessionName(sessionName) {
+  var normalized = String(sessionName || "").trim();
+  return normalized || DEFAULT_SESSION_NAME;
+}
+function invalidateSession(sessionId) {
+  if (!sessionId || terminalSessionId === sessionId) {
+    terminalSessionId = null;
+    terminalSessionName = null;
+  }
+}
+async function closeSessionQuietly(sessionId) {
+  if (!sessionId) return;
+  try {
+    await Tools.System.terminal.close(sessionId);
+  } catch (_error) {
+  } finally {
+    invalidateSession(sessionId);
+  }
+}
+function isSessionLifecycleError(error) {
+  var message = String(error && error.message ? error.message : error || "").toLowerCase();
+  var mentionsSession = message.includes("session") || message.includes("pty") || message.includes("\u4f1a\u8bdd");
+  var mentionsLifecycle = message.includes("not exist") || message.includes("does not exist") || message.includes("closed") || message.includes("invalid") || message.includes("unavailable") || message.includes("\u4e0d\u5b58\u5728") || message.includes("\u5173\u95ed") || message.includes("\u5931\u6548") || message.includes("\u4e0d\u53ef\u7528");
+  return mentionsSession && mentionsLifecycle;
+}
+function isTimeoutError(error) {
+  var message = String(error && error.message ? error.message : error || "").toLowerCase();
+  return message.includes("timed out") || message.includes("timeout");
+}
+function normalizeTimeout(timeoutMs) {
+  var value = timeoutMs === void 0 || timeoutMs === null ? DEFAULT_TIMEOUT_MS : Number(timeoutMs);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error("timeout_ms must be a positive number");
+  }
+  return Math.floor(value);
+}
 async function getTerminalSession(sessionName) {
-  if (terminalSessionId) return terminalSessionId;
-  const session = await Tools.System.terminal.create(sessionName || "github_tools_session");
-  terminalSessionId = session.sessionId;
-  return terminalSessionId;
+  var normalizedName = normalizeSessionName(sessionName);
+  if (terminalSessionId && terminalSessionName === normalizedName) return terminalSessionId;
+  if (sessionCreationPromise) return sessionCreationPromise;
+  sessionCreationPromise = (async function() {
+    if (terminalSessionId) {
+      await closeSessionQuietly(terminalSessionId);
+    }
+    var session = await Tools.System.terminal.create(normalizedName);
+    if (!session || !session.sessionId) {
+      throw new Error("Terminal session creation returned no sessionId for " + normalizedName);
+    }
+    terminalSessionId = String(session.sessionId);
+    terminalSessionName = normalizedName;
+    return terminalSessionId;
+  })();
+  try {
+    return await sessionCreationPromise;
+  } finally {
+    sessionCreationPromise = null;
+  }
 }
 async function terminalExec(params) {
-  const sessionId = await getTerminalSession(params.session_name);
-  const result = await Tools.System.terminal.exec(sessionId, params.command);
-  if (params.close) {
-    await Tools.System.terminal.close(sessionId);
-    terminalSessionId = null;
+  var sessionName = normalizeSessionName(params.session_name);
+  var timeoutMs = normalizeTimeout(params.timeout_ms);
+  var sessionId = await getTerminalSession(sessionName);
+  try {
+    var result;
+    try {
+      result = await Tools.System.terminal.exec(sessionId, params.command, timeoutMs);
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        await closeSessionQuietly(sessionId);
+        throw error;
+      }
+      if (!isSessionLifecycleError(error)) throw error;
+      invalidateSession(sessionId);
+      sessionId = await getTerminalSession(sessionName);
+      result = await Tools.System.terminal.exec(sessionId, params.command, timeoutMs);
+    }
+    if (result && result.timedOut === true) {
+      await closeSessionQuietly(sessionId);
+      throw new Error("Terminal command timed out after " + timeoutMs + "ms");
+    }
+    return result;
+  } finally {
+    if (params.close) {
+      await closeSessionQuietly(sessionId);
+    }
   }
-  return result;
 }
 
 // src/tools.ts

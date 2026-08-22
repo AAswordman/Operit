@@ -126,24 +126,22 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                 if (outputFlow != null) {
                     val events = mutableListOf<String>()
                     var completionOutput: String? = null
-                    var exitCode = 0
+                    var exitCode: Int? = null
                     var hasCompleted = false
                     var didTimeout = false
 
                     try {
-                        withTimeout(timeout) {
-                            outputFlow.collect { event ->
-                                if (event.isCompleted) {
-                                    completionOutput = event.outputChunk
-                                } else if (event.outputChunk.isNotEmpty()) {
-                                    events.add(event.outputChunk)
-                                }
-                                if (event.isCompleted) {
-                                    exitCode = 0
-                                    hasCompleted = true
+                            withTimeout(timeout) {
+                                outputFlow.collect { event ->
+                                    if (event.isCompleted) {
+                                        completionOutput = event.outputChunk
+                                        exitCode = event.exitCode ?: 0
+                                        hasCompleted = true
+                                    } else if (event.outputChunk.isNotEmpty()) {
+                                        events.add(event.outputChunk)
+                                    }
                                 }
                             }
-                        }
                     } catch (e: TimeoutCancellationException) {
                         AppLogger.w(TAG, "Command execution timed out after ${timeout}ms")
                         cancelTimedOutCommand(terminal, sessionId)
@@ -153,11 +151,18 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                     }
 
                     val fullOutput = completionOutput?.takeIf { it.isNotEmpty() } ?: events.joinToString("")
-                    AppLogger.d(TAG, "Command output collected: '$fullOutput', exitCode: $exitCode")
+                    val finalExitCode = exitCode ?: if (didTimeout) -1 else 0
+                    AppLogger.d(TAG, "Command output collected: '$fullOutput', exitCode: $finalExitCode")
                     val errorMessage =
                             when {
-                                didTimeout -> null
+                                didTimeout -> "Command execution timed out after ${timeout}ms"
                                 !hasCompleted -> context.getString(R.string.terminal_error_command_failed)
+                                finalExitCode != 0 ->
+                                    if (finalExitCode == -1 && fullOutput.isNotBlank()) {
+                                        "Command failed: ${fullOutput.takeLast(1000)}"
+                                    } else {
+                                        "Command exited with code $finalExitCode"
+                                    }
                                 else -> null
                             }
 
@@ -167,7 +172,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                             result = TerminalCommandResultData(
                                     command = command,
                                     output = fullOutput,
-                                    exitCode = exitCode,
+                                    exitCode = finalExitCode,
                                     sessionId = sessionId,
                                     timedOut = didTimeout
                             ),
@@ -252,7 +257,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
             val outputFlow = terminal.executeCommandFlow(sessionId, command)
             val events = mutableListOf<String>()
             var completionOutput: String? = null
-            var exitCode = 0
+            var exitCode: Int? = null
             var hasCompleted = false
             var didTimeout = false
             var chunkIndex = 0
@@ -263,7 +268,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                     outputFlow.collect { event ->
                         if (event.isCompleted) {
                             completionOutput = event.outputChunk
-                            exitCode = 0
+                            exitCode = event.exitCode ?: 0
                             hasCompleted = true
                             return@collect
                         }
@@ -303,10 +308,17 @@ class StandardTerminalCommandExecutor(private val context: Context) {
             }
 
             val fullOutput = completionOutput?.takeIf { it.isNotEmpty() } ?: events.joinToString("")
+            val finalExitCode = exitCode ?: if (didTimeout) -1 else 0
             val errorMessage =
                 when {
-                    didTimeout -> null
+                    didTimeout -> "Command execution timed out after ${timeout}ms"
                     !hasCompleted -> context.getString(R.string.terminal_error_command_failed)
+                    finalExitCode != 0 ->
+                        if (finalExitCode == -1 && fullOutput.isNotBlank()) {
+                            "Command failed: ${fullOutput.takeLast(1000)}"
+                        } else {
+                            "Command exited with code $finalExitCode"
+                        }
                     else -> null
                 }
 
@@ -318,7 +330,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                         TerminalCommandResultData(
                             command = command,
                             output = fullOutput,
-                            exitCode = exitCode,
+                            exitCode = finalExitCode,
                             sessionId = sessionId,
                             timedOut = didTimeout
                         ),
