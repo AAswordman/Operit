@@ -3,6 +3,7 @@ package com.ai.assistance.operit.util
 import android.content.res.Configuration
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.ai.assistance.operit.R
 import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -39,6 +40,31 @@ class LocaleUtilsConfigurationAndroidTest {
         assertEquals(
             baseConfiguration.smallestScreenWidthDp,
             localizedConfiguration.smallestScreenWidthDp
+        )
+    }
+
+    @Test fun japaneseOverride_usesEnglishAfterJapanese() {
+        val override = LocaleUtils.createLocaleOverrideConfiguration(Locale.JAPANESE)
+
+        assertEquals(Locale.JAPANESE, override.locales[0])
+        assertEquals(Locale.ENGLISH, override.locales[1])
+    }
+
+    @Test fun japaneseContext_usesJapaneseThenEnglishResources() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val localizedContext =
+            context.createConfigurationContext(
+                LocaleUtils.createLocaleOverrideConfiguration(Locale.JAPANESE)
+            )
+
+        assertEquals("設定", localizedContext.getString(R.string.nav_settings))
+        assertEquals(
+            "生データのスナップショット",
+            localizedContext.getString(R.string.data_recovery_snapshot_section)
+        )
+        assertEquals(
+            "Show Model Selector",
+            localizedContext.getString(R.string.model_selector_toggle)
         )
     }
 }

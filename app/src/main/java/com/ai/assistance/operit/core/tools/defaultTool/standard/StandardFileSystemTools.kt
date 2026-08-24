@@ -611,7 +611,7 @@ open class StandardFileSystemTools(protected val context: Context) {
             val overallStartTime = System.currentTimeMillis()
             ToolProgressBus.update(toolName, 0f, "Preparing search...")
 
-            val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+            val useEnglish = !LocaleUtils.usesChineseContent(context)
 
             val fallback = listOf(intent.take(60)).filter { it.isNotBlank() }
             var queries = normalizeQueries(fallback).take(8)

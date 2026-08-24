@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.os.LocaleList
 import com.ai.assistance.operit.util.AppLogger
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -163,8 +162,7 @@ class MainActivity : ComponentActivity() {
 
         // 设置语言配置
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val localeList = LocaleList(locale)
-            LocaleList.setDefault(localeList)
+            LocaleUtils.setDefaultLocales(locale)
         } else {
             @Suppress("DEPRECATION")
             Locale.setDefault(locale)

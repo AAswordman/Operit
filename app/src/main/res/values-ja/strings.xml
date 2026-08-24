@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Main navigation -->
+    <string name="nav_ai_chat">AIチャット</string>
+    <string name="nav_adb_commands">権限</string>
+    <string name="nav_settings">設定</string>
+    <string name="nav_tool_permissions">ツール権限</string>
+    <string name="nav_about">Operitについて</string>
+    <string name="nav_packages">パッケージ</string>
+    <string name="nav_memory_base">記憶庫</string>
+    <string name="nav_assistant_config">アシスタント設定</string>
+    <string name="nav_terminal">ターミナル</string>
+    <string name="nav_toolbox">ツールボックス</string>
+    <string name="nav_item_agreement">利用規約</string>
+    <string name="nav_help">使い方</string>
+    <string name="nav_workflow">ワークフロー</string>
+    <string name="nav_group_ai_features">AI機能</string>
+    <string name="nav_group_tools">ツール</string>
+    <string name="nav_group_plugins">プラグイン</string>
+    <string name="nav_group_system">システム</string>
+
+    <!-- Common actions -->
+    <string name="confirm">決定</string>
+    <string name="cancel">キャンセル</string>
+    <string name="save">保存</string>
+    <string name="edit">編集</string>
+    <string name="delete">削除</string>
+    <string name="back">戻る</string>
+    <string name="done">完了</string>
+    <string name="settings">設定</string>
+
+    <!-- Data recovery -->
+    <string name="title_activity_data_recovery">データ救援</string>
+    <string name="shortcut_data_recovery">データ救援</string>
+    <string name="data_recovery_snapshot_section">生データのスナップショット</string>
+    <string name="data_recovery_snapshot_description">書き出しでは、内部の files、shared_prefs、datastore、databases、Android/data内のアプリ用フォルダーをまとめます。読み込みでは、現在のアプリデータを上書きします。</string>
+    <string name="data_recovery_export_snapshot">スナップショットを書き出す</string>
+    <string name="data_recovery_import_snapshot">スナップショットを読み込む</string>
+    <string name="data_recovery_launch_main">通常のOperitを開く</string>
+    <string name="data_recovery_file_management_section">ファイル管理</string>
+    <string name="data_recovery_file_management_description">この画面からファイル管理アプリを直接開くことはできません。内部ファイルを確認・書き出しする場合はMT Managerを開き、「ローカルストレージ」を追加してOperitのデータ領域を選んでください。provider: %1$s</string>
+    <string name="data_recovery_sql_executor_section">SQL実行</string>
+    <string name="data_recovery_messages_size">messagesのサイズ</string>
+    <string name="data_recovery_variants_size">variantsのサイズ</string>
+    <string name="data_recovery_chats_fields">chatsの項目</string>
+    <string name="data_recovery_execute">実行</string>
+    <string name="data_recovery_import_dialog_title">生データのスナップショットを読み込む</string>
+    <string name="data_recovery_import_dialog_message">現在のアプリデータは上書きされます。このスナップショットを読み込みますか？</string>
+    <string name="data_recovery_import">読み込む</string>
+    <string name="data_recovery_idle">データ救援を利用できます</string>
+    <string name="data_recovery_affected_rows">変更された行：%1$d</string>
+    <string name="data_recovery_query_results">検索結果：%1$d行</string>
+    <string name="data_recovery_launch_failed">通常のOperitを起動できませんでした</string>
+    <string name="data_recovery_sql_empty">SQLが空です</string>
+    <string name="data_recovery_executing_sql">SQLを実行しています</string>
+    <string name="data_recovery_query_complete">検索が完了しました：%1$d行</string>
+    <string name="data_recovery_sql_complete">SQLの実行が完了しました</string>
+    <string name="data_recovery_exporting_snapshot">生データのスナップショットを書き出しています</string>
+    <string name="data_recovery_export_complete">生データのスナップショットを書き出しました</string>
+    <string name="data_recovery_importing_snapshot">生データのスナップショットを読み込んでいます</string>
+    <string name="data_recovery_import_complete_restart">読み込みが完了しました。アプリを再起動してください。</string>
+    <string name="data_recovery_export_progress">書き出し：%1$s%2$s</string>
+    <string name="data_recovery_import_progress">読み込み：%1$s</string>
+
+    <!-- Language settings -->
+    <string name="select_language">表示言語を選ぶ</string>
+    <string name="language_info">新しい表示言語を適用するため、アプリは自動で再起動します</string>
+    <string name="language_changing">表示言語を変更しています…</string>
+    <string name="language_changed">表示言語を変更しました。アプリを再起動します</string>
+
+    <!-- Chat and models -->
+    <string name="ai_chat">AIチャット</string>
+    <string name="new_chat">新しいチャット</string>
+    <string name="start_chat_hint">新しい会話を始めます。質問を入力してください。</string>
+    <string name="model_selector_title">モデル設定を選ぶ</string>
+    <string name="model_name">モデル名</string>
+    <string name="select_model">モデルを選ぶ</string>
+    <string name="current_model">現在のモデル</string>
+    <string name="chat_history_manager">チャット履歴の管理</string>
+    <string name="export_chat_history">チャット履歴を書き出す</string>
+    <string name="import_chat_history">チャット履歴を読み込む</string>
+    <string name="clear_chat_history">チャット履歴をすべて消去</string>
+    <string name="tool_permissions">ツール権限の設定</string>
+    <string name="terminal">ターミナル</string>
+    <string name="toolbox">ツールボックス</string>
+
+    <!-- Model setup -->
+    <string name="onboarding_config_not_found">選んだモデル設定が見つかりません。別の設定を選んでください。</string>
+    <string name="onboarding_config_provider_missing">モデルのサービス提供元を選んでください</string>
+    <string name="onboarding_config_provider_unavailable">選んだモデルのサービス提供元は利用できません。別の提供元を選んでください。</string>
+    <string name="onboarding_config_endpoint_invalid">有効なHTTPまたはHTTPSのAPI接続先を入力してください</string>
+    <string name="onboarding_config_model_missing">チャットに使うモデルを選ぶか入力してください</string>
+    <string name="onboarding_config_api_key_missing">このモデルサービスにはAPI Keyが必要です</string>
+    <string name="onboarding_config_api_key_invalid">API Keyまたはキープールの形式が正しくありません。確認してやり直してください。</string>
+    <string name="onboarding_config_apply_failed">モデル設定を保存または適用できませんでした。もう一度お試しください。</string>
+
+    <!-- Permission guide -->
+    <string name="permission_guide_previous">前へ</string>
+    <string name="permission_guide_next">次へ</string>
+    <string name="permission_guide_complete">完了</string>
+    <string name="permission_guide_welcome">ようこそ</string>
+    <string name="permission_guide_basic_permissions">基本権限</string>
+    <string name="permission_guide_permission_level">権限レベル</string>
+    <string name="permission_guide_welcome_title">Operitへようこそ</string>
+    <string name="permission_guide_welcome_desc">アプリを使う前に、基本権限を設定して権限レベルを選びます。</string>
+    <string name="permission_guide_welcome_hint">数分で終わります。Operitの機能を正しく使うために必要な設定です。</string>
+    <string name="permission_guide_welcome_start">右下のボタンを押して設定を始めてください</string>
+    <string name="permission_guide_basic_title">基本権限の設定</string>
+    <string name="permission_guide_basic_desc">アプリを正しく動かすため、次の基本権限を許可してください</string>
+    <string name="permission_guide_storage_title">ストレージ権限</string>
+    <string name="permission_guide_storage_desc">ファイルの読み書きを許可します</string>
+    <string name="permission_guide_overlay_title">他のアプリの上に表示</string>
+    <string name="permission_guide_overlay_desc">フローティングウィンドウの表示を許可します</string>
+    <string name="permission_guide_battery_title">バッテリー最適化の対象外</string>
+    <string name="permission_guide_battery_desc">バックグラウンドでの動作を許可します</string>
+    <string name="permission_guide_location_title">位置情報の権限</string>
+    <string name="permission_guide_location_desc">位置情報の取得を許可します</string>
+    <string name="permission_guide_check_permissions">権限の状態を確認</string>
+    <string name="permission_guide_all_granted">基本権限はすべて許可されています。次へ進めます。</string>
+    <string name="permission_guide_warning_title">許可されていない権限があります</string>
+    <string name="permission_guide_warning_message">必要な権限がすべて許可されていないため、一部機能が動かない可能性があります。このまま続けますか？</string>
+    <string name="permission_guide_warning_continue">このまま続ける</string>
+    <string name="permission_guide_warning_return">権限設定へ戻る</string>
+    <string name="permission_guide_level_title">権限レベルを選ぶ</string>
+    <string name="permission_guide_level_desc">Operitに許可する操作範囲を選んでください</string>
+    <string name="permission_guide_standard_title">標準権限</string>
+    <string name="permission_guide_standard_desc">特別な権限を使わない基本機能のみ</string>
+    <string name="permission_guide_accessibility_title">ユーザー補助権限</string>
+    <string name="permission_guide_accessibility_desc">画面内容の読み取りと操作をユーザー補助サービスで行います</string>
+    <string name="permission_guide_debugger_title">デバッグ権限</string>
+    <string name="permission_guide_debugger_desc">Shizukuを通してADB相当のシステム操作を行います</string>
+    <string name="permission_guide_root_title">Root権限</string>
+    <string name="permission_guide_root_desc">端末全体を操作できる最上位の権限です</string>
+    <string name="permission_guide_confirm">この権限レベルにする</string>
+    <string name="permission_guide_change_anytime">権限レベルは設定からいつでも変更できます</string>
+    <string name="permission_guide_storage_setting_failed">ストレージ権限の設定を開けませんでした。端末の設定から許可してください。</string>
+    <string name="permission_guide_overlay_setting_failed">「他のアプリの上に表示」の設定を開けませんでした。端末の設定から許可してください。</string>
+    <string name="permission_guide_battery_hint">一覧からOperitを選び、「最適化しない」に設定してください</string>
+    <string name="permission_guide_battery_setting_failed">バッテリー最適化の設定を開けませんでした。端末の設定から変更してください。</string>
+    <string name="permission_guide_granted">許可済み</string>
+    <string name="permission_guide_not_granted">未許可</string>
+    <string name="permission_guide_selected">選択中</string>
+    <string name="permission_guide_intro_1_title">音声で画面を自動操作</string>
+    <string name="permission_guide_intro_1_desc">端末上の音声認識と読み上げを使ってAIと自然に会話できます。声で画面タップやアプリ操作を指示できます。</string>
+    <string name="permission_guide_intro_2_title">開発にも使える強力なツール</string>
+    <string name="permission_guide_intro_2_desc">ファイル管理、Web通信、スクリプト実行、システム操作など40種類以上のツールとプラグインを利用できます。</string>
+    <string name="permission_guide_intro_3_title">いつでも使える制作・支援環境</string>
+    <string name="permission_guide_intro_3_desc">Webページ制作、メディア処理、フローティングウィンドウからのAI利用まで、柔軟で安全な環境を提供します。データはあなたが管理します。</string>
+    <string name="permission_guide_intro_page_indicator">機能紹介 %1$d/%2$d</string>
+
+    <!-- 2026-08-21 upstream UI additions -->
+    <string name="follow_chat_model_for_all_functions">すべての機能を現在のチャットモデルに合わせる</string>
+    <string name="token_stats_rate_summary">1 USD = %1$s CNY</string>
+    <string name="token_stats_rate_input_prefix">1 USD =</string>
+    <string name="token_stats_rate_estimated">標準の推定値</string>
+    <string name="token_stats_rate_manual">手動設定</string>
+    <string name="token_stats_rate_edit">為替レートを編集</string>
+    <string name="token_stats_cache_rate">キャッシュ率</string>
+    <string name="token_stats_period_overview">期間の概要</string>
+    <string name="token_stats_composition">トークンの内訳</string>
+    <string name="token_stats_trends">傾向分析</string>
+    <string name="token_stats_metric_cost">料金</string>
+    <string name="token_stats_metric_requests">リクエスト</string>
+    <string name="token_stats_metric_tokens">トークン</string>
+    <string name="token_stats_pricing_configuration">設定上の料金</string>
+    <string name="provider_opencode">OpenCode</string>
+    <string name="provider_minimax">MiniMax</string>
+    <string name="token_activity_title">利用状況</string>
+    <string name="token_activity_current_streak_badge">%1$d日連続</string>
+    <string name="token_activity_longest_streak_badge">最長%1$d日</string>
+    <string name="token_activity_chart_tap_hint">グラフをタップすると詳細を確認できます</string>
+    <string name="markdown_link_not_openable">このリンクは文書内の参照先を示しているため、直接開けません</string>
+
+    <!-- Keys not yet present in the English resource set -->
+    <string name="package_market_origin_title">外部パッケージの入手元</string>
+    <string name="package_market_origin_message">このパッケージはOperitマーケットから入手しました。\nパッケージ名：%1$s\nバージョン：%2$s\n作者：%3$s\n原作者を支援し、第三者による不正な再販売に注意してください。</string>
+    <string name="token_stats_model_show_all">すべて表示（%1$d）</string>
+    <string name="token_stats_model_collapse">折りたたむ</string>
+    <string name="market_manage_submit_revision">修正版を新しいバージョンとして提出</string>
+    <string name="market_manage_loading_request_title">リクエストを読み込み中</string>
+    <string name="market_manage_loading_request_message">リクエストを処理しています。しばらくお待ちください…</string>
+    <string name="market_version_incompatible_title">ダウンロードできません：対応していないアプリ版です</string>
+    <string name="market_version_too_low_message">現在のアプリ版%1$sは、この項目に必要な最低版%2$sより古い版です。アプリを更新してからダウンロードしてください。</string>
+    <string name="market_version_too_high_message">現在のアプリ版%1$sは、この項目が対応する最高版%2$sより新しい版です。対応しているアプリ版を使用してください。</string>
+</resources>

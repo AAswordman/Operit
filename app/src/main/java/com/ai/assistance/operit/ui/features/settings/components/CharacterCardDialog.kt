@@ -111,7 +111,7 @@ fun CharacterCardDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val useEnglish = remember(context) {
-        LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+        !LocaleUtils.usesChineseContent(context)
     }
     val toolHandler = remember { AIToolHandler.getInstance(context) }
     val packageManager = remember { PackageManager.getInstance(context, toolHandler) }

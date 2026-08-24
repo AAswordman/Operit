@@ -1028,7 +1028,7 @@ object AIMessageManager {
             } else {
                 // 如果是自动续写，在总结消息尾部添加续写提示
                 val trimmedSummary = summary.trim()
-                val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+                val useEnglish = !LocaleUtils.usesChineseContent(context)
                 val packageWarmupBlock = buildPackageWarmupBlock(messagesToSummarize, useEnglish)
                 val summaryWithQuotes = buildString {
                     append(trimmedSummary)
