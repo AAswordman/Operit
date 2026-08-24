@@ -1568,6 +1568,11 @@ open class StandardFileSystemTools(protected val context: Context) {
         val path = tool.parameters.find { it.name == "path" }?.value ?: ""
         val environment = tool.parameters.find { it.name == "environment" }?.value
 
+        // Route range-bearing calls through the existing line reader so the range is not silently ignored.
+        if (tool.parameters.any { it.name == "start_line" || it.name == "end_line" }) {
+            return readFilePart(tool)
+        }
+
         // 如果是Linux环境，委托给LinuxFileSystemTools
         if (isLinuxEnvironment(environment)) {
             return linuxTools.readFile(tool)
