@@ -228,6 +228,7 @@
       "parameters": [
         { "name": "command", "description": { "zh": "要执行的命令", "en": "Command to execute." }, "type": "string", "required": true },
         { "name": "session_name", "description": { "zh": "会话名（可选，默认 github_tools_session）", "en": "Session name (optional; default: github_tools_session)." }, "type": "string", "required": false },
+        { "name": "timeout_ms", "description": { "zh": "超时时间（毫秒，默认120000）", "en": "Timeout in milliseconds (default 120000)." }, "type": "number", "required": false },
         { "name": "close", "description": { "zh": "是否执行后关闭会话", "en": "Whether to close the session after execution." }, "type": "boolean", "required": false }
       ]
     },
