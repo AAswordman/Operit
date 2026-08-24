@@ -160,6 +160,8 @@ fun LanguageItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val localizedName = LocaleUtils.getLocalizedLanguageName(LocalContext.current, language.code)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -179,7 +181,7 @@ fun LanguageItem(
                 .padding(start = 16.dp)
         ) {
             Text(
-                text = language.displayName,
+                text = localizedName,
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(

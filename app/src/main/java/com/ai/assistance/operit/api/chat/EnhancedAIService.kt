@@ -3127,6 +3127,10 @@ class EnhancedAIService private constructor(private val context: Context) {
         return conversationService.translateText(text, multiServiceManager, recordTokenUsage)
     }
 
+    suspend fun translateText(text: String, targetLanguage: String): String {
+        return conversationService.translateText(text, targetLanguage, multiServiceManager)
+    }
+
     /**
      * 自动生成工具包描述
      * @param pluginName 工具包名称

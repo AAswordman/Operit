@@ -1081,8 +1081,8 @@ class ConversationService(
         recordTokenUsage: Boolean = true,
     ): String {
         val currentLanguage = LocaleUtils.getCurrentLanguage(context)
-        
-        // 根据当前语言确定目标语言
+
+        // 保留旧调用方的行为：默认翻译为当前应用语言。
         val targetLanguage = when (currentLanguage) {
             LocaleUtils.LanguageCodes.CHINESE -> context.getString(R.string.conversation_language_chinese)
             LocaleUtils.LanguageCodes.ENGLISH -> "English"
@@ -1094,42 +1094,56 @@ class ConversationService(
             LocaleUtils.LanguageCodes.ROMANIAN -> "Romanian"
             else -> context.getString(R.string.conversation_language_chinese) // 默认翻译为中文
         }
-        
-        val translationPrompt = """
-${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
-        """.trim()
-        
-        val chatHistory = listOf(
-            PromptTurn(
-                kind = PromptTurnKind.SYSTEM,
-                content = FunctionalPrompts.translationSystemPrompt()
-            )
+        return translateText(
+            text = text,
+            targetLanguage = targetLanguage,
+            multiServiceManager = multiServiceManager,
+            recordTokenUsage = recordTokenUsage,
         )
-        
+    }
+
+    suspend fun translateText(
+        text: String,
+        targetLanguage: String,
+        multiServiceManager: MultiServiceManager,
+        recordTokenUsage: Boolean = true,
+    ): String {
+        val translationConfig =
+            multiServiceManager.getModelConfigForFunction(FunctionType.TRANSLATION)
+        if (translationConfig.modelName.split(",").none { it.isNotBlank() }) {
+            throw TranslationModelNotConfiguredException()
+        }
+
+        val translationPrompt =
+            FunctionalPrompts.translationUserPrompt(targetLanguage, text)
+        val chatHistory =
+            listOf(
+                PromptTurn(
+                    kind = PromptTurnKind.SYSTEM,
+                    content = FunctionalPrompts.translationSystemPrompt()
+                )
+            )
         val contentBuilder = StringBuilder()
-        
-        try {
-            // 获取翻译功能的AIService实例
-            val translationService = multiServiceManager.getServiceForFunction(FunctionType.TRANSLATION)
-            
-            // 获取模型参数
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.TRANSLATION)
-            
-            val stream = translationService.sendMessage(
+
+        val translationService =
+            multiServiceManager.getServiceForFunction(FunctionType.TRANSLATION)
+        val modelParameters =
+            multiServiceManager.getModelParametersForFunction(FunctionType.TRANSLATION)
+        val stream =
+            translationService.sendMessage(
                 context = context,
-                chatHistory = chatHistory + PromptTurn(kind = PromptTurnKind.USER, content = translationPrompt),
+                chatHistory =
+                    chatHistory +
+                        PromptTurn(kind = PromptTurnKind.USER, content = translationPrompt),
                 modelParameters = modelParameters,
+                enableRetry = true,
                 recordTokenUsage = recordTokenUsage,
             )
-            
-            stream.collect { content ->
-                contentBuilder.append(content)
-            }
-            
-            return contentBuilder.toString().trim()
-        } catch (e: Exception) {
-            throw e
+
+        stream.collect { content ->
+            contentBuilder.append(content)
         }
+        return contentBuilder.toString().trim()
     }
 
     /**

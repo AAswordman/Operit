@@ -257,6 +257,7 @@
 
     <!-- Language Settings -->
     <string name="language_settings">Configuración de idioma</string>
+    <string name="language_follow_system">Seguir el sistema</string>
     <string name="language_settings_desc">Cambiar el idioma de visualización de la interfaz de la aplicación</string>
     <string name="change_language">Cambiar idioma</string>
     <string name="select_language">Seleccionar idioma</string>
@@ -1300,6 +1301,33 @@
     <string name="insert_summary">Insertar Resumen</string>
     <string name="create_branch">Crear Rama</string>
     <string name="modify_memory">Modificar Memoria</string>
+    <string name="translate_message">Traducir</string>
+    <string name="translation_dialog_title">Traducir mensaje</string>
+    <string name="translation_target_language">Idioma de destino</string>
+    <string name="translation_original">Original</string>
+    <string name="translation_result">Traducción</string>
+    <string name="translation_translate_action">Traducir</string>
+    <string name="translation_retranslate_action">Volver a traducir</string>
+    <string name="translation_retry_action">Reintentar</string>
+    <string name="translation_copy_original">Copiar original</string>
+    <string name="translation_copy_result">Copiar traducción</string>
+    <string name="translation_original_copied">Original copiado</string>
+    <string name="translation_result_copied">Traducción copiada</string>
+    <string name="translation_cached_result">Guardada</string>
+    <string name="translation_model_not_configured">No hay ningún modelo de traducción configurado. Configura uno en los ajustes de modelos de función.</string>
+    <string name="translation_waiting">Elige un idioma de destino para traducir</string>
+    <string name="translation_loading">Traduciendo…</string>
+    <string name="translation_empty_result">El modelo de traducción no devolvió contenido</string>
+    <string name="translation_failed">Error de traducción: %1$s</string>
+    <string name="translation_failed_unknown">Error desconocido</string>
+    <string name="translation_language_english">Inglés</string>
+    <string name="translation_language_korean">Coreano</string>
+    <string name="translation_language_spanish">Español</string>
+    <string name="translation_language_malay">Malayo</string>
+    <string name="translation_language_indonesian">Indonesio</string>
+    <string name="translation_language_portuguese">Portugués (Brasil)</string>
+    <string name="translation_language_romanian">Rumano</string>
+    <string name="translation_language_japanese">Japonés</string>
     <string name="delete_from_here">Eliminar desde aquí</string>
     <string name="confirm_rollback_message">Esto eliminará todos los mensajes posteriores y revertirá el espacio de trabajo vinculado al estado anterior a este mensaje. Esta acción no se puede deshacer. ¿Deseas continuar?</string>
     <string name="confirm_rollback_confirm">Revertir</string>

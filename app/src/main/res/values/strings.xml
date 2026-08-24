@@ -1113,6 +1113,7 @@
     
     <!-- Language Settings -->
     <string name="language_settings">语言设置</string>
+    <string name="language_follow_system">跟随系统</string>
     <string name="language_settings_desc">更改应用界面显示语言</string>
     <string name="change_language">更改语言</string>
     <string name="select_language">选择语言</string>
@@ -1669,6 +1670,33 @@
     <string name="parent_chat">父对话: %1$s</string>
 
     <string name="modify_memory">修改记忆</string>
+    <string name="translate_message">翻译</string>
+    <string name="translation_dialog_title">翻译消息</string>
+    <string name="translation_target_language">目标语言</string>
+    <string name="translation_original">原文</string>
+    <string name="translation_result">译文</string>
+    <string name="translation_translate_action">开始翻译</string>
+    <string name="translation_retranslate_action">重新翻译</string>
+    <string name="translation_retry_action">重试</string>
+    <string name="translation_copy_original">复制原文</string>
+    <string name="translation_copy_result">复制译文</string>
+    <string name="translation_original_copied">原文已复制</string>
+    <string name="translation_result_copied">译文已复制</string>
+    <string name="translation_cached_result">已保存</string>
+    <string name="translation_model_not_configured">未配置可用的翻译模型，请先在功能模型配置中设置翻译模型。</string>
+    <string name="translation_waiting">选择目标语言后开始翻译</string>
+    <string name="translation_loading">正在翻译…</string>
+    <string name="translation_empty_result">翻译模型未返回内容</string>
+    <string name="translation_failed">翻译失败：%1$s</string>
+    <string name="translation_failed_unknown">未知错误</string>
+    <string name="translation_language_english">英语</string>
+    <string name="translation_language_korean">韩语</string>
+    <string name="translation_language_spanish">西班牙语</string>
+    <string name="translation_language_malay">马来语</string>
+    <string name="translation_language_indonesian">印度尼西亚语</string>
+    <string name="translation_language_portuguese">葡萄牙语（巴西）</string>
+    <string name="translation_language_romanian">罗马尼亚语</string>
+    <string name="translation_language_japanese">日语</string>
     <string name="delete_from_here">删除到此</string>
     <string name="confirm_rollback_title">确认回滚</string>
     <string name="confirm_rollback_message">将删除此消息之后的所有消息，并将已绑定的工作区回滚到此消息之前的状态。此操作不可撤销，确定继续吗？</string>

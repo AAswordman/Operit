@@ -764,6 +764,33 @@
     <string name="parent_chat">Parent: %1$s</string>
 
     <string name="modify_memory">Modify Memory</string>
+    <string name="translate_message">Translate</string>
+    <string name="translation_dialog_title">Translate Message</string>
+    <string name="translation_target_language">Target language</string>
+    <string name="translation_original">Original</string>
+    <string name="translation_result">Translation</string>
+    <string name="translation_translate_action">Translate</string>
+    <string name="translation_retranslate_action">Translate again</string>
+    <string name="translation_retry_action">Retry</string>
+    <string name="translation_copy_original">Copy original</string>
+    <string name="translation_copy_result">Copy translation</string>
+    <string name="translation_original_copied">Original copied</string>
+    <string name="translation_result_copied">Translation copied</string>
+    <string name="translation_cached_result">Saved</string>
+    <string name="translation_model_not_configured">No translation model is configured. Configure one in Function model settings first.</string>
+    <string name="translation_waiting">Choose a target language to translate</string>
+    <string name="translation_loading">Translating…</string>
+    <string name="translation_empty_result">The translation model returned no content</string>
+    <string name="translation_failed">Translation failed: %1$s</string>
+    <string name="translation_failed_unknown">Unknown error</string>
+    <string name="translation_language_english">English</string>
+    <string name="translation_language_korean">Korean</string>
+    <string name="translation_language_spanish">Spanish</string>
+    <string name="translation_language_malay">Malay</string>
+    <string name="translation_language_indonesian">Indonesian</string>
+    <string name="translation_language_portuguese">Portuguese (Brazil)</string>
+    <string name="translation_language_romanian">Romanian</string>
+    <string name="translation_language_japanese">Japanese</string>
     <string name="delete_from_here">Delete From Here</string>
     <string name="confirm_rollback_title">Confirm rollback</string>
     <string name="confirm_rollback_message">This will delete all messages after this one and roll back the bound workspace to the state before this message. This action cannot be undone. Continue?</string>
@@ -1136,6 +1163,7 @@
     
     <!-- Language Settings -->
     <string name="language_settings">Language Settings</string>
+    <string name="language_follow_system">Follow system</string>
     <string name="language_settings_desc">Change the display language of the application</string>
     <string name="change_language">Change Language</string>
     <string name="select_language">Select Language</string>
