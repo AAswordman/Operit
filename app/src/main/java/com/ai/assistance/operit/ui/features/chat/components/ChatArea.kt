@@ -650,7 +650,7 @@ private fun MessageItem(
     // 只有用户和AI的消息才能被操作
     val isActionable = message.sender == "user" || message.sender == "ai"
     val isHiddenUserMessage = isHiddenUserPlaceholder(message)
-    val translatableText = remember(message.content) { cleanXmlTags(message.content) }
+    val translatableText = remember(message.content) { cleanMessageContentForCopy(message.content) }
 
     Box(
         modifier =
