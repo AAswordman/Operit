@@ -153,6 +153,8 @@ const APKTOOL_RUNTIME_SOURCE_ARTIFACT = "org.apktool:apktool-cli:3.0.1";
 const JADX_RUNTIME_SOURCE_ARTIFACT = "io.github.skylot:jadx-core:1.5.2";
 const TEMP_ROOT_DIR_NAME = "apk_reverse_runtime";
 const DEFAULT_MAX_RESULTS = 100;
+const MAX_SEARCH_RESULTS = 1000;
+const DEFAULT_APKTOOL_JOBS = 1;
 const INLINE_RESULT_CHAR_LIMIT = 24000;
 const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_BINARY_WINDOW_BYTES = 96;
@@ -182,7 +184,7 @@ const HELPER_RUNTIME_CHILD_FIRST_PREFIXES = [
 const JVM_COMPAT_OS_NAME = "Linux";
 const JVM_COMPAT_OS_ARCH = "aarch64";
 const JVM_COMPAT_ARCH_DATA_MODEL = "64";
-let helperRuntimeLoadSequence = 0;
+// Helper runtime paths are stable per backend slot so Java.loadJar can reuse classloaders.
 
 function asText(value) {
     if (value === undefined || value === null) {
@@ -417,10 +419,14 @@ async function ensureHelperRuntimeLoaded(tag) {
 }
 
 function nextHelperRuntimeOutputFileName(tag) {
-    helperRuntimeLoadSequence += 1;
     const normalizedTag = asText(tag).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_") || "helper";
+    const slot = normalizedTag === "apktool" || normalizedTag === "apktool_build"
+        ? "apktool"
+        : normalizedTag === "jadx"
+            ? "jadx"
+            : "helper";
     const extensionIndex = HELPER_RUNTIME_OUTPUT_FILE_NAME.lastIndexOf(".");
-    const suffix = `${normalizedTag}-load${helperRuntimeLoadSequence}`;
+    const suffix = `${slot}-runtime`;
     if (extensionIndex < 0) {
         return `${HELPER_RUNTIME_OUTPUT_FILE_NAME}-${suffix}`;
     }
@@ -443,7 +449,7 @@ function getHelperBridgeClasses() {
 }
 
 async function callHelperFacade(methodName, invoke, helperLoadTag) {
-    const runtime = await ensureHelperRuntimeLoaded(helperLoadTag || methodName);
+    const runtime = await ensureHelperRuntimeLoaded(helperLoadTag || "helper");
     const classes = getHelperBridgeClasses();
     const raw = invoke(classes.ApkReverseHelperFacade);
     const text = asText(raw).trim();
@@ -581,6 +587,11 @@ function normalizeSearchScope(value, allowed, fallbackValue) {
     return token;
 }
 
+function boundedMaxResults(params) {
+    const requested = optionalInteger(params, "max_results", DEFAULT_MAX_RESULTS);
+    return requested > 0 ? Math.min(requested, MAX_SEARCH_RESULTS) : DEFAULT_MAX_RESULTS;
+}
+
 function normalizeInputFile(path, parameterName) {
     const classes = getCommonClasses();
     const file = new classes.File(path);
@@ -607,7 +618,7 @@ async function decodeApkInternal(inputApkPath, outputDir, params) {
         outputDir,
         frameworkJarPath,
         APKTOOL_VERSION,
-        optionalInteger(params, "jobs", undefined),
+        optionalInteger(params, "jobs", DEFAULT_APKTOOL_JOBS),
         optionalText(params, "frame_path") || "",
         optionalText(params, "frame_tag") || "",
         optionalBoolean(params, "force", false),
@@ -635,13 +646,13 @@ async function buildApkInternal(decodedDir, outputApkPath, params) {
         outputApkPath,
         frameworkJarPath,
         APKTOOL_VERSION,
-        optionalInteger(params, "jobs", undefined),
+        optionalInteger(params, "jobs", DEFAULT_APKTOOL_JOBS),
         optionalText(params, "frame_path") || "",
         optionalText(params, "frame_tag") || "",
         optionalBoolean(params, "force", false),
         optionalBoolean(params, "verbose", false),
         optionalBoolean(params, "quiet", false)
-    ), "apktool_build");
+    ), "apktool");
     return {
         runtime,
         frameworkInfo: helper.payload.frameworkInfo,
@@ -725,7 +736,7 @@ async function usage_advice() {
         notes: [
             "Primary APKTool and JADX flows are implemented through helper-backed Java bridge calls and bundled dex-jar resources.",
             "JADX decompilation now runs through the helper runtime so Android-specific compatibility stays in Java.",
-            "Helper-backed bridge calls reload the helper jar per invocation so apktool and JADX classloader chains stay valid within a shared JS session.",
+            "Helper-backed bridge calls use bounded helper runtime slots so apktool and JADX classloader chains remain valid within a shared JS session.",
             "JADX runtime and helper runtime are expected to be produced by build_runtime_android_resources.ps1 before packaging.",
             "Search results larger than the inline limit are persisted into a temp JSON file and returned by path."
         ]
@@ -829,7 +840,7 @@ async function apk_reverse_search_text(params) {
         );
         const regexEnabled = optionalBoolean(params, "regex", false);
         const caseInsensitive = optionalBoolean(params, "case_insensitive", true);
-        const maxResults = optionalInteger(params, "max_results", DEFAULT_MAX_RESULTS);
+        const maxResults = boundedMaxResults(params);
         const helper = await callHelperFacade("searchText", (Facade) => Facade.searchText(
             inputPath,
             query,
@@ -868,7 +879,7 @@ async function apk_reverse_search_address(params) {
             ["resource_id", "smali_ref", "jadx_ref", "native_symbol", "native_offset", "hex_bytes", "all"],
             "all"
         );
-        const maxResults = optionalInteger(params, "max_results", DEFAULT_MAX_RESULTS);
+        const maxResults = boundedMaxResults(params);
         const helper = await callHelperFacade("searchAddress", (Facade) => Facade.searchAddress(
             inputPath,
             query,
@@ -893,7 +904,7 @@ async function apk_reverse_search_address(params) {
     }
 }
 
-async function signApkInternal(inputApkPath, outputApkPath, params) {
+async function signApkInternal(inputApkPath, outputApkPath, params, helperLoadTag = "helper") {
     const inputApkFile = normalizeInputFile(inputApkPath, "input_apk_path");
     const helper = await callHelperFacade("signApk", (Facade) => Facade.signApk(
         getApplicationContext(),
@@ -905,7 +916,7 @@ async function signApkInternal(inputApkPath, outputApkPath, params) {
         optionalText(params, "alias") || "",
         optionalText(params, "keypass") || "",
         0
-    ));
+    ), helperLoadTag);
     return {
         helperRuntimeJarPath: helper.runtime.runtimeJarPath,
         helperLoadInfo: helper.runtime.loadInfo,
@@ -938,7 +949,7 @@ async function apk_reverse_build_and_sign(params) {
         const outputApkPath = requireText(params, "output_apk_path");
         unsignedFile = createTempFile("unsigned_build", ".apk");
         const buildResult = await buildApkInternal(decodedDir, asText(unsignedFile.getAbsolutePath()), params || {});
-        const signResult = await signApkInternal(asText(unsignedFile.getAbsolutePath()), outputApkPath, params || {});
+        const signResult = await signApkInternal(asText(unsignedFile.getAbsolutePath()), outputApkPath, params || {}, "apktool");
         return {
             ...baseSuccessPayload({
                 runtimeJarPath: buildResult.runtime.runtimeJarPath,

@@ -342,13 +342,11 @@ function Build-JadxRuntime([string] $androidJarPath) {
     $patchedSaveCodeSourcePath = Join-Path $apktoolPatchSourceRoot "jadx\core\dex\visitors\SaveCode.java"
     $patchedZipDeflateSourcePath = Join-Path $apktoolPatchSourceRoot "jadx\zip\parser\ZipDeflate.java"
     $jadxPluginServicePath = Join-Path $jadxPatchDir "META-INF\services\jadx.api.plugins.JadxPlugin"
+    # The public tool accepts APK files only; omit container and raw-smali plugins from the Android runtime.
     $jadxPluginServiceContent = @(
         "jadx.plugins.kotlin.metadata.KotlinMetadataPlugin",
         "jadx.plugins.kotlin.smap.KotlinSmapPlugin",
-        "jadx.plugins.input.apkm.ApkmInputPlugin",
         "jadx.plugins.mappings.RenameMappingsPlugin",
-        "jadx.plugins.input.smali.SmaliInputPlugin",
-        "jadx.plugins.input.xapk.XApkInputPlugin",
         "jadx.plugins.input.dex.DexInputPlugin"
     )
     # Keep the headless APK decompiler surface and strip desktop, scripting, AAB, and non-APK input payload.
@@ -357,8 +355,11 @@ function Build-JadxRuntime([string] $androidJarPath) {
         "jadx/plugins/script/*",
         "jadx/plugins/input/javaconvert/*",
         "jadx/plugins/input/aab/*",
+        "jadx/plugins/input/apkm/*",
         "jadx/plugins/input/java/*",
         "jadx/plugins/input/raung/*",
+        "jadx/plugins/input/smali/*",
+        "jadx/plugins/input/xapk/*",
         "org/fife/*",
         "com/formdev/*",
         "fonts/*",

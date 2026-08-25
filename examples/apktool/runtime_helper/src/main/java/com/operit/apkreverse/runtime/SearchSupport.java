@@ -19,6 +19,8 @@ import java.util.zip.ZipFile;
 final class SearchSupport {
     static final long MAX_TEXT_FILE_BYTES = 2L * 1024L * 1024L;
     static final int MAX_BINARY_WINDOW_BYTES = 96;
+    private static final int DEFAULT_MAX_RESULTS = 100;
+    private static final int MAX_RESULTS = 1000;
     private static final int PRINTABLE_MIN_LENGTH = 4;
 
     private SearchSupport() {
@@ -83,7 +85,7 @@ final class SearchSupport {
     }
 
     private static int normalizeMaxResults(int maxResults) {
-        return maxResults > 0 ? maxResults : 100;
+        return maxResults > 0 ? Math.min(maxResults, MAX_RESULTS) : DEFAULT_MAX_RESULTS;
     }
 
     private static void searchTextInDirectory(
@@ -315,21 +317,23 @@ final class SearchSupport {
             if (!isNativeLibrary(relative)) {
                 continue;
             }
-            byte[] bytes = Files.readAllBytes(file.toPath());
-            for (ElfSupport.PrintableString printable : ElfSupport.extractPrintableStrings(bytes, PRINTABLE_MIN_LENGTH)) {
-                if (matches.length() >= maxResults) {
-                    return;
-                }
-                String haystack = caseInsensitive ? printable.text.toLowerCase(Locale.ROOT) : printable.text;
-                if (!haystack.contains(normalizedQuery)) {
-                    continue;
-                }
-                JSONObject item = new JSONObject();
-                item.put("filePath", relative);
-                item.put("offset", printable.offset);
-                item.put("matchText", printable.text);
-                item.put("scope", "native_strings");
-                matches.put(item);
+            try (InputStream input = Files.newInputStream(file.toPath())) {
+                scanPrintableStrings(input, PRINTABLE_MIN_LENGTH, (offset, text) -> {
+                    if (matches.length() >= maxResults) {
+                        return false;
+                    }
+                    String haystack = caseInsensitive ? text.toLowerCase(Locale.ROOT) : text;
+                    if (!haystack.contains(normalizedQuery)) {
+                        return true;
+                    }
+                    JSONObject item = new JSONObject();
+                    item.put("filePath", relative);
+                    item.put("offset", offset);
+                    item.put("matchText", text);
+                    item.put("scope", "native_strings");
+                    matches.put(item);
+                    return matches.length() < maxResults;
+                });
             }
         }
     }

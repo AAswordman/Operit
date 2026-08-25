@@ -2016,8 +2016,10 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             if (!resourceFile.isFile) {
                 false
             } else {
-                destinationFile.outputStream().use { output ->
-                    output.write(resourceFile.readBytes())
+                resourceFile.inputStream().use { input ->
+                    destinationFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
                 }
                 true
             }
