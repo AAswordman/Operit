@@ -183,7 +183,7 @@ interface ToolResultMap {
 - `create_new_chat` → `ChatCreationResultData`
 - `list_chats` → `ChatListResultData`
 - `find_chat` → `ChatFindResultData`
-- `agent_status` → `AgentStatusResultData`
+- `get_current_action_state` → `CurrentActionStateResultData`
 - `switch_chat` → `ChatSwitchResultData`
 - `update_chat_title` → `ChatTitleUpdateResultData`
 - `delete_chat` → `ChatDeleteResultData`

@@ -1652,14 +1652,14 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             executor = { tool -> runBlocking(Dispatchers.IO) { chatManagerTool.findChat(tool) } }
     )
 
-    // 查询对话输入状态
+    // 查询当前对话动作状态
     handler.registerTool(
-            name = "agent_status",
+            name = "get_current_action_state",
             descriptionGenerator = { tool ->
-                val chatId = tool.parameters.find { it.name == "chat_id" }?.value ?: ""
-                s(R.string.toolreg_agent_status_desc, chatId)
+                val chatId = tool.parameters.find { it.name == "chat_id" }?.value ?: "当前对话"
+                s(R.string.toolreg_current_action_state_desc, chatId)
             },
-            executor = { tool -> runBlocking(Dispatchers.IO) { chatManagerTool.agentStatus(tool) } }
+            executor = { tool -> runBlocking(Dispatchers.IO) { chatManagerTool.getCurrentActionState(tool) } }
     )
 
     // 切换对话

@@ -34,6 +34,7 @@ export namespace ToolPkg {
         | ChatInputEventName
         | ChatViewEventName
         | ChatMessageEventName
+        | ChatActionStateEventName
         | "navigation_entry_action"
         | ToolLifecycleEventName
         | PromptInputEventName
@@ -129,6 +130,30 @@ export namespace ToolPkg {
 
     export type ChatMessageEventName =
         | "message_persisted";
+
+    export type ChatActionStateEventName =
+        | "state_snapshot"
+        | "state_changed";
+
+    export interface ChatActionStateEventPayload extends JsonObject {
+        scope: "global" | "session";
+        event: ChatActionStateEventName;
+        chatId?: string;
+        action?: string;
+        userState?: string | null;
+        applicationState: "foreground" | "background";
+        toolName?: string | null;
+        errorSource?: "ai" | "tool";
+        errorCode?: string | null;
+        errorMessage?: string | null;
+        errorRecoverable?: boolean;
+        retryAttempt?: number | null;
+        globalActivity: "idle" | "active";
+        activeChatIds: string[];
+        updatedAt?: number;
+    }
+
+    export type ChatActionStateHookHandler = HookHandler<ChatActionStateEventPayload>;
 
     export interface ChatInputHookObjectResult extends JsonObject {
         action?: "allow" | "block" | "replace" | "consume";
@@ -761,6 +786,11 @@ export namespace ToolPkg {
         function: ChatMessageHookHandler;
     }
 
+    export interface ChatActionStateHookRegistration {
+        id: string;
+        function: ChatActionStateHookHandler;
+    }
+
     export interface ToolLifecycleHookRegistration {
         id: string;
         function: ToolLifecycleHookHandler;
@@ -899,6 +929,7 @@ export namespace ToolPkg {
         registerChatInputHook(definition: ChatInputHookRegistration): void;
         registerChatViewHook(definition: ChatViewHookRegistration): void;
         registerChatMessageHook(definition: ChatMessageHookRegistration): void;
+        registerChatActionStateHook(definition: ChatActionStateHookRegistration): void;
         registerToolLifecycleHook(definition: ToolLifecycleHookRegistration): void;
         registerPromptInputHook(definition: PromptInputHookRegistration): void;
         registerPromptHistoryHook(definition: PromptHistoryHookRegistration): void;
@@ -938,6 +969,8 @@ declare global {
     function registerToolPkgChatViewHook(definition: ToolPkg.ChatViewHookRegistration): void;
 
     function registerToolPkgChatMessageHook(definition: ToolPkg.ChatMessageHookRegistration): void;
+
+    function registerToolPkgChatActionStateHook(definition: ToolPkg.ChatActionStateHookRegistration): void;
 
     function registerToolPkgToolLifecycleHook(definition: ToolPkg.ToolLifecycleHookRegistration): void;
 

@@ -1741,6 +1741,15 @@ class EnhancedAIService private constructor(private val context: Context) {
             // 禁止“纯思考输出”：移除 thinking 后正文为空时，发出专用告警并回传给 AI 继续生成
             val contentWithoutThinking = ChatUtils.removeThinkingContent(content)
             if (contentWithoutThinking.isEmpty()) {
+                if (!isSubTask) {
+                    withContext(Dispatchers.Main) {
+                        _inputProcessingState.value = InputProcessingState.AiError(
+                            code = "pure_thinking_only",
+                            message = "AI output contained thinking content without a response",
+                            recoverable = !disableWarning
+                        )
+                    }
+                }
                 if (disableWarning) {
                     AppLogger.w(TAG, "检测到纯思考输出，disableWarning=true，直接结束本轮而不注入警告")
                     finalizeAssistantResponse(
@@ -1774,6 +1783,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                     return
                 }
                 AppLogger.w(TAG, "检测到纯思考输出（removeThinking后正文为空），已回传告警给AI继续生成")
+                if (!isSubTask) {
+                    withContext(Dispatchers.Main) {
+                        _inputProcessingState.value = InputProcessingState.Retrying("pure_thinking_only")
+                    }
+                }
                 handleToolInvocation(
                         toolInvocations = emptyList(),
                         context = context,
@@ -2097,11 +2111,32 @@ class EnhancedAIService private constructor(private val context: Context) {
                 toolExposureMode = ToolExposureMode.resolve(config.apiProviderType),
                 callerName = characterName,
                 callerChatId = chatId,
-                callerCardId = roleCardId
+                callerCardId = roleCardId,
+                onToolExecutionStarted = { toolName ->
+                    if (!isSubTask) {
+                        withContext(Dispatchers.Main) {
+                            _inputProcessingState.value = InputProcessingState.WaitingToolResult(toolName)
+                        }
+                    }
+                }
             )
 
             if (allToolResults.isNotEmpty()) {
                 AppLogger.d(TAG, "所有工具结果收集完毕，准备最终处理。")
+                val failedTool = allToolResults.firstOrNull { !it.success }
+                if (failedTool != null && !isSubTask) {
+                    withContext(Dispatchers.Main) {
+                        _inputProcessingState.value = InputProcessingState.ToolError(
+                            toolName = failedTool.toolName,
+                            code = if (failedTool.error?.contains("Invalid parameter", ignoreCase = true) == true) {
+                                "invalid_arguments"
+                            } else {
+                                "tool_execution_failed"
+                            },
+                            message = failedTool.error.orEmpty()
+                        )
+                    }
+                }
                 processToolResults(
                     allToolResults, context, functionType, promptFunctionType, collector, enableThinking,
                     enableMemoryAutoUpdate, onNonFatalError, onTokenLimitExceeded, maxTokens, tokenUsageThreshold, isSubTask,

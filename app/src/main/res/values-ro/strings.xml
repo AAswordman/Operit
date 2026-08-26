@@ -5935,7 +5935,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="toolreg_create_new_chat_in_group_desc">Crearea unei noi conversații (Grupare: %1$s)</string>
     <string name="toolreg_list_chats_desc">Afișează toate conversațiile</string>
     <string name="toolreg_find_chat_desc">Căutare conversație: %1$s</string>
-    <string name="toolreg_agent_status_desc">Verificarea stării conversației: %1$s</string>
+    <string name="toolreg_current_action_state_desc">Verificarea stării conversației: %1$s</string>
     <string name="toolreg_switch_chat_desc">Trecere la dialog: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Actualizarea titlului conversației: %1$s</string>
     <string name="toolreg_delete_chat_desc">Șterge conversația: %1$s</string>

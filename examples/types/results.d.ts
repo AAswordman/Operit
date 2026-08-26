@@ -1807,19 +1807,33 @@ export interface ChatFindResultData {
 }
 
 /**
- * Agent status result data
+ * Current action state result data
  */
-export interface AgentStatusResultData {
-    /** Target chat id */
+export interface CurrentActionStateResultData {
+    /** Target chat id; empty when no current conversation is selected */
     chatId: string;
-    /** Current state key */
-    state: string;
-    /** Optional detail message */
-    message?: string | null;
-    /** Whether the chat is idle */
+    /** Current action phase */
+    action: string;
+    /** Current user interaction state */
+    userState?: string | null;
+    /** Application foreground/background state */
+    applicationState: string;
+    /** Tool associated with the current action, when applicable */
+    toolName?: string | null;
+    /** Error source, when the action is error */
+    errorSource?: string | null;
+    /** Stable error code, when the action is error */
+    errorCode?: string | null;
+    /** Error message, when available */
+    errorMessage?: string | null;
+    /** Whether the error can be recovered */
+    errorRecoverable: boolean;
+    /** Retry attempt, when applicable */
+    retryAttempt?: number | null;
+    /** Whether the conversation is idle */
     isIdle: boolean;
-    /** Whether the chat is processing */
-    isProcessing: boolean;
+    /** Whether the conversation has an active action */
+    isActive: boolean;
     /** Returns a formatted string representation */
     toString(): string;
 }
@@ -1843,8 +1857,8 @@ export interface ChatFindResult extends BaseResult {
     data: ChatFindResultData;
 }
 
-export interface AgentStatusResult extends BaseResult {
-    data: AgentStatusResultData;
+export interface CurrentActionStateResult extends BaseResult {
+    data: CurrentActionStateResultData;
 }
 
 export interface ChatSwitchResult extends BaseResult {

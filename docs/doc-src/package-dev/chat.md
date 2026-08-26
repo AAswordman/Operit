@@ -71,9 +71,24 @@ findChat({ query, match?, index? }): Promise<ChatFindResultData>
 
 根据标题或 ID 查找聊天。
 
-### `agentStatus(chatId)`
+### `getCurrentActionState(chatId?)`
 
-查看某个聊天当前是否在处理中。
+```ts
+getCurrentActionState(chatId?: string): Promise<CurrentActionStateResultData>
+```
+
+查询当前对话动作。省略 `chatId` 时查询默认当前对话，传入 `chatId` 时查询指定对话。返回的 `action` 可能为：
+
+- `idle`
+- `thinking`
+- `calling_tool`
+- `waiting_tool_result`
+- `waiting_tool_confirmation`
+- `generating_response`
+- `retrying`
+- `error`
+
+返回值还包含用户交互状态、应用前后台状态、工具名称和结构化错误信息。这个接口不暴露 `main`/`floating` runtime 选择器。
 
 ### `switchTo(chatId)`
 
@@ -133,7 +148,7 @@ getMessagesRange(chatId: string, options: { order?: 'asc' | 'desc'; start: numbe
 - `ChatCreationResultData`
 - `ChatListResultData`
 - `ChatFindResultData`
-- `AgentStatusResultData`
+- `CurrentActionStateResultData`
 - `ChatSwitchResultData`
 - `ChatTitleUpdateResultData`
 - `ChatDeleteResultData`

@@ -35,6 +35,29 @@ sealed class InputProcessingState {
     /** 处理完成 */
     object Completed : InputProcessingState()
 
+    /** 工具执行器已经开始执行，等待工具返回结果 */
+    data class WaitingToolResult(val toolName: String) : InputProcessingState()
+
+    /** AI 正在重新发起请求 */
+    data class Retrying(val message: String = "") : InputProcessingState()
+
+    /** AI 输出异常，通常会进入重试流程 */
+    data class AiError(
+        val code: String,
+        val message: String = "",
+        val recoverable: Boolean = true,
+        val retryAttempt: Int? = null
+    ) : InputProcessingState()
+
+    /** 工具参数或执行失败 */
+    data class ToolError(
+        val toolName: String,
+        val code: String,
+        val message: String = "",
+        val recoverable: Boolean = true,
+        val retryAttempt: Int? = null
+    ) : InputProcessingState()
+
     /** 发生错误 */
     data class Error(val message: String) : InputProcessingState()
 } 

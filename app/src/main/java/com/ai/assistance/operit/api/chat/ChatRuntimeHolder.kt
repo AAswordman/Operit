@@ -1,8 +1,10 @@
 package com.ai.assistance.operit.api.chat
 
 import android.content.Context
+import com.ai.assistance.operit.core.application.ActivityLifecycleManager
 import com.ai.assistance.operit.services.ChatServiceCore
 import com.ai.assistance.operit.services.core.ChatSelectionMode
+import com.ai.assistance.operit.ui.permissions.ToolPermissionSystem
 import com.ai.assistance.operit.util.AppLogger
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +32,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
         }
         setupCrossSessionSync()
         observeStats()
+        observeCurrentActions()
     }
 
     fun getCore(slot: ChatRuntimeSlot): ChatServiceCore {
@@ -42,6 +45,57 @@ class ChatRuntimeHolder private constructor(context: Context) {
                     ChatRuntimeSlot.FLOATING -> ChatSelectionMode.LOCAL_ONLY
                 }
             )
+        }
+    }
+
+    private fun observeCurrentActions() {
+        ChatRuntimeSlot.values().forEach { slot ->
+            val core = getCore(slot)
+            runtimeScope.launch {
+                core.inputProcessingStateByChatId.collect { states ->
+                    states.forEach { (chatId, state) ->
+                        if (chatId != DEFAULT_CHAT_KEY) {
+                            ChatCurrentActionStore.updateInputProcessingState(
+                                runtime = slot,
+                                chatId = chatId,
+                                state = state
+                            )
+                        }
+                    }
+                }
+            }
+            runtimeScope.launch {
+                core.userDraftStateByChatId.collect { draftStates ->
+                    draftStates.forEach { (chatId, hasDraft) ->
+                        if (chatId != DEFAULT_CHAT_KEY) {
+                            ChatCurrentActionStore.updateUserDraft(
+                                runtime = slot,
+                                chatId = chatId,
+                                hasDraft = hasDraft
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        runtimeScope.launch {
+            ToolPermissionSystem.getInstance(appContext).permissionRequestState.collect { request ->
+                ChatCurrentActionStore.clearToolConfirmations()
+                val chatId = request?.chatId?.trim()?.takeIf { it.isNotBlank() }
+                if (chatId != null) {
+                    ChatCurrentActionStore.updateToolConfirmation(
+                        chatId = chatId,
+                        toolName = request.tool.name
+                    )
+                }
+            }
+        }
+
+        runtimeScope.launch {
+            ActivityLifecycleManager.applicationVisibilityState.collect { state ->
+                ChatCurrentActionStore.updateApplicationState(state)
+            }
         }
     }
 
@@ -185,6 +239,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
 
     companion object {
         private const val TAG = "ChatRuntimeHolder"
+        private const val DEFAULT_CHAT_KEY = "__DEFAULT_CHAT__"
 
         @Volatile
         private var instance: ChatRuntimeHolder? = null

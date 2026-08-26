@@ -6068,7 +6068,7 @@
     <string name="toolreg_create_new_chat_in_group_desc">创建新的对话 (分组: %1$s)</string>
     <string name="toolreg_list_chats_desc">列出所有对话</string>
     <string name="toolreg_find_chat_desc">查找对话: %1$s</string>
-    <string name="toolreg_agent_status_desc">查询对话状态: %1$s</string>
+    <string name="toolreg_current_action_state_desc">查询对话状态: %1$s</string>
     <string name="toolreg_switch_chat_desc">切换到对话: %1$s</string>
     <string name="toolreg_update_chat_title_desc">更新对话标题: %1$s</string>
     <string name="toolreg_delete_chat_desc">删除对话: %1$s</string>

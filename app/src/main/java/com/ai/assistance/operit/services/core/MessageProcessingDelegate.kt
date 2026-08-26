@@ -160,11 +160,15 @@ class MessageProcessingDelegate(
 
     private val _activeStreamingChatIds = MutableStateFlow<Set<String>>(emptySet())
     val activeStreamingChatIds: StateFlow<Set<String>> = _activeStreamingChatIds.asStateFlow()
-
     private val _inputProcessingStateByChatId =
         MutableStateFlow<Map<String, EnhancedInputProcessingState>>(emptyMap())
     val inputProcessingStateByChatId: StateFlow<Map<String, EnhancedInputProcessingState>> =
         _inputProcessingStateByChatId.asStateFlow()
+
+    private val _userDraftStateByChatId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val userDraftStateByChatId: StateFlow<Map<String, Boolean>> =
+        _userDraftStateByChatId.asStateFlow()
+
 
     private val _scrollToBottomEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val scrollToBottomEvent = _scrollToBottomEvent.asSharedFlow()
@@ -627,14 +631,23 @@ class MessageProcessingDelegate(
     private fun saveUserMessageDraft(chatId: String, value: TextFieldValue) {
         if (value.text.isEmpty()) {
             userMessageDraftsByChatId.remove(chatId)
+            updateUserDraftState(chatId, hasDraft = false)
             return
         }
 
         userMessageDraftsByChatId[chatId] = value
+        updateUserDraftState(chatId, hasDraft = true)
+    }
+
+    private fun updateUserDraftState(chatId: String, hasDraft: Boolean) {
+        val updated = _userDraftStateByChatId.value.toMutableMap()
+        updated[chatId] = hasDraft
+        _userDraftStateByChatId.value = updated
     }
 
     private fun clearUserMessageDraft(chatId: String) {
         userMessageDraftsByChatId.remove(chatId)
+        updateUserDraftState(chatId, hasDraft = false)
         if (activeDraftChatId == chatId) {
             _userMessage.value = TextFieldValue("")
         }

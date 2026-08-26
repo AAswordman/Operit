@@ -5130,7 +5130,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
 
     <string name="toolreg_list_chats_desc">Senaraikan semua perbualan</string>
     <string name="toolreg_find_chat_desc">Cari perbualan: %1$s</string>
-    <string name="toolreg_agent_status_desc">Semak status perbualan: %1$s</string>
+    <string name="toolreg_current_action_state_desc">Semak status perbualan: %1$s</string>
     <string name="toolreg_switch_chat_desc">Tukar ke perbualan: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Kemas kini tajuk perbualan: %1$s</string>
     <string name="toolreg_delete_chat_desc">Padam perbualan: %1$s</string>

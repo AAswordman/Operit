@@ -5131,7 +5131,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="toolreg_create_new_chat_in_group_desc">Buat obrolan baru (grup: %1$s)</string>
     <string name="toolreg_list_chats_desc">Daftar semua obrolan</string>
     <string name="toolreg_find_chat_desc">Cari obrolan: %1$s</string>
-    <string name="toolreg_agent_status_desc">Periksa status obrolan: %1$s</string>
+    <string name="toolreg_current_action_state_desc">Periksa status obrolan: %1$s</string>
     <string name="toolreg_switch_chat_desc">Beralih ke obrolan: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Perbarui judul obrolan: %1$s</string>
     <string name="toolreg_delete_chat_desc">Hapus obrolan: %1$s</string>

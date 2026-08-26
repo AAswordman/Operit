@@ -218,7 +218,7 @@
 - `CharacterCardListResultData`
 - `CharacterCardInfo`
 - `ChatFindResultData`
-- `AgentStatusResultData`
+- `CurrentActionStateResultData`
 
 同时也定义了对应的包装结果：
 
@@ -226,7 +226,7 @@
 - `ChatCreationResult`
 - `ChatListResult`
 - `ChatFindResult`
-- `AgentStatusResult`
+- `CurrentActionStateResult`
 - `ChatSwitchResult`
 - `ChatTitleUpdateResult`
 - `ChatDeleteResult`

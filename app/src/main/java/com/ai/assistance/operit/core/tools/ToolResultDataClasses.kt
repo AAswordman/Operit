@@ -2077,18 +2077,25 @@ data class ChatFindResultData(
     }
 }
 
-/** 对话输入状态结果数据 */
+/** 当前对话动作状态结果数据 */
 @Serializable
-data class AgentStatusResultData(
+data class CurrentActionStateResultData(
     val chatId: String,
-    val state: String,
-    val message: String? = null,
-    val isIdle: Boolean = false,
-    val isProcessing: Boolean = false
+    val action: String,
+    val userState: String? = null,
+    val applicationState: String = "background",
+    val toolName: String? = null,
+    val errorSource: String? = null,
+    val errorCode: String? = null,
+    val errorMessage: String? = null,
+    val errorRecoverable: Boolean = false,
+    val retryAttempt: Int? = null,
+    val isIdle: Boolean = action == "idle",
+    val isActive: Boolean = action != "idle"
 ) : ToolResultData() {
     override fun toString(): String {
-        val detail = message?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-        return "Chat $chatId status: $state$detail"
+        val detail = toolName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
+        return "Chat $chatId action: $action$detail"
     }
 }
 

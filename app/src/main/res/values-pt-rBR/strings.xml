@@ -4784,7 +4784,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="toolreg_create_new_chat_in_group_desc">Criar nova conversa (grupo: %1$s)</string>
     <string name="toolreg_list_chats_desc">Listar todas as conversas</string>
     <string name="toolreg_find_chat_desc">Encontrar conversa: %1$s</string>
-    <string name="toolreg_agent_status_desc">Status da conversa de consulta: %1$s</string>
+    <string name="toolreg_current_action_state_desc">Status da conversa de consulta: %1$s</string>
     <string name="toolreg_switch_chat_desc">Mudar para conversa: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Atualizar título da conversa: %1$s</string>
     <string name="toolreg_delete_chat_desc">Excluir conversa: %1$s</string>

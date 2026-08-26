@@ -48,6 +48,12 @@ enum class PermissionLevel {
     }
 }
 
+data class PermissionRequestState(
+    val chatId: String?,
+    val tool: AITool,
+    val description: String
+)
+
 /**
  * Centralized tool permission system that manages both permission storage and checking
  */
@@ -80,7 +86,7 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val permissionRequestOverlay = PermissionRequestOverlay(context)
     private var currentPermissionCallback: ((PermissionRequestResult) -> Unit)? = null
-    private var permissionRequestInfo: Pair<AITool, String>? = null
+    private var permissionRequestInfo: PermissionRequestState? = null
     
     // 存储当前颜色方案
     private var currentColorScheme: ColorScheme? = null
@@ -94,7 +100,7 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     }
     
     // Permission request state flow
-    private val _permissionRequestState = MutableStateFlow<Pair<AITool, String>?>(null)
+    private val _permissionRequestState = MutableStateFlow<PermissionRequestState?>(null)
     val permissionRequestState = _permissionRequestState.asStateFlow()
     
     // Permission level flows
@@ -188,7 +194,7 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     /**
      * Check if a tool is allowed to execute
      */
-    suspend fun checkToolPermission(tool: AITool): Boolean {
+    suspend fun checkToolPermission(tool: AITool, chatId: String? = null): Boolean {
         AppLogger.d(TAG, "Starting permission check: ${tool.name}")
         
         val preferences = context.toolPermissionsDataStore.data.first()
@@ -200,7 +206,7 @@ class ToolPermissionSystem private constructor(private val context: Context) {
         
         return when (permissionLevel) {
             PermissionLevel.ALLOW -> true
-            PermissionLevel.ASK -> requestPermission(tool)
+            PermissionLevel.ASK -> requestPermission(tool, chatId)
             PermissionLevel.FORBID -> false
         }
     }
@@ -208,7 +214,7 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     /**
      * Request permission from the user to execute a tool
      */
-    private suspend fun requestPermission(tool: AITool): Boolean {
+    private suspend fun requestPermission(tool: AITool, chatId: String?): Boolean {
         // Get operation description
         val operationDescription = getOperationDescription(tool)
         
@@ -220,7 +226,11 @@ class ToolPermissionSystem private constructor(private val context: Context) {
         _permissionRequestState.value = null
         
         // Set up new request
-        val requestInfo = Pair(tool, operationDescription)
+        val requestInfo = PermissionRequestState(
+            chatId = chatId?.trim()?.takeIf { it.isNotBlank() },
+            tool = tool,
+            description = operationDescription
+        )
         permissionRequestInfo = requestInfo
         _permissionRequestState.value = requestInfo
         
@@ -287,7 +297,7 @@ class ToolPermissionSystem private constructor(private val context: Context) {
     /**
      * Get current permission request info
      */
-    fun getCurrentPermissionRequest(): Pair<AITool, String>? {
+    fun getCurrentPermissionRequest(): PermissionRequestState? {
         return permissionRequestInfo
     }
     

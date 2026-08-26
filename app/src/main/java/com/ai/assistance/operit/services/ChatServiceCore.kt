@@ -410,6 +410,9 @@ class ChatServiceCore(
     val inputProcessingStateByChatId: StateFlow<Map<String, InputProcessingState>>
         get() = messageProcessingDelegate.inputProcessingStateByChatId
 
+    val userDraftStateByChatId: StateFlow<Map<String, Boolean>>
+        get() = messageProcessingDelegate.userDraftStateByChatId
+
     val currentTurnToolInvocationCountByChatId: StateFlow<Map<String, Int>>
         get() = messageProcessingDelegate.currentTurnToolInvocationCountByChatId
 
