@@ -44,6 +44,7 @@ import com.ai.assistance.operit.util.streamnative.NativeXmlSplitter
 import com.github.difflib.DiffUtils
 import com.github.difflib.UnifiedDiffUtils
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -1253,7 +1254,7 @@ class ConversationService(
                     publishCurrentContent(force = true)
                     revisionTracker.currentContent().toString()
                 }
-            translatedContent.trim()
+            return translatedContent.trim()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
