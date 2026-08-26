@@ -60,7 +60,9 @@ class OpenCodeProvider private constructor(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
-        enableRetry: Boolean
+        enableRetry: Boolean,
+        recordTokenUsage: Boolean,
+        onUsageFinalized: (suspend (attempt: Int?) -> Unit)?
     ): Stream<String> {
         val qualityLevel =
             if (enableThinking) ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
@@ -85,7 +87,9 @@ class OpenCodeProvider private constructor(
             onTokensUpdated = onTokensUpdated,
             onUsageReported = onUsageReported,
             onNonFatalError = onNonFatalError,
-            enableRetry = enableRetry
+            enableRetry = enableRetry,
+            recordTokenUsage = recordTokenUsage,
+            onUsageFinalized = onUsageFinalized
         )
     }
 
