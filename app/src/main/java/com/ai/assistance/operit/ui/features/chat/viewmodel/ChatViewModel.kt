@@ -232,7 +232,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                                 val detail =
                                     error.takeIf { it.isNotBlank() }
                                         ?: context.getString(R.string.translation_failed_unknown)
-                                uiStateDelegate.showErrorMessage(
+                                uiStateDelegate.showToast(
                                     context.getString(
                                         R.string.translation_retry_error_status,
                                         attempt,
@@ -267,7 +267,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                             isLoading = false,
                             errorMessage = errorMessage,
                         )
-                    uiStateDelegate.showErrorMessage(errorMessage)
+                    uiStateDelegate.showToast(errorMessage)
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "翻译消息失败", e)
                     val reason =
@@ -279,7 +279,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                             isLoading = false,
                             errorMessage = errorMessage,
                         )
-                    uiStateDelegate.showErrorMessage(errorMessage)
+                    uiStateDelegate.showToast(errorMessage)
                 }
             }
     }
