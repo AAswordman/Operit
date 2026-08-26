@@ -7726,6 +7726,7 @@
     <string name="conversation_analyze_image_prompt">Please analyze this image.</string>
     <string name="conversation_analyze_audio_prompt">Please analyze this audio.</string>
     <string name="conversation_analyze_video_prompt">Please analyze this video.</string>
+    <string name="translation_retry_error_status">翻译请求失败（当前重试 %1$d/%2$d）：%3$s</string>
 
     <!-- LlamaProvider -->
     <string name="llama_error_model_file_not_exist">模型文件不存在: %1$s</string>

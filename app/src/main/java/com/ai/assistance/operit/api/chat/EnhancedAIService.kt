@@ -3123,12 +3123,34 @@ class EnhancedAIService private constructor(private val context: Context) {
      * @param text 要翻译的文本
      * @return 翻译后的文本
      */
-    suspend fun translateText(text: String, recordTokenUsage: Boolean = true): String {
-        return conversationService.translateText(text, multiServiceManager, recordTokenUsage)
+    suspend fun translateText(
+        text: String,
+        recordTokenUsage: Boolean = true,
+        onUpdate: suspend (String) -> Unit = {},
+        onRetryError: suspend (attempt: Int, maxAttempts: Int, error: String) -> Unit = { _, _, _ -> },
+    ): String {
+        return conversationService.translateText(
+            text = text,
+            multiServiceManager = multiServiceManager,
+            recordTokenUsage = recordTokenUsage,
+            onUpdate = onUpdate,
+            onRetryError = onRetryError,
+        )
     }
 
-    suspend fun translateText(text: String, targetLanguage: String): String {
-        return conversationService.translateText(text, targetLanguage, multiServiceManager)
+    suspend fun translateText(
+        text: String,
+        targetLanguage: String,
+        onUpdate: suspend (String) -> Unit = {},
+        onRetryError: suspend (attempt: Int, maxAttempts: Int, error: String) -> Unit = { _, _, _ -> },
+    ): String {
+        return conversationService.translateText(
+            text = text,
+            targetLanguage = targetLanguage,
+            multiServiceManager = multiServiceManager,
+            onUpdate = onUpdate,
+            onRetryError = onRetryError,
+        )
     }
 
     /**

@@ -214,11 +214,34 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         translationJob?.cancel()
         translationJob =
             viewModelScope.launch {
+                uiStateDelegate.clearError()
                 _translationState.value = TranslationUiState(isLoading = true)
                 try {
                     val translatedText =
-                        EnhancedAIService.getInstance(context)
-                            .translateText(text, targetLanguagePromptName)
+                        EnhancedAIService.getInstance(context).translateText(
+                            text = text,
+                            targetLanguage = targetLanguagePromptName,
+                            onUpdate = { partialText ->
+                                _translationState.value =
+                                    TranslationUiState(
+                                        isLoading = true,
+                                        translatedText = partialText.takeIf { it.isNotBlank() },
+                                    )
+                            },
+                            onRetryError = { attempt, maxAttempts, error ->
+                                val detail =
+                                    error.takeIf { it.isNotBlank() }
+                                        ?: context.getString(R.string.translation_failed_unknown)
+                                uiStateDelegate.showErrorMessage(
+                                    context.getString(
+                                        R.string.translation_retry_error_status,
+                                        attempt,
+                                        maxAttempts,
+                                        detail,
+                                    )
+                                )
+                            },
+                        )
                     if (translatedText.isBlank()) {
                         throw IllegalStateException(
                             context.getString(R.string.translation_empty_result)
@@ -237,20 +260,20 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                     throw e
                 } catch (e: TranslationModelNotConfiguredException) {
                     AppLogger.e(TAG, "未配置翻译模型", e)
+                    val errorMessage =
+                        context.getString(R.string.translation_model_not_configured)
                     _translationState.value =
-                        TranslationUiState(
-                            errorMessage =
-                                context.getString(R.string.translation_model_not_configured)
-                        )
+                        TranslationUiState(errorMessage = errorMessage)
+                    uiStateDelegate.showErrorMessage(errorMessage)
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "翻译消息失败", e)
                     val reason =
                         e.localizedMessage?.takeIf { it.isNotBlank() }
                             ?: context.getString(R.string.translation_failed_unknown)
+                    val errorMessage = context.getString(R.string.translation_failed, reason)
                     _translationState.value =
-                        TranslationUiState(
-                            errorMessage = context.getString(R.string.translation_failed, reason)
-                        )
+                        TranslationUiState(errorMessage = errorMessage)
+                    uiStateDelegate.showErrorMessage(errorMessage)
                 }
             }
     }

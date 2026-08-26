@@ -319,8 +319,9 @@ private fun TranslationTextBlock(text: String) {
 private fun TranslationResultBlock(translationState: TranslationUiState) {
     val errorMessage = translationState.errorMessage
     val translatedText = translationState.translatedText
+    val hasText = !translatedText.isNullOrBlank()
     val contentAlignment =
-        if (translationState.isLoading || errorMessage != null || translatedText.isNullOrBlank()) {
+        if (!hasText && (translationState.isLoading || errorMessage != null)) {
             Alignment.Center
         } else {
             Alignment.TopStart
@@ -340,13 +341,38 @@ private fun TranslationResultBlock(translationState: TranslationUiState) {
         ) {
             when {
                 translationState.isLoading -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(22.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(stringResource(R.string.translation_loading))
+                    if (hasText) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(22.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(stringResource(R.string.translation_loading))
+                            }
+                            Text(
+                                text = translatedText.orEmpty(),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 210.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(stringResource(R.string.translation_loading))
+                        }
                     }
                 }
                 errorMessage != null -> {
