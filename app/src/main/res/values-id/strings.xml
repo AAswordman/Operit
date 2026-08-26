@@ -7473,4 +7473,5 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="codex_auth_not_logged_in">Masuk dengan ChatGPT untuk menggunakan akses langganan Codex</string>
     <string name="codex_auth_account">Akun: %1$s</string>
     <string name="codex_endpoint_fixed">Endpoint Codex ditetapkan oleh sistem</string>
+<string name="translation_retry_error_status">Permintaan terjemahan gagal (percobaan %1$d/%2$d): %3$s</string>
 </resources>
