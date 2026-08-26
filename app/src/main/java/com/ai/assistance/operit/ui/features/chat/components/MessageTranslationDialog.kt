@@ -317,11 +317,10 @@ private fun TranslationTextBlock(text: String) {
 
 @Composable
 private fun TranslationResultBlock(translationState: TranslationUiState) {
-    val errorMessage = translationState.errorMessage
     val translatedText = translationState.translatedText
     val hasText = !translatedText.isNullOrBlank()
     val contentAlignment =
-        if (!hasText && (translationState.isLoading || errorMessage != null)) {
+        if (!hasText && translationState.isLoading) {
             Alignment.Center
         } else {
             Alignment.TopStart
@@ -374,15 +373,6 @@ private fun TranslationResultBlock(translationState: TranslationUiState) {
                             Text(stringResource(R.string.translation_loading))
                         }
                     }
-                }
-                errorMessage != null -> {
-                    Text(
-                        text = errorMessage,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                    )
                 }
                 !translatedText.isNullOrBlank() -> {
                     Text(

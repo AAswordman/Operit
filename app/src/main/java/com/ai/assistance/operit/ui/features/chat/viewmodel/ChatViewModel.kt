@@ -263,7 +263,10 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                     val errorMessage =
                         context.getString(R.string.translation_model_not_configured)
                     _translationState.value =
-                        TranslationUiState(errorMessage = errorMessage)
+                        _translationState.value.copy(
+                            isLoading = false,
+                            errorMessage = errorMessage,
+                        )
                     uiStateDelegate.showErrorMessage(errorMessage)
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "翻译消息失败", e)
@@ -272,7 +275,10 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                             ?: context.getString(R.string.translation_failed_unknown)
                     val errorMessage = context.getString(R.string.translation_failed, reason)
                     _translationState.value =
-                        TranslationUiState(errorMessage = errorMessage)
+                        _translationState.value.copy(
+                            isLoading = false,
+                            errorMessage = errorMessage,
+                        )
                     uiStateDelegate.showErrorMessage(errorMessage)
                 }
             }
