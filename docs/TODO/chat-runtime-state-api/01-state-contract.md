@@ -2,11 +2,11 @@
 
 ## Conversation scope
 
-The public identity is `chatId`. The public API does not expose the internal `MAIN`/`FLOATING` runtime selector; both internal slots are aggregated into the conversation action state.
+The public identity is `chatId`. The public API does not expose the internal `MAIN`/`FLOATING` runtime selector; both internal slots are aggregated into the conversation aiBehavior state.
 
-`Tools.Chat.getCurrentActionState(chatId?)` returns the current action state for the default conversation when `chatId` is omitted, or for the specified conversation when it is supplied.
+`Tools.Chat.getChatRuntimeState(chatId?)` returns the current aiBehavior state for the default conversation when `chatId` is omitted, or for the specified conversation when it is supplied.
 
-Action phases:
+AI behavior phases:
 
 - `idle`
 - `thinking`
@@ -35,4 +35,3 @@ AI errors use the existing pure-thinking warning path and identify the recovery 
 
 `ToolPkg.registerChatActionStateHook({ id, function })` receives `state_snapshot` during registration replay and `state_changed` for subsequent changes. The payload contains either the global activity state or a conversation snapshot, plus active conversation IDs for global events.
 
-[DONE]
