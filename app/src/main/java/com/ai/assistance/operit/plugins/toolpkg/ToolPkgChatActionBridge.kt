@@ -145,7 +145,7 @@ internal object ToolPkgChatActionBridge {
     private fun buildSessionPayload(session: ChatCurrentActionSnapshot): Map<String, Any?> {
         return buildMap {
             put("chatId", session.chatId)
-            put("action", session.phase.wireName)
+            put("aiBehavior", session.phase.wireName)
             put("userState", session.userState?.wireName)
             put("applicationState", session.applicationState.wireName)
             put("toolName", session.toolName)

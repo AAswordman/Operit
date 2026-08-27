@@ -119,7 +119,7 @@
             ]
         },
         {
-            "name": "get_current_action_state",
+            "name": "get_chat_runtime_state",
             "description": {
                 "zh": "查询对话当前动作。",
                 "en": "Check the current action of a conversation."
@@ -186,7 +186,7 @@ const HistoryChat = (function () {
         index?: number;
     };
 
-    type CurrentActionParams = {
+    type ChatRuntimeStateParams = {
         chat_id?: string;
     };
 
@@ -402,7 +402,7 @@ const HistoryChat = (function () {
         };
     }
 
-    async function get_current_action_state_impl(params: CurrentActionParams): Promise<ToolResponse> {
+    async function get_chat_runtime_state_impl(params: ChatRuntimeStateParams): Promise<ToolResponse> {
         const chatId = (params?.chat_id ?? '').toString().trim();
         const result = await Tools.Chat.getCurrentActionState(chatId || undefined);
         return {
@@ -523,7 +523,7 @@ const HistoryChat = (function () {
                 data: {
                     chat_id: chatId,
                     timeout: true,
-                    hint: '可以通过 get_current_action_state 查看该 agent 当前动作。',
+                    hint: '可以通过 get_chat_runtime_state 查看该 agent 当前动作。',
                 },
             };
         }
@@ -590,8 +590,8 @@ const HistoryChat = (function () {
         return await wrapToolExecution(find_chat_impl, params);
     }
 
-    async function get_current_action_state(params: CurrentActionParams): Promise<void> {
-        return await wrapToolExecution(get_current_action_state_impl, params);
+    async function get_chat_runtime_state(params: ChatRuntimeStateParams): Promise<void> {
+        return await wrapToolExecution(get_chat_runtime_state_impl, params);
     }
 
     async function list_character_cards(): Promise<void> {
@@ -620,7 +620,7 @@ const HistoryChat = (function () {
         rename_chat,
         delete_chat,
         chat_with_agent,
-        get_current_action_state,
+        get_chat_runtime_state,
         list_character_cards,
         main,
     };
@@ -633,6 +633,6 @@ exports.read_messages_range = HistoryChat.read_messages_range;
 exports.rename_chat = HistoryChat.rename_chat;
 exports.delete_chat = HistoryChat.delete_chat;
 exports.chat_with_agent = HistoryChat.chat_with_agent;
-exports.get_current_action_state = HistoryChat.get_current_action_state;
+exports.get_chat_runtime_state = HistoryChat.get_chat_runtime_state;
 exports.list_character_cards = HistoryChat.list_character_cards;
 exports.main = HistoryChat.main;

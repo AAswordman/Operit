@@ -383,7 +383,7 @@ class StandardChatManagerTool(private val context: Context) {
     /**
      * 查询当前对话动作
      */
-    suspend fun getCurrentActionState(tool: AITool): ToolResult {
+    suspend fun getChatRuntimeState(tool: AITool): ToolResult {
         return try {
             val requestedChatId = tool.parameters
                 .find { it.name == "chat_id" }

@@ -10,7 +10,7 @@ import {
     ChatCreationResultData,
     ChatListResultData,
     ChatFindResultData,
-    CurrentActionStateResultData,
+    ChatRuntimeStateResultData,
     ChatSwitchResultData,
     ChatTitleUpdateResultData,
     ChatDeleteResultData,
@@ -94,7 +94,7 @@ export namespace Chat {
     /**
      * Read the current action state of the default or specified conversation
      */
-    function getCurrentActionState(chatId?: string): Promise<CurrentActionStateResultData>;
+    function getChatRuntimeState(chatId?: string): Promise<ChatRuntimeStateResultData>;
 
     /**
      * Switch to a specific chat conversation

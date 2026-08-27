@@ -2077,11 +2077,11 @@ data class ChatFindResultData(
     }
 }
 
-/** 当前对话动作状态结果数据 */
+/** 当前对话运行状态结果数据 */
 @Serializable
 data class CurrentActionStateResultData(
     val chatId: String,
-    val action: String,
+    val aiBehavior: String,
     val userState: String? = null,
     val applicationState: String = "background",
     val toolName: String? = null,
@@ -2090,12 +2090,12 @@ data class CurrentActionStateResultData(
     val errorMessage: String? = null,
     val errorRecoverable: Boolean = false,
     val retryAttempt: Int? = null,
-    val isIdle: Boolean = action == "idle",
-    val isActive: Boolean = action != "idle"
+    val isIdle: Boolean = aiBehavior == "idle",
+    val isActive: Boolean = aiBehavior != "idle"
 ) : ToolResultData() {
     override fun toString(): String {
         val detail = toolName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-        return "Chat $chatId action: $action$detail"
+        return "Chat $chatId aiBehavior: $aiBehavior$detail"
     }
 }
 
