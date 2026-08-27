@@ -44,16 +44,24 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayModelBreakdown
+import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
 import com.ai.assistance.operit.data.stats.TokenStatsGranularity
 import com.ai.assistance.operit.data.stats.TokenStatsPriceDraft
 import com.ai.assistance.operit.data.stats.TokenStatsPriceSetting
 import com.ai.assistance.operit.data.stats.TokenStatsRangeData
 import com.ai.assistance.operit.data.stats.cacheRate
+import com.ai.assistance.operit.data.stats.formatTokenCount
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import java.time.ZoneId
 import java.util.Locale
 
 private enum class ChartDetailMetric { COST, REQUESTS, TOKENS }
+
+private fun TokenStatsDisplayUnit.labelResource(): Int =
+    when (this) {
+        TokenStatsDisplayUnit.MILLIONS -> R.string.token_stats_unit_millions
+        TokenStatsDisplayUnit.BILLIONS -> R.string.token_stats_unit_billions
+    }
 
 /**
  * Token 统计页（信息架构重构版，设计规范 2026-08-18）。
@@ -173,6 +181,11 @@ private fun TokenStatsPageContent(
     val context = LocalContext.current
     val range = state.range
     val activityStats = state.activity.rangeData?.stats
+    val tokenUnitToggleDescription = stringResource(
+        R.string.token_stats_unit_toggle_description,
+        stringResource(state.tokenDisplayUnit.labelResource()),
+        stringResource(state.tokenDisplayUnit.toggled().labelResource()),
+    )
 
     LazyColumn(
         modifier = Modifier
@@ -195,9 +208,12 @@ private fun TokenStatsPageContent(
         item {
             TokenStatsOverviewCard(
                 tokensText = range?.summary?.totalTokens?.knownSum
-                    ?.let { formatCompactCount(it) } ?: "–",
+                    ?.let { formatTokenCount(it, state.tokenDisplayUnit) } ?: "–",
                 costText = range?.summary?.cost?.knownAmount
                     ?.let { formatLifetimeMoney(it, state.targetCurrency) } ?: "–",
+                tokenDisplayUnit = state.tokenDisplayUnit,
+                tokenUnitToggleDescription = tokenUnitToggleDescription,
+                onToggleTokenDisplayUnit = viewModel::toggleTokenDisplayUnit,
                 currentStreakText = activityStats?.let {
                     stringResource(R.string.token_activity_current_streak_badge, it.currentStreak)
                 },
@@ -213,24 +229,34 @@ private fun TokenStatsPageContent(
         // 3. 2×2 核心指标：峰值 Token / 总请求、缓存率 / 输出
         item {
             TokenStatsMetricGrid(
-                peakTokens = activityStats?.let { formatCompactCount(it.peakTokens) } ?: "–",
+                peakTokens = activityStats?.let {
+                    formatTokenCount(it.peakTokens, state.tokenDisplayUnit)
+                } ?: "–",
                 requests = range?.summary?.requests?.let { formatCount(it) } ?: "–",
                 cacheRate = range?.summary?.cacheRate?.let {
                     String.format(Locale.getDefault(), "%.1f%%", it * 100.0)
                 } ?: "–",
                 output = range?.summary?.output?.knownSum
-                    ?.let { formatCompactCount(it) } ?: "–",
+                    ?.let { formatTokenCount(it, state.tokenDisplayUnit) } ?: "–",
+                tokenUnitToggleDescription = tokenUnitToggleDescription,
+                onToggleTokenDisplayUnit = viewModel::toggleTokenDisplayUnit,
             )
         }
 
         // 4. 活跃记录（热力图 / 每周 / 累计）
         item {
-            TokenActivitySection(state = state.activity)
+            TokenActivitySection(
+                state = state.activity,
+                tokenDisplayUnit = state.tokenDisplayUnit,
+            )
         }
 
         // 5. Token 构成：缓存读取 / 未缓存输入 / 输出三条进度条
         item {
-            TokenStatsCompositionCard(summary = range?.summary)
+            TokenStatsCompositionCard(
+                summary = range?.summary,
+                tokenDisplayUnit = state.tokenDisplayUnit,
+            )
         }
 
         // 6. 模型累计：使用当前周期、当前筛选后的动态模型列表，避免展示与筛选脱节。
@@ -239,6 +265,7 @@ private fun TokenStatsPageContent(
                 TokenStatsModelRankSection(
                     models = range?.displayModels.orEmpty(),
                     currency = state.targetCurrency,
+                    tokenDisplayUnit = state.tokenDisplayUnit,
                 )
             }
         }
@@ -269,6 +296,7 @@ private fun TokenStatsPageContent(
                 TokenStatsTrendCard(
                     range = range,
                     currency = state.targetCurrency,
+                    tokenDisplayUnit = state.tokenDisplayUnit,
                     zone = zone,
                 )
             }
@@ -277,6 +305,7 @@ private fun TokenStatsPageContent(
                 TokenStatsModelDetailsSection(
                     models = range.displayModels,
                     currency = state.targetCurrency,
+                    tokenDisplayUnit = state.tokenDisplayUnit,
                     configurationNames = state.configurationNames,
                     priceSettings = state.priceSettings,
                     onSavePrice = viewModel::savePrice,
@@ -348,6 +377,7 @@ private fun TokenStatsTimeControlRow(
 private fun TokenStatsModelDetailsSection(
     models: List<TokenStatsDisplayModelBreakdown>,
     currency: PricingCurrency,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
     configurationNames: Map<String, String>,
     priceSettings: List<TokenStatsPriceSetting>,
     onSavePrice: (TokenStatsPriceDraft) -> Unit,
@@ -357,6 +387,7 @@ private fun TokenStatsModelDetailsSection(
     TokenStatsConfigurationCardsSection(
         configurations = models.flatMap(TokenStatsDisplayModelBreakdown::identities),
         currency = currency,
+        tokenDisplayUnit = tokenDisplayUnit,
         configurationNames = configurationNames,
         priceSettings = priceSettings,
         onEditPrice = { existing, draft, configurationName ->
@@ -433,6 +464,7 @@ private fun NoDataCard(text: String) {
 private fun TokenStatsTrendCard(
     range: TokenStatsRangeData,
     currency: PricingCurrency,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
     zone: ZoneId,
 ) {
     var selectedMetric by rememberSaveable { mutableStateOf(ChartDetailMetric.COST) }
@@ -511,7 +543,10 @@ private fun TokenStatsTrendCard(
                     val unknownPartsTemplate = stringResource(R.string.token_stats_unknown_parts)
                     TokenStatsTrendMetricSummary(
                         title = chartTitle,
-                        summary = formatCompactCount(range.summary.totalTokens.knownSum),
+                        summary = formatTokenCount(
+                            range.summary.totalTokens.knownSum,
+                            tokenDisplayUnit,
+                        ),
                         onClick = { detailMetric = selectedMetric },
                     )
                     TokenStatsStackedBarChart(
@@ -519,7 +554,7 @@ private fun TokenStatsTrendCard(
                         buckets = range.buckets,
                         granularity = range.granularity,
                         zone = zone,
-                        formatValue = { formatCompactCount(it.toLong()) },
+                        formatValue = { formatTokenCount(it.toLong(), tokenDisplayUnit) },
                         emptyText = stringResource(R.string.token_stats_no_data_in_range),
                         chartLabel = chartTitle,
                         chartHeight = 168.dp,
@@ -552,6 +587,7 @@ private fun TokenStatsTrendCard(
             metric = metric,
             range = range,
             currency = currency,
+            tokenDisplayUnit = tokenDisplayUnit,
             onDismiss = { detailMetric = null },
         )
     }
@@ -639,6 +675,7 @@ private fun TokenStatsChartDetailDialog(
     metric: ChartDetailMetric,
     range: TokenStatsRangeData,
     currency: PricingCurrency,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
     onDismiss: () -> Unit,
 ) {
     val accent = LocalTokenStatsColors.current.cardAccent
@@ -677,22 +714,22 @@ private fun TokenStatsChartDetailDialog(
                         // canonical 总 Token 为权威合计；缓存/非缓存/输出仍是诊断分量
                         TokenStatsDetailRow(
                             stringResource(R.string.token_stats_tokens_total),
-                            formatCount(range.summary.totalTokens.knownSum),
+                            formatTokenCount(range.summary.totalTokens.knownSum, tokenDisplayUnit),
                             accent,
                         )
                         TokenStatsDetailRow(
                             stringResource(R.string.token_stats_token_cached),
-                            formatCount(range.summary.cachedInput.knownSum),
+                            formatTokenCount(range.summary.cachedInput.knownSum, tokenDisplayUnit),
                             accent,
                         )
                         TokenStatsDetailRow(
                             stringResource(R.string.token_stats_token_uncached),
-                            formatCount(range.summary.uncachedInput.knownSum),
+                            formatTokenCount(range.summary.uncachedInput.knownSum, tokenDisplayUnit),
                             accent,
                         )
                         TokenStatsDetailRow(
                             stringResource(R.string.token_stats_token_output),
-                            formatCount(range.summary.output.knownSum),
+                            formatTokenCount(range.summary.output.knownSum, tokenDisplayUnit),
                             accent,
                         )
                     }

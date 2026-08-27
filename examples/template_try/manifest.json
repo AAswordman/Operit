@@ -11,9 +11,15 @@
     "zh": "用于演示 ToolPkg 工作流模板与工作区模板在宿主中的注册、展示与导入。",
     "en": "Demonstrates ToolPkg workflow and workspace template registration, display, and import in the host app."
   },
+  "logo": "package_logo",
   "enabled_by_default": false,
   "subpackages": [],
   "resources": [
+    {
+      "key": "package_logo",
+      "path": "resources/logo.svg",
+      "mime": "image/svg+xml"
+    },
     {
       "key": "demo_workflow_template",
       "path": "resources/workflow_template.json",

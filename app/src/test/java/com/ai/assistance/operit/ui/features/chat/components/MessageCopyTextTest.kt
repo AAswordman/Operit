@@ -26,6 +26,13 @@ class MessageCopyTextTest {
         assertEquals("prefixsuffix", cleanMessageContentForCopy(content))
     }
 
+    @Test fun cleanMessageContentForCopy_removesResponsesWebSearchMetadata() {
+        val content =
+            "answer<meta provider=\"openai:responses_web_search\">payload</meta>suffix"
+
+        assertEquals("answersuffix", cleanMessageContentForCopy(content))
+    }
+
     @Test fun cleanMessageContentForCopy_preservesOtherMetaAndMarkdown() {
         val content = "<meta provider=\"other\">value</meta>\n**answer**"
 

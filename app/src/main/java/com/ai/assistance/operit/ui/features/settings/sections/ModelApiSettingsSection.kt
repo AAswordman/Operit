@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.ui.features.settings.sections
 
 import android.annotation.SuppressLint
+import androidx.annotation.StringRes
 import com.ai.assistance.operit.util.AppLogger
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,15 +46,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.VisualTransformation
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.api.chat.llmprovider.DeepSeekApiProtocol
 import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.AIServiceFactory
+import com.ai.assistance.operit.api.chat.llmprovider.CodexModelListFetcher
 import com.ai.assistance.operit.api.chat.llmprovider.LlamaProvider
 import com.ai.assistance.operit.api.chat.llmprovider.ModelListFetcher
+import com.ai.assistance.operit.data.api.CodexAuthManager
+import com.ai.assistance.operit.data.api.CodexUsageSnapshot
+import com.ai.assistance.operit.data.api.CodexUsageWindow
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
 import com.ai.assistance.operit.ui.common.input.bringIntoViewOnImeFocus
@@ -61,9 +69,12 @@ import com.ai.assistance.operit.ui.features.settings.ModelConfigSaveCoordinator
 import com.ai.assistance.operit.ui.common.icons.providerLogoColorFilter
 import com.ai.assistance.operit.ui.common.icons.rememberProviderLogoPainter
 import com.ai.assistance.operit.ui.features.settings.RegisterModelConfigSaveAction
+import com.ai.assistance.operit.ui.features.codex.CodexLoginDialog
 import com.ai.assistance.operit.util.LocationUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
@@ -72,6 +83,32 @@ import kotlinx.coroutines.sync.withLock
 val TAG = "ModelApiSettings"
 
 private val modelApiSettingsSaveMutex = Mutex()
+
+internal enum class ProviderRegionWarningType {
+    OVERSEAS,
+    INTERNATIONAL_PROXY
+}
+
+internal fun providerRegionWarningType(providerType: ApiProviderType?): ProviderRegionWarningType? =
+    when (providerType) {
+        ApiProviderType.OPENROUTER,
+        ApiProviderType.FOUR_ROUTER -> ProviderRegionWarningType.INTERNATIONAL_PROXY
+        ApiProviderType.OPENAI,
+        ApiProviderType.XAI,
+        ApiProviderType.GOOGLE,
+        ApiProviderType.ANTHROPIC,
+        ApiProviderType.MISTRAL,
+        ApiProviderType.NVIDIA,
+        ApiProviderType.NOUS_PORTAL -> ProviderRegionWarningType.OVERSEAS
+        else -> null
+    }
+
+@StringRes
+private fun ProviderRegionWarningType.messageResource(): Int =
+    when (this) {
+        ProviderRegionWarningType.OVERSEAS -> R.string.overseas_provider_warning
+        ProviderRegionWarningType.INTERNATIONAL_PROXY -> R.string.international_proxy_provider_warning
+    }
 
 private data class ProviderSelectionOption(
     val id: String,
@@ -89,9 +126,16 @@ fun ModelApiSettingsSection(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val codexAuthManager = remember { CodexAuthManager.getInstance(context) }
+    val codexAuthState by codexAuthManager.authState.collectAsState()
+    val persistedCodexUsage by codexAuthManager.usageSnapshotFlow.collectAsState(initial = null)
+    var showCodexLoginDialog by remember(config.id) { mutableStateOf(false) }
+    var codexUsageLoading by remember(config.id) { mutableStateOf(false) }
+    var codexUsageError by remember(config.id) { mutableStateOf(false) }
+    var codexUsageNow by remember { mutableLongStateOf(System.currentTimeMillis() / 1000L) }
 
-    // 区域告警可见性
-    var showRegionWarning by remember { mutableStateOf(false) }
+    // 区域告警类型；null 表示当前无需显示。
+    var regionWarningType by remember(config.id) { mutableStateOf<ProviderRegionWarningType?>(null) }
 
     fun getDefaultModelName(providerTypeId: String): String {
         val providerType = ApiProviderType.fromProviderTypeId(providerTypeId) ?: return ""
@@ -117,6 +161,35 @@ fun ModelApiSettingsSection(
     var hasInitializedProviderEndpointSync by remember(config.id) { mutableStateOf(false) }
     var previousProviderTypeId by remember(config.id) { mutableStateOf(config.apiProviderTypeId) }
     val selectedApiProvider = ApiProviderType.fromProviderTypeId(selectedProviderTypeId)
+    val isCodexProvider = selectedApiProvider == ApiProviderType.OPENAI_CODEX
+    val codexUsage = persistedCodexUsage
+        ?.takeIf { it.accountId == codexAuthState?.accountId }
+        ?.usage
+
+    LaunchedEffect(codexAuthState?.accountId) {
+        codexUsageError = false
+    }
+
+    LaunchedEffect(codexUsage) {
+        while (isActive && codexUsage != null) {
+            codexUsageNow = System.currentTimeMillis() / 1000L
+            delay(60_000L)
+        }
+    }
+
+    fun refreshCodexUsage() {
+        if (!isCodexProvider || codexAuthState == null || codexUsageLoading) return
+        scope.launch {
+            codexUsageLoading = true
+            codexUsageError = false
+            val result = codexAuthManager.fetchUsage()
+            result.exceptionOrNull()?.let { error ->
+                AppLogger.e(TAG, "获取 Codex 额度失败", error)
+            }
+            codexUsageError = result.isFailure
+            codexUsageLoading = false
+        }
+    }
 
     // MNN特定配置状态
     var mnnForwardTypeInput by remember(config.id) { mutableStateOf(config.mnnForwardType) }
@@ -137,6 +210,10 @@ fun ModelApiSettingsSection(
     // Google Search Grounding 配置状态 (仅Gemini)
     var enableGoogleSearchInput by remember(config.id) { mutableStateOf(config.enableGoogleSearch) }
 
+    var enableDeepSeekWebSearchInput by remember(config.id) {
+        mutableStateOf(config.enableDeepSeekWebSearch)
+    }
+
     // Claude 1小时提示缓存配置状态 (仅Claude)
     var enableClaude1hPromptCacheInput by remember(config.id) {
         mutableStateOf(config.enableClaude1hPromptCache)
@@ -144,6 +221,15 @@ fun ModelApiSettingsSection(
     
     // Tool Call配置状态
     var enableToolCallInput by remember(config.id) { mutableStateOf(config.enableToolCall) }
+
+    LaunchedEffect(selectedProviderTypeId) {
+        if (isCodexProvider) {
+            enableDirectImageProcessingInput = true
+            enableDirectAudioProcessingInput = false
+            enableDirectVideoProcessingInput = false
+            enableToolCallInput = true
+        }
+    }
 
     data class ApiAutoSaveState(
         val apiEndpoint: String,
@@ -160,6 +246,7 @@ fun ModelApiSettingsSection(
         val enableDirectAudioProcessing: Boolean,
         val enableDirectVideoProcessing: Boolean,
         val enableGoogleSearch: Boolean,
+        val enableDeepSeekWebSearch: Boolean,
         val enableClaude1hPromptCache: Boolean,
         val enableToolCall: Boolean,
     )
@@ -184,6 +271,7 @@ fun ModelApiSettingsSection(
                     enableDirectAudioProcessing = state.enableDirectAudioProcessing,
                     enableDirectVideoProcessing = state.enableDirectVideoProcessing,
                     enableGoogleSearch = state.enableGoogleSearch,
+                    enableDeepSeekWebSearch = state.enableDeepSeekWebSearch,
                     enableClaude1hPromptCache = state.enableClaude1hPromptCache,
                     enableToolCall = state.enableToolCall,
                 )
@@ -211,6 +299,7 @@ fun ModelApiSettingsSection(
             enableDirectAudioProcessing = enableDirectAudioProcessingInput,
             enableDirectVideoProcessing = enableDirectVideoProcessingInput,
             enableGoogleSearch = enableGoogleSearchInput,
+            enableDeepSeekWebSearch = enableDeepSeekWebSearchInput,
             enableClaude1hPromptCache = enableClaude1hPromptCacheInput,
             enableToolCall = enableToolCallInput,
         )
@@ -283,35 +372,31 @@ fun ModelApiSettingsSection(
     // 当API提供商改变时更新端点
     LaunchedEffect(selectedProviderTypeId) {
         AppLogger.d("ModelApiSettingsSection", "API提供商改变")
-        if (
-            selectedApiProvider == ApiProviderType.OPENAI ||
-                selectedApiProvider == ApiProviderType.OPENAI_RESPONSES ||
-                selectedApiProvider == ApiProviderType.OPENAI_RESPONSES_GENERIC ||
-                selectedApiProvider == ApiProviderType.OPENAI_GENERIC ||
-                selectedApiProvider == ApiProviderType.GOOGLE ||
-                selectedApiProvider == ApiProviderType.GEMINI_GENERIC ||
-                selectedApiProvider == ApiProviderType.ANTHROPIC ||
-                selectedApiProvider == ApiProviderType.ANTHROPIC_GENERIC ||
-                selectedApiProvider == ApiProviderType.MISTRAL ||
-                selectedApiProvider == ApiProviderType.NVIDIA ||
-                selectedApiProvider == ApiProviderType.NOUS_PORTAL
-        ) {
+        // 仅对明确归类的海外官方服务或国际中转服务进行地域提醒。
+        val warningType = providerRegionWarningType(selectedApiProvider)
+        if (warningType != null) {
             val inChina = LocationUtils.isDeviceInMainlandChina(context)
-            showRegionWarning = inChina
+            regionWarningType = warningType.takeIf { inChina }
             if (inChina) {
-                AppLogger.d("ModelApiSettingsSection", "检测到位于中国大陆")
-                showNotification(context.getString(R.string.overseas_provider_warning))
+                AppLogger.d(
+                    "ModelApiSettingsSection",
+                    "检测到位于中国大陆，显示 ${warningType.name} 提醒"
+                )
+                showNotification(context.getString(warningType.messageResource()))
             } else {
                 AppLogger.d("ModelApiSettingsSection", "检测到位于海外")
             }
         } else {
-            showRegionWarning = false
+            regionWarningType = null
         }
 
         val shouldSyncEndpointByProviderChange = hasInitializedProviderEndpointSync
         hasInitializedProviderEndpointSync = true
         if (!shouldSyncEndpointByProviderChange) {
             // 首次进入页面时保留持久化配置，避免把用户已选择的端点覆盖成默认值。
+            if (selectedApiProvider == ApiProviderType.OPENAI_CODEX) {
+                apiEndpointInput = getDefaultApiEndpoint(selectedApiProvider)
+            }
             return@LaunchedEffect
         }
 
@@ -324,6 +409,7 @@ fun ModelApiSettingsSection(
         val previousDefaultEndpoint =
             previousProvider?.let { getDefaultApiEndpoint(it) }.orEmpty()
         val shouldApplyNewProviderDefault =
+            selectedApiProvider == ApiProviderType.OPENAI_CODEX ||
             apiEndpointInput.isEmpty() ||
                 isDefaultApiEndpoint(apiEndpointInput) ||
                 (previousDefaultEndpoint.isNotEmpty() && apiEndpointInput == previousDefaultEndpoint)
@@ -353,14 +439,13 @@ fun ModelApiSettingsSection(
         !isMnnProvider &&
             !isLlamaProvider &&
             (canUseKeylessModelUi || !isUsingDefaultApiKey)
-    val canRequestModelList =
-        isToolPkgProvider ||
-            isMnnProvider ||
-            isLlamaProvider ||
-            (
-                apiEndpointInput.isNotBlank() &&
-                    (!providerRequiresApiKey || (!isUsingDefaultApiKey && apiKeyInput.isNotBlank()))
-            )
+    val canRequestModelList = when {
+        isCodexProvider -> codexAuthState != null && apiEndpointInput.isNotBlank()
+        isToolPkgProvider || isMnnProvider || isLlamaProvider -> true
+        else ->
+            apiEndpointInput.isNotBlank() &&
+                (!providerRequiresApiKey || (!isUsingDefaultApiKey && apiKeyInput.isNotBlank()))
+    }
     val endpointOptions = getEndpointOptions(selectedProviderTypeId)
     val selectableEndpointOptions =
         when {
@@ -378,6 +463,7 @@ fun ModelApiSettingsSection(
 
     suspend fun fetchAvailableModels(): Result<List<ModelOption>> {
         return when {
+            isCodexProvider -> CodexModelListFetcher.getModelsList()
             isMnnProvider -> ModelListFetcher.getMnnLocalModels(context)
             isLlamaProvider -> ModelListFetcher.getLlamaLocalModels(context)
             isToolPkgProvider -> runCatching {
@@ -464,8 +550,8 @@ fun ModelApiSettingsSection(
                 )
             }
 
-            AnimatedVisibility(visible = showRegionWarning) {
-                SettingsInfoBanner(text = stringResource(R.string.overseas_provider_warning))
+            regionWarningType?.let { warningType ->
+                SettingsInfoBanner(text = stringResource(warningType.messageResource()))
             }
 
             if (isMnnProvider) {
@@ -500,6 +586,35 @@ fun ModelApiSettingsSection(
                             llamaGpuLayersInput = input
                         }
                     }
+                )
+            } else if (isCodexProvider) {
+                CodexAuthSettingsBlock(
+                     authState = codexAuthState,
+                     usage = codexUsage,
+                     usageLoading = codexUsageLoading,
+                     usageError = codexUsageError,
+                     usageNowEpochSeconds = codexUsageNow,
+                     onLogin = { showCodexLoginDialog = true },
+                     onRefreshUsage = ::refreshCodexUsage,
+                     onLogout = {
+                         scope.launch {
+                             codexAuthManager.logout()
+                             codexUsageError = false
+                             EnhancedAIService.refreshAllServices(configManager.appContext)
+                             showNotification(context.getString(R.string.codex_logout_success))
+                         }
+                    },
+                )
+                SettingsTextField(
+                    title = stringResource(R.string.api_endpoint),
+                    subtitle = stringResource(R.string.codex_endpoint_fixed),
+                    value = apiEndpointInput,
+                    onValueChange = {},
+                    enabled = false,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Uri,
+                        imeAction = ImeAction.Next,
+                    ),
                 )
             } else {
                 SettingsTextField(
@@ -623,8 +738,8 @@ fun ModelApiSettingsSection(
                                 imeAction = ImeAction.Next
                         ),
                         visualTransformation = if (isApiKeyFocused || apiKeyInput.isEmpty()) VisualTransformation.None else ApiKeyVisualTransformation(),
-                        interactionSource = apiKeyInteractionSource
-                )
+                         interactionSource = apiKeyInteractionSource
+                 )
             }
             SettingsTextField(
                     title = stringResource(R.string.model_name),
@@ -723,25 +838,34 @@ fun ModelApiSettingsSection(
                     }
             )
 
-            SettingsSwitchRow(
-                title = stringResource(R.string.enable_direct_image_processing),
-                subtitle = stringResource(R.string.enable_direct_image_processing_desc),
-                checked = enableDirectImageProcessingInput,
-                onCheckedChange = { enableDirectImageProcessingInput = it }
-            )
+             if (isCodexProvider) {
+                 SettingsSwitchRow(
+                     title = stringResource(R.string.codex_direct_media_processing),
+                     subtitle = stringResource(R.string.codex_direct_media_processing_desc),
+                     checked = enableDirectImageProcessingInput,
+                     onCheckedChange = { enableDirectImageProcessingInput = it }
+                 )
+             } else {
+                 SettingsSwitchRow(
+                     title = stringResource(R.string.enable_direct_image_processing),
+                     subtitle = stringResource(R.string.enable_direct_image_processing_desc),
+                     checked = enableDirectImageProcessingInput,
+                     onCheckedChange = { enableDirectImageProcessingInput = it }
+                 )
 
-            SettingsSwitchRow(
-                title = stringResource(R.string.enable_direct_audio_processing),
-                subtitle = stringResource(R.string.enable_direct_audio_processing_desc),
-                checked = enableDirectAudioProcessingInput,
-                onCheckedChange = { enableDirectAudioProcessingInput = it }
-            )
-            SettingsSwitchRow(
-                title = stringResource(R.string.enable_direct_video_processing),
-                subtitle = stringResource(R.string.enable_direct_video_processing_desc),
-                checked = enableDirectVideoProcessingInput,
-                onCheckedChange = { enableDirectVideoProcessingInput = it }
-            )
+                 SettingsSwitchRow(
+                     title = stringResource(R.string.enable_direct_audio_processing),
+                     subtitle = stringResource(R.string.enable_direct_audio_processing_desc),
+                     checked = enableDirectAudioProcessingInput,
+                     onCheckedChange = { enableDirectAudioProcessingInput = it }
+                 )
+                 SettingsSwitchRow(
+                     title = stringResource(R.string.enable_direct_video_processing),
+                     subtitle = stringResource(R.string.enable_direct_video_processing_desc),
+                     checked = enableDirectVideoProcessingInput,
+                     onCheckedChange = { enableDirectVideoProcessingInput = it }
+                 )
+             }
             
             // Google Search Grounding 开关 (仅Gemini支持)
             if (selectedApiProvider == ApiProviderType.GOOGLE ||
@@ -752,6 +876,17 @@ fun ModelApiSettingsSection(
                             checked = enableGoogleSearchInput,
                             onCheckedChange = { enableGoogleSearchInput = it }
                     )
+            }
+
+            if (selectedApiProvider == ApiProviderType.DEEPSEEK &&
+                EndpointCompleter.resolveDeepSeekProtocol(apiEndpointInput) ==
+                    DeepSeekApiProtocol.RESPONSES) {
+                SettingsSwitchRow(
+                    title = stringResource(R.string.enable_deepseek_web_search),
+                    subtitle = stringResource(R.string.enable_deepseek_web_search_desc),
+                    checked = enableDeepSeekWebSearchInput,
+                    onCheckedChange = { enableDeepSeekWebSearchInput = it }
+                )
             }
 
             // Claude 1小时提示缓存开关 (仅Claude支持)
@@ -774,6 +909,19 @@ fun ModelApiSettingsSection(
             )
 
         }
+    }
+
+    if (showCodexLoginDialog) {
+        CodexLoginDialog(
+            onDismissRequest = { showCodexLoginDialog = false },
+            onLoginSuccess = {
+                showCodexLoginDialog = false
+                scope.launch {
+                    EnhancedAIService.refreshAllServices(configManager.appContext)
+                    showNotification(context.getString(R.string.codex_login_success))
+                }
+            },
+        )
     }
 
     // 模型列表对话框
@@ -1053,10 +1201,205 @@ fun ModelApiSettingsSection(
     }
 }
 
+@Composable
+private fun CodexAuthSettingsBlock(
+    authState: CodexAuthState?,
+    usage: CodexUsageSnapshot?,
+    usageLoading: Boolean,
+    usageError: Boolean,
+    usageNowEpochSeconds: Long,
+    onLogin: () -> Unit,
+    onRefreshUsage: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.codex_auth_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        if (authState == null) {
+            Text(
+                text = stringResource(R.string.codex_auth_not_logged_in),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Login, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.codex_login_action))
+            }
+        } else {
+            Text(
+                text = authState.email?.let { email ->
+                    stringResource(R.string.codex_auth_account, email)
+                } ?: stringResource(R.string.codex_auth_account, authState.accountId),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.codex_plan,
+                        formatCodexPlanType(usage?.planType),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = onRefreshUsage,
+                    enabled = !usageLoading,
+                ) {
+                    if (usageLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.codex_usage_refresh),
+                        )
+                    }
+                }
+            }
+
+            CodexQuotaCapsule(
+                usage = usage,
+                usageError = usageError,
+                nowEpochSeconds = usageNowEpochSeconds,
+            )
+
+            OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Logout, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.codex_logout_action))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CodexQuotaCapsule(
+    usage: CodexUsageSnapshot?,
+    usageError: Boolean,
+    nowEpochSeconds: Long,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        tonalElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            CodexQuotaWindowRow(
+                label = stringResource(R.string.codex_quota_five_hour),
+                window = usage?.fiveHourWindow,
+                nowEpochSeconds = nowEpochSeconds,
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+            CodexQuotaWindowRow(
+                label = stringResource(R.string.codex_quota_seven_day),
+                window = usage?.sevenDayWindow,
+                nowEpochSeconds = nowEpochSeconds,
+            )
+            if (usageError) {
+                Text(
+                    text = stringResource(R.string.codex_usage_unavailable),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CodexQuotaWindowRow(
+    label: String,
+    window: CodexUsageWindow?,
+    nowEpochSeconds: Long,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = window?.let {
+                    stringResource(R.string.codex_quota_remaining, it.remainingPercent)
+                }
+                    ?: stringResource(R.string.codex_quota_no_data),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (window != null) {
+            LinearProgressIndicator(
+                progress = { window.remainingPercent / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+            )
+        }
+
+        val resetAt = window?.resetsAtEpochSeconds
+        if (resetAt != null) {
+            Text(
+                text = formatCodexResetCountdown(resetAt, nowEpochSeconds),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun formatCodexPlanType(planType: String?): String {
+    val normalized = planType?.trim()?.takeIf { it.isNotEmpty() } ?: return "-"
+    return normalized
+        .lowercase()
+        .split('_', '-')
+        .joinToString(" ") { part -> part.replaceFirstChar { it.uppercaseChar() } }
+}
+
+@Composable
+private fun formatCodexResetCountdown(resetAtEpochSeconds: Long, nowEpochSeconds: Long): String {
+    val seconds = (resetAtEpochSeconds - nowEpochSeconds).coerceAtLeast(0L)
+    val days = seconds / 86_400L
+    if (days > 0L) {
+        return stringResource(R.string.codex_reset_after_days, days)
+    }
+
+    val hours = seconds / 3_600L
+    val minutes = (seconds % 3_600L) / 60L
+    return stringResource(R.string.codex_reset_after_clock, hours, minutes)
+}
+
 private fun getBuiltInProviderDisplayName(provider: ApiProviderType, context: android.content.Context): String {
     return when (provider) {
         ApiProviderType.OPENAI -> context.getString(R.string.provider_openai)
+        ApiProviderType.XAI -> context.getString(R.string.provider_xai)
         ApiProviderType.OPENAI_RESPONSES -> context.getString(R.string.provider_openai_responses)
+        ApiProviderType.OPENAI_CODEX -> context.getString(R.string.provider_openai_codex)
         ApiProviderType.OPENAI_RESPONSES_GENERIC -> context.getString(R.string.provider_openai_responses_generic)
         ApiProviderType.OPENAI_GENERIC -> context.getString(R.string.provider_openai_generic)
         ApiProviderType.ANTHROPIC -> context.getString(R.string.provider_anthropic)
@@ -1735,7 +2078,9 @@ private fun getProviderColor(providerTypeId: String): androidx.compose.ui.graphi
     }
     return when (provider) {
         ApiProviderType.OPENAI -> MaterialTheme.colorScheme.primary
+        ApiProviderType.XAI -> MaterialTheme.colorScheme.primary.copy(alpha = 0.94f)
         ApiProviderType.OPENAI_RESPONSES -> MaterialTheme.colorScheme.primary.copy(alpha = 0.92f)
+        ApiProviderType.OPENAI_CODEX -> MaterialTheme.colorScheme.primary.copy(alpha = 0.98f)
         ApiProviderType.OPENAI_RESPONSES_GENERIC -> MaterialTheme.colorScheme.primary.copy(alpha = 0.88f)
         ApiProviderType.OPENAI_GENERIC -> MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
         ApiProviderType.ANTHROPIC -> MaterialTheme.colorScheme.tertiary

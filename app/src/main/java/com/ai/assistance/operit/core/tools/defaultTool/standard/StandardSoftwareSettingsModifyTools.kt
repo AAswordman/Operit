@@ -954,8 +954,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
         return try {
             val modelConfigManager = ModelConfigManager(context)
             val functionalConfigManager = FunctionalConfigManager(context)
-            modelConfigManager.initializeIfNeeded()
-            functionalConfigManager.initializeIfNeeded()
 
             val configIds = modelConfigManager.configListFlow.first()
             val mappingWithIndex = functionalConfigManager.functionConfigMappingWithIndexFlow.first()
@@ -1008,7 +1006,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
     suspend fun createModelConfig(tool: AITool): ToolResult {
         return try {
             val modelConfigManager = ModelConfigManager(context)
-            modelConfigManager.initializeIfNeeded()
 
             val name =
                 getParameterValue(tool, "name")?.trim().takeUnless { it.isNullOrBlank() }
@@ -1066,8 +1063,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
         return try {
             val modelConfigManager = ModelConfigManager(context)
             val functionalConfigManager = FunctionalConfigManager(context)
-            modelConfigManager.initializeIfNeeded()
-            functionalConfigManager.initializeIfNeeded()
 
             val current =
                 modelConfigManager.getModelConfig(configId)
@@ -1146,9 +1141,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
 
         return try {
             val modelConfigManager = ModelConfigManager(context)
-            val functionalConfigManager = FunctionalConfigManager(context)
-            modelConfigManager.initializeIfNeeded()
-            functionalConfigManager.initializeIfNeeded()
 
             val configList = modelConfigManager.configListFlow.first()
             if (!configList.contains(configId)) {
@@ -1160,26 +1152,7 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
                 )
             }
 
-            val mappingWithIndex = functionalConfigManager.functionConfigMappingWithIndexFlow.first()
-            val updatedMapping = mappingWithIndex.toMutableMap()
-            val affectedFunctions = mutableListOf<FunctionType>()
-
-            mappingWithIndex.forEach { (functionType, mapping) ->
-                if (mapping.configId == configId) {
-                    updatedMapping[functionType] =
-                        FunctionConfigMapping(
-                            configId = FunctionalConfigManager.DEFAULT_CONFIG_ID,
-                            modelIndex = 0
-                        )
-                    affectedFunctions.add(functionType)
-                }
-            }
-
-            if (affectedFunctions.isNotEmpty()) {
-                functionalConfigManager.saveFunctionConfigMappingWithIndex(updatedMapping)
-            }
-
-            modelConfigManager.deleteConfig(configId)
+            val affectedFunctions = modelConfigManager.deleteConfig(configId)
 
             affectedFunctions
                 .sortedBy { it.name }
@@ -1211,7 +1184,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
     suspend fun listFunctionModelConfigs(tool: AITool): ToolResult {
         return try {
             val functionalConfigManager = FunctionalConfigManager(context)
-            functionalConfigManager.initializeIfNeeded()
 
             val mappingWithIndex = functionalConfigManager.functionConfigMappingWithIndexFlow.first()
 
@@ -1271,8 +1243,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
 
             val modelConfigManager = ModelConfigManager(context)
             val functionalConfigManager = FunctionalConfigManager(context)
-            modelConfigManager.initializeIfNeeded()
-            functionalConfigManager.initializeIfNeeded()
 
             val mappingWithIndex = functionalConfigManager.functionConfigMappingWithIndexFlow.first()
             val mapping =
@@ -1350,8 +1320,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
 
             val modelConfigManager = ModelConfigManager(context)
             val functionalConfigManager = FunctionalConfigManager(context)
-            modelConfigManager.initializeIfNeeded()
-            functionalConfigManager.initializeIfNeeded()
 
             val config =
                 modelConfigManager.getModelConfig(configId)
@@ -1412,7 +1380,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
             val requestedModelIndex =
                 getOptionalIntParameter(tool, "model_index")?.coerceAtLeast(0) ?: 0
             val modelConfigManager = ModelConfigManager(context)
-            modelConfigManager.initializeIfNeeded()
 
             val config =
                 modelConfigManager.getModelConfig(configId)

@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.packages.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image as ComposeImage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -40,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -60,11 +66,17 @@ import com.ai.assistance.operit.ui.features.packages.market.ArtifactPublishClust
 import com.ai.assistance.operit.ui.features.packages.market.GitHubForgePublishService
 import com.ai.assistance.operit.ui.features.packages.market.PublishArtifactSource
 import com.ai.assistance.operit.ui.features.packages.market.PublishArtifactType
+import com.ai.assistance.operit.ui.features.packages.market.ToolPkgLogoAsset
 import com.ai.assistance.operit.ui.features.packages.market.PublishProgressStage
 import com.ai.assistance.operit.ui.features.packages.market.isOperit2VersionAllowed
 import com.ai.assistance.operit.ui.features.packages.market.sameArtifactRuntimePackageId
 import com.ai.assistance.operit.ui.features.packages.screens.artifact.viewmodel.ArtifactMarketViewModel
-import kotlinx.coroutines.launch
+import com.ai.assistance.operit.ui.features.packages.screens.artifact.viewmodel.ArtifactPublishDraft
+import com.ai.assistance.operit.ui.common.icons.rememberLogoPainter
+import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.ToolPkgArtifactMinifier
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private data class ArtifactPublishEditInfo(
     val type: PublishArtifactType?,
@@ -78,7 +90,7 @@ private data class ArtifactPublishEditInfo(
     val maxSupportedAppVersion: String?,
     val runtimePackageId: String,
     val normalizedId: String,
-    val sourceFileName: String
+    val sourceFileName: String,
 )
 
 private fun com.ai.assistance.operit.data.api.MarketV2Entry.toArtifactPublishEditInfo(): ArtifactPublishEditInfo {
@@ -97,7 +109,7 @@ private fun com.ai.assistance.operit.data.api.MarketV2Entry.toArtifactPublishEdi
         maxSupportedAppVersion = versionValue?.maxAppVer,
         runtimePackageId = versionValue?.runtimePackageId.orEmpty(),
         normalizedId = id,
-        sourceFileName = assetValue?.assetName.orEmpty().ifBlank { assetValue?.name.orEmpty() }
+        sourceFileName = assetValue?.assetName.orEmpty().ifBlank { assetValue?.name.orEmpty() },
     )
 }
 
@@ -159,6 +171,30 @@ fun ArtifactPublishScreen(
     val isContinuationCategoryLocked = isContinuationMode && !canEditContinuationEntry
     val continuationDescription =
         stringResource(R.string.artifact_publish_continuation_description)
+    val draftScopeKey =
+        remember(
+            isEditMode,
+            activePublishContext?.entryId,
+            activePublishContext?.runtimePackageId,
+            activePublishContext?.projectId
+        ) {
+            if (isEditMode) {
+                "edit-${editingEntry?.id.orEmpty()}"
+            } else {
+                listOf(
+                    activePublishContext?.entryId.orEmpty(),
+                    activePublishContext?.runtimePackageId.orEmpty(),
+                    activePublishContext?.projectId.orEmpty()
+                )
+                    .firstOrNull { it.isNotBlank() }
+                    ?.let { "entry-$it" }
+                    ?: "fresh"
+            }
+        }
+    val savedPublishDraft =
+        remember(draftScopeKey) {
+            if (isEditMode) null else viewModel.loadPublishDraft(activePublishContext)
+        }
 
     val filteredArtifacts =
         remember(artifacts, activePublishContext, isEditMode, lockedRuntimePackageId) {
@@ -177,33 +213,60 @@ fun ArtifactPublishScreen(
             }
         }
 
-    var selectedPackageName by rememberSaveable { mutableStateOf("") }
-    var displayName by rememberSaveable(initialInfo?.title, lockedDisplayName) {
+    var selectedPackageName by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.selectedPackageName.orEmpty())
+    }
+    var displayName by rememberSaveable(draftScopeKey, initialInfo?.title, lockedDisplayName) {
         mutableStateOf(
-            initialInfo?.title.orEmpty().ifBlank { lockedDisplayName }
+            savedPublishDraft?.displayName
+                ?: initialInfo?.title.orEmpty().ifBlank { lockedDisplayName }
         )
     }
-    var description by rememberSaveable(activePublishContext?.marketDescription) {
-        mutableStateOf(initialInfo?.description.orEmpty().ifBlank { activePublishContext?.marketDescription.orEmpty() })
+    var description by rememberSaveable(draftScopeKey, activePublishContext?.marketDescription) {
+        mutableStateOf(
+            savedPublishDraft?.description
+                ?: initialInfo?.description.orEmpty().ifBlank { activePublishContext?.marketDescription.orEmpty() }
+        )
     }
-    var detail by rememberSaveable(activePublishContext?.marketDetail) {
-        mutableStateOf(initialInfo?.detail.orEmpty().ifBlank { activePublishContext?.marketDetail.orEmpty() })
+    var detail by rememberSaveable(draftScopeKey, activePublishContext?.marketDetail) {
+        mutableStateOf(
+            savedPublishDraft?.detail
+                ?: initialInfo?.detail.orEmpty().ifBlank { activePublishContext?.marketDetail.orEmpty() }
+        )
     }
-    var categoryId by rememberSaveable(activePublishContext?.categoryId) {
-        mutableStateOf(initialInfo?.categoryId.orEmpty().ifBlank { activePublishContext?.categoryId.orEmpty() })
+    var categoryId by rememberSaveable(draftScopeKey, activePublishContext?.categoryId) {
+        mutableStateOf(
+            savedPublishDraft?.categoryId
+                ?: initialInfo?.categoryId.orEmpty().ifBlank { activePublishContext?.categoryId.orEmpty() }
+        )
     }
-    var allowPublicUpdates by rememberSaveable(initialInfo?.allowPublicUpdates) {
-        mutableStateOf(initialInfo?.allowPublicUpdates ?: true)
+    var allowPublicUpdates by rememberSaveable(draftScopeKey, initialInfo?.allowPublicUpdates) {
+        mutableStateOf(savedPublishDraft?.allowPublicUpdates ?: initialInfo?.allowPublicUpdates ?: true)
     }
-    var minifyArtifact by rememberSaveable { mutableStateOf(false) }
-    var useGitHubReleaseAsset by rememberSaveable { mutableStateOf(false) }
-    var githubRepositoryUrl by rememberSaveable { mutableStateOf("") }
-    var selectedReleaseTag by rememberSaveable { mutableStateOf("") }
-    var selectedReleaseAssetName by rememberSaveable { mutableStateOf("") }
-    var version by rememberSaveable { mutableStateOf(initialInfo?.version.orEmpty().ifBlank { "1.0.0" }) }
-    var minSupportedAppVersion by rememberSaveable { mutableStateOf(initialInfo?.minSupportedAppVersion.orEmpty()) }
-    var maxSupportedAppVersion by rememberSaveable { mutableStateOf(initialInfo?.maxSupportedAppVersion.orEmpty()) }
-
+    var minifyArtifact by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.minifyArtifact ?: false)
+    }
+    var useGitHubReleaseAsset by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.useGitHubReleaseAsset ?: false)
+    }
+    var githubRepositoryUrl by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.githubRepositoryUrl.orEmpty())
+    }
+    var selectedReleaseTag by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.selectedReleaseTag.orEmpty())
+    }
+    var selectedReleaseAssetName by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.selectedReleaseAssetName.orEmpty())
+    }
+    var version by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.version ?: initialInfo?.version.orEmpty().ifBlank { "1.0.0" })
+    }
+    var minSupportedAppVersion by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.minSupportedAppVersion ?: initialInfo?.minSupportedAppVersion.orEmpty())
+    }
+    var maxSupportedAppVersion by rememberSaveable(draftScopeKey) {
+        mutableStateOf(savedPublishDraft?.maxSupportedAppVersion ?: initialInfo?.maxSupportedAppVersion.orEmpty())
+    }
     var selectorExpanded by remember { mutableStateOf(false) }
     var releaseSelectorExpanded by remember { mutableStateOf(false) }
     var releaseAssetSelectorExpanded by remember { mutableStateOf(false) }
@@ -212,6 +275,7 @@ fun ArtifactPublishScreen(
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showOperit2WarningDialog by remember { mutableStateOf(false) }
     var showSecondForgeConfirm by remember { mutableStateOf(false) }
+    var showMarketPreview by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.refreshPublishableArtifacts()
@@ -219,6 +283,60 @@ fun ArtifactPublishScreen(
             onSuccess = { manifest -> categories = manifest.categories.filter { it.id.isNotBlank() } },
             onFailure = {}
         )
+    }
+
+    LaunchedEffect(draftScopeKey) {
+        val draft = savedPublishDraft
+        if (!isEditMode && draft?.useGitHubReleaseAsset == true && draft.githubRepositoryUrl.isNotBlank()) {
+            viewModel.loadGitHubReleaseCatalog(draft.githubRepositoryUrl)
+        }
+    }
+
+    LaunchedEffect(
+        draftScopeKey,
+        selectedPackageName,
+        displayName,
+        description,
+        detail,
+        categoryId,
+        allowPublicUpdates,
+        minifyArtifact,
+        useGitHubReleaseAsset,
+        githubRepositoryUrl,
+        selectedReleaseTag,
+        selectedReleaseAssetName,
+        version,
+        minSupportedAppVersion,
+        maxSupportedAppVersion
+    ) {
+        if (!isEditMode) {
+            viewModel.savePublishDraft(
+                publishContext = activePublishContext,
+                draft =
+                    ArtifactPublishDraft(
+                        selectedPackageName = selectedPackageName,
+                        displayName = displayName,
+                        description = description,
+                        detail = detail,
+                        categoryId = categoryId,
+                        allowPublicUpdates = allowPublicUpdates,
+                        minifyArtifact = minifyArtifact,
+                        useGitHubReleaseAsset = useGitHubReleaseAsset,
+                        githubRepositoryUrl = githubRepositoryUrl,
+                        selectedReleaseTag = selectedReleaseTag,
+                        selectedReleaseAssetName = selectedReleaseAssetName,
+                        version = version,
+                        minSupportedAppVersion = minSupportedAppVersion,
+                        maxSupportedAppVersion = maxSupportedAppVersion
+                    )
+            )
+        }
+    }
+
+    LaunchedEffect(draftScopeKey, publishSuccess) {
+        if (!isEditMode && publishSuccess != null) {
+            viewModel.clearPublishDraft(activePublishContext)
+        }
     }
 
     LaunchedEffect(filteredArtifacts, activePublishContext?.runtimePackageId, initialInfo?.normalizedId) {
@@ -252,7 +370,63 @@ fun ArtifactPublishScreen(
 
     val selectedArtifact = filteredArtifacts.firstOrNull { it.packageName == selectedPackageName }
     val selectedType = selectedArtifact?.type ?: initialInfo?.type
+    val toolPkgManifestVersion =
+        if (selectedType == PublishArtifactType.PACKAGE) {
+            selectedArtifact?.inferredVersion?.trim()?.takeIf { it.isNotBlank() }
+        } else {
+            null
+        }
+    val isToolPkgVersionLocked = !isEditMode && toolPkgManifestVersion != null
+    val effectiveVersion =
+        if (isToolPkgVersionLocked) {
+            toolPkgManifestVersion.orEmpty()
+        } else {
+            version
+        }
     val isPublishing = publishStage !in listOf(PublishProgressStage.IDLE, PublishProgressStage.COMPLETED)
+    LaunchedEffect(selectedPackageName, selectedType, toolPkgManifestVersion, isEditMode) {
+        if (!isEditMode && selectedType == PublishArtifactType.PACKAGE) {
+            val lockedVersion = toolPkgManifestVersion ?: return@LaunchedEffect
+            if (version != lockedVersion) {
+                viewModel.clearPendingMarketRegistrationRetry()
+                version = lockedVersion
+            }
+        }
+    }
+    val packageLogo by
+        produceState<ToolPkgLogoAsset?>(
+            initialValue = null,
+            selectedPackageName,
+            selectedArtifact?.sourceFile?.absolutePath,
+            selectedType
+        ) {
+            value =
+                if (selectedType == PublishArtifactType.PACKAGE && selectedArtifact != null) {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            ToolPkgArtifactMinifier.readToolPkgLogoAsset(selectedArtifact.sourceFile)
+                        }
+                    } catch (error: Exception) {
+                        AppLogger.e("ArtifactPublishScreen", "Failed to load package logo", error)
+                        null
+                    }
+                } else {
+                    null
+                }
+        }
+    // Snapshot the delegated state before smart-casting; Kotlin cannot smart-cast delegated properties.
+    val displayedLogo = packageLogo
+    val logoPainter =
+        rememberLogoPainter(
+            logoKey = "${selectedPackageName}:${displayedLogo?.fileName}:${displayedLogo?.bytes?.contentHashCode()}",
+            bytes = displayedLogo?.bytes,
+            mimeType = displayedLogo?.contentType,
+            fileName = displayedLogo?.fileName,
+            size = 64.dp
+        )
+    LaunchedEffect(selectedPackageName, selectedArtifact?.sourceFile?.absolutePath, selectedType) {
+        showMarketPreview = false
+    }
     val selectorDisplayName =
         if (isEditMode) {
             selectedArtifact?.displayName
@@ -684,6 +858,53 @@ fun ArtifactPublishScreen(
             }
         }
 
+        if (selectedType == PublishArtifactType.PACKAGE && displayedLogo != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (logoPainter != null) {
+                        ComposeImage(
+                            painter = logoPainter,
+                            contentDescription = stringResource(R.string.artifact_publish_logo_preview),
+                            modifier = Modifier.size(56.dp).padding(4.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.artifact_publish_logo_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.artifact_publish_logo_from_package,
+                                displayedLogo.fileName
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    OutlinedButton(onClick = { showMarketPreview = true }) {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.artifact_publish_logo_market_preview))
+                    }
+                }
+            }
+        }
+
         OutlinedTextField(
             value = displayName,
             onValueChange = {
@@ -841,9 +1062,9 @@ fun ArtifactPublishScreen(
             }
         }
         OutlinedTextField(
-            value = version,
+            value = effectiveVersion,
             onValueChange = {
-                if (!isEditMode) {
+                if (!isEditMode && !isToolPkgVersionLocked) {
                     viewModel.clearPendingMarketRegistrationRetry()
                     version = it
                 }
@@ -851,10 +1072,11 @@ fun ArtifactPublishScreen(
             label = { Text(stringResource(R.string.version_label)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            readOnly = isEditMode,
+            readOnly = isEditMode || isToolPkgVersionLocked,
             supportingText = {
-                if (isEditMode) {
-                    Text(stringResource(R.string.artifact_publish_published_version_readonly))
+                when {
+                    isEditMode -> Text(stringResource(R.string.artifact_publish_published_version_readonly))
+                    isToolPkgVersionLocked -> Text(stringResource(R.string.artifact_publish_toolpkg_version_readonly))
                 }
             }
         )
@@ -934,7 +1156,7 @@ fun ArtifactPublishScreen(
                         if (isEditMode) {
                             initialInfo?.type != null
                         } else {
-                            selectedPackageName.isNotBlank() &&
+                            selectedArtifact != null &&
                                 publishSource != null &&
                                 (activePublishContext == null || filteredArtifacts.isNotEmpty())
                         }
@@ -1018,7 +1240,15 @@ fun ArtifactPublishScreen(
                             Text(stringResource(R.string.detail_colon, detail))
                         }
                         Text(stringResource(R.string.market_detail_category_label) + ": " + categoryId)
-                        Text(stringResource(R.string.version_colon, version))
+                        Text(stringResource(R.string.version_colon, effectiveVersion))
+                        if (selectedType == PublishArtifactType.PACKAGE && displayedLogo != null) {
+                            Text(
+                                stringResource(
+                                    R.string.artifact_publish_logo_confirmation,
+                                    displayedLogo.fileName
+                                )
+                            )
+                        }
                         Text(
                             stringResource(
                                 R.string.artifact_publish_asset_source_confirmation,
@@ -1090,7 +1320,7 @@ fun ArtifactPublishScreen(
                                     detail = detail,
                                     categoryId = categoryId,
                                     allowPublicUpdates = allowPublicUpdates,
-                                    version = version,
+                                    version = effectiveVersion,
                                     minSupportedAppVersion = minSupportedAppVersion.ifBlank { null },
                                     maxSupportedAppVersion = maxSupportedAppVersion.ifBlank { GitHubForgePublishService.DEFAULT_MAX_SUPPORTED_APP_VERSION },
                                     publishContext = activePublishContext,
@@ -1222,4 +1452,161 @@ fun ArtifactPublishScreen(
             }
         )
     }
+
+    if (showMarketPreview && selectedType == PublishArtifactType.PACKAGE) {
+        MarketPublishPreviewDialog(
+            title = displayName,
+            description = description,
+            detail = detail,
+            version = effectiveVersion,
+            author = selectedArtifact?.author?.firstOrNull().orEmpty(),
+            logoAsset = displayedLogo,
+            onDismiss = { showMarketPreview = false }
+        )
+    }
 }
+
+/*
+private fun ArtifactPublishLogoCard(
+    logoPainter: androidx.compose.ui.graphics.painter.Painter?,
+    selectedLogoAsset: ToolPkgLogoAsset?,
+    packageLogo: ToolPkgLogoAsset?,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onPreview: () -> Unit,
+    onChoose: () -> Unit,
+    onUsePackageLogo: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(64.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    if (logoPainter != null) {
+                        ComposeImage(
+                            painter = logoPainter,
+                            contentDescription = stringResource(R.string.artifact_publish_logo_preview),
+                            modifier = Modifier.padding(6.dp)
+                        )
+                    } else {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(18.dp)
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.artifact_publish_logo_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = stringResource(R.string.artifact_publish_logo_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    val selectedFileName = selectedLogoAsset?.fileName
+                    val packageFileName = packageLogo?.fileName
+                    if (selectedFileName != null) {
+                        Text(
+                            text = stringResource(R.string.artifact_publish_logo_selected, selectedFileName),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else if (packageFileName != null) {
+                        Text(
+                            text = stringResource(R.string.artifact_publish_logo_from_package, packageFileName),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onChoose,
+                    enabled = !isLoading,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Default.UploadFile,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.artifact_publish_logo_choose))
+                }
+                if (selectedLogoAsset != null) {
+                    OutlinedButton(
+                        onClick = onUsePackageLogo,
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Default.RestartAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.artifact_publish_logo_use_package))
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = onPreview,
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Default.Visibility,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.artifact_publish_logo_market_preview))
+            }
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+*/

@@ -148,13 +148,13 @@ class LlamaProvider(
                         preserveThinkInHistory = false
                     )
                     val toolsJson = StructuredToolCallBridge.buildToolsJson(availableTools)
-                    s.applyStructuredChatTemplate(messagesJson, toolsJson, true)
+                    s.applyStructuredChatTemplate(messagesJson, toolsJson, true, true)
                 } else {
                     val (roles, contents) = buildPlainPromptMessages(
                         chatHistory = chatHistory,
                         preserveThinkInHistory = false
                     )
-                    s.applyChatTemplate(roles, contents, true)
+                    s.applyChatTemplate(roles, contents, true, true)
                 } ?: return@runCatching null
 
                 s.countTokens(prompt).toLong()
@@ -180,14 +180,11 @@ class LlamaProvider(
         isCancelled = false
 
         if (!LlamaSession.isAvailable()) {
-            emit("${context.getString(R.string.llama_error_prefix)}: ${LlamaSession.getUnavailableReason()}")
-            // Preserve the user-visible error before ending the stream.
             throw IOException("${context.getString(R.string.llama_error_prefix)}: ${LlamaSession.getUnavailableReason()}")
         }
 
         val modelFile = getModelFile(context, modelName)
         if (!modelFile.exists()) {
-            emit("${context.getString(R.string.llama_error_prefix)}: ${context.getString(R.string.llama_error_model_file_not_exist, modelFile.absolutePath)}")
             throw IOException("${context.getString(R.string.llama_error_prefix)}: ${context.getString(R.string.llama_error_model_file_not_exist, modelFile.absolutePath)}")
         }
 
@@ -195,7 +192,6 @@ class LlamaProvider(
             ensureSessionLocked()
         }
         if (s == null) {
-            emit(context.getString(R.string.llama_error_session_create_failed))
             throw IOException(context.getString(R.string.llama_error_session_create_failed))
         }
 
@@ -212,17 +208,16 @@ class LlamaProvider(
                     preserveThinkInHistory = preserveThinkInHistory
                 )
                 val toolsJson = StructuredToolCallBridge.buildToolsJson(availableTools)
-                s.applyStructuredChatTemplate(messagesJson, toolsJson, true)
+                s.applyStructuredChatTemplate(messagesJson, toolsJson, enableThinking, true)
             } else {
                 val (roles, contents) = buildPlainPromptMessages(
                     chatHistory = chatHistory,
                     preserveThinkInHistory = preserveThinkInHistory
                 )
-                s.applyChatTemplate(roles, contents, true)
+                s.applyChatTemplate(roles, contents, enableThinking, true)
             }
         }
         if (prompt.isNullOrBlank()) {
-            emit(context.getString(R.string.llama_error_chat_template_failed))
             throw IOException(context.getString(R.string.llama_error_chat_template_failed))
         }
 
@@ -351,7 +346,6 @@ class LlamaProvider(
                 kotlin.runCatching {
                     onNonFatalError(context.getString(R.string.llama_error_inference_failed))
                 }
-                emit("\n\n${context.getString(R.string.llama_error_inference_tag)}")
                 throw IOException(context.getString(R.string.llama_error_inference_failed))
             },
         )

@@ -4,6 +4,7 @@ import com.ai.assistance.operit.util.AppLogger
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +27,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.ToolPackage
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.ui.common.icons.rememberLogoPainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -85,6 +88,33 @@ fun PackageDetailsDialog(
                 null
             }
     }
+
+    val logo by produceState<PackageManager.ToolPkgLogoBytes?>(
+        initialValue = null,
+        packageName,
+        toolPkgDetails?.logoResourceKey,
+        toolPkgDetails?.version
+    ) {
+        value =
+            if (toolPkgDetails?.logoResourceKey == null) {
+                null
+            } else {
+                try {
+                    withContext(Dispatchers.IO) { packageManager.readToolPkgLogoBytes(packageName) }
+                } catch (error: Exception) {
+                    AppLogger.e("PackageDetailsDialog", "Failed to load toolpkg logo", error)
+                    null
+                }
+            }
+    }
+    val logoPainter =
+        rememberLogoPainter(
+            logoKey = "${packageName}:${toolPkgDetails?.version}:${toolPkgDetails?.logoResourceKey}",
+            bytes = logo?.bytes,
+            mimeType = logo?.mimeType,
+            fileName = logo?.fileName,
+            size = 28.dp
+        )
 
     val activeStateId by produceState<String?>(initialValue = null, packageName, resolvedPackage) {
         value =
@@ -174,12 +204,21 @@ fun PackageDetailsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Extension,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    if (logoPainter != null) {
+                        Image(
+                            painter = logoPainter,
+                            contentDescription = packageDisplayName,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Extension,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(

@@ -120,6 +120,7 @@ internal fun cleanMessageContentForCopy(content: String): String {
         // Provider元数据必须保留在消息中供后续轮次使用，但不能暴露在复制内容中
         .let(ChatMarkupRegex::removeGeminiThoughtSignatureMeta)
         .let(ChatMarkupRegex::removeOpenAiResponsesReasoningMeta)
+        .let(ChatMarkupRegex::removeOpenAiResponsesWebSearchMeta)
         // 移除状态标签
         .replace(ChatMarkupRegex.statusTag, "")
         .replace(ChatMarkupRegex.statusSelfClosingTag, "")

@@ -5,6 +5,8 @@ import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.dao.TokenUsageActivityDayRow
 import com.ai.assistance.operit.data.dao.TokenUsageModelAggregateRow
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
+import com.ai.assistance.operit.data.model.normalizeProviderModel
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -77,6 +79,20 @@ object TokenStatsQueryService {
         }
     }
 
+    internal suspend fun earliestOccurredDate(
+        context: Context,
+        params: TokenStatsQueryParams,
+        zone: ZoneId,
+    ): LocalDate? {
+        val repository = TokenUsageRepository.getInstance(context)
+        return repository.withDao { dao ->
+            dao.getEarliestOccurredAtMs(
+                providerModels = params.providerModels.queryValues(),
+                allModels = params.providerModels == null,
+            )?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
+        }
+    }
+
     internal suspend fun activitySnapshot(
         context: Context,
         range: TokenStatsTimeRange,
@@ -131,25 +147,35 @@ object TokenStatsQueryService {
         prices: TokenPriceSettingsSnapshot,
         params: TokenStatsQueryParams,
     ): TokenStatsTotals {
-        val pricing = TokenPriceResolver.resolve(providerModel, prices.settingFor(providerModel, configId))
-        val input = component(uncachedInputTokens, uncachedInputKnown, requests)
-        val cached = component(cachedInputTokens, cachedInputKnown, requests)
-        val cacheWrite = component(cacheWriteTokens, cacheWriteKnown, requests)
+        val usageRow = normalizeLegacyCacheWriteUsage(this)
+        val pricingProviderModel = normalizeProviderModel(usageRow.providerModel)
+        val pricing = TokenPriceResolver.resolve(
+            pricingProviderModel,
+            prices.settingFor(pricingProviderModel, usageRow.configId),
+        )
+        val input = component(usageRow.uncachedInputTokens, usageRow.uncachedInputKnown, usageRow.requests)
+        val cached = component(usageRow.cachedInputTokens, usageRow.cachedInputKnown, usageRow.requests)
+        val cacheWrite = component(usageRow.cacheWriteTokens, usageRow.cacheWriteKnown, usageRow.requests)
         val totalInput =
-            if (totalInputKnown > 0L) {
-                component(totalInputTokens, totalInputKnown, requests)
+            if (usageRow.totalInputKnown > 0L) {
+                component(usageRow.totalInputTokens, usageRow.totalInputKnown, usageRow.requests)
             } else {
-                combineComponents(listOf(input, cached, cacheWrite), requests)
+                combineComponents(listOf(input, cached, cacheWrite), usageRow.requests)
             }
-        val output = component(outputTokens, outputKnown, requests)
+        val output = component(usageRow.outputTokens, usageRow.outputKnown, usageRow.requests)
         return TokenStatsTotals(
-            requests = requests,
+            requests = usageRow.requests,
             uncachedInput = input,
             cachedInput = cached,
             totalInput = totalInput,
             output = output,
-            totalTokens = combineComponents(listOf(totalInput, output), requests),
-            cost = TokenCostCalculator.currentCost(this, pricing, params.targetCurrency, params.manualRate),
+            totalTokens = combineComponents(listOf(totalInput, output), usageRow.requests),
+            cost = TokenCostCalculator.currentCost(
+                usageRow,
+                pricing,
+                params.targetCurrency,
+                params.manualRate,
+            ),
         )
     }
 

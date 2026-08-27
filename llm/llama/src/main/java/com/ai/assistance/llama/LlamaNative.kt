@@ -47,6 +47,7 @@ object LlamaNative {
         sessionPtr: Long,
         roles: Array<String>,
         contents: Array<String>,
+        enableThinking: Boolean,
         addAssistant: Boolean
     ): String?
 
@@ -55,6 +56,7 @@ object LlamaNative {
         sessionPtr: Long,
         messagesJson: String,
         toolsJson: String?,
+        enableThinking: Boolean,
         addAssistant: Boolean
     ): String?
 

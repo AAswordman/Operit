@@ -4,7 +4,6 @@ import android.content.Context
 import com.ai.assistance.operit.R
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.data.model.PromptTag
 import com.ai.assistance.operit.data.model.TagType
 
@@ -13,9 +12,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 
-private val Context.promptTagDataStore by preferencesDataStore(
-    name = "prompt_tags"
-)
+private val Context.promptTagDataStore by
+    versionedPreferencesDataStore(
+        name = "prompt_tags",
+        currentVersion = 1,
+    ) {
+        preferenceSchemaMigration { version, preferences ->
+            when (version) {
+                0 -> PromptTagManager.migratePreferencesFromVersionZero(preferences)
+                else -> missingPreferencesSchemaMigration(version)
+            }
+        }
+    }
 
 /**
  * 提示词标签管理器
@@ -36,6 +44,53 @@ class PromptTagManager private constructor(private val context: Context) {
         fun getInstance(context: Context): PromptTagManager {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: PromptTagManager(context.applicationContext).also { INSTANCE = it }
+            }
+        }
+
+        internal fun migratePreferencesFromVersionZero(preferences: MutablePreferences) {
+            val currentList = preferences[PROMPT_TAG_LIST]?.toMutableSet() ?: mutableSetOf()
+            val legacySystemTagIdsByFlag = currentList.filter { id ->
+                preferences[booleanPreferencesKey("prompt_tag_${id}_is_system_tag")] == true
+            }
+            val legacySystemTagIdsByType = currentList.filter { id ->
+                (preferences[stringPreferencesKey("prompt_tag_${id}_tag_type")] ?: "")
+                    .startsWith("SYSTEM_")
+            }
+            val idsToRemove = (legacySystemTagIdsByFlag + legacySystemTagIdsByType).toSet()
+
+            if (idsToRemove.isNotEmpty()) {
+                currentList.removeAll(idsToRemove)
+                preferences[PROMPT_TAG_LIST] = currentList
+                idsToRemove.forEach { id ->
+                    removeTagPreferenceKeys(preferences, id)
+                }
+            }
+
+            val legacySystemFlagKeys = preferences.asMap().keys
+                .map { it.name }
+                .filter { it.startsWith("prompt_tag_") && it.endsWith("_is_system_tag") }
+            legacySystemFlagKeys.forEach { key ->
+                preferences.remove(booleanPreferencesKey(key))
+            }
+        }
+
+        internal fun removeTagPreferenceKeys(preferences: MutablePreferences, id: String) {
+            val keysToRemove = listOf(
+                "prompt_tag_${id}_name",
+                "prompt_tag_${id}_description",
+                "prompt_tag_${id}_prompt_content",
+                "prompt_tag_${id}_tag_type",
+                "prompt_tag_${id}_is_system_tag",
+                "prompt_tag_${id}_created_at",
+                "prompt_tag_${id}_updated_at"
+            )
+
+            keysToRemove.forEach { key ->
+                when {
+                    key.endsWith("_is_system_tag") -> preferences.remove(booleanPreferencesKey(key))
+                    key.endsWith("_created_at") || key.endsWith("_updated_at") -> preferences.remove(longPreferencesKey(key))
+                    else -> preferences.remove(stringPreferencesKey(key))
+                }
             }
         }
     }
@@ -185,54 +240,4 @@ class PromptTagManager private constructor(private val context: Context) {
         }
     }
 
-    // 清理已移除的历史内置功能标签（chat/voice/desktop pet）
-    suspend fun removeLegacyBuiltInTags() {
-        dataStore.edit { preferences ->
-            val currentList = preferences[PROMPT_TAG_LIST]?.toMutableSet() ?: mutableSetOf()
-            val legacySystemTagIdsByFlag = currentList.filter { id ->
-                preferences[booleanPreferencesKey("prompt_tag_${id}_is_system_tag")] == true
-            }
-            val legacySystemTagIdsByType = currentList.filter { id ->
-                (preferences[stringPreferencesKey("prompt_tag_${id}_tag_type")] ?: "")
-                    .startsWith("SYSTEM_")
-            }
-            val idsToRemove = (legacySystemTagIdsByFlag + legacySystemTagIdsByType).toSet()
-
-            if (idsToRemove.isNotEmpty()) {
-                currentList.removeAll(idsToRemove)
-                preferences[PROMPT_TAG_LIST] = currentList
-                idsToRemove.forEach { id ->
-                    removeTagPreferenceKeys(preferences, id)
-                }
-            }
-
-            // 清理残留的历史标记字段
-            val legacySystemFlagKeys = preferences.asMap().keys
-                .map { it.name }
-                .filter { it.startsWith("prompt_tag_") && it.endsWith("_is_system_tag") }
-            legacySystemFlagKeys.forEach { key ->
-                preferences.remove(booleanPreferencesKey(key))
-            }
-        }
-    }
-
-    private fun removeTagPreferenceKeys(preferences: MutablePreferences, id: String) {
-        val keysToRemove = listOf(
-            "prompt_tag_${id}_name",
-            "prompt_tag_${id}_description",
-            "prompt_tag_${id}_prompt_content",
-            "prompt_tag_${id}_tag_type",
-            "prompt_tag_${id}_is_system_tag",
-            "prompt_tag_${id}_created_at",
-            "prompt_tag_${id}_updated_at"
-        )
-
-        keysToRemove.forEach { key ->
-            when {
-                key.endsWith("_is_system_tag") -> preferences.remove(booleanPreferencesKey(key))
-                key.endsWith("_created_at") || key.endsWith("_updated_at") -> preferences.remove(longPreferencesKey(key))
-                else -> preferences.remove(stringPreferencesKey(key))
-            }
-        }
-    }
 }

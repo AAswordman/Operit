@@ -11,6 +11,73 @@
   background: var(--chat-card-soft);
 }
 
+.structured-server-tool-row {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.structured-server-tool-row:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--chat-primary) 78%, transparent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.structured-server-tool-source-icon {
+  flex: 0 0 16px;
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--chat-primary) 76%, var(--chat-text-soft));
+}
+
+.structured-server-tool-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.structured-server-tool-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--chat-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3333;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.structured-server-tool-details {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  color: color-mix(in srgb, var(--chat-text-main) 72%, transparent);
+  font-size: 12px;
+  line-height: 1.3333;
+}
+
+.structured-server-tool-status {
+  color: color-mix(in srgb, var(--chat-text-main) 84%, transparent);
+}
+
+.structured-server-tool-query {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tool-card,
 .tool-result-card,
 .status-card,

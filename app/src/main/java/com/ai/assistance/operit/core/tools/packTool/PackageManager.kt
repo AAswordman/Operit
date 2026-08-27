@@ -134,7 +134,16 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         val toolboxUiModules: List<ToolPkgToolboxUiModule>,
         val subpackages: List<ToolPkgSubpackageInfo>,
         val workflowTemplates: List<ToolPkgWorkflowTemplate>,
-        val workspaceTemplates: List<ToolPkgWorkspaceTemplate>
+        val workspaceTemplates: List<ToolPkgWorkspaceTemplate>,
+        val logoResourceKey: String? = null,
+        val logoMimeType: String? = null
+    )
+
+    data class ToolPkgLogoBytes(
+        val resourceKey: String,
+        val mimeType: String,
+        val fileName: String,
+        val bytes: ByteArray
     )
 
     data class ToolPkgWasmModule(
@@ -1395,6 +1404,20 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         resolveContext: Context? = null
     ): ToolPkgContainerDetails? {
         return toolPkgFacade.getToolPkgContainerDetails(packageName, resolveContext)
+    }
+
+    fun readToolPkgLogoBytes(packageName: String): ToolPkgLogoBytes? {
+        ensureInitialized()
+        val normalizedPackageName = normalizePackageName(packageName)
+        val runtime = toolPkgContainers[normalizedPackageName] ?: return null
+        val logoResource = runtime.logoResource ?: return null
+        val bytes = readToolPkgResourceBytes(runtime, logoResource.path) ?: return null
+        return ToolPkgLogoBytes(
+            resourceKey = logoResource.key,
+            mimeType = logoResource.mime,
+            fileName = logoResource.path.substringAfterLast('/'),
+            bytes = bytes
+        )
     }
 
     fun getToolPkgUiRoutes(

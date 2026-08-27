@@ -307,6 +307,7 @@ data class MarketV2Entry(
     val title: String = "",
     val description: String = "",
     val detail: String = "",
+    val logoUrl: String? = null,
     val authorId: String = "",
     val publisherId: String = "",
     val allowPublicUpdates: Boolean = true,
@@ -1062,12 +1063,12 @@ class MarketStatsApiService {
             requestBuilder.addHeader("Authorization", "Bearer ${ensureMarketSession()}")
         }
 
-        val requestBody = body?.toRequestBody(JSON_MEDIA_TYPE)
+        val resolvedRequestBody = body?.toRequestBody(JSON_MEDIA_TYPE)
         when (method.uppercase()) {
             "GET" -> requestBuilder.get()
-            "POST" -> requestBuilder.post(requestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
-            "PATCH" -> requestBuilder.patch(requestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
-            "DELETE" -> requestBuilder.delete(requestBody)
+            "POST" -> requestBuilder.post(resolvedRequestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
+            "PATCH" -> requestBuilder.patch(resolvedRequestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
+            "DELETE" -> requestBuilder.delete(resolvedRequestBody)
             else -> error("Unsupported HTTP method: $method")
         }
 

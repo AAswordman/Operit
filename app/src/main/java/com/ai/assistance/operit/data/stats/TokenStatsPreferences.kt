@@ -18,9 +18,11 @@ private val Context.tokenStatsDataStore: DataStore<Preferences> by
 internal class TokenStatsPreferences(context: Context) {
     companion object {
         private val TARGET_CURRENCY = stringPreferencesKey("target_currency")
+        private val TOKEN_DISPLAY_UNIT = stringPreferencesKey("token_display_unit")
         private val USD_TO_CNY_RATE = doublePreferencesKey("usd_to_cny_rate")
         private val TIME_RANGE_START = longPreferencesKey("time_range_start")
         private val TIME_RANGE_END = longPreferencesKey("time_range_end")
+        private val ACTIVITY_VIEW_MODE = stringPreferencesKey("activity_view_mode")
         private val IMPORTED_AT = longPreferencesKey("imported_at_ms")
     }
 
@@ -57,6 +59,25 @@ internal class TokenStatsPreferences(context: Context) {
 
     suspend fun saveTargetCurrency(currency: PricingCurrency) {
         dataStore.edit { preferences -> preferences[TARGET_CURRENCY] = currency.name }
+    }
+
+    suspend fun loadTokenDisplayUnit(): TokenStatsDisplayUnit {
+        val stored = dataStore.data.first()[TOKEN_DISPLAY_UNIT]
+        return stored?.let { TokenStatsDisplayUnit.valueOf(it) }
+            ?: TokenStatsDisplayUnit.MILLIONS
+    }
+
+    suspend fun saveTokenDisplayUnit(unit: TokenStatsDisplayUnit) {
+        dataStore.edit { preferences -> preferences[TOKEN_DISPLAY_UNIT] = unit.name }
+    }
+
+    suspend fun loadActivityViewMode(): TokenActivityViewMode {
+        val stored = dataStore.data.first()[ACTIVITY_VIEW_MODE]
+        return stored?.let { TokenActivityViewMode.valueOf(it) } ?: TokenActivityViewMode.DAILY
+    }
+
+    suspend fun saveActivityViewMode(mode: TokenActivityViewMode) {
+        dataStore.edit { preferences -> preferences[ACTIVITY_VIEW_MODE] = mode.name }
     }
 
     suspend fun loadTimeRange(): TokenStatsTimeRange? {

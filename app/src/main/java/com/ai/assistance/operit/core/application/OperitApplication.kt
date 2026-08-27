@@ -37,7 +37,6 @@ import com.ai.assistance.operit.core.workflow.WorkflowSchedulerInitializer
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupPreferences
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupScheduler
 import com.ai.assistance.operit.data.db.AppDatabase
-import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
@@ -227,13 +226,6 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         memoryAutoSaveScheduler = MemoryAutoSaveScheduler(applicationContext, applicationScope)
             .also { it.start() }
         AppLogger.d(TAG, "【启动计时】长期记忆自动保存轮询器启动完成 - ${System.currentTimeMillis() - startTime}ms")
-
-        // 初始化功能提示词管理器
-        applicationScope.launch {
-            val characterStartTime = System.currentTimeMillis()
-            CharacterCardManager.getInstance(applicationContext).initializeIfNeeded()
-            AppLogger.d(TAG, "【启动计时】功能提示词管理器初始化完成（异步） - ${System.currentTimeMillis() - characterStartTime}ms")
-        }
 
         // 初始化当前活跃角色目标的自定义表情
         applicationScope.launch {

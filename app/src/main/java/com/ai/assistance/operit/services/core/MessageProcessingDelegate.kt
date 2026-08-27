@@ -326,6 +326,9 @@ class MessageProcessingDelegate(
         val configId = functionalConfigManager.getConfigIdForFunction(FunctionType.CHAT)
         val currentModelConfig = modelConfigManager.getModelConfigFlow(configId).first()
         val enableDirectImageProcessing = currentModelConfig.enableDirectImageProcessing
+        val enableDirectFileProcessing =
+            currentModelConfig.apiProviderType == ApiProviderType.OPENAI_CODEX &&
+                enableDirectImageProcessing
         val enableDirectAudioProcessing = currentModelConfig.enableDirectAudioProcessing
         val enableDirectVideoProcessing = currentModelConfig.enableDirectVideoProcessing
 
@@ -337,6 +340,7 @@ class MessageProcessingDelegate(
             workspaceEnv = workspaceEnv,
             replyToMessage = replyToMessage,
             enableDirectImageProcessing = enableDirectImageProcessing,
+            enableDirectFileProcessing = enableDirectFileProcessing,
             enableDirectAudioProcessing = enableDirectAudioProcessing,
             enableDirectVideoProcessing = enableDirectVideoProcessing,
             chatId = chatId,
@@ -784,6 +788,9 @@ class MessageProcessingDelegate(
             val loadModelConfigStartTime = messageTimingNow()
             val currentModelConfig = modelConfigManager.getModelConfigFlow(configId).first()
             val enableDirectImageProcessing = currentModelConfig.enableDirectImageProcessing
+            val enableDirectFileProcessing =
+                currentModelConfig.apiProviderType == ApiProviderType.OPENAI_CODEX &&
+                    enableDirectImageProcessing
             val enableDirectAudioProcessing = currentModelConfig.enableDirectAudioProcessing
             val enableDirectVideoProcessing = currentModelConfig.enableDirectVideoProcessing
             AppLogger.d(TAG, "直接图片处理状态: $enableDirectImageProcessing (配置ID: $configId)")
@@ -804,6 +811,7 @@ class MessageProcessingDelegate(
                 workspaceEnv = workspaceEnv,
                 replyToMessage = replyToMessage,
                 enableDirectImageProcessing = enableDirectImageProcessing,
+                enableDirectFileProcessing = enableDirectFileProcessing,
                 enableDirectAudioProcessing = enableDirectAudioProcessing,
                 enableDirectVideoProcessing = enableDirectVideoProcessing,
                 chatId = chatId,
@@ -1350,6 +1358,9 @@ class MessageProcessingDelegate(
                                                         tryEmitScrollToBottomThrottled(chatId)
                                                     }
                                                 }
+
+                                                TextStreamEventType.SERVER_TOOL_STARTED,
+                                                TextStreamEventType.SERVER_TOOL_COMPLETED -> Unit
                                             }
                                         }
                                     }
@@ -1771,6 +1782,9 @@ class MessageProcessingDelegate(
                                             } ?: return@collect
                                         aiMessage.content = snapshot
                                     }
+
+                                    TextStreamEventType.SERVER_TOOL_STARTED,
+                                    TextStreamEventType.SERVER_TOOL_COMPLETED -> Unit
                                 }
                             }
                         }

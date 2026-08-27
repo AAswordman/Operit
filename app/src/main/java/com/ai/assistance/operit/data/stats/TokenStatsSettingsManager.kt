@@ -5,6 +5,7 @@ import com.ai.assistance.operit.data.collects.DefaultModelPricingCollect
 import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.model.BillingMode
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
+import com.ai.assistance.operit.data.model.normalizeProviderTypeId
 
 enum class TokenStatsPriceScope { PROVIDER_MODEL, CONFIG }
 
@@ -43,14 +44,14 @@ class TokenStatsSettingsManager(context: Context) {
 
     fun validatePriceValue(name: String, value: Double?): Double? {
         if (value == null) return null
-        require(value.isFinite() && value > 0.0) {
-            "$name must be positive and finite, got $value"
+        require(value.isFinite() && value >= 0.0) {
+            "$name must be non-negative and finite, got $value"
         }
         return value
     }
 
     suspend fun savePrice(draft: TokenStatsPriceDraft) {
-        val provider = draft.provider.trim()
+        val provider = normalizeProviderTypeId(draft.provider)
         val model = draft.model.trim()
         val configId = draft.configId?.trim().orEmpty()
         require(provider.isNotEmpty()) { "provider must not be blank" }
@@ -140,9 +141,13 @@ class TokenStatsSettingsManager(context: Context) {
         require(separator > 0 && separator < providerModel.lastIndex) {
             "provider:model is required"
         }
-        return providerModel.substring(0, separator) to providerModel.substring(separator + 1)
+        return normalizeProviderTypeId(providerModel.substring(0, separator)) to
+            providerModel.substring(separator + 1)
     }
 }
+
+internal fun tokenStatsPriceScopeForConfigId(configId: String): TokenStatsPriceScope =
+    if (configId.isBlank()) TokenStatsPriceScope.PROVIDER_MODEL else TokenStatsPriceScope.CONFIG
 
 internal fun TokenStatsModelEntity.hasPriceSetting(): Boolean =
     billingMode != null ||

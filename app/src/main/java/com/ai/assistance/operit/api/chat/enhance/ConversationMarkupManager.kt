@@ -30,7 +30,8 @@ class ConversationMarkupManager {
             return createToolResultXml(
                 toolName = toolName,
                 status = "error",
-                content = "<content><error>${errorMessage}</error></content>"
+                content = "<content><error>${errorMessage}</error></content>",
+                toolCallId = null
             )
         }
 
@@ -58,7 +59,8 @@ class ConversationMarkupManager {
                     createBoundedToolResultXml(
                         toolName = result.toolName,
                         status = "success",
-                        rawPayload = toolPayload
+                        rawPayload = toolPayload,
+                        toolCallId = result.toolCallId
                     ) { payload ->
                         "<content>$payload</content>"
                     }
@@ -83,7 +85,8 @@ class ConversationMarkupManager {
                 createBoundedToolResultXml(
                     toolName = result.toolName,
                     status = "error",
-                    rawPayload = errorPayload
+                    rawPayload = errorPayload,
+                    toolCallId = result.toolCallId
                 ) { payload ->
                     "<content><error>$payload</error></content>"
                 }
@@ -158,22 +161,42 @@ class ConversationMarkupManager {
             return createToolErrorStatus(toolName, errorMessage)
         }
 
-        private fun createToolResultXml(toolName: String, status: String, content: String): String {
+        private fun createToolResultXml(
+            toolName: String,
+            status: String,
+            content: String,
+            toolCallId: String?
+        ): String {
             val tagName = ChatMarkupRegex.generateRandomToolResultTagName()
-            return """<$tagName name="$toolName" status="$status">$content</$tagName>""".trimIndent()
+            val callIdAttribute =
+                toolCallId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { " call_id=\"${escapeXmlAttribute(it)}\"" }
+                    .orEmpty()
+            return """<$tagName name="$toolName" status="$status"$callIdAttribute>$content</$tagName>""".trimIndent()
+        }
+
+        private fun escapeXmlAttribute(value: String): String {
+            return value
+                .replace("&", "&amp;")
+                .replace("\"", "&quot;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
         }
 
         private fun createBoundedToolResultXml(
             toolName: String,
             status: String,
             rawPayload: String,
+            toolCallId: String?,
             bodyBuilder: (String) -> String
         ): String {
             val emptyXml =
                 createToolResultXml(
                     toolName = toolName,
                     status = status,
-                    content = bodyBuilder("")
+                    content = bodyBuilder(""),
+                    toolCallId = toolCallId
                 )
             val maxPayloadChars =
                 (ToolExecutionLimits.MAX_FINAL_TOOL_RESULT_MESSAGE_CHARS - emptyXml.length)
@@ -182,7 +205,8 @@ class ConversationMarkupManager {
             return createToolResultXml(
                 toolName = toolName,
                 status = status,
-                content = bodyBuilder(boundedPayload)
+                content = bodyBuilder(boundedPayload),
+                toolCallId = toolCallId
             )
         }
 

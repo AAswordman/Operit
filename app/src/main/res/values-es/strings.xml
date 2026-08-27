@@ -933,7 +933,6 @@
     <string name="functional_model_config_desc">Establecer configuraciones de modelo separadas para diferentes funciones, permitiendo que cada función use la configuración de API más adecuada.</string>
     <string name="manage_all_model_configs">Gestionar Todas las Configuraciones de Modelo</string>
     <string name="manage_model_configs_desc">Gestionar Configuraciones de Modelo</string>
-    <string name="follow_chat_model_for_all_functions">Sincronizar Todas las Funciones con el Modelo de Chat Actual</string>
     <string name="reset_all_functions_to_default">Restablecer Todas las Funciones a la Configuración Predeterminada</string>
     <string name="current_config_label">Configuración Actual: %1$s</string>
     <string name="default_config">Configuración Predeterminada</string>
@@ -1224,6 +1223,7 @@
     
     <!-- API Provider names -->
     <string name="provider_openai">OpenAI (Serie GPT)</string>
+    <string name="provider_xai">SpaceXAI (Grok)</string>
     <string name="provider_openai_responses">OpenAI (API Responses)</string>
     <string name="provider_openai_responses_generic">OpenAI Responses (Genérico)</string>
     <string name="provider_openai_generic">OpenAI genérico</string>
@@ -1377,7 +1377,7 @@
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
     <string name="thinking_quality">Intensidad de pensamiento</string>
-    <string name="thinking_quality_desc">Solo funciona en el modo de pensamiento. Los modelos GPT-5.6 usan cinco niveles; los demás conservan los cuatro niveles originales. Un valor mayor implica un razonamiento más profundo.</string>
+    <string name="thinking_quality_desc">Solo funciona en el modo de pensamiento. Los valores disponibles siguen el mapeo real del modelo y del proveedor actuales.</string>
     
     <string name="provider_doubao">Doubao (Modelo Volcano)</string>
     <string name="provider_nvidia">NVIDIA (API Catalog)</string>
@@ -3763,6 +3763,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="enable_direct_video_processing_desc">Al activarlo, el video se enviará directamente a la IA para su procesamiento, en lugar de extraer fotogramas/analizar mediante una herramienta</string>
     <string name="enable_google_search">Habilitar Google Search</string>
     <string name="enable_google_search_desc">Al activarlo, Gemini usará Google Search para mejorar las respuestas (pueden generarse costos adicionales)</string>
+    <string name="enable_deepseek_web_search">Habilitar búsqueda web de DeepSeek</string>
+    <string name="enable_deepseek_web_search_desc">Permite que la API Responses de DeepSeek use su herramienta de búsqueda web del servidor.</string>
     <string name="enable_claude_1h_prompt_cache">Habilitar caché de prompts de Claude de 1 hora</string>
     <string name="enable_claude_1h_prompt_cache_desc">Al activarlo, Claude y proveedores compatibles con Claude usarán un TTL de caché de prompts de 1 hora</string>
     <string name="search_sources">Fuentes de búsqueda</string>
@@ -3782,6 +3784,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="parameter_value">Valor del parámetro</string>
     <string name="parameter_range_format">Rango: %1$s - %2$s</string>
     <string name="overseas_provider_warning">Detectamos que se encuentra en China continental, pero ha seleccionado un proveedor extranjero. Confirme si ha activado la herramienta proxy</string>
+    <string name="international_proxy_provider_warning">Este servicio enruta las solicitudes mediante un proxy internacional de terceros. El acceso desde China continental requiere una herramienta proxy. Los datos de las solicitudes serán retransmitidos por un tercero; revise su entorno de red, los términos del servicio y los requisitos de cumplimiento de datos.</string>
     <string name="custom_parameter_added">Parámetro personalizado agregado</string>
     <string name="parameter_name">Nombre del parámetro</string>
     <string name="parameter_name_placeholder">Por ejemplo: Mi parámetro</string>
@@ -6902,6 +6905,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="enhanced_processing_message">Procesando mensaje...</string>
     <string name="enhanced_connecting_service">Conectando al servicio de IA...</string>
     <string name="enhanced_receiving_response">Recibiendo respuesta de la IA...</string>
+    <string name="server_tool_running">Llamando a la herramienta del servidor: %1$s...</string>
     <string name="enhanced_error_with_message">Error: %1$s</string>
     <string name="enhanced_pure_thinking_only_warning">Advertencia: por favor, genere contenido del cuerpo del texto; no está permitido generar solo contenido de pensamiento.</string>
     <string name="enhanced_truncated_tool_call_warning">Advertencia: se detectó que la salida de la invocación de herramientas fue truncada. Todas las invocaciones de herramientas de esta ronda han sido invalidadas y no se ejecutarán. Intente reducir la salida única, dividir la tarea o cambiar a un modelo/proveedor más adecuado y vuelva a intentarlo.</string>
@@ -7444,7 +7448,6 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="market_manage_resubmit">Reenviar</string>
     <string name="market_manage_resubmitting_title">Reenviando</string>
     <string name="market_manage_resubmitting_message">Enviando solicitud de revisión, espere…</string>
-    <string name="market_manage_resubmit_cooldown_message">Esta entrada está en período de enfriamiento local. Quedan %1$s para poder reenviarla.</string>
     <string name="market_manage_resubmit_rejected_blocked">Esta entrada ha sido rechazada y el cliente no permite reenviarla.</string>
     <string name="market_manage_resubmit_state_blocked">Solo las entradas devueltas pueden reenviarse.</string>
     <string name="market_manage_resubmit_confirm_title">¿Confirmar reenvío?</string>
@@ -7453,7 +7456,6 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="market_manage_resubmit_last_reason">Motivo de devolución: %1$s</string>
     <string name="market_manage_review_detail">Detalles de la revisión: %1$s</string>
     <string name="market_manage_review_dialog_title">Estado de revisión</string>
-    <string name="market_manage_resubmit_confirm_warning">Confirme que ha realizado las modificaciones según el motivo de devolución. Después de un envío exitoso, no podrá reenviarlo dentro de las 12 horas locales.</string>
     <string name="market_manage_resubmit_confirm_action">Confirmar envío</string>
     <string name="market_error_load_failed">Error al cargar</string>
     <string name="market_error_action_failed">Error en la operación</string>
@@ -7475,9 +7477,41 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="artifact_publish_asset_source_upload">Subir el paquete local actual</string>
     <string name="artifact_publish_asset_source_github_release">Referenciar activo de GitHub Release</string>
     <string name="artifact_publish_asset_source_confirmation">Origen del recurso a publicar: %1$s</string>
+    <string name="artifact_publish_logo_title">Logo del paquete</string>
+    <string name="artifact_publish_logo_description">Elige una imagen para el paquete. La carga directa la incluye en el paquete publicado; el modo GitHub Release solo actualiza el logo del mercado.</string>
+    <string name="artifact_publish_logo_choose">Elegir logo</string>
+    <string name="artifact_publish_logo_use_package">Usar logo del paquete</string>
+    <string name="artifact_publish_logo_selected">Seleccionado: %1$s</string>
+    <string name="artifact_publish_logo_from_package">Logo del paquete: %1$s</string>
+    <string name="artifact_publish_logo_confirmation">Logo: %1$s</string>
+    <string name="artifact_publish_logo_preview">Vista previa del logo</string>
+    <string name="artifact_publish_logo_invalid">No se pudo leer el logo. Elige un archivo SVG, PNG, JPEG o WebP válido.</string>
+    <string name="artifact_publish_logo_too_large">El archivo del logo debe tener 512 KiB o menos.</string>
+    <string name="artifact_publish_logo_market_preview">Vista previa del mercado</string>
+    <string name="artifact_publish_logo_market_preview_title">Vista previa del mercado</string>
+    <string name="artifact_publish_logo_market_list">Lista</string>
+    <string name="artifact_publish_logo_market_detail">Detalles</string>
+    <string name="artifact_publish_logo_market_preview_action">Instalar paquete (vista previa)</string>
+    <string name="artifact_publish_logo_market_preview_account">Cuenta actual</string>
+    <string name="artifact_publish_logo_market_preview_untitled">Paquete sin nombre</string>
+    <string name="artifact_publish_logo_market_preview_empty_description">Sin descripción</string>
     <string name="artifact_publish_github_repository_url">Enlace al repositorio de GitHub del autor</string>
     <string name="artifact_publish_load_github_releases">Cargar Release</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Activo de Release</string>
     <string name="markdown_link_not_openable">Este enlace apunta a una referencia dentro del documento y no se puede abrir</string>
+    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
+    <string name="onboarding_config_codex_login_required">Inicia sesión primero en OpenAI Codex</string>
+    <string name="codex_login_title">Iniciar sesión en OpenAI Codex</string>
+    <string name="codex_login_starting">Preparando el inicio de sesión de Codex...</string>
+    <string name="codex_login_waiting">Completa el inicio de sesión en el navegador</string>
+    <string name="codex_login_action">Iniciar sesión con ChatGPT</string>
+    <string name="codex_login_success">Inicio de sesión de OpenAI Codex correcto</string>
+    <string name="codex_login_failed">Error al iniciar sesión en OpenAI Codex: %1$s</string>
+    <string name="codex_logout_action">Cerrar sesión de Codex</string>
+    <string name="codex_logout_success">Sesión de OpenAI Codex cerrada</string>
+    <string name="codex_auth_title">Cuenta de OpenAI Codex</string>
+    <string name="codex_auth_not_logged_in">Inicia sesión con ChatGPT para usar el acceso de suscripción de Codex</string>
+    <string name="codex_auth_account">Cuenta: %1$s</string>
+    <string name="codex_endpoint_fixed">El endpoint de Codex está fijado por el sistema</string>
 </resources>

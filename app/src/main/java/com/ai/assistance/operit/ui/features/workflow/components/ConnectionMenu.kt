@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.features.workflow.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -60,70 +61,15 @@ fun ConnectionMenuDialog(
             }
         },
         text = {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // 已有连接列表
-                if (connectionsFromSource.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = stringResource(R.string.workflow_existing_connections),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    items(connectionsFromSource) { connection ->
-                        val targetNode = allNodes.find { it.id == connection.targetNodeId }
-                        if (targetNode != null) {
-                            ExistingConnectionItem(
-                                sourceNode = sourceNode,
-                                connection = connection,
-                                targetNode = targetNode,
-                                onEditCondition = { editingConnectionId = connection.id },
-                                onDelete = { onDeleteConnection(connection.id) }
-                            )
-                        }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                }
-
-                // 可连接的节点列表
-                if (availableTargets.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = stringResource(R.string.workflow_select_target_node),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    items(availableTargets) { targetNode ->
-                        AvailableTargetItem(
-                            targetNode = targetNode,
-                            onConnect = { onCreateConnection(targetNode.id) }
-                        )
-                    }
-                } else {
-                    if (connectionsFromSource.isEmpty()) {
-                        item {
-                            Text(
-                                text = stringResource(R.string.workflow_no_connectable_nodes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
+            ConnectionMenuContent(
+                sourceNode = sourceNode,
+                allNodes = allNodes,
+                connectionsFromSource = connectionsFromSource,
+                availableTargets = availableTargets,
+                onEditConnection = { editingConnectionId = it },
+                onDeleteConnection = onDeleteConnection,
+                onCreateConnection = onCreateConnection,
+            )
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
@@ -147,6 +93,108 @@ fun ConnectionMenuDialog(
                     editingConnectionId = null
                 },
                 onDismiss = { editingConnectionId = null }
+            )
+        }
+    }
+}
+
+// Split the list sections so one Compose lambda does not exhaust Kotlin codegen memory.
+@Composable
+private fun ConnectionMenuContent(
+    sourceNode: WorkflowNode,
+    allNodes: List<WorkflowNode>,
+    connectionsFromSource: List<WorkflowNodeConnection>,
+    availableTargets: List<WorkflowNode>,
+    onEditConnection: (String) -> Unit,
+    onDeleteConnection: (String) -> Unit,
+    onCreateConnection: (String) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 400.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        existingConnectionsSection(
+            sourceNode = sourceNode,
+            allNodes = allNodes,
+            connectionsFromSource = connectionsFromSource,
+            onEditConnection = onEditConnection,
+            onDeleteConnection = onDeleteConnection,
+        )
+        availableTargetsSection(
+            availableTargets = availableTargets,
+            connectionsFromSource = connectionsFromSource,
+            onCreateConnection = onCreateConnection,
+        )
+    }
+}
+
+private fun LazyListScope.existingConnectionsSection(
+    sourceNode: WorkflowNode,
+    allNodes: List<WorkflowNode>,
+    connectionsFromSource: List<WorkflowNodeConnection>,
+    onEditConnection: (String) -> Unit,
+    onDeleteConnection: (String) -> Unit,
+) {
+    if (connectionsFromSource.isEmpty()) {
+        return
+    }
+
+    item {
+        Text(
+            text = stringResource(R.string.workflow_existing_connections),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+
+    items(connectionsFromSource) { connection ->
+        val targetNode = allNodes.find { it.id == connection.targetNodeId }
+        if (targetNode != null) {
+            ExistingConnectionItem(
+                sourceNode = sourceNode,
+                connection = connection,
+                targetNode = targetNode,
+                onEditCondition = { onEditConnection(connection.id) },
+                onDelete = { onDeleteConnection(connection.id) },
+            )
+        }
+    }
+
+    item {
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+private fun LazyListScope.availableTargetsSection(
+    availableTargets: List<WorkflowNode>,
+    connectionsFromSource: List<WorkflowNodeConnection>,
+    onCreateConnection: (String) -> Unit,
+) {
+    if (availableTargets.isNotEmpty()) {
+        item {
+            Text(
+                text = stringResource(R.string.workflow_select_target_node),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        items(availableTargets) { targetNode ->
+            AvailableTargetItem(
+                targetNode = targetNode,
+                onConnect = { onCreateConnection(targetNode.id) },
+            )
+        }
+    } else if (connectionsFromSource.isEmpty()) {
+        item {
+            Text(
+                text = stringResource(R.string.workflow_no_connectable_nodes),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -417,4 +465,3 @@ private fun AvailableTargetItem(
         }
     }
 }
-

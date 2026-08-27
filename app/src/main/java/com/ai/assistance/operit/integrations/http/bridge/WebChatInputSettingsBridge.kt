@@ -23,7 +23,7 @@ internal class WebChatInputSettingsBridge(
         val activeContextLengthK = apiConfigDelegate.effectiveContextLength.first()
         return WebInputSettingsState(
             enableThinkingMode = apiConfigDelegate.enableThinkingMode.first(),
-            thinkingQualityLevel = apiConfigDelegate.thinkingQualityLevel.first(),
+            thinkingOptionId = apiConfigDelegate.thinkingOptionId.first(),
             enableMemoryAutoUpdate = apiConfigDelegate.enableMemoryAutoUpdate.first(),
             enableAutoRead = apiConfigDelegate.enableAutoRead.first(),
             enableMaxContextMode = apiConfigDelegate.effectiveEnableMaxContextMode.first(),
@@ -49,9 +49,9 @@ internal class WebChatInputSettingsBridge(
                 apiConfigDelegate.toggleThinkingMode()
             }
         }
-        request.thinkingQualityLevel?.let { target ->
-            if (apiConfigDelegate.thinkingQualityLevel.value != target) {
-                apiConfigDelegate.updateThinkingQualityLevel(target)
+        request.thinkingOptionId?.let { target ->
+            if (apiConfigDelegate.thinkingOptionId.value != target) {
+                apiConfigDelegate.updateThinkingOptionId(target)
             }
         }
         request.enableMemoryAutoUpdate?.let { target ->
@@ -102,7 +102,7 @@ internal class WebChatInputSettingsBridge(
             val snapshot = resolveState()
             val matches =
                 (request.enableThinkingMode == null || snapshot.enableThinkingMode == request.enableThinkingMode) &&
-                    (request.thinkingQualityLevel == null || snapshot.thinkingQualityLevel == request.thinkingQualityLevel) &&
+                    (request.thinkingOptionId == null || snapshot.thinkingOptionId == request.thinkingOptionId) &&
                     (request.enableMemoryAutoUpdate == null || snapshot.enableMemoryAutoUpdate == request.enableMemoryAutoUpdate) &&
                     (request.enableAutoRead == null || snapshot.enableAutoRead == request.enableAutoRead) &&
                     (request.enableMaxContextMode == null || snapshot.enableMaxContextMode == request.enableMaxContextMode) &&

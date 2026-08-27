@@ -42,6 +42,7 @@ windows_control.toolpkg (ZIP 压缩包)
 ├── modules/                               # 可选 WASM 核心模块
 │   └── core.wasm                          # AssemblyScript 编译产物
 ├── resources/                             # 资源文件目录
+│   ├── logo.svg                            # 可选包 Logo
 │   └── pc_agent/
 │       └── operit-pc-agent/              # 目录资源（readResource 时自动导出为 zip）
 └── i18n/                                  # 国际化文件（可选）
@@ -84,6 +85,7 @@ windows_control.toolpkg (ZIP 压缩包)
     "zh": "Windows 一键配置与控制工具包",
     "en": "Windows one-click setup and control bundle"
   },
+  "logo": "package_logo",
   "subpackages": [
     {
       "id": "windows_control",
@@ -100,6 +102,11 @@ windows_control.toolpkg (ZIP 压缩包)
     }
   ],
   "resources": [
+    {
+      "key": "package_logo",
+      "path": "resources/logo.svg",
+      "mime": "image/svg+xml"
+    },
     {
       "key": "pc_agent_zip",
       "path": "resources/pc_agent/operit-pc-agent.zip",
@@ -160,11 +167,15 @@ windows_control.toolpkg (ZIP 压缩包)
 | `main` | string | 是 | ToolPkg 主入口脚本路径（相对于 ZIP 根目录），用于执行注册函数 |
 | `display_name` | LocalizedText | 否 | 包的显示名称，支持多语言 |
 | `description` | LocalizedText | 否 | 包的描述信息，支持多语言 |
+| `logo` | string | 否 | 包 Logo 对应的 `resources[].key`；支持 SVG、PNG、JPEG 和 WebP |
 | `subpackages` | array | 否 | 子包列表，每个子包是一个独立的工具集 |
 | `resources` | array | 否 | 资源文件列表，可以是任意类型的文件 |
 | `wasm_modules` | array | 否 | 企业核心算法模块列表，当前用于声明和校验 `.wasm` 产物 |
 | `workflow_templates` | array | 否 | 注册到宿主“工作流”入口的工作流模板列表 |
 | `workspace_templates` | array | 否 | 注册到宿主“工作区创建”入口的工作区模板列表 |
+
+发布 ToolPkg 时仅使用归档中已有的 `manifest.logo` 资源。客户端不会上传或托管
+Logo，也不会在市场发布、更新或新版本请求中发送 Logo 字段。
 
 #### 压缩发布
 

@@ -31,6 +31,20 @@ object ChatUtils {
         }
     }
 
+    fun stripOpenAiResponsesWebSearchMeta(content: String): String {
+        return ChatMarkupRegex.removeOpenAiResponsesWebSearchMeta(content)
+    }
+
+    fun stripOpenAiResponsesMetadata(content: String): String {
+        return stripOpenAiResponsesWebSearchMeta(stripOpenAiResponsesReasoningMeta(content))
+    }
+
+    fun stripOpenAiResponsesMetadataTurns(messages: List<PromptTurn>): List<PromptTurn> {
+        return messages.map { turn ->
+            turn.withContent(stripOpenAiResponsesMetadata(turn.content))
+        }
+    }
+
     fun isGeminiProviderModel(providerModel: String): Boolean {
         return when (providerModel.substringBefore(":").uppercase()) {
             "GOOGLE", "GEMINI_GENERIC" -> true
@@ -39,7 +53,8 @@ object ChatUtils {
     }
 
     fun isOpenAIResponsesProviderModel(providerModel: String): Boolean {
-        return providerModel.substringBefore(":").uppercase() == "OPENAI_RESPONSES"
+        return providerModel.substringBefore(":").uppercase() in
+            setOf("OPENAI_RESPONSES", "OPENAI_CODEX")
     }
 
     /** 过滤掉内容中的思考部分和搜索来源 移除<think></think>、<thinking></thinking>和<search></search>标签及其中的内容，并处理未闭合的情况 */

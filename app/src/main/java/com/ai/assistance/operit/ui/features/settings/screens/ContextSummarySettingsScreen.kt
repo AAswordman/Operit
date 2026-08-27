@@ -105,8 +105,6 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
         }
 
     LaunchedEffect(Unit) {
-        modelConfigManager.initializeIfNeeded()
-        functionalConfigManager.initializeIfNeeded()
         maxImageHistoryUserTurnsInput = apiPreferences.maxImageHistoryUserTurnsFlow.first().toString()
         maxMediaHistoryUserTurnsInput = apiPreferences.maxMediaHistoryUserTurnsFlow.first().toString()
     }

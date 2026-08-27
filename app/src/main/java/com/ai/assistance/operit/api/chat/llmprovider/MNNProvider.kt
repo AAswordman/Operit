@@ -739,8 +739,6 @@ class MNNProvider(
             throw e
         } catch (e: Exception) {
             AppLogger.e(TAG, "发送消息时出错", e)
-            // Preserve the user-visible error before propagating the failure.
-            emit(context.getString(R.string.mnn_generic_error, e.message ?: ""))
             throw e
         } finally {
             requestTempFiles.forEach { file ->

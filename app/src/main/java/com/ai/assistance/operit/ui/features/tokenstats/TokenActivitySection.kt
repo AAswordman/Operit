@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.stats.TokenActivityDay
 import com.ai.assistance.operit.data.stats.TokenActivityViewMode
+import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
+import com.ai.assistance.operit.data.stats.formatTokenCount
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -76,6 +78,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 @Composable
 internal fun TokenActivitySection(
     state: TokenActivityUiState,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val stats = state.rangeData?.stats
@@ -104,6 +107,7 @@ internal fun TokenActivitySection(
                 TokenActivityVisualization(
                     state = state.copy(viewMode = mode),
                     locale = locale,
+                    tokenDisplayUnit = tokenDisplayUnit,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -115,6 +119,7 @@ internal fun TokenActivitySection(
 private fun TokenActivityVisualization(
     state: TokenActivityUiState,
     locale: Locale,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
     modifier: Modifier = Modifier,
 ) {
     if (state.loading || state.rangeData == null) {
@@ -124,9 +129,9 @@ private fun TokenActivityVisualization(
         return
     }
     when (state.viewMode) {
-        TokenActivityViewMode.DAILY -> TokenActivityDailyHeatmap(state, locale, modifier)
-        TokenActivityViewMode.WEEKLY -> TokenActivityWeeklyChart(state, locale, modifier)
-        TokenActivityViewMode.CUMULATIVE -> TokenActivityCumulativeChart(state, locale, modifier)
+        TokenActivityViewMode.DAILY -> TokenActivityDailyHeatmap(state, locale, tokenDisplayUnit, modifier)
+        TokenActivityViewMode.WEEKLY -> TokenActivityWeeklyChart(state, locale, tokenDisplayUnit, modifier)
+        TokenActivityViewMode.CUMULATIVE -> TokenActivityCumulativeChart(state, locale, tokenDisplayUnit, modifier)
     }
 }
 
@@ -134,6 +139,7 @@ private fun TokenActivityVisualization(
 private fun TokenActivityDailyHeatmap(
     state: TokenActivityUiState,
     locale: Locale,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
     modifier: Modifier = Modifier,
 ) {
     val data = state.rangeData
@@ -435,12 +441,12 @@ private fun TokenActivityDailyHeatmap(
                 indicatorDay != null -> stringResource(
                     R.string.token_activity_day_detail,
                     indicatorDay!!.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)),
-                    formatCompactCount(indicatorDay!!.tokens),
+                    formatTokenCount(indicatorDay!!.tokens, tokenDisplayUnit),
                 )
                 selectedDay != null -> stringResource(
                     R.string.token_activity_day_detail,
                     selectedDay!!.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)),
-                    formatCompactCount(selectedDay!!.tokens),
+                    formatTokenCount(selectedDay!!.tokens, tokenDisplayUnit),
                 )
                 else -> stringResource(R.string.token_activity_tap_hint)
             }
@@ -475,6 +481,7 @@ private fun TokenActivityDailyHeatmap(
 private fun TokenActivityWeeklyChart(
     state: TokenActivityUiState,
     locale: Locale,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
     modifier: Modifier = Modifier,
 ) {
     val data = checkNotNull(state.rangeData)
@@ -496,7 +503,7 @@ private fun TokenActivityWeeklyChart(
             R.string.token_activity_week_detail,
             point.startDate.format(localizedDateFormatter(locale)),
             point.endDate.format(localizedDateFormatter(locale)),
-            formatCompactCount(point.tokens),
+            formatTokenCount(point.tokens, tokenDisplayUnit),
         )
     }
 }
@@ -505,6 +512,7 @@ private fun TokenActivityWeeklyChart(
 private fun TokenActivityCumulativeChart(
     state: TokenActivityUiState,
     locale: Locale,
+    tokenDisplayUnit: TokenStatsDisplayUnit,
     modifier: Modifier = Modifier,
 ) {
     val data = checkNotNull(state.rangeData)
@@ -521,7 +529,7 @@ private fun TokenActivityCumulativeChart(
         stringResource(
             R.string.token_activity_cumulative_detail,
             point.startDate.format(localizedDateFormatter(locale)),
-            formatCompactCount(point.tokens),
+            formatTokenCount(point.tokens, tokenDisplayUnit),
         )
     }
 }

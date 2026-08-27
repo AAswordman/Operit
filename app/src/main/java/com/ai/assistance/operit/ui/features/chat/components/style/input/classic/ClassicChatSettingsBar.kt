@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -42,12 +39,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +49,9 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import android.widget.Toast
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityControl
+import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMapping
+import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
@@ -63,7 +59,6 @@ import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigSummary
 import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
-import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
@@ -86,8 +81,8 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.I
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.CharacterCardMemoryBindingSwitchConfirmDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.CharacterCardModelBindingSwitchConfirmDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ToolPromptManagerDialog
+import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ThinkingQualitySlider
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
-import java.text.DecimalFormat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.ai.assistance.operit.R
@@ -103,8 +98,8 @@ fun ClassicChatSettingsBar(
     onSetPermissionLevel: (PermissionLevel) -> Unit,
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
-    thinkingQualityLevel: Int,
-    onThinkingQualityLevelChange: (Int) -> Unit,
+    thinkingOptionId: String,
+    onThinkingOptionIdChange: (String) -> Unit,
     maxWindowSizeInK: Float,
     baseContextLengthInK: Float,
     maxContextLengthInK: Float,
@@ -227,7 +222,33 @@ fun ClassicChatSettingsBar(
             val validIndex = getValidModelIndex(config.modelName, effectiveCurrentConfigMapping.modelIndex)
             getModelByIndex(config.modelName, validIndex).ifEmpty { stringResource(R.string.not_selected) }
         } ?: stringResource(R.string.not_selected)
-    val maxThinkingQualityLevel = ApiPreferences.MAX_THINKING_QUALITY_LEVEL
+    var thinkingQualityMapping by remember(
+        currentConfig?.id,
+        currentConfig?.apiProviderTypeId,
+        currentConfig?.apiEndpoint,
+        currentConfig?.thinkingConfigurations,
+        currentModelName,
+    ) { mutableStateOf<ThinkingQualityMapping?>(null) }
+    LaunchedEffect(
+        currentConfig?.id,
+        currentConfig?.apiProviderTypeId,
+        currentConfig?.apiEndpoint,
+        currentConfig?.thinkingConfigurations,
+        currentModelName
+    ) {
+        thinkingQualityMapping = ThinkingQualityMappingRegistry.resolveForModel(
+            providerTypeId = currentConfig?.apiProviderTypeId.orEmpty(),
+            modelName = currentModelName,
+            apiEndpoint = currentConfig?.apiEndpoint.orEmpty(),
+            thinkingConfigurations = currentConfig?.thinkingConfigurations.orEmpty(),
+        )
+    }
+    LaunchedEffect(thinkingQualityMapping, thinkingOptionId) {
+        val firstOption = thinkingQualityMapping?.options?.firstOrNull()
+        if (firstOption != null && thinkingQualityMapping?.optionFor(thinkingOptionId) == null) {
+            onThinkingOptionIdChange(firstOption.id)
+        }
+    }
     val toolPermissionText =
         when (if (enableTools) permissionLevel else PermissionLevel.FORBID) {
             PermissionLevel.FORBID -> stringResource(R.string.agent_menu_permission_disabled)
@@ -566,17 +587,12 @@ fun ClassicChatSettingsBar(
                                 )
                             }
                             ThinkingSettingsItem(
-                                enableThinkingMode = enableThinkingMode,
-                                onToggleThinkingMode = onToggleThinkingMode,
-                                thinkingQualityLevel = thinkingQualityLevel,
-                                maxThinkingQualityLevel = maxThinkingQualityLevel,
-                                onThinkingQualityLevelChange = { level ->
-                                    onThinkingQualityLevelChange(
-                                        level.coerceIn(
-                                            ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-                                            maxThinkingQualityLevel
-                                        )
-                                    )
+                                enableThinkingMode = enableThinkingMode || thinkingQualityMapping?.reasoningRequired == true,
+                                onToggleThinkingMode = if (thinkingQualityMapping?.reasoningRequired == true) ({}) else onToggleThinkingMode,
+                                thinkingOptionId = thinkingOptionId,
+                                thinkingQualityMapping = thinkingQualityMapping,
+                                onThinkingOptionIdChange = { optionId ->
+                                    onThinkingOptionIdChange(optionId)
                                 },
                                 thinkingSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.THINKING].orEmpty(),
                                 expanded = showThinkingDropdown,
@@ -891,118 +907,6 @@ private fun SettingItem(
 }
 
 @Composable
-private fun SettingSliderItem(
-    label: String,
-    icon: ImageVector,
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    onInfoClick: () -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    decimalFormatPattern: String,
-    unitText: String? = null
-) {
-    var sliderValue by remember { mutableStateOf(value) }
-    val df = remember(decimalFormatPattern) { DecimalFormat(decimalFormatPattern) }
-    var textValue by remember { mutableStateOf(df.format(value)) }
-    val focusManager = LocalFocusManager.current
-
-    // When the external value changes, sync the internal state
-    LaunchedEffect(value) {
-        sliderValue = value
-        textValue = df.format(value)
-    }
-
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp)
-            )
-            // Info button
-            IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = stringResource(R.string.details),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-            Text(
-                text = label,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            BasicTextField(
-                value = textValue,
-                onValueChange = { newText ->
-                    textValue = newText
-                    newText.toFloatOrNull()?.let {
-                        sliderValue = it.coerceIn(valueRange)
-                    }
-                },
-                modifier = Modifier
-                    .width(50.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        RoundedCornerShape(4.dp)
-                    )
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                textStyle = TextStyle(
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center
-                ),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        val finalValue = textValue.toFloatOrNull()?.coerceIn(valueRange) ?: sliderValue
-                        onValueChange(finalValue)
-                        textValue = df.format(finalValue)
-                        focusManager.clearFocus()
-                    }
-                ),
-                singleLine = true
-            )
-
-            // Here is the fix for alignment
-            Box(modifier = Modifier.width(24.dp), contentAlignment = Alignment.CenterStart) {
-                if (unitText != null) {
-                    Text(
-                        text = unitText,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-                }
-            }
-        }
-
-        Slider(
-            value = sliderValue,
-            onValueChange = {
-                sliderValue = it
-                textValue = df.format(it)
-            },
-            onValueChangeFinished = { onValueChange(sliderValue) },
-            valueRange = valueRange,
-            steps = steps,
-            modifier = Modifier.fillMaxWidth().height(24.dp)
-        )
-    }
-}
-
-@Composable
 private fun InputMenuToggleSettingItem(
     toggle: InputMenuToggleDefinition,
     onInfoClick: (String, String) -> Unit
@@ -1216,9 +1120,9 @@ private fun ToolPermissionSettingItem(
 private fun ThinkingSettingsItem(
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
-    thinkingQualityLevel: Int,
-    maxThinkingQualityLevel: Int,
-    onThinkingQualityLevelChange: (Int) -> Unit,
+    thinkingOptionId: String,
+    thinkingQualityMapping: ThinkingQualityMapping?,
+    onThinkingOptionIdChange: (String) -> Unit,
     thinkingSlotToggles: List<InputMenuToggleDefinition>,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
@@ -1393,30 +1297,17 @@ private fun ThinkingSettingsItem(
                 )
 
                 if (enableThinkingMode) {
-                    Box(modifier = Modifier.padding(start = 28.dp)) {
-                        SettingSliderItem(
-                            label = stringResource(R.string.thinking_quality),
-                            icon = Icons.Outlined.Speed,
-                            value = thinkingQualityLevel.coerceIn(
-                                ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-                                maxThinkingQualityLevel
-                            ).toFloat(),
-                            onValueChange = { newValue ->
-                                val intValue = newValue.toInt().coerceIn(
-                                    ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-                                    maxThinkingQualityLevel
-                                )
-                                onThinkingQualityLevelChange(intValue)
-                            },
-                            onInfoClick = onThinkingQualityInfoClick,
-                            valueRange =
-                                ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat()..
-                                    maxThinkingQualityLevel.toFloat(),
-                            steps = (maxThinkingQualityLevel -
-                                ApiPreferences.MIN_THINKING_QUALITY_LEVEL - 1).coerceAtLeast(0),
-                            decimalFormatPattern = "0"
-                        )
-                    }
+                    thinkingQualityMapping
+                        ?.takeIf { it.control == ThinkingQualityControl.LEVELS }
+                        ?.let { mapping ->
+                            ThinkingQualitySlider(
+                                label = stringResource(R.string.thinking_quality),
+                                mapping = mapping,
+                                value = thinkingOptionId,
+                                onValueChange = onThinkingOptionIdChange,
+                                onInfoClick = onThinkingQualityInfoClick,
+                            )
+                        }
                 }
 
                 thinkingSlotToggles.forEach { toggle ->

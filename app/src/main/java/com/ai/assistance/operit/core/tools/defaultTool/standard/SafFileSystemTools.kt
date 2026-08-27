@@ -90,16 +90,18 @@ class SafFileSystemTools(
         val segments = abs.trim('/').split('/').filter { it.isNotEmpty() }
         for (seg in segments) {
             val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(baseTreeUri, currentDocId)
-            val cursor = contentResolver.query(
-                childrenUri,
-                arrayOf(
-                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                    DocumentsContract.Document.COLUMN_DISPLAY_NAME
-                ),
-                null,
-                null,
-                null
-            ) ?: return null
+            val cursor = runCatching {
+                contentResolver.query(
+                    childrenUri,
+                    arrayOf(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME
+                    ),
+                    null,
+                    null,
+                    null
+                )
+            }.getOrNull() ?: return null
 
             var nextDocId: String? = null
             cursor.use {

@@ -557,7 +557,7 @@ export interface ChatViewModelActions {
   updateInputSettings: (
     payload: Partial<{
       enable_thinking_mode: boolean;
-      thinking_quality_level: number;
+      thinking_option_id: string;
       enable_memory_auto_update: boolean;
       enable_auto_read: boolean;
       enable_max_context_mode: boolean;
@@ -1519,7 +1519,7 @@ export function useChatViewModel(): ChatViewModel {
   async function updateInputSettings(
     payload: Partial<{
       enable_thinking_mode: boolean;
-      thinking_quality_level: number;
+      thinking_option_id: string;
       enable_memory_auto_update: boolean;
       enable_auto_read: boolean;
       enable_max_context_mode: boolean;

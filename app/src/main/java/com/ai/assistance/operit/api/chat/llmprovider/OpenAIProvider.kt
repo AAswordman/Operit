@@ -11,7 +11,6 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
@@ -39,8 +38,6 @@ import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -98,8 +95,11 @@ open class OpenAIProvider(
     protected val supportsVision: Boolean = false, // 是否支持图片处理
     protected val supportsAudio: Boolean = false, // 是否支持音频输入
     protected val supportsVideo: Boolean = false, // 是否支持视频输入
+    protected val supportsFiles: Boolean = false, // 是否支持文件输入
     val enableToolCall: Boolean = false, // 是否启用Tool Call接口
     private val includeUsageInStream: Boolean = false,
+    protected val thinkingConfigurations: String = "",
+    protected val thinkingOptionId: String = "",
 ) : AIService {
     // private val client: OkHttpClient = HttpClientFactory.instance
 
@@ -114,9 +114,7 @@ open class OpenAIProvider(
     @Volatile
     private var isManuallyCancelled = false
 
-    /**
-     * 由客户端错误（如4xx状态码）触发的API异常，是否重试由统一策略决定
-     */
+    /** 由客户端请求错误触发的异常；是否重试由 HTTP 状态码策略决定。 */
     class NonRetriableException(
         message: String,
         override val statusCode: Int,
@@ -127,6 +125,9 @@ open class OpenAIProvider(
     val tokenCacheManager = TokenCacheManager()
 
     protected open val useResponsesApi: Boolean = false
+
+    override val usesResponsesApi: Boolean
+        get() = useResponsesApi
 
     // 公开token计数
     override val inputTokenCount: Long
@@ -147,11 +148,11 @@ open class OpenAIProvider(
         attemptNumber: Int = 1
     ) {
         val parsed = OpenAIResponsesPayloadAdapter.parseUsageCounts(usage) ?: return
-        tokenCacheManager.updateActualTokens(parsed.actualInputTokens.toLong(), parsed.cachedInputTokens.toLong())
-        tokenCacheManager.setOutputTokens(parsed.outputTokens.toLong())
+        tokenCacheManager.updateActualTokens(parsed.actualInputTokens, parsed.cachedInputTokens)
+        tokenCacheManager.setOutputTokens(parsed.outputTokens)
         onTokensUpdated(
-            parsed.totalInputTokens.toLong(),
-            parsed.cachedInputTokens.toLong(),
+            parsed.totalInputTokens,
+            parsed.cachedInputTokens,
             tokenCacheManager.outputTokenCount
         )
         onUsageReported?.invoke(
@@ -566,68 +567,19 @@ open class OpenAIProvider(
     ): RequestBody {
         val jsonString =
             createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-        if (!supportsOpenAiChatReasoningEffort()) {
-            return createJsonRequestBody(jsonString)
-        }
         val requestJson = JSONObject(jsonString)
-        applyOpenAiChatReasoning(context, requestJson, enableThinking)
+        ThinkingConfigurationApplier.apply(
+            context = context,
+            requestJson = requestJson,
+            providerTypeId = providerType.name,
+            modelName = modelName,
+            apiEndpoint = apiEndpoint,
+            thinkingConfigurations = thinkingConfigurations,
+            enableThinking = enableThinking,
+            optionId = thinkingOptionId,
+        )
         return createJsonRequestBody(requestJson.toString())
     }
-
-    private fun applyOpenAiChatReasoning(
-        context: Context,
-        requestJson: JSONObject,
-        enableThinking: Boolean
-    ) {
-        if (!supportsOpenAiChatReasoningEffort()) {
-            return
-        }
-
-        val existingEffort = requestJson.optString("reasoning_effort", "").trim()
-        if (existingEffort.isNotEmpty()) {
-            AppLogger.d(
-                "OpenAIProvider",
-                "Preserving caller-supplied Chat Completions reasoning_effort=$existingEffort"
-            )
-            return
-        }
-
-        val effort = if (enableThinking) {
-            resolveOpenAiChatReasoningEffort(context)
-        } else {
-            "none"
-        } ?: return
-        requestJson.put("reasoning_effort", effort)
-        AppLogger.d(
-            "OpenAIProvider",
-            "OpenAI Chat Completions reasoning_effort=$effort"
-        )
-    }
-
-    private fun resolveOpenAiChatReasoningEffort(context: Context): String? {
-        val qualityLevel = runCatching {
-            runBlocking {
-                ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
-            }
-        }.getOrElse {
-            AppLogger.w(
-                "OpenAIProvider",
-                "Failed to read thinking quality level; reasoning_effort not applied",
-                it
-            )
-            return null
-        }
-
-        val effortLevels = listOf("low", "medium", "high", "xhigh", "max")
-        val qualityIndex = qualityLevel.coerceIn(
-            ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-            ApiPreferences.MAX_THINKING_QUALITY_LEVEL
-        ) - 1
-        return effortLevels[qualityIndex]
-    }
-
-    private fun supportsOpenAiChatReasoningEffort(): Boolean =
-        providerType == ApiProviderType.OPENAI || providerType == ApiProviderType.OPENAI_GENERIC
 
     protected fun createJsonRequestBody(jsonString: String): RequestBody {
         return jsonString.toByteArray(Charsets.UTF_8).toRequestBody(JSON)
@@ -834,9 +786,12 @@ open class OpenAIProvider(
     /**
      * 构建content字段（可能是字符串或数组）
      * @param text 要处理的文本内容
+     * @param role API消息角色；只有user/summary允许注入多媒体内容
      * @return 纯文本字符串或包含图片和文本的JSONArray
      */
-    fun buildContentField(context: Context, text: String): Any {
+    fun buildContentField(context: Context, text: String, role: String = "user"): Any {
+        val allowRichContent =
+            role.equals("user", ignoreCase = true) || role.equals("summary", ignoreCase = true)
         val hasImages = MediaLinkParser.hasImageLinks(text)
         val hasMedia = MediaLinkParser.hasMediaLinks(text)
 
@@ -845,9 +800,12 @@ open class OpenAIProvider(
 
         val audioLinks = mediaLinks.filter { it.type == "audio" }
         val videoLinks = mediaLinks.filter { it.type == "video" }
+        val fileLinks = mediaLinks.filter { it.type == "file" }
 
         val hasSupportedMedia =
-            (supportsAudio && audioLinks.isNotEmpty()) || (supportsVideo && videoLinks.isNotEmpty())
+            (supportsAudio && audioLinks.isNotEmpty()) ||
+                (supportsVideo && videoLinks.isNotEmpty()) ||
+                (supportsFiles && fileLinks.isNotEmpty())
 
         var textWithoutLinks = text
         if (hasMedia) {
@@ -868,13 +826,15 @@ open class OpenAIProvider(
             AppLogger.w("AIService", "检测到图片链接，但当前Provider不支持图片处理，已移除图片。原始文本长度: ${text.length}, 处理后: ${textWithoutLinks.length}")
         }
 
-        val hasAnySupportedRichContent = hasSupportedMedia || (supportsVision && imageLinks.isNotEmpty())
+        val hasAnySupportedRichContent =
+            allowRichContent && (hasSupportedMedia || (supportsVision && imageLinks.isNotEmpty()))
         if (!hasAnySupportedRichContent) {
             if (textWithoutLinks.isNotEmpty()) return textWithoutLinks
 
             return when {
                 audioLinks.isNotEmpty() || videoLinks.isNotEmpty() -> context.getString(R.string.openai_audio_video_omitted)
                 imageLinks.isNotEmpty() -> context.getString(R.string.openai_image_omitted)
+                fileLinks.isNotEmpty() -> context.getString(R.string.openai_file_omitted)
                 else -> "[Empty]"
             }
         }
@@ -900,6 +860,17 @@ open class OpenAIProvider(
                             put("url", "data:${link.mimeType};base64,${link.base64Data}")
                         }
                     )
+                })
+            }
+        }
+
+        if (supportsFiles) {
+            fileLinks.forEach { link ->
+                val fileName = requireNotNull(link.fileName?.takeIf { it.isNotBlank() })
+                contentArray.put(JSONObject().apply {
+                    put("type", "input_file")
+                    put("filename", fileName)
+                    put("file_data", "data:${link.mimeType};base64,${link.base64Data}")
                 })
             }
         }
@@ -973,7 +944,14 @@ open class OpenAIProvider(
             for (i in 0 until toolCalls.length()) {
                 val sourceToolCall = toolCalls.optJSONObject(i) ?: continue
                 val toolCall = JSONObject(sourceToolCall.toString())
-                val callId = generatedToolCallId(nextToolCallOrdinal++)
+                val sourceCallId = sourceToolCall.optString("id", "").trim()
+                val callId =
+                    if (useResponsesApi && sourceCallId.isNotEmpty()) {
+                        sourceCallId
+                    } else {
+                        generatedToolCallId(nextToolCallOrdinal)
+                    }
+                nextToolCallOrdinal++
                 toolCall.put("id", callId)
                 queuedToolCalls.put(toolCall)
                 queuedToolCallIds.add(callId)
@@ -990,7 +968,7 @@ open class OpenAIProvider(
                 else -> null
             }
             if (effectiveContent != null) {
-                historyMessage.put("content", buildContentField(context, effectiveContent))
+                historyMessage.put("content", buildContentField(context, effectiveContent, role = "assistant"))
             } else {
                 historyMessage.put("content", null)
             }
@@ -1035,7 +1013,7 @@ open class OpenAIProvider(
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "system")
-                                    put("content", buildContentField(context, content))
+                                    put("content", buildContentField(context, content, role = "system"))
                                 }
                             )
                         }
@@ -1076,7 +1054,7 @@ open class OpenAIProvider(
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
-                                        put("content", buildContentField(context, effectiveContent))
+                                        put("content", buildContentField(context, effectiveContent, role = "assistant"))
                                     }
                                 )
                             }
@@ -1102,7 +1080,7 @@ open class OpenAIProvider(
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
-                                        put("content", buildContentField(context, effectiveContent))
+                                        put("content", buildContentField(context, effectiveContent, role = "assistant"))
                                     }
                                 )
                             }
@@ -1114,25 +1092,37 @@ open class OpenAIProvider(
                             val resultsList = toolResults ?: emptyList()
 
                             if (resultsList.isNotEmpty() && openToolCallIds.isNotEmpty()) {
-                                val validCount = minOf(resultsList.size, openToolCallIds.size)
-                                repeat(validCount) { index ->
-                                    val (_, resultContent) = resultsList[index]
+                                var matchedCount = 0
+                                for ((resultCallId, resultContent) in resultsList) {
+                                    if (openToolCallIds.isEmpty()) break
+                                    val openCallIndex =
+                                        if (resultCallId == null) {
+                                            0
+                                        } else {
+                                            openToolCallIds.indexOf(resultCallId)
+                                        }
+                                    if (openCallIndex < 0) {
+                                        AppLogger.w(
+                                            "AIService",
+                                            "tool_result call_id does not match an open tool call: $resultCallId"
+                                        )
+                                        continue
+                                    }
+                                    val matchedCallId = openToolCallIds.removeAt(openCallIndex)
                                     messagesArray.put(
                                         JSONObject().apply {
                                             put("role", "tool")
-                                            put("tool_call_id", openToolCallIds[index])
+                                            put("tool_call_id", matchedCallId)
                                             put("content", resultContent)
                                         }
                                     )
-                                }
-                                repeat(validCount) {
-                                    openToolCallIds.removeAt(0)
+                                    matchedCount++
                                 }
 
-                                if (resultsList.size > validCount) {
+                                if (resultsList.size > matchedCount) {
                                     AppLogger.w(
                                         "AIService",
-                                        "发现多余的tool_result: ${resultsList.size} results vs ${validCount} pending tool_calls"
+                                        "发现未匹配的tool_result: ${resultsList.size} results vs $matchedCount matched tool_calls"
                                     )
                                 }
 
@@ -1175,8 +1165,7 @@ open class OpenAIProvider(
                     } else {
                         content
                     }
-
-                    historyMessage.put("content", buildContentField(context, effectiveContent))
+                    historyMessage.put("content", buildContentField(context, effectiveContent, role = role))
                     messagesArray.put(historyMessage)
                 }
             }
@@ -1307,7 +1296,14 @@ open class OpenAIProvider(
 
             // 构建XML格式
             val toolTagName = ChatMarkupRegex.generateRandomToolTagName()
-            xml.append("\n<$toolTagName name=\"$name\">")
+            val callId = toolCall.optString("id", "").trim()
+            val callIdAttribute =
+                if (useResponsesApi && callId.isNotEmpty()) {
+                    " call_id=\"${escapeXml(callId)}\""
+                } else {
+                    ""
+                }
+            xml.append("\n<$toolTagName name=\"$name\"$callIdAttribute>")
 
             // 添加所有参数
             val keys = params.keys()
@@ -1467,6 +1463,26 @@ open class OpenAIProvider(
             return true
         }
 
+        suspend fun emitServerToolStarted(id: String, toolType: String) {
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SERVER_TOOL_STARTED,
+                    id = id,
+                    toolType = toolType
+                )
+            )
+        }
+
+        suspend fun emitServerToolCompleted(id: String, toolType: String) {
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SERVER_TOOL_COMPLETED,
+                    id = id,
+                    toolType = toolType
+                )
+            )
+        }
+
         /**
          * 处理 StreamingJsonXmlConverter 事件，转换为 XML 输出
          */
@@ -1528,6 +1544,12 @@ open class OpenAIProvider(
         buildRetryMessage: (String, Int) -> String
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
+            throw exception
+        }
+        if (
+            exception is NonRetriableException &&
+                !LlmRetryPolicy.isRetryableClientStatus(exception.statusCode)
+        ) {
             throw exception
         }
         checkCancellation(context, exception)
@@ -1620,6 +1642,12 @@ open class OpenAIProvider(
         matches.forEach { match ->
             val toolName = match.groupValues[2]
             val toolBody = match.groupValues[3]
+            val sourceCallId =
+                ChatMarkupRegex.toolCallIdAttr.find(match.value)
+                    ?.groupValues
+                    ?.getOrNull(1)
+                    ?.let(XmlEscaper::unescape)
+                    ?.takeIf { it.isNotBlank() }
 
             // 解析参数
             val params = JSONObject()
@@ -1634,7 +1662,9 @@ open class OpenAIProvider(
             // 使用工具名和参数的哈希生成确定性ID
             val toolNamePart = sanitizeToolCallId(toolName)
             val hashPart = stableIdHashPart("${toolName}:${params}")
-            val callId = sanitizeToolCallId("call_${toolNamePart}_${hashPart}_$callIndex")
+            val callId =
+                sourceCallId
+                    ?: sanitizeToolCallId("call_${toolNamePart}_${hashPart}_$callIndex")
             toolCalls.put(JSONObject().apply {
                 put("id", callId)
                 put("type", "function")
@@ -1657,7 +1687,7 @@ open class OpenAIProvider(
      * 解析XML格式的tool_result，转换为OpenAI Tool消息格式
      * @return List<Pair<tool_call_id, result_content>>
      */
-    fun parseXmlToolResults(content: String): Pair<String, List<Pair<String, String>>?> {
+    fun parseXmlToolResults(content: String): Pair<String, List<Pair<String?, String>>?> {
         // 匹配带属性的tool_result标签，例如: <tool_result name="..." status="...">...</tool_result>
         val matches = ChatMarkupRegex.toolResultAnyPattern.findAll(content)
 
@@ -1665,11 +1695,16 @@ open class OpenAIProvider(
             return Pair(content, null)
         }
 
-        val results = mutableListOf<Pair<String, String>>()
+        val results = mutableListOf<Pair<String?, String>>()
         var textContent = content
-        var resultIndex = 0
 
         matches.forEach { match ->
+            val callId =
+                ChatMarkupRegex.toolCallIdAttr.find(match.value)
+                    ?.groupValues
+                    ?.getOrNull(1)
+                    ?.let(XmlEscaper::unescape)
+                    ?.takeIf { it.isNotBlank() }
             // 提取<content>标签内的内容，如果有的话
             val fullContent = match.groupValues[2].trim()
             val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
@@ -1679,12 +1714,10 @@ open class OpenAIProvider(
                 fullContent
             }
 
-            // 生成一个tool_call_id（这里需要与之前的call对应，但因为历史记录可能不完整，我们使用索引）
-            results.add(Pair("call_result_${resultIndex}", resultContent))
+            results.add(Pair(callId, resultContent))
 
             // 从文本内容中移除tool_result标签（包括前后的空白符）
             textContent = textContent.replace(match.value, "").trim()
-            resultIndex++
         }
 
         // trim 确保移除所有空白字符
@@ -1747,7 +1780,9 @@ open class OpenAIProvider(
         val accumulatedToolCalls: MutableMap<Int, JSONObject> = mutableMapOf(),
         val toolCallState: ToolCallState = ToolCallState(),
         var lastProcessedToolIndex: Int? = null,
-        val imageBuffers: MutableMap<Int, ImageBufferState> = mutableMapOf()
+        val imageBuffers: MutableMap<Int, ImageBufferState> = mutableMapOf(),
+        var activeWebSearchCalls: Set<Int> = emptySet(),
+        var emittedWebSearchCallIds: Set<String> = emptySet()
     )
 
     /**
@@ -1800,7 +1835,14 @@ open class OpenAIProvider(
                 val toolTagName = state.toolCallState.getTagName(index)
                 val toolStartTag = if (state.toolCallState.emitted[index] != true) {
                     state.toolCallState.emitted[index] = true
-                    "\n<$toolTagName name=\"$name\">"
+                    val callId = accumulated.optString("id", "").trim()
+                    val callIdAttribute =
+                        if (useResponsesApi && callId.isNotEmpty()) {
+                            " call_id=\"${escapeXml(callId)}\""
+                        } else {
+                            ""
+                        }
+                    "\n<$toolTagName name=\"$name\"$callIdAttribute>"
                 } else {
                     ""
                 }
@@ -2025,6 +2067,113 @@ open class OpenAIProvider(
         return chunks.joinToString("\n\n")
     }
 
+    private fun responsesWebSearchCallKey(event: JSONObject): Int? {
+        val outputIndex = event.optInt("output_index", -1)
+        return outputIndex.takeIf { it >= 0 }
+    }
+
+    private suspend fun markWebSearchStarted(
+        event: JSONObject,
+        state: StreamingState,
+        emitter: StreamEmitter
+    ) {
+        val key = responsesWebSearchCallKey(event) ?: return
+        if (key in state.activeWebSearchCalls) {
+            return
+        }
+        val wasEmpty = state.activeWebSearchCalls.isEmpty()
+        state.activeWebSearchCalls = state.activeWebSearchCalls + key
+        if (wasEmpty) {
+            emitter.emitServerToolStarted(key.toString(), "web_search")
+        }
+    }
+
+    private suspend fun markWebSearchCompleted(
+        event: JSONObject,
+        state: StreamingState,
+        emitter: StreamEmitter
+    ) {
+        val key = responsesWebSearchCallKey(event) ?: return
+        if (key !in state.activeWebSearchCalls) {
+            return
+        }
+        state.activeWebSearchCalls = state.activeWebSearchCalls - key
+        if (state.activeWebSearchCalls.isEmpty()) {
+            emitter.emitServerToolCompleted(key.toString(), "web_search")
+        }
+    }
+
+    private suspend fun emitWebSearchMetadata(
+        item: JSONObject,
+        state: StreamingState,
+        emitter: StreamEmitter
+    ) {
+        val itemId = item.optString("id", "").trim()
+        if (itemId.isEmpty() || itemId in state.emittedWebSearchCallIds) {
+            return
+        }
+        state.emittedWebSearchCallIds = state.emittedWebSearchCallIds + itemId
+        if (state.isInReasoningMode) {
+            state.isInReasoningMode = false
+            emitter.emitTag("</think>")
+            state.hasEmittedThinkStart = false
+        }
+        OpenAIResponsesPayloadAdapter.createWebSearchMetadataTag(item)?.let { metadataTag ->
+            emitter.emitTag(metadataTag)
+        }
+    }
+
+    private suspend fun emitWebSearchMetadataFromResponse(
+        responseObj: JSONObject?,
+        state: StreamingState,
+        emitter: StreamEmitter
+    ) {
+        val output = responseObj?.optJSONArray("output") ?: return
+        for (index in 0 until output.length()) {
+            val item = output.optJSONObject(index) ?: continue
+            if (item.optString("type", "") == "web_search_call") {
+                emitWebSearchMetadata(item, state, emitter)
+            }
+        }
+    }
+
+    private suspend fun finalizeResponsesStream(
+        responseObj: JSONObject?,
+        state: StreamingState,
+        emitter: StreamEmitter,
+        onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
+        onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)?,
+        attemptNumber: Int
+    ) {
+        val usage = responseObj?.optJSONObject("usage")
+        val reasoningTokens =
+            usage?.optJSONObject("output_tokens_details")?.optLong("reasoning_tokens", 0L) ?: 0L
+        if (reasoningTokens > 0 || hasResponsesReasoningItem(responseObj)) {
+            state.reasoningObserved = true
+        }
+
+        if (state.isInReasoningMode) {
+            state.isInReasoningMode = false
+            emitter.emitTag("</think>")
+            state.hasEmittedThinkStart = false
+        } else {
+            val lateReasoningText = extractResponsesReasoningText(responseObj)
+            if (lateReasoningText.isNotEmpty() && state.streamedReasoningContentLength == 0) {
+                emitCompletedResponsesReasoningText(lateReasoningText, state, emitter)
+            }
+        }
+
+        emitWebSearchMetadataFromResponse(responseObj, state, emitter)
+        closeAllOpenToolCalls(state, emitter)
+        applyUsageToCounters(usage, onTokensUpdated, onUsageReported, attemptNumber)
+        if (state.activeWebSearchCalls.isNotEmpty()) {
+            val lastKey = state.activeWebSearchCalls.last().toString()
+            state.activeWebSearchCalls = emptySet()
+            emitter.emitServerToolCompleted(lastKey, "web_search")
+        }
+        state.streamCompletionConfirmed = true
+    }
+
     private suspend fun processResponsesStreamingEvent(
         context: Context,
         jsonResponse: JSONObject,
@@ -2080,10 +2229,32 @@ open class OpenAIProvider(
                 }
             }
 
+            "response.web_search_call.in_progress", "response.web_search_call.searching" -> {
+                markWebSearchStarted(jsonResponse, state, emitter)
+            }
+
+            "response.web_search_call.completed" -> {
+                markWebSearchCompleted(jsonResponse, state, emitter)
+            }
+
             "response.output_item.added", "response.output_item.done" -> {
                 val outputIndex = jsonResponse.optInt("output_index", -1)
                 val item = jsonResponse.optJSONObject("item")
-                if (outputIndex < 0 || item == null) {
+                if (item == null) {
+                    return
+                }
+
+                if (item.optString("type", "") == "web_search_call") {
+                    if (eventType == "response.output_item.added") {
+                        markWebSearchStarted(jsonResponse, state, emitter)
+                    }
+                    if (eventType == "response.output_item.done") {
+                        emitWebSearchMetadata(item, state, emitter)
+                    }
+                    return
+                }
+
+                if (outputIndex < 0) {
                     return
                 }
 
@@ -2099,7 +2270,7 @@ open class OpenAIProvider(
                         emitCompletedResponsesReasoningText(itemReasoningText, state, emitter)
                     }
                     if (eventType == "response.output_item.done") {
-                        OpenAIResponsesPayloadAdapter.createReasoningMetadataTag(item)?.let { metadataTag ->
+                        OpenAIResponsesPayloadAdapter.createReasoningMetadataTag(item, providerType)?.let { metadataTag ->
                             if (state.isInReasoningMode) {
                                 state.isInReasoningMode = false
                                 emitter.emitTag("</think>")
@@ -2177,32 +2348,15 @@ open class OpenAIProvider(
                 }
             }
 
-            "response.completed" -> {
-                val responseObj = jsonResponse.optJSONObject("response")
-                val usage = responseObj?.optJSONObject("usage")
-                val reasoningTokens =
-                    usage
-                        ?.optJSONObject("output_tokens_details")
-                        ?.optLong("reasoning_tokens", 0L)
-                        ?: 0L
-                if (reasoningTokens > 0 || hasResponsesReasoningItem(responseObj)) {
-                    state.reasoningObserved = true
-                }
-
-                if (state.isInReasoningMode) {
-                    state.isInReasoningMode = false
-                    emitter.emitTag("</think>")
-                    state.hasEmittedThinkStart = false
-                } else {
-                    val lateReasoningText = extractResponsesReasoningText(responseObj)
-                    if (lateReasoningText.isNotEmpty() && state.streamedReasoningContentLength == 0) {
-                        emitCompletedResponsesReasoningText(lateReasoningText, state, emitter)
-                    }
-                }
-
-                closeAllOpenToolCalls(state, emitter)
-                applyUsageToCounters(usage, onTokensUpdated, onUsageReported, attemptNumber)
-                state.streamCompletionConfirmed = true
+            "response.completed", "response.incomplete" -> {
+                finalizeResponsesStream(
+                    responseObj = jsonResponse.optJSONObject("response"),
+                    state = state,
+                    emitter = emitter,
+                    onTokensUpdated = onTokensUpdated,
+                    onUsageReported = onUsageReported,
+                    attemptNumber = attemptNumber
+                )
             }
 
             "response.failed", "response.error" -> {
@@ -2646,7 +2800,10 @@ open class OpenAIProvider(
                                 val handledImages = tryHandleOpenAiImageResponse(jsonResponse, emitter, null)
 
                                 if (useResponsesApi) {
-                                    val parsed = OpenAIResponsesPayloadAdapter.parseNonStreamingResponse(jsonResponse)
+                                    val parsed = OpenAIResponsesPayloadAdapter.parseNonStreamingResponse(
+                                        jsonResponse,
+                                        providerType
+                                    )
 
                                     parsed.reasoningChunks.forEach { reasoningChunk ->
                                         if (reasoningChunk.isNotEmpty()) {
@@ -2654,6 +2811,9 @@ open class OpenAIProvider(
                                         }
                                     }
                                     parsed.reasoningMetadataTags.forEach { metadataTag ->
+                                        emitter.emitTag(metadataTag)
+                                    }
+                                    parsed.webSearchMetadataTags.forEach { metadataTag ->
                                         emitter.emitTag(metadataTag)
                                     }
 

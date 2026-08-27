@@ -8,6 +8,13 @@ import kotlinx.serialization.Serializable
 
 const val OPERIT_MARKET_OWNER = "AAswordman"
 const val OPERIT_FORGE_REPO_NAME = "OperitForge"
+const val PUBLISH_LOGO_MAX_BYTES = 512 * 1024
+
+data class ToolPkgLogoAsset(
+    val fileName: String,
+    val contentType: String,
+    val bytes: ByteArray
+)
 
 private const val SCRIPT_MARKET_LABEL = "script-artifact"
 private const val PACKAGE_MARKET_LABEL = "package-artifact"

@@ -88,6 +88,20 @@ class CustomXmlRenderer(
         val trimmedContent = xmlContent.trim()
         val tagName = extractTagName(trimmedContent)
 
+        if (tagName == "meta") {
+            val serverToolCall = ChatMarkupRegex.parseOpenAiResponsesServerToolCall(trimmedContent)
+            if (serverToolCall != null) {
+                Box(modifier = modifier) {
+                    ServerToolDisplay(
+                        record = serverToolCall,
+                        textColor = textColor,
+                        enableDialog = enableDialogs,
+                    )
+                }
+                return
+            }
+        }
+
         if (shouldHideHiddenMeta(trimmedContent, tagName)) {
             return
         }
@@ -207,7 +221,7 @@ class CustomXmlRenderer(
     private fun shouldHideHiddenMeta(content: String, tagName: String?): Boolean {
         return tagName == "meta" &&
             Regex(
-                """\bprovider\s*=\s*["'](?:gemini:thought_signature|openai:responses_reasoning)["']""",
+                """\bprovider\s*=\s*["'](?:gemini:thought_signature|openai:responses_reasoning|openai:responses_web_search)["']""",
                 RegexOption.IGNORE_CASE
             )
                 .containsMatchIn(content)

@@ -805,8 +805,18 @@ private fun parseMessageContent(context: android.content.Context, content: Strin
 
     val mediaLinkAttachments = mutableListOf<AttachmentData>()
     MediaLinkParser.extractMediaLinkTags(cleanedContent).forEach { tag ->
-        val filename = if (tag.type == "audio") "Audio" else "Video"
-        val mimeType = if (tag.type == "audio") "audio/*" else "video/*"
+        val filename = when (tag.type) {
+            "audio" -> "Audio"
+            "video" -> "Video"
+            "file" -> tag.fileName.orEmpty()
+            else -> tag.type
+        }
+        val mimeType = when (tag.type) {
+            "audio" -> "audio/*"
+            "video" -> "video/*"
+            "file" -> "application/pdf"
+            else -> "application/octet-stream"
+        }
         mediaLinkAttachments.add(
             AttachmentData(
                 id = "media_pool:${tag.id}",

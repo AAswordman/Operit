@@ -1,7 +1,6 @@
 package com.ai.assistance.operit.util
 
 import android.content.Context
-import android.os.SystemClock
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
@@ -24,6 +23,7 @@ object WaifuMessageProcessor {
     private const val URL_CHARS = "[A-Za-z0-9._~:/?#\\[\\]@!$&'()*+,;=%-]"
     private const val ENTITY_PLACEHOLDER_PREFIX = "{WAIFUENTITY:"
     private const val ENTITY_PLACEHOLDER_SUFFIX = "}"
+    private const val MAX_TYPING_DELAY_MS = 3000L
     private val FENCED_CODE_BLOCK_REGEX = Regex("```[^\\r\\n`]*[\\r\\n]?[\\s\\S]*?```")
     private val UNCLOSED_FENCED_CODE_BLOCK_REGEX = Regex("```[^\\r\\n`]*[\\r\\n]?[\\s\\S]*$")
     private val SENTENCE_SPLIT_REGEX =
@@ -140,6 +140,18 @@ object WaifuMessageProcessor {
         session.collectFinalSegments(renderableBuffer.toString()).forEach { emit(it) }
     }
 
+    internal fun calculateTypingDelayMs(
+        segmentLength: Int,
+        charDelayMs: Int,
+        isFirstSegment: Boolean,
+    ): Long {
+        if (isFirstSegment || segmentLength <= 0 || charDelayMs <= 0) {
+            return 0L
+        }
+
+        return (segmentLength.toLong() * charDelayMs.toLong()).coerceAtMost(MAX_TYPING_DELAY_MS)
+    }
+
     fun streamSegmentsWithTypingQueue(
         sourceStream: Stream<String>,
         removePunctuation: Boolean = false,
@@ -168,16 +180,20 @@ object WaifuMessageProcessor {
                 }
             }
 
-            var nextSendAtMs = 0L
+            var isFirstSegment = true
             for (segment in segmentQueue) {
-                val waitMs = nextSendAtMs - SystemClock.elapsedRealtime()
+                val waitMs =
+                    calculateTypingDelayMs(
+                        segmentLength = segment.length,
+                        charDelayMs = charDelayMs,
+                        isFirstSegment = isFirstSegment,
+                    )
                 if (waitMs > 0L) {
                     delay(waitMs)
                 }
 
                 emit(segment)
-                nextSendAtMs =
-                    SystemClock.elapsedRealtime() + segment.length.toLong() * charDelayMs.toLong()
+                isFirstSegment = false
             }
 
             producerJob.join()
@@ -977,4 +993,4 @@ object WaifuMessageProcessor {
             return null
         }
     }
-} 
+}

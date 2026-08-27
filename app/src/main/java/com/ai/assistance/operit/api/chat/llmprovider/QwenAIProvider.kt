@@ -5,11 +5,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.stream.Stream
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import org.json.JSONObject
@@ -28,7 +24,9 @@ class QwenAIProvider(
     supportsVision: Boolean = false,
     supportsAudio: Boolean = false,
     supportsVideo: Boolean = false,
-    enableToolCall: Boolean = false
+    enableToolCall: Boolean = false,
+    thinkingConfigurations: String = "",
+    thinkingOptionId: String = ""
 ) : OpenAIProvider(
         apiEndpoint = apiEndpoint,
         apiKeyProvider = apiKeyProvider,
@@ -39,7 +37,9 @@ class QwenAIProvider(
         supportsVision = supportsVision,
         supportsAudio = supportsAudio,
         supportsVideo = supportsVideo,
-        enableToolCall = enableToolCall
+        enableToolCall = enableToolCall,
+        thinkingConfigurations = thinkingConfigurations,
+        thinkingOptionId = thinkingOptionId
     ) {
 
     override fun buildInputAudioPayload(link: MediaLink): JSONObject {
@@ -69,7 +69,6 @@ class QwenAIProvider(
         applyQwenReasoningSettings(
             context = context,
             requestJson = jsonObject,
-            modelParameters = modelParameters,
             enableThinking = enableThinking
         )
 
@@ -93,91 +92,21 @@ class QwenAIProvider(
     private fun applyQwenReasoningSettings(
         context: Context,
         requestJson: JSONObject,
-        modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean
     ) {
         if (qwenProviderType != ApiProviderType.SILICONFLOW) {
-            if (enableThinking && !requestJson.has("enable_thinking")) {
-                requestJson.put("enable_thinking", true)
-                AppLogger.d("QwenAIProvider", "已为Qwen模型启用“思考模式”。")
-            }
             return
         }
-
-        if (requestJson.has("enable_thinking")) {
-            AppLogger.d(
-                "QwenAIProvider",
-                "Preserving caller-supplied SiliconFlow enable_thinking=${requestJson.opt("enable_thinking")}"
-            )
-        } else {
-            requestJson.put("enable_thinking", enableThinking)
-            AppLogger.d(
-                "QwenAIProvider",
-                "SiliconFlow thinking toggle applied via enable_thinking=$enableThinking"
-            )
-        }
-
-        if (!enableThinking) {
-            return
-        }
-
-        if (requestJson.has("thinking_budget")) {
-            AppLogger.d(
-                "QwenAIProvider",
-                "Preserving caller-supplied SiliconFlow thinking_budget=${requestJson.opt("thinking_budget")}"
-            )
-            return
-        }
-
-        val thinkingBudget = resolveSiliconFlowThinkingBudget(context, requestJson, modelParameters) ?: return
-        requestJson.put("thinking_budget", thinkingBudget)
-        AppLogger.d(
-            "QwenAIProvider",
-            "SiliconFlow thinking budget applied via thinking_budget=$thinkingBudget"
+        ThinkingConfigurationApplier.apply(
+            context = context,
+            requestJson = requestJson,
+            providerTypeId = qwenProviderType.name,
+            modelName = modelName,
+            apiEndpoint = "",
+            thinkingConfigurations = thinkingConfigurations,
+            enableThinking = enableThinking,
+            optionId = thinkingOptionId,
         )
-    }
-
-    private fun resolveSiliconFlowThinkingBudget(
-        context: Context,
-        requestJson: JSONObject,
-        modelParameters: List<ModelParameter<*>>
-    ): Int? {
-        val qualityLevel = runCatching {
-            runBlocking {
-                ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
-            }
-        }.getOrElse {
-            AppLogger.w(
-                "QwenAIProvider",
-                "Failed to read thinking quality level for SiliconFlow, falling back to provider default",
-                it
-            )
-            return null
-        }
-
-        val thinkingBudgets = listOf(null, 4_096, 8_192, 16_384, 32_768)
-        val qualityIndex = qualityLevel.coerceIn(
-            ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-            ApiPreferences.MAX_THINKING_QUALITY_LEVEL
-        ) - 1
-        val requestedBudget = thinkingBudgets[qualityIndex]
-
-        if (requestedBudget == null) {
-            return null
-        }
-
-        val modelMaxTokens =
-            (modelParameters.firstOrNull { it.apiName == "max_tokens" && it.isEnabled }?.currentValue as? Number)
-                ?.toInt()
-                ?.takeIf { it > 1 }
-                ?: requestJson.optInt("max_tokens", 0).takeIf { it > 1 }
-
-        if (modelMaxTokens == null) {
-            return requestedBudget
-        }
-
-        val cappedBudget = minOf(requestedBudget, modelMaxTokens - 1)
-        return if (cappedBudget > 0) cappedBudget else null
     }
 
     override suspend fun sendMessage(

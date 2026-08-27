@@ -32,7 +32,6 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
-import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.PromptTagManager
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.PersonaCardChatHistoryManager
@@ -214,7 +213,6 @@ fun PersonaCardGenerationScreen(
     // 1. 一次性初始化：加载所有卡片和标签，并确定初始活跃卡片ID
     LaunchedEffect(Unit) {
         val initResult = withContext(Dispatchers.IO) {
-            characterCardManager.initializeIfNeeded()
             val cards = characterCardManager.getAllCharacterCards()
             val tags = tagManager.getAllTags()
 
@@ -300,7 +298,6 @@ fun PersonaCardGenerationScreen(
     fun refreshData() {
         scope.launch {
             val result = withContext(Dispatchers.IO) {
-                characterCardManager.initializeIfNeeded()
                 val cards = characterCardManager.getAllCharacterCards()
                 val currentPrompt = activePromptManager.getActivePrompt()
                 var id = when (currentPrompt) {
@@ -367,8 +364,6 @@ fun PersonaCardGenerationScreen(
         val aiService = EnhancedAIService
             .getInstance(context)
             .getAIServiceForFunction(FunctionType.CHAT)
-        val functionalConfigManager = FunctionalConfigManager(context)
-        functionalConfigManager.initializeIfNeeded()
 
         val fullHistory = mutableListOf<Pair<String, String>>()
         if (systemPrompt != null) {

@@ -19,13 +19,10 @@ import {
   StopIcon,
   TuneIcon
 } from '../../../../util/chatIcons';
-import {
-  clampThinkingQualityLevel,
-  MAX_THINKING_QUALITY_LEVEL
-} from '../../../../util/thinkingQuality';
 import { InputOverlayPopup } from '../common/InputOverlayPopup';
 import { CharacterCardModelBindingSwitchConfirmDialog } from '../common/CharacterCardModelBindingSwitchConfirmDialog';
 import { PendingMessageQueuePanel } from '../common/PendingMessageQueuePanel';
+import { ThinkingQualitySlider } from '../common/ThinkingQualitySlider';
 import type {
   InputProcessingStage,
   PendingQueueMessageItem,
@@ -34,6 +31,7 @@ import type {
   WebModelSelectorConfig,
   WebModelSelectorState,
   WebSelectModelResponse,
+  WebThinkingQualityMapping,
   WebThemeSnapshot,
   WebUploadedAttachment
 } from '../../../../util/chatTypes';
@@ -63,7 +61,7 @@ const INFO_COPY = {
   },
   thinkingQuality: {
     title: '思考程度',
-    description: '仅在思考模式下生效；GPT-5.6 系列使用 5 档，其它模型保持原有 4 档。'
+    description: '仅在思考模式下生效；具体档位与当前模型配置一致。'
   },
   maxMode: {
     title: 'Max模式',
@@ -492,19 +490,19 @@ function AgentThinkingSettingsItem({
   onQualityInfoClick,
   onToggle,
   onToggleInfoClick,
-  maxQualityLevel,
-  qualityLevel
+  qualityMapping,
+  qualityOptionId
 }: {
   enabled: boolean;
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
   onInfoClick: () => void;
-  onQualityChange: (value: number) => void;
+  onQualityChange: (value: string) => void;
   onQualityInfoClick: () => void;
   onToggle: () => void;
   onToggleInfoClick: () => void;
-  maxQualityLevel: number;
-  qualityLevel: number;
+  qualityMapping: WebThinkingQualityMapping | undefined;
+  qualityOptionId: string;
 }) {
   return (
     <>
@@ -532,30 +530,19 @@ function AgentThinkingSettingsItem({
             onToggle={onToggle}
             title="思考模式"
           />
-          {enabled ? (
+          {enabled && qualityMapping?.mode === 'levels' ? (
             <AgentSettingsRow className="is-child">
               <span className="agent-settings-icon is-active">
                 <TuneIcon size={16} />
               </span>
               <AgentInfoButton onClick={onQualityInfoClick} />
               <AgentInfoSpacer />
-              <span className="agent-settings-copy">
-                <strong>思考程度</strong>
-                <em>等级越高，响应通常越慢</em>
-              </span>
-              <select
-                className="agent-settings-select"
-                onChange={(event) => {
-                  onQualityChange(Number(event.target.value));
-                }}
-                value={String(qualityLevel)}
-              >
-                {Array.from({ length: maxQualityLevel }, (_, index) => index + 1).map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </select>
+              <ThinkingQualitySlider
+                label="思考程度"
+                mapping={qualityMapping}
+                onChange={onQualityChange}
+                value={qualityOptionId}
+              />
             </AgentSettingsRow>
           ) : null}
         </div>
@@ -743,7 +730,7 @@ export function AgentChatInputSection({
   onUpdateInputSettings: (
     payload: Partial<{
       enable_thinking_mode: boolean;
-      thinking_quality_level: number;
+      thinking_option_id: string;
       enable_memory_auto_update: boolean;
       enable_auto_read: boolean;
       enable_max_context_mode: boolean;
@@ -779,13 +766,20 @@ export function AgentChatInputSection({
   const progressRadius = 18;
   const circumference = 2 * Math.PI * progressRadius;
   const dashOffset = circumference - processingProgress * circumference;
-  const thinkingEnabled = inputSettings?.enable_thinking_mode ?? false;
+  const thinkingMapping = modelSelector?.thinking_quality_mapping;
+  const thinkingEnabled = (inputSettings?.enable_thinking_mode ?? false) || (thinkingMapping?.reasoning_required ?? false);
   const thinkingQuality = inputSettings
     ? {
-        maxLevel: MAX_THINKING_QUALITY_LEVEL,
-        level: clampThinkingQualityLevel(inputSettings.thinking_quality_level)
+        optionId: inputSettings.thinking_option_id,
+        mapping: thinkingMapping
       }
     : null;
+  useEffect(() => {
+    const mapping = thinkingQuality?.mapping;
+    if (mapping && mapping.options.length > 0 && !mapping.options.some((option) => option.id === thinkingQuality.optionId)) {
+      void onUpdateInputSettings({ thinking_option_id: mapping.options[0].id });
+    }
+  }, [onUpdateInputSettings, thinkingQuality?.mapping, thinkingQuality?.optionId]);
   const enableMaxContextMode = inputSettings?.enable_max_context_mode ?? false;
   const enableMemoryAutoUpdate = inputSettings?.enable_memory_auto_update ?? false;
   const enableAutoRead = inputSettings?.enable_auto_read ?? false;
@@ -965,22 +959,24 @@ export function AgentChatInputSection({
         <InputOverlayPopup onDismiss={() => setShowModelSelector(false)} panelClassName="agent-popup-card">
           <div className="agent-popup-scroll">
             <div className="agent-popup-body">
-              {thinkingQuality ? (
+              {thinkingQuality && thinkingQuality.mapping?.mode !== 'unsupported' ? (
                 <AgentThinkingSettingsItem
                   enabled={thinkingEnabled}
                   expanded={showThinkingDropdown}
                   onExpandedChange={setShowThinkingDropdown}
                   onInfoClick={() => setInfoPopupContent(INFO_COPY.thinkingSettings)}
                   onQualityChange={(value) => {
-                    void onUpdateInputSettings({ thinking_quality_level: value });
+                    void onUpdateInputSettings({ thinking_option_id: value });
                   }}
                   onQualityInfoClick={() => setInfoPopupContent(INFO_COPY.thinkingQuality)}
                   onToggle={() => {
-                    void onUpdateInputSettings({ enable_thinking_mode: !thinkingEnabled });
+                    if (!thinkingQuality?.mapping?.reasoning_required) {
+                      void onUpdateInputSettings({ enable_thinking_mode: !thinkingEnabled });
+                    }
                   }}
                   onToggleInfoClick={() => setInfoPopupContent(INFO_COPY.thinkingMode)}
-                  maxQualityLevel={thinkingQuality.maxLevel}
-                  qualityLevel={thinkingQuality.level}
+                  qualityMapping={thinkingQuality.mapping}
+                  qualityOptionId={thinkingQuality.optionId}
                 />
               ) : null}
 

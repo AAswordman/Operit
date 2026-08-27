@@ -30,6 +30,7 @@ import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.ApiKeyPoolAvailabilityTester
 import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
 import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.features.settings.ModelConfigSaveCoordinator
@@ -55,6 +56,8 @@ fun AdvancedSettingsSection(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val isCodexProvider =
+        ApiProviderType.fromProviderTypeId(config.apiProviderTypeId) == ApiProviderType.OPENAI_CODEX
 
     var useApiKeyPool by remember(config.id) { mutableStateOf(config.useMultipleApiKeys) }
     var apiKeyPool by remember(config.id) { mutableStateOf(config.apiKeyPool) }
@@ -334,8 +337,9 @@ fun AdvancedSettingsSection(
                 }
             }
 
-            // API Key Pool Toggle
-            Row(
+            if (!isCodexProvider) {
+                // API Key Pool Toggle
+                Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
@@ -364,10 +368,10 @@ fun AdvancedSettingsSection(
                         saveChanges()
                     }
                 )
-            }
+                }
 
-            // API Key Pool Management UI
-            AnimatedVisibility(
+                // API Key Pool Management UI
+                AnimatedVisibility(
                 visible = useApiKeyPool,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
@@ -564,6 +568,7 @@ fun AdvancedSettingsSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp, start = 8.dp, end = 8.dp)
                     )
+                }
                 }
             }
         }
