@@ -214,7 +214,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     // 思考模式状态现在由ApiConfigDelegate管理
     val enableThinkingMode: StateFlow<Boolean> by lazy { apiConfigDelegate.enableThinkingMode }
-    val thinkingOptionId: StateFlow<String> by lazy { apiConfigDelegate.thinkingOptionId }
+    val thinkingQualityLevel: StateFlow<Int> by lazy { apiConfigDelegate.thinkingQualityLevel }
     val enableMemoryAutoUpdate: StateFlow<Boolean> by lazy { apiConfigDelegate.enableMemoryAutoUpdate }
     val enableTools: StateFlow<Boolean> by lazy { apiConfigDelegate.enableTools }
     val toolPromptVisibility: StateFlow<Map<String, Boolean>> by lazy { apiConfigDelegate.toolPromptVisibility }
@@ -592,8 +592,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         apiConfigDelegate.toggleThinkingMode()
     }
 
-    fun updateThinkingOptionId(optionId: String) {
-        apiConfigDelegate.updateThinkingOptionId(optionId)
+    fun updateThinkingQualityLevel(level: Int) {
+        apiConfigDelegate.updateThinkingQualityLevel(level)
     }
 
     // 切换记忆自动更新的方法现在委托给ApiConfigDelegate

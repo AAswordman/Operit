@@ -127,6 +127,7 @@ class GitHubForgePublishService(
                     maxSupportedAppVersion = request.maxSupportedAppVersion,
                     publishContext = request.publishContext
                 )
+
             val resolvedAsset =
                 when (val source = request.source) {
                     is PublishArtifactSource.DirectUpload -> {
@@ -164,7 +165,7 @@ class GitHubForgePublishService(
                                 version = descriptor.version,
                                 author = listOf(currentUser.login)
                             )
-                        val processedFileBytes = ToolPkgArtifactMinifier.processArtifactFile(
+                        val fileBytes = ToolPkgArtifactMinifier.processArtifactFile(
                             context = context,
                             sourceFile = sourceFile,
                             isToolPkg = descriptor.type == PublishArtifactType.PACKAGE,
@@ -177,7 +178,7 @@ class GitHubForgePublishService(
                                 repo = forgeRepo.repoName,
                                 release = ensuredRelease.release,
                                 descriptor = descriptor,
-                                content = processedFileBytes
+                                content = fileBytes
                             ).getOrElse { error ->
                                 return@withContext Result.failure(error)
                             }
@@ -187,7 +188,7 @@ class GitHubForgePublishService(
                             repository = forgeRepo.repoName,
                             release = ensuredRelease.release,
                             asset = uploadedAsset,
-                            sha256 = sha256Hex(processedFileBytes),
+                            sha256 = sha256Hex(fileBytes),
                             releaseWasCreated = ensuredRelease.created
                         )
                     }

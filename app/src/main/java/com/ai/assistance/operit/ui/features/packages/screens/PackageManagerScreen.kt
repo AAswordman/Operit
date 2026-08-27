@@ -786,7 +786,7 @@ fun PackageManagerScreen(
                                 selectedPackage = packageName
                                 showDetails = true
                             },
-                             onTogglePlugin = { details, isChecked ->
+                            onTogglePlugin = { details, isChecked ->
                                 val currentImported =
                                     visibleImportedPackages.value.toMutableList()
                                 if (isChecked) {
@@ -831,12 +831,9 @@ fun PackageManagerScreen(
                                                 }
                                         )
                                     }
-                                 }
-                             },
-                             loadPluginLogo = { packageName ->
-                                 packageManager.readToolPkgLogoBytes(packageName)
-                             },
-                             pluginOrder = pluginOrder,
+                                }
+                            },
+                            pluginOrder = pluginOrder,
                             onSavePluginOrder = { newOrder ->
                                 pluginOrder = newOrder
                                 scope.launch {
@@ -1160,3 +1157,4 @@ fun PackageManagerScreen(
         }
     }
 }
+

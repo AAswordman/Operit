@@ -22,10 +22,6 @@ interface AIService {
     /** 获取供应商:模型标识符，格式如"DEEPSEEK:deepseek-chat" */
     val providerModel: String
 
-    /** 请求是否使用 Responses API 传输格式。 */
-    val usesResponsesApi: Boolean
-        get() = false
-
     /** 重置token计数器 */
     fun resetTokenCounts()
 

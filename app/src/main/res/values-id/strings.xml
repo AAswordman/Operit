@@ -2622,6 +2622,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="functional_model_config_desc">Atur konfigurasi model terpisah untuk fungsi yang berbeda, sehingga setiap fungsi dapat menggunakan pengaturan API yang paling sesuai.</string>
     <string name="manage_all_model_configs">Kelola semua konfigurasi model</string>
     <string name="manage_model_configs_desc">Kelola konfigurasi model</string>
+    <string name="follow_chat_model_for_all_functions">Samakan semua fungsi dengan model obrolan saat ini</string>
     <string name="reset_all_functions_to_default">Setel ulang semua fungsi ke konfigurasi default</string>
 
     <string name="speech_services_openai_models_fetch_failed">Gagal mengambil daftar model: %1$s</string>
@@ -2672,7 +2673,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
     <string name="thinking_quality">Tingkat Pemikiran</string>
-    <string name="thinking_quality_desc">Hanya berlaku dalam mode berpikir. Nilai yang tersedia mengikuti pemetaan nyata model dan penyedia saat ini.</string>
+    <string name="thinking_quality_desc">Hanya berlaku dalam mode berpikir. Model GPT-5.6 menggunakan lima tingkat; model lain tetap menggunakan empat tingkat sebelumnya. Nilai lebih tinggi berarti penalaran lebih dalam.</string>
     <string name="model_config">Konfigurasi Model</string>
     <string name="model_config_desc">Pilih model yang sudah dikonfigurasi di sini, atau ketuk kelola konfigurasi di bawah untuk membuat atau mengubah model</string>
     <string name="prompt">Prompt</string>
@@ -3263,7 +3264,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="model_name_multiple_hint"> (dapat dipisahkan dengan koma untuk beberapa model)</string>
     <string name="auto_save_failed">Penyimpanan otomatis gagal</string>
     <string name="provider_openai">OpenAI (Seri GPT)</string>
-    <string name="provider_xai">SpaceXAI (Grok)</string>
     <string name="provider_openai_responses">OpenAI (Responses API)</string>
     <string name="provider_openai_responses_generic">OpenAI Responses Umum</string>
     <string name="provider_anthropic">Anthropic (Seri Claude)</string>
@@ -3500,7 +3500,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="parameter_value">Nilai Parameter</string>
     <string name="parameter_range_format">Rentang: %1$s - %2$s</string>
     <string name="overseas_provider_warning">Terdeteksi Anda berada di Tiongkok Daratan, tetapi memilih penyedia layanan luar negeri. Harap konfirmasi apakah alat proxy telah diaktifkan</string>
-    <string name="international_proxy_provider_warning">Layanan ini meneruskan permintaan melalui proksi pihak ketiga internasional. Akses dari Tiongkok Daratan memerlukan alat proksi. Data permintaan akan diteruskan oleh pihak ketiga; perhatikan lingkungan jaringan, ketentuan layanan, dan persyaratan kepatuhan data.</string>
     <string name="custom_parameter_added">Parameter kustom telah ditambahkan</string>
     <string name="parameter_name">Nama Parameter</string>
     <string name="parameter_name_placeholder">Contoh: Parameter Saya</string>
@@ -3574,8 +3573,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="enable_direct_video_processing_desc">Setelah diaktifkan, video akan langsung dikirim ke AI untuk diproses, bukan dianalisis melalui alat ekstraksi frame/analisis</string>
     <string name="enable_google_search">Aktifkan Google Search</string>
     <string name="enable_google_search_desc">Setelah diaktifkan, Gemini akan menggunakan Google Search untuk meningkatkan jawaban (mungkin menimbulkan biaya tambahan)</string>
-    <string name="enable_deepseek_web_search">Aktifkan pencarian web DeepSeek</string>
-    <string name="enable_deepseek_web_search_desc">Izinkan API Responses DeepSeek memanggil alat pencarian web di server.</string>
     <string name="enable_claude_1h_prompt_cache">Aktifkan cache prompt Claude 1 jam</string>
     <string name="enable_claude_1h_prompt_cache_desc">Setelah diaktifkan, Claude dan penyedia kompatibel Claude akan memakai TTL cache prompt 1 jam</string>
     <string name="enable_tool_call">Model mendukung ToolCall</string>
@@ -6417,7 +6414,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="enhanced_processing_message">Memproses pesan...</string>
     <string name="enhanced_connecting_service">Menghubungkan ke layanan AI...</string>
     <string name="enhanced_receiving_response">Menerima respons AI...</string>
-    <string name="server_tool_running">Memanggil alat sisi server: %1$s...</string>
     <string name="enhanced_error_with_message">Kesalahan: %1$s</string>
     <string name="enhanced_pure_thinking_only_warning">Peringatan: Harap keluarkan konten utama, dilarang hanya mengeluarkan konten pemikiran.</string>
     <string name="enhanced_truncated_tool_call_warning">Peringatan: Terdeteksi output panggilan alat terpotong. Semua panggilan alat pada putaran ini telah dibatalkan dan tidak akan dieksekusi. Coba kurangi output sekali pakai, pecah tugas, atau ganti model/penyedia yang lebih sesuai dan coba lagi.</string>
@@ -7380,6 +7376,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="market_manage_resubmit">Ajukan Ulang</string>
     <string name="market_manage_resubmitting_title">Sedang mengajukan ulang</string>
     <string name="market_manage_resubmitting_message">Sedang mengirim permintaan peninjauan, harap tunggu…</string>
+    <string name="market_manage_resubmit_cooldown_message">Entri ini sedang dalam masa pendinginan lokal, sisa %1$s sebelum dapat diajukan lagi.</string>
     <string name="market_manage_resubmit_rejected_blocked">Entri ini telah ditolak, klien tidak mengizinkan pengajuan ulang.</string>
     <string name="market_manage_resubmit_state_blocked">Hanya entri yang ditolak yang dapat diajukan ulang.</string>
     <string name="market_manage_resubmit_confirm_title">Konfirmasi pengajuan ulang?</string>
@@ -7388,6 +7385,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="market_manage_resubmit_last_reason">Alasan penolakan: %1$s</string>
     <string name="market_manage_review_detail">Detail peninjauan: %1$s</string>
     <string name="market_manage_review_dialog_title">Status Peninjauan</string>
+    <string name="market_manage_resubmit_confirm_warning">Pastikan Anda telah melakukan perubahan sesuai alasan penolakan. Setelah berhasil diajukan, tidak dapat diajukan lagi dalam 12 jam ke depan secara lokal.</string>
     <string name="market_manage_resubmit_confirm_action">Konfirmasi Pengajuan</string>
     <string name="market_error_load_failed">Gagal memuat</string>
     <string name="market_error_action_failed">Gagal melakukan tindakan</string>
@@ -7409,41 +7407,9 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="artifact_publish_asset_source_upload">Unggah paket lokal saat ini</string>
     <string name="artifact_publish_asset_source_github_release">Rujuk aset GitHub Release</string>
     <string name="artifact_publish_asset_source_confirmation">Sumber Aset Publikasi: %1$s</string>
-    <string name="artifact_publish_logo_title">Logo Paket</string>
-    <string name="artifact_publish_logo_description">Pilih gambar untuk paket. Unggah langsung akan menulisnya ke paket yang dipublikasikan; mode GitHub Release hanya memperbarui logo pasar.</string>
-    <string name="artifact_publish_logo_choose">Pilih Logo</string>
-    <string name="artifact_publish_logo_use_package">Gunakan Logo Paket</string>
-    <string name="artifact_publish_logo_selected">Dipilih: %1$s</string>
-    <string name="artifact_publish_logo_from_package">Logo paket: %1$s</string>
-    <string name="artifact_publish_logo_confirmation">Logo: %1$s</string>
-    <string name="artifact_publish_logo_preview">Pratinjau logo</string>
-    <string name="artifact_publish_logo_invalid">Logo tidak dapat dibaca. Pilih file SVG, PNG, JPEG, atau WebP yang valid.</string>
-    <string name="artifact_publish_logo_too_large">Ukuran file logo harus 512 KiB atau lebih kecil.</string>
-    <string name="artifact_publish_logo_market_preview">Pratinjau pasar</string>
-    <string name="artifact_publish_logo_market_preview_title">Pratinjau pasar</string>
-    <string name="artifact_publish_logo_market_list">Daftar</string>
-    <string name="artifact_publish_logo_market_detail">Detail</string>
-    <string name="artifact_publish_logo_market_preview_action">Instal Paket (Pratinjau)</string>
-    <string name="artifact_publish_logo_market_preview_account">Akun saat ini</string>
-    <string name="artifact_publish_logo_market_preview_untitled">Paket tanpa nama</string>
-    <string name="artifact_publish_logo_market_preview_empty_description">Tidak ada deskripsi</string>
     <string name="artifact_publish_github_repository_url">Tautan repositori GitHub penulis</string>
     <string name="artifact_publish_load_github_releases">Muat Release</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Aset Release</string>
     <string name="markdown_link_not_openable">Tautan ini menunjuk ke referensi di dalam dokumen dan tidak dapat dibuka</string>
-    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
-    <string name="onboarding_config_codex_login_required">Masuk ke OpenAI Codex terlebih dahulu</string>
-    <string name="codex_login_title">Masuk ke OpenAI Codex</string>
-    <string name="codex_login_starting">Menyiapkan login Codex...</string>
-    <string name="codex_login_waiting">Selesaikan login di browser</string>
-    <string name="codex_login_action">Masuk dengan ChatGPT</string>
-    <string name="codex_login_success">Login OpenAI Codex berhasil</string>
-    <string name="codex_login_failed">Login OpenAI Codex gagal: %1$s</string>
-    <string name="codex_logout_action">Keluar dari Codex</string>
-    <string name="codex_logout_success">Berhasil keluar dari OpenAI Codex</string>
-    <string name="codex_auth_title">Akun OpenAI Codex</string>
-    <string name="codex_auth_not_logged_in">Masuk dengan ChatGPT untuk menggunakan akses langganan Codex</string>
-    <string name="codex_auth_account">Akun: %1$s</string>
-    <string name="codex_endpoint_fixed">Endpoint Codex ditetapkan oleh sistem</string>
 </resources>

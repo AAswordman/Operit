@@ -21,8 +21,7 @@ data class ToolInvocation(
         val tool: AITool,
         val rawText: String,
         @Contextual
-        val responseLocation: IntRange, // Where in the response this tool invocation was found
-        val toolCallId: String? = null
+        val responseLocation: IntRange // Where in the response this tool invocation was found
 )
 
 /** Represents the result of a tool execution */
@@ -31,8 +30,7 @@ data class ToolResult(
         val toolName: String,
         val success: Boolean,
         val result: ToolResultData,
-        val error: String? = null,
-        val toolCallId: String? = null
+        val error: String? = null
 )
 
 /** Represents the validation result for tool parameters */

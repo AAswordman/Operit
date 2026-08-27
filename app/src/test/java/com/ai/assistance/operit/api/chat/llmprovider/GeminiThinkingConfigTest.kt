@@ -1,24 +1,25 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
-import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
-import com.ai.assistance.operit.data.model.ApiProviderType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GeminiThinkingConfigTest {
-    private val thinkingConfigurations =
-        ModelThinkingConfigDefaults.forProvider(ApiProviderType.GOOGLE.name)
-
     @Test
-    fun mapsModelOptionToGeminiLevel() {
-        val config = GeminiThinkingConfig.fromOption("gemini-3-pro", "HIGH", thinkingConfigurations)
-        assertEquals("HIGH", config.thinkingLevel)
+    fun `maps each global thinking quality to a Gemini level`() {
+        val expectedLevels = listOf("MINIMAL", "LOW", "MEDIUM", "HIGH", "HIGH")
+
+        expectedLevels.forEachIndexed { index, expectedLevel ->
+            val config = GeminiThinkingConfig.fromGlobalQuality(index + 1)
+
+            assertEquals(expectedLevel, config.thinkingLevel)
+        }
     }
 
     @Test
-    fun requestsThoughtSummariesForAnEnabledOption() {
-        val config = GeminiThinkingConfig.fromOption("gemini-3-pro", "HIGH", thinkingConfigurations)
+    fun `requests thought summaries for every enabled global thinking level`() {
+        val config = GeminiThinkingConfig.fromGlobalQuality(3)
+
         assertTrue(config.includeThoughts)
     }
 }

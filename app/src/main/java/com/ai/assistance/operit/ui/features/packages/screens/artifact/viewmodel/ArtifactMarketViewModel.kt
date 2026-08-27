@@ -1,7 +1,6 @@
 package com.ai.assistance.operit.ui.features.packages.screens.artifact.viewmodel
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -44,23 +43,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-data class ArtifactPublishDraft(
-    val selectedPackageName: String = "",
-    val displayName: String = "",
-    val description: String = "",
-    val detail: String = "",
-    val categoryId: String = "",
-    val allowPublicUpdates: Boolean = true,
-    val minifyArtifact: Boolean = false,
-    val useGitHubReleaseAsset: Boolean = false,
-    val githubRepositoryUrl: String = "",
-    val selectedReleaseTag: String = "",
-    val selectedReleaseAssetName: String = "",
-    val version: String = "1.0.0",
-    val minSupportedAppVersion: String = "",
-    val maxSupportedAppVersion: String = ""
-)
 
 class ArtifactMarketViewModel(
     private val context: Context,
@@ -119,55 +101,6 @@ class ArtifactMarketViewModel(
         refreshPublishableArtifacts()
     }
 
-    fun loadPublishDraft(publishContext: ArtifactPublishClusterContext?): ArtifactPublishDraft? {
-        val sharedPrefs = publishDraftPrefs(publishContext)
-        if (!sharedPrefs.contains(PUBLISH_DRAFT_SAVED_AT_KEY)) return null
-        return ArtifactPublishDraft(
-            selectedPackageName = sharedPrefs.getString("selectedPackageName", "") ?: "",
-            displayName = sharedPrefs.getString("displayName", "") ?: "",
-            description = sharedPrefs.getString("description", "") ?: "",
-            detail = sharedPrefs.getString("detail", "") ?: "",
-            categoryId = sharedPrefs.getString("categoryId", "") ?: "",
-            allowPublicUpdates = sharedPrefs.getBoolean("allowPublicUpdates", true),
-            minifyArtifact = sharedPrefs.getBoolean("minifyArtifact", false),
-            useGitHubReleaseAsset = sharedPrefs.getBoolean("useGitHubReleaseAsset", false),
-            githubRepositoryUrl = sharedPrefs.getString("githubRepositoryUrl", "") ?: "",
-            selectedReleaseTag = sharedPrefs.getString("selectedReleaseTag", "") ?: "",
-            selectedReleaseAssetName = sharedPrefs.getString("selectedReleaseAssetName", "") ?: "",
-            version = sharedPrefs.getString("version", "1.0.0") ?: "1.0.0",
-            minSupportedAppVersion = sharedPrefs.getString("minSupportedAppVersion", "") ?: "",
-            maxSupportedAppVersion = sharedPrefs.getString("maxSupportedAppVersion", "") ?: ""
-        )
-    }
-
-    fun savePublishDraft(
-        publishContext: ArtifactPublishClusterContext?,
-        draft: ArtifactPublishDraft
-    ) {
-        publishDraftPrefs(publishContext).edit().apply {
-            putString("selectedPackageName", draft.selectedPackageName)
-            putString("displayName", draft.displayName)
-            putString("description", draft.description)
-            putString("detail", draft.detail)
-            putString("categoryId", draft.categoryId)
-            putBoolean("allowPublicUpdates", draft.allowPublicUpdates)
-            putBoolean("minifyArtifact", draft.minifyArtifact)
-            putBoolean("useGitHubReleaseAsset", draft.useGitHubReleaseAsset)
-            putString("githubRepositoryUrl", draft.githubRepositoryUrl)
-            putString("selectedReleaseTag", draft.selectedReleaseTag)
-            putString("selectedReleaseAssetName", draft.selectedReleaseAssetName)
-            putString("version", draft.version)
-            putString("minSupportedAppVersion", draft.minSupportedAppVersion)
-            putString("maxSupportedAppVersion", draft.maxSupportedAppVersion)
-            putLong(PUBLISH_DRAFT_SAVED_AT_KEY, System.currentTimeMillis())
-            apply()
-        }
-    }
-
-    fun clearPublishDraft(publishContext: ArtifactPublishClusterContext?) {
-        publishDraftPrefs(publishContext).edit().clear().apply()
-    }
-
     fun logoutFromGitHub() {
         viewModelScope.launch {
             try {
@@ -215,7 +148,7 @@ class ArtifactMarketViewModel(
         minSupportedAppVersion: String?,
         maxSupportedAppVersion: String?,
         publishContext: ArtifactPublishClusterContext? = null,
-        source: PublishArtifactSource,
+        source: PublishArtifactSource
     ) {
         val localArtifact = _publishableArtifacts.value.firstOrNull { it.packageName == packageName }
         if (localArtifact == null) {
@@ -250,7 +183,6 @@ class ArtifactMarketViewModel(
     fun loadGitHubReleaseCatalog(repositoryUrl: String) {
         viewModelScope.launch {
             _isLoadingGitHubReleaseCatalog.value = true
-            _githubReleaseCatalog.value = null
             _githubReleaseCatalogError.value = null
             forgePublishService.loadGitHubReleaseCatalog(repositoryUrl).fold(
                 onSuccess = { catalog ->
@@ -717,28 +649,6 @@ class ArtifactMarketViewModel(
         val suffix: String
     )
 
-    private fun publishDraftPrefs(publishContext: ArtifactPublishClusterContext?): SharedPreferences {
-        return context.getSharedPreferences(
-            "artifact_publish_draft_${publishDraftScope(publishContext)}",
-            Context.MODE_PRIVATE
-        )
-    }
-
-    private fun publishDraftScope(publishContext: ArtifactPublishClusterContext?): String {
-        val contextValue = publishContext ?: return "fresh"
-        val scopedId =
-            contextValue
-                .entryId
-                .trim()
-                .ifBlank { contextValue.runtimePackageId.trim() }
-                .ifBlank { contextValue.projectId.trim() }
-        if (scopedId.isBlank()) return "fresh"
-        return "entry_${sanitizePublishDraftScope(scopedId)}"
-    }
-
-    private fun sanitizePublishDraftScope(value: String): String =
-        value.replace(Regex("[^A-Za-z0-9_.-]"), "_")
-
     class Factory(
         private val context: Context,
         private val scope: ArtifactMarketScope
@@ -755,6 +665,5 @@ class ArtifactMarketViewModel(
     companion object {
         private const val TAG = "ArtifactMarketViewModel"
         private const val CURRENT_APP_VERSION = "1.11.0+5"
-        private const val PUBLISH_DRAFT_SAVED_AT_KEY = "savedAtEpochMs"
     }
 }

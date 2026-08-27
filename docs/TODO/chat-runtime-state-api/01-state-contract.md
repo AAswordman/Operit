@@ -45,3 +45,4 @@ The existing processing pipeline may publish `thinking` before `requesting`: `Pr
 ## ToolPkg hook
 
 `ToolPkg.registerChatRuntimeStateHook({ id, function })` receives `state_snapshot` during registration replay and `state_changed` for subsequent changes. The payload contains either the global activity state or a conversation snapshot, plus active conversation IDs for global events. A retained `cancelled` conversation snapshot is replayed until the next non-terminal state.
+

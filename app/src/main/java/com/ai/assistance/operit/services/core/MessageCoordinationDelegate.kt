@@ -2031,6 +2031,8 @@ class MessageCoordinationDelegate(
         return try {
             val functionalConfigManager = FunctionalConfigManager(context)
             val modelConfigManager = ModelConfigManager(context)
+            functionalConfigManager.initializeIfNeeded()
+            modelConfigManager.initializeIfNeeded()
             val functionMappings = functionalConfigManager.functionConfigMappingWithIndexFlow.first()
             val chatMapping = functionMappings[FunctionType.CHAT] ?: FunctionConfigMapping()
             if (chatMapping.configId.isNotBlank()) {

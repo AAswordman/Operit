@@ -82,7 +82,6 @@ class LlamaSession private constructor(
     fun applyStructuredChatTemplate(
         messagesJson: String,
         toolsJson: String?,
-        enableThinking: Boolean,
         addAssistant: Boolean
     ): String? {
         val ptr: Long
@@ -95,7 +94,6 @@ class LlamaSession private constructor(
             ptr,
             messagesJson,
             toolsJson,
-            enableThinking,
             addAssistant
         )
     }
@@ -123,7 +121,6 @@ class LlamaSession private constructor(
     fun applyChatTemplate(
         roles: List<String>,
         contents: List<String>,
-        enableThinking: Boolean,
         addAssistant: Boolean
     ): String? {
         val ptr: Long
@@ -136,7 +133,6 @@ class LlamaSession private constructor(
             ptr,
             roles.toTypedArray(),
             contents.toTypedArray(),
-            enableThinking,
             addAssistant
         )
     }

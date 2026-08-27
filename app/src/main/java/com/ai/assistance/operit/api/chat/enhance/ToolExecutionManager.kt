@@ -193,8 +193,7 @@ object ToolExecutionManager {
             toolName = resolveDisplayToolName(invocation.tool),
             success = false,
             result = StringResultData(""),
-            error = context.getString(R.string.character_card_tool_access_denied_runtime),
-            toolCallId = invocation.toolCallId
+            error = context.getString(R.string.character_card_tool_access_denied_runtime)
         )
     }
 
@@ -240,8 +239,7 @@ object ToolExecutionManager {
             toolName = resultToolName,
             success = false,
             result = StringResultData(""),
-            error = errorMessage,
-            toolCallId = invocation.toolCallId
+            error = errorMessage
         )
     }
 
@@ -327,17 +325,10 @@ object ToolExecutionManager {
                         }
 
                     val tool = AITool(name = toolName, parameters = parameters)
-                    val toolCallId =
-                        ChatMarkupRegex.toolCallIdAttr.find(toolMatch.value)
-                            ?.groupValues
-                            ?.getOrNull(1)
-                            ?.let(::unescapeXml)
-                            ?.takeIf { it.isNotBlank() }
                     invocations.add(
                         ToolInvocation(
                             tool = tool,
                             rawText = toolMatch.value,
-                            toolCallId = toolCallId,
                             responseLocation = toolMatch.range
                         )
                     )
@@ -598,7 +589,7 @@ object ToolExecutionManager {
                     if (hasPermission) {
                         permittedInvocations.add(invocation)
                     } else {
-                        errorResult?.copy(toolCallId = invocation.toolCallId)?.let {
+                        errorResult?.let {
                             permissionDeniedResults.add(it)
                             val toolResultStatusContent =
                                 ConversationMarkupManager.formatToolResultForMessage(it)
@@ -612,7 +603,7 @@ object ToolExecutionManager {
                         toolHandler.buildToolInterceptionResult(
                             resolveDisplayToolName(invocation.tool),
                             interception
-                        ).copy(toolCallId = invocation.toolCallId)
+                        )
                     hookDeniedResults.add(interceptedResult)
                     toolHandler.notifyToolExecutionResult(invocation.tool, interceptedResult)
                     toolHandler.notifyToolExecutionFinished(invocation.tool)
@@ -719,17 +710,16 @@ object ToolExecutionManager {
                     // 如果仍然为 null，则构建错误消息
                     val errorMessage =
                         buildToolNotAvailableErrorMessage(toolName, packageManager, toolHandler)
+                    val notAvailableContent =
+                        ConversationMarkupManager.createToolNotAvailableError(toolName, errorMessage)
+                    collector.emit(ensureEndsWithNewline(notAvailableContent))
                     val notAvailableResult =
                         ToolResult(
                             toolName = displayToolName,
                             success = false,
                             result = StringResultData(""),
-                            error = errorMessage,
-                            toolCallId = invocation.toolCallId
+                            error = errorMessage
                         )
-                    val notAvailableContent =
-                        ConversationMarkupManager.formatToolResultForMessage(notAvailableResult)
-                    collector.emit(ensureEndsWithNewline(notAvailableContent))
                     toolHandler.notifyToolExecutionResult(invocation.tool, notAvailableResult)
                     return@withContext notAvailableResult
                 }
@@ -739,11 +729,10 @@ object ToolExecutionManager {
 
                 val collectedResults = mutableListOf<ToolResult>()
                 executeToolSafely(invocation, executor, toolHandler).collect { result ->
-                    val boundResult = result.copy(toolCallId = invocation.toolCallId)
-                    collectedResults.add(boundResult)
+                    collectedResults.add(result)
                     // 实时输出每个结果
                     val toolResultStatusContent =
-                        ConversationMarkupManager.formatToolResultForMessage(boundResult)
+                        ConversationMarkupManager.formatToolResultForMessage(result)
                     collector.emit(ensureEndsWithNewline(toolResultStatusContent))
                 }
 
@@ -754,8 +743,7 @@ object ToolExecutionManager {
                             toolName = displayToolName,
                             success = false,
                             result = StringResultData(""),
-                            error = "The tool execution returned no results.",
-                            toolCallId = invocation.toolCallId
+                            error = "The tool execution returned no results."
                         )
                     toolHandler.notifyToolExecutionResult(invocation.tool, emptyResult)
                     return@withContext emptyResult
@@ -771,8 +759,7 @@ object ToolExecutionManager {
                         toolName = displayToolName,
                         success = lastResult.success,
                         result = StringResultData(combinedResultString),
-                        error = lastResult.error,
-                        toolCallId = invocation.toolCallId
+                        error = lastResult.error
                     )
                 toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
                 return@withContext finalResult

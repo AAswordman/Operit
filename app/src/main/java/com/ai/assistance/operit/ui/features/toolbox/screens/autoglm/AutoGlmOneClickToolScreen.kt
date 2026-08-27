@@ -82,6 +82,9 @@ private fun AutoGlmOneClickScreen(
 
             isConfiguring = true
             try {
+                modelConfigManager.initializeIfNeeded()
+                functionalConfigManager.initializeIfNeeded()
+
                 val configName = context.getString(R.string.autoglm_config_name)
                 val summaries = modelConfigManager.getAllConfigSummaries()
                 val existing = summaries.find { it.name == configName }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material3.Card
@@ -31,23 +30,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.ui.common.icons.rememberLogoPainter
 import com.ai.assistance.operit.ui.features.packages.components.EmptyState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -59,7 +53,6 @@ fun PluginTabContent(
     isSearchActive: Boolean,
     onPluginClick: (String) -> Unit,
     onTogglePlugin: (PackageManager.ToolPkgContainerDetails, Boolean) -> Unit,
-    loadPluginLogo: suspend (String) -> PackageManager.ToolPkgLogoBytes?,
     pluginOrder: List<String> = emptyList(),
     onSavePluginOrder: (List<String>) -> Unit = {},
 ) {
@@ -123,28 +116,6 @@ fun PluginTabContent(
                     key = { _, (packageName, _) -> packageName }
                 ) { index, (packageName, details) ->
                     val isEnabled = enabledPackageNames.contains(packageName)
-                    val logo by
-                        produceState<PackageManager.ToolPkgLogoBytes?>(
-                            initialValue = null,
-                            packageName,
-                            details.version,
-                            details.logoResourceKey
-                        ) {
-                            value =
-                                if (details.logoResourceKey == null) {
-                                    null
-                                } else {
-                                    withContext(Dispatchers.IO) { loadPluginLogo(packageName) }
-                                }
-                        }
-                    val logoPainter =
-                        rememberLogoPainter(
-                            logoKey = "${packageName}:${details.version}:${details.logoResourceKey}",
-                            bytes = logo?.bytes,
-                            mimeType = logo?.mimeType,
-                            fileName = logo?.fileName,
-                            size = 32.dp
-                        )
                     ReorderableItem(
                         reorderableState,
                         key = packageName,
@@ -189,21 +160,12 @@ fun PluginTabContent(
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    if (logoPainter != null) {
-                                        Image(
-                                            painter = logoPainter,
-                                            contentDescription = details.displayName,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                    } else {
-                                        Icon(
-                                            imageVector = Icons.Default.Apps,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(22.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Apps,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column(
                                         modifier = Modifier

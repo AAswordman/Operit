@@ -16,9 +16,7 @@ class MistralProvider(
     supportsVision: Boolean = false,
     supportsAudio: Boolean = false,
     supportsVideo: Boolean = false,
-    enableToolCall: Boolean = false,
-    thinkingConfigurations: String = "",
-    thinkingOptionId: String = ""
+    enableToolCall: Boolean = false
 ) : OpenAIProvider(
         apiEndpoint = apiEndpoint,
         apiKeyProvider = apiKeyProvider,
@@ -29,9 +27,7 @@ class MistralProvider(
         supportsVision = supportsVision,
         supportsAudio = supportsAudio,
         supportsVideo = supportsVideo,
-        enableToolCall = enableToolCall,
-        thinkingConfigurations = thinkingConfigurations,
-        thinkingOptionId = thinkingOptionId
+        enableToolCall = enableToolCall
     ) {
 
     override fun parseXmlToolCalls(content: String): Pair<String, JSONArray?> {

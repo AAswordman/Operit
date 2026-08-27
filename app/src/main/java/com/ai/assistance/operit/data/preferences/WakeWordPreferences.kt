@@ -2,12 +2,12 @@ package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.application.OperitApplication
 import kotlinx.coroutines.flow.Flow
@@ -18,18 +18,17 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.wakeWordPreferencesDataStore: DataStore<Preferences> by
-    versionedPreferencesDataStore(
-        name = "wake_word_preferences",
-        currentVersion = 1,
-    ) { appContext ->
-        WakeWordPreferences.schemaMigration(appContext)
-    }
+    preferencesDataStore(name = "wake_word_preferences")
 
 class WakeWordPreferences(private val context: Context) {
 
     private val dataStore = context.wakeWordPreferencesDataStore
 
-    private val json = WakeWordPreferences.json
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        explicitNulls = false
+    }
 
     @Serializable
     enum class WakeRecognitionMode {
@@ -59,6 +58,8 @@ class WakeWordPreferences(private val context: Context) {
 
         private val KEY_VOICE_AUTO_ATTACH_ENABLED = booleanPreferencesKey("voice_auto_attach_enabled")
         private val KEY_VOICE_AUTO_ATTACH_ITEMS_JSON = stringPreferencesKey("voice_auto_attach_items_json")
+        private val KEY_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION =
+            intPreferencesKey("voice_auto_attach_items_migration_version")
 
         const val DEFAULT_WAKE_PHRASE_REGEX_ENABLED = false
         const val DEFAULT_ALWAYS_LISTENING_ENABLED = false
@@ -84,11 +85,7 @@ class WakeWordPreferences(private val context: Context) {
 
         const val DEFAULT_VOICE_AUTO_ATTACH_ENABLED = true
 
-        internal val json = Json {
-            ignoreUnknownKeys = true
-            encodeDefaults = true
-            explicitNulls = false
-        }
+        private const val LATEST_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION = 1
 
         fun getDefaultVoiceAutoAttachItems(context: Context): List<VoiceAutoAttachItem> =
             listOf(
@@ -117,35 +114,6 @@ class WakeWordPreferences(private val context: Context) {
                     keywords = context.getString(R.string.wake_word_time_query)
                 )
             )
-
-        internal fun schemaMigration(context: Context): PreferencesSchemaMigration {
-            return preferenceSchemaMigration { version, preferences ->
-                when (version) {
-                    0 -> migratePreferencesFromVersionZero(context, preferences)
-                    else -> missingPreferencesSchemaMigration(version)
-                }
-            }
-        }
-
-        private fun migratePreferencesFromVersionZero(
-            context: Context,
-            preferences: MutablePreferences,
-        ) {
-            val raw = preferences[KEY_VOICE_AUTO_ATTACH_ITEMS_JSON]
-            if (raw.isNullOrBlank()) return
-
-            val existingItems = runCatching {
-                json.decodeFromString<List<VoiceAutoAttachItem>>(raw)
-            }.getOrNull() ?: return
-            val usedTypes = existingItems.map { it.type }.toSet()
-            val missingDefaults = getDefaultVoiceAutoAttachItems(context)
-                .filterNot { usedTypes.contains(it.type) }
-
-            if (missingDefaults.isNotEmpty()) {
-                preferences[KEY_VOICE_AUTO_ATTACH_ITEMS_JSON] =
-                    json.encodeToString(existingItems + missingDefaults)
-            }
-        }
     }
 
     @Serializable
@@ -244,6 +212,40 @@ class WakeWordPreferences(private val context: Context) {
                     .getOrDefault(defaultItems)
             }
         }
+
+    suspend fun migrateVoiceAutoAttachItemsIfNeeded() {
+        dataStore.edit { prefs ->
+            val currentVersion = prefs[KEY_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION] ?: 0
+            if (currentVersion >= LATEST_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION) return@edit
+
+            val raw = prefs[KEY_VOICE_AUTO_ATTACH_ITEMS_JSON]
+            if (raw.isNullOrBlank()) {
+                prefs[KEY_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION] =
+                    LATEST_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION
+                return@edit
+            }
+
+            val existingItems =
+                runCatching { json.decodeFromString<List<VoiceAutoAttachItem>>(raw) }
+                    .getOrNull()
+            if (existingItems == null) {
+                prefs[KEY_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION] =
+                    LATEST_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION
+                return@edit
+            }
+
+            val usedTypes = existingItems.map { it.type }.toSet()
+            val missingDefaults = getDefaultVoiceAutoAttachItems(context).filterNot { usedTypes.contains(it.type) }
+
+            if (missingDefaults.isNotEmpty()) {
+                prefs[KEY_VOICE_AUTO_ATTACH_ITEMS_JSON] =
+                    json.encodeToString(existingItems + missingDefaults)
+            }
+
+            prefs[KEY_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION] =
+                LATEST_VOICE_AUTO_ATTACH_ITEMS_MIGRATION_VERSION
+        }
+    }
 
     suspend fun saveAlwaysListeningEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->

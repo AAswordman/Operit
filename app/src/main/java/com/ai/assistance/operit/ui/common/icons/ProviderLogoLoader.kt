@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import java.io.InputStream
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -20,7 +19,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.caverock.androidsvg.SVG
-import com.ai.assistance.operit.data.model.normalizeProviderTypeId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -39,9 +37,8 @@ object ProviderLogoLoader {
 
     /** 查找 provider 对应的 assets 内 logo 文件路径，不存在返回 null */
     fun findLogoAssetPath(context: Context, providerTypeId: String): String? {
-        val normalizedProviderTypeId = normalizeProviderTypeId(providerTypeId)
-        if (normalizedProviderTypeId.isBlank()) return null
-        val dir = "$LOGO_ROOT/$normalizedProviderTypeId"
+        if (providerTypeId.isBlank()) return null
+        val dir = "$LOGO_ROOT/$providerTypeId"
         return try {
             val files = context.assets.list(dir) ?: return null
             val file =
@@ -59,64 +56,18 @@ object ProviderLogoLoader {
     fun loadLogoBitmap(context: Context, providerTypeId: String, sizePx: Int): Bitmap? {
         val path = findLogoAssetPath(context, providerTypeId) ?: return null
         return try {
-            context.assets.open(path).use { input ->
-                LogoBitmapLoader.load(
-                    input = input,
-                    mimeType = null,
-                    fileName = path,
-                    sizePx = sizePx
-                )
-            }
-        } catch (_: Exception) {
-            null
-        }
-    }
-}
-
-object LogoBitmapLoader {
-    private val rasterExtensions = setOf("png", "jpg", "jpeg", "webp")
-    private val rasterMimeTypes = setOf("image/png", "image/jpeg", "image/webp")
-
-    fun load(
-        bytes: ByteArray,
-        mimeType: String?,
-        fileName: String?,
-        sizePx: Int
-    ): Bitmap? {
-        return bytes.inputStream().use { input ->
-            load(input = input, mimeType = mimeType, fileName = fileName, sizePx = sizePx)
-        }
-    }
-
-    fun load(
-        input: InputStream,
-        mimeType: String?,
-        fileName: String?,
-        sizePx: Int
-    ): Bitmap? {
-        require(sizePx > 0) { "Logo size must be positive" }
-        return try {
-            when {
-                isSvg(mimeType, fileName) -> renderSvgToBitmap(input, sizePx)
-                isRaster(mimeType, fileName) -> scaleBitmapToBitmap(input, sizePx)
-                else -> null
+            val input = context.assets.open(path)
+            if (path.endsWith(".svg", ignoreCase = true)) {
+                renderSvgToBitmap(input, sizePx)
+            } else {
+                scalePngToBitmap(input, sizePx)
             }
         } catch (_: Exception) {
             null
         }
     }
 
-    private fun isSvg(mimeType: String?, fileName: String?): Boolean {
-        return mimeType.equals("image/svg+xml", ignoreCase = true) ||
-            fileName.extension().equals("svg", ignoreCase = true)
-    }
-
-    private fun isRaster(mimeType: String?, fileName: String?): Boolean {
-        return mimeType?.trim()?.lowercase()?.let { it in rasterMimeTypes } == true ||
-            fileName.extension().lowercase() in rasterExtensions
-    }
-
-    private fun renderSvgToBitmap(input: InputStream, sizePx: Int): Bitmap? {
+    private fun renderSvgToBitmap(input: java.io.InputStream, sizePx: Int): Bitmap? {
         val svg = SVG.getFromInputStream(input)
         val viewWidth = if (svg.documentWidth > 0f) svg.documentWidth else 24f
         val viewHeight = if (svg.documentHeight > 0f) svg.documentHeight else 24f
@@ -130,12 +81,13 @@ object LogoBitmapLoader {
         val picture = svg.renderToPicture()
         val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        // 内容居中
         canvas.translate((sizePx - scaledWidth) / 2f, (sizePx - scaledHeight) / 2f)
         picture.draw(canvas)
         return bitmap
     }
 
-    private fun scaleBitmapToBitmap(input: InputStream, sizePx: Int): Bitmap? {
+    private fun scalePngToBitmap(input: java.io.InputStream, sizePx: Int): Bitmap? {
         val source = BitmapFactory.decodeStream(input) ?: return null
         if (source.width == sizePx && source.height == sizePx) return source
         val scale = sizePx / max(source.width, source.height).toFloat()
@@ -154,18 +106,14 @@ object LogoBitmapLoader {
             ),
             null
         )
-        source.recycle()
+        if (source != bitmap) source.recycle()
         return bitmap
-    }
-
-    private fun String?.extension(): String {
-        return this?.substringAfterLast('.', "").orEmpty()
     }
 }
 
 /**
  * 以 Compose Painter 形式获取 provider logo。
- * provider 无 logo 素材时返回 null，调用方显示默认图标或首字母色块。
+ * provider 无 logo 素材时返回 null，调用方可回退到默认图标/首字母色块。
  */
 @Composable
 fun rememberProviderLogoPainter(providerTypeId: String?, size: Dp = 24.dp): Painter? {
@@ -181,40 +129,6 @@ fun rememberProviderLogoPainter(providerTypeId: String?, size: Dp = 24.dp): Pain
                     withContext(Dispatchers.IO) {
                         ProviderLogoLoader.loadLogoBitmap(context, providerTypeId, sizePx)
                             ?.asImageBitmap()
-                    }
-                }
-        }
-    return bitmap?.let { BitmapPainter(it) }
-}
-
-@Composable
-fun rememberLogoPainter(
-    logoKey: Any?,
-    bytes: ByteArray?,
-    mimeType: String?,
-    fileName: String?,
-    size: Dp = 24.dp
-): Painter? {
-    val density = LocalDensity.current
-    val sizePx = with(density) { size.roundToPx() }
-    val bitmap by
-        produceState<ImageBitmap?>(
-            initialValue = null,
-            logoKey,
-            bytes?.contentHashCode(),
-            mimeType,
-            fileName,
-            sizePx
-        ) {
-            value =
-                bytes?.let {
-                    withContext(Dispatchers.IO) {
-                        LogoBitmapLoader.load(
-                            bytes = it,
-                            mimeType = mimeType,
-                            fileName = fileName,
-                            sizePx = sizePx
-                        )?.asImageBitmap()
                     }
                 }
         }

@@ -2862,6 +2862,7 @@
     <string name="functional_model_config_desc">Set separate model configurations for different functions, allowing each function to use the most suitable API settings.</string>
     <string name="manage_all_model_configs">Manage All Model Configurations</string>
     <string name="manage_model_configs_desc">Manage Model Configurations</string>
+    <string name="follow_chat_model_for_all_functions">Sync All Functions to Current Chat Model</string>
     <string name="reset_all_functions_to_default">Reset All Functions to Default Configuration</string>
     <string name="current_config_label">Current Configuration: %1$s</string>
     <string name="default_config">Default Configuration</string>
@@ -3226,7 +3227,7 @@
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
     <string name="thinking_quality">Thinking intensity</string>
-    <string name="thinking_quality_desc">Only effective in thinking mode. Available values follow the real mapping of the current model and provider.</string>
+    <string name="thinking_quality_desc">Only effective in thinking mode. GPT-5.6 models use five levels; other models retain the original four levels. Higher values use deeper reasoning.</string>
     <string name="model_config">Model Configuration</string>
     <string name="model_config_desc">Select a configured model here, or click Manage Configuration below to create or modify models</string>
     <string name="prompt">Prompt</string>
@@ -3703,7 +3704,6 @@
     <string name="token_stats_configuration_count">%1$d configurations</string>
     <string name="token_stats_model_expand">Expand or collapse details</string>
     <string name="token_stats_pricing_configuration">Configuration price</string>
-    <string name="token_stats_pricing_model">Model price</string>
     <string name="token_stats_price_label">Price</string>
     <string name="token_stats_unknown_pricing">Pricing unknown</string>
     <string name="token_stats_config_deleted">Deleted configuration</string>
@@ -4007,8 +4007,6 @@
     <string name="enable_direct_video_processing_desc">When enabled, video will be sent directly to the AI for processing instead of tool-based frame extraction/analysis</string>
     <string name="enable_google_search">Enable Google Search</string>
     <string name="enable_google_search_desc">When enabled, Gemini will use Google Search to enhance responses (may incur additional charges)</string>
-    <string name="enable_deepseek_web_search">Enable DeepSeek web search</string>
-    <string name="enable_deepseek_web_search_desc">Allow the DeepSeek Responses API to call its server-side web search tool.</string>
     <string name="enable_claude_1h_prompt_cache">Enable Claude 1-hour prompt cache</string>
     <string name="enable_claude_1h_prompt_cache_desc">When enabled, Claude and Claude-compatible providers use a 1-hour prompt cache TTL</string>
     <string name="enable_tool_call">Model supports ToolCall</string>
@@ -4031,7 +4029,6 @@
     <string name="auto_save_failed">Auto save failed</string>
     <!-- API Provider names -->
     <string name="provider_openai">OpenAI (GPT Series)</string>
-    <string name="provider_xai">SpaceXAI (Grok)</string>
     <string name="provider_openai_responses">OpenAI (Responses API)</string>
     <string name="provider_openai_responses_generic">OpenAI Responses (Generic)</string>
     <string name="provider_anthropic">Anthropic (Claude Series)</string>
@@ -4455,7 +4452,6 @@
 
     <!-- Model Configuration -->
     <string name="overseas_provider_warning">Detected that you are in mainland China but selected an overseas service provider. Please confirm whether you have enabled proxy tools</string>
-    <string name="international_proxy_provider_warning">This service routes requests through an international third-party proxy. Access from mainland China requires a proxy tool. Request data will be relayed by a third party; review your network environment, terms of service, and data compliance requirements.</string>
 
         <!-- Token Config WebView & URL Config Dialog -->
     <string name="custom_url_config">Custom URL Configuration</string>
@@ -7052,7 +7048,6 @@
     <string name="enhanced_processing_message">Processing message...</string>
     <string name="enhanced_connecting_service">Connecting to AI service...</string>
     <string name="enhanced_receiving_response">Receiving AI response...</string>
-    <string name="server_tool_running">Calling server-side tool: %1$s...</string>
     <string name="enhanced_error_with_message">Error: %1$s</string>
     <string name="enhanced_pure_thinking_only_warning">Warning: Please output main content and do not output thinking-only responses.</string>
     <string name="enhanced_truncated_tool_call_warning">Warning: A tool call was truncated by the model output limit. All tool calls in this round were invalidated and will not be executed. Try reducing single-turn output, splitting the task, or switching to a more suitable model/provider.</string>
@@ -8057,7 +8052,6 @@
     <string name="artifact_publish_published_name_readonly">The name of a published artifact cannot be modified</string>
     <string name="artifact_publish_locked_name_must_match_source">When publishing based on a version, the plugin name must match the source version</string>
     <string name="artifact_publish_published_version_readonly">The version number of a published node cannot be modified</string>
-    <string name="artifact_publish_toolpkg_version_readonly">ToolPkg publish version comes from the package manifest and cannot be edited before publishing</string>
     <string name="artifact_publish_save_artifact_info">Save artifact info</string>
     <string name="artifact_publish_publish_update_version">Publish update version</string>
     <string name="artifact_publish_confirm_save_artifact_info">Confirm save artifact info</string>
@@ -8117,8 +8111,10 @@
     <string name="artifact_publish_encrypt_market_toolpkg_title">Minify and Obfuscate for Publishing</string>
 
     <string name="market_manage_resubmit">Resubmit</string>
+    <string name="market_manage_revision_cooldown">Revision submission is cooling down after the review return. Please wait %1$s.</string>
     <string name="market_manage_resubmitting_title">Resubmitting</string>
     <string name="market_manage_resubmitting_message">Submitting review request, please wait…</string>
+    <string name="market_manage_resubmit_cooldown_message">This entry is in local cooldown. Remaining %1$s before resubmission.</string>
     <string name="market_manage_resubmit_rejected_blocked">This entry has been rejected and the client does not allow resubmission.</string>
     <string name="market_manage_resubmit_state_blocked">Only returned entries can be resubmitted.</string>
     <string name="market_manage_resubmit_confirm_title">Confirm resubmission?</string>
@@ -8127,6 +8123,7 @@
     <string name="market_manage_resubmit_last_reason">Return reason: %1$s</string>
     <string name="market_manage_review_detail">Review detail: %1$s</string>
     <string name="market_manage_review_dialog_title">Review Status</string>
+    <string name="market_manage_resubmit_confirm_warning">Please confirm that modifications have been made according to the return reason. After successful submission, resubmission is not allowed within 12 hours locally.</string>
     <string name="market_manage_resubmit_confirm_action">Confirm Submission</string>
     <string name="artifact_publish_encrypt_market_toolpkg_desc">When enabled, executable scripts in ToolPkg will undergo JS syntax tree compression. The compressed package remains a normal ZIP and can be imported directly.</string>
     <string name="artifact_publish_encrypt_market_toolpkg_confirmation">Compress and obfuscate release: %1$s</string>
@@ -8134,24 +8131,6 @@
     <string name="artifact_publish_asset_source_upload">Upload current local package</string>
     <string name="artifact_publish_asset_source_github_release">Reference GitHub Release asset</string>
     <string name="artifact_publish_asset_source_confirmation">Release asset source: %1$s</string>
-    <string name="artifact_publish_logo_title">Package Logo</string>
-    <string name="artifact_publish_logo_description">Choose an image for the package. Direct upload writes it into the published package; GitHub Release mode updates the market logo only.</string>
-    <string name="artifact_publish_logo_choose">Choose Logo</string>
-    <string name="artifact_publish_logo_use_package">Use Package Logo</string>
-    <string name="artifact_publish_logo_selected">Selected: %1$s</string>
-    <string name="artifact_publish_logo_from_package">Package logo: %1$s</string>
-    <string name="artifact_publish_logo_confirmation">Logo: %1$s</string>
-    <string name="artifact_publish_logo_preview">Logo preview</string>
-    <string name="artifact_publish_logo_invalid">Could not read the logo. Choose a valid SVG, PNG, JPEG, or WebP file.</string>
-    <string name="artifact_publish_logo_too_large">The logo file must be 512 KiB or smaller.</string>
-    <string name="artifact_publish_logo_market_preview">Preview Market Effect</string>
-    <string name="artifact_publish_logo_market_preview_title">Market Preview</string>
-    <string name="artifact_publish_logo_market_list">List</string>
-    <string name="artifact_publish_logo_market_detail">Details</string>
-    <string name="artifact_publish_logo_market_preview_action">Install Package (Preview)</string>
-    <string name="artifact_publish_logo_market_preview_account">Current account</string>
-    <string name="artifact_publish_logo_market_preview_untitled">Untitled package</string>
-    <string name="artifact_publish_logo_market_preview_empty_description">No description</string>
     <string name="artifact_publish_github_repository_url">Author GitHub repository link</string>
     <string name="artifact_publish_load_github_releases">Load Release</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
@@ -8263,32 +8242,5 @@
     <string name="token_stats_detail_close">Close</string>
     <string name="token_stats_detail_open">Tap to view details</string>
     <string name="markdown_link_not_openable">This link points to a reference inside the document and cannot be opened</string>
-    <string name="openai_file_omitted">File content omitted, current model does not support file processing</string>
 
-    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
-    <string name="onboarding_config_codex_login_required">Sign in to OpenAI Codex first</string>
-    <string name="codex_login_title">Sign in to OpenAI Codex</string>
-    <string name="codex_login_starting">Preparing Codex sign-in...</string>
-    <string name="codex_login_waiting">Complete sign-in in your browser</string>
-    <string name="codex_login_action">Sign in with ChatGPT</string>
-    <string name="codex_login_success">OpenAI Codex sign-in succeeded</string>
-    <string name="codex_login_failed">OpenAI Codex sign-in failed: %1$s</string>
-    <string name="codex_logout_action">Sign out of Codex</string>
-    <string name="codex_logout_success">Signed out of OpenAI Codex</string>
-    <string name="codex_auth_title">OpenAI Codex account</string>
-    <string name="codex_auth_not_logged_in">Sign in with ChatGPT to use Codex subscription access</string>
-    <string name="codex_auth_account">Account: %1$s</string>
-    <string name="codex_endpoint_fixed">The Codex endpoint is fixed by the system</string>
-    <string name="codex_plan">Plan: %1$s</string>
-    <string name="codex_direct_media_processing">Direct image/PDF input</string>
-    <string name="codex_direct_media_processing_desc">Send images and PDFs directly to Codex</string>
-    <string name="codex_quota_five_hour">Last 5 hours</string>
-    <string name="codex_quota_seven_day">Last 7 days</string>
-    <string name="codex_quota_remaining">%1$d%% remaining</string>
-    <string name="codex_quota_no_data">No data</string>
-    <string name="codex_usage_refresh">Refresh Codex usage</string>
-    <string name="codex_usage_unavailable">Usage is temporarily unavailable</string>
-    <string name="codex_reset_after_days">Resets in %1$d days</string>
-    <string name="codex_reset_after_clock">Resets in %1$02d:%2$02d</string>
-    <string name="conversation_media_file_link">&lt;link type=&quot;file&quot; id=&quot;%1$s&quot; filename=&quot;%2$s&quot;&gt;PDF&lt;/link&gt;</string>
 </resources>

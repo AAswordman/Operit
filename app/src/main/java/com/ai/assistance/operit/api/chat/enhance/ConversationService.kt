@@ -126,7 +126,7 @@ class ConversationService(
                 systemPrompt += "\n\n${customRules.trim()}"
             }
             val sanitizedMessages =
-                ChatUtils.stripOpenAiResponsesMetadataTurns(
+                ChatUtils.stripOpenAiResponsesReasoningMetaTurns(
                     ChatUtils.stripGeminiThoughtSignatureMetaTurns(messages)
                 )
 

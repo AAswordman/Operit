@@ -68,9 +68,6 @@ fun rememberRevisableTextStream(sourceStream: Stream<String>?): Stream<String>? 
                             displayStream = rollbackStream
                             previousOutputStream.resetReplayCache()
                         }
-
-                        TextStreamEventType.SERVER_TOOL_STARTED,
-                        TextStreamEventType.SERVER_TOOL_COMPLETED -> Unit
                     }
                 }
             }

@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Web
-import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,56 +33,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.ServerToolCallRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-
-/** 只读展示模型供应商在服务端执行的工具；不会进入本地工具执行或授权流程。 */
-@Composable
-fun ServerToolDisplay(
-    record: ServerToolCallRecord,
-    textColor: Color,
-    modifier: Modifier = Modifier,
-    enableDialog: Boolean = true,
-) {
-    val context = LocalContext.current
-    val toolName = record.toolType
-    val statusLabel =
-        when (record.status) {
-            "completed" -> context.getString(R.string.tools_completed)
-            "in_progress", "searching" -> context.getString(R.string.searching)
-            else -> record.status
-        }
-    val summary =
-        remember(record.actionSummary, statusLabel) {
-            listOf(record.actionSummary, statusLabel)
-                .filter { it.isNotBlank() }
-                .joinToString(" · ")
-        }
-    var showDetailDialog by remember { mutableStateOf(false) }
-
-    if (showDetailDialog && enableDialog) {
-        ContentDetailDialog(
-            title = "$toolName · ${context.getString(R.string.details)}",
-            content = record.rawJson,
-            icon = Icons.Outlined.Cloud,
-            onDismiss = { showDetailDialog = false },
-        )
-    }
-
-    CanvasToolSummaryRow(
-        toolName = toolName,
-        summary = summary,
-        semanticDescription = "Server tool · $toolName: $summary",
-        leadingIcon = Icons.Outlined.Cloud,
-        titleColor = MaterialTheme.colorScheme.primary,
-        summaryColor = textColor.copy(alpha = 0.7f),
-        modifier = modifier,
-        onClick = if (enableDialog) ({ showDetailDialog = true }) else null,
-    )
-}
 
 /** 简洁样式的工具调用显示组件 使用箭头图标+工具名+参数的简洁行样式 */
 @Composable

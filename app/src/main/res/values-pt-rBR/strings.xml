@@ -2510,6 +2510,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="functional_model_config_desc">Defina configurações de modelo separadas para funções diferentes para que cada função possa usar as configurações de API mais apropriadas.</string>
     <string name="manage_all_model_configs">Gerencie todas as configurações do modelo</string>
     <string name="manage_model_configs_desc">Gerenciar configuração do modelo</string>
+    <string name="follow_chat_model_for_all_functions">Sincronizar todas as funções com o modelo de conversa atual</string>
     <string name="reset_all_functions_to_default">Redefinir todas as funções para a configuração padrão</string>
     <string name="current_config_label">Configuração atual: %1$s</string>
     <string name="default_config">Configuração padrão</string>
@@ -2679,7 +2680,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="thinking_type_off">desligado</string>
     <string name="thinking_type_mode">modo</string>
     <string name="thinking_quality">grau de pensamento</string>
-    <string name="thinking_quality_desc">Eficaz apenas no modo de pensamento. Os valores disponíveis seguem o mapeamento real do modelo e do provedor atuais.</string>
+    <string name="thinking_quality_desc">Eficaz apenas no modo de pensamento. Os modelos GPT-5.6 usam cinco níveis; os demais mantêm os quatro níveis originais. Valores maiores usam raciocínio mais profundo.</string>
     <string name="model_config">Configuração do modelo</string>
     <string name="model_config_desc">Selecione um modelo já configurado aqui ou clique em Gerenciar configuração abaixo para criar ou modificar um modelo.</string>
     <string name="prompt">palavra alerta</string>
@@ -3330,8 +3331,6 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="enable_direct_video_processing_desc">Quando ativado, o vídeo será enviado diretamente para processamento de IA em vez de extração/análise de quadros pela ferramenta</string>
     <string name="enable_google_search">Ativar Pesquisa Google</string>
     <string name="enable_google_search_desc">Quando ativado, o Gemini usará a Pesquisa Google para aprimorar as respostas (podem ser aplicadas taxas adicionais)</string>
-    <string name="enable_deepseek_web_search">Ativar pesquisa web do DeepSeek</string>
-    <string name="enable_deepseek_web_search_desc">Permita que a API Responses do DeepSeek use a ferramenta de pesquisa web do servidor.</string>
     <string name="enable_claude_1h_prompt_cache">Ativar cache de prompt Claude de 1 hora</string>
     <string name="enable_claude_1h_prompt_cache_desc">Quando ativado, Claude e provedores compatíveis com Claude usarão TTL de cache de prompt de 1 hora</string>
     <string name="enable_tool_call">Modelo suporta ToolCall</string>
@@ -3355,7 +3354,6 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="model_name_multiple_hint">(Você pode separar vários modelos com vírgulas)</string>
     <string name="auto_save_failed">Falha no salvamento automático</string>
     <string name="provider_openai">OpenAI (série GPT)</string>
-    <string name="provider_xai">SpaceXAI (Grok)</string>
     <string name="provider_openai_responses">OpenAI (API de respostas)</string>
     <string name="provider_openai_responses_generic">Respostas OpenAIGeral</string>
     <string name="provider_anthropic">Antrópico (Série Claude)</string>
@@ -3427,7 +3425,6 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="parameter_value">Valor do parâmetro</string>
     <string name="parameter_range_format">Intervalo: %1$s - %2$s</string>
     <string name="overseas_provider_warning">Foi detectado que você está na China continental, mas escolheu um provedor de serviços estrangeiro. Por favor, confirme se a ferramenta proxy está habilitada</string>
-    <string name="international_proxy_provider_warning">Este serviço encaminha solicitações por meio de um proxy internacional de terceiros. O acesso a partir da China continental requer uma ferramenta de proxy. Os dados das solicitações serão retransmitidos por terceiros; verifique o ambiente de rede, os termos de serviço e os requisitos de conformidade de dados.</string>
     <string name="custom_parameter_added">Parâmetros personalizados foram adicionados</string>
     <string name="parameter_name">Nome do parâmetro</string>
     <string name="parameter_name_placeholder">Por exemplo: meus parâmetros</string>
@@ -6079,7 +6076,6 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="enhanced_processing_message">Processando mensagem...</string>
     <string name="enhanced_connecting_service">Conectando ao serviço de IA...</string>
     <string name="enhanced_receiving_response">Recebendo resposta de IA...</string>
-    <string name="server_tool_running">Chamando ferramenta do servidor: %1$s...</string>
     <string name="enhanced_error_with_message">Erro: %1$s</string>
     <string name="enhanced_pure_thinking_only_warning">Aviso: Por favor, produza o conteúdo do texto. É proibido produzir apenas o conteúdo pensante.</string>
     <string name="enhanced_truncated_tool_call_warning">Aviso: Saída de chamada de ferramenta truncada detectada. Todas as chamadas de ferramenta desta rodada foram invalidadas e não serão executadas. Tente reduzir a produção única, divida a tarefa ou tente novamente após mudar para um modelo/fornecedor mais adequado.</string>
@@ -7218,6 +7214,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="market_manage_resubmit">Reenviar</string>
     <string name="market_manage_resubmitting_title">Reenviando</string>
     <string name="market_manage_resubmitting_message">Enviando solicitação de revisão, aguarde…</string>
+    <string name="market_manage_resubmit_cooldown_message">Este item está em período de espera local. Restam %1$s antes de poder reenviar.</string>
     <string name="market_manage_resubmit_rejected_blocked">Este item foi rejeitado e o cliente não permite reenvio.</string>
     <string name="market_manage_resubmit_state_blocked">Apenas itens devolvidos podem ser reenviados.</string>
     <string name="market_manage_resubmit_confirm_title">Confirmar reenvio?</string>
@@ -7226,6 +7223,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="market_manage_resubmit_last_reason">Motivo da devolução: %1$s</string>
     <string name="market_manage_review_detail">Detalhes da revisão: %1$s</string>
     <string name="market_manage_review_dialog_title">Status da revisão</string>
+    <string name="market_manage_resubmit_confirm_warning">Confirme que as alterações foram feitas conforme o motivo da devolução. Após o envio bem-sucedido, não será possível reenviar por 12 horas localmente.</string>
     <string name="market_manage_resubmit_confirm_action">Confirmar envio</string>
     <string name="market_error_load_failed">Falha ao carregar</string>
     <string name="market_error_action_failed">Falha na operação</string>
@@ -7247,41 +7245,9 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="artifact_publish_asset_source_upload">Enviar pacote local atual</string>
     <string name="artifact_publish_asset_source_github_release">Referenciar ativo do GitHub Release</string>
     <string name="artifact_publish_asset_source_confirmation">Origem do recurso de publicação: %1$s</string>
-    <string name="artifact_publish_logo_title">Logo do pacote</string>
-    <string name="artifact_publish_logo_description">Escolha uma imagem para o pacote. O envio direto grava a imagem no pacote publicado; o modo GitHub Release atualiza apenas o logo do mercado.</string>
-    <string name="artifact_publish_logo_choose">Escolher logo</string>
-    <string name="artifact_publish_logo_use_package">Usar logo do pacote</string>
-    <string name="artifact_publish_logo_selected">Selecionado: %1$s</string>
-    <string name="artifact_publish_logo_from_package">Logo do pacote: %1$s</string>
-    <string name="artifact_publish_logo_confirmation">Logo: %1$s</string>
-    <string name="artifact_publish_logo_preview">Prévia do logo</string>
-    <string name="artifact_publish_logo_invalid">Não foi possível ler o logo. Escolha um arquivo SVG, PNG, JPEG ou WebP válido.</string>
-    <string name="artifact_publish_logo_too_large">O arquivo do logo deve ter no máximo 512 KiB.</string>
-    <string name="artifact_publish_logo_market_preview">Visualizar efeito no mercado</string>
-    <string name="artifact_publish_logo_market_preview_title">Prévia do mercado</string>
-    <string name="artifact_publish_logo_market_list">Lista</string>
-    <string name="artifact_publish_logo_market_detail">Detalhes</string>
-    <string name="artifact_publish_logo_market_preview_action">Instalar pacote (prévia)</string>
-    <string name="artifact_publish_logo_market_preview_account">Conta atual</string>
-    <string name="artifact_publish_logo_market_preview_untitled">Pacote sem nome</string>
-    <string name="artifact_publish_logo_market_preview_empty_description">Sem descrição</string>
     <string name="artifact_publish_github_repository_url">Link do repositório GitHub do autor</string>
     <string name="artifact_publish_load_github_releases">Carregar Releases</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Ativo do Release</string>
     <string name="markdown_link_not_openable">Este link aponta para uma referência dentro do documento e não pode ser aberto</string>
-    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
-    <string name="onboarding_config_codex_login_required">Faça login no OpenAI Codex primeiro</string>
-    <string name="codex_login_title">Login no OpenAI Codex</string>
-    <string name="codex_login_starting">Preparando o login do Codex...</string>
-    <string name="codex_login_waiting">Conclua o login no navegador</string>
-    <string name="codex_login_action">Entrar com ChatGPT</string>
-    <string name="codex_login_success">Login do OpenAI Codex concluído</string>
-    <string name="codex_login_failed">Falha no login do OpenAI Codex: %1$s</string>
-    <string name="codex_logout_action">Sair do Codex</string>
-    <string name="codex_logout_success">Você saiu do OpenAI Codex</string>
-    <string name="codex_auth_title">Conta OpenAI Codex</string>
-    <string name="codex_auth_not_logged_in">Entre com o ChatGPT para usar o acesso de assinatura do Codex</string>
-    <string name="codex_auth_account">Conta: %1$s</string>
-    <string name="codex_endpoint_fixed">O endpoint do Codex é fixado pelo sistema</string>
 </resources>

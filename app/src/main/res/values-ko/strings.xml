@@ -2607,6 +2607,7 @@
     <string name="functional_model_config_desc">각 기능에 대해 별도의 모델 구성을 설정하여 각 기능이 가장 적합한 API 설정을 사용할 수 있도록 합니다.</string>
     <string name="manage_all_model_configs">모든 모델 구성 관리</string>
     <string name="manage_model_configs_desc">모델 구성 관리</string>
+    <string name="follow_chat_model_for_all_functions">모든 기능을 현재 대화 모델에 맞추기</string>
     <string name="reset_all_functions_to_default">모든 기능을 기본 구성으로 재설정</string>
     <string name="current_config_label">현재 구성: %1$s</string>
     <string name="default_config">기본 구성</string>
@@ -2776,7 +2777,7 @@
     <string name="thinking_type_off">꺼짐</string>
     <string name="thinking_type_mode">모드</string>
     <string name="thinking_quality">사고 강도</string>
-    <string name="thinking_quality_desc">사고 모드에서만 적용됩니다. 사용 가능한 값은 현재 모델과 제공업체의 실제 매핑을 따릅니다.</string>
+    <string name="thinking_quality_desc">사고 모드에서만 적용됩니다. GPT-5.6 모델은 5단계를 사용하고 다른 모델은 기존 4단계를 유지합니다. 값이 높을수록 추론이 더 깊어집니다.</string>
     <string name="model_config">모델 구성</string>
     <string name="model_config_desc">여기에서 구성된 모델을 선택하거나 아래의 구성 관리를 클릭하여 모델을 생성 또는 수정합니다.</string>
     <string name="prompt">프롬프트</string>
@@ -3469,8 +3470,6 @@
     <string name="enable_direct_video_processing_desc">활성화되면 도구 기반 프레임 추출/분석 대신 처리를 위해 비디오가 AI로 직접 전송됩니다.</string>
     <string name="enable_google_search">Google 검색 활성화</string>
     <string name="enable_google_search_desc">활성화하면 Gemini는 Google 검색을 사용하여 응답을 향상합니다(추가 비용이 발생할 수 있음).</string>
-    <string name="enable_deepseek_web_search">DeepSeek 웹 검색 활성화</string>
-    <string name="enable_deepseek_web_search_desc">DeepSeek Responses API가 서버 웹 검색 도구를 호출하도록 허용합니다.</string>
     <string name="enable_claude_1h_prompt_cache">Claude 1시간 프롬프트 캐시 활성화</string>
     <string name="enable_claude_1h_prompt_cache_desc">활성화되면 Claude 및 Claude 호환 제공자는 1시간 프롬프트 캐시 TTL을 사용합니다.</string>
     <string name="enable_tool_call">ToolCall을 지원하는 모델</string>
@@ -3494,7 +3493,6 @@
     <string name="model_name_multiple_hint"> (쉼표로 여러 모델을 구분할 수 있음)</string>
     <string name="auto_save_failed">자동 저장 실패</string>
     <string name="provider_openai">OpenAI(GPT 시리즈)</string>
-    <string name="provider_xai">SpaceXAI (Grok)</string>
     <string name="provider_openai_responses">OpenAI(Responses API)</string>
     <string name="provider_openai_responses_generic">OpenAI Responses(일반)</string>
     <string name="provider_anthropic">Anthropic(Claude 시리즈)</string>
@@ -3569,7 +3567,6 @@
     <string name="parameter_value">매개변수 값</string>
     <string name="parameter_range_format">범위: %1$s - %2$s</string>
     <string name="overseas_provider_warning">귀하가 중국 본토에 있는 것으로 감지되었지만 해외 서비스 제공업체를 선택했습니다. 프록시 도구를 활성화했는지 확인하세요.</string>
-    <string name="international_proxy_provider_warning">이 서비스는 국제 제3자 프록시를 통해 요청을 중계합니다. 중국 본토에서 접속하려면 프록시 도구가 필요합니다. 요청 데이터가 제3자를 통해 전달되므로 네트워크 환경, 서비스 약관 및 데이터 규정 준수 요건을 확인하세요.</string>
     <string name="custom_parameter_added">맞춤 매개변수 추가됨</string>
     <string name="parameter_name">매개변수 이름</string>
     <string name="parameter_name_placeholder">예: 내 매개변수</string>
@@ -6521,7 +6518,6 @@
     <string name="enhanced_processing_message">메시지 처리 중...</string>
     <string name="enhanced_connecting_service">AI 서비스에 연결하는 중...</string>
     <string name="enhanced_receiving_response">AI 응답을 받는 중...</string>
-    <string name="server_tool_running">서버 도구 호출 중: %1$s...</string>
     <string name="enhanced_error_with_message">오류: %1$s</string>
     <string name="enhanced_pure_thinking_only_warning">경고: 주요 내용을 출력하고 생각만 하는 응답은 출력하지 마십시오.</string>
     <string name="enhanced_truncated_tool_call_warning">경고: 모델 출력 제한으로 인해 도구 호출이 잘렸습니다. 이번 라운드의 모든 도구 호출이 무효화되어 실행되지 않습니다. 단일 회전 출력을 줄이거나, 작업을 분할하거나, 더 적합한 모델/공급업체로 전환해 보세요.</string>
@@ -7227,6 +7223,7 @@
     <string name="market_manage_resubmit">재제출</string>
     <string name="market_manage_resubmitting_title">재제출 중</string>
     <string name="market_manage_resubmitting_message">심사 요청을 제출하는 중입니다. 잠시 기다려 주십시오...</string>
+    <string name="market_manage_resubmit_cooldown_message">이 항목이 로컬 쿨다운 기간에 진입했습니다. %1$s 후에 다시 제출할 수 있습니다.</string>
     <string name="market_manage_resubmit_rejected_blocked">이 항목이 거부되었으며, 클라이언트에서 다시 제출할 수 없습니다.</string>
     <string name="market_manage_resubmit_state_blocked">반려된 항목만 다시 제출할 수 있습니다.</string>
     <string name="market_manage_resubmit_confirm_title">재제출하시겠습니까?</string>
@@ -7235,6 +7232,7 @@
     <string name="market_manage_resubmit_last_reason">반려 사유: %1$s</string>
     <string name="market_manage_review_detail">검토 세부사항: %1$s</string>
     <string name="market_manage_review_dialog_title">심사 상태</string>
+    <string name="market_manage_resubmit_confirm_warning">반려 사유에 따라 수정을 완료했는지 확인하십시오. 제출 성공 후 12시간 이내에 다시 제출할 수 없습니다.</string>
     <string name="market_manage_resubmit_confirm_action">제출 확인</string>
     <string name="market_error_load_failed">로드 실패</string>
     <string name="market_error_action_failed">작업 실패</string>
@@ -7256,41 +7254,9 @@
     <string name="artifact_publish_asset_source_upload">현재 로컬 패키지 업로드</string>
     <string name="artifact_publish_asset_source_github_release">GitHub Release 자산 참조</string>
     <string name="artifact_publish_asset_source_confirmation">출시 리소스 출처: %1$s</string>
-    <string name="artifact_publish_logo_title">패키지 로고</string>
-    <string name="artifact_publish_logo_description">패키지에 사용할 이미지를 선택합니다. 직접 업로드 모드에서는 게시 패키지에 포함되고, GitHub Release 모드에서는 마켓 로고만 변경됩니다.</string>
-    <string name="artifact_publish_logo_choose">로고 선택</string>
-    <string name="artifact_publish_logo_use_package">패키지 로고 사용</string>
-    <string name="artifact_publish_logo_selected">선택됨: %1$s</string>
-    <string name="artifact_publish_logo_from_package">패키지 로고: %1$s</string>
-    <string name="artifact_publish_logo_confirmation">로고: %1$s</string>
-    <string name="artifact_publish_logo_preview">로고 미리보기</string>
-    <string name="artifact_publish_logo_invalid">로고를 읽을 수 없습니다. 올바른 SVG, PNG, JPEG 또는 WebP 파일을 선택하세요.</string>
-    <string name="artifact_publish_logo_too_large">로고 파일은 512KiB 이하여야 합니다.</string>
-    <string name="artifact_publish_logo_market_preview">마켓 효과 미리보기</string>
-    <string name="artifact_publish_logo_market_preview_title">마켓 미리보기</string>
-    <string name="artifact_publish_logo_market_list">목록</string>
-    <string name="artifact_publish_logo_market_detail">상세</string>
-    <string name="artifact_publish_logo_market_preview_action">패키지 설치 (미리보기)</string>
-    <string name="artifact_publish_logo_market_preview_account">현재 계정</string>
-    <string name="artifact_publish_logo_market_preview_untitled">이름 없는 패키지</string>
-    <string name="artifact_publish_logo_market_preview_empty_description">설명 없음</string>
     <string name="artifact_publish_github_repository_url">작성자 GitHub 저장소 링크</string>
     <string name="artifact_publish_load_github_releases">Release 로드</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Release 자산</string>
     <string name="markdown_link_not_openable">이 링크는 문서 내부의 참조를 가리켜서 열 수 없습니다</string>
-    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
-    <string name="onboarding_config_codex_login_required">먼저 OpenAI Codex에 로그인하세요</string>
-    <string name="codex_login_title">OpenAI Codex 로그인</string>
-    <string name="codex_login_starting">Codex 로그인을 준비하는 중...</string>
-    <string name="codex_login_waiting">브라우저에서 로그인을 완료하세요</string>
-    <string name="codex_login_action">ChatGPT로 로그인</string>
-    <string name="codex_login_success">OpenAI Codex 로그인 성공</string>
-    <string name="codex_login_failed">OpenAI Codex 로그인 실패: %1$s</string>
-    <string name="codex_logout_action">Codex 로그아웃</string>
-    <string name="codex_logout_success">OpenAI Codex에서 로그아웃했습니다</string>
-    <string name="codex_auth_title">OpenAI Codex 계정</string>
-    <string name="codex_auth_not_logged_in">ChatGPT로 로그인하여 Codex 구독 액세스를 사용하세요</string>
-    <string name="codex_auth_account">계정: %1$s</string>
-    <string name="codex_endpoint_fixed">Codex endpoint는 시스템에서 고정됩니다</string>
 </resources>

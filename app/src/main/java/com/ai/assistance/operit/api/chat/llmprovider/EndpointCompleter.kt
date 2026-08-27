@@ -3,36 +3,10 @@ package com.ai.assistance.operit.api.chat.llmprovider
 import com.ai.assistance.operit.data.model.ApiProviderType
 import java.net.URL
 
-/** DeepSeek 的请求协议由用户配置的端点路径决定，不写入模型配置。 */
-enum class DeepSeekApiProtocol {
-    CHAT_COMPLETIONS,
-    RESPONSES
-}
-
 /**
  * 用于自动补全API端点URL的工具类。
  */
 object EndpointCompleter {
-
-    /**
-     * 根据端点路径解析 DeepSeek 请求协议。
-     *
-     * 只有以 `/responses` 结尾的端点使用 Responses，其余端点（包括旧版 Chat
-     * Completions 端点、根端点和 `/v1` 端点）都保持 Chat Completions。该判定只
-     * 用于当前运行时，不会改写或持久化用户输入。
-     */
-    fun resolveDeepSeekProtocol(endpoint: String): DeepSeekApiProtocol {
-        val path = endpoint
-            .trim()
-            .removeSuffix("#")
-            .substringBefore('?')
-            .substringBefore('#')
-        return if (path.removeSuffix("/").endsWith("/responses", ignoreCase = true)) {
-            DeepSeekApiProtocol.RESPONSES
-        } else {
-            DeepSeekApiProtocol.CHAT_COMPLETIONS
-        }
-    }
 
     /**
      * 为类似OpenAI的服务自动补全API端点URL。
@@ -111,10 +85,6 @@ object EndpointCompleter {
             ApiProviderType.OPENAI_RESPONSES,
             ApiProviderType.OPENAI_RESPONSES_GENERIC -> {
                 return completeResponsesEndpoint(endpoint)
-            }
-
-            ApiProviderType.OPENAI_CODEX -> {
-                return endpoint
             }
 
             ApiProviderType.ANTHROPIC,

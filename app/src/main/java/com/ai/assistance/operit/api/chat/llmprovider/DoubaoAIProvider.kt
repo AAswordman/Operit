@@ -1,10 +1,12 @@
 package com.ai.assistance.operit.api.chat.llmprovider
+
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
-import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 /**
@@ -17,13 +19,11 @@ class DoubaoAIProvider(
     modelName: String,
     client: OkHttpClient,
     customHeaders: Map<String, String> = emptyMap(),
-    private val providerType: ApiProviderType = ApiProviderType.DOUBAO,
+    providerType: com.ai.assistance.operit.data.model.ApiProviderType = com.ai.assistance.operit.data.model.ApiProviderType.DOUBAO,
     supportsVision: Boolean = false,
     supportsAudio: Boolean = false,
     supportsVideo: Boolean = false,
-    enableToolCall: Boolean = false,
-    thinkingConfigurations: String = "",
-    thinkingOptionId: String = ""
+    enableToolCall: Boolean = false
 ) : OpenAIProvider(
         apiEndpoint = apiEndpoint,
         apiKeyProvider = apiKeyProvider,
@@ -34,9 +34,7 @@ class DoubaoAIProvider(
         supportsVision = supportsVision,
         supportsAudio = supportsAudio,
         supportsVideo = supportsVideo,
-        enableToolCall = enableToolCall,
-        thinkingConfigurations = thinkingConfigurations,
-        thinkingOptionId = thinkingOptionId
+        enableToolCall = enableToolCall
     ) {
 
     /**
@@ -56,17 +54,20 @@ class DoubaoAIProvider(
         val baseRequestBodyJson = super.createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
         val jsonObject = JSONObject(baseRequestBodyJson)
 
-        ThinkingConfigurationApplier.apply(
-            context = context,
-            requestJson = jsonObject,
-            providerTypeId = providerType.name,
-            modelName = modelName,
-            apiEndpoint = "",
-            thinkingConfigurations = thinkingConfigurations,
-            enableThinking = enableThinking,
-            optionId = thinkingOptionId,
-        )
+        // 豆包思考模式显式传参，避免依赖服务端默认值
+        val thinkingType = if (enableThinking) "enabled" else "disabled"
+        val thinkingObject = JSONObject().put("type", thinkingType)
+        jsonObject.put("thinking", thinkingObject)
+        AppLogger.d("DoubaoAIProvider", "已为豆包模型设置思考模式: $thinkingType")
 
+        // 记录最终的请求体（省略过长的tools字段）
+        val logJson = JSONObject(jsonObject.toString())
+        if (logJson.has("tools")) {
+            val toolsArray = logJson.getJSONArray("tools")
+            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
+        }
+        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
+        // 使用更新后的JSONObject创建新的RequestBody
         return createJsonRequestBody(jsonObject.toString())
     }
 }

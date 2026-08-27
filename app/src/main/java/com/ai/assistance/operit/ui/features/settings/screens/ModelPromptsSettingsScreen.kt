@@ -591,6 +591,12 @@ fun ModelPromptsSettingsScreen(
     var deletingTagId by remember { mutableStateOf("") }
     var deletingTagName by remember { mutableStateOf("") }
 
+    // 初始化
+    LaunchedEffect(Unit) {
+        characterCardManager.initializeIfNeeded()
+        characterGroupCardManager.initializeIfNeeded()
+    }
+
     // 获取所有角色卡
     var allCharacterCards by remember { mutableStateOf(emptyList<CharacterCard>()) }
     LaunchedEffect(characterCardList, refreshTrigger) {

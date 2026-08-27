@@ -25,13 +25,11 @@ open class KimiProvider(
     modelName: String,
     client: OkHttpClient,
     customHeaders: Map<String, String> = emptyMap(),
-    private val providerType: ApiProviderType = ApiProviderType.MOONSHOT,
+    providerType: ApiProviderType = ApiProviderType.MOONSHOT,
     supportsVision: Boolean = false,
     supportsAudio: Boolean = false,
     supportsVideo: Boolean = false,
-    enableToolCall: Boolean = false,
-    thinkingConfigurations: String = "",
-    thinkingOptionId: String = ""
+    enableToolCall: Boolean = false
 ) : OpenAIProvider(
     apiEndpoint = apiEndpoint,
     apiKeyProvider = apiKeyProvider,
@@ -43,8 +41,6 @@ open class KimiProvider(
     supportsAudio = supportsAudio,
     supportsVideo = supportsVideo,
     enableToolCall = enableToolCall,
-        thinkingConfigurations = thinkingConfigurations,
-        thinkingOptionId = thinkingOptionId
 ) {
 
     override fun createRequestBody(
@@ -57,15 +53,11 @@ open class KimiProvider(
         preserveThinkInHistory: Boolean
     ): RequestBody {
         fun applyThinkingParams(jsonObject: JSONObject) {
-            ThinkingConfigurationApplier.apply(
-                context = context,
-                requestJson = jsonObject,
-                providerTypeId = providerType.name,
-                modelName = modelName,
-                apiEndpoint = "",
-                thinkingConfigurations = thinkingConfigurations,
-                enableThinking = enableThinking,
-                optionId = thinkingOptionId,
+            jsonObject.put(
+                "thinking",
+                JSONObject().apply {
+                    put("type", if (enableThinking) "enabled" else "disabled")
+                }
             )
         }
 
@@ -213,7 +205,7 @@ open class KimiProvider(
                     put("role", "assistant")
                     put("reasoning_content", queuedAssistantReasoning.orEmpty())
                     if (!queuedAssistantToolText.isNullOrBlank()) {
-                        put("content", buildContentField(context, queuedAssistantToolText!!, role = "assistant"))
+                        put("content", buildContentField(context, queuedAssistantToolText!!))
                     } else {
                         put("content", null)
                     }
@@ -258,7 +250,7 @@ open class KimiProvider(
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "system")
-                                    put("content", buildContentField(context, originalContent, role = "system"))
+                                    put("content", buildContentField(context, originalContent))
                                 }
                             )
                         }
@@ -295,7 +287,7 @@ open class KimiProvider(
                                     JSONObject().apply {
                                         put("role", "assistant")
                                         put("reasoning_content", reasoningContent)
-                                        put("content", buildContentField(context, content.ifBlank { "[Empty]" }, role = "assistant"))
+                                        put("content", buildContentField(context, content.ifBlank { "[Empty]" }))
                                     }
                                 )
                             }
@@ -321,7 +313,7 @@ open class KimiProvider(
                                     JSONObject().apply {
                                         put("role", "assistant")
                                         put("reasoning_content", "")
-                                        put("content", buildContentField(context, originalContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                        put("content", buildContentField(context, originalContent.ifBlank { "[Empty]" }))
                                     }
                                 )
                             }
@@ -386,7 +378,7 @@ open class KimiProvider(
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "system")
-                                    put("content", buildContentField(context, originalContent, role = "system"))
+                                    put("content", buildContentField(context, originalContent))
                                 }
                             )
                         }
@@ -408,7 +400,7 @@ open class KimiProvider(
                                 JSONObject().apply {
                                     put("role", "assistant")
                                     put("reasoning_content", reasoningContent)
-                                    put("content", buildContentField(context, content.ifBlank { "[Empty]" }, role = "assistant"))
+                                    put("content", buildContentField(context, content.ifBlank { "[Empty]" }))
                                 }
                             )
                         }
@@ -418,7 +410,7 @@ open class KimiProvider(
                                 JSONObject().apply {
                                     put("role", "assistant")
                                     put("reasoning_content", "")
-                                    put("content", buildContentField(context, originalContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                    put("content", buildContentField(context, originalContent.ifBlank { "[Empty]" }))
                                 }
                             )
                         }

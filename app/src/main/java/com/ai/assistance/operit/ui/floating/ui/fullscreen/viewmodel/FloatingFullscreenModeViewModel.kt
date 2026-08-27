@@ -609,6 +609,8 @@ class FloatingFullscreenModeViewModel(
     private suspend fun maybeAutoAttachByKeyword(text: String) {
         if (text.isBlank()) return
 
+        wakePrefs.migrateVoiceAutoAttachItemsIfNeeded()
+
         val enabled = wakePrefs.voiceAutoAttachEnabledFlow.first()
         if (!enabled) return
 

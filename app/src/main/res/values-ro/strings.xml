@@ -2905,6 +2905,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="functional_model_config_desc">Configurarea unor setări separate pentru fiecare funcție, astfel încât fiecare funcție să poată utiliza cea mai potrivităAPISetări.</string>
     <string name="manage_all_model_configs">Gestionarea tuturor configurațiilor modelelor</string>
     <string name="manage_model_configs_desc">Configurarea modelului de gestionare</string>
+    <string name="follow_chat_model_for_all_functions">Sincronizarea tuturor funcțiilor cu modelul de conversație curent</string>
     <string name="reset_all_functions_to_default">Resetarea tuturor funcțiilor la setările implicite</string>
     <string name="current_config_label">Configurația actuală: %1$s</string>
     <string name="default_config">Configurația implicită</string>
@@ -3094,7 +3095,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
     <string name="thinking_quality">Nivelul de reflecție</string>
-    <string name="thinking_quality_desc">Se aplică numai în modul de gândire. Valorile disponibile urmează maparea reală a modelului și furnizorului curent.</string>
+    <string name="thinking_quality_desc">Se aplică numai în modul de gândire.GPT-5.6 Utilizarea în serie 5 fișier, celelalte modele rămân neschimbate 4 Nivel; cu cât valoarea este mai mare, cu atât gândirea este mai profundă.</string>
     <string name="model_config">Configurarea modelului</string>
     <string name="model_config_desc">Alegeți aici un model deja configurat sau faceți clic pe „Gestionare configurații” de mai jos pentru a crea sau modifica un model</string>
     <string name="prompt">Cuvânt-cheie</string>
@@ -3843,8 +3844,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="enable_direct_video_processing_desc">După activare, videoclipul va fi trimis direct cătreAIPrelucrare, nu extragerea cadrelor cu ajutorul unor instrumente/Analiză</string>
     <string name="enable_google_search">Activare Google Search</string>
     <string name="enable_google_search_desc">După activare,Gemini Se va utiliza Google Căutare pentru a îmbunătăți răspunsul (pot apărea costuri suplimentare)</string>
-    <string name="enable_deepseek_web_search">Activare căutare web DeepSeek</string>
-    <string name="enable_deepseek_web_search_desc">Permiteți API-ului Responses DeepSeek să apeleze instrumentul de căutare web al serverului.</string>
     <string name="enable_claude_1h_prompt_cache">Activare Claude 1 Cache pentru alerte orare</string>
     <string name="enable_claude_1h_prompt_cache_desc">După activare,Claude și Claude Cache-ul de sugestii compatibil cu furnizorul TTL Se va utiliza 1 oră</string>
     <string name="enable_tool_call">Suport pentru modeleToolCall</string>
@@ -3869,7 +3868,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="auto_save_failed">Salvarea automată a eșuat</string>
     <!-- API Provider names -->
     <string name="provider_openai">OpenAI (GPTSerie)</string>
-    <string name="provider_xai">SpaceXAI (Grok)</string>
     <string name="provider_openai_responses">OpenAI (Responses API)</string>
     <string name="provider_openai_responses_generic">OpenAI ResponsesGeneralități</string>
     <string name="provider_anthropic">Anthropic (ClaudeSerie)</string>
@@ -3945,7 +3943,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="parameter_value">Valorile parametrilor</string>
     <string name="parameter_range_format">Domeniu de aplicare: %1$s - %2$s</string>
     <string name="overseas_provider_warning">S-a detectat că vă aflați în China continentală, dar ați selectat un furnizor de servicii din străinătate. Vă rugăm să verificați dacă ați activat instrumentul de proxy.</string>
-    <string name="international_proxy_provider_warning">Acest serviciu direcționează solicitările printr-un proxy internațional terț. Accesul din China continentală necesită un instrument proxy. Datele solicitărilor vor fi retransmise de o terță parte; verificați mediul de rețea, termenii serviciului și cerințele de conformitate a datelor.</string>
 
     <!-- 自定义参数对话框 -->
     <string name="custom_parameter_added">Au fost adăugate parametri personalizați</string>
@@ -4313,6 +4310,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="market_manage_resubmit">Trimite din nou</string>
     <string name="market_manage_resubmitting_title">Se trimite din nou</string>
     <string name="market_manage_resubmitting_message">Se trimite cererea de verificare, vă rugăm să așteptați puțin…</string>
+    <string name="market_manage_resubmit_cooldown_message">Această intrare a intrat în perioada de răcire locală, rămânând %1$s Abia apoi îl puteți trimite din nou.</string>
     <string name="market_manage_resubmit_rejected_blocked">Această intrare a fost respinsă; clientul nu are permisiunea să o trimită din nou.</string>
     <string name="market_manage_resubmit_state_blocked">Numai înregistrările respinse pot fi retrimise.</string>
     <string name="market_manage_resubmit_confirm_title">Doriți să confirmați retrimiterea?</string>
@@ -4321,6 +4319,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="market_manage_resubmit_last_reason">Motivul respingerii:%1$s</string>
     <string name="market_manage_review_detail">Detalii privind evaluarea: %1$s</string>
     <string name="market_manage_review_dialog_title">Starea verificării</string>
+    <string name="market_manage_resubmit_confirm_warning">Vă rugăm să vă asigurați că ați efectuat modificările în conformitate cu motivul respingerii. După trimiterea cu succes, la nivel local 12 Nu se poate trimite din nou în decurs de o oră.</string>
     <string name="market_manage_resubmit_confirm_action">Confirmare trimitere</string>
     <string name="market_error_load_failed">Încărcarea a eșuat</string>
     <string name="market_error_action_failed">Operațiunea a eșuat</string>
@@ -4349,24 +4348,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="artifact_publish_asset_source_upload">Încărcarea pachetului local curent</string>
     <string name="artifact_publish_asset_source_github_release">Citat GitHub Release Active</string>
     <string name="artifact_publish_asset_source_confirmation">Sursa resurselor publicate: %1$s</string>
-    <string name="artifact_publish_logo_title">Sigla pachetului</string>
-    <string name="artifact_publish_logo_description">Alege o imagine pentru pachet. Încărcarea directă o scrie în pachetul publicat; modul GitHub Release actualizează doar sigla din magazin.</string>
-    <string name="artifact_publish_logo_choose">Alege sigla</string>
-    <string name="artifact_publish_logo_use_package">Folosește sigla pachetului</string>
-    <string name="artifact_publish_logo_selected">Selectat: %1$s</string>
-    <string name="artifact_publish_logo_from_package">Sigla pachetului: %1$s</string>
-    <string name="artifact_publish_logo_confirmation">Siglă: %1$s</string>
-    <string name="artifact_publish_logo_preview">Previzualizare siglă</string>
-    <string name="artifact_publish_logo_invalid">Sigla nu poate fi citită. Alege un fișier SVG, PNG, JPEG sau WebP valid.</string>
-    <string name="artifact_publish_logo_too_large">Fișierul siglei trebuie să aibă cel mult 512 KiB.</string>
-    <string name="artifact_publish_logo_market_preview">Previzualizare efect în piață</string>
-    <string name="artifact_publish_logo_market_preview_title">Previzualizare piață</string>
-    <string name="artifact_publish_logo_market_list">Listă</string>
-    <string name="artifact_publish_logo_market_detail">Detalii</string>
-    <string name="artifact_publish_logo_market_preview_action">Instalează pachetul (previzualizare)</string>
-    <string name="artifact_publish_logo_market_preview_account">Contul curent</string>
-    <string name="artifact_publish_logo_market_preview_untitled">Pachet fără nume</string>
-    <string name="artifact_publish_logo_market_preview_empty_description">Fără descriere</string>
     <string name="artifact_publish_github_repository_url">Autorul GitHub Link către depozit</string>
     <string name="artifact_publish_load_github_releases">Se încarcă Release</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
@@ -7428,7 +7409,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="enhanced_processing_message">Se procesează mesajul...</string>
     <string name="enhanced_connecting_service">Se conecteazăAIServicii...</string>
     <string name="enhanced_receiving_response">Se recepționeazăAIRăspuns...</string>
-    <string name="server_tool_running">Se apelează instrumentul de pe server: %1$s...</string>
     <string name="enhanced_error_with_message">Eroare: %1$s</string>
     <string name="enhanced_pure_thinking_only_warning">Avertisment: Vă rugăm să introduceți conținutul principal; nu este permisă introducerea exclusivă a gândurilor personale.</string>
     <string name="enhanced_truncated_tool_call_warning">Avertisment: s-a detectat că ieșirea apelurilor de instrumente a fost trunchiată. Toate apelurile de instrumente din această rundă au fost anulate și nu vor fi executate. Vă rugăm să încercați să reduceți ieșirea pe apel, să împărțiți sarcina sau să utilizați un model mai adecvat./Încercați din nou după ce ați selectat furnizorul.</string>
@@ -8027,18 +8007,4 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="notification_kind_entry_curated">Selectat în selecția de top</string>
     <string name="markdown_link_not_openable">Acest link indică o referință din interiorul documentului și nu poate fi deschis</string>
 
-    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
-    <string name="onboarding_config_codex_login_required">Conectați-vă mai întâi la OpenAI Codex</string>
-    <string name="codex_login_title">Conectare OpenAI Codex</string>
-    <string name="codex_login_starting">Se pregătește conectarea Codex...</string>
-    <string name="codex_login_waiting">Finalizați conectarea în browser</string>
-    <string name="codex_login_action">Conectare cu ChatGPT</string>
-    <string name="codex_login_success">Conectarea OpenAI Codex a reușit</string>
-    <string name="codex_login_failed">Conectarea OpenAI Codex a eșuat: %1$s</string>
-    <string name="codex_logout_action">Deconectare Codex</string>
-    <string name="codex_logout_success">Deconectat de la OpenAI Codex</string>
-    <string name="codex_auth_title">Cont OpenAI Codex</string>
-    <string name="codex_auth_not_logged_in">Conectați-vă cu ChatGPT pentru a folosi accesul Codex inclus în abonament</string>
-    <string name="codex_auth_account">Cont: %1$s</string>
-    <string name="codex_endpoint_fixed">Endpointul Codex este fixat de sistem</string>
 </resources>

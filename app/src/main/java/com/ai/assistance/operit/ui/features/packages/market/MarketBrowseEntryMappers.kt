@@ -43,7 +43,6 @@ fun MarketV2Entry.toUnifiedMarketBrowseEntry(
             MarketBrowseCardModel(
                 title = title,
                 description = detail.ifBlank { description }.truncateMarketBrowseDescription(),
-                logoUrl = logoUrl,
                 ownerUsername = publisherLogin(),
                 thumbsUpCount = likeCount(),
                 heartCount = 0,

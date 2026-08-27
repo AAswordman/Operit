@@ -13,9 +13,7 @@ class FourRouterProvider(
     supportsVision: Boolean = false,
     supportsAudio: Boolean = false,
     supportsVideo: Boolean = false,
-    enableToolCall: Boolean = false,
-    thinkingConfigurations: String = "",
-    thinkingOptionId: String = ""
+    enableToolCall: Boolean = false
 ) : OpenAIProvider(
     apiEndpoint = apiEndpoint,
     apiKeyProvider = apiKeyProvider,
@@ -26,7 +24,5 @@ class FourRouterProvider(
     supportsVision = supportsVision,
     supportsAudio = supportsAudio,
     supportsVideo = supportsVideo,
-    enableToolCall = enableToolCall,
-    thinkingConfigurations = thinkingConfigurations,
-        thinkingOptionId = thinkingOptionId
+    enableToolCall = enableToolCall
 )

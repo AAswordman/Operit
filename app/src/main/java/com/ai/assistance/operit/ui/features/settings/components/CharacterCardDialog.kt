@@ -135,6 +135,7 @@ fun CharacterCardDialog(
         .collectAsState(initial = null)
 
     LaunchedEffect(Unit) {
+        modelConfigManager.initializeIfNeeded()
         configSummaries = modelConfigManager.getAllConfigSummaries()
         val profileIds = userPreferencesManager.memorySpaceListFlow.first()
         preferenceProfiles =

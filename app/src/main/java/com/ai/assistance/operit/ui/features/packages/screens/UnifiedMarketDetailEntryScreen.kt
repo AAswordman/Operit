@@ -184,7 +184,6 @@ fun UnifiedMarketDetailEntryScreen(
             UnifiedMarketDetailHeader(
                 title = entry.title,
                 fallbackAvatarText = marketDetailInitial(entry.title),
-                logoUrl = entry.logoUrl,
                 participants =
                     listOf(
                         UnifiedMarketDetailParticipant(

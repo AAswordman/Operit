@@ -10,11 +10,11 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
-import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.model.GroupMemberConfig
@@ -32,18 +32,9 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.ceil
 
-private val Context.characterGroupCardDataStore by
-    versionedPreferencesDataStore(
-        name = "character_groups",
-        currentVersion = 1,
-    ) {
-        preferenceSchemaMigration { version, preferences ->
-            when (version) {
-                0 -> CharacterGroupCardManager.migratePreferencesFromVersionZero(preferences)
-                else -> missingPreferencesSchemaMigration(version)
-            }
-        }
-    }
+private val Context.characterGroupCardDataStore by preferencesDataStore(
+    name = "character_groups"
+)
 
 /**
  * 群组角色卡管理器
@@ -67,12 +58,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
         fun getInstance(context: Context): CharacterGroupCardManager {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: CharacterGroupCardManager(context.applicationContext).also { INSTANCE = it }
-            }
-        }
-
-        internal fun migratePreferencesFromVersionZero(preferences: MutablePreferences) {
-            if (preferences[CHARACTER_GROUP_LIST] == null) {
-                preferences[CHARACTER_GROUP_LIST] = emptySet()
             }
         }
     }
@@ -231,6 +216,14 @@ class CharacterGroupCardManager private constructor(private val context: Context
 
     suspend fun getAllCharacterGroupCards(): List<CharacterGroupCard> {
         return allCharacterGroupCardsFlow.first()
+    }
+
+    suspend fun initializeIfNeeded() {
+        dataStore.edit { preferences ->
+            if (preferences[CHARACTER_GROUP_LIST] == null) {
+                preferences[CHARACTER_GROUP_LIST] = emptySet()
+            }
+        }
     }
 
     suspend fun cloneBindingsFromCharacterGroup(sourceGroupId: String, targetGroupId: String) {

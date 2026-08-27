@@ -53,6 +53,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -107,9 +108,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityControl
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMapping
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
 import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.data.model.AttachmentInfo
@@ -126,6 +124,7 @@ import com.ai.assistance.operit.data.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
@@ -144,7 +143,6 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.I
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.InputMenuTogglePluginRegistry
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.InputMenuToggleSlots
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.PendingMessageQueuePanel
-import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ThinkingQualitySlider
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.PendingQueueMessageItem
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ToolPromptManagerDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.rememberMentionVisualTransformation
@@ -158,6 +156,7 @@ import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.ChatUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 fun AgentChatInputSection(
@@ -196,8 +195,8 @@ fun AgentChatInputSection(
     isWorkspaceOpen: Boolean = false,
     enableThinkingMode: Boolean = false,
     onToggleThinkingMode: () -> Unit = {},
-    thinkingOptionId: String = "",
-    onThinkingOptionIdChange: (String) -> Unit = {},
+    thinkingQualityLevel: Int = ApiPreferences.DEFAULT_THINKING_QUALITY_LEVEL,
+    onThinkingQualityLevelChange: (Int) -> Unit = {},
     enableMaxContextMode: Boolean = false,
     onToggleEnableMaxContextMode: () -> Unit = {},
     currentChatId: String?,
@@ -1402,8 +1401,8 @@ fun AgentChatInputSection(
                 currentConfigMapping = effectiveConfigMapping,
                 enableThinkingMode = enableThinkingMode,
                 onToggleThinkingMode = onToggleThinkingMode,
-                thinkingOptionId = thinkingOptionId,
-                onThinkingOptionIdChange = onThinkingOptionIdChange,
+                thinkingQualityLevel = thinkingQualityLevel,
+                onThinkingQualityLevelChange = onThinkingQualityLevelChange,
                 enableMaxContextMode = enableMaxContextMode,
                 onToggleEnableMaxContextMode = onToggleEnableMaxContextMode,
                 baseContextLengthInK = baseContextLengthInK,
@@ -1489,8 +1488,8 @@ private fun AgentModelSelectorPopup(
     currentConfigMapping: FunctionConfigMapping,
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
-    thinkingOptionId: String,
-    onThinkingOptionIdChange: (String) -> Unit,
+    thinkingQualityLevel: Int,
+    onThinkingQualityLevelChange: (Int) -> Unit,
     enableMaxContextMode: Boolean,
     onToggleEnableMaxContextMode: () -> Unit,
     baseContextLengthInK: Float,
@@ -1525,33 +1524,7 @@ private fun AgentModelSelectorPopup(
         val validIndex = getValidModelIndex(config.modelName, currentConfigMapping.modelIndex)
         getModelByIndex(config.modelName, validIndex)
     }.orEmpty()
-    var thinkingQualityMapping by remember(
-        currentConfig?.id,
-        currentConfig?.apiProviderTypeId,
-        currentConfig?.apiEndpoint,
-        currentConfig?.thinkingConfigurations,
-        currentModelName,
-    ) { mutableStateOf<ThinkingQualityMapping?>(null) }
-    LaunchedEffect(
-        currentConfig?.id,
-        currentConfig?.apiProviderTypeId,
-        currentConfig?.apiEndpoint,
-        currentConfig?.thinkingConfigurations,
-        currentModelName
-    ) {
-        thinkingQualityMapping = ThinkingQualityMappingRegistry.resolveForModel(
-            providerTypeId = currentConfig?.apiProviderTypeId.orEmpty(),
-            modelName = currentModelName,
-            apiEndpoint = currentConfig?.apiEndpoint.orEmpty(),
-            thinkingConfigurations = currentConfig?.thinkingConfigurations.orEmpty(),
-        )
-    }
-    LaunchedEffect(thinkingQualityMapping, thinkingOptionId) {
-        val firstOption = thinkingQualityMapping?.options?.firstOrNull()
-        if (firstOption != null && thinkingQualityMapping?.optionFor(thinkingOptionId) == null) {
-            onThinkingOptionIdChange(firstOption.id)
-        }
-    }
+    val maxThinkingQualityLevel = ApiPreferences.MAX_THINKING_QUALITY_LEVEL
 
     Popup(
         alignment = Alignment.TopStart,
@@ -1601,12 +1574,17 @@ private fun AgentModelSelectorPopup(
                 ) {
                     AgentThinkingSettingsItem(
                         popupContainerColor = popupContainerColor,
-                        enableThinkingMode = enableThinkingMode || thinkingQualityMapping?.reasoningRequired == true,
-                        onToggleThinkingMode = if (thinkingQualityMapping?.reasoningRequired == true) ({}) else onToggleThinkingMode,
-                        thinkingOptionId = thinkingOptionId,
-                        thinkingQualityMapping = thinkingQualityMapping,
-                        onThinkingOptionIdChange = { optionId ->
-                            onThinkingOptionIdChange(optionId)
+                        enableThinkingMode = enableThinkingMode,
+                        onToggleThinkingMode = onToggleThinkingMode,
+                        thinkingQualityLevel = thinkingQualityLevel,
+                        maxThinkingQualityLevel = maxThinkingQualityLevel,
+                        onThinkingQualityLevelChange = { level ->
+                            onThinkingQualityLevelChange(
+                                level.coerceIn(
+                                    ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                                    maxThinkingQualityLevel
+                                )
+                            )
                         },
                         thinkingSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.THINKING].orEmpty(),
                         expanded = showThinkingDropdown,
@@ -1706,9 +1684,9 @@ private fun AgentThinkingSettingsItem(
     popupContainerColor: Color,
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
-    thinkingOptionId: String,
-    thinkingQualityMapping: ThinkingQualityMapping?,
-    onThinkingOptionIdChange: (String) -> Unit,
+    thinkingQualityLevel: Int,
+    maxThinkingQualityLevel: Int,
+    onThinkingQualityLevelChange: (Int) -> Unit,
     thinkingSlotToggles: List<InputMenuToggleDefinition>,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
@@ -1792,17 +1770,13 @@ private fun AgentThinkingSettingsItem(
                 onInfoClick = onThinkingModeInfoClick,
             )
             if (enableThinkingMode) {
-                thinkingQualityMapping
-                    ?.takeIf { it.control == ThinkingQualityControl.LEVELS }
-                    ?.let { mapping ->
-                        ThinkingQualitySlider(
-                            label = stringResource(R.string.thinking_quality),
-                            mapping = mapping,
-                            value = thinkingOptionId,
-                            onValueChange = onThinkingOptionIdChange,
-                            onInfoClick = onThinkingQualityInfoClick,
-                        )
-                    }
+                AgentThinkingSliderSettingItem(
+                    label = stringResource(R.string.thinking_quality),
+                    value = thinkingQualityLevel,
+                    maxThinkingQualityLevel = maxThinkingQualityLevel,
+                    onValueChange = onThinkingQualityLevelChange,
+                    onInfoClick = onThinkingQualityInfoClick,
+                )
             }
             thinkingSlotToggles.forEach { toggle ->
                 AgentInputMenuToggleSettingItem(
@@ -1811,6 +1785,85 @@ private fun AgentThinkingSettingsItem(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AgentThinkingSliderSettingItem(
+    label: String,
+    value: Int,
+    maxThinkingQualityLevel: Int,
+    onValueChange: (Int) -> Unit,
+    onInfoClick: () -> Unit,
+) {
+    var sliderValue by remember { mutableStateOf(value.toFloat()) }
+
+    LaunchedEffect(value, maxThinkingQualityLevel) {
+        sliderValue = value.toFloat().coerceIn(
+            ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat(),
+            maxThinkingQualityLevel.toFloat()
+        )
+    }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Speed,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(16.dp),
+            )
+            IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = stringResource(R.string.details),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = sliderValue.roundToInt().coerceIn(
+                    ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                    maxThinkingQualityLevel
+                ).toString(),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        Slider(
+            value = sliderValue,
+            onValueChange = { sliderValue = it },
+            onValueChangeFinished = {
+                onValueChange(
+                    sliderValue.roundToInt().coerceIn(
+                        ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
+                        maxThinkingQualityLevel
+                    )
+                )
+            },
+            valueRange =
+                ApiPreferences.MIN_THINKING_QUALITY_LEVEL.toFloat()..
+                    maxThinkingQualityLevel.toFloat(),
+            steps = (maxThinkingQualityLevel -
+                ApiPreferences.MIN_THINKING_QUALITY_LEVEL - 1).coerceAtLeast(0),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

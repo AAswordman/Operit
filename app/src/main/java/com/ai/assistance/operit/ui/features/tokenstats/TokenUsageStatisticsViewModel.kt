@@ -13,7 +13,6 @@ import com.ai.assistance.operit.data.stats.TokenActivityViewMode
 import com.ai.assistance.operit.data.stats.TokenActivityRangeData
 import com.ai.assistance.operit.data.stats.TokenCostCurrency
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayModelBreakdown
-import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
 import com.ai.assistance.operit.data.stats.TokenStatsPriceDraft
 import com.ai.assistance.operit.data.stats.TokenStatsLifetimeOverview
 import com.ai.assistance.operit.data.stats.TokenStatsPriceSetting
@@ -52,7 +51,6 @@ data class TokenStatsUiState(
     val range: TokenStatsRangeData? = null,
     val currentRange: TokenStatsTimeRange? = null,
     val targetCurrency: PricingCurrency = PricingCurrency.CNY,
-    val tokenDisplayUnit: TokenStatsDisplayUnit = TokenStatsDisplayUnit.MILLIONS,
     val manualRate: Double = TokenCostCurrency.DEFAULT_USD_TO_CNY_RATE,
     val rateIsEstimated: Boolean = true,
     val selectedModels: Set<String> = emptySet(),
@@ -90,7 +88,6 @@ class TokenUsageStatisticsViewModel(
 
     private var loadGeneration = 0
     private var loadJob: Job? = null
-    private var modeRangeJob: Job? = null
     private val knownModelNames = linkedMapOf<String, String>()
     private val knownModelProviderModels = linkedMapOf<String, Set<String>>()
 
@@ -98,61 +95,15 @@ class TokenUsageStatisticsViewModel(
         _actionMessage.value = null
     }
 
-    fun load() = loadInternal(loadViewMode = false)
+    fun load() = loadInternal()
 
-    fun loadForEntry() = loadInternal(loadViewMode = true)
+    fun loadForEntry() = loadInternal()
 
     fun setActivityViewMode(mode: TokenActivityViewMode) {
-        val snapshot = _state.value
-        val currentRange = snapshot.currentRange ?: defaultDateRange(nowMs(), zone)
-        val anchorDate = activityRangeAnchorDate(currentRange, zone)
-        val providerModels = providerModelsFor(snapshot)
-        modeRangeJob?.cancel()
-        modeRangeJob = viewModelScope.launch(dispatcher) {
-            try {
-                val historyStartDate = if (mode == TokenActivityViewMode.CUMULATIVE) {
-                    TokenStatsQueryService.earliestOccurredDate(
-                        appContext,
-                        TokenStatsQueryParams(providerModels = providerModels),
-                        zone,
-                    )
-                } else {
-                    null
-                }
-                val range = activityRangeForMode(mode, anchorDate, historyStartDate, zone)
-                    ?: return@launch
-                settings.saveActivityViewMode(mode)
-                settings.saveTimeRange(range)
-                _state.update {
-                    it.copy(
-                        currentRange = range,
-                        activity = it.activity.copy(viewMode = mode),
-                    )
-                }
-                load()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                AppLogger.e(tag, "Failed to change token activity view mode", e)
-            }
-        }
+        _state.update { it.copy(activity = it.activity.copy(viewMode = mode)) }
     }
 
-    fun toggleTokenDisplayUnit() {
-        val unit = _state.value.tokenDisplayUnit.toggled()
-        _state.update { it.copy(tokenDisplayUnit = unit) }
-        viewModelScope.launch(dispatcher) {
-            try {
-                settings.saveTokenDisplayUnit(unit)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                AppLogger.e(tag, "Failed to save token display unit", e)
-            }
-        }
-    }
-
-    private fun loadInternal(loadViewMode: Boolean) {
+    private fun loadInternal() {
         loadJob?.cancel()
         val generation = ++loadGeneration
         val filterSnapshot = _state.value
@@ -160,25 +111,28 @@ class TokenUsageStatisticsViewModel(
             try {
                 val rateInfo = settings.loadRateWithEstimate()
                 val currency = settings.loadTargetCurrency()
-                val tokenDisplayUnit = settings.loadTokenDisplayUnit()
-                val entryViewMode = if (loadViewMode) settings.loadActivityViewMode() else null
                 val range = settings.loadTimeRange() ?: defaultDateRange(nowMs(), zone)
 
                 if (generation != loadGeneration) return@launch
-                _state.update {
-                    it.copy(
-                        loading = true,
-                        errorMessage = null,
-                        activity = it.activity.copy(
-                            loading = true,
-                            viewMode = entryViewMode ?: it.activity.viewMode,
-                        ),
-                    )
-                }
+                _state.update { it.copy(loading = true, errorMessage = null, activity = it.activity.copy(loading = true)) }
 
                 val result = coroutineScope {
                     val pricesDeferred = async(Dispatchers.IO) { manager.allPriceSettings() }
-                    val selectedProviderModels = providerModelsFor(filterSnapshot)
+                    val providerModelsByDisplayId = knownModelProviderModels.toMutableMap().apply {
+                        filterSnapshot.availableDisplayModels.forEach { model ->
+                            this[model.displayModelId] =
+                                this[model.displayModelId].orEmpty() + model.providerModels
+                        }
+                    }
+                    val selectedProviderModels =
+                        if (filterSnapshot.selectedModels.isEmpty()) {
+                            null
+                        } else {
+                            filterSnapshot.selectedModels
+                                .asSequence()
+                                .flatMap { providerModelsByDisplayId[it].orEmpty().asSequence() }
+                                .toSet()
+                        }
                     val rangeParams = TokenStatsQueryParams(
                         targetCurrency = currency,
                         manualRate = rateInfo.first,
@@ -251,7 +205,6 @@ class TokenUsageStatisticsViewModel(
                         range = result.range,
                         currentRange = range,
                         targetCurrency = currency,
-                        tokenDisplayUnit = tokenDisplayUnit,
                         manualRate = rateInfo.first,
                         rateIsEstimated = rateInfo.second,
                         availableDisplayModels = result.available?.displayModels.orEmpty(),
@@ -287,21 +240,7 @@ class TokenUsageStatisticsViewModel(
         }
     }
 
-    private fun providerModelsFor(state: TokenStatsUiState): Set<String>? {
-        val providerModelsByDisplayId = knownModelProviderModels.toMutableMap().apply {
-            state.availableDisplayModels.forEach { model ->
-                this[model.displayModelId] = this[model.displayModelId].orEmpty() + model.providerModels
-            }
-        }
-        if (state.selectedModels.isEmpty()) return null
-        return state.selectedModels
-            .asSequence()
-            .flatMap { providerModelsByDisplayId[it].orEmpty().asSequence() }
-            .toSet()
-    }
-
     fun setCustomRange(startMs: Long, endMs: Long): Boolean {
-        modeRangeJob?.cancel()
         when (validateCustomRange(startMs, endMs, zone, MAX_CUSTOM_RANGE_DAYS)) {
             CustomRangeValidation.INVALID_BOUNDS -> {
                 _actionMessage.value = TokenStatsActionMessage(
@@ -311,12 +250,6 @@ class TokenUsageStatisticsViewModel(
                 return false
             }
             CustomRangeValidation.TOO_LONG -> {
-                // A generated cumulative range may exceed the manual range limit;
-                // confirming it unchanged must remain a valid no-op selection.
-                val currentRange = _state.value.currentRange
-                if (currentRange?.let { it.startMs == startMs && it.endMs == endMs } == true) {
-                    return saveCustomRange(TokenStatsTimeRanges.customRange(startMs, endMs))
-                }
                 _actionMessage.value = TokenStatsActionMessage(
                     stringResolver(R.string.token_stats_custom_range_too_long),
                     isError = true,
@@ -325,19 +258,14 @@ class TokenUsageStatisticsViewModel(
             }
             CustomRangeValidation.VALID -> Unit
         }
-        return saveCustomRange(TokenStatsTimeRanges.customRange(startMs, endMs))
-    }
-
-    private fun saveCustomRange(range: TokenStatsTimeRange): Boolean {
         viewModelScope.launch(dispatcher) {
-            settings.saveTimeRange(range)
+            settings.saveTimeRange(TokenStatsTimeRanges.customRange(startMs, endMs))
             load()
         }
         return true
     }
 
     fun toggleModel(displayModelId: String) {
-        modeRangeJob?.cancel()
         _state.update { state ->
             val selected = state.selectedModels.toMutableSet()
             if (!selected.add(displayModelId)) selected.remove(displayModelId)
@@ -347,7 +275,6 @@ class TokenUsageStatisticsViewModel(
     }
 
     fun selectAllModels() {
-        modeRangeJob?.cancel()
         _state.update { it.copy(selectedModels = emptySet()) }
         load()
     }
