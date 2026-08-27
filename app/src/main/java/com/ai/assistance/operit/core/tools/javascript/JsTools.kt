@@ -1502,7 +1502,7 @@ fun getJsToolsDefinition(): String {
                 listAll: () => toolCall("list_chats", {}),
                 listChats: (params = {}) => toolCall("list_chats", params),
                 findChat: (params = {}) => toolCall("find_chat", params),
-                getCurrentActionState: (chatId) => {
+                getChatRuntimeState: (chatId) => {
                     const params = {};
                     if (chatId !== undefined && chatId !== null && String(chatId).trim() !== "") {
                         params.chat_id = String(chatId);

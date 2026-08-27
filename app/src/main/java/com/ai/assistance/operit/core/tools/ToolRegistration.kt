@@ -1659,7 +1659,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 val chatId = tool.parameters.find { it.name == "chat_id" }?.value ?: "当前对话"
                 s(R.string.toolreg_current_action_state_desc, chatId)
             },
-            executor = { tool -> runBlocking(Dispatchers.IO) { chatManagerTool.getCurrentActionState(tool) } }
+            executor = { tool -> runBlocking(Dispatchers.IO) { chatManagerTool.getChatRuntimeState(tool) } }
     )
 
     // 切换对话

@@ -196,7 +196,7 @@ export interface ToolResultMap {
     'create_new_chat': ChatCreationResultData;
     'list_chats': ChatListResultData;
     'find_chat': ChatFindResultData;
-    'get_current_action_state': CurrentActionStateResultData;
+    'get_chat_runtime_state': CurrentActionStateResultData;
     'switch_chat': ChatSwitchResultData;
     'update_chat_title': ChatTitleUpdateResultData;
     'delete_chat': ChatDeleteResultData;

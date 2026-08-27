@@ -401,7 +401,7 @@ class StandardChatManagerTool(private val context: Context) {
                     return ToolResult(
                         toolName = tool.name,
                         success = false,
-                        result = CurrentActionStateResultData(chatId = requestedChatId, action = "unknown"),
+                        result = CurrentActionStateResultData(chatId = requestedChatId, aiBehavior = "unknown"),
                         error = "Chat does not exist: $requestedChatId"
                     )
                 }
@@ -418,7 +418,7 @@ class StandardChatManagerTool(private val context: Context) {
                 success = true,
                 result = CurrentActionStateResultData(
                     chatId = chatId,
-                    action = snapshot?.phase?.wireName ?: "idle",
+                    aiBehavior = snapshot?.phase?.wireName ?: "idle",
                     userState = snapshot?.userState?.wireName,
                     applicationState = snapshot?.applicationState?.wireName
                         ?: ChatCurrentActionApplicationState.BACKGROUND.wireName,
@@ -435,7 +435,7 @@ class StandardChatManagerTool(private val context: Context) {
             ToolResult(
                 toolName = tool.name,
                 success = false,
-                result = CurrentActionStateResultData(chatId = "", action = "unknown"),
+                result = CurrentActionStateResultData(chatId = "", aiBehavior = "unknown"),
                 error = "Error getting current chat action: ${e.message}"
             )
         }

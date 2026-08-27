@@ -323,7 +323,7 @@ const HistoryChat = (function () {
     }
     async function get_current_action_state_impl(params) {
         const chatId = (params?.chat_id ?? '').toString().trim();
-        const result = await Tools.Chat.getCurrentActionState(chatId || undefined);
+        const result = await Tools.Chat.getChatRuntimeState(chatId || undefined);
         return {
             success: true,
             message: '对话当前动作查询完成',

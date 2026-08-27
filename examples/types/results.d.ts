@@ -1813,8 +1813,8 @@ export interface CurrentActionStateResultData {
     /** Target chat id; empty when no current conversation is selected */
     chatId: string;
     /** Current action phase */
-    action: string;
-    /** Current user interaction state */
+    aiBehavior: string;
+    /** current user interaction state */
     userState?: string | null;
     /** Application foreground/background state */
     applicationState: string;
