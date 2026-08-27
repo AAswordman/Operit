@@ -1819,6 +1819,8 @@ export type ChatRuntimeStateBehavior =
     | 'cancelled'
     | 'error';
 
+export type ChatRuntimeStateErrorSource = 'ai' | 'tool' | 'api' | 'system';
+
 /**
  * Current chat runtime state result data
  */
@@ -1834,7 +1836,7 @@ export interface CurrentChatRuntimeStateResultData {
     /** Tool associated with the current runtime state, when applicable */
     toolName?: string | null;
     /** Error source, when the runtime state is error */
-    errorSource?: string | null;
+    errorSource?: ChatRuntimeStateErrorSource | null;
     /** Stable error code, when the runtime state is error */
     errorCode?: string | null;
     /** Error message, when available */
@@ -1843,6 +1845,12 @@ export interface CurrentChatRuntimeStateResultData {
     errorRecoverable: boolean;
     /** Retry attempt, when applicable */
     retryAttempt?: number | null;
+    /** Original provider error code, when available */
+    errorProviderCode?: string | null;
+    /** HTTP status returned by the provider, when available */
+    errorHttpStatusCode?: number | null;
+    /** Provider retry delay, when available */
+    errorRetryAfterMs?: number | null;
     /** Whether the conversation is idle */
     isIdle: boolean;
     /** Whether the conversation has active runtime work */

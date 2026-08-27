@@ -156,6 +156,9 @@ internal object ToolPkgChatRuntimeStateBridge {
                 put("errorMessage", error.message)
                 put("errorRecoverable", error.recoverable)
                 put("retryAttempt", error.retryAttempt)
+                put("errorProviderCode", error.providerCode)
+                put("errorHttpStatusCode", error.httpStatusCode)
+                put("errorRetryAfterMs", error.retryAfterMs)
             }
         }
     }

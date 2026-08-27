@@ -896,7 +896,11 @@ class MessageCoordinationDelegate(
             uiStateDelegate.showErrorMessage(message)
             messageProcessingDelegate.setInputProcessingStateForChat(
                 chatId,
-                InputProcessingState.Error(message)
+                InputProcessingState.AiError(
+                    code = "response_planning_failed",
+                    message = message,
+                    recoverable = false
+                )
             )
             attachmentDelegate.clearAttachments()
             uiBridge.resetAttachmentPanelState()

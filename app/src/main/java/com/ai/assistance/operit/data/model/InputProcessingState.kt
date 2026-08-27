@@ -1,5 +1,12 @@
 package com.ai.assistance.operit.data.model
 
+enum class InputProcessingErrorSource(val wireName: String) {
+    AI("ai"),
+    TOOL("tool"),
+    API("api"),
+    SYSTEM("system")
+}
+
 /** UI状态，用于显示AI服务在做什么 */
 sealed class InputProcessingState {
     /** 空闲状态 */
@@ -58,6 +65,15 @@ sealed class InputProcessingState {
         val retryAttempt: Int? = null
     ) : InputProcessingState()
 
-    /** 发生错误 */
-    data class Error(val message: String) : InputProcessingState()
-} 
+    /** 发生了未被更具体错误类型覆盖的错误 */
+    data class Error(
+        val message: String,
+        val code: String = "unknown",
+        val errorSource: InputProcessingErrorSource = InputProcessingErrorSource.SYSTEM,
+        val recoverable: Boolean = false,
+        val retryAttempt: Int? = null,
+        val providerCode: String? = null,
+        val httpStatusCode: Int? = null,
+        val retryAfterMs: Long? = null
+    ) : InputProcessingState()
+}

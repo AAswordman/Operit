@@ -7,6 +7,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
+import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassifier
 import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.logMessageTiming
@@ -1508,9 +1509,18 @@ class MessageProcessingDelegate(
                 } else {
                     AppLogger.e(TAG, "发送消息时出错", e)
                     shouldFinalizeInterruptedMessage = true
+                    val classification = ApiErrorClassifier.classify(e)
                     setChatInputProcessingState(
                         chatId,
-                        EnhancedInputProcessingState.Error(context.getString(R.string.message_send_failed, e.message))
+                        EnhancedInputProcessingState.Error(
+                            message = context.getString(R.string.message_send_failed, e.message),
+                            code = classification.code,
+                            errorSource = InputProcessingErrorSource.API,
+                            recoverable = classification.recoverable,
+                            providerCode = classification.providerCode,
+                            httpStatusCode = classification.httpStatusCode,
+                            retryAfterMs = classification.retryAfterMs
+                        )
                     )
                     withContext(Dispatchers.Main) { showErrorMessage(context.getString(R.string.message_send_failed, e.message)) }
                 }
@@ -1829,11 +1839,18 @@ class MessageProcessingDelegate(
                 terminalState = EnhancedInputProcessingState.Idle
             } else {
                 AppLogger.e(TAG, "单条重新生成失败", e)
+                val classification = ApiErrorClassifier.classify(e)
                 setChatInputProcessingState(
                     chatId,
                     EnhancedInputProcessingState.Error(
-                        context.getString(R.string.chat_regenerate_single_failed, e.message ?: "")
-                    ),
+                        message = context.getString(R.string.chat_regenerate_single_failed, e.message ?: ""),
+                        code = classification.code,
+                        errorSource = InputProcessingErrorSource.API,
+                        recoverable = classification.recoverable,
+                        providerCode = classification.providerCode,
+                        httpStatusCode = classification.httpStatusCode,
+                        retryAfterMs = classification.retryAfterMs
+                    )
                 )
             }
             exceptionToPropagate = e

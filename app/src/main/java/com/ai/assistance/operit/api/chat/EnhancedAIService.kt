@@ -12,6 +12,7 @@ import com.ai.assistance.operit.api.chat.enhance.FileBindingService
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
+import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassifier
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
@@ -31,6 +32,7 @@ import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.model.InputProcessingErrorSource
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.ToolInvocation
@@ -1239,9 +1241,21 @@ class EnhancedAIService private constructor(private val context: Context) {
                     hadFatalError = true
                     // Handle any exceptions
                     AppLogger.e(TAG, "发送消息时发生错误: ${e.message}", e)
+                    val classification = ApiErrorClassifier.classify(e)
                     withContext(Dispatchers.Main) {
                         _inputProcessingState.value =
-                                InputProcessingState.Error(message = context.getString(R.string.enhanced_error_with_message, e.message ?: ""))
+                            InputProcessingState.Error(
+                                message = context.getString(
+                                    R.string.enhanced_error_with_message,
+                                    e.message ?: ""
+                                ),
+                                code = classification.code,
+                                errorSource = InputProcessingErrorSource.API,
+                                recoverable = classification.recoverable,
+                                providerCode = classification.providerCode,
+                                httpStatusCode = classification.httpStatusCode,
+                                retryAfterMs = classification.retryAfterMs
+                            )
                     }
                 }
 
@@ -2501,9 +2515,21 @@ class EnhancedAIService private constructor(private val context: Context) {
                 throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "处理工具执行结果时出错", e)
+                val classification = ApiErrorClassifier.classify(e)
                 withContext(Dispatchers.Main) {
                     _inputProcessingState.value =
-                            InputProcessingState.Error(this@EnhancedAIService.context.getString(R.string.enhanced_process_tool_result_failed, e.message ?: ""))
+                        InputProcessingState.Error(
+                            message = this@EnhancedAIService.context.getString(
+                                R.string.enhanced_process_tool_result_failed,
+                                e.message ?: ""
+                            ),
+                            code = classification.code,
+                            errorSource = InputProcessingErrorSource.API,
+                            recoverable = classification.recoverable,
+                            providerCode = classification.providerCode,
+                            httpStatusCode = classification.httpStatusCode,
+                            retryAfterMs = classification.retryAfterMs
+                        )
                 }
             } finally {
                 logMessageTiming(

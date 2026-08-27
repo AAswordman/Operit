@@ -16,6 +16,13 @@ Steps:
 3. [DONE] Implement `Tools.Chat.getCurrentChatRuntimeState`, `Tools.Chat.getGlobalChatRuntimeState`, and their tools.
 4. [DONE] Add `ToolPkg.registerChatRuntimeStateHook` with snapshot replay and change delivery.
 5. [DONE] Update focused documentation and static verification.
+6. [IN PROGRESS] Normalize API, AI, tool, and system error metadata without changing the existing processing-state ordering.
+
+## Error normalization
+
+`errorSource` identifies the failure boundary: `ai` for model output or response behavior, `tool` for tool permission/validation/execution failures, `api` for provider request failures, and `system` for uncategorized host-side failures. `errorCode` remains an extensible string. The host may also expose `errorProviderCode`, `errorHttpStatusCode`, and `errorRetryAfterMs` when the provider supplies those details.
+
+The known processing behavior is retained: request preparation may publish `thinking` before the provider connection phase publishes `requesting`.
 
 ## Field reference
 
@@ -26,11 +33,14 @@ Steps:
 | `userState` | string? | User interaction state: `typing` / `waiting_for_ai` |
 | `applicationState` | string | App visibility: `foreground` / `background` |
 | `toolName` | string? | Tool associated with current behavior |
-| `errorSource` | string? | Error source: `ai` / `tool` |
-| `errorCode` | string? | Stable error code |
+| `errorSource` | string? | Error source: `ai` / `tool` / `api` / `system` |
+| `errorCode` | string? | Stable, extensible normalized error code |
 | `errorMessage` | string? | Error message |
 | `errorRecoverable` | boolean | Whether the error can be recovered |
 | `retryAttempt` | number? | Current retry attempt count |
+| `errorProviderCode` | string? | Original provider error code, when available |
+| `errorHttpStatusCode` | number? | Original provider HTTP status, when available |
+| `errorRetryAfterMs` | number? | Provider retry delay, when available |
 | `isIdle` | boolean | `aiBehavior == "idle"` |
 | `isActive` | boolean | `aiBehavior` is a state with active runtime work; `cancelled` is terminal and not active |
 

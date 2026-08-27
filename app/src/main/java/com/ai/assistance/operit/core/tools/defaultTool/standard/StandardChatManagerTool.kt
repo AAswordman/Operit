@@ -428,7 +428,10 @@ class StandardChatManagerTool(private val context: Context) {
                     errorCode = error?.code,
                     errorMessage = error?.message,
                     errorRecoverable = error?.recoverable ?: false,
-                    retryAttempt = error?.retryAttempt
+                    retryAttempt = error?.retryAttempt,
+                    errorProviderCode = error?.providerCode,
+                    errorHttpStatusCode = error?.httpStatusCode,
+                    errorRetryAfterMs = error?.retryAfterMs
                 )
             )
         } catch (e: Exception) {

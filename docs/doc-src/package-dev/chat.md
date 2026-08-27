@@ -91,7 +91,7 @@ getCurrentChatRuntimeState(chatId?: string): Promise<CurrentChatRuntimeStateResu
 - `cancelled`（用户取消当前操作；下一次非终止状态会替换它）
 - `error`
 
-返回值还包含用户交互状态、应用前后台状态、工具名称和结构化错误信息。这个接口不暴露 `main`/`floating` runtime 选择器。
+返回值还包含用户交互状态、应用前后台状态、工具名称和结构化错误信息。`errorSource` 为 `ai`、`tool`、`api` 或 `system`，`errorCode` 是可扩展的归一化字符串；服务商原始 code 和 HTTP 状态会在可获得时通过 `errorProviderCode`、`errorHttpStatusCode` 暴露。这个接口不暴露 `main`/`floating` runtime 选择器。
 
 ### `getGlobalChatRuntimeState()`
 

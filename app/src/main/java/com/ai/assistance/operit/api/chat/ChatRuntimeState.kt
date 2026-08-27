@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat
 
+import com.ai.assistance.operit.data.model.InputProcessingErrorSource
 import com.ai.assistance.operit.data.model.InputProcessingState
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -48,7 +49,9 @@ enum class ChatRuntimeStateApplicationState(val wireName: String) {
 
 enum class ChatRuntimeStateErrorSource(val wireName: String) {
     AI("ai"),
-    TOOL("tool")
+    TOOL("tool"),
+    API("api"),
+    SYSTEM("system")
 }
 
 data class ChatRuntimeStateError(
@@ -56,7 +59,10 @@ data class ChatRuntimeStateError(
     val code: String,
     val message: String? = null,
     val recoverable: Boolean = false,
-    val retryAttempt: Int? = null
+    val retryAttempt: Int? = null,
+    val providerCode: String? = null,
+    val httpStatusCode: Int? = null,
+    val retryAfterMs: Long? = null
 )
 
 data class ChatRuntimeStateSnapshot(
@@ -320,9 +326,23 @@ object ChatRuntimeStateStore {
                 record.phase = ChatRuntimeStatePhase.ERROR
                 record.toolName = null
                 record.error = ChatRuntimeStateError(
-                    source = ChatRuntimeStateErrorSource.AI,
-                    code = "ai_error",
-                    message = state.message
+                    source = when (state.errorSource) {
+                        InputProcessingErrorSource.AI ->
+                            ChatRuntimeStateErrorSource.AI
+                        InputProcessingErrorSource.TOOL ->
+                            ChatRuntimeStateErrorSource.TOOL
+                        InputProcessingErrorSource.API ->
+                            ChatRuntimeStateErrorSource.API
+                        InputProcessingErrorSource.SYSTEM ->
+                            ChatRuntimeStateErrorSource.SYSTEM
+                    },
+                    code = state.code,
+                    message = state.message,
+                    recoverable = state.recoverable,
+                    retryAttempt = state.retryAttempt,
+                    providerCode = state.providerCode,
+                    httpStatusCode = state.httpStatusCode,
+                    retryAfterMs = state.retryAfterMs
                 )
             }
         }

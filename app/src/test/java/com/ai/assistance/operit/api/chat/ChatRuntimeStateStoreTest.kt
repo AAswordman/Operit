@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat
 
 import com.ai.assistance.operit.core.tools.CurrentChatRuntimeStateResultData
+import com.ai.assistance.operit.data.model.InputProcessingErrorSource
 import com.ai.assistance.operit.data.model.InputProcessingState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,6 +38,81 @@ class ChatRuntimeStateStoreTest {
         val snapshot = ChatRuntimeStateStore.getSnapshot(chatId)
         assertEquals("summarizing", snapshot.phase.wireName)
         assertTrue(snapshot.phase.isActive)
+    }
+
+    @Test
+    fun preservesApiErrorMetadata() {
+        val chatId = uniqueChatId("api-error")
+
+        ChatRuntimeStateStore.updateInputProcessingState(
+            runtime = ChatRuntimeSlot.MAIN,
+            chatId = chatId,
+            state = InputProcessingState.Error(
+                message = "model not found",
+                code = "model_not_found",
+                errorSource = InputProcessingErrorSource.API,
+                recoverable = false,
+                providerCode = "model_not_found",
+                httpStatusCode = 404
+            )
+        )
+
+        val snapshot = ChatRuntimeStateStore.getSnapshot(chatId)
+        assertEquals("error", snapshot.phase.wireName)
+        assertEquals("api", snapshot.error?.source?.wireName)
+        assertEquals("model_not_found", snapshot.error?.code)
+        assertEquals("model_not_found", snapshot.error?.providerCode)
+        assertEquals(404, snapshot.error?.httpStatusCode)
+        assertFalse(snapshot.error?.recoverable ?: true)
+    }
+
+    @Test
+    fun keepsAiAndToolErrorsDistinct() {
+        val aiChatId = uniqueChatId("ai-error")
+        val toolChatId = uniqueChatId("tool-error")
+
+        ChatRuntimeStateStore.updateInputProcessingState(
+            runtime = ChatRuntimeSlot.MAIN,
+            chatId = aiChatId,
+            state = InputProcessingState.AiError(
+                code = "pure_thinking_only",
+                message = "no response body",
+                recoverable = true
+            )
+        )
+        ChatRuntimeStateStore.updateInputProcessingState(
+            runtime = ChatRuntimeSlot.MAIN,
+            chatId = toolChatId,
+            state = InputProcessingState.ToolError(
+                toolName = "read_file",
+                code = "permission_denied",
+                message = "permission denied",
+                recoverable = false
+            )
+        )
+
+        val aiSnapshot = ChatRuntimeStateStore.getSnapshot(aiChatId)
+        val toolSnapshot = ChatRuntimeStateStore.getSnapshot(toolChatId)
+        assertEquals("ai", aiSnapshot.error?.source?.wireName)
+        assertEquals("pure_thinking_only", aiSnapshot.error?.code)
+        assertEquals("tool", toolSnapshot.error?.source?.wireName)
+        assertEquals("permission_denied", toolSnapshot.error?.code)
+        assertEquals("read_file", toolSnapshot.toolName)
+    }
+
+    @Test
+    fun mapsGenericErrorToSystemSource() {
+        val chatId = uniqueChatId("system-error")
+
+        ChatRuntimeStateStore.updateInputProcessingState(
+            runtime = ChatRuntimeSlot.MAIN,
+            chatId = chatId,
+            state = InputProcessingState.Error("internal failure")
+        )
+
+        val snapshot = ChatRuntimeStateStore.getSnapshot(chatId)
+        assertEquals("system", snapshot.error?.source?.wireName)
+        assertEquals("unknown", snapshot.error?.code)
     }
 
     @Test

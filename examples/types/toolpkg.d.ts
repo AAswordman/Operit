@@ -148,6 +148,8 @@ export namespace ToolPkg {
         | "cancelled"
         | "error";
 
+    export type ChatRuntimeStateErrorSource = "ai" | "tool" | "api" | "system";
+
     export interface ChatRuntimeStateEventPayload extends JsonObject {
         scope: "global" | "session";
         event: ChatRuntimeStateEventName;
@@ -156,11 +158,14 @@ export namespace ToolPkg {
         userState?: string | null;
         applicationState: "foreground" | "background";
         toolName?: string | null;
-        errorSource?: "ai" | "tool";
+        errorSource?: ChatRuntimeStateErrorSource;
         errorCode?: string | null;
         errorMessage?: string | null;
         errorRecoverable?: boolean;
         retryAttempt?: number | null;
+        errorProviderCode?: string | null;
+        errorHttpStatusCode?: number | null;
+        errorRetryAfterMs?: number | null;
         globalActivity: "idle" | "active";
         activeChatIds: string[];
         updatedAt?: number;

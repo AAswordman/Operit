@@ -2090,6 +2090,9 @@ data class CurrentChatRuntimeStateResultData(
     val errorMessage: String? = null,
     val errorRecoverable: Boolean = false,
     val retryAttempt: Int? = null,
+    val errorProviderCode: String? = null,
+    val errorHttpStatusCode: Int? = null,
+    val errorRetryAfterMs: Long? = null,
     val isIdle: Boolean = aiBehavior == "idle",
     val isActive: Boolean = aiBehavior != "idle" && aiBehavior != "cancelled"
 ) : ToolResultData() {

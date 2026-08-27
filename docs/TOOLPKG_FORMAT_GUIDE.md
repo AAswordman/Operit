@@ -492,7 +492,10 @@ exports.onInputMenuToggle = onInputMenuToggle;
 - `userState`: `typing` 或 `waiting_for_ai`
 - `applicationState`: `foreground` 或 `background`
 - `toolName`、`errorSource`、`errorCode`、`errorMessage` 和重试字段
+- `errorProviderCode`、`errorHttpStatusCode`、`errorRetryAfterMs`: 可选的服务商原始错误详情
 - `activeChatIds`、`globalActivity`: 全局作用域下的活跃对话聚合状态
+
+`errorSource` 使用 `ai`、`tool`、`api` 或 `system`。`errorCode` 是可扩展的稳定字符串，不是服务商私有错误码的封闭枚举；宿主会尽量提供 `errorProviderCode` 和 HTTP 状态码，无法识别的错误使用 `unknown`。
 
 注册完成后，宿主先发送当前全局快照和活跃会话快照，再发送后续变化。该接口不暴露 `main`/`floating` runtime 选择器。
 

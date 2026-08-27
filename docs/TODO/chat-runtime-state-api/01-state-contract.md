@@ -34,7 +34,13 @@ Application visibility is independent:
 
 ## Error semantics
 
-AI errors use the existing pure-thinking warning path and identify the recovery as a retry. Tool errors identify parameter or execution failure. Error details stay structured and do not expose prompts, chain-of-thought, or tool arguments through the state API.
+AI errors use the existing pure-thinking warning path and identify the recovery as a retry. Tool errors identify tool-boundary permission, validation, or execution failure. API errors identify provider request failures such as authentication, model lookup, quota, rate limiting, timeout, network, and service availability. System errors are uncategorized host-side failures.
+
+`errorCode` is an extensible normalized string rather than a closed provider enum. Common values include `authentication_failed`, `permission_denied`, `invalid_endpoint`, `invalid_request`, `request_too_large`, `model_not_found`, `insufficient_balance`, `quota_exceeded`, `rate_limited`, `timeout`, `network_error`, `server_overloaded`, `service_unavailable`, `content_policy`, `context_window_exceeded`, `server_error`, `gateway_error`, `provider_error`, and `unknown`. When available, `errorProviderCode` and `errorHttpStatusCode` preserve provider-specific details.
+
+Error details stay structured and do not expose prompts, chain-of-thought, or tool arguments through the state API.
+
+The existing processing pipeline may publish `thinking` before `requesting`: `Processing` is emitted during request preparation, while `Connecting` is emitted when the provider connection phase begins. This API change keeps that underlying ordering unchanged.
 
 ## ToolPkg hook
 
