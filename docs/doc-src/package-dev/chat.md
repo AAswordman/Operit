@@ -80,12 +80,15 @@ getCurrentChatRuntimeState(chatId?: string): Promise<CurrentChatRuntimeStateResu
 查询当前对话运行状态。省略 `chatId` 时查询默认当前对话，传入 `chatId` 时查询指定对话。返回的 `aiBehavior` 可能为：
 
 - `idle`
+- `requesting`（请求已发出，等待首个模型响应事件）
 - `thinking`
 - `calling_tool`
 - `waiting_tool_result`
 - `waiting_tool_confirmation`
 - `generating_response`
+- `summarizing`
 - `retrying`
+- `cancelled`（用户取消当前操作；下一次非终止状态会替换它）
 - `error`
 
 返回值还包含用户交互状态、应用前后台状态、工具名称和结构化错误信息。这个接口不暴露 `main`/`floating` runtime 选择器。

@@ -135,11 +135,24 @@ export namespace ToolPkg {
         | "state_snapshot"
         | "state_changed";
 
+    export type ChatRuntimeStateBehavior =
+        | "idle"
+        | "requesting"
+        | "thinking"
+        | "calling_tool"
+        | "waiting_tool_result"
+        | "waiting_tool_confirmation"
+        | "generating_response"
+        | "summarizing"
+        | "retrying"
+        | "cancelled"
+        | "error";
+
     export interface ChatRuntimeStateEventPayload extends JsonObject {
         scope: "global" | "session";
         event: ChatRuntimeStateEventName;
         chatId?: string;
-        aiBehavior?: string;
+        aiBehavior?: ChatRuntimeStateBehavior;
         userState?: string | null;
         applicationState: "foreground" | "background";
         toolName?: string | null;

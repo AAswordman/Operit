@@ -11,12 +11,15 @@ The public identity is `chatId`. The public API does not expose the internal `MA
 AI behavior phases:
 
 - `idle`
+- `requesting`: the model request is in flight and the first response event has not arrived
 - `thinking`
 - `calling_tool`
 - `waiting_tool_result`
 - `waiting_tool_confirmation`
 - `generating_response`
+- `summarizing`
 - `retrying`
+- `cancelled`: the user cancelled the current operation; this terminal state is replaced by the next non-terminal state
 - `error`
 
 User interaction states are independent of the AI phase:
@@ -35,5 +38,5 @@ AI errors use the existing pure-thinking warning path and identify the recovery 
 
 ## ToolPkg hook
 
-`ToolPkg.registerChatRuntimeStateHook({ id, function })` receives `state_snapshot` during registration replay and `state_changed` for subsequent changes. The payload contains either the global activity state or a conversation snapshot, plus active conversation IDs for global events.
+`ToolPkg.registerChatRuntimeStateHook({ id, function })` receives `state_snapshot` during registration replay and `state_changed` for subsequent changes. The payload contains either the global activity state or a conversation snapshot, plus active conversation IDs for global events. A retained `cancelled` conversation snapshot is replayed until the next non-terminal state.
 

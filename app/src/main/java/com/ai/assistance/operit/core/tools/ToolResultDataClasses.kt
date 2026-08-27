@@ -2091,7 +2091,7 @@ data class CurrentChatRuntimeStateResultData(
     val errorRecoverable: Boolean = false,
     val retryAttempt: Int? = null,
     val isIdle: Boolean = aiBehavior == "idle",
-    val isActive: Boolean = aiBehavior != "idle"
+    val isActive: Boolean = aiBehavior != "idle" && aiBehavior != "cancelled"
 ) : ToolResultData() {
     override fun toString(): String {
         val detail = toolName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""

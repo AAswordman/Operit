@@ -6,6 +6,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
@@ -54,6 +56,7 @@ import kotlin.coroutines.coroutineContext
 class MessageProcessingDelegate(
         private val context: Context,
         private val coroutineScope: CoroutineScope,
+        private val runtimeSlot: ChatRuntimeSlot,
         private val getEnhancedAiService: () -> EnhancedAIService?,
         private val getFullChatHistory: suspend (String) -> List<ChatMessage>,
         private val getRuntimeChatHistory: suspend (String) -> List<ChatMessage>,
@@ -497,6 +500,7 @@ class MessageProcessingDelegate(
         chatId: String,
         keepPartialResponse: Boolean,
         expectedTurnId: Long? = null,
+        publishCancelled: Boolean = true,
     ) {
         val chatRuntime = runtimeFor(chatId)
         chatRuntime.cancellationMutex.withLock {
@@ -556,6 +560,9 @@ class MessageProcessingDelegate(
                     chatRuntime.isLoading.value = false
                     updateGlobalLoadingState()
                     setChatInputProcessingState(chatId, EnhancedInputProcessingState.Idle)
+                    if (publishCancelled) {
+                        markChatCancelled(chatId)
+                    }
                 }
             }
         }
@@ -573,7 +580,11 @@ class MessageProcessingDelegate(
     }
 
     suspend fun cancelMessageForDestructiveMutation(chatId: String) {
-        cancelMessageInternal(chatId, keepPartialResponse = false)
+        cancelMessageInternal(
+            chatId = chatId,
+            keepPartialResponse = false,
+            publishCancelled = false
+        )
     }
 
     init {
@@ -663,6 +674,10 @@ class MessageProcessingDelegate(
 
     fun isChatLoading(chatId: String): Boolean {
         return runtimeFor(chatId).isLoading.value
+    }
+
+    fun markChatCancelled(chatId: String) {
+        ChatRuntimeStateStore.markCancelled(runtimeSlot, chatId)
     }
 
     fun setSpeakMessageHandler(handler: (String, Boolean) -> Unit) {

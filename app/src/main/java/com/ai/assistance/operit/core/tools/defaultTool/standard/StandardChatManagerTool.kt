@@ -7,8 +7,8 @@ import android.content.ServiceConnection
 import android.os.Build
 import android.os.IBinder
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.api.chat.ChatCurrentActionApplicationState
-import com.ai.assistance.operit.api.chat.ChatCurrentActionStore
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateApplicationState
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.util.AppLogger
@@ -411,7 +411,7 @@ class StandardChatManagerTool(private val context: Context) {
             val snapshot = if (chatId.isBlank()) {
                 null
             } else {
-                ChatCurrentActionStore.getSnapshot(chatId)
+                ChatRuntimeStateStore.getSnapshot(chatId)
             }
             val error = snapshot?.error
             ToolResult(
@@ -422,7 +422,7 @@ class StandardChatManagerTool(private val context: Context) {
                     aiBehavior = snapshot?.phase?.wireName ?: "idle",
                     userState = snapshot?.userState?.wireName,
                     applicationState = snapshot?.applicationState?.wireName
-                        ?: ChatCurrentActionApplicationState.BACKGROUND.wireName,
+                        ?: ChatRuntimeStateApplicationState.BACKGROUND.wireName,
                     toolName = snapshot?.toolName,
                     errorSource = error?.source?.wireName,
                     errorCode = error?.code,
@@ -445,7 +445,7 @@ class StandardChatManagerTool(private val context: Context) {
     /** 查询全局聊天运行状态 */
     suspend fun getGlobalChatRuntimeState(tool: AITool): ToolResult {
         return try {
-            val snapshot = ChatCurrentActionStore.globalSnapshot.value
+            val snapshot = ChatRuntimeStateStore.globalSnapshot.value
             ToolResult(
                 toolName = tool.name,
                 success = true,
@@ -463,7 +463,7 @@ class StandardChatManagerTool(private val context: Context) {
                 success = false,
                 result = GlobalChatRuntimeStateResultData(
                     globalActivity = "idle",
-                    applicationState = ChatCurrentActionApplicationState.BACKGROUND.wireName,
+                    applicationState = ChatRuntimeStateApplicationState.BACKGROUND.wireName,
                     activeChatIds = emptyList()
                 ),
                 error = "Error getting global chat runtime state: ${e.message}"

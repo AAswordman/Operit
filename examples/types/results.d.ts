@@ -1806,23 +1806,36 @@ export interface ChatFindResultData {
     toString(): string;
 }
 
+export type ChatRuntimeStateBehavior =
+    | 'idle'
+    | 'requesting'
+    | 'thinking'
+    | 'calling_tool'
+    | 'waiting_tool_result'
+    | 'waiting_tool_confirmation'
+    | 'generating_response'
+    | 'summarizing'
+    | 'retrying'
+    | 'cancelled'
+    | 'error';
+
 /**
  * Current chat runtime state result data
  */
 export interface CurrentChatRuntimeStateResultData {
     /** Target chat id; empty when no current conversation is selected */
     chatId: string;
-    /** Current AI behavior phase */
-    aiBehavior: string;
+    /** Current AI runtime behavior phase */
+    aiBehavior: ChatRuntimeStateBehavior;
     /** current user interaction state */
     userState?: string | null;
     /** Application foreground/background state */
     applicationState: string;
-    /** Tool associated with the current action, when applicable */
+    /** Tool associated with the current runtime state, when applicable */
     toolName?: string | null;
-    /** Error source, when the action is error */
+    /** Error source, when the runtime state is error */
     errorSource?: string | null;
-    /** Stable error code, when the action is error */
+    /** Stable error code, when the runtime state is error */
     errorCode?: string | null;
     /** Error message, when available */
     errorMessage?: string | null;
@@ -1832,7 +1845,7 @@ export interface CurrentChatRuntimeStateResultData {
     retryAttempt?: number | null;
     /** Whether the conversation is idle */
     isIdle: boolean;
-    /** Whether the conversation has an active action */
+    /** Whether the conversation has active runtime work */
     isActive: boolean;
     /** Returns a formatted string representation */
     toString(): string;

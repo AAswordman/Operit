@@ -488,7 +488,7 @@ exports.onInputMenuToggle = onInputMenuToggle;
 - `scope`: `global` 或 `session`
 - `event`: `state_snapshot` 或 `state_changed`
 - `chatId`: 会话作用域事件中的对话 ID
-- `aiBehavior`: `idle`、`thinking`、`calling_tool`、`waiting_tool_result`、`waiting_tool_confirmation`、`generating_response`、`retrying` 或 `error`
+- `aiBehavior`: `idle`、`requesting`、`thinking`、`calling_tool`、`waiting_tool_result`、`waiting_tool_confirmation`、`generating_response`、`summarizing`、`retrying`、`cancelled` 或 `error`
 - `userState`: `typing` 或 `waiting_for_ai`
 - `applicationState`: `foreground` 或 `background`
 - `toolName`、`errorSource`、`errorCode`、`errorMessage` 和重试字段

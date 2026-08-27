@@ -32,7 +32,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
         }
         setupCrossSessionSync()
         observeStats()
-        observeCurrentActions()
+        observeCurrentRuntimeStates()
     }
 
     fun getCore(slot: ChatRuntimeSlot): ChatServiceCore {
@@ -40,6 +40,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
             ChatServiceCore(
                 context = appContext,
                 coroutineScope = runtimeScope,
+                runtimeSlot = slot,
                 selectionMode = when (slot) {
                     ChatRuntimeSlot.MAIN -> ChatSelectionMode.FOLLOW_GLOBAL
                     ChatRuntimeSlot.FLOATING -> ChatSelectionMode.LOCAL_ONLY
@@ -48,14 +49,14 @@ class ChatRuntimeHolder private constructor(context: Context) {
         }
     }
 
-    private fun observeCurrentActions() {
+    private fun observeCurrentRuntimeStates() {
         ChatRuntimeSlot.values().forEach { slot ->
             val core = getCore(slot)
             runtimeScope.launch {
                 core.inputProcessingStateByChatId.collect { states ->
                     states.forEach { (chatId, state) ->
                         if (chatId != DEFAULT_CHAT_KEY) {
-                            ChatCurrentActionStore.updateInputProcessingState(
+                            ChatRuntimeStateStore.updateInputProcessingState(
                                 runtime = slot,
                                 chatId = chatId,
                                 state = state
@@ -68,7 +69,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
                 core.userDraftStateByChatId.collect { draftStates ->
                     draftStates.forEach { (chatId, hasDraft) ->
                         if (chatId != DEFAULT_CHAT_KEY) {
-                            ChatCurrentActionStore.updateUserDraft(
+                            ChatRuntimeStateStore.updateUserDraft(
                                 runtime = slot,
                                 chatId = chatId,
                                 hasDraft = hasDraft
@@ -81,10 +82,10 @@ class ChatRuntimeHolder private constructor(context: Context) {
 
         runtimeScope.launch {
             ToolPermissionSystem.getInstance(appContext).permissionRequestState.collect { request ->
-                ChatCurrentActionStore.clearToolConfirmations()
+                ChatRuntimeStateStore.clearToolConfirmations()
                 val chatId = request?.chatId?.trim()?.takeIf { it.isNotBlank() }
                 if (chatId != null) {
-                    ChatCurrentActionStore.updateToolConfirmation(
+                    ChatRuntimeStateStore.updateToolConfirmation(
                         chatId = chatId,
                         toolName = request.tool.name
                     )
@@ -94,7 +95,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
 
         runtimeScope.launch {
             ActivityLifecycleManager.applicationVisibilityState.collect { state ->
-                ChatCurrentActionStore.updateApplicationState(state)
+                ChatRuntimeStateStore.updateApplicationState(state)
             }
         }
     }

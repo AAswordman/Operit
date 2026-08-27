@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.plugins.toolpkg
 
-import com.ai.assistance.operit.api.chat.ChatCurrentActionEvent
-import com.ai.assistance.operit.api.chat.ChatCurrentActionSnapshot
-import com.ai.assistance.operit.api.chat.ChatCurrentActionStore
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateEvent
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateSnapshot
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_RUNTIME_STATE
 
@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "ToolPkgChatRuntimeStateBridge"
 
 private data class ChatRuntimeStateDispatch(
-    val event: ChatCurrentActionEvent,
+    val event: ChatRuntimeStateEvent,
     val scope: String
 )
 
@@ -53,7 +53,7 @@ internal object ToolPkgChatRuntimeStateBridge {
 
     init {
         dispatchScope.launch {
-            ChatCurrentActionStore.events.collect { event ->
+            ChatRuntimeStateStore.events.collect { event ->
                 enqueue(event, scope = "session")
                 enqueue(event, scope = "global")
             }
@@ -71,7 +71,7 @@ internal object ToolPkgChatRuntimeStateBridge {
         }
         val manager = toolPkgPackageManager()
         manager.addToolPkgRuntimeChangeListener(runtimeChangeListener)
-        ChatCurrentActionStore.replayEvents().forEach { event ->
+        ChatRuntimeStateStore.replayEvents().forEach { event ->
             enqueue(event, scope = if (event.session == null) "global" else "session")
         }
     }
@@ -79,13 +79,13 @@ internal object ToolPkgChatRuntimeStateBridge {
     fun replaceHooks(updatedHooks: List<ToolPkgChatRuntimeStateHookRegistration>) {
         hooks = updatedHooks
         if (installed.get()) {
-            ChatCurrentActionStore.replayEvents().forEach { event ->
+            ChatRuntimeStateStore.replayEvents().forEach { event ->
                 enqueue(event, scope = if (event.session == null) "global" else "session")
             }
         }
     }
 
-    private fun enqueue(event: ChatCurrentActionEvent, scope: String) {
+    private fun enqueue(event: ChatRuntimeStateEvent, scope: String) {
         if (scope == "session" && event.session == null) {
             return
         }
@@ -142,7 +142,7 @@ internal object ToolPkgChatRuntimeStateBridge {
         }
     }
 
-    private fun buildSessionPayload(session: ChatCurrentActionSnapshot): Map<String, Any?> {
+    private fun buildSessionPayload(session: ChatRuntimeStateSnapshot): Map<String, Any?> {
         return buildMap {
             put("chatId", session.chatId)
             put("aiBehavior", session.phase.wireName)

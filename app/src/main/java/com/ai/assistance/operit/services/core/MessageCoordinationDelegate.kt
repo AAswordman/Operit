@@ -1641,7 +1641,10 @@ class MessageCoordinationDelegate(
     /**
      * 取消正在进行的总结操作
      */
-    private suspend fun cancelSummaryInternal(targetChatId: String? = null) {
+    private suspend fun cancelSummaryInternal(
+        targetChatId: String? = null,
+        publishCancelled: Boolean = true
+    ) {
         val currentChatId = targetChatId ?: chatHistoryDelegate.currentChatId.value
         val shouldCancelSummary =
             _isSummarizing.value &&
@@ -1724,6 +1727,9 @@ class MessageCoordinationDelegate(
                 chatId,
                 InputProcessingState.Idle
             )
+            if (publishCancelled && !messageProcessingDelegate.isChatLoading(chatId)) {
+                messageProcessingDelegate.markChatCancelled(chatId)
+            }
         }
     }
 
@@ -1740,7 +1746,10 @@ class MessageCoordinationDelegate(
     }
 
     suspend fun cancelSummaryForDestructiveMutation(chatId: String) {
-        cancelSummaryInternal(chatId)
+        cancelSummaryInternal(
+            targetChatId = chatId,
+            publishCancelled = false
+        )
     }
 
     private fun launchAsyncSummaryForSend(
