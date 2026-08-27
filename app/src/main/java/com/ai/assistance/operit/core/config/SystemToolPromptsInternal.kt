@@ -1200,8 +1200,8 @@ object SystemToolPromptsInternal {
                                 )
                         ),
                         ToolPrompt(
-                            name = "get_current_action_state",
-                            description = "Check the current action state of a conversation.",
+                            name = "get_current_chat_runtime_state",
+                            description = "Check the current runtime state of a conversation.",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -1211,6 +1211,11 @@ object SystemToolPromptsInternal {
                                         required = false
                                     )
                                 )
+                        ),
+                        ToolPrompt(
+                            name = "get_global_chat_runtime_state",
+                            description = "Check the global chat runtime state.",
+                            parametersStructured = emptyList()
                         ),
                         ToolPrompt(
                             name = "switch_chat",
@@ -4192,8 +4197,8 @@ object SystemToolPromptsInternal {
                                 )
                         ),
                         ToolPrompt(
-                            name = "get_current_action_state",
-                            description = "查询当前对话动作状态。",
+                            name = "get_current_chat_runtime_state",
+                            description = "查询当前对话运行状态。",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -4203,6 +4208,11 @@ object SystemToolPromptsInternal {
                                         required = false
                                     )
                                 )
+                        ),
+                        ToolPrompt(
+                            name = "get_global_chat_runtime_state",
+                            description = "查询全局聊天运行状态。",
+                            parametersStructured = emptyList()
                         ),
                         ToolPrompt(
                             name = "switch_chat",

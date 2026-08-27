@@ -906,7 +906,7 @@ object ToolPkgCommonBridgePlugin : OperitPlugin {
         ToolPkgChatInputHookBridge.register()
         ToolPkgChatViewHookBridge.register()
         ToolPkgChatMessageHookBridge.register()
-        ToolPkgChatActionBridge.register()
+        ToolPkgChatRuntimeStateBridge.register()
         ToolPkgAiProviderRegistry.register()
 
         val manager = toolPkgPackageManager()
@@ -977,10 +977,10 @@ object ToolPkgCommonBridgePlugin : OperitPlugin {
                 )
             )
 
-        val chatActionStateHooks =
+        val chatRuntimeStateHooks =
             activeContainers.flatMap { runtime ->
-                runtime.chatActionStateHooks.map { hook ->
-                    ToolPkgChatActionStateHookRegistration(
+                runtime.chatRuntimeStateHooks.map { hook ->
+                    ToolPkgChatRuntimeStateHookRegistration(
                         containerPackageName = runtime.packageName,
                         hookId = hook.id,
                         functionName = hook.function,
@@ -989,14 +989,14 @@ object ToolPkgCommonBridgePlugin : OperitPlugin {
                 }
             }.sortedWith(
                 compareBy(
-                    ToolPkgChatActionStateHookRegistration::containerPackageName,
-                    ToolPkgChatActionStateHookRegistration::hookId
+                    ToolPkgChatRuntimeStateHookRegistration::containerPackageName,
+                    ToolPkgChatRuntimeStateHookRegistration::hookId
                 )
             )
 
         ToolPkgMessageProcessingBridgePlugin.replaceHooks(messageHooks)
         ToolPkgXmlRenderBridgePlugin.replaceHooksByTag(xmlHooksByTag)
         ToolPkgInputMenuToggleBridgePlugin.replaceHooks(inputMenuHooks)
-        ToolPkgChatActionBridge.replaceHooks(chatActionStateHooks)
+        ToolPkgChatRuntimeStateBridge.replaceHooks(chatRuntimeStateHooks)
     }
 }

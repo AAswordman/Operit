@@ -218,7 +218,8 @@
 - `CharacterCardListResultData`
 - `CharacterCardInfo`
 - `ChatFindResultData`
-- `CurrentActionStateResultData`
+- `CurrentChatRuntimeStateResultData`
+- `GlobalChatRuntimeStateResultData`
 
 同时也定义了对应的包装结果：
 
@@ -226,7 +227,8 @@
 - `ChatCreationResult`
 - `ChatListResult`
 - `ChatFindResult`
-- `CurrentActionStateResult`
+- `CurrentChatRuntimeStateResult`
+- `GlobalChatRuntimeStateResult`
 - `ChatSwitchResult`
 - `ChatTitleUpdateResult`
 - `ChatDeleteResult`

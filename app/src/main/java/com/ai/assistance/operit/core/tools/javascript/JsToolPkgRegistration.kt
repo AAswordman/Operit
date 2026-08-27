@@ -17,7 +17,7 @@ internal data class ToolPkgMainRegistrationCapture(
     val chatInputHooks: List<String>,
     val chatViewHooks: List<String>,
     val chatMessageHooks: List<String>,
-    val chatActionStateHooks: List<String>,
+    val chatRuntimeStateHooks: List<String>,
     val toolLifecycleHooks: List<String>,
     val promptInputHooks: List<String>,
     val promptHistoryHooks: List<String>,
@@ -43,7 +43,7 @@ private enum class RegistrationBucket {
     CHAT_INPUT,
     CHAT_VIEW,
     CHAT_MESSAGE,
-    CHAT_ACTION_STATE,
+    CHAT_RUNTIME_STATE,
     TOOL_LIFECYCLE,
     PROMPT_INPUT,
     PROMPT_HISTORY,
@@ -95,8 +95,8 @@ internal class JsToolPkgRegistrationSession {
     fun appendChatMessageHook(specJson: String) =
         append(RegistrationBucket.CHAT_MESSAGE, specJson)
 
-    fun appendChatActionStateHook(specJson: String) =
-        append(RegistrationBucket.CHAT_ACTION_STATE, specJson)
+    fun appendChatRuntimeStateHook(specJson: String) =
+        append(RegistrationBucket.CHAT_RUNTIME_STATE, specJson)
 
     fun appendToolLifecycleHook(specJson: String) =
         append(RegistrationBucket.TOOL_LIFECYCLE, specJson)
@@ -153,7 +153,7 @@ internal class JsToolPkgRegistrationSession {
                 chatInputHooks = read(RegistrationBucket.CHAT_INPUT),
                 chatViewHooks = read(RegistrationBucket.CHAT_VIEW),
                 chatMessageHooks = read(RegistrationBucket.CHAT_MESSAGE),
-                chatActionStateHooks = read(RegistrationBucket.CHAT_ACTION_STATE),
+                chatRuntimeStateHooks = read(RegistrationBucket.CHAT_RUNTIME_STATE),
                 toolLifecycleHooks = read(RegistrationBucket.TOOL_LIFECYCLE),
                 promptInputHooks = read(RegistrationBucket.PROMPT_INPUT),
                 promptHistoryHooks = read(RegistrationBucket.PROMPT_HISTORY),
@@ -552,7 +552,7 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
                 ['registerChatInputHook', 'registerToolPkgChatInputHook'],
                 ['registerChatViewHook', 'registerToolPkgChatViewHook'],
                 ['registerChatMessageHook', 'registerToolPkgChatMessageHook'],
-                ['registerChatActionStateHook', 'registerToolPkgChatActionStateHook'],
+                ['registerChatRuntimeStateHook', 'registerToolPkgChatRuntimeStateHook'],
                 ['registerToolLifecycleHook', 'registerToolPkgToolLifecycleHook'],
                 ['registerPromptInputHook', 'registerToolPkgPromptInputHook'],
                 ['registerPromptHistoryHook', 'registerToolPkgPromptHistoryHook'],

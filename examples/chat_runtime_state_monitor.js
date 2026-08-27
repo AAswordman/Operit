@@ -100,7 +100,7 @@ var ChatRuntimeStateMonitor = (function () {
         // 查询状态
         var stateResult;
         try {
-            stateResult = await Tools.Chat.getChatRuntimeState(chatId || undefined);
+            stateResult = await Tools.Chat.getCurrentChatRuntimeState(chatId || undefined);
         } catch (e) {
             return { success: false, message: "查询聊天状态失败: " + errorText(e) };
         }

@@ -71,13 +71,13 @@ findChat({ query, match?, index? }): Promise<ChatFindResultData>
 
 根据标题或 ID 查找聊天。
 
-### `getCurrentActionState(chatId?)`
+### `getCurrentChatRuntimeState(chatId?)`
 
 ```ts
-getCurrentActionState(chatId?: string): Promise<CurrentActionStateResultData>
+getCurrentChatRuntimeState(chatId?: string): Promise<CurrentChatRuntimeStateResultData>
 ```
 
-查询当前对话动作。省略 `chatId` 时查询默认当前对话，传入 `chatId` 时查询指定对话。返回的 `action` 可能为：
+查询当前对话运行状态。省略 `chatId` 时查询默认当前对话，传入 `chatId` 时查询指定对话。返回的 `aiBehavior` 可能为：
 
 - `idle`
 - `thinking`
@@ -89,6 +89,14 @@ getCurrentActionState(chatId?: string): Promise<CurrentActionStateResultData>
 - `error`
 
 返回值还包含用户交互状态、应用前后台状态、工具名称和结构化错误信息。这个接口不暴露 `main`/`floating` runtime 选择器。
+
+### `getGlobalChatRuntimeState()`
+
+```ts
+getGlobalChatRuntimeState(): Promise<GlobalChatRuntimeStateResultData>
+```
+
+查询所有聊天聚合后的运行状态，返回 `globalActivity`、`applicationState`、`activeChatIds` 和 `updatedAt`。
 
 ### `switchTo(chatId)`
 
@@ -148,7 +156,8 @@ getMessagesRange(chatId: string, options: { order?: 'asc' | 'desc'; start: numbe
 - `ChatCreationResultData`
 - `ChatListResultData`
 - `ChatFindResultData`
-- `CurrentActionStateResultData`
+- `CurrentChatRuntimeStateResultData`
+- `GlobalChatRuntimeStateResultData`
 - `ChatSwitchResultData`
 - `ChatTitleUpdateResultData`
 - `ChatDeleteResultData`

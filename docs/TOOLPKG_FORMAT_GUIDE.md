@@ -480,15 +480,15 @@ exports.onInputMenuToggle = onInputMenuToggle;
 | `ToolPkg.registerXmlRenderPlugin` | `function` | 是 | 函数引用（支持箭头函数） |
 | `ToolPkg.registerInputMenuTogglePlugin` | `id` | 是 | 输入菜单开关插件唯一标识 |
 | `ToolPkg.registerInputMenuTogglePlugin` | `function` | 是 | 函数引用（支持箭头函数） |
-| `ToolPkg.registerChatActionStateHook` | `id` | 是 | 当前对话动作状态钩子的唯一标识 |
-| `ToolPkg.registerChatActionStateHook` | `function` | 是 | 接收 `state_snapshot` 和 `state_changed` 事件的函数引用 |
+| `ToolPkg.registerChatRuntimeStateHook` | `id` | 是 | 聊天运行状态钩子的唯一标识 |
+| `ToolPkg.registerChatRuntimeStateHook` | `function` | 是 | 接收 `state_snapshot` 和 `state_changed` 事件的函数引用 |
 
-`ToolPkg.registerChatActionStateHook` 的回调接收以下字段：
+`ToolPkg.registerChatRuntimeStateHook` 的回调接收以下字段：
 
 - `scope`: `global` 或 `session`
 - `event`: `state_snapshot` 或 `state_changed`
 - `chatId`: 会话作用域事件中的对话 ID
-- `action`: `idle`、`thinking`、`calling_tool`、`waiting_tool_result`、`waiting_tool_confirmation`、`generating_response`、`retrying` 或 `error`
+- `aiBehavior`: `idle`、`thinking`、`calling_tool`、`waiting_tool_result`、`waiting_tool_confirmation`、`generating_response`、`retrying` 或 `error`
 - `userState`: `typing` 或 `waiting_for_ai`
 - `applicationState`: `foreground` 或 `background`
 - `toolName`、`errorSource`、`errorCode`、`errorMessage` 和重试字段

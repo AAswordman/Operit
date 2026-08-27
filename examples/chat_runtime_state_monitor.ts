@@ -78,7 +78,7 @@ const ChatRuntimeStateMonitor = (function () {
             const sampledAt = new Date().toISOString();
             let record: Record<string, any>;
             try {
-                const state = await Tools.Chat.getChatRuntimeState(chatId || undefined);
+                const state = await Tools.Chat.getCurrentChatRuntimeState(chatId || undefined);
                 successfulSamples += 1;
                 record = {
                     sample: index + 1,

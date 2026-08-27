@@ -5207,7 +5207,7 @@
     <string name="toolreg_create_new_chat_in_group_desc">새 채팅 만들기(그룹: %1$s)</string>
     <string name="toolreg_list_chats_desc">모든 채팅 나열</string>
     <string name="toolreg_find_chat_desc">채팅 찾기: %1$s</string>
-    <string name="toolreg_current_action_state_desc">채팅 상태 확인: %1$s</string>
+    <string name="toolreg_current_chat_runtime_state_desc">채팅 상태 확인: %1$s</string>
     <string name="toolreg_switch_chat_desc">채팅으로 전환: %1$s</string>
     <string name="toolreg_update_chat_title_desc">채팅 제목 업데이트: %1$s</string>
     <string name="toolreg_delete_chat_desc">채팅 삭제: %1$s</string>

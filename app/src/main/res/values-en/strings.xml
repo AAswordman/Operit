@@ -5618,7 +5618,8 @@
     <string name="toolreg_create_new_chat_in_group_desc">Create new chat (group: %1$s)</string>
     <string name="toolreg_list_chats_desc">List all chats</string>
     <string name="toolreg_find_chat_desc">Find chat: %1$s</string>
-    <string name="toolreg_current_action_state_desc">Check chat status: %1$s</string>
+    <string name="toolreg_current_chat_runtime_state_desc">Check chat status: %1$s</string>
+    <string name="toolreg_global_chat_runtime_state_desc">Check global chat runtime state</string>
     <string name="toolreg_switch_chat_desc">Switch to chat: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Update chat title: %1$s</string>
     <string name="toolreg_delete_chat_desc">Delete chat: %1$s</string>

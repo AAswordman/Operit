@@ -60,7 +60,7 @@ internal data class ToolPkgChatMessageHookRegistration(
     val functionSource: String? = null
 )
 
-internal data class ToolPkgChatActionStateHookRegistration(
+internal data class ToolPkgChatRuntimeStateHookRegistration(
     val containerPackageName: String,
     val hookId: String,
     val functionName: String,

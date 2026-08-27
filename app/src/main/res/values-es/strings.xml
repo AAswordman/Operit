@@ -5809,7 +5809,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="workflow_template_calculate">Plantilla de cálculo %1$s</string>
 
     <string name="toolreg_find_chat_desc">Buscar conversación: %1$s</string>
-    <string name="toolreg_current_action_state_desc">Consultar estado de la conversación: %1$s</string>
+    <string name="toolreg_current_chat_runtime_state_desc">Consultar estado de la conversación: %1$s</string>
     <string name="toolreg_switch_chat_desc">Cambiar a conversación: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Actualizar título de la conversación: %1$s</string>
     <string name="toolreg_delete_chat_desc">Eliminar conversación: %1$s</string>

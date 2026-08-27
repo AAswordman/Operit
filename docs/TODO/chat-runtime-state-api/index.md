@@ -3,17 +3,18 @@
 - Branch: `feat/chat-runtime-state-api`
 - Base: `main`
 - Scope: expose standardized runtime state for conversations and plugin integrations.
-- Public API: `Tools.Chat.getChatRuntimeState(chatId?)` → `{ chatId, aiBehavior, userState, applicationState, toolName, error*, isIdle, isActive }`
-- Tool name: `get_chat_runtime_state`
-- Compatibility: previous `getCurrentActionState` and `action` field have been renamed; no public alias retained (unpublished dev version).
+- Public API: `Tools.Chat.getCurrentChatRuntimeState(chatId?)` → `{ chatId, aiBehavior, userState, applicationState, toolName, error*, isIdle, isActive }`
+- Public API: `Tools.Chat.getGlobalChatRuntimeState()` → `{ globalActivity, applicationState, activeChatIds, updatedAt }`
+- Tool names: `get_current_chat_runtime_state`, `get_global_chat_runtime_state`
+- Compatibility: previous `getCurrentActionState`, `getChatRuntimeState`, `registerChatActionStateHook`, and `action` field have been renamed; no public alias retained (unpublished dev version).
 - Excluded: reflection, response-text inference for user confirmation, viewing/away inference, market/backend changes.
 
 Steps:
 
 1. [DONE] Add the runtime-state model and store with global and conversation scopes.
 2. [DONE] Wire AI phases, tool permission requests, user drafts, and application lifecycle into the store.
-3. [DONE] Implement `Tools.Chat.getChatRuntimeState` and the `get_chat_runtime_state` tool.
-4. [DONE] Add `ToolPkg.registerChatActionStateHook` with snapshot replay and change delivery.
+3. [DONE] Implement `Tools.Chat.getCurrentChatRuntimeState`, `Tools.Chat.getGlobalChatRuntimeState`, and their tools.
+4. [DONE] Add `ToolPkg.registerChatRuntimeStateHook` with snapshot replay and change delivery.
 5. [DONE] Update focused documentation and static verification.
 
 ## Field reference
@@ -37,11 +38,11 @@ Steps:
 
 - `ChatCurrentActionStore.kt` — store with global/session snapshots
 - `ChatCurrentActionSnapshot.kt` — data model
-- `StandardChatManagerTool.kt` — `getChatRuntimeState` implementation
-- `ToolPkgChatActionBridge.kt` — plugin hook delivery
-- `ToolRegistration.kt` — tool registration
+- `StandardChatManagerTool.kt` — `getCurrentChatRuntimeState` and `getGlobalChatRuntimeState` implementations
+- `ToolPkgChatRuntimeStateBridge.kt` — plugin runtime-state hook delivery
+- `ToolRegistration.kt` — current/global tool registration
 - `JsTools.kt` — JS bridge
-- `CurrentActionStateResultData` in `ToolResultDataClasses.kt` — result data class
+- `CurrentChatRuntimeStateResultData` and `GlobalChatRuntimeStateResultData` in `ToolResultDataClasses.kt`
 - `examples/extended_chat.ts` — TypeScript wrapper
 - `examples/chat_runtime_state_monitor.ts` — sample plugin (5s interval, JSONL output)
 - `examples/types/chat.d.ts` — public TypeScript interface

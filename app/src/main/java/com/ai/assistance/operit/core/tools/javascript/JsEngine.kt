@@ -1840,8 +1840,8 @@ class JsEngine(private val context: Context) {
         }
 
         @JavascriptInterface
-        fun registerToolPkgChatActionStateHook(specJson: String) {
-            toolPkgRegistrationSession.appendChatActionStateHook(specJson)
+        fun registerToolPkgChatRuntimeStateHook(specJson: String) {
+            toolPkgRegistrationSession.appendChatRuntimeStateHook(specJson)
         }
 
         @JavascriptInterface

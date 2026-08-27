@@ -1502,13 +1502,14 @@ fun getJsToolsDefinition(): String {
                 listAll: () => toolCall("list_chats", {}),
                 listChats: (params = {}) => toolCall("list_chats", params),
                 findChat: (params = {}) => toolCall("find_chat", params),
-                getChatRuntimeState: (chatId) => {
+                getCurrentChatRuntimeState: (chatId) => {
                     const params = {};
                     if (chatId !== undefined && chatId !== null && String(chatId).trim() !== "") {
                         params.chat_id = String(chatId);
                     }
-                    return toolCall("get_current_action_state", params);
+                    return toolCall("get_current_chat_runtime_state", params);
                 },
+                getGlobalChatRuntimeState: () => toolCall("get_global_chat_runtime_state", {}),
                 // 切换对话
                 switchTo: (chatId) => toolCall("switch_chat", { chat_id: chatId }),
                 updateTitle: (chatId, title) => {

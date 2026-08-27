@@ -1807,12 +1807,12 @@ export interface ChatFindResultData {
 }
 
 /**
- * Current action state result data
+ * Current chat runtime state result data
  */
-export interface CurrentActionStateResultData {
+export interface CurrentChatRuntimeStateResultData {
     /** Target chat id; empty when no current conversation is selected */
     chatId: string;
-    /** Current action phase */
+    /** Current AI behavior phase */
     aiBehavior: string;
     /** current user interaction state */
     userState?: string | null;
@@ -1839,6 +1839,22 @@ export interface CurrentActionStateResultData {
 }
 
 /**
+ * Global chat runtime state result data
+ */
+export interface GlobalChatRuntimeStateResultData {
+    /** Whether any chat currently has active work */
+    globalActivity: string;
+    /** Application foreground/background state */
+    applicationState: string;
+    /** IDs of active chats */
+    activeChatIds: string[];
+    /** State update timestamp */
+    updatedAt: number;
+    /** Returns a formatted string representation */
+    toString(): string;
+}
+
+/**
  * Result type wrappers for Chat Manager operations
  */
 export interface ChatServiceStartResult extends BaseResult {
@@ -1857,8 +1873,12 @@ export interface ChatFindResult extends BaseResult {
     data: ChatFindResultData;
 }
 
-export interface CurrentActionStateResult extends BaseResult {
-    data: CurrentActionStateResultData;
+export interface CurrentChatRuntimeStateResult extends BaseResult {
+    data: CurrentChatRuntimeStateResultData;
+}
+
+export interface GlobalChatRuntimeStateResult extends BaseResult {
+    data: GlobalChatRuntimeStateResultData;
 }
 
 export interface ChatSwitchResult extends BaseResult {

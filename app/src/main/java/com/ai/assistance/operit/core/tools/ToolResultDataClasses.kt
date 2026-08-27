@@ -2079,7 +2079,7 @@ data class ChatFindResultData(
 
 /** 当前对话运行状态结果数据 */
 @Serializable
-data class CurrentActionStateResultData(
+data class CurrentChatRuntimeStateResultData(
     val chatId: String,
     val aiBehavior: String,
     val userState: String? = null,
@@ -2096,6 +2096,19 @@ data class CurrentActionStateResultData(
     override fun toString(): String {
         val detail = toolName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
         return "Chat $chatId aiBehavior: $aiBehavior$detail"
+    }
+}
+
+/** 全局聊天运行状态结果数据 */
+@Serializable
+data class GlobalChatRuntimeStateResultData(
+    val globalActivity: String,
+    val applicationState: String = "background",
+    val activeChatIds: List<String> = emptyList(),
+    val updatedAt: Long = System.currentTimeMillis()
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Global chat runtime: $globalActivity (activeChats=${activeChatIds.size})"
     }
 }
 

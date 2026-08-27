@@ -1,10 +1,12 @@
-# Current Action Contract
+# Chat Runtime State Contract
 
 ## Conversation scope
 
 The public identity is `chatId`. The public API does not expose the internal `MAIN`/`FLOATING` runtime selector; both internal slots are aggregated into the conversation aiBehavior state.
 
-`Tools.Chat.getChatRuntimeState(chatId?)` returns the current aiBehavior state for the default conversation when `chatId` is omitted, or for the specified conversation when it is supplied.
+`Tools.Chat.getCurrentChatRuntimeState(chatId?)` returns the current aiBehavior state for the default conversation when `chatId` is omitted, or for the specified conversation when it is supplied.
+
+`Tools.Chat.getGlobalChatRuntimeState()` returns the aggregated application state with `globalActivity`, `applicationState`, `activeChatIds`, and `updatedAt`.
 
 AI behavior phases:
 
@@ -33,5 +35,5 @@ AI errors use the existing pure-thinking warning path and identify the recovery 
 
 ## ToolPkg hook
 
-`ToolPkg.registerChatActionStateHook({ id, function })` receives `state_snapshot` during registration replay and `state_changed` for subsequent changes. The payload contains either the global activity state or a conversation snapshot, plus active conversation IDs for global events.
+`ToolPkg.registerChatRuntimeStateHook({ id, function })` receives `state_snapshot` during registration replay and `state_changed` for subsequent changes. The payload contains either the global activity state or a conversation snapshot, plus active conversation IDs for global events.
 

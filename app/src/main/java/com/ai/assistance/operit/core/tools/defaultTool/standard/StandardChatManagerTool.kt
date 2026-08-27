@@ -15,7 +15,8 @@ import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.util.stream.SharedStream
-import com.ai.assistance.operit.core.tools.CurrentActionStateResultData
+import com.ai.assistance.operit.core.tools.CurrentChatRuntimeStateResultData
+import com.ai.assistance.operit.core.tools.GlobalChatRuntimeStateResultData
 import com.ai.assistance.operit.core.tools.ChatCreationResultData
 import com.ai.assistance.operit.core.tools.ChatFindResultData
 import com.ai.assistance.operit.core.tools.ChatListResultData
@@ -381,9 +382,9 @@ class StandardChatManagerTool(private val context: Context) {
     }
 
     /**
-     * 查询当前对话动作
+     * 查询当前对话运行状态
      */
-    suspend fun getChatRuntimeState(tool: AITool): ToolResult {
+    suspend fun getCurrentChatRuntimeState(tool: AITool): ToolResult {
         return try {
             val requestedChatId = tool.parameters
                 .find { it.name == "chat_id" }
@@ -401,7 +402,7 @@ class StandardChatManagerTool(private val context: Context) {
                     return ToolResult(
                         toolName = tool.name,
                         success = false,
-                        result = CurrentActionStateResultData(chatId = requestedChatId, aiBehavior = "unknown"),
+                        result = CurrentChatRuntimeStateResultData(chatId = requestedChatId, aiBehavior = "unknown"),
                         error = "Chat does not exist: $requestedChatId"
                     )
                 }
@@ -416,7 +417,7 @@ class StandardChatManagerTool(private val context: Context) {
             ToolResult(
                 toolName = tool.name,
                 success = true,
-                result = CurrentActionStateResultData(
+                result = CurrentChatRuntimeStateResultData(
                     chatId = chatId,
                     aiBehavior = snapshot?.phase?.wireName ?: "idle",
                     userState = snapshot?.userState?.wireName,
@@ -431,12 +432,41 @@ class StandardChatManagerTool(private val context: Context) {
                 )
             )
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Failed to get current chat action", e)
+            AppLogger.e(TAG, "Failed to get current chat runtime state", e)
             ToolResult(
                 toolName = tool.name,
                 success = false,
-                result = CurrentActionStateResultData(chatId = "", aiBehavior = "unknown"),
-                error = "Error getting current chat action: ${e.message}"
+                result = CurrentChatRuntimeStateResultData(chatId = "", aiBehavior = "unknown"),
+                error = "Error getting current chat runtime state: ${e.message}"
+            )
+        }
+    }
+
+    /** 查询全局聊天运行状态 */
+    suspend fun getGlobalChatRuntimeState(tool: AITool): ToolResult {
+        return try {
+            val snapshot = ChatCurrentActionStore.globalSnapshot.value
+            ToolResult(
+                toolName = tool.name,
+                success = true,
+                result = GlobalChatRuntimeStateResultData(
+                    globalActivity = snapshot.activity.wireName,
+                    applicationState = snapshot.applicationState.wireName,
+                    activeChatIds = snapshot.activeChatIds,
+                    updatedAt = snapshot.updatedAt
+                )
+            )
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Failed to get global chat runtime state", e)
+            ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = GlobalChatRuntimeStateResultData(
+                    globalActivity = "idle",
+                    applicationState = ChatCurrentActionApplicationState.BACKGROUND.wireName,
+                    activeChatIds = emptyList()
+                ),
+                error = "Error getting global chat runtime state: ${e.message}"
             )
         }
     }

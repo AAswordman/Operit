@@ -4,7 +4,7 @@ import com.ai.assistance.operit.api.chat.ChatCurrentActionEvent
 import com.ai.assistance.operit.api.chat.ChatCurrentActionSnapshot
 import com.ai.assistance.operit.api.chat.ChatCurrentActionStore
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_ACTION_STATE
+import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_RUNTIME_STATE
 
 import com.ai.assistance.operit.util.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean
@@ -15,27 +15,27 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-private const val TAG = "ToolPkgChatActionBridge"
+private const val TAG = "ToolPkgChatRuntimeStateBridge"
 
-private data class ChatActionDispatch(
+private data class ChatRuntimeStateDispatch(
     val event: ChatCurrentActionEvent,
     val scope: String
 )
 
-internal object ToolPkgChatActionBridge {
+internal object ToolPkgChatRuntimeStateBridge {
     private val installed = AtomicBoolean(false)
     private val dispatchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val dispatchChannel = Channel<ChatActionDispatch>(Channel.UNLIMITED)
+    private val dispatchChannel = Channel<ChatRuntimeStateDispatch>(Channel.UNLIMITED)
 
     @Volatile
-    private var hooks: List<ToolPkgChatActionStateHookRegistration> = emptyList()
+    private var hooks: List<ToolPkgChatRuntimeStateHookRegistration> = emptyList()
 
     private val runtimeChangeListener =
         PackageManager.ToolPkgRuntimeChangeListener { activeContainers ->
             replaceHooks(
                 activeContainers.flatMap { runtime ->
-                    runtime.chatActionStateHooks.map { hook ->
-                        ToolPkgChatActionStateHookRegistration(
+                    runtime.chatRuntimeStateHooks.map { hook ->
+                        ToolPkgChatRuntimeStateHookRegistration(
                             containerPackageName = runtime.packageName,
                             hookId = hook.id,
                             functionName = hook.function,
@@ -44,8 +44,8 @@ internal object ToolPkgChatActionBridge {
                     }
                 }.sortedWith(
                     compareBy(
-                        ToolPkgChatActionStateHookRegistration::containerPackageName,
-                        ToolPkgChatActionStateHookRegistration::hookId
+                        ToolPkgChatRuntimeStateHookRegistration::containerPackageName,
+                        ToolPkgChatRuntimeStateHookRegistration::hookId
                     )
                 )
             )
@@ -76,7 +76,7 @@ internal object ToolPkgChatActionBridge {
         }
     }
 
-    fun replaceHooks(updatedHooks: List<ToolPkgChatActionStateHookRegistration>) {
+    fun replaceHooks(updatedHooks: List<ToolPkgChatRuntimeStateHookRegistration>) {
         hooks = updatedHooks
         if (installed.get()) {
             ChatCurrentActionStore.replayEvents().forEach { event ->
@@ -89,20 +89,20 @@ internal object ToolPkgChatActionBridge {
         if (scope == "session" && event.session == null) {
             return
         }
-        val result = dispatchChannel.trySend(ChatActionDispatch(event = event, scope = scope))
+        val result = dispatchChannel.trySend(ChatRuntimeStateDispatch(event = event, scope = scope))
         if (result.isFailure) {
-            AppLogger.w(TAG, "Chat action event dropped: scope=$scope, event=${event.eventType}")
+            AppLogger.w(TAG, "Chat runtime state event dropped: scope=$scope, event=${event.eventType}")
         }
     }
 
-    private fun deliver(dispatch: ChatActionDispatch) {
+    private fun deliver(dispatch: ChatRuntimeStateDispatch) {
         val eventPayload = buildEventPayload(dispatch)
         val manager = toolPkgPackageManager()
         hooks.forEach { hook ->
             val result = manager.runToolPkgMainHook(
                 containerPackageName = hook.containerPackageName,
                 functionName = hook.functionName,
-                event = TOOLPKG_EVENT_CHAT_ACTION_STATE,
+                event = TOOLPKG_EVENT_CHAT_RUNTIME_STATE,
                 eventName = dispatch.event.eventType,
                 pluginId = hook.hookId,
                 inlineFunctionSource = hook.functionSource,
@@ -111,14 +111,14 @@ internal object ToolPkgChatActionBridge {
             result.onFailure { error ->
                 AppLogger.e(
                     TAG,
-                    "ToolPkg chat action hook failed: ${hook.containerPackageName}:${hook.hookId}",
+                    "ToolPkg chat runtime state hook failed: ${hook.containerPackageName}:${hook.hookId}",
                     error
                 )
             }
         }
     }
 
-    private fun buildEventPayload(dispatch: ChatActionDispatch): Map<String, Any?> {
+    private fun buildEventPayload(dispatch: ChatRuntimeStateDispatch): Map<String, Any?> {
         val event = dispatch.event
         return buildMap {
             put("scope", dispatch.scope)
