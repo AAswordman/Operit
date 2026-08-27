@@ -16,7 +16,7 @@ Steps:
 3. [DONE] Implement `Tools.Chat.getCurrentChatRuntimeState`, `Tools.Chat.getGlobalChatRuntimeState`, and their tools.
 4. [DONE] Add `ToolPkg.registerChatRuntimeStateHook` with snapshot replay and change delivery.
 5. [DONE] Update focused documentation and static verification.
-6. [IN PROGRESS] Normalize API, AI, tool, and system error metadata without changing the existing processing-state ordering.
+6. [DONE] Normalize API, AI, tool, and system error metadata without changing the existing processing-state ordering.
 
 ## Error normalization
 

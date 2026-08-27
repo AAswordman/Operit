@@ -25,6 +25,35 @@ class ApiErrorClassifierTest {
     }
 
     @Test
+    fun prioritizesAuthenticationStatusOverOuterTimeout() {
+        val error = ApiErrorClassifier.classify(
+            IOException(
+                "连接超时或中断，已重试 5 次: API请求失败，状态码: 401",
+                StatusException(
+                    statusCode = 401,
+                    message = "{\"error\":{\"type\":\"authentication_error\",\"code\":\"invalid_request_error\"}}"
+                )
+            )
+        )
+
+        assertEquals("authentication_failed", error.code)
+        assertEquals(401, error.httpStatusCode)
+        assertEquals("invalid_request_error", error.providerCode)
+        assertFalse(error.recoverable)
+    }
+
+    @Test
+    fun classifiesRetryMessageFromProviderBeforeNextAttempt() {
+        val error = ApiErrorClassifier.classifyMessage(
+            "API请求失败，状态码: 401，错误信息: {\"error\":{\"type\":\"authentication_error\",\"code\":\"invalid_request_error\"}}"
+        )
+
+        assertEquals("authentication_failed", error.code)
+        assertEquals(401, error.httpStatusCode)
+        assertEquals("invalid_request_error", error.providerCode)
+    }
+
+    @Test
     fun classifiesModelNotFoundAsNonRecoverable() {
         val error = ApiErrorClassifier.classify(
             StatusException(404, "model_not_found: requested model does not exist")
@@ -35,7 +64,6 @@ class ApiErrorClassifierTest {
         assertEquals("model_not_found", error.providerCode)
         assertFalse(error.recoverable)
     }
-
     @Test
     fun classifiesBalanceAndQuotaErrorsAsNonRecoverable() {
         val balance = ApiErrorClassifier.classify(StatusException(402, "Insufficient Balance"))

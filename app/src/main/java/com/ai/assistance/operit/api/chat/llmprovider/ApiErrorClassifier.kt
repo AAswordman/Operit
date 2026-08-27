@@ -30,6 +30,10 @@ internal object ApiErrorClassifier {
         """(?i)\b(?:invalid_request_error|authentication_error|billing_error|permission_error|not_found_error|request_too_large|rate_limit_error|rate_limit_exceeded|quota_exceeded|api_error|service_unavailable|overloaded_error|invalidapikey|invalidparameter|model_not_found|insufficient_balance|invalid_request|parameter_unknown|content_filter|malformed_function_call|malformed_tool_call|unexpected_tool_call|too_many_tool_calls)\b"""
     )
 
+    fun classifyMessage(message: String): ApiErrorClassification {
+        return classify(IOException(message))
+    }
+
     fun classify(throwable: Throwable): ApiErrorClassification {
         val chain = exceptionChain(throwable)
         val rawText = chain
@@ -41,6 +45,9 @@ internal object ApiErrorClassifier {
         val providerCode = extractProviderCode(rawText)
 
         val code = when {
+            containsAny(text, "invalid api key", "incorrect api key", "invalidapikey", "authenticationerror", "authentication_error", "unauthorized") ||
+                statusCode == 401 -> "authentication_failed"
+
             chain.any { it is SocketTimeoutException || it is TimeoutException } ||
                 containsAny(text, "timed out", "timeout", "超时") -> "timeout"
 
@@ -56,9 +63,6 @@ internal object ApiErrorClassifier {
 
             containsAny(text, "model_not_found", "model not found", "deploymentnotfound", "deployment not found") ->
                 "model_not_found"
-
-            containsAny(text, "invalid api key", "incorrect api key", "invalidapikey", "authenticationerror", "authentication_error", "unauthorized") ||
-                statusCode == 401 -> "authentication_failed"
 
             containsAny(text, "insufficient balance", "insufficient_balance", "billing_error", "billing error") ||
                 statusCode == 402 -> "insufficient_balance"
@@ -77,7 +81,8 @@ internal object ApiErrorClassifier {
                 statusCode == 400 || statusCode == 422 -> "invalid_request"
 
             containsAny(text, "rate_limit", "rate limit", "rate_limit_error", "throttling", "flowcontrol", "flow control", "too many requests") ||
-                statusCode == 429 && !containsAny(text, "overload", "balance", "quota") -> "rate_limited"
+                statusCode == 429 && !containsAny(text, "overload", "balance", "quota") ->
+                "rate_limited"
 
             containsAny(text, "overloaded", "overload", "server overloaded", "capacity exceeded") ||
                 statusCode == 529 -> "server_overloaded"

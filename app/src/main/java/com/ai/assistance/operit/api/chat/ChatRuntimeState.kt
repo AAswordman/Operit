@@ -296,6 +296,23 @@ object ChatRuntimeStateStore {
             is InputProcessingState.Retrying -> {
                 record.phase = ChatRuntimeStatePhase.RETRYING
                 record.toolName = null
+                record.error = state.errorSource?.let { source ->
+                    ChatRuntimeStateError(
+                        source = when (source) {
+                            InputProcessingErrorSource.AI -> ChatRuntimeStateErrorSource.AI
+                            InputProcessingErrorSource.TOOL -> ChatRuntimeStateErrorSource.TOOL
+                            InputProcessingErrorSource.API -> ChatRuntimeStateErrorSource.API
+                            InputProcessingErrorSource.SYSTEM -> ChatRuntimeStateErrorSource.SYSTEM
+                        },
+                        code = state.code ?: "unknown",
+                        message = state.message.takeIf { it.isNotBlank() },
+                        recoverable = state.recoverable,
+                        retryAttempt = state.retryAttempt,
+                        providerCode = state.providerCode,
+                        httpStatusCode = state.httpStatusCode,
+                        retryAfterMs = state.retryAfterMs
+                    )
+                }
             }
 
             is InputProcessingState.AiError -> {

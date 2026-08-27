@@ -40,6 +40,8 @@ AI errors use the existing pure-thinking warning path and identify the recovery 
 
 Error details stay structured and do not expose prompts, chain-of-thought, or tool arguments through the state API.
 
+During an automatic provider retry, the current snapshot uses `retrying` while retaining the latest structured error metadata, including the normalized code, provider code, HTTP status, and retry attempt when available. The terminal `error` state is published when the retry loop stops.
+
 The existing processing pipeline may publish `thinking` before `requesting`: `Processing` is emitted during request preparation, while `Connecting` is emitted when the provider connection phase begins. This API change keeps that underlying ordering unchanged.
 
 ## ToolPkg hook
