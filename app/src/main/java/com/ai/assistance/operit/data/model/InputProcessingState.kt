@@ -46,16 +46,7 @@ sealed class InputProcessingState {
     data class WaitingToolResult(val toolName: String) : InputProcessingState()
 
     /** AI 正在重新发起请求 */
-    data class Retrying(
-        val message: String = "",
-        val code: String? = null,
-        val errorSource: InputProcessingErrorSource? = null,
-        val recoverable: Boolean = true,
-        val retryAttempt: Int? = null,
-        val providerCode: String? = null,
-        val httpStatusCode: Int? = null,
-        val retryAfterMs: Long? = null
-    ) : InputProcessingState()
+    data class Retrying(val message: String = "") : InputProcessingState()
 
     /** AI 输出异常，通常会进入重试流程 */
     data class AiError(

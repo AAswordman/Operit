@@ -67,35 +67,6 @@ class ChatRuntimeStateStoreTest {
     }
 
     @Test
-    fun preservesApiErrorMetadataDuringRetry() {
-        val chatId = uniqueChatId("api-retry")
-
-        ChatRuntimeStateStore.updateInputProcessingState(
-            runtime = ChatRuntimeSlot.MAIN,
-            chatId = chatId,
-            state = InputProcessingState.Retrying(
-                message = "invalid API key",
-                code = "authentication_failed",
-                errorSource = InputProcessingErrorSource.API,
-                recoverable = false,
-                retryAttempt = 1,
-                providerCode = "invalid_request_error",
-                httpStatusCode = 401
-            )
-        )
-
-        val snapshot = ChatRuntimeStateStore.getSnapshot(chatId)
-        assertEquals("retrying", snapshot.phase.wireName)
-        assertTrue(snapshot.phase.isActive)
-        assertEquals("api", snapshot.error?.source?.wireName)
-        assertEquals("authentication_failed", snapshot.error?.code)
-        assertEquals("invalid_request_error", snapshot.error?.providerCode)
-        assertEquals(401, snapshot.error?.httpStatusCode)
-        assertEquals(1, snapshot.error?.retryAttempt)
-        assertFalse(snapshot.error?.recoverable ?: true)
-    }
-
-    @Test
     fun keepsAiAndToolErrorsDistinct() {
         val aiChatId = uniqueChatId("ai-error")
         val toolChatId = uniqueChatId("tool-error")

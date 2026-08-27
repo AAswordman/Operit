@@ -12,7 +12,6 @@ import com.ai.assistance.operit.api.chat.enhance.FileBindingService
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
-import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassification
 import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassifier
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
@@ -916,30 +915,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val memorySpaceIdOverride = options.memorySpaceIdOverride
         val stream = options.stream
         val disableWarning = options.disableWarning
-        var providerRequestActive = false
-        var providerRetryAttempt = 0
-        var lastProviderRetryClassification: ApiErrorClassification? = null
         val onNonFatalError: suspend (error: String) -> Unit = { error ->
-            if (providerRequestActive) {
-                val classification = ApiErrorClassifier.classifyMessage(error)
-                val retryAttempt = providerRetryAttempt + 1
-                providerRetryAttempt = retryAttempt
-                lastProviderRetryClassification = classification
-                if (!isSubTask) {
-                    withContext(Dispatchers.Main) {
-                        _inputProcessingState.value = InputProcessingState.Retrying(
-                            message = error,
-                            code = classification.code,
-                            errorSource = InputProcessingErrorSource.API,
-                            recoverable = classification.recoverable,
-                            retryAttempt = retryAttempt,
-                            providerCode = classification.providerCode,
-                            httpStatusCode = classification.httpStatusCode,
-                            retryAfterMs = classification.retryAfterMs
-                        )
-                    }
-                }
-            }
             options.onNonFatalError(error)
             callbacks?.onNonFatalError(error)
         }
@@ -1131,8 +1107,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                     
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
-                    // Keep the retry callback connected to the active provider attempt.
-                    providerRequestActive = true
                     val requestStartTime = messageTimingNow()
                     val responseStream =
                             serviceForFunction.sendMessage(
@@ -1260,9 +1234,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                         }
                     }
                     providerStreamCollectionStarted = false
-                    providerRequestActive = false
-                    providerRetryAttempt = 0
-                    lastProviderRetryClassification = null
 
                     // Update accumulated token counts and persist them
                     val inputTokens = serviceForFunction.inputTokenCount
@@ -1287,12 +1258,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                     )
                 }
             } catch (e: CancellationException) {
-                providerRequestActive = false
                 invalidateExecutionContext(execContext, "sendMessage.collect.cancelled")
                 AppLogger.d(TAG, "sendMessage流被取消")
                 throw e
             } catch (e: Exception) {
-                providerRequestActive = false
                 // 用户取消导致的 Socket closed 是预期行为，不应作为错误处理
                 val isSocketClosed = e.message?.contains("Socket closed", ignoreCase = true) == true
                 if (isSocketClosed) {
@@ -1306,7 +1275,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // Handle any exceptions
                     AppLogger.e(TAG, "发送消息时发生错误: ${e.message}", e)
                     if (!providerStreamCollectionStarted) {
-                        val classification = lastProviderRetryClassification ?: ApiErrorClassifier.classify(e)
+                        val classification = ApiErrorClassifier.classify(e)
                         withContext(Dispatchers.Main) {
                             _inputProcessingState.value =
                                 InputProcessingState.Error(
@@ -1317,7 +1286,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     code = classification.code,
                                     errorSource = InputProcessingErrorSource.API,
                                     recoverable = classification.recoverable,
-                                    retryAttempt = providerRetryAttempt.takeIf { it > 0 },
                                     providerCode = classification.providerCode,
                                     httpStatusCode = classification.httpStatusCode,
                                     retryAfterMs = classification.retryAfterMs
