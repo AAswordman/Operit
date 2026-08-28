@@ -81,6 +81,9 @@ class MessageProcessingDelegate(
         private const val STREAM_PERSIST_INTERVAL_MS = 1000L
         private const val AUTO_READ_PREVIEW_MAX = 48
 
+        internal fun shouldPersistInterruptedMessage(finalContent: String): Boolean =
+            finalContent.isNotBlank()
+
         internal fun completeInterruptedMessage(
             streamingMessage: ChatMessage,
             finalContent: String,
@@ -471,11 +474,15 @@ class MessageProcessingDelegate(
                     )
                 }
             }
+            if (!shouldPersistInterruptedMessage(finalContent)) {
+                return@withContext
+            }
+
             val segmentedMessages = activeTurn.segmentedMessages
             if (segmentedMessages == null) {
                 addMessageToChat(chatId, finalMessage)
             } else {
-                segmentedMessages.forEach { segmentMessage ->
+                segmentedMessages.filter { it.content.isNotBlank() }.forEach { segmentMessage ->
                     addMessageToChat(
                         chatId,
                         segmentMessage.copy(

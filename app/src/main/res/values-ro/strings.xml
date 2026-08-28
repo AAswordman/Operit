@@ -5954,7 +5954,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="toolreg_create_new_chat_in_group_desc">Crearea unei noi conversații (Grupare: %1$s)</string>
     <string name="toolreg_list_chats_desc">Afișează toate conversațiile</string>
     <string name="toolreg_find_chat_desc">Căutare conversație: %1$s</string>
-    <string name="toolreg_agent_status_desc">Verificarea stării conversației: %1$s</string>
+    <string name="toolreg_current_chat_runtime_state_desc">Verificarea stării conversației: %1$s</string>
     <string name="toolreg_switch_chat_desc">Trecere la dialog: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Actualizarea titlului conversației: %1$s</string>
     <string name="toolreg_delete_chat_desc">Șterge conversația: %1$s</string>
@@ -6973,8 +6973,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="provider_error_parsing_failed">Eșecul analizării răspunsului</string>
     <string name="provider_error_retry_message">%1$s, se află la a %2$d A doua încercare...</string>
     <string name="provider_error_timeout">Timpul de așteptare pentru conectare a expirat</string>
-    <string name="provider_error_unknown_host">Nu se poate identifica numele de gazdă</string>
     <string name="provider_error_network_interrupted">Întrerupere a conexiunii la internet</string>
+    <string name="operit_network_error_format">Eșec: Solicitarea de rețea a eșuat, cod de stare: %1$d, informații despre eroare: %2$s</string>
 
     <!-- OpenAI Provider -->
     <string name="openai_error_request_cancelled">Solicitarea a fost anulată de utilizator</string>
@@ -7441,7 +7441,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <!-- OpenAIProvider (新增) -->
     <string name="openai_retry_with_count">%1$s, se află la a %2$d A doua încercare...</string>
     <string name="openai_error_timeout">Timpul de așteptare pentru conectare a expirat</string>
-    <string name="openai_error_cannot_resolve_host">Nu se poate identifica numele de gazdă</string>
     <string name="openai_error_network_interrupted">Întrerupere a conexiunii la internet</string>
     <string name="openai_audio_video_omitted">Conținutul audio și video a fost omis; modelul actual nu acceptă procesarea conținutului audio și video</string>
     <string name="openai_image_omitted">Conținutul imaginii a fost omis; modelul actual nu acceptă procesarea imaginilor</string>
@@ -8041,4 +8040,32 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="codex_auth_not_logged_in">Conectați-vă cu ChatGPT pentru a folosi accesul Codex inclus în abonament</string>
     <string name="codex_auth_account">Cont: %1$s</string>
     <string name="codex_endpoint_fixed">Endpointul Codex este fixat de sistem</string>
+<string name="translate_message">Traducere</string>
+    <string name="translation_dialog_title">Traducerea mesajului</string>
+    <string name="translation_target_language">Limba țintă</string>
+    <string name="translation_original">Original</string>
+    <string name="translation_result">Rezultatul traducerii</string>
+    <string name="translation_translate_action">Traduce</string>
+    <string name="translation_retranslate_action">Retraduce</string>
+    <string name="translation_retry_action">Reîncearcă traducerea</string>
+    <string name="translation_copy_original">Copiază originalul</string>
+    <string name="translation_copy_result">Copiază traducerea</string>
+    <string name="translation_original_copied">Originalul a fost copiat</string>
+    <string name="translation_result_copied">Traducerea a fost copiată</string>
+    <string name="translation_cached_result">Rezultat din cache</string>
+    <string name="translation_model_not_configured">Modelul de traducere nu este configurat</string>
+    <string name="translation_waiting">Rezultatul traducerii va apărea aici</string>
+    <string name="translation_loading">Se traduce...</string>
+    <string name="translation_empty_result">Rezultatul traducerii este gol</string>
+    <string name="translation_failed">Traducerea a eșuat: %1$s</string>
+    <string name="translation_failed_unknown">Eroare necunoscută</string>
+    <string name="translation_language_english">Engleză</string>
+    <string name="translation_language_korean">Coreeană</string>
+    <string name="translation_language_spanish">Spaniolă</string>
+    <string name="translation_language_malay">Malaeză</string>
+    <string name="translation_language_indonesian">Indoneziană</string>
+    <string name="translation_language_portuguese">Portugheză (Brazilia)</string>
+    <string name="translation_language_romanian">Română</string>
+    <string name="translation_language_japanese">Japoneză</string>
+    <string name="translation_retry_error_status">Solicitarea de traducere a eșuat (reîncercare %1$d/%2$d): %3$s</string>
 </resources>

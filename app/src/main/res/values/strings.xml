@@ -1113,6 +1113,7 @@
     
     <!-- Language Settings -->
     <string name="language_settings">语言设置</string>
+    <string name="language_follow_system">跟随系统</string>
     <string name="language_settings_desc">更改应用界面显示语言</string>
     <string name="change_language">更改语言</string>
     <string name="select_language">选择语言</string>
@@ -1669,6 +1670,33 @@
     <string name="parent_chat">父对话: %1$s</string>
 
     <string name="modify_memory">修改记忆</string>
+    <string name="translate_message">翻译</string>
+    <string name="translation_dialog_title">翻译消息</string>
+    <string name="translation_target_language">目标语言</string>
+    <string name="translation_original">原文</string>
+    <string name="translation_result">译文</string>
+    <string name="translation_translate_action">开始翻译</string>
+    <string name="translation_retranslate_action">重新翻译</string>
+    <string name="translation_retry_action">重试</string>
+    <string name="translation_copy_original">复制原文</string>
+    <string name="translation_copy_result">复制译文</string>
+    <string name="translation_original_copied">原文已复制</string>
+    <string name="translation_result_copied">译文已复制</string>
+    <string name="translation_cached_result">已保存</string>
+    <string name="translation_model_not_configured">未配置可用的翻译模型，请先在功能模型配置中设置翻译模型。</string>
+    <string name="translation_waiting">选择目标语言后开始翻译</string>
+    <string name="translation_loading">正在翻译…</string>
+    <string name="translation_empty_result">翻译模型未返回内容</string>
+    <string name="translation_failed">翻译失败：%1$s</string>
+    <string name="translation_failed_unknown">未知错误</string>
+    <string name="translation_language_english">英语</string>
+    <string name="translation_language_korean">韩语</string>
+    <string name="translation_language_spanish">西班牙语</string>
+    <string name="translation_language_malay">马来语</string>
+    <string name="translation_language_indonesian">印度尼西亚语</string>
+    <string name="translation_language_portuguese">葡萄牙语（巴西）</string>
+    <string name="translation_language_romanian">罗马尼亚语</string>
+    <string name="translation_language_japanese">日语</string>
     <string name="delete_from_here">删除到此</string>
     <string name="confirm_rollback_title">确认回滚</string>
     <string name="confirm_rollback_message">将删除此消息之后的所有消息，并将已绑定的工作区回滚到此消息之前的状态。此操作不可撤销，确定继续吗？</string>
@@ -6096,7 +6124,8 @@
     <string name="toolreg_create_new_chat_in_group_desc">创建新的对话 (分组: %1$s)</string>
     <string name="toolreg_list_chats_desc">列出所有对话</string>
     <string name="toolreg_find_chat_desc">查找对话: %1$s</string>
-    <string name="toolreg_agent_status_desc">查询对话状态: %1$s</string>
+    <string name="toolreg_current_chat_runtime_state_desc">查询对话状态: %1$s</string>
+    <string name="toolreg_global_chat_runtime_state_desc">查询全局聊天运行状态</string>
     <string name="toolreg_switch_chat_desc">切换到对话: %1$s</string>
     <string name="toolreg_update_chat_title_desc">更新对话标题: %1$s</string>
     <string name="toolreg_delete_chat_desc">删除对话: %1$s</string>
@@ -7116,8 +7145,8 @@
     <string name="provider_error_parsing_failed">解析响应失败</string>
     <string name="provider_error_retry_message">%1$s，正在进行第 %2$d 次重试...</string>
     <string name="provider_error_timeout">连接超时</string>
-    <string name="provider_error_unknown_host">无法解析主机</string>
     <string name="provider_error_network_interrupted">网络中断</string>
+    <string name="operit_network_error_format">失败：网络请求失败，状态码：%1$d，错误信息：%2$s</string>
 
     <!-- OpenAI Provider -->
     <string name="openai_error_request_cancelled">请求已被用户取消</string>
@@ -7585,7 +7614,6 @@
     <!-- OpenAIProvider (新增) -->
     <string name="openai_retry_with_count">%1$s，正在进行第 %2$d 次重试...</string>
     <string name="openai_error_timeout">连接超时</string>
-    <string name="openai_error_cannot_resolve_host">无法解析主机</string>
     <string name="openai_error_network_interrupted">网络中断</string>
     <string name="openai_audio_video_omitted">音视频内容已省略，当前模型不支持音视频处理</string>
     <string name="openai_image_omitted">图片内容已省略，当前模型不支持图片处理</string>
@@ -7705,6 +7733,7 @@
     <string name="conversation_analyze_image_prompt">Please analyze this image.</string>
     <string name="conversation_analyze_audio_prompt">Please analyze this audio.</string>
     <string name="conversation_analyze_video_prompt">Please analyze this video.</string>
+    <string name="translation_retry_error_status">翻译请求失败（当前重试 %1$d/%2$d）：%3$s</string>
 
     <!-- LlamaProvider -->
     <string name="llama_error_model_file_not_exist">模型文件不存在: %1$s</string>

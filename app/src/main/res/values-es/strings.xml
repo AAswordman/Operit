@@ -257,6 +257,7 @@
 
     <!-- Language Settings -->
     <string name="language_settings">Configuración de idioma</string>
+    <string name="language_follow_system">Seguir el sistema</string>
     <string name="language_settings_desc">Cambiar el idioma de visualización de la interfaz de la aplicación</string>
     <string name="change_language">Cambiar idioma</string>
     <string name="select_language">Seleccionar idioma</string>
@@ -1300,6 +1301,33 @@
     <string name="insert_summary">Insertar Resumen</string>
     <string name="create_branch">Crear Rama</string>
     <string name="modify_memory">Modificar Memoria</string>
+    <string name="translate_message">Traducir</string>
+    <string name="translation_dialog_title">Traducir mensaje</string>
+    <string name="translation_target_language">Idioma de destino</string>
+    <string name="translation_original">Original</string>
+    <string name="translation_result">Traducción</string>
+    <string name="translation_translate_action">Traducir</string>
+    <string name="translation_retranslate_action">Volver a traducir</string>
+    <string name="translation_retry_action">Reintentar</string>
+    <string name="translation_copy_original">Copiar original</string>
+    <string name="translation_copy_result">Copiar traducción</string>
+    <string name="translation_original_copied">Original copiado</string>
+    <string name="translation_result_copied">Traducción copiada</string>
+    <string name="translation_cached_result">Guardada</string>
+    <string name="translation_model_not_configured">No hay ningún modelo de traducción configurado. Configura uno en los ajustes de modelos de función.</string>
+    <string name="translation_waiting">Elige un idioma de destino para traducir</string>
+    <string name="translation_loading">Traduciendo…</string>
+    <string name="translation_empty_result">El modelo de traducción no devolvió contenido</string>
+    <string name="translation_failed">Error de traducción: %1$s</string>
+    <string name="translation_failed_unknown">Error desconocido</string>
+    <string name="translation_language_english">Inglés</string>
+    <string name="translation_language_korean">Coreano</string>
+    <string name="translation_language_spanish">Español</string>
+    <string name="translation_language_malay">Malayo</string>
+    <string name="translation_language_indonesian">Indonesio</string>
+    <string name="translation_language_portuguese">Portugués (Brasil)</string>
+    <string name="translation_language_romanian">Rumano</string>
+    <string name="translation_language_japanese">Japonés</string>
     <string name="delete_from_here">Eliminar desde aquí</string>
     <string name="confirm_rollback_message">Esto eliminará todos los mensajes posteriores y revertirá el espacio de trabajo vinculado al estado anterior a este mensaje. Esta acción no se puede deshacer. ¿Deseas continuar?</string>
     <string name="confirm_rollback_confirm">Revertir</string>
@@ -5812,7 +5840,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="workflow_template_calculate">Plantilla de cálculo %1$s</string>
 
     <string name="toolreg_find_chat_desc">Buscar conversación: %1$s</string>
-    <string name="toolreg_agent_status_desc">Consultar estado de la conversación: %1$s</string>
+    <string name="toolreg_current_chat_runtime_state_desc">Consultar estado de la conversación: %1$s</string>
     <string name="toolreg_switch_chat_desc">Cambiar a conversación: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Actualizar título de la conversación: %1$s</string>
     <string name="toolreg_delete_chat_desc">Eliminar conversación: %1$s</string>
@@ -6426,8 +6454,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="provider_error_parsing_failed">Error al analizar la respuesta.</string>
     <string name="provider_error_retry_message">%1$s, reintento %2$d en curso...</string>
     <string name="provider_error_timeout">Tiempo de espera agotado.</string>
-    <string name="provider_error_unknown_host">No se puede resolver el host.</string>
     <string name="provider_error_network_interrupted">Conexión de red interrumpida.</string>
+    <string name="operit_network_error_format">Error: La solicitud de red falló, código de estado: %1$d, información del error: %2$s</string>
     <string name="openai_error_request_cancelled">La solicitud fue cancelada por el usuario.</string>
     <string name="openai_error_no_error_details">Sin detalles del error.</string>
     <string name="openai_error_api_request_failed_with_status">Error en la solicitud a la API. Código de estado: %1$d. Mensaje de error: %2$s</string>
@@ -6916,7 +6944,6 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="enhanced_memory_tools_category">Herramientas de memoria y banco de memoria</string>
     <string name="openai_retry_with_count">%1$s, realizando reintento %2$d...</string>
     <string name="openai_error_timeout">Tiempo de conexión agotado</string>
-    <string name="openai_error_cannot_resolve_host">No se puede resolver el host</string>
     <string name="openai_error_network_interrupted">Red interrumpida</string>
     <string name="openai_audio_video_omitted">Contenido de audio/video omitido; el modelo actual no admite procesamiento de audio/video</string>
     <string name="openai_image_omitted">Contenido de imagen omitido; el modelo actual no admite procesamiento de imágenes</string>

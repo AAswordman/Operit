@@ -31,9 +31,7 @@ import com.ai.assistance.operit.R
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.net.SocketTimeoutException
 import java.net.URL
-import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -1049,14 +1047,8 @@ open class GeminiProvider(
         throw IOException(exceptionMessage)
     }
 
-    private fun resolveRetryErrorText(context: Context, exception: Exception): String {
-        return when (exception) {
-            is SocketTimeoutException -> context.getString(R.string.provider_error_timeout)
-            is UnknownHostException -> context.getString(R.string.provider_error_unknown_host)
-            else -> exception.message?.takeIf { it.isNotBlank() }
-                ?: context.getString(R.string.provider_error_network_interrupted)
-        }
-    }
+    private fun resolveRetryErrorText(context: Context, exception: Exception): String =
+        ApiErrorClassifier.retryErrorText(context, exception)
 
     private suspend fun handleRetryableError(
         context: Context,
@@ -1072,6 +1064,14 @@ open class GeminiProvider(
             throw exception
         }
         if (exception is PromptBlockedException) {
+            onNonFatalError(exception.message.orEmpty())
+            throw exception
+        }
+        if (
+            exception is NonRetriableException &&
+                !LlmRetryPolicy.isRetryableClientStatus(exception.statusCode)
+        ) {
+            onNonFatalError(exception.message.orEmpty())
             throw exception
         }
         if (isManuallyCancelled) {

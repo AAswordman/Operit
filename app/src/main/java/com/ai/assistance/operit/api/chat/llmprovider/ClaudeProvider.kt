@@ -27,8 +27,6 @@ import com.ai.assistance.operit.util.stream.withEventChannel
 import com.ai.assistance.operit.util.stream.stream
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.*
 import okhttp3.*
@@ -1231,14 +1229,8 @@ open class ClaudeProvider(
         return request
     }
 
-    private fun resolveRetryErrorText(context: Context, exception: Exception): String {
-        return when (exception) {
-            is SocketTimeoutException -> context.getString(R.string.provider_error_timeout)
-            is UnknownHostException -> context.getString(R.string.provider_error_unknown_host)
-            else -> exception.message?.takeIf { it.isNotBlank() }
-                ?: context.getString(R.string.provider_error_network_interrupted)
-        }
-    }
+    private fun resolveRetryErrorText(context: Context, exception: Exception): String =
+        ApiErrorClassifier.retryErrorText(context, exception)
 
     private suspend fun handleRetryableError(
         context: Context,
@@ -1251,6 +1243,13 @@ open class ClaudeProvider(
         buildRetryMessage: (String, Int) -> String
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
+            throw exception
+        }
+        if (
+            exception is NonRetriableException &&
+                !LlmRetryPolicy.isRetryableClientStatus(exception.statusCode)
+        ) {
+            onNonFatalError(exception.message.orEmpty())
             throw exception
         }
         if (isManuallyCancelled) {

@@ -32,8 +32,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -1521,14 +1519,8 @@ open class OpenAIProvider(
         }
     }
 
-    private fun resolveRetryErrorText(context: Context, exception: Exception): String {
-        return when (exception) {
-            is SocketTimeoutException -> context.getString(R.string.openai_error_timeout)
-            is UnknownHostException -> context.getString(R.string.openai_error_cannot_resolve_host)
-            else -> exception.message?.takeIf { it.isNotBlank() }
-                ?: context.getString(R.string.openai_error_network_interrupted)
-        }
-    }
+    private fun resolveRetryErrorText(context: Context, exception: Exception): String =
+        ApiErrorClassifier.retryErrorText(context, exception)
 
     /**
      * 处理可重试错误的统一逻辑
@@ -1550,6 +1542,7 @@ open class OpenAIProvider(
             exception is NonRetriableException &&
                 !LlmRetryPolicy.isRetryableClientStatus(exception.statusCode)
         ) {
+            onNonFatalError(exception.message.orEmpty())
             throw exception
         }
         checkCancellation(context, exception)
