@@ -388,23 +388,20 @@ internal fun rememberThemeSettingsBackgroundRuntime(
             context.resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val (primaryColor, cropStatusBarColor, surfaceColor, onPrimaryColor) =
+        val (primaryColor, surfaceColor, onPrimaryColor) =
             try {
                 val typedValue = android.util.TypedValue()
                 context.theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
                 val primary = typedValue.data
-                context.theme.resolveAttribute(android.R.attr.colorPrimaryDark, typedValue, true)
-                val statusBar = typedValue.data
                 context.theme.resolveAttribute(android.R.attr.colorBackground, typedValue, true)
                 val surface = typedValue.data
                 val onPrimary =
                     if (isNightMode) android.graphics.Color.WHITE else android.graphics.Color.BLACK
-                Quadruple(primary, statusBar, surface, onPrimary)
+                Triple(primary, surface, onPrimary)
             } catch (e: Exception) {
                 AppLogger.e("ThemeSettings", "Unable to resolve cropper colors", e)
-                Quadruple(
+                Triple(
                     if (isNightMode) 0xFF9C27B0.toInt() else 0xFF6200EE.toInt(),
-                    if (isNightMode) 0xFF7B1FA2.toInt() else 0xFF3700B3.toInt(),
                     if (isNightMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE,
                     if (isNightMode) android.graphics.Color.WHITE else android.graphics.Color.BLACK,
                 )
@@ -425,7 +422,6 @@ internal fun rememberThemeSettingsBackgroundRuntime(
                     toolbarTitleColor = onPrimaryColor
                     activityBackgroundColor = surfaceColor
                     backgroundColor = surfaceColor
-                    statusBarColor = cropStatusBarColor
                     activityMenuIconColor = onPrimaryColor
                     showCropOverlay = true
                     showProgressBar = true
@@ -495,10 +491,3 @@ internal fun rememberThemeSettingsBackgroundRuntime(
         mediaPickerLauncher = mediaPickerLauncher,
     )
 }
-
-private data class Quadruple<out A, out B, out C, out D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D,
-)
