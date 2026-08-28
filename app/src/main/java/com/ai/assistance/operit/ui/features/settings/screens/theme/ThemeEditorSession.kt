@@ -1,6 +1,12 @@
 package com.ai.assistance.operit.ui.features.settings.screens.theme
 
 import android.net.Uri
+import com.ai.assistance.operit.data.preferences.NativeThemeBooleanField
+import com.ai.assistance.operit.data.preferences.NativeThemeFloatField
+import com.ai.assistance.operit.data.preferences.NativeThemeIntField
+import com.ai.assistance.operit.data.preferences.NativeThemePreferenceRulesV1
+import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
+import com.ai.assistance.operit.data.preferences.NativeThemeStringField
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import java.io.File
@@ -48,67 +54,53 @@ internal class ThemeEditorSession(
         update { it.withString(name, value) }
     }
 
+    fun setString(field: NativeThemeStringField, value: String) {
+        update { it.withString(field, value) }
+    }
+
     fun setOptionalString(name: String, value: String?) {
         update { it.withString(name, value?.takeIf(String::isNotBlank)) }
     }
 
+    fun setOptionalString(field: NativeThemeStringField, value: String?) {
+        update { it.withString(field, value?.takeIf(String::isNotBlank)) }
+    }
+
     fun setBoolean(name: String, value: Boolean) {
-        update { current ->
-            var updated = current.withBoolean(name, value)
-            if (value) {
-                updated = when (name) {
-                    "chat_input_liquid_glass" ->
-                        updated.withBoolean("chat_input_water_glass", false)
+        setBoolean(NativeThemePreferenceSchemaV1.requireBooleanField(name), value)
+    }
 
-                    "chat_input_water_glass" ->
-                        updated.withBoolean("chat_input_liquid_glass", false)
-
-                    "cursor_user_bubble_liquid_glass" ->
-                        updated.withBoolean("cursor_user_bubble_water_glass", false)
-
-                    "cursor_user_bubble_water_glass" ->
-                        updated.withBoolean("cursor_user_bubble_liquid_glass", false)
-
-                    "bubble_user_bubble_liquid_glass" ->
-                        updated
-                            .withBoolean("bubble_user_bubble_water_glass", false)
-                            .withBoolean("bubble_user_use_image", false)
-
-                    "bubble_user_bubble_water_glass" ->
-                        updated
-                            .withBoolean("bubble_user_bubble_liquid_glass", false)
-                            .withBoolean("bubble_user_use_image", false)
-
-                    "bubble_ai_bubble_liquid_glass" ->
-                        updated
-                            .withBoolean("bubble_ai_bubble_water_glass", false)
-                            .withBoolean("bubble_ai_use_image", false)
-
-                    "bubble_ai_bubble_water_glass" ->
-                        updated
-                            .withBoolean("bubble_ai_bubble_liquid_glass", false)
-                            .withBoolean("bubble_ai_use_image", false)
-
-                    else -> updated
-                }
-            }
-            updated
-        }
+    fun setBoolean(field: NativeThemeBooleanField, value: Boolean) {
+        update { current -> NativeThemePreferenceRulesV1.applyBooleanChange(current, field, value) }
     }
 
     fun setInt(name: String, value: Int?) {
         update { it.withInt(name, value) }
     }
 
+    fun setInt(field: NativeThemeIntField, value: Int?) {
+        update { it.withInt(field, value) }
+    }
+
     fun setFloat(name: String, value: Float) {
         update { it.withFloat(name, value) }
+    }
+
+    fun setFloat(field: NativeThemeFloatField, value: Float) {
+        update { it.withFloat(field, value) }
     }
 
     fun reset() {
         val resetValues =
             ThemePreferenceValues.defaultVisual()
-                .withString("custom_ai_avatar_uri", currentValues.string("custom_ai_avatar_uri"))
-                .withString("custom_chat_title", currentValues.string("custom_chat_title"))
+                .withString(
+                    NativeThemePreferenceSchemaV1.customAiAvatarUri,
+                    currentValues.string(NativeThemePreferenceSchemaV1.customAiAvatarUri),
+                )
+                .withString(
+                    NativeThemePreferenceSchemaV1.customChatTitle,
+                    currentValues.string(NativeThemePreferenceSchemaV1.customChatTitle),
+                )
         _values.value = resetValues
         resetRequested = true
         deleteUnreferencedStagedAssets(resetValues)

@@ -16,6 +16,11 @@ val LocalThemePreferenceSnapshot =
         error("LocalThemePreferenceSnapshot is not provided.")
     }
 
+internal val LocalResolvedNativeThemeV1 =
+    compositionLocalOf<ResolvedNativeThemeV1> {
+        error("LocalResolvedNativeThemeV1 is not provided.")
+    }
+
 @Composable
 fun rememberActiveThemePreferenceSnapshot(): ThemePreferenceSnapshot {
     val context = LocalContext.current

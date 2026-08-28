@@ -90,164 +90,218 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val AI_STYLE_LOCKED = booleanPreferencesKey("ai_style_locked")
 
         // 主题设置相关键
-        private val THEME_MODE = stringPreferencesKey("theme_mode")
-        private val USE_SYSTEM_THEME = booleanPreferencesKey("use_system_theme")
-        private val CUSTOM_PRIMARY_COLOR = intPreferencesKey("custom_primary_color")
-        private val CUSTOM_SECONDARY_COLOR = intPreferencesKey("custom_secondary_color")
-        private val USE_CUSTOM_COLORS = booleanPreferencesKey("use_custom_colors")
+        private val THEME_MODE = stringPreferencesKey(NativeThemePreferenceSchemaV1.themeMode.name)
+        private val USE_SYSTEM_THEME =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useSystemTheme.name)
+        private val CUSTOM_PRIMARY_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.customPrimaryColor.name)
+        private val CUSTOM_SECONDARY_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.customSecondaryColor.name)
+        private val USE_CUSTOM_COLORS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomColors.name)
         private val CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED =
             booleanPreferencesKey("character_theme_default_migration_completed")
-        private val USE_BACKGROUND_IMAGE = booleanPreferencesKey("use_background_image")
-        private val BACKGROUND_IMAGE_URI = stringPreferencesKey("background_image_uri")
-        private val BACKGROUND_IMAGE_OPACITY = floatPreferencesKey("background_image_opacity")
+        private val USE_BACKGROUND_IMAGE =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useBackgroundImage.name)
+        private val BACKGROUND_IMAGE_URI =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.backgroundImageUri.name)
+        private val BACKGROUND_IMAGE_OPACITY =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.backgroundImageOpacity.name)
 
         // 背景媒体类型和视频设置
-        private val BACKGROUND_MEDIA_TYPE = stringPreferencesKey("background_media_type")
-        private val VIDEO_BACKGROUND_MUTED = booleanPreferencesKey("video_background_muted")
-        private val VIDEO_BACKGROUND_LOOP = booleanPreferencesKey("video_background_loop")
+        private val BACKGROUND_MEDIA_TYPE =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.backgroundMediaType.name)
+        private val VIDEO_BACKGROUND_MUTED =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.videoBackgroundMuted.name)
+        private val VIDEO_BACKGROUND_LOOP =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.videoBackgroundLoop.name)
 
         // 工具栏透明度设置
-        private val TOOLBAR_TRANSPARENT = booleanPreferencesKey("toolbar_transparent")
+        private val TOOLBAR_TRANSPARENT =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.toolbarTransparent.name)
 
         // 侧滑菜单玻璃效果设置
         private val NAVIGATION_DRAWER_WATER_GLASS =
-            booleanPreferencesKey("navigation_drawer_water_glass")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.navigationDrawerWaterGlass.name)
         private val NAVIGATION_DRAWER_BUTTON_LIQUID_GLASS =
-            booleanPreferencesKey("navigation_drawer_button_liquid_glass")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.navigationDrawerButtonLiquidGlass.name)
 
         // 侧滑菜单背景色设置
         private val USE_CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR =
-            booleanPreferencesKey("use_custom_navigation_drawer_background_color")
+            booleanPreferencesKey(
+                NativeThemePreferenceSchemaV1.useCustomNavigationDrawerBackgroundColor.name
+            )
         private val CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR =
-            intPreferencesKey("custom_navigation_drawer_background_color")
+            intPreferencesKey(NativeThemePreferenceSchemaV1.customNavigationDrawerBackgroundColor.name)
 
         // 侧滑菜单强调色设置（品牌标识/小标题/网络状态/分隔线共用）
         private val USE_CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR =
-            booleanPreferencesKey("use_custom_navigation_drawer_accent_color")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomNavigationDrawerAccentColor.name)
         private val CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR =
-            intPreferencesKey("custom_navigation_drawer_accent_color")
+            intPreferencesKey(NativeThemePreferenceSchemaV1.customNavigationDrawerAccentColor.name)
         
         // AppBar 自定义颜色设置
-        private val USE_CUSTOM_APP_BAR_COLOR = booleanPreferencesKey("use_custom_app_bar_color")
-        private val CUSTOM_APP_BAR_COLOR = intPreferencesKey("custom_app_bar_color")
+        private val USE_CUSTOM_APP_BAR_COLOR =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomAppBarColor.name)
+        private val CUSTOM_APP_BAR_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.customAppBarColor.name)
 
         // 状态栏颜色设置
-        private val USE_CUSTOM_STATUS_BAR_COLOR = booleanPreferencesKey("use_custom_status_bar_color")
-        private val CUSTOM_STATUS_BAR_COLOR = intPreferencesKey("custom_status_bar_color")
-        private val STATUS_BAR_TRANSPARENT = booleanPreferencesKey("status_bar_transparent")
-        private val STATUS_BAR_HIDDEN = booleanPreferencesKey("status_bar_hidden")
-        private val CHAT_HEADER_TRANSPARENT = booleanPreferencesKey("chat_header_transparent")
-        private val CHAT_INPUT_TRANSPARENT = booleanPreferencesKey("chat_input_transparent")
-        private val CHAT_INPUT_FLOATING = booleanPreferencesKey("chat_input_floating")
-        private val CHAT_INPUT_LIQUID_GLASS = booleanPreferencesKey("chat_input_liquid_glass")
-        private val CHAT_INPUT_WATER_GLASS = booleanPreferencesKey("chat_input_water_glass")
+        private val USE_CUSTOM_STATUS_BAR_COLOR =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomStatusBarColor.name)
+        private val CUSTOM_STATUS_BAR_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.customStatusBarColor.name)
+        private val STATUS_BAR_TRANSPARENT =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.statusBarTransparent.name)
+        private val STATUS_BAR_HIDDEN =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.statusBarHidden.name)
+        private val CHAT_HEADER_TRANSPARENT =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderTransparent.name)
+        private val CHAT_INPUT_TRANSPARENT =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputTransparent.name)
+        private val CHAT_INPUT_FLOATING =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputFloating.name)
+        private val CHAT_INPUT_LIQUID_GLASS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputLiquidGlass.name)
+        private val CHAT_INPUT_WATER_GLASS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputWaterGlass.name)
 
         // AppBar 内容颜色设置
-        private val FORCE_APP_BAR_CONTENT_COLOR_ENABLED = booleanPreferencesKey("force_app_bar_content_color_enabled")
-        private val APP_BAR_CONTENT_COLOR_MODE = stringPreferencesKey("app_bar_content_color_mode")
+        private val FORCE_APP_BAR_CONTENT_COLOR_ENABLED =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.forceAppBarContentColorEnabled.name)
+        private val APP_BAR_CONTENT_COLOR_MODE =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.appBarContentColorMode.name)
 
         // ChatHeader 图标颜色设置
-        private val CHAT_HEADER_HISTORY_ICON_COLOR = intPreferencesKey("chat_header_history_icon_color")
-        private val CHAT_HEADER_PIP_ICON_COLOR = intPreferencesKey("chat_header_pip_icon_color")
-        private val CHAT_HEADER_OVERLAY_MODE = booleanPreferencesKey("chat_header_overlay_mode")
+        private val CHAT_HEADER_HISTORY_ICON_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderHistoryIconColor.name)
+        private val CHAT_HEADER_PIP_ICON_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderPipIconColor.name)
+        private val CHAT_HEADER_OVERLAY_MODE =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderOverlayMode.name)
 
         // 背景模糊设置
-        private val USE_BACKGROUND_BLUR = booleanPreferencesKey("use_background_blur")
-        private val BACKGROUND_BLUR_RADIUS = floatPreferencesKey("background_blur_radius")
+        private val USE_BACKGROUND_BLUR =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useBackgroundBlur.name)
+        private val BACKGROUND_BLUR_RADIUS =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.backgroundBlurRadius.name)
 
         // 字体设置
-        private val USE_CUSTOM_FONT = booleanPreferencesKey("use_custom_font")
-        private val FONT_TYPE = stringPreferencesKey("font_type")  // "system" or "file"
-        private val SYSTEM_FONT_NAME = stringPreferencesKey("system_font_name")
-        private val CUSTOM_FONT_PATH = stringPreferencesKey("custom_font_path")
-        private val FONT_SCALE = floatPreferencesKey("font_scale")
+        private val USE_CUSTOM_FONT =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomFont.name)
+        private val FONT_TYPE = stringPreferencesKey(NativeThemePreferenceSchemaV1.fontType.name)
+        private val SYSTEM_FONT_NAME =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.systemFontName.name)
+        private val CUSTOM_FONT_PATH =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.customFontPath.name)
+        private val FONT_SCALE = floatPreferencesKey(NativeThemePreferenceSchemaV1.fontScale.name)
 
         // Chat style preference
-        private val CHAT_STYLE = stringPreferencesKey("chat_style")
-        private val INPUT_STYLE = stringPreferencesKey("input_style")
+        private val CHAT_STYLE = stringPreferencesKey(NativeThemePreferenceSchemaV1.chatStyle.name)
+        private val INPUT_STYLE = stringPreferencesKey(NativeThemePreferenceSchemaV1.inputStyle.name)
 
-        private val BUBBLE_SHOW_AVATAR = booleanPreferencesKey("bubble_show_avatar")
+        private val BUBBLE_SHOW_AVATAR =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleShowAvatar.name)
         private val BUBBLE_WIDE_LAYOUT_ENABLED =
-            booleanPreferencesKey("bubble_wide_layout_enabled")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleWideLayoutEnabled.name)
         private val CURSOR_USER_BUBBLE_FOLLOW_THEME =
-            booleanPreferencesKey("cursor_user_bubble_follow_theme")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleFollowTheme.name)
         private val CURSOR_USER_BUBBLE_LIQUID_GLASS =
-            booleanPreferencesKey("cursor_user_bubble_liquid_glass")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleLiquidGlass.name)
         private val CURSOR_USER_BUBBLE_WATER_GLASS =
-            booleanPreferencesKey("cursor_user_bubble_water_glass")
-        private val CURSOR_USER_BUBBLE_COLOR = intPreferencesKey("cursor_user_bubble_color")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleWaterGlass.name)
+        private val CURSOR_USER_BUBBLE_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleColor.name)
         private val BUBBLE_USER_BUBBLE_LIQUID_GLASS =
-            booleanPreferencesKey("bubble_user_bubble_liquid_glass")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserBubbleLiquidGlass.name)
         private val BUBBLE_USER_BUBBLE_WATER_GLASS =
-            booleanPreferencesKey("bubble_user_bubble_water_glass")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserBubbleWaterGlass.name)
         private val BUBBLE_AI_BUBBLE_LIQUID_GLASS =
-            booleanPreferencesKey("bubble_ai_bubble_liquid_glass")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiBubbleLiquidGlass.name)
         private val BUBBLE_AI_BUBBLE_WATER_GLASS =
-            booleanPreferencesKey("bubble_ai_bubble_water_glass")
-        private val BUBBLE_USER_BUBBLE_COLOR = intPreferencesKey("bubble_user_bubble_color")
-        private val BUBBLE_AI_BUBBLE_COLOR = intPreferencesKey("bubble_ai_bubble_color")
-        private val BUBBLE_USER_TEXT_COLOR = intPreferencesKey("bubble_user_text_color")
-        private val BUBBLE_AI_TEXT_COLOR = intPreferencesKey("bubble_ai_text_color")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiBubbleWaterGlass.name)
+        private val BUBBLE_USER_BUBBLE_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserBubbleColor.name)
+        private val BUBBLE_AI_BUBBLE_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiBubbleColor.name)
+        private val BUBBLE_USER_TEXT_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserTextColor.name)
+        private val BUBBLE_AI_TEXT_COLOR =
+            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiTextColor.name)
         private val BUBBLE_USER_USE_CUSTOM_FONT =
-            booleanPreferencesKey("bubble_user_use_custom_font")
-        private val BUBBLE_USER_FONT_TYPE = stringPreferencesKey("bubble_user_font_type")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserUseCustomFont.name)
+        private val BUBBLE_USER_FONT_TYPE =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserFontType.name)
         private val BUBBLE_USER_SYSTEM_FONT_NAME =
-            stringPreferencesKey("bubble_user_system_font_name")
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserSystemFontName.name)
         private val BUBBLE_USER_CUSTOM_FONT_PATH =
-            stringPreferencesKey("bubble_user_custom_font_path")
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserCustomFontPath.name)
         private val BUBBLE_AI_USE_CUSTOM_FONT =
-            booleanPreferencesKey("bubble_ai_use_custom_font")
-        private val BUBBLE_AI_FONT_TYPE = stringPreferencesKey("bubble_ai_font_type")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiUseCustomFont.name)
+        private val BUBBLE_AI_FONT_TYPE =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiFontType.name)
         private val BUBBLE_AI_SYSTEM_FONT_NAME =
-            stringPreferencesKey("bubble_ai_system_font_name")
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiSystemFontName.name)
         private val BUBBLE_AI_CUSTOM_FONT_PATH =
-            stringPreferencesKey("bubble_ai_custom_font_path")
-        private val BUBBLE_USER_USE_IMAGE = booleanPreferencesKey("bubble_user_use_image")
-        private val BUBBLE_AI_USE_IMAGE = booleanPreferencesKey("bubble_ai_use_image")
-        private val BUBBLE_USER_IMAGE_URI = stringPreferencesKey("bubble_user_image_uri")
-        private val BUBBLE_AI_IMAGE_URI = stringPreferencesKey("bubble_ai_image_uri")
-        private val BUBBLE_USER_IMAGE_CROP_LEFT = floatPreferencesKey("bubble_user_image_crop_left")
-        private val BUBBLE_USER_IMAGE_CROP_TOP = floatPreferencesKey("bubble_user_image_crop_top")
-        private val BUBBLE_USER_IMAGE_CROP_RIGHT = floatPreferencesKey("bubble_user_image_crop_right")
-        private val BUBBLE_USER_IMAGE_CROP_BOTTOM = floatPreferencesKey("bubble_user_image_crop_bottom")
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiCustomFontPath.name)
+        private val BUBBLE_USER_USE_IMAGE =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserUseImage.name)
+        private val BUBBLE_AI_USE_IMAGE =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiUseImage.name)
+        private val BUBBLE_USER_IMAGE_URI =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageUri.name)
+        private val BUBBLE_AI_IMAGE_URI =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageUri.name)
+        private val BUBBLE_USER_IMAGE_CROP_LEFT =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropLeft.name)
+        private val BUBBLE_USER_IMAGE_CROP_TOP =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropTop.name)
+        private val BUBBLE_USER_IMAGE_CROP_RIGHT =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropRight.name)
+        private val BUBBLE_USER_IMAGE_CROP_BOTTOM =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropBottom.name)
         private val BUBBLE_USER_IMAGE_REPEAT_START =
-            floatPreferencesKey("bubble_user_image_repeat_start")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatStart.name)
         private val BUBBLE_USER_IMAGE_REPEAT_END =
-            floatPreferencesKey("bubble_user_image_repeat_end")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatEnd.name)
         private val BUBBLE_USER_IMAGE_REPEAT_Y_START =
-            floatPreferencesKey("bubble_user_image_repeat_y_start")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYStart.name)
         private val BUBBLE_USER_IMAGE_REPEAT_Y_END =
-            floatPreferencesKey("bubble_user_image_repeat_y_end")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYEnd.name)
         private val BUBBLE_USER_IMAGE_SCALE =
-            floatPreferencesKey("bubble_user_image_scale")
-        private val BUBBLE_AI_IMAGE_CROP_LEFT = floatPreferencesKey("bubble_ai_image_crop_left")
-        private val BUBBLE_AI_IMAGE_CROP_TOP = floatPreferencesKey("bubble_ai_image_crop_top")
-        private val BUBBLE_AI_IMAGE_CROP_RIGHT = floatPreferencesKey("bubble_ai_image_crop_right")
-        private val BUBBLE_AI_IMAGE_CROP_BOTTOM = floatPreferencesKey("bubble_ai_image_crop_bottom")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageScale.name)
+        private val BUBBLE_AI_IMAGE_CROP_LEFT =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropLeft.name)
+        private val BUBBLE_AI_IMAGE_CROP_TOP =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropTop.name)
+        private val BUBBLE_AI_IMAGE_CROP_RIGHT =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropRight.name)
+        private val BUBBLE_AI_IMAGE_CROP_BOTTOM =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropBottom.name)
         private val BUBBLE_AI_IMAGE_REPEAT_START =
-            floatPreferencesKey("bubble_ai_image_repeat_start")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatStart.name)
         private val BUBBLE_AI_IMAGE_REPEAT_END =
-            floatPreferencesKey("bubble_ai_image_repeat_end")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatEnd.name)
         private val BUBBLE_AI_IMAGE_REPEAT_Y_START =
-            floatPreferencesKey("bubble_ai_image_repeat_y_start")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatYStart.name)
         private val BUBBLE_AI_IMAGE_REPEAT_Y_END =
-            floatPreferencesKey("bubble_ai_image_repeat_y_end")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatYEnd.name)
         private val BUBBLE_AI_IMAGE_SCALE =
-            floatPreferencesKey("bubble_ai_image_scale")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageScale.name)
         private val BUBBLE_IMAGE_RENDER_MODE =
-            stringPreferencesKey("bubble_image_render_mode")
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleImageRenderMode.name)
         private val BUBBLE_USER_ROUNDED_CORNERS_ENABLED =
-            booleanPreferencesKey("bubble_rounded_corners_enabled")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserRoundedCornersEnabled.name)
         private val BUBBLE_AI_ROUNDED_CORNERS_ENABLED =
-            booleanPreferencesKey("bubble_ai_rounded_corners_enabled")
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiRoundedCornersEnabled.name)
         private val BUBBLE_USER_CONTENT_PADDING_LEFT =
-            floatPreferencesKey("bubble_content_padding_left")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserContentPaddingLeft.name)
         private val BUBBLE_USER_CONTENT_PADDING_RIGHT =
-            floatPreferencesKey("bubble_content_padding_right")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserContentPaddingRight.name)
         private val BUBBLE_AI_CONTENT_PADDING_LEFT =
-            floatPreferencesKey("bubble_ai_content_padding_left")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiContentPaddingLeft.name)
         private val BUBBLE_AI_CONTENT_PADDING_RIGHT =
-            floatPreferencesKey("bubble_ai_content_padding_right")
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiContentPaddingRight.name)
 
         // 默认配置文件ID
         private const val DEFAULT_PROFILE_ID = "default"
@@ -279,23 +333,40 @@ class UserPreferencesManager private constructor(private val context: Context) {
         const val BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE = "tiled_nine_slice"
         const val BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH = "nine_patch"
 
-        private val KEY_SHOW_THINKING_PROCESS = booleanPreferencesKey("show_thinking_process")
-        private val KEY_SHOW_STATUS_TAGS = booleanPreferencesKey("show_status_tags")
-        private val KEY_SHOW_MODEL_PROVIDER = booleanPreferencesKey("show_model_provider")
-        private val KEY_SHOW_MODEL_NAME = booleanPreferencesKey("show_model_name")
-        private val KEY_SHOW_ROLE_NAME = booleanPreferencesKey("show_role_name")
-        private val KEY_SHOW_USER_NAME = booleanPreferencesKey("show_user_name")
-        private val KEY_SHOW_MESSAGE_TOKEN_STATS = booleanPreferencesKey("show_message_token_stats")
-        private val KEY_SHOW_MESSAGE_TIMING_STATS = booleanPreferencesKey("show_message_timing_stats")
-        private val KEY_SHOW_MESSAGE_TIMESTAMP = booleanPreferencesKey("show_message_timestamp")
-        private val KEY_CUSTOM_USER_AVATAR_URI = stringPreferencesKey("custom_user_avatar_uri")
-        private val KEY_CUSTOM_AI_AVATAR_URI = stringPreferencesKey("custom_ai_avatar_uri")
-        private val KEY_AVATAR_SHAPE = stringPreferencesKey("avatar_shape")
-        private val KEY_AVATAR_CORNER_RADIUS = floatPreferencesKey("avatar_corner_radius")
-        private val KEY_ON_COLOR_MODE = stringPreferencesKey("on_color_mode")
-        private val KEY_CUSTOM_CHAT_TITLE = stringPreferencesKey("custom_chat_title")
-        private val KEY_SHOW_INPUT_PROCESSING_STATUS = booleanPreferencesKey("show_input_processing_status")
-        private val KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION = booleanPreferencesKey("show_chat_floating_dots_animation")
+        private val KEY_SHOW_THINKING_PROCESS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showThinkingProcess.name)
+        private val KEY_SHOW_STATUS_TAGS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showStatusTags.name)
+        private val KEY_SHOW_MODEL_PROVIDER =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showModelProvider.name)
+        private val KEY_SHOW_MODEL_NAME =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showModelName.name)
+        private val KEY_SHOW_ROLE_NAME =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showRoleName.name)
+        private val KEY_SHOW_USER_NAME =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showUserName.name)
+        private val KEY_SHOW_MESSAGE_TOKEN_STATS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showMessageTokenStats.name)
+        private val KEY_SHOW_MESSAGE_TIMING_STATS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showMessageTimingStats.name)
+        private val KEY_SHOW_MESSAGE_TIMESTAMP =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showMessageTimestamp.name)
+        private val KEY_CUSTOM_USER_AVATAR_URI =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.customUserAvatarUri.name)
+        private val KEY_CUSTOM_AI_AVATAR_URI =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.customAiAvatarUri.name)
+        private val KEY_AVATAR_SHAPE =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.avatarShape.name)
+        private val KEY_AVATAR_CORNER_RADIUS =
+            floatPreferencesKey(NativeThemePreferenceSchemaV1.avatarCornerRadius.name)
+        private val KEY_ON_COLOR_MODE =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.onColorMode.name)
+        private val KEY_CUSTOM_CHAT_TITLE =
+            stringPreferencesKey(NativeThemePreferenceSchemaV1.customChatTitle.name)
+        private val KEY_SHOW_INPUT_PROCESSING_STATUS =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showInputProcessingStatus.name)
+        private val KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION =
+            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showChatFloatingDotsAnimation.name)
         private val KEY_UI_ACCESSIBILITY_MODE = booleanPreferencesKey("ui_accessibility_mode")
         private val KEY_BETA_PLAN_ENABLED = booleanPreferencesKey("beta_plan_enabled")
         private val KEY_SOFTWARE_IDENTITY = stringPreferencesKey("software_identity")
@@ -800,63 +871,39 @@ class UserPreferencesManager private constructor(private val context: Context) {
         "character_group_theme_${characterGroupId}_"
 
     private fun getAllStringThemeKeys(): List<Preferences.Key<String>> {
-        return listOf(
-            THEME_MODE, BACKGROUND_IMAGE_URI, BACKGROUND_MEDIA_TYPE, APP_BAR_CONTENT_COLOR_MODE,
-            CHAT_STYLE, KEY_CUSTOM_USER_AVATAR_URI, KEY_CUSTOM_AI_AVATAR_URI, KEY_AVATAR_SHAPE,
-            KEY_ON_COLOR_MODE, KEY_CUSTOM_CHAT_TITLE, INPUT_STYLE, FONT_TYPE, SYSTEM_FONT_NAME,
-            CUSTOM_FONT_PATH, BUBBLE_USER_FONT_TYPE, BUBBLE_USER_SYSTEM_FONT_NAME,
-            BUBBLE_USER_CUSTOM_FONT_PATH, BUBBLE_AI_FONT_TYPE, BUBBLE_AI_SYSTEM_FONT_NAME,
-            BUBBLE_AI_CUSTOM_FONT_PATH, BUBBLE_USER_IMAGE_URI, BUBBLE_AI_IMAGE_URI,
-            BUBBLE_IMAGE_RENDER_MODE
-        )
+        return NativeThemePreferenceSchemaV1.stringFields.map { field ->
+            stringPreferencesKey(field.name)
+        }
+    }
+
+    private fun getVisualStringThemeKeys(): List<Preferences.Key<String>> {
+        return NativeThemePreferenceSchemaV1.visualStringFields.map { field ->
+            stringPreferencesKey(field.name)
+        }
+    }
+
+    private fun getTargetMetadataStringThemeKeys(): List<Preferences.Key<String>> {
+        return NativeThemePreferenceSchemaV1.targetMetadataStringFields.map { field ->
+            stringPreferencesKey(field.name)
+        }
     }
 
     private fun getAllBooleanThemeKeys(): List<Preferences.Key<Boolean>> {
-        return listOf(
-            USE_SYSTEM_THEME, USE_CUSTOM_COLORS, USE_BACKGROUND_IMAGE, VIDEO_BACKGROUND_MUTED,
-            VIDEO_BACKGROUND_LOOP, TOOLBAR_TRANSPARENT, NAVIGATION_DRAWER_WATER_GLASS,
-            NAVIGATION_DRAWER_BUTTON_LIQUID_GLASS,
-            USE_CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR,
-            USE_CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR,
-            USE_CUSTOM_APP_BAR_COLOR, USE_CUSTOM_STATUS_BAR_COLOR,
-            STATUS_BAR_TRANSPARENT, STATUS_BAR_HIDDEN, CHAT_HEADER_TRANSPARENT, CHAT_INPUT_TRANSPARENT, CHAT_INPUT_FLOATING,
-            CHAT_INPUT_LIQUID_GLASS,
-            CHAT_INPUT_WATER_GLASS,
-            FORCE_APP_BAR_CONTENT_COLOR_ENABLED, CHAT_HEADER_OVERLAY_MODE, USE_BACKGROUND_BLUR,
-            BUBBLE_SHOW_AVATAR, BUBBLE_WIDE_LAYOUT_ENABLED, CURSOR_USER_BUBBLE_FOLLOW_THEME, CURSOR_USER_BUBBLE_LIQUID_GLASS,
-            CURSOR_USER_BUBBLE_WATER_GLASS, BUBBLE_USER_BUBBLE_LIQUID_GLASS, BUBBLE_USER_BUBBLE_WATER_GLASS,
-            BUBBLE_AI_BUBBLE_LIQUID_GLASS, BUBBLE_AI_BUBBLE_WATER_GLASS, BUBBLE_USER_USE_IMAGE,
-            BUBBLE_AI_USE_IMAGE, BUBBLE_USER_ROUNDED_CORNERS_ENABLED, BUBBLE_AI_ROUNDED_CORNERS_ENABLED, KEY_SHOW_THINKING_PROCESS, KEY_SHOW_STATUS_TAGS,
-            KEY_SHOW_INPUT_PROCESSING_STATUS, KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION, USE_CUSTOM_FONT,
-            BUBBLE_USER_USE_CUSTOM_FONT, BUBBLE_AI_USE_CUSTOM_FONT, KEY_SHOW_MODEL_PROVIDER,
-            KEY_SHOW_MODEL_NAME, KEY_SHOW_ROLE_NAME, KEY_SHOW_USER_NAME,
-            KEY_SHOW_MESSAGE_TOKEN_STATS, KEY_SHOW_MESSAGE_TIMING_STATS,
-            KEY_SHOW_MESSAGE_TIMESTAMP
-        )
+        return NativeThemePreferenceSchemaV1.booleanFields.map { field ->
+            booleanPreferencesKey(field.name)
+        }
     }
 
     private fun getAllIntThemeKeys(): List<Preferences.Key<Int>> {
-        return listOf(
-            CUSTOM_PRIMARY_COLOR, CUSTOM_SECONDARY_COLOR, CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR,
-            CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR, CUSTOM_APP_BAR_COLOR,
-            CUSTOM_STATUS_BAR_COLOR, CHAT_HEADER_HISTORY_ICON_COLOR, CHAT_HEADER_PIP_ICON_COLOR,
-            CURSOR_USER_BUBBLE_COLOR, BUBBLE_USER_BUBBLE_COLOR, BUBBLE_AI_BUBBLE_COLOR,
-            BUBBLE_USER_TEXT_COLOR, BUBBLE_AI_TEXT_COLOR
-        )
+        return NativeThemePreferenceSchemaV1.intFields.map { field ->
+            intPreferencesKey(field.name)
+        }
     }
 
     private fun getAllFloatThemeKeys(): List<Preferences.Key<Float>> {
-        return listOf(
-            BACKGROUND_IMAGE_OPACITY, BACKGROUND_BLUR_RADIUS, KEY_AVATAR_CORNER_RADIUS, FONT_SCALE,
-            BUBBLE_USER_IMAGE_CROP_LEFT, BUBBLE_USER_IMAGE_CROP_TOP, BUBBLE_USER_IMAGE_CROP_RIGHT,
-            BUBBLE_USER_IMAGE_CROP_BOTTOM, BUBBLE_USER_IMAGE_REPEAT_START, BUBBLE_USER_IMAGE_REPEAT_END,
-            BUBBLE_USER_IMAGE_REPEAT_Y_START, BUBBLE_USER_IMAGE_REPEAT_Y_END, BUBBLE_USER_IMAGE_SCALE,
-            BUBBLE_AI_IMAGE_CROP_LEFT, BUBBLE_AI_IMAGE_CROP_TOP, BUBBLE_AI_IMAGE_CROP_RIGHT,
-            BUBBLE_AI_IMAGE_CROP_BOTTOM, BUBBLE_AI_IMAGE_REPEAT_START, BUBBLE_AI_IMAGE_REPEAT_END,
-            BUBBLE_AI_IMAGE_REPEAT_Y_START, BUBBLE_AI_IMAGE_REPEAT_Y_END, BUBBLE_AI_IMAGE_SCALE,
-            BUBBLE_USER_CONTENT_PADDING_LEFT, BUBBLE_USER_CONTENT_PADDING_RIGHT,
-            BUBBLE_AI_CONTENT_PADDING_LEFT, BUBBLE_AI_CONTENT_PADDING_RIGHT
-        )
+        return NativeThemePreferenceSchemaV1.floatFields.map { field ->
+            floatPreferencesKey(field.name)
+        }
     }
 
     private fun copyThemeValues(
@@ -910,17 +957,11 @@ class UserPreferencesManager private constructor(private val context: Context) {
         }
     }
 
-    private fun isVisualThemeStringKey(key: Preferences.Key<String>): Boolean {
-        return key != KEY_CUSTOM_AI_AVATAR_URI && key != KEY_CUSTOM_CHAT_TITLE
-    }
-
     private fun clearVisualThemeValues(preferences: MutablePreferences, prefix: String) {
-        getAllStringThemeKeys()
-            .filter(::isVisualThemeStringKey)
-            .forEach { key ->
-                val targetKey = stringPreferencesKey("${prefix}${key.name}")
-                preferences.remove(targetKey)
-            }
+        getVisualStringThemeKeys().forEach { key ->
+            val targetKey = stringPreferencesKey("${prefix}${key.name}")
+            preferences.remove(targetKey)
+        }
         getAllBooleanThemeKeys().forEach { key ->
             val targetKey = booleanPreferencesKey("${prefix}${key.name}")
             preferences.remove(targetKey)
@@ -962,21 +1003,14 @@ class UserPreferencesManager private constructor(private val context: Context) {
             preferences[sourceKey]?.let { floats[key.name] = it }
         }
 
-        fun copyLegacyRepeatYValue(
-            verticalKey: Preferences.Key<Float>,
-            horizontalKey: Preferences.Key<Float>,
-        ) {
-            val verticalSourceKey = floatPreferencesKey("${prefix}${verticalKey.name}")
+        NativeThemePreferenceSchemaV1.floatFields.forEach { field ->
+            val releasedSource = field.releasedSource ?: return@forEach
+            val verticalSourceKey = floatPreferencesKey("${prefix}${field.name}")
             if (!preferences.contains(verticalSourceKey)) {
-                val horizontalSourceKey = floatPreferencesKey("${prefix}${horizontalKey.name}")
-                preferences[horizontalSourceKey]?.let { floats[verticalKey.name] = it }
+                val releasedSourceKey = floatPreferencesKey("${prefix}${releasedSource.name}")
+                preferences[releasedSourceKey]?.let { floats[field.name] = it }
             }
         }
-
-        copyLegacyRepeatYValue(BUBBLE_USER_IMAGE_REPEAT_Y_START, BUBBLE_USER_IMAGE_REPEAT_START)
-        copyLegacyRepeatYValue(BUBBLE_USER_IMAGE_REPEAT_Y_END, BUBBLE_USER_IMAGE_REPEAT_END)
-        copyLegacyRepeatYValue(BUBBLE_AI_IMAGE_REPEAT_Y_START, BUBBLE_AI_IMAGE_REPEAT_START)
-        copyLegacyRepeatYValue(BUBBLE_AI_IMAGE_REPEAT_Y_END, BUBBLE_AI_IMAGE_REPEAT_END)
 
         return ThemePreferenceValues(
             strings = strings,
@@ -991,17 +1025,15 @@ class UserPreferencesManager private constructor(private val context: Context) {
         prefix: String,
         values: ThemePreferenceValues,
     ) {
-        getAllStringThemeKeys()
-            .filter(::isVisualThemeStringKey)
-            .forEach { key ->
-                val targetKey = stringPreferencesKey("${prefix}${key.name}")
-                val value = values.string(key.name)
-                if (value == null) {
-                    preferences.remove(targetKey)
-                } else {
-                    preferences[targetKey] = value
-                }
+        getVisualStringThemeKeys().forEach { key ->
+            val targetKey = stringPreferencesKey("${prefix}${key.name}")
+            val value = values.string(key.name)
+            if (value == null) {
+                preferences.remove(targetKey)
+            } else {
+                preferences[targetKey] = value
             }
+        }
         getAllBooleanThemeKeys().forEach { key ->
             val targetKey = booleanPreferencesKey("${prefix}${key.name}")
             val value = values.boolean(key.name)
@@ -1036,7 +1068,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         prefix: String,
         values: ThemePreferenceValues,
     ) {
-        listOf(KEY_CUSTOM_AI_AVATAR_URI, KEY_CUSTOM_CHAT_TITLE).forEach { key ->
+        getTargetMetadataStringThemeKeys().forEach { key ->
             val targetKey = stringPreferencesKey("${prefix}${key.name}")
             val value = values.string(key.name)
             if (value == null) {
@@ -1121,8 +1153,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private fun hasThemeContentByPrefix(preferences: Preferences, prefix: String): Boolean {
-        return getAllStringThemeKeys()
-            .filterNot { key -> key == KEY_CUSTOM_AI_AVATAR_URI || key == KEY_CUSTOM_CHAT_TITLE }
+        return getVisualStringThemeKeys()
             .any { key -> preferences.contains(stringPreferencesKey("${prefix}${key.name}")) } ||
                 getAllBooleanThemeKeys().any { key ->
                     preferences.contains(booleanPreferencesKey("${prefix}${key.name}"))
@@ -1136,13 +1167,13 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private fun hasAnyScopedThemeContent(preferences: Preferences): Boolean {
+        val targetMetadataSuffixes =
+            NativeThemePreferenceSchemaV1.targetMetadataStringFields.map { field -> "_${field.name}" }
         return preferences.asMap().keys.any { key ->
             val isScopedThemeKey =
                 key.name.startsWith("character_card_theme_") ||
                     key.name.startsWith("character_group_theme_")
-            isScopedThemeKey &&
-                !key.name.endsWith("_${KEY_CUSTOM_AI_AVATAR_URI.name}") &&
-                !key.name.endsWith("_${KEY_CUSTOM_CHAT_TITLE.name}")
+            isScopedThemeKey && targetMetadataSuffixes.none(key.name::endsWith)
         }
     }
 
