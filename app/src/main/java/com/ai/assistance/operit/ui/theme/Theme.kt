@@ -165,7 +165,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                 // 根据状态栏背景色动态设置状态栏图标颜色
                 // isAppearanceLightStatusBars = true 表示图标为深色（适用于浅色背景）
                 // isAppearanceLightStatusBars = false 表示图标为浅色（适用于深色背景）
-                insetsController?.isAppearanceLightStatusBars = !isColorLight(Color(statusBarColor))
+                insetsController?.isAppearanceLightStatusBars = isColorLight(Color(statusBarColor))
             }
             
             // 设置导航栏颜色（底部小白条所在的区域）
@@ -194,6 +194,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
     }
 
     // 视频播放器状态
+    val lifecycleOwner = LocalLifecycleOwner.current
     val exoPlayer =
             remember(
                     useBackgroundImage,
@@ -228,7 +229,10 @@ fun OperitTheme(content: @Composable () -> Unit) {
                                         else Player.REPEAT_MODE_OFF
                                 // 设置静音
                                 volume = if (videoBackgroundMuted) 0f else 1f
-                                playWhenReady = true
+                                 playWhenReady =
+                                         lifecycleOwner.lifecycle.currentState.isAtLeast(
+                                                 Lifecycle.State.RESUMED
+                                         )
 
                                 // 加载视频
                                 try {
@@ -252,28 +256,29 @@ fun OperitTheme(content: @Composable () -> Unit) {
             }
 
     // 释放ExoPlayer资源
-    DisposableEffect(key1 = Unit) { 
-        onDispose { 
+    DisposableEffect(exoPlayer) {
+        onDispose {
             try {
                 exoPlayer?.stop()
                 exoPlayer?.clearMediaItems()
-                exoPlayer?.release() 
+                exoPlayer?.release()
             } catch (e: Exception) {
                 AppLogger.e("OperitTheme", "ExoPlayer释放错误", e)
             }
-        } 
+        }
     }
 
     // 监听应用生命周期，控制视频播放
     if (exoPlayer != null) {
-        val lifecycleOwner = LocalLifecycleOwner.current
-        DisposableEffect(lifecycleOwner) {
+        DisposableEffect(lifecycleOwner, exoPlayer) {
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
                     Lifecycle.Event.ON_PAUSE -> {
+                        exoPlayer.playWhenReady = false
                         exoPlayer.pause()
                     }
                     Lifecycle.Event.ON_RESUME -> {
+                        exoPlayer.playWhenReady = true
                         exoPlayer.play()
                     }
                     else -> {}

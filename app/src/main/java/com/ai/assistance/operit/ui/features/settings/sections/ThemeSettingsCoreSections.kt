@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
@@ -50,14 +49,17 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
 import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageBackgroundSurface
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.settings.components.ChatStyleOption
 import com.ai.assistance.operit.ui.features.settings.components.ColorSelectionItem
-import com.ai.assistance.operit.ui.features.settings.components.ThemeModeOption
 import com.ai.assistance.operit.ui.features.settings.screens.theme.ThemeEditorSession
+import com.ai.assistance.operit.ui.features.settings.screens.theme.NativeThemeEditorPreviewTheme
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeColorTargetV1
 import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
+import com.ai.assistance.operit.ui.theme.getTextColorForBackground
 import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
 import kotlin.math.max
 import kotlin.math.min
@@ -66,96 +68,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-internal fun ThemeSettingsThemeModeSection(
-    cardColors: CardColors,
-    editorSession: ThemeEditorSession,
-    useSystemThemeInput: Boolean,
-    themeModeInput: String,
-) {
-    ThemeSettingsSectionTitle(
-        title = stringResource(id = R.string.theme_title_mode),
-        icon = Icons.Default.Brightness4,
-    )
-
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = stringResource(id = R.string.theme_system_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.theme_follow_system),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.theme_follow_system_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Switch(
-                    checked = useSystemThemeInput,
-                    onCheckedChange = { editorSession.setBoolean("use_system_theme", it) },
-                )
-            }
-
-            if (!useSystemThemeInput) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                Text(
-                    text = stringResource(id = R.string.theme_select),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    ThemeModeOption(
-                        title = stringResource(id = R.string.theme_light),
-                        selected = themeModeInput == UserPreferencesManager.THEME_MODE_LIGHT,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            editorSession.setString(
-                                "theme_mode",
-                                UserPreferencesManager.THEME_MODE_LIGHT,
-                            )
-                        },
-                    )
-
-                    ThemeModeOption(
-                        title = stringResource(id = R.string.theme_dark),
-                        selected = themeModeInput == UserPreferencesManager.THEME_MODE_DARK,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            editorSession.setString(
-                                "theme_mode",
-                                UserPreferencesManager.THEME_MODE_DARK,
-                            )
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 internal fun ThemeSettingsChatStyleSection(
     cardColors: CardColors,
     editorSession: ThemeEditorSession,
     chatStyleInput: String,
-    inputStyleInput: String,
     bubbleShowAvatarInput: Boolean,
     bubbleWideLayoutEnabledInput: Boolean,
     cursorUserBubbleFollowThemeInput: Boolean,
@@ -182,7 +98,9 @@ internal fun ThemeSettingsChatStyleSection(
     onPickBubbleAiFont: () -> Unit,
     previewUserAvatarUri: String?,
     previewAiAvatarUri: String?,
-    onShowColorPicker: (String) -> Unit,
+    avatarShapeInput: String,
+    avatarCornerRadiusInput: Float,
+    onShowColorPicker: (NativeThemeColorTargetV1) -> Unit,
     bubbleUserUseImageInput: Boolean,
     bubbleAiUseImageInput: Boolean,
     bubbleUserImageUriInput: String?,
@@ -216,7 +134,6 @@ internal fun ThemeSettingsChatStyleSection(
     bubbleUserContentPaddingRightInput: Float,
     bubbleAiContentPaddingLeftInput: Float,
     bubbleAiContentPaddingRightInput: Float,
-    showInputStyleControls: Boolean = true,
 ) {
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.chat_style_title),
@@ -255,50 +172,6 @@ internal fun ThemeSettingsChatStyleSection(
                         "chat_style",
                         UserPreferencesManager.CHAT_STYLE_BUBBLE,
                     )
-                }
-            }
-
-            if (showInputStyleControls) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                Text(
-                    text = stringResource(id = R.string.input_style_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
-                Text(
-                    text = stringResource(id = R.string.input_style_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    ChatStyleOption(
-                        title = stringResource(id = R.string.input_style_classic),
-                        selected =
-                            inputStyleInput == UserPreferencesManager.INPUT_STYLE_CLASSIC,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        editorSession.setString(
-                            "input_style",
-                            UserPreferencesManager.INPUT_STYLE_CLASSIC,
-                        )
-                    }
-
-                    ChatStyleOption(
-                        title = stringResource(id = R.string.input_style_agent),
-                        selected = inputStyleInput == UserPreferencesManager.INPUT_STYLE_AGENT,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        editorSession.setString(
-                            "input_style",
-                            UserPreferencesManager.INPUT_STYLE_AGENT,
-                        )
-                    }
                 }
             }
 
@@ -403,7 +276,9 @@ internal fun ThemeSettingsChatStyleSection(
                             title = stringResource(id = R.string.chat_style_cursor_user_bubble_color),
                             color = Color(cursorUserBubbleColorInput),
                             modifier = Modifier.weight(1f),
-                            onClick = { onShowColorPicker("cursorUserBubble") },
+                            onClick = {
+                                onShowColorPicker(NativeThemeColorTargetV1.CURSOR_USER_BUBBLE)
+                            },
                         )
                     }
                 }
@@ -819,13 +694,17 @@ internal fun ThemeSettingsChatStyleSection(
                         title = stringResource(id = R.string.chat_style_bubble_user_color),
                         color = Color(bubbleUserBubbleColorInput),
                         modifier = Modifier.weight(1f),
-                        onClick = { onShowColorPicker("bubbleUserBubble") },
+                        onClick = {
+                            onShowColorPicker(NativeThemeColorTargetV1.BUBBLE_USER_BUBBLE)
+                        },
                     )
                     ColorSelectionItem(
                         title = stringResource(id = R.string.chat_style_bubble_ai_color),
                         color = Color(bubbleAiBubbleColorInput),
                         modifier = Modifier.weight(1f),
-                        onClick = { onShowColorPicker("bubbleAiBubble") },
+                        onClick = {
+                            onShowColorPicker(NativeThemeColorTargetV1.BUBBLE_AI_BUBBLE)
+                        },
                     )
                 }
 
@@ -845,13 +724,17 @@ internal fun ThemeSettingsChatStyleSection(
                         title = stringResource(id = R.string.chat_style_bubble_user_text_color),
                         color = Color(bubbleUserTextColorInput),
                         modifier = Modifier.weight(1f),
-                        onClick = { onShowColorPicker("bubbleUserText") },
+                        onClick = {
+                            onShowColorPicker(NativeThemeColorTargetV1.BUBBLE_USER_TEXT)
+                        },
                     )
                     ColorSelectionItem(
                         title = stringResource(id = R.string.chat_style_bubble_ai_text_color),
                         color = Color(bubbleAiTextColorInput),
                         modifier = Modifier.weight(1f),
-                        onClick = { onShowColorPicker("bubbleAiText") },
+                        onClick = {
+                            onShowColorPicker(NativeThemeColorTargetV1.BUBBLE_AI_TEXT)
+                        },
                     )
                 }
 
@@ -1114,39 +997,59 @@ internal fun ThemeSettingsChatStyleSection(
                     ChatStyle.CURSOR
                 }
 
-            ChatStylePreviewCard(
-                chatStyle = previewChatStyle,
-                userColor =
-                    if (previewChatStyle == ChatStyle.CURSOR && cursorUserBubbleFollowThemeInput) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else if (previewChatStyle == ChatStyle.CURSOR) {
-                        Color(cursorUserBubbleColorInput)
-                    } else {
-                        Color(bubbleUserBubbleColorInput)
-                    },
-                aiColor =
-                    if (previewChatStyle == ChatStyle.BUBBLE) {
-                        Color(bubbleAiBubbleColorInput)
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    },
-                userTextColor = Color(bubbleUserTextColorInput),
-                aiTextColor = Color(bubbleAiTextColorInput),
-                userFontFamily = previewUserFontFamily,
-                aiFontFamily = previewAiFontFamily,
-                userImageStyle = if (previewChatStyle == ChatStyle.BUBBLE) previewUserImageStyle else null,
-                aiImageStyle = if (previewChatStyle == ChatStyle.BUBBLE) previewAiImageStyle else null,
-                bubbleShowAvatar = bubbleShowAvatarInput,
-                bubbleWideLayoutEnabled = bubbleWideLayoutEnabledInput,
-                bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabledInput,
-                bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabledInput,
-                bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeftInput,
-                bubbleUserContentPaddingRight = bubbleUserContentPaddingRightInput,
-                bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeftInput,
-                bubbleAiContentPaddingRight = bubbleAiContentPaddingRightInput,
-                userAvatarUri = previewUserAvatarUri,
-                aiAvatarUri = previewAiAvatarUri,
-            )
+            NativeThemeEditorPreviewTheme(values = editorSession.currentValues) {
+                val previewValues = editorSession.currentValues
+                val previewUserBubbleColor =
+                    previewValues.int(NativeThemePreferenceSchemaV1.bubbleUserBubbleColor)
+                        ?: MaterialTheme.colorScheme.primaryContainer.toArgb()
+                val previewAiBubbleColor =
+                    previewValues.int(NativeThemePreferenceSchemaV1.bubbleAiBubbleColor)
+                        ?: MaterialTheme.colorScheme.surface.toArgb()
+                val previewUserTextColor =
+                    previewValues.int(NativeThemePreferenceSchemaV1.bubbleUserTextColor)
+                        ?: getTextColorForBackground(Color(previewUserBubbleColor)).toArgb()
+                val previewAiTextColor =
+                    previewValues.int(NativeThemePreferenceSchemaV1.bubbleAiTextColor)
+                        ?: getTextColorForBackground(Color(previewAiBubbleColor)).toArgb()
+                ChatStylePreviewCard(
+                    chatStyle = previewChatStyle,
+                    userColor =
+                        if (previewChatStyle == ChatStyle.CURSOR && cursorUserBubbleFollowThemeInput) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else if (previewChatStyle == ChatStyle.CURSOR) {
+                            Color(
+                                previewValues.int(NativeThemePreferenceSchemaV1.cursorUserBubbleColor)
+                                    ?: MaterialTheme.colorScheme.primaryContainer.toArgb(),
+                            )
+                        } else {
+                            Color(previewUserBubbleColor)
+                        },
+                    aiColor =
+                        if (previewChatStyle == ChatStyle.BUBBLE) {
+                            Color(previewAiBubbleColor)
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                    userTextColor = Color(previewUserTextColor),
+                    aiTextColor = Color(previewAiTextColor),
+                    userFontFamily = previewUserFontFamily,
+                    aiFontFamily = previewAiFontFamily,
+                    userImageStyle = if (previewChatStyle == ChatStyle.BUBBLE) previewUserImageStyle else null,
+                    aiImageStyle = if (previewChatStyle == ChatStyle.BUBBLE) previewAiImageStyle else null,
+                    bubbleShowAvatar = bubbleShowAvatarInput,
+                    bubbleWideLayoutEnabled = bubbleWideLayoutEnabledInput,
+                    bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabledInput,
+                    bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabledInput,
+                    bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeftInput,
+                    bubbleUserContentPaddingRight = bubbleUserContentPaddingRightInput,
+                    bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeftInput,
+                    bubbleAiContentPaddingRight = bubbleAiContentPaddingRightInput,
+                    userAvatarUri = previewUserAvatarUri,
+                    aiAvatarUri = previewAiAvatarUri,
+                    avatarShape = avatarShapeInput,
+                    avatarCornerRadius = avatarCornerRadiusInput,
+                )
+            }
         }
     }
 }
@@ -1753,6 +1656,8 @@ private fun ChatStylePreviewCard(
     bubbleAiContentPaddingRight: Float,
     userAvatarUri: String?,
     aiAvatarUri: String?,
+    avatarShape: String,
+    avatarCornerRadius: Float,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -1782,7 +1687,7 @@ private fun ChatStylePreviewCard(
                     Text(
                         text = stringResource(id = R.string.chat_style_preview_user_message),
                         modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = getTextColorForBackground(userColor),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -1835,10 +1740,12 @@ private fun ChatStylePreviewCard(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    PreviewChatAvatar(
-                                        avatarUri = userAvatarUri,
-                                        contentDescription = stringResource(id = R.string.user_avatar_label),
-                                    )
+                                        PreviewChatAvatar(
+                                            avatarUri = userAvatarUri,
+                                            contentDescription = stringResource(id = R.string.user_avatar_label),
+                                            avatarShape = avatarShape,
+                                            avatarCornerRadius = avatarCornerRadius,
+                                        )
                                 }
                             }
 
@@ -1898,6 +1805,8 @@ private fun ChatStylePreviewCard(
                                     PreviewChatAvatar(
                                         avatarUri = aiAvatarUri,
                                         contentDescription = stringResource(id = R.string.ai_avatar_label),
+                                        avatarShape = avatarShape,
+                                        avatarCornerRadius = avatarCornerRadius,
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2016,6 +1925,8 @@ private fun ChatStylePreviewCard(
                                     PreviewChatAvatar(
                                         avatarUri = userAvatarUri,
                                         contentDescription = stringResource(id = R.string.user_avatar_label),
+                                        avatarShape = avatarShape,
+                                        avatarCornerRadius = avatarCornerRadius,
                                     )
                                 }
                             }
@@ -2031,6 +1942,8 @@ private fun ChatStylePreviewCard(
                                     PreviewChatAvatar(
                                         avatarUri = aiAvatarUri,
                                         contentDescription = stringResource(id = R.string.ai_avatar_label),
+                                        avatarShape = avatarShape,
+                                        avatarCornerRadius = avatarCornerRadius,
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                 }
@@ -2087,12 +2000,20 @@ private fun ChatStylePreviewCard(
 private fun PreviewChatAvatar(
     avatarUri: String?,
     contentDescription: String,
+    avatarShape: String,
+    avatarCornerRadius: Float,
 ) {
+    val shape =
+        if (avatarShape == UserPreferencesManager.AVATAR_SHAPE_CIRCLE) {
+            CircleShape
+        } else {
+            RoundedCornerShape(avatarCornerRadius.dp)
+        }
     Box(
         modifier =
             Modifier
                 .size(30.dp)
-                .clip(CircleShape)
+                .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
@@ -2110,305 +2031,6 @@ private fun PreviewChatAvatar(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
-        }
-    }
-}
-
-@Composable
-internal fun ThemeSettingsDisplayOptionsSection(
-    cardColors: CardColors,
-    editorSession: ThemeEditorSession,
-    showThinkingProcessInput: Boolean,
-    showStatusTagsInput: Boolean,
-    showModelProviderInput: Boolean,
-    showModelNameInput: Boolean,
-    showRoleNameInput: Boolean,
-    showUserNameInput: Boolean,
-    showMessageTokenStatsInput: Boolean,
-    showMessageTimingStatsInput: Boolean,
-    showMessageTimestampInput: Boolean,
-    showInputProcessingStatusInput: Boolean,
-    showChatFloatingDotsAnimationInput: Boolean,
-) {
-    ThemeSettingsSectionTitle(
-        title = stringResource(id = R.string.display_options_title),
-        icon = Icons.Default.ColorLens,
-    )
-
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_thinking_process),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_thinking_process_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showThinkingProcessInput,
-                    onCheckedChange = { editorSession.setBoolean("show_thinking_process", it) },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_model_provider),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_model_provider_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showModelProviderInput,
-                    onCheckedChange = { editorSession.setBoolean("show_model_provider", it) },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_model_name),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_model_name_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showModelNameInput,
-                    onCheckedChange = { editorSession.setBoolean("show_model_name", it) },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_role_name),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_role_name_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showRoleNameInput,
-                    onCheckedChange = { editorSession.setBoolean("show_role_name", it) },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_user_name),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_user_name_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showUserNameInput,
-                    onCheckedChange = { editorSession.setBoolean("show_user_name", it) },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_message_token_stats),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_message_token_stats_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showMessageTokenStatsInput,
-                    onCheckedChange = {
-                        editorSession.setBoolean("show_message_token_stats", it)
-                    },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_message_timing_stats),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_message_timing_stats_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showMessageTimingStatsInput,
-                    onCheckedChange = {
-                        editorSession.setBoolean("show_message_timing_stats", it)
-                    },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_message_timestamp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_message_timestamp_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showMessageTimestampInput,
-                    onCheckedChange = {
-                        editorSession.setBoolean("show_message_timestamp", it)
-                    },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_status_tags),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_status_tags_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showStatusTagsInput,
-                    onCheckedChange = { editorSession.setBoolean("show_status_tags", it) },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_input_processing_status),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text =
-                            stringResource(id = R.string.show_input_processing_status_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showInputProcessingStatusInput,
-                    onCheckedChange = {
-                        editorSession.setBoolean("show_input_processing_status", it)
-                    },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.show_chat_floating_dots_animation),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.show_chat_floating_dots_animation_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = showChatFloatingDotsAnimationInput,
-                    onCheckedChange = {
-                        editorSession.setBoolean("show_chat_floating_dots_animation", it)
-                    },
-                )
-            }
         }
     }
 }

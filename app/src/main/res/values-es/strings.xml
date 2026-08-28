@@ -508,7 +508,6 @@
 
     <!-- Theme Settings -->
     <string name="theme_title_mode">Modo de tema</string>
-    <string name="theme_system_title">Tema del sistema</string>
     <string name="theme_follow_system">Seguir el tema del sistema</string>
     <string name="theme_follow_system_desc">Cuando está activado, el tema cambiará automáticamente según el modo oscuro del sistema</string>
     <string name="theme_select">Seleccionar tema</string>
@@ -518,13 +517,8 @@
     <string name="theme_custom_color">Colores personalizados</string>
     <string name="theme_use_custom_color">Usar colores personalizados</string>
     <string name="theme_custom_color_desc">Cuando está activado, puedes personalizar los colores principales de la aplicación</string>
-    <string name="theme_select_color">Seleccionar color</string>
     <string name="theme_primary_color">Color primario</string>
     <string name="theme_secondary_color">Color secundario</string>
-    <string name="theme_preview">Vista previa del efecto de color</string>
-    <string name="theme_primary_button">Botón primario</string>
-    <string name="theme_secondary_button">Botón secundario</string>
-    <string name="theme_contrast_tip">Consejo: Para obtener los mejores resultados, elija una combinación de colores con alto contraste</string>
     <string name="theme_save_colors">Guardar configuración de color</string>
     <string name="theme_title_background">Personalización de fondo</string>
     <string name="theme_bg_media">Configuración de medios de fondo</string>
@@ -689,7 +683,7 @@
     
     <!-- Settings Screen Sections -->
     <string name="settings_section_personalization">Personalización</string>
-    <string name="settings_user_preferences">Preferencias de Usuario</string>
+    <string name="settings_user_preferences">Perfil e identidad</string>
     <string name="settings_user_preferences_desc">Configurar información personal y preferencias para ayudar a la IA a entenderte mejor, incluye edad, personalidad, identidad, ocupación y estilo de IA esperado</string>
     <string name="settings_configure_preferences">Configurar Preferencias</string>
     <string name="settings_model_prompts">Configuración de Prompts del Modelo</string>
@@ -1154,6 +1148,10 @@
     <string name="chat_style_preview_ai_name">Nombre del rol</string>
     <string name="chat_style_preview_ai_meta">Modelo de ejemplo por Proveedor de ejemplo</string>
     <string name="display_options_title">Opciones de Visualización</string>
+    <string name="theme_message_reasoning_title">Razonamiento del mensaje</string>
+    <string name="theme_message_identity_title">Identidad del mensaje</string>
+    <string name="theme_message_diagnostics_title">Diagnóstico del mensaje</string>
+    <string name="theme_message_activity_title">Actividad y comentarios</string>
     <string name="show_thinking_process">Mostrar Proceso de Pensamiento</string>
     <string name="show_thinking_process_desc">Alternar visibilidad de etiquetas &lt;think&gt; en respuestas de IA</string>
     <string name="show_status_tags">Mostrar Etiquetas de Estado</string>
@@ -7134,6 +7132,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="mcp_regenerate_description_empty">La IA no generó una descripción utilizable. Intente de nuevo más tarde.</string>
 
     <string name="theme_tab_basic">Básico</string>
+    <string name="theme_load_failed">No se pudo cargar la configuración del tema</string>
     <string name="theme_tab_background">Fondo</string>
     <string name="theme_tab_chat">Chat</string>
     <string name="theme_tab_input">Campo de entrada</string>

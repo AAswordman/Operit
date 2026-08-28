@@ -67,7 +67,6 @@ fun GlobalDisplaySettingsScreen(
     val enableBackgroundKeepAlive by displayPreferencesManager.enableBackgroundKeepAlive.collectAsState(initial = false)
     val enableExperimentalVirtualDisplay by displayPreferencesManager.enableExperimentalVirtualDisplay.collectAsState(initial = true)
     val hideRuntimeTaskView by displayPreferencesManager.hideRuntimeTaskView.collectAsState(initial = false)
-    val globalUserName by displayPreferencesManager.globalUserName.collectAsState(initial = null)
     val screenshotFormat by displayPreferencesManager.screenshotFormat.collectAsState(initial = "JPG")
     val screenshotQuality by displayPreferencesManager.screenshotQuality.collectAsState(initial = 75)
     val screenshotScalePercent by displayPreferencesManager.screenshotScalePercent.collectAsState(initial = 75)
@@ -89,7 +88,6 @@ fun GlobalDisplaySettingsScreen(
     val rootExecutionMode by androidPermissionPreferences.rootExecutionModeFlow.collectAsState(initial = RootCommandExecutionMode.AUTO)
     val customSuCommand by androidPermissionPreferences.customSuCommandFlow.collectAsState(initial = AndroidPermissionPreferences.DEFAULT_SU_COMMAND)
 
-    var userNameInput by remember { mutableStateOf(globalUserName ?: "") }
     var customSuCommandInput by remember { mutableStateOf(customSuCommand) }
     val collapseModeOptions = remember {
         listOf(ToolCollapseMode.READ_ONLY, ToolCollapseMode.ALL, ToolCollapseMode.FULL)
@@ -133,10 +131,6 @@ fun GlobalDisplaySettingsScreen(
                 }
             }
         )
-    }
-
-    LaunchedEffect(globalUserName) {
-        userNameInput = globalUserName ?: ""
     }
 
     LaunchedEffect(customSuCommand) {
@@ -253,34 +247,6 @@ fun GlobalDisplaySettingsScreen(
                     }
                 }
             }
-
-            OutlinedTextField(
-                value = userNameInput,
-                onValueChange = { userNameInput = it },
-                label = { Text(stringResource(R.string.global_user_name)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                singleLine = true,
-                trailingIcon = {
-                    if (userNameInput != globalUserName) {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    displayPreferencesManager.saveDisplaySettings(
-                                        globalUserName = userNameInput,
-                                    )
-                                }
-                            },
-                        ) {
-                            Icon(
-                                Icons.Default.Save,
-                                contentDescription = stringResource(R.string.save),
-                            )
-                        }
-                    }
-                },
-            )
 
             Spacer(modifier = Modifier.height(16.dp))
 

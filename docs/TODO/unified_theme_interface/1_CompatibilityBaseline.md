@@ -32,6 +32,7 @@
 - `ThemePreferenceSnapshot` 的类型化访问器已绑定字段描述
 - 冻结测试覆盖字段名称、类型、默认值、元数据、旧字段关系和默认快照隔离
 - 两次独立静态审查确认模式与上游 `main` 的已发布行为一致
-- `git diff --check` 已通过；按照仓库执行准则未运行编译、构建或测试
+- 初始实现的 `git diff --check` 已通过；Agent 未在工作树直接运行编译、构建或测试
+- 推送后由 `operit-builder` 完成 release 构建，详细记录见 [验证与接口发布](./8_VerificationAndPublication.md)
 
 [DONE]

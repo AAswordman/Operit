@@ -6,7 +6,7 @@
 
 ## 修改意图
 
-把主题编辑器改为模式驱动的主题实例编辑器。编辑器读取 `ThemeDefinition` 的参数模式和组件目录，不硬编码具体主题 ID。首个注册定义为 `native_v1`，现有字段全部映射到新的编辑器模式。
+把主题编辑器改为模式驱动的主题实例编辑器。编辑器读取 `ThemeDefinition` 的参数模式和组件目录，不硬编码具体主题 ID。首个注册定义为 `native_v1`，现有字段全部映射到新的编辑器模式。现有基础、背景、聊天、输入和界面五标签不再作为目标信息架构。
 
 编辑器分为基础令牌、通用组件、Operit 领域组件、素材、动效和自适应环境。实际可编辑项目随生产组件迁移逐步开放，不展示尚未被运行时消费的配置。
 
@@ -28,12 +28,29 @@
 
 ## 实施进度
 
-- [DONE] 输入设置建立首个 `NativeThemeEditorDefinitionV1` 字段定义
-- [DONE] 输入样式选项、布尔控件、顺序和可见条件由定义对象驱动
-- [DONE] 输入页使用类型化字段读写，不再包含主题字段字符串
+- [DONE] Composer 设置建立首个 Android 无关的 `NativeThemeEditorDefinitionV1` 分区定义
+- [DONE] Composer 选项、布尔控件、稳定 ID、文本键、顺序、可见条件和 Advanced 分类由定义对象驱动
+- [DONE] Composer 使用通用平面分组渲染器和类型化字段读写，不再包含主题字段字符串或外层 Card
 - [DONE] 八组玻璃效果联动从编辑会话字符串分支迁移到纯规则表
 - [DONE] 旧字符串布尔写入入口通过模式校验，现有调用字段已完成静态核对
-- [DONE] 测试冻结输入字段覆盖、控件顺序、可见条件和布尔联动关系
-- [PENDING] 迁移基础、背景、聊天和界面设置字段
+- [DONE] 编辑文档使用单一 reducer 状态，原子表达基线、草稿、Reset 模式和保存中快照
+- [DONE] 测试冻结 Composer 字段覆盖、控件顺序、可见条件、Advanced 分类、布尔联动和 reducer 事务
+- [DONE] Colors & Mode 的模式、调色板和对比文字设置进入分类定义与平面 UI
+- [DONE] 颜色选择器改为单目标单值接口，并完整保留 HSV、亮度、透明度和八位 HEX
+- [DONE] 删除 BASIC 旧主题模式 Card、旧 Palette 分支、手工双色预览和隐藏的 Composer 重复实现
+- [DONE] Typography 的字体来源、系统字体、文件素材和字体缩放进入分类定义与平面 UI
+- [DONE] 字体缩放始终可见，以匹配实际运行时；旧字体 Card 与混合 Font/Avatar 文件已删除
+- [DONE] Background 的媒体类型、素材、透明度、模糊和视频播放设置进入定义驱动 UI
+- [DONE] Background 预览与编辑设置分离，保留图片裁剪、视频导入和暂存生命周期
+- [DONE] 主题编辑目标切换不再改变全局活动会话
+- [DONE] 主题编辑器外壳改用 Colors & Typography、Background、Conversation、Composer 和 App Chrome 分类
+- [DONE] 手机使用分类列表到详情页，宽屏使用分类导航与编辑面板，Save/Reset 移至固定命令区
+- [DONE] 目标读取增加代次校验和可重试错误状态
+- [DONE] 全局用户名和头像移出主题编辑器，归入 Profile & Identity；主题页保留目标级用户头像视觉覆盖
+- [DONE] Message Details & Motion 的推理、身份、诊断和活动反馈设置进入独立定义与平面 UI
+- [DONE] App Chrome 的状态栏、工具栏、侧滑菜单、聊天顶栏和顶栏内容颜色进入定义驱动 UI，旧手写 Color Section 已删除
+- [PENDING] 迁移 Conversation 的聊天样式、气泡素材和头像控件
 - [PENDING] 建立通用编辑控件目录与真实生产组件预览宿主
 - [PENDING] 将固定标签导航替换为定义驱动的分区导航
+
+详细产品决策、分类和迁移顺序见 [主题设置重构](./3a_ThemeSettingsRedesign.md)。

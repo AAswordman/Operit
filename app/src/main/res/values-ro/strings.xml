@@ -717,11 +717,11 @@
     <!-- Theme Settings Screen -->
     <string name="theme_title_mode">Modul tematic</string>
     <string name="theme_tab_basic">Noțiuni de bază</string>
+    <string name="theme_load_failed">Setările temei nu au putut fi încărcate</string>
     <string name="theme_tab_background">Context</string>
     <string name="theme_tab_chat">Conversație</string>
     <string name="theme_tab_input">Câmp de introducere</string>
     <string name="theme_tab_interface">Bara de interfață</string>
-    <string name="theme_system_title">Tema sistemului</string>
     <string name="theme_follow_system">Aplică tema sistemului</string>
     <string name="theme_follow_system_desc">După activare, tema se va schimba automat în funcție de modul întunecat al sistemului</string>
     <string name="theme_select">Alegeți o temă</string>
@@ -731,13 +731,8 @@
     <string name="theme_custom_color">Scheme de culori personalizate</string>
     <string name="theme_use_custom_color">Utilizarea culorilor personalizate</string>
     <string name="theme_custom_color_desc">După activare, poți personaliza schema de culori principală a aplicației</string>
-    <string name="theme_select_color">Alegeți o culoare</string>
     <string name="theme_primary_color">Culoarea principală</string>
     <string name="theme_secondary_color">Culoare secundară</string>
-    <string name="theme_preview">Previzualizare efecte de culoare</string>
-    <string name="theme_primary_button">Butonul principal</string>
-    <string name="theme_secondary_button">Butoane secundare</string>
-    <string name="theme_contrast_tip">Sfat: Pentru rezultate optime, alegeți combinații de culori cu contrast ridicat</string>
     <string name="theme_save_colors">Salvare setări de culori</string>
     <string name="theme_title_background">Personalizarea fundalului</string>
     <string name="theme_bg_media">Setări media de fundal</string>
@@ -855,7 +850,7 @@
 
     <!-- Settings Screen Sections -->
     <string name="settings_section_personalization">Personalizare</string>
-    <string name="settings_user_preferences">Setări de preferințe ale utilizatorului</string>
+    <string name="settings_user_preferences">Profil și identitate</string>
     <string name="settings_user_preferences_desc">Editorul va fi trimis ca context al utilizatorului către AI al user.md</string>
     <string name="settings_configure_preferences">Configurarea preferințelor utilizatorului</string>
     <string name="settings_model_prompts">Setarea cuvintelor-cheie pentru model</string>
@@ -3765,6 +3760,10 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_style_preview_ai_source_title">AIPrevizualizare în format „9 pătrate” a imaginii originale</string>
     <string name="chat_style_bubble_image_saved">Imaginea cu bule a fost salvată</string>
     <string name="display_options_title">Opțiuni de afișare</string>
+    <string name="theme_message_reasoning_title">Raționamentul mesajului</string>
+    <string name="theme_message_identity_title">Identitatea mesajului</string>
+    <string name="theme_message_diagnostics_title">Diagnosticarea mesajului</string>
+    <string name="theme_message_activity_title">Feedback de activitate</string>
     <string name="show_thinking_process">Afișează procesul de gândire</string>
     <string name="show_thinking_process_desc">ComutareAISe procesează &lt;think&gt; Vizibilitatea etichetelor</string>
     <string name="show_status_tags">Afișează eticheta de stare a sarcinii</string>

@@ -720,7 +720,6 @@
     <string name="theme_tab_chat">聊天</string>
     <string name="theme_tab_input">输入栏</string>
     <string name="theme_tab_interface">界面栏</string>
-    <string name="theme_system_title">系统主题</string>
     <string name="theme_follow_system">跟随系统主题</string>
     <string name="theme_follow_system_desc">开启后会根据系统深色模式自动切换主题</string>
     <string name="theme_select">选择主题</string>
@@ -730,13 +729,8 @@
     <string name="theme_custom_color">自定义配色</string>
     <string name="theme_use_custom_color">使用自定义颜色</string>
     <string name="theme_custom_color_desc">开启后可以自定义应用的主要配色</string>
-    <string name="theme_select_color">选择颜色</string>
     <string name="theme_primary_color">主色</string>
     <string name="theme_secondary_color">次色</string>
-    <string name="theme_preview">色彩效果预览</string>
-    <string name="theme_primary_button">主按钮</string>
-    <string name="theme_secondary_button">次要按钮</string>
-    <string name="theme_contrast_tip">提示: 选择对比度高的颜色组合效果最佳</string>
     <string name="theme_save_colors">保存颜色设置</string>
     <string name="theme_title_background">背景定制</string>
     <string name="theme_bg_media">背景媒体设置</string>
@@ -755,6 +749,7 @@
     <string name="theme_unsaved_title">保存主题修改？</string>
     <string name="theme_unsaved_message">当前主题对象的修改尚未保存。</string>
     <string name="theme_save_failed">主题保存失败</string>
+    <string name="theme_load_failed">主题设置加载失败</string>
     <string name="theme_save_and_continue">保存并继续</string>
     <string name="theme_discard_and_continue">不保存</string>
     <string name="theme_edit_target_character">当前角色主题</string>
@@ -863,7 +858,7 @@
     
     <!-- Settings Screen Sections -->
     <string name="settings_section_personalization">个性化</string>
-    <string name="settings_user_preferences">用户资料设置</string>
+    <string name="settings_user_preferences">个人资料与身份</string>
     <string name="settings_user_preferences_desc">管理用户资料和关联记忆库</string>
     <string name="settings_configure_preferences">配置用户偏好</string>
     <string name="settings_model_prompts">模型提示词设置</string>
@@ -3445,7 +3440,7 @@
     <string name="history_scroll_to_bottom">滚动到底部</string>
     
     <!-- Settings Screen Subtitles -->
-    <string name="settings_user_preferences_subtitle">管理用户资料和关联记忆库</string>
+    <string name="settings_user_preferences_subtitle">管理全局身份、用户资料和关联记忆库</string>
     <string name="settings_language_subtitle">界面语言切换</string>
     <string name="settings_theme_subtitle">主题和外观定制</string>
     <string name="layout_adjustment">布局调整</string>
@@ -3889,6 +3884,10 @@
     <string name="chat_style_preview_ai_source_title">AI原图九宫格预览</string>
     <string name="chat_style_bubble_image_saved">气泡图片已保存</string>
     <string name="display_options_title">显示选项</string>
+    <string name="theme_message_reasoning_title">消息推理</string>
+    <string name="theme_message_identity_title">消息身份</string>
+    <string name="theme_message_diagnostics_title">消息诊断</string>
+    <string name="theme_message_activity_title">活动反馈</string>
     <string name="show_thinking_process">显示思考过程</string>
     <string name="show_thinking_process_desc">切换AI响应中 &lt;think&gt; 标签的可见性</string>
     <string name="show_status_tags">显示任务状态标签</string>

@@ -13,10 +13,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsBackgroundSection
+import com.ai.assistance.operit.data.preferences.NativeThemePreferenceOptionsV1
+import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
+import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsBackgroundPreview
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeAssetActionV1
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeEditorDefinitionV1
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeEditorValueChangeV1
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeEditorValueOverridesV1
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.FileUtils
 import com.canhub.cropper.CropImageContract
@@ -30,86 +39,163 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun ThemeSettingsBackgroundTab(
-    shared: ThemeSettingsShared,
-    cardColors: androidx.compose.material3.CardColors,
-    scrollState: androidx.compose.foundation.ScrollState,
-) {
+internal fun ThemeSettingsBackgroundTab(shared: ThemeSettingsShared) {
     val editorSession = shared.editorSession
-    val values by editorSession.values.collectAsState()
-    val useBackgroundImage = values.requiredBoolean("use_background_image")
-    val backgroundImageUri = values.string("background_image_uri")
-    val backgroundImageOpacity = values.requiredFloat("background_image_opacity")
-    val backgroundMediaType = values.requiredString("background_media_type")
-    val videoBackgroundMuted = values.requiredBoolean("video_background_muted")
-    val videoBackgroundLoop = values.requiredBoolean("video_background_loop")
-    val useBackgroundBlur = values.requiredBoolean("use_background_blur")
-    val backgroundBlurRadius = values.requiredFloat("background_blur_radius")
-    var useBackgroundImageInput by remember { mutableStateOf(useBackgroundImage) }
-    var backgroundImageUriInput by remember { mutableStateOf(backgroundImageUri) }
-    var backgroundImageOpacityInput by remember { mutableStateOf(backgroundImageOpacity) }
-    var backgroundMediaTypeInput by remember { mutableStateOf(backgroundMediaType) }
-    var videoBackgroundMutedInput by remember { mutableStateOf(videoBackgroundMuted) }
-    var videoBackgroundLoopInput by remember { mutableStateOf(videoBackgroundLoop) }
-    var useBackgroundBlurInput by remember { mutableStateOf(useBackgroundBlur) }
-    var backgroundBlurRadiusInput by remember { mutableStateOf(backgroundBlurRadius) }
+    val editorDocument by editorSession.document.collectAsState()
+    val values = editorDocument.draft
+    var useBackgroundImageInput by
+        remember { mutableStateOf(values.requiredBoolean(NativeThemePreferenceSchemaV1.useBackgroundImage)) }
+    var backgroundImageUriInput by
+        remember { mutableStateOf(values.string(NativeThemePreferenceSchemaV1.backgroundImageUri)) }
+    var backgroundImageOpacityInput by
+        remember {
+            mutableStateOf(values.requiredFloat(NativeThemePreferenceSchemaV1.backgroundImageOpacity))
+        }
+    var backgroundMediaTypeInput by
+        remember { mutableStateOf(values.requiredString(NativeThemePreferenceSchemaV1.backgroundMediaType)) }
+    var videoBackgroundMutedInput by
+        remember { mutableStateOf(values.requiredBoolean(NativeThemePreferenceSchemaV1.videoBackgroundMuted)) }
+    var videoBackgroundLoopInput by
+        remember { mutableStateOf(values.requiredBoolean(NativeThemePreferenceSchemaV1.videoBackgroundLoop)) }
+    var useBackgroundBlurInput by
+        remember { mutableStateOf(values.requiredBoolean(NativeThemePreferenceSchemaV1.useBackgroundBlur)) }
+    var backgroundBlurRadiusInput by
+        remember { mutableStateOf(values.requiredFloat(NativeThemePreferenceSchemaV1.backgroundBlurRadius)) }
 
-    LaunchedEffect(
-        useBackgroundImage,
-        backgroundImageUri,
-        backgroundImageOpacity,
-        backgroundMediaType,
-        videoBackgroundMuted,
-        videoBackgroundLoop,
-        useBackgroundBlur,
-        backgroundBlurRadius,
-    ) {
-        useBackgroundImageInput = useBackgroundImage
-        backgroundImageUriInput = backgroundImageUri
-        backgroundImageOpacityInput = backgroundImageOpacity
-        backgroundMediaTypeInput = backgroundMediaType
-        videoBackgroundMutedInput = videoBackgroundMuted
-        videoBackgroundLoopInput = videoBackgroundLoop
-        useBackgroundBlurInput = useBackgroundBlur
-        backgroundBlurRadiusInput = backgroundBlurRadius
+    LaunchedEffect(values) {
+        val persistedMediaUri = values.string(NativeThemePreferenceSchemaV1.backgroundImageUri)
+        backgroundImageUriInput = persistedMediaUri
+        backgroundMediaTypeInput =
+            values.requiredString(NativeThemePreferenceSchemaV1.backgroundMediaType)
+        useBackgroundImageInput = values.requiredBoolean(NativeThemePreferenceSchemaV1.useBackgroundImage)
+        backgroundImageOpacityInput =
+            values.requiredFloat(NativeThemePreferenceSchemaV1.backgroundImageOpacity)
+        videoBackgroundMutedInput =
+            values.requiredBoolean(NativeThemePreferenceSchemaV1.videoBackgroundMuted)
+        videoBackgroundLoopInput =
+            values.requiredBoolean(NativeThemePreferenceSchemaV1.videoBackgroundLoop)
+        useBackgroundBlurInput = values.requiredBoolean(NativeThemePreferenceSchemaV1.useBackgroundBlur)
+        backgroundBlurRadiusInput = values.requiredFloat(NativeThemePreferenceSchemaV1.backgroundBlurRadius)
     }
 
-    val runtime = rememberThemeSettingsBackgroundRuntime(
-        context = shared.context,
-        scope = shared.scope,
+    val runtime =
+        rememberThemeSettingsBackgroundRuntime(
+            context = shared.context,
+            scope = shared.scope,
+            editorSession = editorSession,
+            useBackgroundImageInput = useBackgroundImageInput,
+            backgroundImageUriInput = backgroundImageUriInput,
+            onBackgroundImageUriInputChange = { backgroundImageUriInput = it },
+            backgroundMediaTypeInput = backgroundMediaTypeInput,
+            onBackgroundMediaTypeInputChange = { backgroundMediaTypeInput = it },
+            videoBackgroundMutedInput = videoBackgroundMutedInput,
+            videoBackgroundLoopInput = videoBackgroundLoopInput,
+        )
+    val valueOverrides =
+        NativeThemeEditorValueOverridesV1(
+            strings =
+                mapOf(
+                    NativeThemePreferenceSchemaV1.backgroundMediaType.name to backgroundMediaTypeInput,
+                ),
+            booleans =
+                mapOf(
+                    NativeThemePreferenceSchemaV1.useBackgroundImage.name to useBackgroundImageInput,
+                    NativeThemePreferenceSchemaV1.videoBackgroundMuted.name to videoBackgroundMutedInput,
+                    NativeThemePreferenceSchemaV1.videoBackgroundLoop.name to videoBackgroundLoopInput,
+                    NativeThemePreferenceSchemaV1.useBackgroundBlur.name to useBackgroundBlurInput,
+                ),
+            floats =
+                mapOf(
+                    NativeThemePreferenceSchemaV1.backgroundImageOpacity.name to
+                        backgroundImageOpacityInput,
+                    NativeThemePreferenceSchemaV1.backgroundBlurRadius.name to backgroundBlurRadiusInput,
+                ),
+        )
+
+    NativeThemeEditorGroupV1(
+        definition = NativeThemeEditorDefinitionV1.backgroundMedia,
+        values = values,
         editorSession = editorSession,
-        backgroundImageUriInput = backgroundImageUriInput,
-        onBackgroundImageUriInputChange = { backgroundImageUriInput = it },
-        backgroundMediaTypeInput = backgroundMediaTypeInput,
-        onBackgroundMediaTypeInputChange = { backgroundMediaTypeInput = it },
-        videoBackgroundMutedInput = videoBackgroundMutedInput,
-        videoBackgroundLoopInput = videoBackgroundLoopInput,
+        valueOverrides = valueOverrides,
+        onAssetRequested = { definition ->
+            when (definition.action) {
+                NativeThemeAssetActionV1.BACKGROUND_MEDIA ->
+                    if (backgroundMediaTypeInput == NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO) {
+                        runtime.mediaPickerLauncher.launch("video/*")
+                    } else {
+                        runtime.mediaPickerLauncher.launch("image/*")
+                    }
+                NativeThemeAssetActionV1.APP_FONT ->
+                    error("Unsupported background asset action: ${definition.action}")
+            }
+        },
+        onValueChanged = { change ->
+            when (change) {
+                is NativeThemeEditorValueChangeV1.BooleanChanged -> {
+                    when (change.definition.field) {
+                        NativeThemePreferenceSchemaV1.useBackgroundImage ->
+                            useBackgroundImageInput = change.value
+                        NativeThemePreferenceSchemaV1.videoBackgroundMuted ->
+                            videoBackgroundMutedInput = change.value
+                        NativeThemePreferenceSchemaV1.videoBackgroundLoop ->
+                            videoBackgroundLoopInput = change.value
+                        NativeThemePreferenceSchemaV1.useBackgroundBlur ->
+                            useBackgroundBlurInput = change.value
+                        else -> error("Unsupported background boolean: ${change.definition.field.name}")
+                    }
+                    editorSession.setBoolean(change.definition.field, change.value)
+                }
+                is NativeThemeEditorValueChangeV1.StringChanged -> {
+                    if (change.definition.field == NativeThemePreferenceSchemaV1.backgroundMediaType) {
+                        val persistedMediaType =
+                            values.requiredString(NativeThemePreferenceSchemaV1.backgroundMediaType)
+                        val persistedMediaUri =
+                            values.string(NativeThemePreferenceSchemaV1.backgroundImageUri)
+                        if (persistedMediaUri != null && persistedMediaUri.isNotEmpty() &&
+                            change.value != persistedMediaType
+                        ) {
+                            if (change.value == NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO) {
+                                runtime.mediaPickerLauncher.launch("video/*")
+                            } else {
+                                runtime.mediaPickerLauncher.launch("image/*")
+                            }
+                        } else {
+                            backgroundMediaTypeInput = change.value
+                            backgroundImageUriInput = persistedMediaUri
+                            editorSession.setString(change.definition.field, change.value)
+                        }
+                    } else {
+                        error("Unsupported background choice: ${change.definition.field.name}")
+                    }
+                }
+                is NativeThemeEditorValueChangeV1.FloatChanged -> {
+                    when (change.definition.field) {
+                        NativeThemePreferenceSchemaV1.backgroundImageOpacity ->
+                            backgroundImageOpacityInput = change.value
+                        NativeThemePreferenceSchemaV1.backgroundBlurRadius ->
+                            backgroundBlurRadiusInput = change.value
+                        else -> error("Unsupported background slider: ${change.definition.field.name}")
+                    }
+                    if (change.finished) {
+                        editorSession.setFloat(change.definition.field, change.value)
+                    }
+                }
+            }
+        },
     )
 
-    ThemeSettingsBackgroundSection(
-        cardColors = cardColors,
-        context = shared.context,
-        editorSession = editorSession,
-        exoPlayer = runtime.exoPlayer,
-        launchImageCrop = runtime.launchImageCrop,
-        mediaPickerLauncher = runtime.mediaPickerLauncher,
-        scrollState = scrollState,
-        useBackgroundImageInput = useBackgroundImageInput,
-        onUseBackgroundImageInputChange = { useBackgroundImageInput = it },
-        backgroundMediaTypeInput = backgroundMediaTypeInput,
-        onBackgroundMediaTypeInputChange = { backgroundMediaTypeInput = it },
-        backgroundImageUriInput = backgroundImageUriInput,
-        backgroundImageOpacityInput = backgroundImageOpacityInput,
-        onBackgroundImageOpacityInputChange = { backgroundImageOpacityInput = it },
-        videoBackgroundMutedInput = videoBackgroundMutedInput,
-        onVideoBackgroundMutedInputChange = { videoBackgroundMutedInput = it },
-        videoBackgroundLoopInput = videoBackgroundLoopInput,
-        onVideoBackgroundLoopInputChange = { videoBackgroundLoopInput = it },
-        useBackgroundBlurInput = useBackgroundBlurInput,
-        onUseBackgroundBlurInputChange = { useBackgroundBlurInput = it },
-        backgroundBlurRadiusInput = backgroundBlurRadiusInput,
-        onBackgroundBlurRadiusInputChange = { backgroundBlurRadiusInput = it },
-    )
+    NativeThemeEditorPreviewTheme(values = values) {
+        ThemeSettingsBackgroundPreview(
+            exoPlayer = runtime.exoPlayer,
+            launchImageCrop = runtime.launchImageCrop,
+            useBackgroundMedia = useBackgroundImageInput,
+            backgroundMediaType = backgroundMediaTypeInput,
+            backgroundImageUri = backgroundImageUriInput,
+            backgroundImageOpacity = backgroundImageOpacityInput,
+            useBackgroundBlur = useBackgroundBlurInput,
+            backgroundBlurRadius = backgroundBlurRadiusInput,
+        )
+    }
 }
 
 internal data class ThemeSettingsBackgroundRuntime(
@@ -123,6 +209,7 @@ internal fun rememberThemeSettingsBackgroundRuntime(
     context: Context,
     scope: CoroutineScope,
     editorSession: ThemeEditorSession,
+    useBackgroundImageInput: Boolean,
     backgroundImageUriInput: String?,
     onBackgroundImageUriInputChange: (String?) -> Unit,
     backgroundMediaTypeInput: String,
@@ -130,36 +217,39 @@ internal fun rememberThemeSettingsBackgroundRuntime(
     videoBackgroundMutedInput: Boolean,
     videoBackgroundLoopInput: Boolean,
 ): ThemeSettingsBackgroundRuntime {
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context)
-            .setLoadControl(
-                DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(5000, 10000, 500, 1000)
-                    .setTargetBufferBytes(5 * 1024 * 1024)
-                    .setPrioritizeTimeOverSizeThresholds(true)
-                    .build(),
-            )
-            .build()
-            .apply {
-                repeatMode = Player.REPEAT_MODE_ALL
-                volume = if (videoBackgroundMutedInput) 0f else 1f
-                playWhenReady = true
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val exoPlayer =
+        remember {
+            ExoPlayer.Builder(context)
+                .setLoadControl(
+                    DefaultLoadControl.Builder()
+                        .setBufferDurationsMs(5000, 10000, 500, 1000)
+                        .setTargetBufferBytes(5 * 1024 * 1024)
+                        .setPrioritizeTimeOverSizeThresholds(true)
+                        .build(),
+                )
+                .build()
+                .apply {
+                    repeatMode = Player.REPEAT_MODE_ALL
+                    volume = if (videoBackgroundMutedInput) 0f else 1f
+                    playWhenReady =
+                        lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+                            useBackgroundImageInput &&
+                            !backgroundImageUriInput.isNullOrEmpty() &&
+                            backgroundMediaTypeInput == NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO
 
-                if (!backgroundImageUriInput.isNullOrEmpty() &&
-                    backgroundMediaTypeInput == UserPreferencesManager.MEDIA_TYPE_VIDEO
-                ) {
-                    try {
-                        val mediaItem = MediaItem.Builder()
-                            .setUri(Uri.parse(backgroundImageUriInput))
-                            .build()
-                        setMediaItem(mediaItem)
-                        prepare()
-                    } catch (e: Exception) {
-                        AppLogger.e("ThemeSettings", "Video loading error", e)
+                    if (useBackgroundImageInput && !backgroundImageUriInput.isNullOrEmpty() &&
+                        backgroundMediaTypeInput == NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO
+                    ) {
+                        try {
+                            setMediaItem(MediaItem.Builder().setUri(Uri.parse(backgroundImageUriInput)).build())
+                            prepare()
+                        } catch (e: Exception) {
+                            AppLogger.e("ThemeSettings", "Video loading error", e)
+                        }
                     }
                 }
-            }
-    }
+        }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -173,22 +263,66 @@ internal fun rememberThemeSettingsBackgroundRuntime(
         }
     }
 
-    LaunchedEffect(backgroundImageUriInput, backgroundMediaTypeInput) {
-        if (!backgroundImageUriInput.isNullOrEmpty() &&
-            backgroundMediaTypeInput == UserPreferencesManager.MEDIA_TYPE_VIDEO
-        ) {
-            try {
+    LaunchedEffect(
+        useBackgroundImageInput,
+        backgroundImageUriInput,
+        backgroundMediaTypeInput,
+    ) {
+        try {
+            if (useBackgroundImageInput &&
+                !backgroundImageUriInput.isNullOrEmpty() &&
+                backgroundMediaTypeInput == NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO
+            ) {
                 exoPlayer.stop()
                 exoPlayer.clearMediaItems()
                 exoPlayer.setMediaItem(
                     MediaItem.Builder().setUri(Uri.parse(backgroundImageUriInput)).build(),
                 )
                 exoPlayer.prepare()
-                exoPlayer.play()
-            } catch (e: Exception) {
-                AppLogger.e("ThemeSettings", "更新视频来源错误", e)
+                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    exoPlayer.playWhenReady = true
+                    exoPlayer.play()
+                } else {
+                    exoPlayer.playWhenReady = false
+                }
+            } else {
+                exoPlayer.playWhenReady = false
+                exoPlayer.stop()
+                exoPlayer.clearMediaItems()
             }
+        } catch (e: Exception) {
+            AppLogger.e("ThemeSettings", "更新视频来源错误", e)
         }
+    }
+
+    val shouldPlayVideo =
+        useBackgroundImageInput &&
+            !backgroundImageUriInput.isNullOrEmpty() &&
+            backgroundMediaTypeInput == NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO
+    val latestShouldPlayVideo by rememberUpdatedState(shouldPlayVideo)
+    DisposableEffect(lifecycleOwner, exoPlayer) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                try {
+                    when (event) {
+                        Lifecycle.Event.ON_PAUSE -> {
+                            exoPlayer.playWhenReady = false
+                            exoPlayer.pause()
+                        }
+                        Lifecycle.Event.ON_RESUME -> {
+                            if (latestShouldPlayVideo) {
+                                exoPlayer.playWhenReady = true
+                                exoPlayer.play()
+                            }
+                        }
+                        else -> Unit
+                    }
+                } catch (e: Exception) {
+                    AppLogger.e("ThemeSettings", "Preview player lifecycle error", e)
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(videoBackgroundMutedInput, videoBackgroundLoopInput) {
@@ -207,20 +341,24 @@ internal fun rememberThemeSettingsBackgroundRuntime(
                 val croppedUri = result.uriContent
                 if (croppedUri != null) {
                     scope.launch {
+                        val operationGeneration = editorSession.beginAssetOperation() ?: return@launch
                         val internalUri =
                             FileUtils.copyFileToInternalStorage(context, croppedUri, "background")
                         if (internalUri != null) {
                             AppLogger.d("ThemeSettings", "Background image saved to: $internalUri")
-                            editorSession.registerStagedAsset(internalUri.toString())
-                            onBackgroundImageUriInputChange(internalUri.toString())
-                            onBackgroundMediaTypeInputChange(UserPreferencesManager.MEDIA_TYPE_IMAGE)
+                            val internalUriString = internalUri.toString()
+                            if (!editorSession.registerStagedAsset(internalUriString, operationGeneration)) {
+                                return@launch
+                            }
+                            onBackgroundImageUriInputChange(internalUriString)
+                            onBackgroundMediaTypeInputChange(NativeThemePreferenceOptionsV1.MEDIA_TYPE_IMAGE)
                             editorSession.setOptionalString(
-                                "background_image_uri",
-                                internalUri.toString(),
+                                NativeThemePreferenceSchemaV1.backgroundImageUri,
+                                internalUriString,
                             )
                             editorSession.setString(
-                                "background_media_type",
-                                UserPreferencesManager.MEDIA_TYPE_IMAGE,
+                                NativeThemePreferenceSchemaV1.backgroundMediaType,
+                                NativeThemePreferenceOptionsV1.MEDIA_TYPE_IMAGE,
                             )
                             Toast.makeText(
                                 context,
@@ -246,43 +384,33 @@ internal fun rememberThemeSettingsBackgroundRuntime(
         }
 
     fun launchImageCrop(uri: Uri) {
-        var primaryColor: Int
-        var onPrimaryColor: Int
-        var surfaceColor: Int
-        var statusBarColor: Int
-
         val isNightMode =
             context.resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
-
-        try {
-            val typedValue = android.util.TypedValue()
-            context.theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
-            primaryColor = typedValue.data
-
+        val (primaryColor, statusBarColor, surfaceColor, onPrimaryColor) =
             try {
+                val typedValue = android.util.TypedValue()
+                context.theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
+                val primary = typedValue.data
                 context.theme.resolveAttribute(android.R.attr.colorPrimaryDark, typedValue, true)
-                statusBarColor = typedValue.data
+                val statusBar = typedValue.data
+                context.theme.resolveAttribute(android.R.attr.colorBackground, typedValue, true)
+                val surface = typedValue.data
+                val onPrimary =
+                    if (isNightMode) android.graphics.Color.WHITE else android.graphics.Color.BLACK
+                Quadruple(primary, statusBar, surface, onPrimary)
             } catch (e: Exception) {
-                statusBarColor = primaryColor
+                AppLogger.e("ThemeSettings", "Unable to resolve cropper colors", e)
+                Quadruple(
+                    if (isNightMode) 0xFF9C27B0.toInt() else 0xFF6200EE.toInt(),
+                    if (isNightMode) 0xFF7B1FA2.toInt() else 0xFF3700B3.toInt(),
+                    if (isNightMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE,
+                    if (isNightMode) android.graphics.Color.WHITE else android.graphics.Color.BLACK,
+                )
             }
 
-            context.theme.resolveAttribute(android.R.attr.colorBackground, typedValue, true)
-            surfaceColor = typedValue.data
-
-            onPrimaryColor =
-                if (isNightMode) android.graphics.Color.WHITE else android.graphics.Color.BLACK
-        } catch (e: Exception) {
-            primaryColor = if (isNightMode) 0xFF9C27B0.toInt() else 0xFF6200EE.toInt()
-            statusBarColor = if (isNightMode) 0xFF7B1FA2.toInt() else 0xFF3700B3.toInt()
-            surfaceColor =
-                if (isNightMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE
-            onPrimaryColor =
-                if (isNightMode) android.graphics.Color.WHITE else android.graphics.Color.BLACK
-        }
-
-        val cropOptions =
+        cropImageLauncher.launch(
             CropImageContractOptions(
                 uri,
                 CropImageOptions().apply {
@@ -304,19 +432,16 @@ internal fun rememberThemeSettingsBackgroundRuntime(
                     multiTouchEnabled = true
                     autoZoomEnabled = true
                 },
-            )
-        cropImageLauncher.launch(cropOptions)
+            ),
+        )
     }
 
     val mediaPickerLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
-                uri: Uri? ->
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
             if (uri != null) {
                 val isVideo = FileUtils.isVideoFile(context, uri)
-
                 if (isVideo) {
                     val isVideoSizeAcceptable = FileUtils.checkVideoSize(context, uri, 30)
-
                     if (!isVideoSizeAcceptable) {
                         Toast.makeText(
                             context,
@@ -325,23 +450,25 @@ internal fun rememberThemeSettingsBackgroundRuntime(
                         ).show()
                         return@rememberLauncherForActivityResult
                     }
-
                     scope.launch {
+                        val operationGeneration = editorSession.beginAssetOperation() ?: return@launch
                         val internalUri =
                             FileUtils.copyFileToInternalStorage(context, uri, "background_video")
-
                         if (internalUri != null) {
                             AppLogger.d("ThemeSettings", "Background video saved to: $internalUri")
-                            editorSession.registerStagedAsset(internalUri.toString())
-                            onBackgroundImageUriInputChange(internalUri.toString())
-                            onBackgroundMediaTypeInputChange(UserPreferencesManager.MEDIA_TYPE_VIDEO)
+                            val internalUriString = internalUri.toString()
+                            if (!editorSession.registerStagedAsset(internalUriString, operationGeneration)) {
+                                return@launch
+                            }
+                            onBackgroundImageUriInputChange(internalUriString)
+                            onBackgroundMediaTypeInputChange(NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO)
                             editorSession.setOptionalString(
-                                "background_image_uri",
-                                internalUri.toString(),
+                                NativeThemePreferenceSchemaV1.backgroundImageUri,
+                                internalUriString,
                             )
                             editorSession.setString(
-                                "background_media_type",
-                                UserPreferencesManager.MEDIA_TYPE_VIDEO,
+                                NativeThemePreferenceSchemaV1.backgroundMediaType,
+                                NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO,
                             )
                             Toast.makeText(
                                 context,
@@ -364,7 +491,14 @@ internal fun rememberThemeSettingsBackgroundRuntime(
 
     return ThemeSettingsBackgroundRuntime(
         exoPlayer = exoPlayer,
-        launchImageCrop = { launchImageCrop(it) },
+        launchImageCrop = ::launchImageCrop,
         mediaPickerLauncher = mediaPickerLauncher,
     )
 }
+
+private data class Quadruple<out A, out B, out C, out D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+)

@@ -457,13 +457,8 @@
     <string name="avatar_supported_formats_desc">- DragonBones: Tulang .json + *_tex.json + *_tex.png\n- WebP: Satu atau lebih file .webp\n- MP4: Satu atau lebih file .mp4\n- MMD: Model .pmx atau .pmd, opsional aksi .vmd\n- glTF: .glb atau .gltf (jika ada referensi, diperlukan sumber daya .bin/tekstur dll.)\n- FBX: .fbx (unggahan langsung hanya untuk sumber daya mandiri)</string>
     <string name="avatar_import_methods_title">Metode Impor</string>
 
-    <string name="theme_select_color">Pilih Warna</string>
     <string name="theme_primary_color">Warna Utama</string>
     <string name="theme_secondary_color">Warna Sekunder</string>
-    <string name="theme_preview">Pratinjau Efek Warna</string>
-    <string name="theme_primary_button">Tombol Utama</string>
-    <string name="theme_secondary_button">Tombol Sekunder</string>
-    <string name="theme_contrast_tip">Tips: Pilih kombinasi warna dengan kontras tinggi untuk hasil terbaik</string>
     <string name="theme_save_colors">Simpan Pengaturan Warna</string>
     <string name="theme_title_background">Kustomisasi Latar Belakang</string>
     <string name="theme_bg_media">Pengaturan Media Latar Belakang</string>
@@ -620,7 +615,6 @@
     <string name="plugin_terminal_service_unavailable">Layanan terminal tidak tersedia, harap mulai terlebih dahulu</string>
     <string name="plugin_pnpm_missing">pnpm tidak terinstal di terminal, harap instal terlebih dahulu</string>
     <string name="theme_title_mode">Mode Tema</string>
-    <string name="theme_system_title">Tema Sistem</string>
     <string name="theme_follow_system">Ikuti tema sistem</string>
     <string name="theme_follow_system_desc">Setelah diaktifkan, tema akan beralih otomatis berdasarkan mode gelap sistem</string>
     <string name="theme_select">Pilih Tema</string>
@@ -756,7 +750,7 @@
     <string name="show_fps_counter">Tampilkan frame rate</string>
     <string name="fps_counter_description">Tampilkan frame rate real-time di sudut kanan atas layar</string>
     <string name="settings_section_personalization">Personalisasi</string>
-    <string name="settings_user_preferences">Preferensi Pengguna</string>
+    <string name="settings_user_preferences">Profil &amp; Identitas</string>
     <string name="settings_user_preferences_desc">Konfigurasikan informasi pribadi dan preferensi agar AI lebih memahami Anda, termasuk usia, kepribadian, identitas, profesi, dan gaya AI yang diharapkan</string>
     <string name="settings_configure_preferences">Konfigurasi Preferensi Pengguna</string>
     <string name="settings_model_prompts">Pengaturan Prompt Model</string>
@@ -3250,6 +3244,10 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="chat_style_preview_ai_source_title">Pratinjau Grid 9 Gambar Asli AI</string>
     <string name="chat_style_bubble_image_saved">Gambar bubble telah disimpan</string>
     <string name="display_options_title">Opsi Tampilan</string>
+    <string name="theme_message_reasoning_title">Penalaran pesan</string>
+    <string name="theme_message_identity_title">Identitas pesan</string>
+    <string name="theme_message_diagnostics_title">Diagnostik pesan</string>
+    <string name="theme_message_activity_title">Aktivitas dan umpan balik</string>
     <string name="show_thinking_process">Tampilkan Proses Berpikir</string>
     <string name="show_thinking_process_desc">Alihkan visibilitas tag &lt;think&gt; dalam respons AI</string>
     <string name="show_status_tags">Tampilkan Label Status Tugas</string>
@@ -7067,6 +7065,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="mcp_regenerate_description_empty">AI tidak menghasilkan deskripsi yang dapat digunakan, silakan coba lagi nanti</string>
 
     <string name="theme_tab_basic">Dasar</string>
+    <string name="theme_load_failed">Gagal memuat pengaturan tema</string>
     <string name="theme_tab_background">Latar Belakang</string>
     <string name="theme_tab_chat">Obrolan</string>
     <string name="theme_tab_input">Bidang Input</string>

@@ -7,6 +7,112 @@ import org.junit.Test
 
 class NativeThemePreferenceSchemaV1Test {
     @Test
+    fun releasedOptionValuesRemainFrozen() {
+        assertEquals(
+            mapOf(
+                "theme.light" to "light",
+                "theme.dark" to "dark",
+                "app_bar_content.light" to "light",
+                "app_bar_content.dark" to "dark",
+                "media.image" to "image",
+                "media.video" to "video",
+                "chat.cursor" to "cursor",
+                "chat.bubble" to "bubble",
+                "input.classic" to "classic",
+                "input.agent" to "agent",
+                "bubble_image.tiled_nine_slice" to "tiled_nine_slice",
+                "bubble_image.nine_patch" to "nine_patch",
+                "avatar.circle" to "circle",
+                "avatar.square" to "square",
+                "on_color.auto" to "auto",
+                "on_color.light" to "light",
+                "on_color.dark" to "dark",
+                "font.system" to "system",
+                "font.file" to "file",
+                "system_font.default" to "default",
+                "system_font.serif" to "serif",
+                "system_font.sans_serif" to "sans-serif",
+                "system_font.monospace" to "monospace",
+                "system_font.cursive" to "cursive",
+            ),
+            mapOf(
+                "theme.light" to NativeThemePreferenceOptionsV1.THEME_MODE_LIGHT,
+                "theme.dark" to NativeThemePreferenceOptionsV1.THEME_MODE_DARK,
+                "app_bar_content.light" to
+                    NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_LIGHT,
+                "app_bar_content.dark" to
+                    NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_DARK,
+                "media.image" to NativeThemePreferenceOptionsV1.MEDIA_TYPE_IMAGE,
+                "media.video" to NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO,
+                "chat.cursor" to NativeThemePreferenceOptionsV1.CHAT_STYLE_CURSOR,
+                "chat.bubble" to NativeThemePreferenceOptionsV1.CHAT_STYLE_BUBBLE,
+                "input.classic" to NativeThemePreferenceOptionsV1.INPUT_STYLE_CLASSIC,
+                "input.agent" to NativeThemePreferenceOptionsV1.INPUT_STYLE_AGENT,
+                "bubble_image.tiled_nine_slice" to
+                    NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE,
+                "bubble_image.nine_patch" to
+                    NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH,
+                "avatar.circle" to NativeThemePreferenceOptionsV1.AVATAR_SHAPE_CIRCLE,
+                "avatar.square" to NativeThemePreferenceOptionsV1.AVATAR_SHAPE_SQUARE,
+                "on_color.auto" to NativeThemePreferenceOptionsV1.ON_COLOR_MODE_AUTO,
+                "on_color.light" to NativeThemePreferenceOptionsV1.ON_COLOR_MODE_LIGHT,
+                "on_color.dark" to NativeThemePreferenceOptionsV1.ON_COLOR_MODE_DARK,
+                "font.system" to NativeThemePreferenceOptionsV1.FONT_TYPE_SYSTEM,
+                "font.file" to NativeThemePreferenceOptionsV1.FONT_TYPE_FILE,
+                "system_font.default" to NativeThemePreferenceOptionsV1.SYSTEM_FONT_DEFAULT,
+                "system_font.serif" to NativeThemePreferenceOptionsV1.SYSTEM_FONT_SERIF,
+                "system_font.sans_serif" to
+                    NativeThemePreferenceOptionsV1.SYSTEM_FONT_SANS_SERIF,
+                "system_font.monospace" to
+                    NativeThemePreferenceOptionsV1.SYSTEM_FONT_MONOSPACE,
+                "system_font.cursive" to NativeThemePreferenceOptionsV1.SYSTEM_FONT_CURSIVE,
+            ),
+        )
+        assertEquals(NativeThemePreferenceOptionsV1.THEME_MODE_LIGHT, UserPreferencesManager.THEME_MODE_LIGHT)
+        assertEquals(NativeThemePreferenceOptionsV1.THEME_MODE_DARK, UserPreferencesManager.THEME_MODE_DARK)
+        assertEquals(
+            NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_LIGHT,
+            UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_LIGHT,
+        )
+        assertEquals(
+            NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_DARK,
+            UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_DARK,
+        )
+        assertEquals(NativeThemePreferenceOptionsV1.MEDIA_TYPE_IMAGE, UserPreferencesManager.MEDIA_TYPE_IMAGE)
+        assertEquals(NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO, UserPreferencesManager.MEDIA_TYPE_VIDEO)
+        assertEquals(NativeThemePreferenceOptionsV1.CHAT_STYLE_CURSOR, UserPreferencesManager.CHAT_STYLE_CURSOR)
+        assertEquals(NativeThemePreferenceOptionsV1.CHAT_STYLE_BUBBLE, UserPreferencesManager.CHAT_STYLE_BUBBLE)
+        assertEquals(NativeThemePreferenceOptionsV1.INPUT_STYLE_CLASSIC, UserPreferencesManager.INPUT_STYLE_CLASSIC)
+        assertEquals(NativeThemePreferenceOptionsV1.INPUT_STYLE_AGENT, UserPreferencesManager.INPUT_STYLE_AGENT)
+        assertEquals(
+            NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE,
+            UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE,
+        )
+        assertEquals(
+            NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH,
+            UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH,
+        )
+        assertEquals(NativeThemePreferenceOptionsV1.AVATAR_SHAPE_CIRCLE, UserPreferencesManager.AVATAR_SHAPE_CIRCLE)
+        assertEquals(NativeThemePreferenceOptionsV1.AVATAR_SHAPE_SQUARE, UserPreferencesManager.AVATAR_SHAPE_SQUARE)
+        assertEquals(NativeThemePreferenceOptionsV1.ON_COLOR_MODE_AUTO, UserPreferencesManager.ON_COLOR_MODE_AUTO)
+        assertEquals(NativeThemePreferenceOptionsV1.ON_COLOR_MODE_LIGHT, UserPreferencesManager.ON_COLOR_MODE_LIGHT)
+        assertEquals(NativeThemePreferenceOptionsV1.ON_COLOR_MODE_DARK, UserPreferencesManager.ON_COLOR_MODE_DARK)
+        assertEquals(NativeThemePreferenceOptionsV1.FONT_TYPE_SYSTEM, UserPreferencesManager.FONT_TYPE_SYSTEM)
+        assertEquals(NativeThemePreferenceOptionsV1.FONT_TYPE_FILE, UserPreferencesManager.FONT_TYPE_FILE)
+        assertEquals(NativeThemePreferenceOptionsV1.SYSTEM_FONT_DEFAULT, UserPreferencesManager.SYSTEM_FONT_DEFAULT)
+        assertEquals(NativeThemePreferenceOptionsV1.SYSTEM_FONT_SERIF, UserPreferencesManager.SYSTEM_FONT_SERIF)
+        assertEquals(
+            NativeThemePreferenceOptionsV1.SYSTEM_FONT_SANS_SERIF,
+            UserPreferencesManager.SYSTEM_FONT_SANS_SERIF,
+        )
+        assertEquals(
+            NativeThemePreferenceOptionsV1.SYSTEM_FONT_MONOSPACE,
+            UserPreferencesManager.SYSTEM_FONT_MONOSPACE,
+        )
+        assertEquals(NativeThemePreferenceOptionsV1.SYSTEM_FONT_CURSIVE, UserPreferencesManager.SYSTEM_FONT_CURSIVE)
+    }
+
+    @Test
     fun releasedFieldNamesAndTypesRemainFrozen() {
         assertEquals(
             setOf(

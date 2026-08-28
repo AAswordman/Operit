@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -25,8 +24,6 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
 import com.ai.assistance.operit.ui.theme.isHighContrast
 import com.github.skydoves.colorpicker.compose.*
-import kotlinx.coroutines.launch
-import kotlin.math.*
 
 /**
  * Material colors for the color picker
@@ -96,70 +93,20 @@ fun parseHexColor(hex: String): Color? {
  */
 @Composable
 fun ColorPickerDialog(
-    showColorPicker: Boolean,
-    currentColorPickerMode: String,
-    primaryColorInput: Int,
-    secondaryColorInput: Int,
-    statusBarColorInput: Int,
-    appBarColorInput: Int,
-    navigationDrawerBackgroundColorInput: Int,
-    navigationDrawerAccentColorInput: Int,
-    historyIconColorInput: Int,
-    pipIconColorInput: Int,
-    cursorUserBubbleColorInput: Int,
-    bubbleUserBubbleColorInput: Int,
-    bubbleAiBubbleColorInput: Int,
-    bubbleUserTextColorInput: Int,
-    bubbleAiTextColorInput: Int,
+    initialColor: Int,
+    title: String,
     recentColors: List<Int>,
-    onColorSelected:
-            (
-                    primaryColor: Int?,
-                    secondaryColor: Int?,
-                    statusBarColor: Int?,
-                    appBarColor: Int?,
-                    navigationDrawerBackgroundColor: Int?,
-                    navigationDrawerAccentColor: Int?,
-                    historyIconColor: Int?,
-                    pipIconColor: Int?,
-                    cursorUserBubbleColor: Int?,
-                    bubbleUserBubbleColor: Int?,
-                    bubbleAiBubbleColor: Int?,
-                    bubbleUserTextColor: Int?,
-                    bubbleAiTextColor: Int?
-            ) -> Unit,
+    onColorSelected: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    if (!showColorPicker) return
+    val currentColor = Color(initialColor)
+    var pickerInitialColor by remember { mutableStateOf(currentColor) }
+    var pickerRevision by remember { mutableIntStateOf(0) }
+    val pickerController = remember(pickerRevision) { ColorPickerController() }
 
-    val currentColorForPicker =
-            when (currentColorPickerMode) {
-                "primary" -> primaryColorInput
-                "secondary" -> secondaryColorInput
-                "statusBar" -> statusBarColorInput
-                "appBar" -> appBarColorInput
-                "navigationDrawerBackground" -> navigationDrawerBackgroundColorInput
-                "navigationDrawerAccent" -> navigationDrawerAccentColorInput
-                "historyIcon" -> historyIconColorInput
-                "pipIcon" -> pipIconColorInput
-                "cursorUserBubble" -> cursorUserBubbleColorInput
-                "bubbleUserBubble" -> bubbleUserBubbleColorInput
-                "bubbleAiBubble" -> bubbleAiBubbleColorInput
-                "bubbleUserText" -> bubbleUserTextColorInput
-                "bubbleAiText" -> bubbleAiTextColorInput
-                else -> primaryColorInput
-            }
-    val currentColor = Color(currentColorForPicker)
-
-    // This is the definitive fix for the initial color bug.
-    // We create a controller that is remembered based on the current color.
-    // When the dialog is opened for a different color, a new controller is created
-    // and initialized correctly.
-    val pickerController = remember(currentColor) {
-        ColorPickerController().apply {
-            // Programmatically set the color of the controller upon creation.
-            selectByColor(currentColor, fromUser = false)
-        }
+    fun selectExactColor(color: Color) {
+        pickerInitialColor = color
+        pickerRevision += 1
     }
 
     // The controller's selected color is the source of truth for our UI.
@@ -181,7 +128,7 @@ fun ColorPickerDialog(
     LaunchedEffect(pickedColor) {
         val color = pickedColor
         // Update HEX
-        hexInput = String.format("#%06X", (0xFFFFFF and color.toArgb()))
+        hexInput = String.format("#%08X", color.toArgb())
         
         // Update RGB
         rgbR = (color.red * 255).toInt().toString()
@@ -219,7 +166,7 @@ fun ColorPickerDialog(
         }
         
         newColor?.let { color ->
-            pickerController.selectByColor(color, fromUser = true)
+            selectExactColor(color)
         }
     }
 
@@ -227,29 +174,7 @@ fun ColorPickerDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                    text =
-                            when (currentColorPickerMode) {
-                                "primary" -> stringResource(R.string.colorpicker_select_primary)
-                                "secondary" -> stringResource(R.string.colorpicker_select_secondary)
-                                "statusBar" -> stringResource(R.string.colorpicker_select_statusbar)
-                                "navigationDrawerBackground" ->
-                                    stringResource(R.string.colorpicker_select_navigation_drawer_background)
-                                "navigationDrawerAccent" ->
-                                    stringResource(R.string.colorpicker_select_navigation_drawer_accent)
-                                "historyIcon" -> stringResource(R.string.colorpicker_select_history_icon)
-                                "pipIcon" -> stringResource(R.string.colorpicker_select_pip_icon)
-                                "cursorUserBubble" ->
-                                    stringResource(R.string.colorpicker_select_cursor_user_bubble)
-                                "bubbleUserBubble" ->
-                                    stringResource(R.string.colorpicker_select_bubble_user_bubble)
-                                "bubbleAiBubble" ->
-                                    stringResource(R.string.colorpicker_select_bubble_ai_bubble)
-                                "bubbleUserText" ->
-                                    stringResource(R.string.colorpicker_select_bubble_user_text)
-                                "bubbleAiText" ->
-                                    stringResource(R.string.colorpicker_select_bubble_ai_text)
-                                else -> stringResource(R.string.colorpicker_select_color)
-                            },
+                    text = title,
                     style = MaterialTheme.typography.titleMedium
             )
         },
@@ -492,37 +417,42 @@ fun ColorPickerDialog(
                     controller = pickerController
                 )
 
-                // HSV Color Picker
-                HsvColorPicker(
-                    modifier = Modifier.fillMaxWidth()
-                        .height(220.dp)
-                        .padding(vertical = 8.dp),
-                    controller = pickerController,
-                    onColorChanged = {
-                        // Intentionally left blank. The controller updates its own state.
-                        // We observe the state via `pickerController.selectedColor`.
-                    }
-                )
+                key(pickerRevision) {
+                    // HSV Color Picker
+                    HsvColorPicker(
+                        modifier = Modifier.fillMaxWidth()
+                            .height(220.dp)
+                            .padding(vertical = 8.dp),
+                        initialColor = pickerInitialColor,
+                        controller = pickerController,
+                        onColorChanged = {
+                            // Intentionally left blank. The controller updates its own state.
+                            // We observe the state via `pickerController.selectedColor`.
+                        }
+                    )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Brightness slider
-                BrightnessSlider(
-                    modifier = Modifier.fillMaxWidth()
-                        .height(30.dp)
-                        .padding(vertical = 4.dp),
-                    controller = pickerController
-                )
+                    // Brightness slider
+                    BrightnessSlider(
+                        modifier = Modifier.fillMaxWidth()
+                            .height(30.dp)
+                            .padding(vertical = 4.dp),
+                        controller = pickerController,
+                        initialColor = pickerInitialColor,
+                    )
 
-                // Alpha slider
-                AlphaSlider(
-                    modifier = Modifier.fillMaxWidth()
-                        .height(30.dp)
-                        .padding(vertical = 4.dp),
-                    controller = pickerController,
-                    tileOddColor = Color.White,
-                    tileEvenColor = Color.LightGray
-                )
+                    // Alpha slider
+                    AlphaSlider(
+                        modifier = Modifier.fillMaxWidth()
+                            .height(30.dp)
+                            .padding(vertical = 4.dp),
+                        controller = pickerController,
+                        tileOddColor = Color.White,
+                        tileEvenColor = Color.LightGray,
+                        initialColor = pickerInitialColor,
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -543,7 +473,7 @@ fun ColorPickerDialog(
                         recentColors.take(7).forEach { colorInt ->
                             val color = Color(colorInt)
                             PresetColorItem(color) {
-                                pickerController.selectByColor(it, fromUser = true)
+                                selectExactColor(it)
                             }
                         }
                     }
@@ -558,7 +488,7 @@ fun ColorPickerDialog(
                             recentColors.drop(7).take(7).forEach { colorInt ->
                                 val color = Color(colorInt)
                                 PresetColorItem(color) {
-                                    pickerController.selectByColor(it, fromUser = true)
+                                    selectExactColor(it)
                                 }
                             }
                         }
@@ -580,7 +510,7 @@ fun ColorPickerDialog(
                 ) {
                     materialColors.take(7).forEach { color ->
                         PresetColorItem(color) {
-                            pickerController.selectByColor(it, fromUser = true)
+                            selectExactColor(it)
                         }
                     }
                 }
@@ -591,7 +521,7 @@ fun ColorPickerDialog(
                 ) {
                     materialColors.takeLast(7).forEach { color ->
                         PresetColorItem(color) {
-                            pickerController.selectByColor(it, fromUser = true)
+                            selectExactColor(it)
                         }
                     }
                 }
@@ -600,29 +530,7 @@ fun ColorPickerDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val newColor = pickedColor.toArgb()
-                    when (currentColorPickerMode) {
-                        "primary" -> onColorSelected(newColor, null, null, null, null, null, null, null, null, null, null, null, null)
-                        "secondary" -> onColorSelected(null, newColor, null, null, null, null, null, null, null, null, null, null, null)
-                        "statusBar" -> onColorSelected(null, null, newColor, null, null, null, null, null, null, null, null, null, null)
-                        "appBar" -> onColorSelected(null, null, null, newColor, null, null, null, null, null, null, null, null, null)
-                        "navigationDrawerBackground" ->
-                            onColorSelected(null, null, null, null, newColor, null, null, null, null, null, null, null, null)
-                        "navigationDrawerAccent" ->
-                            onColorSelected(null, null, null, null, null, newColor, null, null, null, null, null, null, null)
-                        "historyIcon" -> onColorSelected(null, null, null, null, null, null, newColor, null, null, null, null, null, null)
-                        "pipIcon" -> onColorSelected(null, null, null, null, null, null, null, newColor, null, null, null, null, null)
-                        "cursorUserBubble" ->
-                            onColorSelected(null, null, null, null, null, null, null, null, newColor, null, null, null, null)
-                        "bubbleUserBubble" ->
-                            onColorSelected(null, null, null, null, null, null, null, null, null, newColor, null, null, null)
-                        "bubbleAiBubble" ->
-                            onColorSelected(null, null, null, null, null, null, null, null, null, null, newColor, null, null)
-                        "bubbleUserText" ->
-                            onColorSelected(null, null, null, null, null, null, null, null, null, null, null, newColor, null)
-                        "bubbleAiText" ->
-                            onColorSelected(null, null, null, null, null, null, null, null, null, null, null, null, newColor)
-                    }
+                    onColorSelected(pickedColor.toArgb())
                     onDismiss()
                 },
                 shape = RoundedCornerShape(8.dp)

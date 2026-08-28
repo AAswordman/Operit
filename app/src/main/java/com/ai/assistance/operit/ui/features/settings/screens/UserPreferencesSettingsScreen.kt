@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.preferences.MemorySpaceProfileDocumentRepository
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.common.displays.MarkdownTextComposable
 import com.ai.assistance.operit.ui.components.CustomScaffold
@@ -91,6 +92,9 @@ fun UserPreferencesSettingsScreen(
     val context = LocalContext.current
     val repository = remember(context) { MemorySpaceProfileDocumentRepository.getInstance(context) }
     val preferencesManager = remember(context) { UserPreferencesManager.getInstance(context) }
+    val displayPreferencesManager = remember(context) {
+        DisplayPreferencesManager.getInstance(context)
+    }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val profileIds by preferencesManager.memorySpaceListFlow.collectAsState(initial = emptyList())
@@ -256,6 +260,19 @@ fun UserPreferencesSettingsScreen(
                         .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        GlobalIdentitySection(
+                            context = context,
+                            displayPreferencesManager = displayPreferencesManager,
+                            scope = scope,
+                        )
+                    }
+                }
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),

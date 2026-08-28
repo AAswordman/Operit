@@ -1,0 +1,28 @@
+package com.ai.assistance.operit.data.preferences
+
+internal object NativeThemePreferenceOptionsV1 {
+    const val THEME_MODE_LIGHT = "light"
+    const val THEME_MODE_DARK = "dark"
+    const val APP_BAR_CONTENT_COLOR_MODE_LIGHT = "light"
+    const val APP_BAR_CONTENT_COLOR_MODE_DARK = "dark"
+    const val MEDIA_TYPE_IMAGE = "image"
+    const val MEDIA_TYPE_VIDEO = "video"
+    const val CHAT_STYLE_CURSOR = "cursor"
+    const val CHAT_STYLE_BUBBLE = "bubble"
+    const val INPUT_STYLE_CLASSIC = "classic"
+    const val INPUT_STYLE_AGENT = "agent"
+    const val BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE = "tiled_nine_slice"
+    const val BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH = "nine_patch"
+    const val AVATAR_SHAPE_CIRCLE = "circle"
+    const val AVATAR_SHAPE_SQUARE = "square"
+    const val ON_COLOR_MODE_AUTO = "auto"
+    const val ON_COLOR_MODE_LIGHT = "light"
+    const val ON_COLOR_MODE_DARK = "dark"
+    const val FONT_TYPE_SYSTEM = "system"
+    const val FONT_TYPE_FILE = "file"
+    const val SYSTEM_FONT_DEFAULT = "default"
+    const val SYSTEM_FONT_SERIF = "serif"
+    const val SYSTEM_FONT_SANS_SERIF = "sans-serif"
+    const val SYSTEM_FONT_MONOSPACE = "monospace"
+    const val SYSTEM_FONT_CURSIVE = "cursive"
+}

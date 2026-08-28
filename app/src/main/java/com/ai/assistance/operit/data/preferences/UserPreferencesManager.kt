@@ -307,16 +307,18 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private const val DEFAULT_PROFILE_ID = "default"
 
         // 主题模式常量
-        const val THEME_MODE_LIGHT = "light"
-        const val THEME_MODE_DARK = "dark"
+        const val THEME_MODE_LIGHT = NativeThemePreferenceOptionsV1.THEME_MODE_LIGHT
+        const val THEME_MODE_DARK = NativeThemePreferenceOptionsV1.THEME_MODE_DARK
 
         // AppBar 内容颜色模式常量
-        const val APP_BAR_CONTENT_COLOR_MODE_LIGHT = "light"
-        const val APP_BAR_CONTENT_COLOR_MODE_DARK = "dark"
+        const val APP_BAR_CONTENT_COLOR_MODE_LIGHT =
+            NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_LIGHT
+        const val APP_BAR_CONTENT_COLOR_MODE_DARK =
+            NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_DARK
 
         // 背景媒体类型常量
-        const val MEDIA_TYPE_IMAGE = "image"
-        const val MEDIA_TYPE_VIDEO = "video"
+        const val MEDIA_TYPE_IMAGE = NativeThemePreferenceOptionsV1.MEDIA_TYPE_IMAGE
+        const val MEDIA_TYPE_VIDEO = NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO
         
         // 默认语言
         const val DEFAULT_LANGUAGE = LanguageCodes.AUTO
@@ -325,13 +327,15 @@ class UserPreferencesManager private constructor(private val context: Context) {
         const val SOFTWARE_IDENTITY_OPERIT = "operit_ai"
         const val SOFTWARE_IDENTITY_LINGSHU = "lingshu_ai"
 
-        const val CHAT_STYLE_CURSOR = "cursor"
-        const val CHAT_STYLE_BUBBLE = "bubble"
+        const val CHAT_STYLE_CURSOR = NativeThemePreferenceOptionsV1.CHAT_STYLE_CURSOR
+        const val CHAT_STYLE_BUBBLE = NativeThemePreferenceOptionsV1.CHAT_STYLE_BUBBLE
 
-        const val INPUT_STYLE_CLASSIC = "classic"
-        const val INPUT_STYLE_AGENT = "agent"
-        const val BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE = "tiled_nine_slice"
-        const val BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH = "nine_patch"
+        const val INPUT_STYLE_CLASSIC = NativeThemePreferenceOptionsV1.INPUT_STYLE_CLASSIC
+        const val INPUT_STYLE_AGENT = NativeThemePreferenceOptionsV1.INPUT_STYLE_AGENT
+        const val BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE =
+            NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE
+        const val BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH =
+            NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH
 
         private val KEY_SHOW_THINKING_PROCESS =
             booleanPreferencesKey(NativeThemePreferenceSchemaV1.showThinkingProcess.name)
@@ -390,23 +394,23 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val RECENT_COLORS = stringPreferencesKey("recent_colors")
 
 
-        const val AVATAR_SHAPE_CIRCLE = "circle"
-        const val AVATAR_SHAPE_SQUARE = "square"
+        const val AVATAR_SHAPE_CIRCLE = NativeThemePreferenceOptionsV1.AVATAR_SHAPE_CIRCLE
+        const val AVATAR_SHAPE_SQUARE = NativeThemePreferenceOptionsV1.AVATAR_SHAPE_SQUARE
 
-        const val ON_COLOR_MODE_AUTO = "auto"
-        const val ON_COLOR_MODE_LIGHT = "light"
-        const val ON_COLOR_MODE_DARK = "dark"
+        const val ON_COLOR_MODE_AUTO = NativeThemePreferenceOptionsV1.ON_COLOR_MODE_AUTO
+        const val ON_COLOR_MODE_LIGHT = NativeThemePreferenceOptionsV1.ON_COLOR_MODE_LIGHT
+        const val ON_COLOR_MODE_DARK = NativeThemePreferenceOptionsV1.ON_COLOR_MODE_DARK
 
         // 字体类型常量
-        const val FONT_TYPE_SYSTEM = "system"
-        const val FONT_TYPE_FILE = "file"
+        const val FONT_TYPE_SYSTEM = NativeThemePreferenceOptionsV1.FONT_TYPE_SYSTEM
+        const val FONT_TYPE_FILE = NativeThemePreferenceOptionsV1.FONT_TYPE_FILE
         
         // 系统字体名称常量
-        const val SYSTEM_FONT_DEFAULT = "default"
-        const val SYSTEM_FONT_SERIF = "serif"
-        const val SYSTEM_FONT_SANS_SERIF = "sans-serif"
-        const val SYSTEM_FONT_MONOSPACE = "monospace"
-        const val SYSTEM_FONT_CURSIVE = "cursive"
+        const val SYSTEM_FONT_DEFAULT = NativeThemePreferenceOptionsV1.SYSTEM_FONT_DEFAULT
+        const val SYSTEM_FONT_SERIF = NativeThemePreferenceOptionsV1.SYSTEM_FONT_SERIF
+        const val SYSTEM_FONT_SANS_SERIF = NativeThemePreferenceOptionsV1.SYSTEM_FONT_SANS_SERIF
+        const val SYSTEM_FONT_MONOSPACE = NativeThemePreferenceOptionsV1.SYSTEM_FONT_MONOSPACE
+        const val SYSTEM_FONT_CURSIVE = NativeThemePreferenceOptionsV1.SYSTEM_FONT_CURSIVE
 
         const val DEFAULT_LONG_PASTED_TEXT_FILE_THRESHOLD = 3000
     }

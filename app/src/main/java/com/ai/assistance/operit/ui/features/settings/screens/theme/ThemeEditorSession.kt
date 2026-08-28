@@ -9,6 +9,10 @@ import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
 import com.ai.assistance.operit.data.preferences.NativeThemeStringField
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.ui.features.settings.theme.editor.state.ThemeEditorDocument
+import com.ai.assistance.operit.ui.features.settings.theme.editor.state.ThemeEditorDocumentAction
+import com.ai.assistance.operit.ui.features.settings.theme.editor.state.ThemeEditorSaveRequest
+import com.ai.assistance.operit.ui.features.settings.theme.editor.state.reduceThemeEditorDocument
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,35 +23,27 @@ internal class ThemeEditorSession(
     private val persistentPreferences: UserPreferencesManager,
     initialValues: ThemePreferenceValues,
 ) {
-    private val _values = MutableStateFlow(initialValues)
-    private val _hasUnsavedChanges = MutableStateFlow(false)
-    private var baselineValues = initialValues
-    private var resetRequested = false
+    private val _document =
+        MutableStateFlow(ThemeEditorDocument(baseline = initialValues, draft = initialValues))
     private val stagedAssetUris = mutableSetOf<String>()
-    private var inFlightSavedValues: ThemePreferenceValues? = null
+    private var assetOperationGeneration = 0L
     private var disposed = false
 
-    val values: StateFlow<ThemePreferenceValues> = _values.asStateFlow()
-    val hasUnsavedChangesFlow: StateFlow<Boolean> = _hasUnsavedChanges.asStateFlow()
+    val document: StateFlow<ThemeEditorDocument> = _document.asStateFlow()
     val recentColorsFlow: Flow<List<Int>> = persistentPreferences.recentColorsFlow
 
     val currentValues: ThemePreferenceValues
-        get() = _values.value
+        get() = _document.value.draft
 
     val hasUnsavedChanges: Boolean
-        get() = resetRequested || currentValues != baselineValues
+        get() = _document.value.hasUnsavedChanges
 
-    val isResetRequested: Boolean
-        get() = resetRequested
-
+    @Synchronized
     fun update(transform: (ThemePreferenceValues) -> ThemePreferenceValues) {
         if (disposed) return
         val updated = transform(currentValues)
-        if (updated == currentValues) return
-        _values.value = updated
-        resetRequested = false
+        if (!dispatch(ThemeEditorDocumentAction.Edit(updated))) return
         deleteUnreferencedStagedAssets(updated)
-        updateDirtyState()
     }
 
     fun setString(name: String, value: String) {
@@ -90,7 +86,9 @@ internal class ThemeEditorSession(
         update { it.withFloat(field, value) }
     }
 
+    @Synchronized
     fun reset() {
+        assetOperationGeneration += 1
         val resetValues =
             ThemePreferenceValues.defaultVisual()
                 .withString(
@@ -101,38 +99,39 @@ internal class ThemeEditorSession(
                     NativeThemePreferenceSchemaV1.customChatTitle,
                     currentValues.string(NativeThemePreferenceSchemaV1.customChatTitle),
                 )
-        _values.value = resetValues
-        resetRequested = true
+        dispatch(ThemeEditorDocumentAction.ResetVisual(resetValues))
         deleteUnreferencedStagedAssets(resetValues)
-        updateDirtyState()
     }
 
+    @Synchronized
     fun discard() {
+        assetOperationGeneration += 1
         deleteStagedAssets(stagedAssetUris.toSet())
-        _values.value = baselineValues
-        resetRequested = false
-        updateDirtyState()
+        dispatch(ThemeEditorDocumentAction.Discard)
     }
 
-    fun beginSave(savedValues: ThemePreferenceValues) {
-        inFlightSavedValues = savedValues
+    @Synchronized
+    fun beginSave(): ThemeEditorSaveRequest {
+        val current = _document.value
+        val request = ThemeEditorSaveRequest(values = current.draft, saveMode = current.saveMode)
+        dispatch(ThemeEditorDocumentAction.BeginSave(request.values))
+        return request
     }
 
+    @Synchronized
     fun markSaved(savedValues: ThemePreferenceValues) {
         stagedAssetUris.removeAll(savedValues.strings.values)
-        inFlightSavedValues = null
-        baselineValues = savedValues
-        resetRequested = false
+        dispatch(ThemeEditorDocumentAction.SaveSucceeded(savedValues))
         if (disposed) {
             deleteStagedAssets(stagedAssetUris.toSet())
         } else {
             deleteUnreferencedStagedAssets(currentValues)
         }
-        updateDirtyState()
     }
 
+    @Synchronized
     fun cancelSave() {
-        inFlightSavedValues = null
+        dispatch(ThemeEditorDocumentAction.SaveFailed)
         if (disposed) {
             deleteStagedAssets(stagedAssetUris.toSet())
         } else {
@@ -140,19 +139,39 @@ internal class ThemeEditorSession(
         }
     }
 
+    @Synchronized
     fun dispose() {
         disposed = true
-        if (inFlightSavedValues == null) {
+        assetOperationGeneration += 1
+        if (_document.value.savingValues == null) {
             deleteStagedAssets(stagedAssetUris.toSet())
         }
     }
 
+    @Synchronized
     fun registerStagedAsset(uri: String) {
         if (disposed) {
             deleteStagedAssets(setOf(uri))
             return
         }
         stagedAssetUris += uri
+    }
+
+    @Synchronized
+    fun beginAssetOperation(): Long? {
+        if (disposed) return null
+        assetOperationGeneration += 1
+        return assetOperationGeneration
+    }
+
+    @Synchronized
+    fun registerStagedAsset(uri: String, generation: Long): Boolean {
+        if (disposed || generation != assetOperationGeneration) {
+            deleteStagedAssets(setOf(uri))
+            return false
+        }
+        stagedAssetUris += uri
+        return true
     }
 
     suspend fun addRecentColor(color: Int) {
@@ -162,7 +181,7 @@ internal class ThemeEditorSession(
     private fun deleteUnreferencedStagedAssets(values: ThemePreferenceValues) {
         val referencedUris = buildSet {
             addAll(values.strings.values)
-            inFlightSavedValues?.strings?.values?.let(::addAll)
+            _document.value.savingValues?.strings?.values?.let(::addAll)
         }
         deleteStagedAssets(stagedAssetUris.filterNot(referencedUris::contains).toSet())
     }
@@ -177,7 +196,12 @@ internal class ThemeEditorSession(
         }
     }
 
-    private fun updateDirtyState() {
-        _hasUnsavedChanges.value = hasUnsavedChanges
+    @Synchronized
+    private fun dispatch(action: ThemeEditorDocumentAction): Boolean {
+        val current = _document.value
+        val updated = reduceThemeEditorDocument(current, action)
+        if (updated == current) return false
+        _document.value = updated
+        return true
     }
 }

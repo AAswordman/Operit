@@ -7,22 +7,28 @@ import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.settings.components.ColorPickerDialog
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsAvatarSection
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsChatStyleSection
-import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsDisplayOptionsSection
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeColorTargetV1
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.FileUtils
@@ -53,15 +59,13 @@ private enum class ThemeSettingsBubbleTarget {
 
 private enum class ThemeSettingsAvatarPickerMode(val uniqueName: String) {
     USER("user_avatar"),
-    AI("ai_avatar"),
-    GLOBAL_USER("global_user_avatar");
+    AI("ai_avatar");
 
     companion object {
         fun fromKey(key: String): ThemeSettingsAvatarPickerMode =
             when (key) {
                 "user" -> USER
                 "ai" -> AI
-                "global_user" -> GLOBAL_USER
                 else -> error("Unsupported avatar picker mode: $key")
             }
     }
@@ -71,8 +75,6 @@ internal data class ThemeSettingsChatRuntimeState(
     val context: android.content.Context,
     val scope: CoroutineScope,
     val editorSession: ThemeEditorSession,
-    val displayPreferencesManager: DisplayPreferencesManager,
-    val onGlobalUserAvatarUriInputChange: (String?) -> Unit,
 )
 
 internal data class ThemeSettingsChatRuntime(
@@ -178,9 +180,12 @@ internal fun rememberThemeSettingsChatRuntime(
             if (result.isSuccessful) {
                 val croppedUri = result.uriContent
                 if (croppedUri != null) {
+                    val target = bubbleImagePickerTarget
                     state.scope.launch {
+                        val operationGeneration =
+                            state.editorSession.beginAssetOperation() ?: return@launch
                         val uniqueName =
-                            when (bubbleImagePickerTarget) {
+                            when (target) {
                                 ThemeSettingsBubbleTarget.AI -> "bubble_ai"
                                 ThemeSettingsBubbleTarget.USER -> "bubble_user"
                             }
@@ -188,9 +193,11 @@ internal fun rememberThemeSettingsChatRuntime(
                             FileUtils.copyFileToInternalStorage(context, croppedUri, uniqueName)
                         if (internalUri != null) {
                             val internalUriString = internalUri.toString()
-                            state.editorSession.registerStagedAsset(internalUriString)
+                            if (!state.editorSession.registerStagedAsset(internalUriString, operationGeneration)) {
+                                return@launch
+                            }
                             state.editorSession.update { values ->
-                                when (bubbleImagePickerTarget) {
+                                when (target) {
                                     ThemeSettingsBubbleTarget.AI ->
                                         values
                                             .withString("bubble_ai_image_uri", internalUriString)
@@ -261,9 +268,12 @@ internal fun rememberThemeSettingsChatRuntime(
                     return@rememberLauncherForActivityResult
                 }
 
+                val target = bubbleImagePickerTarget
                 state.scope.launch {
+                    val operationGeneration =
+                        state.editorSession.beginAssetOperation() ?: return@launch
                     val uniqueName =
-                        when (bubbleImagePickerTarget) {
+                        when (target) {
                             ThemeSettingsBubbleTarget.AI -> "bubble_ai"
                             ThemeSettingsBubbleTarget.USER -> "bubble_user"
                         }
@@ -292,11 +302,13 @@ internal fun rememberThemeSettingsChatRuntime(
                     }
 
                     val internalUriString = internalUri.toString()
-                    state.editorSession.registerStagedAsset(internalUriString)
+                    if (!state.editorSession.registerStagedAsset(internalUriString, operationGeneration)) {
+                        return@launch
+                    }
                     val renderMode = UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH
                     state.editorSession.update { values ->
                         val updated = values.withString("bubble_image_render_mode", renderMode)
-                        when (bubbleImagePickerTarget) {
+                        when (target) {
                             ThemeSettingsBubbleTarget.AI ->
                                 updated
                                     .withString("bubble_ai_image_uri", internalUriString)
@@ -349,18 +361,23 @@ internal fun rememberThemeSettingsChatRuntime(
         if (result.isSuccessful) {
             val croppedUri = result.uriContent
             if (croppedUri != null) {
+                val pickerMode = avatarPickerMode
                 state.scope.launch {
+                    val operationGeneration =
+                        state.editorSession.beginAssetOperation() ?: return@launch
                     val internalUri =
                         FileUtils.copyFileToInternalStorage(
                             context,
                             croppedUri,
-                            avatarPickerMode.uniqueName,
+                            pickerMode.uniqueName,
                         )
                     if (internalUri != null) {
-                        when (avatarPickerMode) {
+                        if (!state.editorSession.registerStagedAsset(internalUri.toString(), operationGeneration)) {
+                            return@launch
+                        }
+                        when (pickerMode) {
                             ThemeSettingsAvatarPickerMode.USER -> {
                                 AppLogger.d("ThemeSettings", "User avatar saved to: $internalUri")
-                                state.editorSession.registerStagedAsset(internalUri.toString())
                                 state.editorSession.setOptionalString(
                                     "custom_user_avatar_uri",
                                     internalUri.toString(),
@@ -368,20 +385,9 @@ internal fun rememberThemeSettingsChatRuntime(
                             }
                             ThemeSettingsAvatarPickerMode.AI -> {
                                 AppLogger.d("ThemeSettings", "AI avatar saved to: $internalUri")
-                                state.editorSession.registerStagedAsset(internalUri.toString())
                                 state.editorSession.setOptionalString(
                                     "custom_ai_avatar_uri",
                                     internalUri.toString(),
-                                )
-                            }
-                            ThemeSettingsAvatarPickerMode.GLOBAL_USER -> {
-                                AppLogger.d(
-                                    "ThemeSettings",
-                                    "Global user avatar saved to: $internalUri",
-                                )
-                                state.onGlobalUserAvatarUriInputChange(internalUri.toString())
-                                state.displayPreferencesManager.saveDisplaySettings(
-                                    globalUserAvatarUri = internalUri.toString(),
                                 )
                             }
                         }
@@ -465,14 +471,16 @@ internal fun ThemeSettingsChatTab(
     cardColors: androidx.compose.material3.CardColors,
 ) {
     val editorSession = shared.editorSession
-    val displayPreferencesManager = shared.displayPreferencesManager
-    val values by editorSession.values.collectAsState()
+    val displayPreferencesManager = remember {
+        DisplayPreferencesManager.getInstance(shared.context)
+    }
+    val editorDocument by editorSession.document.collectAsState()
+    val values = editorDocument.draft
     val defaultCursorUserBubbleColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
     val defaultBubbleUserBubbleColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
     val defaultBubbleAiBubbleColor = MaterialTheme.colorScheme.surface.toArgb()
 
     val chatStyleInput = values.requiredString("chat_style")
-    val inputStyleInput = values.requiredString("input_style")
     val bubbleShowAvatarInput = values.requiredBoolean("bubble_show_avatar")
     val bubbleWideLayoutEnabledInput = values.requiredBoolean("bubble_wide_layout_enabled")
     val cursorUserBubbleFollowThemeInput = values.requiredBoolean("cursor_user_bubble_follow_theme")
@@ -531,26 +539,10 @@ internal fun ThemeSettingsChatTab(
     val userAvatarUriInput = values.string("custom_user_avatar_uri")
     val aiAvatarUriInput = values.string("custom_ai_avatar_uri")
     val globalUserAvatarUri by displayPreferencesManager.globalUserAvatarUri.collectAsState(initial = null)
-    val globalUserName by displayPreferencesManager.globalUserName.collectAsState(initial = null)
-    var globalUserAvatarUriInput by remember(globalUserAvatarUri) { mutableStateOf(globalUserAvatarUri) }
-    var globalUserNameInput by remember(globalUserName) { mutableStateOf(globalUserName) }
     val avatarShapeInput = values.requiredString("avatar_shape")
     val avatarCornerRadiusInput = values.requiredFloat("avatar_corner_radius")
-    val showThinkingProcessInput = values.requiredBoolean("show_thinking_process")
-    val showStatusTagsInput = values.requiredBoolean("show_status_tags")
-    val showModelProviderInput = values.requiredBoolean("show_model_provider")
-    val showModelNameInput = values.requiredBoolean("show_model_name")
-    val showRoleNameInput = values.requiredBoolean("show_role_name")
-    val showUserNameInput = values.requiredBoolean("show_user_name")
-    val showMessageTokenStatsInput = values.requiredBoolean("show_message_token_stats")
-    val showMessageTimingStatsInput = values.requiredBoolean("show_message_timing_stats")
-    val showMessageTimestampInput = values.requiredBoolean("show_message_timestamp")
-    val showInputProcessingStatusInput = values.requiredBoolean("show_input_processing_status")
-    val showChatFloatingDotsAnimationInput =
-        values.requiredBoolean("show_chat_floating_dots_animation")
     val recentColors by editorSession.recentColorsFlow.collectAsState(initial = emptyList())
-    var showColorPicker by remember { mutableStateOf(false) }
-    var currentColorPickerMode by remember { mutableStateOf("bubbleUserBubble") }
+    var colorPickerTarget by remember { mutableStateOf<NativeThemeColorTargetV1?>(null) }
 
     val bubbleFontPicker = rememberBubbleFontPicker(shared = shared)
     val runtime = rememberThemeSettingsChatRuntime(
@@ -558,16 +550,22 @@ internal fun ThemeSettingsChatTab(
             context = shared.context,
             scope = shared.scope,
             editorSession = editorSession,
-            displayPreferencesManager = displayPreferencesManager,
-            onGlobalUserAvatarUriInputChange = { globalUserAvatarUriInput = it },
         ),
     )
 
+    OutlinedTextField(
+        value = values.string("custom_chat_title") ?: "",
+        onValueChange = { editorSession.setOptionalString("custom_chat_title", it) },
+        label = { Text(stringResource(R.string.custom_chat_title_label)) },
+        placeholder = { Text(stringResource(R.string.custom_chat_title_placeholder)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
     ThemeSettingsChatStyleSection(
-        cardColors = cardColors,
-        editorSession = editorSession,
-        chatStyleInput = chatStyleInput,
-        inputStyleInput = inputStyleInput,
+            cardColors = cardColors,
+            editorSession = editorSession,
+            chatStyleInput = chatStyleInput,
         bubbleShowAvatarInput = bubbleShowAvatarInput,
         bubbleWideLayoutEnabledInput = bubbleWideLayoutEnabledInput,
         cursorUserBubbleFollowThemeInput = cursorUserBubbleFollowThemeInput,
@@ -592,12 +590,11 @@ internal fun ThemeSettingsChatTab(
         bubbleAiSystemFontNameInput = bubbleAiSystemFontNameInput,
         bubbleAiCustomFontPathInput = bubbleAiCustomFontPathInput,
         onPickBubbleAiFont = bubbleFontPicker.onPickBubbleAiFont,
-        previewUserAvatarUri = userAvatarUriInput ?: globalUserAvatarUriInput,
+        previewUserAvatarUri = userAvatarUriInput ?: globalUserAvatarUri,
         previewAiAvatarUri = aiAvatarUriInput,
-        onShowColorPicker = {
-            currentColorPickerMode = it
-            showColorPicker = true
-        },
+        avatarShapeInput = avatarShapeInput,
+        avatarCornerRadiusInput = avatarCornerRadiusInput,
+        onShowColorPicker = { target -> colorPickerTarget = target },
         bubbleUserUseImageInput = bubbleUserUseImageInput,
         bubbleAiUseImageInput = bubbleAiUseImageInput,
         bubbleUserImageUriInput = bubbleUserImageUriInput,
@@ -630,73 +627,42 @@ internal fun ThemeSettingsChatTab(
         bubbleUserContentPaddingLeftInput = bubbleUserContentPaddingLeftInput,
         bubbleUserContentPaddingRightInput = bubbleUserContentPaddingRightInput,
         bubbleAiContentPaddingLeftInput = bubbleAiContentPaddingLeftInput,
-        bubbleAiContentPaddingRightInput = bubbleAiContentPaddingRightInput,
-        showInputStyleControls = false,
+            bubbleAiContentPaddingRightInput = bubbleAiContentPaddingRightInput,
     )
 
     ThemeSettingsAvatarSection(
-        cardColors = cardColors,
-        editorSession = editorSession,
-        scope = shared.scope,
-        displayPreferencesManager = displayPreferencesManager,
-        userAvatarUriInput = userAvatarUriInput,
-        globalUserAvatarUriInput = globalUserAvatarUriInput,
-        onGlobalUserAvatarUriInputChange = { globalUserAvatarUriInput = it },
-        globalUserNameInput = globalUserNameInput,
-        onGlobalUserNameInputChange = { globalUserNameInput = it },
-        avatarShapeInput = avatarShapeInput,
-        avatarCornerRadiusInput = avatarCornerRadiusInput,
-        avatarImagePicker = runtime.avatarImagePicker,
-        onAvatarPickerModeChange = runtime.onAvatarPickerModeChange,
+            cardColors = cardColors,
+            editorSession = editorSession,
+            userAvatarUriInput = userAvatarUriInput,
+            aiAvatarUriInput = aiAvatarUriInput,
+            avatarShapeInput = avatarShapeInput,
+            avatarCornerRadiusInput = avatarCornerRadiusInput,
+            avatarImagePicker = runtime.avatarImagePicker,
+            onAvatarPickerModeChange = runtime.onAvatarPickerModeChange,
     )
 
-    ThemeSettingsDisplayOptionsSection(
-        cardColors = cardColors,
-        editorSession = editorSession,
-        showThinkingProcessInput = showThinkingProcessInput,
-        showStatusTagsInput = showStatusTagsInput,
-        showModelProviderInput = showModelProviderInput,
-        showModelNameInput = showModelNameInput,
-        showRoleNameInput = showRoleNameInput,
-        showUserNameInput = showUserNameInput,
-        showMessageTokenStatsInput = showMessageTokenStatsInput,
-        showMessageTimingStatsInput = showMessageTimingStatsInput,
-        showMessageTimestampInput = showMessageTimestampInput,
-        showInputProcessingStatusInput = showInputProcessingStatusInput,
-        showChatFloatingDotsAnimationInput = showChatFloatingDotsAnimationInput,
-    )
-
-    if (showColorPicker) {
-        ColorPickerDialog(
-            showColorPicker = showColorPicker,
-            currentColorPickerMode = currentColorPickerMode,
-            primaryColorInput = MaterialTheme.colorScheme.primary.toArgb(),
-            secondaryColorInput = MaterialTheme.colorScheme.secondary.toArgb(),
-            statusBarColorInput = MaterialTheme.colorScheme.surface.toArgb(),
-            appBarColorInput = MaterialTheme.colorScheme.surface.toArgb(),
-            navigationDrawerBackgroundColorInput = MaterialTheme.colorScheme.surface.toArgb(),
-            navigationDrawerAccentColorInput = MaterialTheme.colorScheme.primary.toArgb(),
-            historyIconColorInput = Color.Gray.toArgb(),
-            pipIconColorInput = Color.Gray.toArgb(),
-            cursorUserBubbleColorInput = cursorUserBubbleColorInput,
-            bubbleUserBubbleColorInput = bubbleUserBubbleColorInput,
-            bubbleAiBubbleColorInput = bubbleAiBubbleColorInput,
-            bubbleUserTextColorInput = bubbleUserTextColorInput,
-            bubbleAiTextColorInput = bubbleAiTextColorInput,
-            recentColors = recentColors,
-            onColorSelected = { _, _, _, _, _, _, _, _, cursorUser, bubbleUser, bubbleAi, userText, aiText ->
-                setSelectedChatColor(
-                    shared = shared,
-                    currentColorPickerMode = currentColorPickerMode,
-                    cursorUserBubbleColor = cursorUser,
-                    bubbleUserBubbleColor = bubbleUser,
-                    bubbleAiBubbleColor = bubbleAi,
-                    bubbleUserTextColor = userText,
-                    bubbleAiTextColor = aiText,
-                )
-            },
-            onDismiss = { showColorPicker = false },
-        )
+    colorPickerTarget?.let { target ->
+        val initialColor =
+            when (target) {
+                NativeThemeColorTargetV1.CURSOR_USER_BUBBLE -> cursorUserBubbleColorInput
+                NativeThemeColorTargetV1.BUBBLE_USER_BUBBLE -> bubbleUserBubbleColorInput
+                NativeThemeColorTargetV1.BUBBLE_AI_BUBBLE -> bubbleAiBubbleColorInput
+                NativeThemeColorTargetV1.BUBBLE_USER_TEXT -> bubbleUserTextColorInput
+                NativeThemeColorTargetV1.BUBBLE_AI_TEXT -> bubbleAiTextColorInput
+                else -> error("Unsupported chat color target: $target")
+            }
+        key(target) {
+            ColorPickerDialog(
+                initialColor = initialColor,
+                title = target.pickerTitle.localizedText(),
+                recentColors = recentColors,
+                onColorSelected = { color ->
+                    editorSession.setInt(target.field, color)
+                    shared.scope.launch { editorSession.addRecentColor(color) }
+                },
+                onDismiss = { colorPickerTarget = null },
+            )
+        }
     }
 }
 
@@ -711,14 +677,20 @@ private fun rememberBubbleFontPicker(shared: ThemeSettingsShared): BubbleFontPic
     var targetName by remember { mutableStateOf("bubble_user_font") }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
+            val selectedTargetName = targetName
             shared.scope.launch {
+                val operationGeneration =
+                    shared.editorSession.beginAssetOperation() ?: return@launch
                 val extension = FileUtils.getFileExtension(context, uri)?.lowercase()
                 if (extension != null && (extension == "ttf" || extension == "otf" || extension == "ttc")) {
-                    val internalUri = FileUtils.copyFileToInternalStorage(context, uri, targetName)
+                    val internalUri =
+                        FileUtils.copyFileToInternalStorage(context, uri, selectedTargetName)
                     if (internalUri != null) {
-                        val isUser = targetName == "bubble_user_font"
+                        val isUser = selectedTargetName == "bubble_user_font"
                         val internalUriString = internalUri.toString()
-                        shared.editorSession.registerStagedAsset(internalUriString)
+                        if (!shared.editorSession.registerStagedAsset(internalUriString, operationGeneration)) {
+                            return@launch
+                        }
                         shared.editorSession.update { values ->
                             if (isUser) {
                                 values
@@ -768,35 +740,4 @@ private fun rememberBubbleFontPicker(shared: ThemeSettingsShared): BubbleFontPic
             launcher.launch("*/*")
         },
     )
-}
-
-private fun setSelectedChatColor(
-    shared: ThemeSettingsShared,
-    currentColorPickerMode: String,
-    cursorUserBubbleColor: Int?,
-    bubbleUserBubbleColor: Int?,
-    bubbleAiBubbleColor: Int?,
-    bubbleUserTextColor: Int?,
-    bubbleAiTextColor: Int?,
-) {
-    val selectedColor = cursorUserBubbleColor ?: bubbleUserBubbleColor ?: bubbleAiBubbleColor
-        ?: bubbleUserTextColor ?: bubbleAiTextColor
-    selectedColor?.let { shared.scope.launch { shared.editorSession.addRecentColor(it) } }
-    when (currentColorPickerMode) {
-        "cursorUserBubble" -> cursorUserBubbleColor?.let {
-            shared.editorSession.setInt("cursor_user_bubble_color", it)
-        }
-        "bubbleUserBubble" -> bubbleUserBubbleColor?.let {
-            shared.editorSession.setInt("bubble_user_bubble_color", it)
-        }
-        "bubbleAiBubble" -> bubbleAiBubbleColor?.let {
-            shared.editorSession.setInt("bubble_ai_bubble_color", it)
-        }
-        "bubbleUserText" -> bubbleUserTextColor?.let {
-            shared.editorSession.setInt("bubble_user_text_color", it)
-        }
-        "bubbleAiText" -> bubbleAiTextColor?.let {
-            shared.editorSession.setInt("bubble_ai_text_color", it)
-        }
-    }
 }

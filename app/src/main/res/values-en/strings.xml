@@ -807,7 +807,6 @@
     <string name="theme_tab_chat">Chat</string>
     <string name="theme_tab_input">Input</string>
     <string name="theme_tab_interface">Interface</string>
-    <string name="theme_system_title">System Theme</string>
     <string name="theme_follow_system">Follow System Theme</string>
     <string name="theme_follow_system_desc">When enabled, theme will automatically switch based on system dark mode</string>
     <string name="theme_select">Select Theme</string>
@@ -817,13 +816,8 @@
     <string name="theme_custom_color">Custom Colors</string>
     <string name="theme_use_custom_color">Use Custom Colors</string>
     <string name="theme_custom_color_desc">When enabled, you can customize the app\'s main colors</string>
-    <string name="theme_select_color">Select Colors</string>
     <string name="theme_primary_color">Primary</string>
     <string name="theme_secondary_color">Secondary</string>
-    <string name="theme_preview">Color Preview</string>
-    <string name="theme_primary_button">Main Button</string>
-    <string name="theme_secondary_button">Secondary Button</string>
-    <string name="theme_contrast_tip">Tip: High contrast color combinations work best</string>
     <string name="theme_save_colors">Save Color Settings</string>
     <string name="theme_title_background">Background Customization</string>
     <string name="theme_bg_media">Background Media Settings</string>
@@ -842,6 +836,7 @@
     <string name="theme_unsaved_title">Save theme changes?</string>
     <string name="theme_unsaved_message">Changes for the current theme target have not been saved.</string>
     <string name="theme_save_failed">Failed to save theme</string>
+    <string name="theme_load_failed">Failed to load theme settings</string>
     <string name="theme_save_and_continue">Save and continue</string>
     <string name="theme_discard_and_continue">Don\'t save</string>
     <string name="theme_edit_target_character">Current character theme</string>
@@ -910,7 +905,7 @@
     
     <!-- Settings Screen Sections -->
     <string name="settings_section_personalization">Personalization</string>
-    <string name="settings_user_preferences">User Profile Settings</string>
+    <string name="settings_user_preferences">Profile &amp; Identity</string>
     <string name="settings_user_preferences_desc">Manage user profiles and associated memory spaces</string>
     <string name="settings_configure_preferences">Configure Preferences</string>
     <string name="settings_model_prompts">Model Prompt Settings</string>
@@ -3532,7 +3527,7 @@
     <string name="long_press_manage">Long press to manage</string>
     
     <!-- Settings Screen Subtitles -->
-    <string name="settings_user_preferences_subtitle">Manage user profiles and associated memory spaces</string>
+    <string name="settings_user_preferences_subtitle">Manage global identity, profiles, and memory spaces</string>
     <string name="settings_language_subtitle">Interface language switching</string>
     <string name="settings_theme_subtitle">Theme and appearance customization</string>
     <string name="layout_adjustment">Layout Adjustment</string>
@@ -3935,6 +3930,10 @@
     <string name="chat_style_preview_ai_source_title">AI source 9-slice preview</string>
     <string name="chat_style_bubble_image_saved">Bubble image saved</string>
     <string name="display_options_title">Display Options</string>
+    <string name="theme_message_reasoning_title">Message reasoning</string>
+    <string name="theme_message_identity_title">Message identity</string>
+    <string name="theme_message_diagnostics_title">Message diagnostics</string>
+    <string name="theme_message_activity_title">Activity feedback</string>
     <string name="show_thinking_process">Show Thinking Process</string>
     <string name="show_thinking_process_desc">Toggle visibility of &lt;think&gt; tags in AI responses</string>
     <string name="show_status_tags">Show Status Tags</string>

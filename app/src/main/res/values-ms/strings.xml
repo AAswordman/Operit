@@ -619,7 +619,6 @@
     <string name="plugin_loading_failed">Pemuatan gagal</string>
     <string name="plugin_loading">Sedang memuat...</string>
 
-    <string name="theme_system_title">Tema Sistem</string>
     <string name="theme_follow_system">Ikut Tema Sistem</string>
     <string name="theme_follow_system_desc">Akan bertukar tema secara automatik mengikut mod gelap sistem apabila dihidupkan</string>
     <string name="theme_select">Pilih Tema</string>
@@ -629,13 +628,8 @@
     <string name="theme_custom_color">Warna Tersuai</string>
     <string name="theme_use_custom_color">Guna Warna Tersuai</string>
     <string name="theme_custom_color_desc">Boleh menyesuaikan warna utama aplikasi apabila dihidupkan</string>
-    <string name="theme_select_color">Pilih Warna</string>
     <string name="theme_primary_color">Warna Utama</string>
     <string name="theme_secondary_color">Warna Sekunder</string>
-    <string name="theme_preview">Pratonton Kesan Warna</string>
-    <string name="theme_primary_button">Butang Utama</string>
-    <string name="theme_secondary_button">Butang Sekunder</string>
-    <string name="theme_contrast_tip">Petua: Pilih gabungan warna dengan kontras tinggi untuk kesan terbaik</string>
     <string name="theme_save_colors">Simpan Tetapan Warna</string>
     <string name="theme_title_background">Penyesuaian Latar Belakang</string>
     <string name="theme_bg_media">Tetapan Media Latar Belakang</string>
@@ -911,7 +905,7 @@
     <string name="show_fps_counter">Tunjukkan kadar bingkai</string>
     <string name="fps_counter_description">Tunjukkan kadar bingkai masa nyata di sudut kanan atas skrin</string>
     <string name="settings_section_personalization">Penyuaian peribadi</string>
-    <string name="settings_user_preferences">Keutamaan pengguna</string>
+    <string name="settings_user_preferences">Profil &amp; Identiti</string>
     <string name="settings_user_preferences_desc">Konfigurasi maklumat peribadi dan keutamaan untuk membantu AI memahami anda dengan lebih baik, termasuk umur, personaliti, identiti, pekerjaan dan gaya AI yang diharapkan</string>
     <string name="settings_configure_preferences">Konfigurasi keutamaan pengguna</string>
     <string name="settings_model_prompts">Tetapan petunjuk model</string>
@@ -3210,6 +3204,10 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="chat_style_preview_ai_source_title">Pratonton Grid 9 Gambar Asal AI</string>
     <string name="chat_style_bubble_image_saved">Imej Buih Disimpan</string>
     <string name="display_options_title">Pilihan Paparan</string>
+    <string name="theme_message_reasoning_title">Penaakulan mesej</string>
+    <string name="theme_message_identity_title">Identiti mesej</string>
+    <string name="theme_message_diagnostics_title">Diagnostik mesej</string>
+    <string name="theme_message_activity_title">Maklum balas aktiviti</string>
     <string name="show_thinking_process">Tunjukkan Proses Pemikiran</string>
     <string name="show_thinking_process_desc">Togol keterlihatan tag &lt;think&gt; dalam respons AI</string>
     <string name="show_status_tags">Tunjukkan Tag Status Tugas</string>
@@ -7064,6 +7062,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="mcp_regenerate_description_empty">AI tidak menghasilkan penerangan yang boleh digunakan, sila cuba lagi kemudian</string>
 
     <string name="theme_tab_basic">Asas</string>
+    <string name="theme_load_failed">Gagal memuat tetapan tema</string>
     <string name="theme_tab_background">Latar Belakang</string>
     <string name="theme_tab_chat">Sembang</string>
     <string name="theme_tab_input">Bar Input</string>

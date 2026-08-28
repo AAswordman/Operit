@@ -645,7 +645,6 @@
     <string name="plugin_terminal_service_unavailable">Os Serviços de Terminal não estão disponíveis, inicie-os primeiro</string>
     <string name="plugin_pnpm_missing">pnpm não está instalado no terminal, instale-o primeiro</string>
     <string name="theme_title_mode">modo tema</string>
-    <string name="theme_system_title">Tema do sistema</string>
     <string name="theme_follow_system">Siga o tema do sistema</string>
     <string name="theme_follow_system_desc">Quando ativado, o tema será alterado automaticamente de acordo com o modo escuro do sistema.</string>
     <string name="theme_select">Selecione o tema</string>
@@ -655,13 +654,8 @@
     <string name="theme_custom_color">Correspondência de cores personalizada</string>
     <string name="theme_use_custom_color">Use cores personalizadas</string>
     <string name="theme_custom_color_desc">Após ligá-lo, você pode personalizar a cor principal do aplicativo.</string>
-    <string name="theme_select_color">Escolha a cor</string>
     <string name="theme_primary_color">cor principal</string>
     <string name="theme_secondary_color">cor secundária</string>
-    <string name="theme_preview">Visualização do efeito de cor</string>
-    <string name="theme_primary_button">botão principal</string>
-    <string name="theme_secondary_button">botão secundário</string>
-    <string name="theme_contrast_tip">Dica: escolha combinações de cores de alto contraste para obter melhores resultados</string>
     <string name="theme_save_colors">Salvar configurações de cores</string>
     <string name="theme_title_background">Personalização de plano de fundo</string>
     <string name="theme_bg_media">Configurações de mídia em segundo plano</string>
@@ -769,7 +763,7 @@
     <string name="show_fps_counter">Exibir taxa de quadros</string>
     <string name="fps_counter_description">Exibir taxa de quadros em tempo real no canto superior direito da tela</string>
     <string name="settings_section_personalization">personalização</string>
-    <string name="settings_user_preferences">Preferências do usuário</string>
+    <string name="settings_user_preferences">Perfil e identidade</string>
     <string name="settings_user_preferences_desc">Configure informações e preferências pessoais para permitir que a IA entenda você melhor, incluindo idade, personalidade, identidade, ocupação e estilo esperado da IA</string>
     <string name="settings_configure_preferences">Configurar preferências do usuário</string>
     <string name="settings_model_prompts">Configurações de palavra de prompt do modelo</string>
@@ -3259,6 +3253,10 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="chat_style_preview_ai_source_title">Pré-visualização da grade de nove quadrados da imagem original AI</string>
     <string name="chat_style_bubble_image_saved">Imagem de bolha salva</string>
     <string name="display_options_title">Mostrar opções</string>
+    <string name="theme_message_reasoning_title">Raciocínio da mensagem</string>
+    <string name="theme_message_identity_title">Identidade da mensagem</string>
+    <string name="theme_message_diagnostics_title">Diagnóstico da mensagem</string>
+    <string name="theme_message_activity_title">Atividade e feedback</string>
     <string name="show_thinking_process">mostrar processo de pensamento</string>
     <string name="show_thinking_process_desc">Alternar a visibilidade das tags &lt;think&gt; nas respostas de IA</string>
     <string name="show_status_tags">Mostrar rótulo de status da tarefa</string>
@@ -3413,7 +3411,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="api_name_format">Nome da API: %s</string>
     <string name="collapse">fechar</string>
     <string name="expand">Expandir</string>
-    <string name="collapsed">Coletado</string>
+    <string name="collapsed">Recolhido</string>
     <string name="expanded">Expandido</string>
     <string name="must_be_integer">Deve ser um número inteiro</string>
     <string name="value">valor</string>
@@ -6904,6 +6902,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="mcp_regenerate_description_empty">A IA não gerou uma descrição utilizável. Tente novamente mais tarde.</string>
 
     <string name="theme_tab_basic">Básico</string>
+    <string name="theme_load_failed">Falha ao carregar as configurações do tema</string>
     <string name="theme_tab_background">Fundo</string>
     <string name="theme_tab_chat">Chat</string>
     <string name="theme_tab_input">Campo de entrada</string>

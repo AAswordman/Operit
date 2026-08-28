@@ -655,7 +655,6 @@
     <string name="plugin_terminal_service_unavailable">터미널 서비스를 사용할 수 없습니다. 먼저 시작해 주세요.</string>
     <string name="plugin_pnpm_missing">pnpm이 터미널에 설치되어 있지 않습니다. 먼저 설치하십시오.</string>
     <string name="theme_title_mode">테마 모드</string>
-    <string name="theme_system_title">시스템 테마</string>
     <string name="theme_follow_system">시스템 테마 팔로우</string>
     <string name="theme_follow_system_desc">활성화되면 테마가 시스템 어두운 모드에 따라 자동으로 전환됩니다.</string>
     <string name="theme_select">테마 선택</string>
@@ -665,13 +664,8 @@
     <string name="theme_custom_color">사용자 정의 색상</string>
     <string name="theme_use_custom_color">사용자 정의 색상 사용</string>
     <string name="theme_custom_color_desc">활성화되면 앱의 기본 색상을 맞춤설정할 수 있습니다.</string>
-    <string name="theme_select_color">색상 선택</string>
     <string name="theme_primary_color">기본</string>
     <string name="theme_secondary_color">보조</string>
-    <string name="theme_preview">색상 미리보기</string>
-    <string name="theme_primary_button">기본 버튼</string>
-    <string name="theme_secondary_button">보조 버튼</string>
-    <string name="theme_contrast_tip">팁: 고대비 색상 조합이 가장 효과적입니다.</string>
     <string name="theme_save_colors">색상 설정 저장</string>
     <string name="theme_title_background">배경 사용자 정의</string>
     <string name="theme_bg_media">백그라운드 미디어 설정</string>
@@ -779,7 +773,7 @@
     <string name="show_fps_counter">FPS 카운터 표시</string>
     <string name="fps_counter_description">오른쪽 상단에 실시간 FPS 표시</string>
     <string name="settings_section_personalization">개인화</string>
-    <string name="settings_user_preferences">사용자 기본 설정</string>
+    <string name="settings_user_preferences">프로필 및 신원</string>
     <string name="settings_user_preferences_desc">나이, 성격, 정체성, 직업, 예상되는 AI 스타일 등 AI가 귀하를 더 잘 이해할 수 있도록 개인 정보 및 기본 설정을 구성합니다.</string>
     <string name="settings_configure_preferences">기본 설정 구성</string>
     <string name="settings_model_prompts">모델 프롬프트 설정</string>
@@ -3398,6 +3392,10 @@
     <string name="chat_style_preview_ai_source_title">AI 원본 9슬라이스 미리보기</string>
     <string name="chat_style_bubble_image_saved">말풍선 이미지가 저장되었습니다.</string>
     <string name="display_options_title">표시 옵션</string>
+    <string name="theme_message_reasoning_title">메시지 추론</string>
+    <string name="theme_message_identity_title">메시지 ID</string>
+    <string name="theme_message_diagnostics_title">메시지 진단</string>
+    <string name="theme_message_activity_title">활동 피드백</string>
     <string name="show_thinking_process">사고 과정 보기</string>
     <string name="show_thinking_process_desc">AI 응답에서 &lt;think&gt; 태그 표시 여부를 전환합니다.</string>
     <string name="show_status_tags">상태 태그 표시</string>
@@ -7000,6 +6998,7 @@
     <string name="market_sort_featured">추천</string>
 
     <string name="theme_tab_basic">기본</string>
+    <string name="theme_load_failed">테마 설정을 불러오지 못했습니다</string>
     <string name="theme_tab_background">배경</string>
     <string name="theme_tab_chat">채팅</string>
     <string name="theme_tab_input">입력창</string>

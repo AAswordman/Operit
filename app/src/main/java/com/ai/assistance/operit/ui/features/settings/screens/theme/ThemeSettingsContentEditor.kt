@@ -29,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +42,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,21 +61,22 @@ import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
-import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.ui.features.settings.theme.editor.state.ThemeEditorSaveMode
 import com.ai.assistance.operit.ui.main.navigation.RegisterRouteBackGuard
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
 internal data class ThemeSettingsShared(
     val context: android.content.Context,
     val editorSession: ThemeEditorSession,
-    val displayPreferencesManager: DisplayPreferencesManager,
     val scope: CoroutineScope,
 )
 
@@ -84,10 +88,27 @@ private data class ThemeEditorState(
 private sealed interface ThemeEditorPendingAction {
     data class SelectTarget(val target: ActivePrompt) : ThemeEditorPendingAction
 
-    data object ActiveTargetChanged : ThemeEditorPendingAction
-
     data object LeaveScreen : ThemeEditorPendingAction
 }
+
+private val themeEditorTargetSaver =
+    Saver<ActivePrompt, String>(
+        save = { target ->
+            when (target) {
+                is ActivePrompt.CharacterCard -> "card:${target.id}"
+                is ActivePrompt.CharacterGroup -> "group:${target.id}"
+            }
+        },
+        restore = { encodedTarget ->
+            when {
+                encodedTarget.startsWith("card:") ->
+                    ActivePrompt.CharacterCard(encodedTarget.removePrefix("card:"))
+                encodedTarget.startsWith("group:") ->
+                    ActivePrompt.CharacterGroup(encodedTarget.removePrefix("group:"))
+                else -> error("Unsupported saved theme editor target: $encodedTarget")
+            }
+        },
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @NonRestartableComposable
@@ -95,20 +116,33 @@ private sealed interface ThemeEditorPendingAction {
 internal fun ThemeSettingsContent() {
     val context = LocalContext.current
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
-    val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val scope = rememberCoroutineScope()
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
     val characterGroupCardManager = remember { CharacterGroupCardManager.getInstance(context) }
     val activePromptManager = remember { ActivePromptManager.getInstance(context) }
     val activePrompt: ActivePrompt? by activePromptManager.activePromptFlow.collectAsState(initial = null)
-    val characterCardIds by characterCardManager.characterCardListFlow.collectAsState(initial = emptyList())
-    val characterGroups by characterGroupCardManager.allCharacterGroupCardsFlow.collectAsState(
-        initial = emptyList(),
+    val characterCardIds by characterCardManager.characterCardListFlow.collectAsState(initial = null)
+    val characterGroupsState by characterGroupCardManager.allCharacterGroupCardsFlow.collectAsState(
+        initial = null,
     )
     var characterCards by remember { mutableStateOf(emptyList<CharacterCard>()) }
+    var characterCardsLoaded by remember { mutableStateOf(false) }
+    var characterCardsLoadError by remember { mutableStateOf<Throwable?>(null) }
+    var characterCardsLoadAttempt by remember { mutableStateOf(0) }
 
-    LaunchedEffect(characterCardIds) {
-        characterCards = characterCardManager.getAllCharacterCards()
+    LaunchedEffect(characterCardIds, characterCardsLoadAttempt) {
+        if (characterCardIds == null) return@LaunchedEffect
+        characterCardsLoaded = false
+        characterCardsLoadError = null
+        try {
+            characterCards = characterCardManager.getAllCharacterCards()
+            characterCardsLoaded = true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (error: Exception) {
+            characterCardsLoadError = error
+            AppLogger.e("ThemeSettings", "Failed to load theme target cards", error)
+        }
     }
 
     val initialThemeTarget = activePrompt
@@ -122,12 +156,15 @@ internal fun ThemeSettingsContent() {
     } else {
         ThemeSettingsContentEditor(
             preferencesManager = preferencesManager,
-            displayPreferencesManager = displayPreferencesManager,
             scope = scope,
             activePromptManager = activePromptManager,
             activeThemeTarget = initialThemeTarget,
             characterCards = characterCards,
-            characterGroups = characterGroups,
+            characterGroups = characterGroupsState ?: emptyList(),
+            characterCardsLoaded = characterCardsLoaded,
+            characterCardsLoadError = characterCardsLoadError,
+            characterGroupsLoaded = characterGroupsState != null,
+            onRetryCharacterCards = { characterCardsLoadAttempt += 1 },
         )
     }
 }
@@ -135,55 +172,64 @@ internal fun ThemeSettingsContent() {
 @Composable
 internal fun ThemeSettingsContentEditor(
     preferencesManager: UserPreferencesManager,
-    displayPreferencesManager: DisplayPreferencesManager,
     scope: CoroutineScope,
     activePromptManager: ActivePromptManager,
     activeThemeTarget: ActivePrompt,
     characterCards: List<CharacterCard>,
     characterGroups: List<CharacterGroupCard>,
+    characterCardsLoaded: Boolean,
+    characterCardsLoadError: Throwable?,
+    characterGroupsLoaded: Boolean,
+    onRetryCharacterCards: () -> Unit,
 ) {
     val context = LocalContext.current
     val cardColors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     )
-    var selectedThemeTab by remember { mutableStateOf(ThemeSettingsTab.BASIC) }
+    var selectedThemeTab by remember {
+        mutableStateOf(ThemeSettingsTab.COLORS_AND_MODE)
+    }
     var editorState by remember { mutableStateOf<ThemeEditorState?>(null) }
+    var selectedEditorTarget by rememberSaveable(saver = themeEditorTargetSaver) {
+        mutableStateOf(activeThemeTarget)
+    }
     var editorReloadToken by remember { mutableStateOf(0) }
     var showSaveSuccessMessage by remember { mutableStateOf(false) }
+    var editorLoadError by remember { mutableStateOf<Throwable?>(null) }
     var pendingAction by remember { mutableStateOf<ThemeEditorPendingAction?>(null) }
     var exitContinuation by remember { mutableStateOf<CancellableContinuation<Boolean>?>(null) }
     var isSaving by remember { mutableStateOf(false) }
-    var targetSwitchesInFlight by remember { mutableStateOf(0) }
     val scrollState = androidx.compose.foundation.rememberScrollState()
-
-    LaunchedEffect(activeThemeTarget, editorReloadToken) {
-        val target = activeThemeTarget
+    LaunchedEffect(selectedEditorTarget, editorReloadToken) {
+        val target = selectedEditorTarget
+        val loadToken = editorReloadToken
         val currentState = editorState
         if (currentState?.target == target) {
-            if (pendingAction == ThemeEditorPendingAction.ActiveTargetChanged) {
-                pendingAction = null
-            }
             return@LaunchedEffect
         }
-        if (currentState != null && currentState.session.hasUnsavedChanges) {
-            if (pendingAction == null || pendingAction == ThemeEditorPendingAction.ActiveTargetChanged) {
-                pendingAction = ThemeEditorPendingAction.ActiveTargetChanged
-            }
-            return@LaunchedEffect
-        }
+        editorLoadError = null
         editorState = null
-        val snapshot = when (target) {
-            is ActivePrompt.CharacterCard ->
-                preferencesManager.resolveThemePreferenceSnapshot(characterCardId = target.id)
+        try {
+            val snapshot = when (target) {
+                is ActivePrompt.CharacterCard ->
+                    preferencesManager.resolveThemePreferenceSnapshot(characterCardId = target.id)
 
-            is ActivePrompt.CharacterGroup ->
-                preferencesManager.resolveThemePreferenceSnapshot(characterGroupId = target.id)
-        }
-        if (activeThemeTarget == target) {
-            editorState = ThemeEditorState(
-                target = target,
-                session = ThemeEditorSession(preferencesManager, snapshot.values),
-            )
+                is ActivePrompt.CharacterGroup ->
+                    preferencesManager.resolveThemePreferenceSnapshot(characterGroupId = target.id)
+            }
+            if (selectedEditorTarget == target && editorReloadToken == loadToken) {
+                editorState = ThemeEditorState(
+                    target = target,
+                    session = ThemeEditorSession(preferencesManager, snapshot.values),
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (selectedEditorTarget == target && editorReloadToken == loadToken) {
+                editorLoadError = e
+                AppLogger.e("ThemeSettings", "Failed to load theme editor", e)
+            }
         }
     }
     val draftForDirtyState = editorState?.session
@@ -191,13 +237,11 @@ internal fun ThemeSettingsContentEditor(
         if (draftForDirtyState == null) {
             false
         } else {
-            val dirty by draftForDirtyState.hasUnsavedChangesFlow.collectAsState(
-                initial = draftForDirtyState.hasUnsavedChanges,
-            )
-            dirty
+            val document by draftForDirtyState.document.collectAsState()
+            document.hasUnsavedChanges
         }
 
-    val editorTarget = editorState?.target ?: activeThemeTarget
+    val editorTarget = editorState?.target ?: selectedEditorTarget
     val selectedCharacterCard = (editorTarget as? ActivePrompt.CharacterCard)
         ?.let { target -> characterCards.firstOrNull { it.id == target.id } }
     val selectedCharacterGroup = (editorTarget as? ActivePrompt.CharacterGroup)
@@ -206,8 +250,8 @@ internal fun ThemeSettingsContentEditor(
     val editorValues = if (observedEditorSession == null) {
         null
     } else {
-        val values by observedEditorSession.values.collectAsState()
-        values
+        val document by observedEditorSession.document.collectAsState()
+        document.draft
     }
     val selectedAvatarUri = editorValues?.string("custom_ai_avatar_uri")
     val selectedThemeTargetName =
@@ -215,32 +259,11 @@ internal fun ThemeSettingsContentEditor(
             ?: selectedCharacterCard?.name
             ?: context.getString(R.string.theme_default_character_card)
 
-    fun activateTarget(target: ActivePrompt) {
-        if (target == activeThemeTarget && targetSwitchesInFlight == 0) {
-            if (editorState?.target != target) {
-                editorState = null
-                editorReloadToken += 1
-            }
-            return
-        }
-        targetSwitchesInFlight += 1
-        scope.launch {
-            try {
-                activePromptManager.setActivePrompt(target)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                AppLogger.e("ThemeSettings", "Failed to activate theme target", e)
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.theme_target_switch_failed),
-                    Toast.LENGTH_LONG,
-                ).show()
-                editorReloadToken += 1
-            } finally {
-                targetSwitchesInFlight = (targetSwitchesInFlight - 1).coerceAtLeast(0)
-            }
-        }
+    fun selectEditorTarget(target: ActivePrompt) {
+        if (target == selectedEditorTarget) return
+        selectedEditorTarget = target
+        showSaveSuccessMessage = false
+        editorReloadToken += 1
     }
 
     fun finishPendingAction(allowNavigation: Boolean) {
@@ -249,18 +272,7 @@ internal fun ThemeSettingsContentEditor(
         when (action) {
             is ThemeEditorPendingAction.SelectTarget -> {
                 if (allowNavigation) {
-                    activateTarget(action.target)
-                } else if (editorState?.target != activeThemeTarget) {
-                    editorReloadToken += 1
-                }
-            }
-
-            ThemeEditorPendingAction.ActiveTargetChanged -> {
-                if (allowNavigation) {
-                    editorState = null
-                    editorReloadToken += 1
-                } else {
-                    editorState?.target?.let(::activateTarget)
+                    selectEditorTarget(action.target)
                 }
             }
 
@@ -268,9 +280,6 @@ internal fun ThemeSettingsContentEditor(
                 val continuation = exitContinuation
                 exitContinuation = null
                 continuation?.resume(allowNavigation)
-                if (!allowNavigation && editorState?.target != activeThemeTarget) {
-                    editorReloadToken += 1
-                }
             }
 
             null -> Unit
@@ -282,20 +291,24 @@ internal fun ThemeSettingsContentEditor(
         val draft = state.session
         if (isSaving) return
         val target = state.target
-        val savedValues = draft.currentValues
-        val resetRequested = draft.isResetRequested
+        val saveRequest = draft.beginSave()
+        val savedValues = saveRequest.values
+        val resetRequested = saveRequest.saveMode == ThemeEditorSaveMode.RESET_VISUAL
         isSaving = true
-        draft.beginSave(savedValues)
         scope.launch {
             try {
-                if (resetRequested) {
-                    activePromptManager.resetThemeDraft(target, savedValues)
-                } else {
-                    activePromptManager.commitThemeDraft(target, savedValues)
+                withContext(NonCancellable) {
+                    if (resetRequested) {
+                        activePromptManager.resetThemeDraft(target, savedValues)
+                    } else {
+                        activePromptManager.commitThemeDraft(target, savedValues)
+                    }
+                    draft.markSaved(savedValues)
                 }
-                draft.markSaved(savedValues)
-                showSaveSuccessMessage = true
-                finishPendingAction(allowNavigation = true)
+                showSaveSuccessMessage = !draft.hasUnsavedChanges
+                if (!draft.hasUnsavedChanges) {
+                    finishPendingAction(allowNavigation = true)
+                }
             } catch (e: CancellationException) {
                 draft.cancelSave()
                 throw e
@@ -338,29 +351,65 @@ internal fun ThemeSettingsContentEditor(
             characterCards = characterCards,
             characterGroups = characterGroups,
             enabled =
-                editorState != null &&
+                (editorState != null || editorLoadError != null) &&
                     pendingAction == null &&
                     !isSaving &&
-                    targetSwitchesInFlight == 0,
+                    characterCardsLoaded &&
+                    characterGroupsLoaded,
             onTargetSelected = { target ->
                 val draft = editorState?.session
                 if (pendingAction == null && target != editorTarget) {
                     if (draft != null && hasUnsavedChanges) {
                         pendingAction = ThemeEditorPendingAction.SelectTarget(target)
                     } else {
-                        activateTarget(target)
+                        selectEditorTarget(target)
                     }
                 }
             },
         )
+        if (characterCardsLoadError != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.theme_load_failed),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onRetryCharacterCards) {
+                    Text(stringResource(R.string.refresh))
+                }
+            }
+        }
 
         val draft = editorState?.session
         if (draft == null) {
-            Box(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
+            if (editorLoadError != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(stringResource(R.string.theme_load_failed))
+                    OutlinedButton(
+                        onClick = {
+                            editorLoadError = null
+                            editorReloadToken += 1
+                        },
+                        modifier = Modifier.padding(top = 12.dp),
+                    ) {
+                        Text(stringResource(R.string.refresh))
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
             }
         } else {
             DisposableEffect(draft) {
@@ -369,7 +418,6 @@ internal fun ThemeSettingsContentEditor(
             val shared = ThemeSettingsShared(
                 context = context,
                 editorSession = draft,
-                displayPreferencesManager = displayPreferencesManager,
                 scope = scope,
             )
 
@@ -380,37 +428,44 @@ internal fun ThemeSettingsContentEditor(
                     onSelectedTabChange = { selectedThemeTab = it },
                     scrollState = scrollState,
                     modifier = Modifier.fillMaxWidth().weight(1f),
-                    basicContent = {
-                        ThemeSettingsBasicTab(
-                            shared = shared,
-                            cardColors = cardColors,
-                        )
+                     colorsAndModeContent = {
+                         ThemeSettingsBasicTab(
+                             shared = shared,
+                             section = ThemeSettingsBasicSection.COLORS_AND_MODE,
+                         )
+                     },
+                     typographyContent = {
+                         ThemeSettingsBasicTab(
+                             shared = shared,
+                             section = ThemeSettingsBasicSection.TYPOGRAPHY,
+                         )
                     },
                     backgroundContent = {
                         ThemeSettingsBackgroundTab(
                             shared = shared,
-                            cardColors = cardColors,
-                            scrollState = scrollState,
                         )
                     },
-                    chatContent = {
-                        ThemeSettingsChatTab(
-                            shared = shared,
-                            cardColors = cardColors,
-                        )
-                    },
-                    inputContent = {
+                     conversationContent = {
+                         ThemeSettingsChatTab(
+                             shared = shared,
+                             cardColors = cardColors,
+                         )
+                     },
+                     messageDetailsContent = {
+                         ThemeSettingsMessageDetailsTab(
+                             editorSession = shared.editorSession,
+                         )
+                     },
+                     composerContent = {
                         ThemeSettingsInputTab(
-                            shared = shared,
-                            cardColors = cardColors,
+                            editorSession = shared.editorSession,
                         )
                     },
-                    interfaceContent = {
-                        ThemeSettingsInterfaceTab(
-                            shared = shared,
-                            cardColors = cardColors,
-                        )
-                    },
+                      appChromeContent = {
+                         ThemeSettingsInterfaceTab(
+                             shared = shared,
+                         )
+                     },
                     footerContent = {
                         ThemeSettingsFooter(
                             showSaveSuccessMessage = showSaveSuccessMessage,
@@ -474,6 +529,9 @@ private fun ThemeSettingsTargetSelector(
     onTargetSelected: (ActivePrompt) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    LaunchedEffect(enabled) {
+        if (!enabled) expanded = false
+    }
     val targetTypeLabel = if (selectedTarget is ActivePrompt.CharacterGroup) {
         stringResource(R.string.theme_edit_target_group)
     } else {
@@ -551,7 +609,7 @@ private fun ThemeSettingsTargetSelector(
             }
         }
         DropdownMenu(
-            expanded = expanded,
+            expanded = enabled && expanded,
             onDismissRequest = { expanded = false },
         ) {
             val defaultTarget = ActivePrompt.CharacterCard(CharacterCardManager.DEFAULT_CHARACTER_CARD_ID)

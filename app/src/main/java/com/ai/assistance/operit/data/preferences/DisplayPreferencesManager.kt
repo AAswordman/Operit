@@ -267,6 +267,12 @@ class DisplayPreferencesManager private constructor(private val context: Context
         }
     }
 
+    suspend fun clearGlobalUserAvatar() {
+        context.displayPreferencesDataStore.edit { preferences ->
+            preferences.remove(KEY_GLOBAL_USER_AVATAR_URI)
+        }
+    }
+
     fun isExperimentalVirtualDisplayEnabled(): Boolean {
         return runBlocking {
             enableExperimentalVirtualDisplay.first()
@@ -321,8 +327,6 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences[KEY_ENABLE_ENTER_TO_SEND] = false
             preferences.remove(KEY_ENABLE_NAVIGATION_ANIMATION)
             preferences[KEY_START_WITH_NEW_CHAT] = false
-            preferences.remove(KEY_GLOBAL_USER_AVATAR_URI)
-            preferences.remove(KEY_GLOBAL_USER_NAME)
             preferences[KEY_ENABLE_BACKGROUND_KEEP_ALIVE] = false
             preferences[KEY_ENABLE_EXPERIMENTAL_VIRTUAL_DISPLAY] = true
             preferences[KEY_HIDE_RUNTIME_TASK_VIEW] = false

@@ -74,23 +74,23 @@ internal object NativeThemePreferenceSchemaV1 {
 
     val themeMode = string(
         "theme_mode",
-        UserPreferencesManager.THEME_MODE_LIGHT,
+        NativeThemePreferenceOptionsV1.THEME_MODE_LIGHT,
         NativeThemePreferenceSection.BASIC,
     )
     val backgroundImageUri = string("background_image_uri", section = NativeThemePreferenceSection.BACKGROUND)
     val backgroundMediaType = string(
         "background_media_type",
-        UserPreferencesManager.MEDIA_TYPE_IMAGE,
+        NativeThemePreferenceOptionsV1.MEDIA_TYPE_IMAGE,
         NativeThemePreferenceSection.BACKGROUND,
     )
     val appBarContentColorMode = string(
         "app_bar_content_color_mode",
-        UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_LIGHT,
+        NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_LIGHT,
         NativeThemePreferenceSection.INTERFACE,
     )
     val chatStyle = string(
         "chat_style",
-        UserPreferencesManager.CHAT_STYLE_CURSOR,
+        NativeThemePreferenceOptionsV1.CHAT_STYLE_CURSOR,
         NativeThemePreferenceSection.CHAT,
     )
     val customUserAvatarUri = string("custom_user_avatar_uri", section = NativeThemePreferenceSection.CHAT)
@@ -101,12 +101,12 @@ internal object NativeThemePreferenceSchemaV1 {
     )
     val avatarShape = string(
         "avatar_shape",
-        UserPreferencesManager.AVATAR_SHAPE_CIRCLE,
+        NativeThemePreferenceOptionsV1.AVATAR_SHAPE_CIRCLE,
         NativeThemePreferenceSection.CHAT,
     )
     val onColorMode = string(
         "on_color_mode",
-        UserPreferencesManager.ON_COLOR_MODE_AUTO,
+        NativeThemePreferenceOptionsV1.ON_COLOR_MODE_AUTO,
         NativeThemePreferenceSection.BASIC,
     )
     val customChatTitle = string(
@@ -116,28 +116,28 @@ internal object NativeThemePreferenceSchemaV1 {
     )
     val inputStyle = string(
         "input_style",
-        UserPreferencesManager.INPUT_STYLE_AGENT,
+        NativeThemePreferenceOptionsV1.INPUT_STYLE_AGENT,
         NativeThemePreferenceSection.INPUT,
     )
     val fontType = string(
         "font_type",
-        UserPreferencesManager.FONT_TYPE_SYSTEM,
+        NativeThemePreferenceOptionsV1.FONT_TYPE_SYSTEM,
         NativeThemePreferenceSection.BASIC,
     )
     val systemFontName = string(
         "system_font_name",
-        UserPreferencesManager.SYSTEM_FONT_DEFAULT,
+        NativeThemePreferenceOptionsV1.SYSTEM_FONT_DEFAULT,
         NativeThemePreferenceSection.BASIC,
     )
     val customFontPath = string("custom_font_path", section = NativeThemePreferenceSection.BASIC)
     val bubbleUserFontType = string(
         "bubble_user_font_type",
-        UserPreferencesManager.FONT_TYPE_SYSTEM,
+        NativeThemePreferenceOptionsV1.FONT_TYPE_SYSTEM,
         NativeThemePreferenceSection.CHAT,
     )
     val bubbleUserSystemFontName = string(
         "bubble_user_system_font_name",
-        UserPreferencesManager.SYSTEM_FONT_DEFAULT,
+        NativeThemePreferenceOptionsV1.SYSTEM_FONT_DEFAULT,
         NativeThemePreferenceSection.CHAT,
     )
     val bubbleUserCustomFontPath = string(
@@ -146,12 +146,12 @@ internal object NativeThemePreferenceSchemaV1 {
     )
     val bubbleAiFontType = string(
         "bubble_ai_font_type",
-        UserPreferencesManager.FONT_TYPE_SYSTEM,
+        NativeThemePreferenceOptionsV1.FONT_TYPE_SYSTEM,
         NativeThemePreferenceSection.CHAT,
     )
     val bubbleAiSystemFontName = string(
         "bubble_ai_system_font_name",
-        UserPreferencesManager.SYSTEM_FONT_DEFAULT,
+        NativeThemePreferenceOptionsV1.SYSTEM_FONT_DEFAULT,
         NativeThemePreferenceSection.CHAT,
     )
     val bubbleAiCustomFontPath = string(
@@ -162,7 +162,7 @@ internal object NativeThemePreferenceSchemaV1 {
     val bubbleAiImageUri = string("bubble_ai_image_uri", section = NativeThemePreferenceSection.CHAT)
     val bubbleImageRenderMode = string(
         "bubble_image_render_mode",
-        UserPreferencesManager.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE,
+        NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE,
         NativeThemePreferenceSection.CHAT,
     )
 
@@ -557,6 +557,7 @@ internal object NativeThemePreferenceSchemaV1 {
     val targetMetadataStringFields = stringFields.filter {
         it.storageRole == NativeThemePreferenceStorageRole.TARGET_METADATA
     }
+    private val targetMetadataNames = targetMetadataStringFields.mapTo(mutableSetOf()) { field -> field.name }
 
     val defaultStrings: Map<String, String> = stringFields.defaults()
     val defaultBooleans: Map<String, Boolean> = booleanFields.defaults()
@@ -578,6 +579,17 @@ internal object NativeThemePreferenceSchemaV1 {
         requireNotNull(booleanFieldsByName[name]) {
             "Unknown native theme boolean field: $name"
         }
+
+    fun haveSameVisualValues(
+        first: ThemePreferenceValues,
+        second: ThemePreferenceValues,
+    ): Boolean {
+        return first.strings.filterKeys { name -> name !in targetMetadataNames } ==
+            second.strings.filterKeys { name -> name !in targetMetadataNames } &&
+            first.booleans == second.booleans &&
+            first.ints == second.ints &&
+            first.floats == second.floats
+    }
 
     private fun string(
         name: String,
