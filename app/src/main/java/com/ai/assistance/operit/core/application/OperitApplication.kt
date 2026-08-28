@@ -5,11 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
-import android.os.LocaleList
 import android.system.Os
 import com.ai.assistance.operit.util.AppLogger
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.work.Configuration as WorkConfiguration
 import androidx.work.WorkManager
 import coil.decode.GifDecoder
@@ -544,19 +542,18 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             // 立即应用语言设置
             val locale = LocaleUtils.getLocaleForLanguageCode(languageCode, this)
             // 设置默认语言
-            Locale.setDefault(locale)
+            LocaleUtils.setDefaultLocales(locale)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 // Android 13+ 使用AppCompatDelegate API
-                val localeList = LocaleListCompat.create(locale)
+                val localeList = LocaleUtils.createCompatLocaleList(locale)
                 AppCompatDelegate.setApplicationLocales(localeList)
                 AppLogger.d(TAG, "使用AppCompatDelegate设置语言: $languageCode")
             } else {
                 // 较旧版本Android - 此处使用的部分更新将在attachBaseContext中完成更完整更新
                 val config = Configuration()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    val localeList = LocaleList(locale)
-                    LocaleList.setDefault(localeList)
+                    val localeList = LocaleUtils.createPlatformLocaleList(locale)
                     config.setLocales(localeList)
                 } else {
                     config.locale = locale
@@ -580,8 +577,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
             // 设置语言配置
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val localeList = LocaleList(locale)
-                LocaleList.setDefault(localeList)
+                LocaleUtils.setDefaultLocales(locale)
             } else {
                 Locale.setDefault(locale)
             }

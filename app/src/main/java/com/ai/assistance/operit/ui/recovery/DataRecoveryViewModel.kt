@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.backup.RawSnapshotBackupManager
 import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.util.AppLogger
@@ -44,12 +45,22 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
     fun runSql() {
         val sql = sanitizeSql(_state.value.sqlText)
         if (sql.isBlank()) {
-            _state.value = _state.value.copy(error = "SQL 为空", status = null, affectedRows = null)
+            _state.value =
+                _state.value.copy(
+                    error = context.getString(R.string.data_recovery_sql_empty),
+                    status = null,
+                    affectedRows = null
+                )
             return
         }
 
         _state.value =
-            _state.value.copy(isRunning = true, error = null, status = "正在执行 SQL", affectedRows = null)
+            _state.value.copy(
+                isRunning = true,
+                error = null,
+                status = context.getString(R.string.data_recovery_executing_sql),
+                affectedRows = null
+            )
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (isQueryStatement(sql)) {
@@ -58,7 +69,11 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                         _state.value =
                             _state.value.copy(
                                 isRunning = false,
-                                status = "查询完成：${result.rows.size} 行",
+                                status =
+                                    context.getString(
+                                        R.string.data_recovery_query_complete,
+                                        result.rows.size
+                                    ),
                                 queryResult = result,
                                 affectedRows = null
                             )
@@ -70,7 +85,7 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                         _state.value =
                             _state.value.copy(
                                 isRunning = false,
-                                status = "SQL 执行完成",
+                                status = context.getString(R.string.data_recovery_sql_complete),
                                 queryResult = null,
                                 affectedRows = affectedRows
                             )
@@ -93,7 +108,12 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
 
     fun exportRawSnapshot() {
         _state.value =
-            _state.value.copy(isRunning = true, error = null, status = "正在导出原始快照", lastSnapshotPath = null)
+            _state.value.copy(
+                isRunning = true,
+                error = null,
+                status = context.getString(R.string.data_recovery_exporting_snapshot),
+                lastSnapshotPath = null
+            )
         viewModelScope.launch {
             try {
                 val outFile =
@@ -106,7 +126,7 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                 _state.value =
                     _state.value.copy(
                         isRunning = false,
-                        status = "原始快照导出完成",
+                        status = context.getString(R.string.data_recovery_export_complete),
                         lastSnapshotPath = outFile.absolutePath
                     )
             } catch (e: Exception) {
@@ -123,7 +143,12 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
 
     fun restoreRawSnapshot(uri: Uri) {
         _state.value =
-            _state.value.copy(isRunning = true, error = null, status = "正在导入原始快照", restoreCompleted = false)
+            _state.value.copy(
+                isRunning = true,
+                error = null,
+                status = context.getString(R.string.data_recovery_importing_snapshot),
+                restoreCompleted = false
+            )
         viewModelScope.launch {
             try {
                 RawSnapshotBackupManager.restoreFromBackupUri(context, uri) { progress ->
@@ -132,7 +157,7 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                 _state.value =
                     _state.value.copy(
                         isRunning = false,
-                        status = "原始快照导入完成，请重启应用",
+                        status = context.getString(R.string.data_recovery_import_complete_restart),
                         restoreCompleted = true
                     )
             } catch (e: Exception) {
@@ -200,11 +225,15 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
             progress.percent?.let { percent -> " $percent%" }
                 ?: progress.scannedFiles?.let { count -> " $count" }
                 ?: ""
-        return "导出：${progress.stage.name}$suffix"
+        return context.getString(
+            R.string.data_recovery_export_progress,
+            progress.stage.name,
+            suffix
+        )
     }
 
     private fun restoreProgressText(progress: RawSnapshotBackupManager.RestoreProgress): String {
-        return "导入：${progress.name}"
+        return context.getString(R.string.data_recovery_import_progress, progress.name)
     }
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {

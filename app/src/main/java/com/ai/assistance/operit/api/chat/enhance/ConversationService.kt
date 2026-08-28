@@ -118,7 +118,7 @@ class ConversationService(
             recordTokenUsage: Boolean = true,
     ): String {
         try {
-            val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+            val useEnglish = !LocaleUtils.usesChineseContent(context)
             val activePromptMetadata = buildActivePromptHookMetadata(context)
             var systemPrompt = FunctionalPrompts.buildSummarySystemPrompt(previousSummary, useEnglish)
             // 注入自定义总结规则
@@ -341,7 +341,7 @@ class ConversationService(
         recordTokenUsage: Boolean = true,
     ): String {
         return try {
-            val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+            val useEnglish = !LocaleUtils.usesChineseContent(context)
             val systemPrompt = FunctionalPrompts.conversationTitleSystemPrompt(useEnglish)
             val userPrompt = FunctionalPrompts.conversationTitleUserPrompt(
                 userText = userText,
@@ -546,7 +546,7 @@ class ConversationService(
                     apiPreferences.safBookmarksFlow.first().map { it.name }
                 }.getOrElse { emptyList() }
 
-                val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+                val useEnglish = !LocaleUtils.usesChineseContent(context)
                 resolvedUseEnglish = useEnglish
                 val roleCardToolAccess = characterCardToolAccessResolver.resolve(
                     roleCardId = effectiveRoleCardId,
@@ -1086,6 +1086,7 @@ class ConversationService(
         val targetLanguage = when (currentLanguage) {
             LocaleUtils.LanguageCodes.CHINESE -> context.getString(R.string.conversation_language_chinese)
             LocaleUtils.LanguageCodes.ENGLISH -> "English"
+            LocaleUtils.LanguageCodes.JAPANESE -> "Japanese"
             LocaleUtils.LanguageCodes.KOREAN -> "Korean"
             LocaleUtils.LanguageCodes.SPANISH -> "Spanish"
             LocaleUtils.LanguageCodes.MALAY -> "Malay"
@@ -1150,7 +1151,7 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         
         val toolList = toolDescriptions.joinToString("\n") { "- $it" }
 
-        val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+        val useEnglish = !LocaleUtils.usesChineseContent(context)
         val descriptionPrompt =
             FunctionalPrompts.packageDescriptionUserPrompt(
                 pluginName = pluginName,

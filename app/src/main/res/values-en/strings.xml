@@ -1481,6 +1481,35 @@
     <string name="title_activity_crash_report">Application Error</string>
     <string name="title_activity_data_recovery">Data Recovery</string>
     <string name="shortcut_data_recovery">Data Recovery</string>
+    <string name="data_recovery_snapshot_section">Raw snapshot</string>
+    <string name="data_recovery_snapshot_description">Export packages internal files, shared_prefs, datastore, databases, and the Android/data package directory. Import replaces the current app data.</string>
+    <string name="data_recovery_export_snapshot">Export snapshot</string>
+    <string name="data_recovery_import_snapshot">Import snapshot</string>
+    <string name="data_recovery_launch_main">Launch main app</string>
+    <string name="data_recovery_file_management_section">File management</string>
+    <string name="data_recovery_file_management_description">This page does not open a file manager directly. To inspect or export internal files manually, open MT Manager, add a local storage repository, and select the Operit data repository. provider: %1$s</string>
+    <string name="data_recovery_sql_executor_section">SQL executor</string>
+    <string name="data_recovery_messages_size">messages size</string>
+    <string name="data_recovery_variants_size">variants size</string>
+    <string name="data_recovery_chats_fields">chats fields</string>
+    <string name="data_recovery_execute">Run</string>
+    <string name="data_recovery_import_dialog_title">Import raw snapshot</string>
+    <string name="data_recovery_import_dialog_message">Import replaces the current app data. Import this snapshot?</string>
+    <string name="data_recovery_import">Import</string>
+    <string name="data_recovery_idle">Recovery process is ready</string>
+    <string name="data_recovery_affected_rows">Affected rows: %1$d</string>
+    <string name="data_recovery_query_results">Query results: %1$d rows</string>
+    <string name="data_recovery_launch_failed">Unable to launch the main app</string>
+    <string name="data_recovery_sql_empty">SQL is empty</string>
+    <string name="data_recovery_executing_sql">Running SQL</string>
+    <string name="data_recovery_query_complete">Query complete: %1$d rows</string>
+    <string name="data_recovery_sql_complete">SQL execution complete</string>
+    <string name="data_recovery_exporting_snapshot">Exporting raw snapshot</string>
+    <string name="data_recovery_export_complete">Raw snapshot export complete</string>
+    <string name="data_recovery_importing_snapshot">Importing raw snapshot</string>
+    <string name="data_recovery_import_complete_restart">Raw snapshot import complete. Restart the app.</string>
+    <string name="data_recovery_export_progress">Export: %1$s%2$s</string>
+    <string name="data_recovery_import_progress">Import: %1$s</string>
 
     <!-- Crash Report Screen -->
     <string name="crash_report_header">The application has encountered an unrecoverable error and needs to restart.</string>

@@ -480,7 +480,7 @@ fun FunctionConfigCard(
                                                             context = context
                                                     )
 
-                                            val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+                                            val useEnglish = !LocaleUtils.usesChineseContent(context)
                                             val result = when (functionType) {
                                                 FunctionType.SUMMARY -> {
                                                     val enhancedService = EnhancedAIService.getInstance(context)
