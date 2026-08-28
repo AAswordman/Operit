@@ -18,7 +18,7 @@ import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.Nativ
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeEditorDefinitionV1
 import kotlinx.coroutines.launch
 
-private data class NativeThemeColorPickerRequestV1(
+private data class NativeThemeInterfaceColorPickerRequestV1(
     val definition: NativeThemeColorControlDefinitionV1,
     val initialColor: Int,
 )
@@ -32,7 +32,7 @@ internal fun ThemeSettingsInterfaceTab(
     val values = editorDocument.draft
     val recentColors by editorSession.recentColorsFlow.collectAsState(initial = emptyList())
     var colorPickerRequest by remember {
-        mutableStateOf<NativeThemeColorPickerRequestV1?>(null)
+        mutableStateOf<NativeThemeInterfaceColorPickerRequestV1?>(null)
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
@@ -45,7 +45,7 @@ internal fun ThemeSettingsInterfaceTab(
                 values = values,
                 editorSession = editorSession,
                 onColorRequested = { definition, color ->
-                    colorPickerRequest = NativeThemeColorPickerRequestV1(definition, color)
+                    colorPickerRequest = NativeThemeInterfaceColorPickerRequestV1(definition, color)
                 },
             )
         }

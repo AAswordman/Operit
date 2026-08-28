@@ -190,7 +190,7 @@ internal fun ThemeSettingsContentEditor(
         mutableStateOf(ThemeSettingsTab.COLORS_AND_MODE)
     }
     var editorState by remember { mutableStateOf<ThemeEditorState?>(null) }
-    var selectedEditorTarget by rememberSaveable(saver = themeEditorTargetSaver) {
+    var selectedEditorTarget by rememberSaveable(stateSaver = themeEditorTargetSaver) {
         mutableStateOf(activeThemeTarget)
     }
     var editorReloadToken by remember { mutableStateOf(0) }

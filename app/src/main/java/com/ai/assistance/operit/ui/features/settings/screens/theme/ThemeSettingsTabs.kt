@@ -144,7 +144,7 @@ internal fun ThemeSettingsTabbedContent(
 
             HorizontalDivider()
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
             ) {
                 footerContent()
             }

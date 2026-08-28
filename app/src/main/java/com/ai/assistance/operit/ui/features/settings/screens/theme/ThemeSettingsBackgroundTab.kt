@@ -388,7 +388,7 @@ internal fun rememberThemeSettingsBackgroundRuntime(
             context.resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val (primaryColor, statusBarColor, surfaceColor, onPrimaryColor) =
+        val (primaryColor, cropStatusBarColor, surfaceColor, onPrimaryColor) =
             try {
                 val typedValue = android.util.TypedValue()
                 context.theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
@@ -425,7 +425,7 @@ internal fun rememberThemeSettingsBackgroundRuntime(
                     toolbarTitleColor = onPrimaryColor
                     activityBackgroundColor = surfaceColor
                     backgroundColor = surfaceColor
-                    statusBarColor = statusBarColor
+                    statusBarColor = cropStatusBarColor
                     activityMenuIconColor = onPrimaryColor
                     showCropOverlay = true
                     showProgressBar = true
