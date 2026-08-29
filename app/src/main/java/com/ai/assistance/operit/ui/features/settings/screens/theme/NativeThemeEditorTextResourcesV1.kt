@@ -271,8 +271,6 @@ internal fun NativeThemeEditorTextKey.stringResourceId(): Int =
             R.string.chat_style_bubble_image_render_mode_nine_patch
         NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_RENDER_MODE_TILED ->
             R.string.chat_style_bubble_image_render_mode_tiled
-        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_ROUNDED_CORNERS ->
-            R.string.chat_style_bubble_rounded_corners
         NativeThemeEditorTextKey.CONVERSATION_BUBBLE_ROUNDED_CORNERS_DESCRIPTION ->
             R.string.chat_style_bubble_rounded_corners_desc
         NativeThemeEditorTextKey.CONVERSATION_BUBBLE_ROUNDED_CORNERS_USER ->
@@ -285,8 +283,6 @@ internal fun NativeThemeEditorTextKey.stringResourceId(): Int =
             R.string.chat_style_bubble_user_color
         NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_COLOR ->
             R.string.chat_style_bubble_ai_color
-        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_TEXT_COLORS ->
-            R.string.chat_style_bubble_text_style_title
         NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_TEXT_COLOR ->
             R.string.chat_style_bubble_user_text_color
         NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_TEXT_COLOR ->

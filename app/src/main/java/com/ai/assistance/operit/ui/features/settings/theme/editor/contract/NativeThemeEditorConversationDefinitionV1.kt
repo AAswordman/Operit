@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.settings.theme.editor.contract
 
+import com.ai.assistance.operit.data.preferences.NativeThemeBooleanField
+import com.ai.assistance.operit.data.preferences.NativeThemeFloatField
 import com.ai.assistance.operit.data.preferences.NativeThemePreferenceOptionsV1
 import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
 
@@ -468,22 +470,22 @@ internal object NativeThemeEditorConversationDefinitionV1 {
     private fun imageItems(
         prefix: String,
         title: NativeThemeEditorTextKey,
-        useImage = NativeThemePreferenceSchemaV1.bubbleUserUseImage,
+        useImage: NativeThemeBooleanField = NativeThemePreferenceSchemaV1.bubbleUserUseImage,
         imageEnabled: NativeThemeEditorPredicateV1,
         imageControls: NativeThemeEditorPredicateV1,
         glassDisabled: NativeThemeEditorPredicateV1,
         assetAction: NativeThemeAssetActionV1,
-        cropLeft = NativeThemePreferenceSchemaV1.bubbleUserImageCropLeft,
-        cropTop = NativeThemePreferenceSchemaV1.bubbleUserImageCropTop,
-        cropRight = NativeThemePreferenceSchemaV1.bubbleUserImageCropRight,
-        cropBottom = NativeThemePreferenceSchemaV1.bubbleUserImageCropBottom,
-        repeatXStart = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatStart,
-        repeatXEnd = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatEnd,
-        repeatYStart = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYStart,
-        repeatYEnd = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYEnd,
-        imageScale = NativeThemePreferenceSchemaV1.bubbleUserImageScale,
-        contentPaddingLeft = NativeThemePreferenceSchemaV1.bubbleUserContentPaddingLeft,
-        contentPaddingRight = NativeThemePreferenceSchemaV1.bubbleUserContentPaddingRight,
+        cropLeft: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageCropLeft,
+        cropTop: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageCropTop,
+        cropRight: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageCropRight,
+        cropBottom: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageCropBottom,
+        repeatXStart: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatStart,
+        repeatXEnd: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatEnd,
+        repeatYStart: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYStart,
+        repeatYEnd: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYEnd,
+        imageScale: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserImageScale,
+        contentPaddingLeft: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserContentPaddingLeft,
+        contentPaddingRight: NativeThemeFloatField = NativeThemePreferenceSchemaV1.bubbleUserContentPaddingRight,
     ): NativeThemeEditorGroupDefinitionV1 =
         NativeThemeEditorGroupDefinitionV1(
             id = NativeThemeEditorGroupId("conversation.bubble.$prefix.image"),
