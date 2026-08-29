@@ -2,7 +2,6 @@ package com.ai.assistance.operit.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ExperimentalGlanceApi
@@ -15,7 +14,6 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -28,9 +26,17 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.ui.theme.NativeThemeGlanceHost
+import com.ai.assistance.operit.ui.theme.NativeThemeGlancePaletteV1
+import kotlinx.coroutines.flow.first
 
 class ToolPkgDesktopGlanceWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val themeSnapshot =
+            ActivePromptManager.getInstance(context)
+                .activeThemePreferenceSnapshotFlow
+                .first()
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         val selection = ToolPkgDesktopWidgetHost.resolveSelection(context, appWidgetId)
         val renderData =
@@ -42,12 +48,18 @@ class ToolPkgDesktopGlanceWidget : GlanceAppWidget() {
                 )
             }
         provideContent {
-            ToolPkgDesktopWidgetContent(
+            NativeThemeGlanceHost(
                 context = context,
-                appWidgetId = appWidgetId,
-                selection = selection,
-                renderData = renderData
-            )
+                initialSnapshot = themeSnapshot,
+            ) { themePalette ->
+                ToolPkgDesktopWidgetContent(
+                    context = context,
+                    appWidgetId = appWidgetId,
+                    selection = selection,
+                    renderData = renderData,
+                    themePalette = themePalette,
+                )
+            }
         }
     }
 }
@@ -58,29 +70,9 @@ private fun ToolPkgDesktopWidgetContent(
     context: Context,
     appWidgetId: Int,
     selection: ToolPkgDesktopWidgetHost.WidgetSelection?,
-    renderData: ToolPkgDesktopWidgetRenderData?
+    renderData: ToolPkgDesktopWidgetRenderData?,
+    themePalette: NativeThemeGlancePaletteV1,
 ) {
-    val background =
-        ColorProvider(
-            day = Color(0xFFF6F4EE),
-            night = Color(0xFF1F242B)
-        )
-    val titleColor =
-        ColorProvider(
-            day = Color(0xFF1E2A35),
-            night = Color(0xFFF4F6F8)
-        )
-    val bodyColor =
-        ColorProvider(
-            day = Color(0xFF52606D),
-            night = Color(0xFFD0D7DE)
-        )
-    val accentColor =
-        ColorProvider(
-            day = Color(0xFF1E88E5),
-            night = Color(0xFF64B5F6)
-        )
-
     val clickAction =
         selection?.let {
             actionStartActivity(
@@ -96,7 +88,7 @@ private fun ToolPkgDesktopWidgetContent(
             modifier =
                 GlanceModifier
                     .fillMaxSize()
-                    .background(background)
+                    .background(themePalette.surface.toColorProvider())
                     .padding(14.dp)
                     .clickable(clickAction),
             contentAlignment = Alignment.CenterStart
@@ -106,7 +98,7 @@ private fun ToolPkgDesktopWidgetContent(
                     Text(
                         text = context.getString(R.string.toolpkg_widget_unconfigured_title),
                         style = TextStyle(
-                            color = titleColor,
+                            color = themePalette.onSurface.toColorProvider(),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -115,7 +107,7 @@ private fun ToolPkgDesktopWidgetContent(
                     Text(
                         text = context.getString(R.string.toolpkg_widget_unconfigured_subtitle),
                         style = TextStyle(
-                            color = bodyColor,
+                            color = themePalette.onSurfaceVariant.toColorProvider(),
                             fontSize = 12.sp
                         )
                     )
@@ -128,7 +120,8 @@ private fun ToolPkgDesktopWidgetContent(
             if (renderResult != null) {
                 RenderToolPkgDesktopWidgetDsl(
                     node = renderResult.tree,
-                    routeClickAction = clickAction
+                    routeClickAction = clickAction,
+                    themePalette = themePalette,
                 )
                 return@Box
             }
@@ -137,7 +130,7 @@ private fun ToolPkgDesktopWidgetContent(
                 Text(
                     text = widget.title,
                     style = TextStyle(
-                        color = titleColor,
+                        color = themePalette.onSurface.toColorProvider(),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -147,7 +140,7 @@ private fun ToolPkgDesktopWidgetContent(
                     Text(
                         text = renderData?.errorMessage.orEmpty(),
                         style = TextStyle(
-                            color = bodyColor,
+                            color = themePalette.onSurfaceVariant.toColorProvider(),
                             fontSize = 11.sp
                         )
                     )
@@ -156,7 +149,7 @@ private fun ToolPkgDesktopWidgetContent(
                     Text(
                         text = widget.subtitle,
                         style = TextStyle(
-                            color = bodyColor,
+                            color = themePalette.onSurfaceVariant.toColorProvider(),
                             fontSize = 12.sp
                         )
                     )
@@ -165,10 +158,10 @@ private fun ToolPkgDesktopWidgetContent(
                 Text(
                     text = context.getString(R.string.toolpkg_widget_open_label),
                     style = TextStyle(
-                        color = accentColor,
+                        color = themePalette.primary.toColorProvider(),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
-                    )
+                    ),
                 )
             }
         }

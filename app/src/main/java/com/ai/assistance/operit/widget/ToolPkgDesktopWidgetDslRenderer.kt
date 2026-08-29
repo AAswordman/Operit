@@ -29,6 +29,8 @@ import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
 import com.ai.assistance.operit.ui.common.composedsl.normalizeToken
+import com.ai.assistance.operit.ui.theme.NativeThemeGlanceColor
+import com.ai.assistance.operit.ui.theme.NativeThemeGlancePaletteV1
 import com.ai.assistance.operit.util.AppLogger
 
 private const val WIDGET_DSL_TAG = "ToolPkgDesktopWidgetDsl"
@@ -148,12 +150,14 @@ internal fun loadToolPkgDesktopWidgetRenderData(
 @Composable
 internal fun RenderToolPkgDesktopWidgetDsl(
     node: ToolPkgComposeDslNode,
-    routeClickAction: Action
+    routeClickAction: Action,
+    themePalette: NativeThemeGlancePaletteV1,
 ) {
     renderToolPkgDesktopWidgetDslNode(
         node = node,
         routeClickAction = routeClickAction,
-        defaultClickable = true
+        themePalette = themePalette,
+        defaultClickable = true,
     )
 }
 
@@ -161,37 +165,38 @@ internal fun RenderToolPkgDesktopWidgetDsl(
 private fun renderToolPkgDesktopWidgetDslNode(
     node: ToolPkgComposeDslNode,
     routeClickAction: Action,
-    defaultClickable: Boolean = false
+    themePalette: NativeThemeGlancePaletteV1,
+    defaultClickable: Boolean = false,
 ) {
     when (normalizeToken(node.type)) {
         "column", "lazycolumn", "scaffold", "surface" -> {
             Column(
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable)
+                modifier = widgetModifierFromNode(node, routeClickAction, themePalette, defaultClickable),
             ) {
-                renderToolPkgDesktopWidgetDslChildren(node, routeClickAction)
+                renderToolPkgDesktopWidgetDslChildren(node, routeClickAction, themePalette)
             }
         }
         "row" -> {
             Row(
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable)
+                modifier = widgetModifierFromNode(node, routeClickAction, themePalette, defaultClickable),
             ) {
-                renderToolPkgDesktopWidgetDslChildren(node, routeClickAction)
+                renderToolPkgDesktopWidgetDslChildren(node, routeClickAction, themePalette)
             }
         }
         "box", "card", "elevatedcard", "outlinedcard" -> {
             Box(
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable)
+                modifier = widgetModifierFromNode(node, routeClickAction, themePalette, defaultClickable),
             ) {
-                renderToolPkgDesktopWidgetDslChildren(node, routeClickAction)
+                renderToolPkgDesktopWidgetDslChildren(node, routeClickAction, themePalette)
             }
         }
         "text" -> {
             Text(
                 text = extractNodeText(node),
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable),
+                modifier = widgetModifierFromNode(node, routeClickAction, themePalette, defaultClickable),
                 style =
                     TextStyle(
-                        color = parseTextColor(node.props["color"]),
+                        color = parseTextColor(node.props["color"], themePalette),
                         fontSize = (node.props["fontSize"] as? Number)?.toFloat()?.sp,
                         fontWeight = parseFontWeight(node.props["fontWeight"]?.toString())
                     )
@@ -200,15 +205,20 @@ private fun renderToolPkgDesktopWidgetDslNode(
         "button", "textbutton", "outlinedbutton", "filledtonalbutton", "elevatedbutton" -> {
             Box(
                 modifier =
-                    widgetModifierFromNode(node, routeClickAction, clickable = true)
-                        .background(ColorProvider(Color(0xFF1E88E5)))
+                    widgetModifierFromNode(
+                        node = node,
+                        routeClickAction = routeClickAction,
+                        themePalette = themePalette,
+                        clickable = true,
+                    )
+                        .background(themePalette.primary.toColorProvider())
                         .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = extractNodeText(node),
                     style =
                         TextStyle(
-                            color = ColorProvider(Color.White),
+                            color = themePalette.onPrimary.toColorProvider(),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -217,7 +227,13 @@ private fun renderToolPkgDesktopWidgetDslNode(
         }
         "spacer" -> {
             Spacer(
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable = false)
+                modifier =
+                    widgetModifierFromNode(
+                        node = node,
+                        routeClickAction = routeClickAction,
+                        themePalette = themePalette,
+                        defaultClickable = false,
+                    ),
             )
         }
         "linearprogressindicator" -> {
@@ -227,10 +243,10 @@ private fun renderToolPkgDesktopWidgetDslNode(
                     ?: 0f
             Text(
                 text = "${(progress * 100).toInt()}%",
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable),
+                modifier = widgetModifierFromNode(node, routeClickAction, themePalette, defaultClickable),
                 style =
                     TextStyle(
-                        color = ColorProvider(Color(0xFF1E88E5)),
+                        color = themePalette.primary.toColorProvider(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -239,10 +255,10 @@ private fun renderToolPkgDesktopWidgetDslNode(
         "circularprogressindicator" -> {
             Text(
                 text = "Loading",
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable),
+                modifier = widgetModifierFromNode(node, routeClickAction, themePalette, defaultClickable),
                 style =
                     TextStyle(
-                        color = parseTextColor(node.props["color"]),
+                        color = parseTextColor(node.props["color"], themePalette),
                         fontSize = 12.sp
                     )
             )
@@ -253,12 +269,13 @@ private fun renderToolPkgDesktopWidgetDslNode(
                 return
             }
             Column(
-                modifier = widgetModifierFromNode(node, routeClickAction, defaultClickable)
+                modifier = widgetModifierFromNode(node, routeClickAction, themePalette, defaultClickable),
             ) {
                 flattenedChildren.forEach { child ->
                     renderToolPkgDesktopWidgetDslNode(
                         node = child,
-                        routeClickAction = routeClickAction
+                        routeClickAction = routeClickAction,
+                        themePalette = themePalette,
                     )
                 }
             }
@@ -269,12 +286,14 @@ private fun renderToolPkgDesktopWidgetDslNode(
 @Composable
 private fun renderToolPkgDesktopWidgetDslChildren(
     node: ToolPkgComposeDslNode,
-    routeClickAction: Action
+    routeClickAction: Action,
+    themePalette: NativeThemeGlancePaletteV1,
 ) {
     collectWidgetChildren(node).forEach { child ->
         renderToolPkgDesktopWidgetDslNode(
             node = child,
-            routeClickAction = routeClickAction
+            routeClickAction = routeClickAction,
+            themePalette = themePalette,
         )
     }
 }
@@ -306,6 +325,7 @@ private fun extractNodeText(node: ToolPkgComposeDslNode): String {
 private fun widgetModifierFromNode(
     node: ToolPkgComposeDslNode,
     routeClickAction: Action,
+    themePalette: NativeThemeGlancePaletteV1,
     defaultClickable: Boolean = false,
     clickable: Boolean = defaultClickable
 ): GlanceModifier {
@@ -329,7 +349,10 @@ private fun widgetModifierFromNode(
     }
 
     modifier = applyWidgetPadding(modifier, props["padding"], props)
-    parseColorProvider(props["backgroundColor"] ?: props["containerColor"] ?: props["background"])
+    parseColorProvider(
+        value = props["backgroundColor"] ?: props["containerColor"] ?: props["background"],
+        themePalette = themePalette,
+    )
         ?.let { modifier = modifier.background(it) }
 
     val hasExplicitClick =
@@ -373,43 +396,48 @@ private fun hasClickableModifierOp(rawModifier: Any?): Boolean {
     }
 }
 
-private fun parseTextColor(value: Any?): ColorProvider {
-    return parseColorProvider(value) ?: ColorProvider(Color(0xFF1E2A35))
+private fun parseTextColor(
+    value: Any?,
+    themePalette: NativeThemeGlancePaletteV1,
+): ColorProvider {
+    return parseColorProvider(value, themePalette) ?: themePalette.onSurface.toColorProvider()
 }
 
-private fun parseColorProvider(value: Any?): ColorProvider? {
-    val color =
-        when (value) {
-            is Number -> Color(value.toLong().toULong())
-            is Map<*, *> -> parseColorToken(value["__colorToken"]?.toString())
-            is String -> parseColorString(value)
-            else -> null
-        } ?: return null
-    return ColorProvider(color)
-}
+private fun parseColorProvider(
+    value: Any?,
+    themePalette: NativeThemeGlancePaletteV1,
+): ColorProvider? {
+    return when (value) {
+        is Number -> ColorProvider(Color(value.toLong().toULong()))
+        is Map<*, *> ->
+            resolveToolPkgDesktopWidgetColorToken(
+                token = value["__colorToken"]?.toString().orEmpty(),
+                themePalette = themePalette,
+            )
+                ?.toColorProvider()
 
-private fun parseColorToken(token: String?): Color? {
-    return when (normalizeToken(token.orEmpty())) {
-        "primary" -> Color(0xFF1E88E5)
-        "onprimary" -> Color.White
-        "surface" -> Color(0xFFF6F4EE)
-        "onsurface" -> Color(0xFF1E2A35)
-        "onsurfacevariant" -> Color(0xFF52606D)
-        "secondary" -> Color(0xFF26A69A)
-        "tertiary" -> Color(0xFFF59E0B)
-        "error" -> Color(0xFFD32F2F)
+        is String -> parseColorString(value, themePalette)
         else -> null
     }
 }
 
-private fun parseColorString(raw: String): Color? {
+internal fun resolveToolPkgDesktopWidgetColorToken(
+    token: String,
+    themePalette: NativeThemeGlancePaletteV1,
+): NativeThemeGlanceColor? = themePalette.colorForToken(token)
+
+private fun parseColorString(
+    raw: String,
+    themePalette: NativeThemeGlancePaletteV1,
+): ColorProvider? {
     val trimmed = raw.trim()
     if (trimmed.isEmpty()) {
         return null
     }
-    parseColorToken(trimmed)?.let { return it }
+    resolveToolPkgDesktopWidgetColorToken(trimmed, themePalette)
+        ?.let { return it.toColorProvider() }
     return try {
-        Color(AndroidColor.parseColor(trimmed))
+        ColorProvider(Color(AndroidColor.parseColor(trimmed)))
     } catch (_: Exception) {
         null
     }

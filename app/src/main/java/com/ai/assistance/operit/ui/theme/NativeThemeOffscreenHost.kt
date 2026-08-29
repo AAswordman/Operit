@@ -31,6 +31,20 @@ internal fun resolveNativeThemeForDetachedComposeHost(
     hostSurface: NativeThemeHostSurface,
     systemDarkTheme: Boolean,
 ): ResolvedNativeThemeV1 {
+    val (lightColorScheme, darkColorScheme) = resolveNativeThemeDetachedBaseColorSchemes(context)
+
+    return resolveNativeThemeForDetachedComposeHost(
+        snapshot = snapshot,
+        hostSurface = hostSurface,
+        systemDarkTheme = systemDarkTheme,
+        lightColorScheme = lightColorScheme,
+        darkColorScheme = darkColorScheme,
+    )
+}
+
+internal fun resolveNativeThemeDetachedBaseColorSchemes(
+    context: Context,
+): Pair<ColorScheme, ColorScheme> {
     val lightColorScheme =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             dynamicLightColorScheme(context)
@@ -43,14 +57,7 @@ internal fun resolveNativeThemeForDetachedComposeHost(
         } else {
             NativeThemeV1DarkColorScheme
         }
-
-    return resolveNativeThemeForDetachedComposeHost(
-        snapshot = snapshot,
-        hostSurface = hostSurface,
-        systemDarkTheme = systemDarkTheme,
-        lightColorScheme = lightColorScheme,
-        darkColorScheme = darkColorScheme,
-    )
+    return lightColorScheme to darkColorScheme
 }
 
 internal fun resolveNativeThemeOffscreen(

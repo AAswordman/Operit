@@ -41,6 +41,6 @@
 - [DONE] 背景播放器、图片和视频资源失败事件由 `NativeThemeBackgroundMediaHostAdapter` 承载
 - [DONE] 消息图片离屏导出和编辑器预览通过 `NativeThemeOffscreenHost` 解析并注入 `OFFSCREEN` 主题
 - [DONE] 浮窗聊天、状态指示器、WebSession 浮动外壳和权限请求 Overlay 通过显式 `FLOATING` 或 `OVERLAY` 宿主解析主题
-- [PENDING] 接入 Glance 宿主
+- [DONE] 语音助手与 ToolPkg Glance Widget 通过受限静态颜色投影消费活动主题，并在主题与 Android 12+ 动态色变化时刷新
 
 本阶段当前改动已经过两次独立静态审查，确认主界面行为与上游一致。独立 WebChat 及其颜色解析器未修改。

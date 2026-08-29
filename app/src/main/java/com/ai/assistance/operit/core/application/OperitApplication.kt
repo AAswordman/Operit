@@ -1,10 +1,13 @@
 package com.ai.assistance.operit.core.application
 
 import android.app.Application
+import android.app.WallpaperManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.LocaleList
 import android.system.Os
 import com.ai.assistance.operit.util.AppLogger
@@ -38,6 +41,7 @@ import com.ai.assistance.operit.data.backup.RoomDatabaseBackupPreferences
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupScheduler
 import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.data.preferences.initAndroidPermissionPreferences
@@ -59,6 +63,8 @@ import com.ai.assistance.operit.util.TextSegmenter
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.core.tools.agent.ShowerController
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
+import com.ai.assistance.operit.ui.theme.NativeThemeGlanceDynamicColorTracker
+import com.ai.assistance.operit.widget.NativeThemeGlanceWidgetHost
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.ai.assistance.operit.core.tools.system.shower.OperitShowerShellRunner
 import com.ai.assistance.showerclient.ShowerEnvironment
@@ -139,6 +145,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         }
 
         globalImageLoader = ImageLoader.Builder(this).build()
+        registerNativeThemeGlanceDynamicColorObserver()
     }
 
     fun initializeMainApplication() {
@@ -178,6 +185,19 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         initUserPreferencesManager(applicationContext, defaultProfileName)
         AppLogger.d(TAG, "【启动计时】用户偏好管理器初始化完成 - ${System.currentTimeMillis() - startTime}ms")
 
+        applicationScope.launch {
+            NativeThemeGlanceWidgetHost.refreshForThemeChanges(
+                themeSnapshots =
+                    ActivePromptManager.getInstance(applicationContext)
+                        .activeThemePreferenceSnapshotFlow,
+            ) {
+                try {
+                    NativeThemeGlanceWidgetHost.refreshAll(applicationContext)
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "Failed to refresh Glance widgets for active theme", e)
+                }
+            }
+        }
         // Run the legacy token import during startup so upgrades retain statistics
         // even when the user opens another screen before visiting token stats.
         applicationScope.launch {
@@ -412,6 +432,29 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         get() = WorkConfiguration.Builder()
             .setMinimumLoggingLevel(if (BuildConfig.DEBUG) AppLogger.DEBUG else AppLogger.INFO)
             .build()
+
+    private fun registerNativeThemeGlanceDynamicColorObserver() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            registerNativeThemeGlanceDynamicColorObserverOnAndroid12()
+        }
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private fun registerNativeThemeGlanceDynamicColorObserverOnAndroid12() {
+        val wallpaperManager = getSystemService(WallpaperManager::class.java)
+        val listener =
+            WallpaperManager.OnColorsChangedListener { _, _ ->
+                NativeThemeGlanceDynamicColorTracker.markChanged()
+                applicationScope.launch {
+                    try {
+                        NativeThemeGlanceWidgetHost.refreshAll(applicationContext)
+                    } catch (e: Exception) {
+                        AppLogger.e(TAG, "Failed to refresh Glance widgets for dynamic colors", e)
+                    }
+                }
+            }
+        wallpaperManager.addOnColorsChangedListener(listener, Handler(Looper.getMainLooper()))
+    }
 
     private fun ensureWorkManagerInitialized() {
         try {

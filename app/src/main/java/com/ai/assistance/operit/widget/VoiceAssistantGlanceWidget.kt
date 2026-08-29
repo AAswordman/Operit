@@ -4,9 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -16,7 +16,6 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -27,10 +26,13 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.floating.FloatingMode
+import com.ai.assistance.operit.ui.theme.NativeThemeGlanceHost
+import com.ai.assistance.operit.ui.theme.NativeThemeGlancePaletteV1
+import kotlinx.coroutines.flow.first
 
 /**
  * Voice Assistant Widget using Glance (Jetpack Compose for Widgets)
@@ -44,25 +46,34 @@ import com.ai.assistance.operit.ui.floating.FloatingMode
 class VoiceAssistantGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val themeSnapshot =
+            ActivePromptManager.getInstance(context)
+                .activeThemePreferenceSnapshotFlow
+                .first()
         provideContent {
-            VoiceAssistantWidgetContent(context)
+            NativeThemeGlanceHost(
+                context = context,
+                initialSnapshot = themeSnapshot,
+            ) { themePalette ->
+                VoiceAssistantWidgetContent(
+                    context = context,
+                    themePalette = themePalette,
+                )
+            }
         }
     }
 }
 
 @Composable
-fun VoiceAssistantWidgetContent(context: Context) {
+internal fun VoiceAssistantWidgetContent(
+    context: Context,
+    themePalette: NativeThemeGlancePaletteV1,
+) {
     GlanceTheme {
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(
-                    // 使用半透明背景，适配深色/浅色主题
-                    ColorProvider(
-                        day = Color(0xCC2196F3), // 蓝色，70% 不透明度
-                        night = Color(0xCC1976D2)  // 深蓝色，70% 不透明度
-                    )
-                )
+                .background(themePalette.primary.withAlpha(0.8f).toColorProvider())
                 .padding(16.dp)
                 .clickable {
                     // 直接启动 FloatingChatService，不需要经过 MainActivity
@@ -91,7 +102,8 @@ fun VoiceAssistantWidgetContent(context: Context) {
                 Image(
                     provider = ImageProvider(R.drawable.ic_microphone),
                     contentDescription = context.getString(R.string.voice_assistant_widget_title),
-                    modifier = GlanceModifier.size(48.dp)
+                    modifier = GlanceModifier.size(48.dp),
+                    colorFilter = ColorFilter.tint(themePalette.onPrimary.toColorProvider()),
                 )
 
                 Spacer(modifier = GlanceModifier.height(12.dp))
@@ -101,7 +113,7 @@ fun VoiceAssistantWidgetContent(context: Context) {
                     text = "Operit",
                     style = TextStyle(
                         fontSize = 16.sp,
-                        color = ColorProvider(Color.White)
+                        color = themePalette.onPrimary.toColorProvider(),
                     )
                 )
 
@@ -112,11 +124,10 @@ fun VoiceAssistantWidgetContent(context: Context) {
                     text = context.getString(R.string.voice_assistant_widget_title),
                     style = TextStyle(
                         fontSize = 12.sp,
-                        color = ColorProvider(Color.White.copy(alpha = 0.9f))
+                        color = themePalette.onPrimary.withAlpha(0.9f).toColorProvider(),
                     )
                 )
             }
         }
     }
 }
-
