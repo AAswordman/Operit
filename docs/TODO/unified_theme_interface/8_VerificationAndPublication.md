@@ -131,3 +131,15 @@
 - SHA-256：`88b591bb46411feff32659dda0e645f60bdf23686c4917b89784ccf4f37423a2`
 - release 汇编验证了生产 Kotlin 源集和移除的浮窗主题传输引用；本动作不执行单元测试或 Android Compose 测试。
 - 设备级验证仍需覆盖浮窗权限、模式、IME、活动主题切换、动态色、自定义字体、权限决策和 WebSession 最小化状态。
+
+### 2026-08-30：GLANCE Widget 宿主 release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`f9bfeda1`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-f9bfeda1.apk`
+- 产物大小：`403248799` 字节
+- SHA-256：`05961dab8dd39a657ab1b77754055943a67a055d32e104bb07023f96a1a66f3e`
+- release 汇编验证了 GLANCE `ColorProvider`、`ColorFilter`、Widget 主题流、动态色监听、ToolPkg 颜色 token 和生产 Manifest 源集；本动作不执行 JVM 或 Android Compose 测试。
+- 设备级验证仍需覆盖语音 Widget 与 ToolPkg Widget 的活动角色/群组切换、固定主题模式、Android 12+ 壁纸替换、应用未预先打开的 Widget 冷启动、ToolPkg 配置和运行时刷新，以及所有 DSL 语义颜色 token。
