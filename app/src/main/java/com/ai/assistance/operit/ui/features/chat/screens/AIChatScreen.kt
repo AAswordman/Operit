@@ -136,13 +136,9 @@ fun AIChatScreen(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val colorScheme = MaterialTheme.colorScheme
     val isCurrentScreen = LocalIsCurrentScreen.current
 // Correctly initialize ViewModel using the viewModel() composable function
 val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(context.applicationContext) }
-
-    // 设置权限系统的颜色方案
-    LaunchedEffect(colorScheme) { actualViewModel.setPermissionSystemColorScheme(colorScheme) }
 
     // Monitor shared files from external apps
     val sharedFiles by SharedFileHandler.sharedFiles.collectAsState()

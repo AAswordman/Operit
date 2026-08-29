@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.theme
 
 import android.content.Context
 import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -15,6 +16,19 @@ import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
 internal fun resolveNativeThemeOffscreen(
     context: Context,
     snapshot: ThemePreferenceSnapshot,
+    systemDarkTheme: Boolean,
+): ResolvedNativeThemeV1 =
+    resolveNativeThemeForDetachedComposeHost(
+        context = context,
+        snapshot = snapshot,
+        hostSurface = NativeThemeHostSurface.OFFSCREEN,
+        systemDarkTheme = systemDarkTheme,
+    )
+
+internal fun resolveNativeThemeForDetachedComposeHost(
+    context: Context,
+    snapshot: ThemePreferenceSnapshot,
+    hostSurface: NativeThemeHostSurface,
     systemDarkTheme: Boolean,
 ): ResolvedNativeThemeV1 {
     val lightColorScheme =
@@ -30,8 +44,9 @@ internal fun resolveNativeThemeOffscreen(
             NativeThemeV1DarkColorScheme
         }
 
-    return resolveNativeThemeOffscreen(
+    return resolveNativeThemeForDetachedComposeHost(
         snapshot = snapshot,
+        hostSurface = hostSurface,
         systemDarkTheme = systemDarkTheme,
         lightColorScheme = lightColorScheme,
         darkColorScheme = darkColorScheme,
@@ -44,11 +59,26 @@ internal fun resolveNativeThemeOffscreen(
     lightColorScheme: ColorScheme,
     darkColorScheme: ColorScheme,
 ): ResolvedNativeThemeV1 =
+    resolveNativeThemeForDetachedComposeHost(
+        snapshot = snapshot,
+        hostSurface = NativeThemeHostSurface.OFFSCREEN,
+        systemDarkTheme = systemDarkTheme,
+        lightColorScheme = lightColorScheme,
+        darkColorScheme = darkColorScheme,
+    )
+
+internal fun resolveNativeThemeForDetachedComposeHost(
+    snapshot: ThemePreferenceSnapshot,
+    hostSurface: NativeThemeHostSurface,
+    systemDarkTheme: Boolean,
+    lightColorScheme: ColorScheme,
+    darkColorScheme: ColorScheme,
+): ResolvedNativeThemeV1 =
     resolveNativeThemeV1(
         snapshot = snapshot,
         environment =
             NativeThemeEnvironment(
-                hostSurface = NativeThemeHostSurface.OFFSCREEN,
+                hostSurface = hostSurface,
                 systemDarkTheme = systemDarkTheme,
             ),
         baseColorScheme = { darkTheme -> if (darkTheme) darkColorScheme else lightColorScheme },
@@ -56,6 +86,55 @@ internal fun resolveNativeThemeOffscreen(
 
 @Composable
 internal fun NativeThemeOffscreenHost(
+    snapshot: ThemePreferenceSnapshot,
+    resolvedTheme: ResolvedNativeThemeV1,
+    content: @Composable () -> Unit,
+) = NativeThemeResolvedComposeHost(
+    snapshot = snapshot,
+    resolvedTheme = resolvedTheme,
+    content = content,
+)
+
+@Composable
+internal fun NativeThemeFloatingHost(content: @Composable () -> Unit) {
+    NativeThemeActiveDetachedComposeHost(
+        hostSurface = NativeThemeHostSurface.FLOATING,
+        content = content,
+    )
+}
+
+@Composable
+internal fun NativeThemeOverlayHost(content: @Composable () -> Unit) {
+    NativeThemeActiveDetachedComposeHost(
+        hostSurface = NativeThemeHostSurface.OVERLAY,
+        content = content,
+    )
+}
+
+@Composable
+private fun NativeThemeActiveDetachedComposeHost(
+    hostSurface: NativeThemeHostSurface,
+    content: @Composable () -> Unit,
+) {
+    val context = LocalContext.current
+    val snapshot = rememberActiveThemePreferenceSnapshot()
+    val resolvedTheme =
+        resolveNativeThemeForDetachedComposeHost(
+            context = context,
+            snapshot = snapshot,
+            hostSurface = hostSurface,
+            systemDarkTheme = isSystemInDarkTheme(),
+        )
+
+    NativeThemeResolvedComposeHost(
+        snapshot = snapshot,
+        resolvedTheme = resolvedTheme,
+        content = content,
+    )
+}
+
+@Composable
+private fun NativeThemeResolvedComposeHost(
     snapshot: ThemePreferenceSnapshot,
     resolvedTheme: ResolvedNativeThemeV1,
     content: @Composable () -> Unit,

@@ -39,8 +39,8 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.ui.WebSessionUserscriptUiStateStore
 import com.ai.assistance.operit.ui.features.websession.browser.WebSessionBrowserScreen
-import com.ai.assistance.operit.ui.features.websession.browser.WebSessionFloatingTheme
 import com.ai.assistance.operit.ui.features.websession.browser.WebSessionMinimizedIndicator
+import com.ai.assistance.operit.ui.theme.NativeThemeFloatingHost
 import com.ai.assistance.operit.util.AppLogger
 import kotlin.math.roundToInt
 import org.json.JSONTokener
@@ -138,7 +138,7 @@ internal class WebSessionBrowserHost(
                     val history by store.historyFlow.collectAsState(initial = emptyList())
                     val userscriptUiState by userscriptStore.state.collectAsState()
 
-                    WebSessionFloatingTheme {
+                    NativeThemeFloatingHost {
                         WebSessionBrowserScreen(
                             hostState = hostState,
                             bookmarks = bookmarks,
@@ -616,7 +616,7 @@ internal class WebSessionBrowserHost(
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
                 installViewTreeOwners(this, lifecycleOwner)
                 setContent {
-                    WebSessionFloatingTheme {
+                    NativeThemeFloatingHost {
                         WebSessionMinimizedIndicator(
                             contentDescription =
                                 appContext.getString(R.string.web_session_accessibility_minimized_indicator),

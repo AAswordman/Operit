@@ -195,6 +195,88 @@ class NativeThemeRuntimeTest {
         assertEquals(darkScheme, resolved.colorScheme)
     }
 
+    @Test
+    fun floatingResolutionUsesTheActiveSnapshotVisualFields() {
+        val primary = Color(0xFF406020)
+        val values =
+            ThemePreferenceValues.defaultVisual()
+                .withBoolean(NativeThemePreferenceSchemaV1.useSystemTheme, false)
+                .withString(
+                    NativeThemePreferenceSchemaV1.themeMode,
+                    UserPreferencesManager.THEME_MODE_DARK,
+                )
+                .withBoolean(NativeThemePreferenceSchemaV1.useCustomColors, true)
+                .withInt(NativeThemePreferenceSchemaV1.customPrimaryColor, primary.toArgb())
+                .withBoolean(NativeThemePreferenceSchemaV1.useBackgroundImage, true)
+                .withString(
+                    NativeThemePreferenceSchemaV1.backgroundImageUri,
+                    "file:///theme/floating-background.png",
+                )
+                .withBoolean(NativeThemePreferenceSchemaV1.useCustomFont, true)
+                .withString(NativeThemePreferenceSchemaV1.fontType, UserPreferencesManager.FONT_TYPE_FILE)
+                .withString(NativeThemePreferenceSchemaV1.customFontPath, "/theme/floating-font.ttf")
+                .withFloat(NativeThemePreferenceSchemaV1.fontScale, 1.15f)
+        val resolved =
+            resolveNativeThemeForDetachedComposeHost(
+                snapshot = testSnapshot(values),
+                hostSurface = NativeThemeHostSurface.FLOATING,
+                systemDarkTheme = false,
+                lightColorScheme = lightColorScheme(),
+                darkColorScheme = darkColorScheme(),
+            )
+
+        assertEquals(NativeThemeHostSurface.FLOATING, resolved.environment.hostSurface)
+        assertTrue(resolved.darkTheme)
+        assertEquals(lighten(primary, 0.2f), resolved.colorScheme.primary)
+        assertTrue(resolved.background.enabled)
+        assertEquals("file:///theme/floating-background.png", resolved.background.uri)
+        assertTrue(resolved.typography.useCustomFont)
+        assertEquals("/theme/floating-font.ttf", resolved.typography.customFontPath)
+        assertEquals(1.15f, resolved.typography.fontScale)
+    }
+
+    @Test
+    fun overlayResolutionUsesTheInjectedLightBasePalette() {
+        val lightScheme = lightColorScheme(primary = Color.Red)
+        val darkScheme = darkColorScheme(primary = Color.Blue)
+        val primary = Color(0xFF206040)
+        val values =
+            ThemePreferenceValues.defaultVisual()
+                .withBoolean(NativeThemePreferenceSchemaV1.useSystemTheme, false)
+                .withString(
+                    NativeThemePreferenceSchemaV1.themeMode,
+                    UserPreferencesManager.THEME_MODE_LIGHT,
+                )
+                .withBoolean(NativeThemePreferenceSchemaV1.useCustomColors, true)
+                .withInt(NativeThemePreferenceSchemaV1.customPrimaryColor, primary.toArgb())
+                .withBoolean(NativeThemePreferenceSchemaV1.useBackgroundImage, true)
+                .withString(
+                    NativeThemePreferenceSchemaV1.backgroundImageUri,
+                    "file:///theme/overlay-background.png",
+                )
+                .withBoolean(NativeThemePreferenceSchemaV1.useCustomFont, true)
+                .withString(NativeThemePreferenceSchemaV1.fontType, UserPreferencesManager.FONT_TYPE_FILE)
+                .withString(NativeThemePreferenceSchemaV1.customFontPath, "/theme/overlay-font.ttf")
+                .withFloat(NativeThemePreferenceSchemaV1.fontScale, 1.1f)
+        val resolved =
+            resolveNativeThemeForDetachedComposeHost(
+                snapshot = testSnapshot(values),
+                hostSurface = NativeThemeHostSurface.OVERLAY,
+                systemDarkTheme = true,
+                lightColorScheme = lightScheme,
+                darkColorScheme = darkScheme,
+            )
+
+        assertEquals(NativeThemeHostSurface.OVERLAY, resolved.environment.hostSurface)
+        assertFalse(resolved.darkTheme)
+        assertEquals(primary, resolved.colorScheme.primary)
+        assertTrue(resolved.background.enabled)
+        assertEquals("file:///theme/overlay-background.png", resolved.background.uri)
+        assertTrue(resolved.typography.useCustomFont)
+        assertEquals("/theme/overlay-font.ttf", resolved.typography.customFontPath)
+        assertEquals(1.1f, resolved.typography.fontScale)
+    }
+
     private fun resolve(
         values: ThemePreferenceValues = ThemePreferenceValues.defaultVisual(),
         systemDarkTheme: Boolean = false,
@@ -203,17 +285,20 @@ class NativeThemeRuntimeTest {
     ): ResolvedNativeThemeV1 =
         resolveNativeThemeV1(
             snapshot =
-                ThemePreferenceSnapshot(
-                    source = "character_card",
-                    sourceId = "test-card",
-                    values = values,
-                ),
+                testSnapshot(values),
             environment =
                 NativeThemeEnvironment(
                     hostSurface = NativeThemeHostSurface.MAIN,
                     systemDarkTheme = systemDarkTheme,
                 ),
             baseColorScheme = { darkTheme -> if (darkTheme) darkScheme else lightScheme },
+        )
+
+    private fun testSnapshot(values: ThemePreferenceValues): ThemePreferenceSnapshot =
+        ThemePreferenceSnapshot(
+            source = "character_card",
+            sourceId = "test-card",
+            values = values,
         )
 
     private fun lighten(color: Color, factor: Float): Color =

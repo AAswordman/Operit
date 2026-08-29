@@ -39,16 +39,11 @@ fun useFloatingWindowLauncher(
     actualViewModel: ChatViewModel,
     permissionLauncher: ActivityResultLauncher<String>
 ): () -> Unit {
-    val colorScheme = MaterialTheme.colorScheme
-    val typography = MaterialTheme.typography
-
     return {
         actualViewModel.onFloatingButtonClick(
             FloatingMode.WINDOW,
             permissionLauncher,
-            colorScheme,
-            typography,
-            moveTaskToBackOnReady = true
+            moveTaskToBackOnReady = true,
         )
     }
 }
@@ -64,8 +59,6 @@ fun ChatScreenHeader(
         onCharacterSwitcherClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val colorScheme = MaterialTheme.colorScheme
-    val typography = MaterialTheme.typography
 
     LaunchedEffect(actualViewModel, context) {
         actualViewModel.moveTaskToBackEvents.collect {
@@ -127,9 +120,7 @@ fun ChatScreenHeader(
         ) { isGranted ->
             if (isGranted) {
                 actualViewModel.launchWindowFloatingModeAfterMicPermissionGranted(
-                    colorScheme = colorScheme,
-                    typography = typography,
-                    moveTaskToBackOnReady = true
+                    moveTaskToBackOnReady = true,
                 )
             } else {
                 actualViewModel.showToast(context.getString(R.string.microphone_permission_denied))

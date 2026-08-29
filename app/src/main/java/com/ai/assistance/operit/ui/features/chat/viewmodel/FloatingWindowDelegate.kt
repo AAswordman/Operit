@@ -8,10 +8,7 @@ import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.os.Build
 import android.os.IBinder
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Typography
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.toSerializable
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.ui.floating.FloatingMode
@@ -135,7 +132,7 @@ class FloatingWindowDelegate(
     }
 
     /** 切换悬浮窗模式 */
-    fun toggleFloatingMode(colorScheme: ColorScheme? = null, typography: Typography? = null) {
+    fun toggleFloatingMode() {
         val newMode = !_isFloatingMode.value
 
         if (newMode) {
@@ -144,12 +141,6 @@ class FloatingWindowDelegate(
 
             // 先启动并绑定服务
             val intent = Intent(context, FloatingChatService::class.java)
-            colorScheme?.let {
-                intent.putExtra("COLOR_SCHEME", it.toSerializable())
-            }
-            typography?.let {
-                intent.putExtra("TYPOGRAPHY", it.toSerializable())
-            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {
@@ -168,8 +159,6 @@ class FloatingWindowDelegate(
      */
     fun launchInMode(
         mode: FloatingMode,
-        colorScheme: ColorScheme? = null,
-        typography: Typography? = null,
         moveTaskToBackOnReady: Boolean = false
     ) {
         if (_isFloatingMode.value && floatingService != null) {
@@ -189,13 +178,6 @@ class FloatingWindowDelegate(
         val intent = Intent(context, FloatingChatService::class.java)
         // 添加初始模式参数
         intent.putExtra("INITIAL_MODE", mode.name)
-
-        colorScheme?.let {
-            intent.putExtra("COLOR_SCHEME", it.toSerializable())
-        }
-        typography?.let {
-            intent.putExtra("TYPOGRAPHY", it.toSerializable())
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
         } else {

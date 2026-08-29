@@ -33,6 +33,7 @@ Operit 的已发布主题以角色卡和群组为作用域，使用一组固定�
 2. [原生主题契约](./2_NativeThemeContract.md)
    - [主界面宿主适配器](./2a_MainHostAdapters.md)
    - [OFFSCREEN 消息图片导出宿主](./2b_OffscreenExportHost.md)
+   - [FLOATING 与权限 Overlay 宿主](./2c_FloatingAndPermissionHosts.md)
 3. [主题编辑器基础](./3_ThemeEditorFoundation.md)
    - [主题设置重构](./3a_ThemeSettingsRedesign.md)
    - [Conversation 编辑器迁移](./3b_ConversationEditorMigration.md)

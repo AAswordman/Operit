@@ -34,10 +34,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -72,7 +70,7 @@ import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.common.displays.RainbowBorderOverlay
 import com.ai.assistance.operit.ui.floating.FloatingChatWindow
 import com.ai.assistance.operit.ui.floating.FloatingMode
-import com.ai.assistance.operit.ui.floating.FloatingWindowTheme
+import com.ai.assistance.operit.ui.theme.NativeThemeFloatingHost
 
 enum class StatusIndicatorStyle {
     FULLSCREEN_RAINBOW,
@@ -88,8 +86,6 @@ interface FloatingWindowCallback {
     fun getMessages(): List<ChatMessage>
     fun getAttachments(): List<AttachmentInfo>
     fun saveState()
-    fun getColorScheme(): ColorScheme?
-    fun getTypography(): Typography?
     fun getInputProcessingState(): State<InputProcessingState>
     fun getStatusIndicatorStyle(): StatusIndicatorStyle
 }
@@ -176,10 +172,7 @@ class FloatingWindowManager(
                         setViewTreeSavedStateRegistryOwner(savedStateRegistryOwner)
 
                         setContent {
-                            FloatingWindowTheme(
-                                    colorScheme = callback.getColorScheme(),
-                                    typography = callback.getTypography()
-                            ) { FloatingChatUi() }
+                            NativeThemeFloatingHost { FloatingChatUi() }
                         }
                     }
 
@@ -404,10 +397,7 @@ class FloatingWindowManager(
             setViewTreeSavedStateRegistryOwner(savedStateRegistryOwner)
 
             setContent {
-                FloatingWindowTheme(
-                    colorScheme = callback.getColorScheme(),
-                    typography = callback.getTypography()
-                ) {
+                NativeThemeFloatingHost {
                     when (style) {
                         StatusIndicatorStyle.FULLSCREEN_RAINBOW -> FullscreenRainbowStatusIndicator()
                         StatusIndicatorStyle.TOP_BAR -> TopBarStatusIndicator()

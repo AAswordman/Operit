@@ -160,9 +160,6 @@ fun ClassicChatInputSection(
     }
     val modernTextStyle = TextStyle(fontSize = 13.sp, lineHeight = 16.sp)
     val mentionVisualTransformation = rememberMentionVisualTransformation(modernTextStyle)
-    val colorScheme = MaterialTheme.colorScheme
-    val typography = MaterialTheme.typography
-
     val toolProgressEvent by ToolProgressBus.progress.collectAsState()
 
     // Token limit calculation
@@ -197,8 +194,6 @@ fun ClassicChatInputSection(
             if (isGranted) {
                 actualViewModel.launchFloatingModeIn(
                     FloatingMode.FULLSCREEN,
-                    colorScheme,
-                    typography
                 )
             } else {
                 actualViewModel.showToast(context.getString(R.string.microphone_permission_denied_toast))
@@ -686,8 +681,6 @@ fun ClassicChatInputSection(
                                         actualViewModel.onFloatingButtonClick(
                                             FloatingMode.FULLSCREEN,
                                             voicePermissionLauncher,
-                                            colorScheme,
-                                            typography
                                         )
                                     }
                                 }

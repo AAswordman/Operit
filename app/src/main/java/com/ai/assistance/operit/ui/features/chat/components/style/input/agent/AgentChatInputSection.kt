@@ -353,9 +353,6 @@ fun AgentChatInputSection(
 
     val inputTextStyle = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
     val mentionVisualTransformation = rememberMentionVisualTransformation(inputTextStyle)
-    val colorScheme = MaterialTheme.colorScheme
-    val typography = MaterialTheme.typography
-
     val toolProgressEvent by ToolProgressBus.progress.collectAsState()
     val currentModelName by actualViewModel.modelName.collectAsState()
     val configMappingWithIndex by
@@ -454,7 +451,7 @@ fun AgentChatInputSection(
             contract = ActivityResultContracts.RequestPermission(),
         ) { isGranted ->
             if (isGranted) {
-                actualViewModel.launchFloatingModeIn(FloatingMode.FULLSCREEN, colorScheme, typography)
+                actualViewModel.launchFloatingModeIn(FloatingMode.FULLSCREEN)
             } else {
                 actualViewModel.showToast(context.getString(R.string.microphone_permission_denied_toast))
             }
@@ -1059,8 +1056,6 @@ fun AgentChatInputSection(
                                                         actualViewModel.onFloatingButtonClick(
                                                             FloatingMode.FULLSCREEN,
                                                             voicePermissionLauncher,
-                                                            colorScheme,
-                                                            typography,
                                                         )
                                                     }
                                                 }
@@ -1359,8 +1354,6 @@ fun AgentChatInputSection(
                                                             actualViewModel.onFloatingButtonClick(
                                                                 FloatingMode.FULLSCREEN,
                                                                 voicePermissionLauncher,
-                                                                colorScheme,
-                                                                typography,
                                                             )
                                                         }
                                                     }

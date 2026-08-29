@@ -32,8 +32,6 @@ import com.ai.assistance.operit.ui.floating.ui.ball.FloatingVoiceBallMode
 import com.ai.assistance.operit.ui.floating.ui.fullscreen.FloatingFullscreenMode
 import com.ai.assistance.operit.ui.floating.ui.screenocr.FloatingScreenOcrMode
 import com.ai.assistance.operit.ui.floating.ui.window.screen.FloatingChatWindowMode
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
-import com.ai.assistance.operit.ui.theme.rememberActiveThemePreferenceSnapshot
 
 /**
  * 悬浮聊天窗口的主要UI组件 - 重构版
@@ -97,7 +95,6 @@ fun FloatingChatWindow(
         windowState: FloatingWindowState? = null,
         inputProcessingState: State<InputProcessingState> = mutableStateOf(InputProcessingState.Idle)
 ) {
-    val themeSnapshot = rememberActiveThemePreferenceSnapshot()
     val floatContext =
             rememberFloatContext(
                     messages = messages,
@@ -152,8 +149,7 @@ fun FloatingChatWindow(
     }
 
     // 根据currentMode参数渲染对应界面，使用AnimatedContent添加炫酷过渡动画
-    CompositionLocalProvider(LocalThemePreferenceSnapshot provides themeSnapshot) {
-        Box {
+    Box {
             AnimatedContent(
             targetState = currentMode, // 只监听 currentMode，避免消息更新时触发动画
             transitionSpec = {
@@ -228,6 +224,5 @@ fun FloatingChatWindow(
                 maxWidth = 360.dp,
                 maxHeight = 200.dp
             )
-        }
     }
 }

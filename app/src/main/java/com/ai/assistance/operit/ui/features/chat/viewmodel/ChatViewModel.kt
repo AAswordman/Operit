@@ -6,8 +6,6 @@ import android.content.Intent
 import android.provider.Settings
 import com.ai.assistance.operit.util.AppLogger
 import androidx.activity.result.ActivityResultLauncher
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Typography
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -1673,8 +1671,6 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     fun onFloatingButtonClick(
         mode: FloatingMode,
         permissionLauncher: ActivityResultLauncher<String>,
-        colorScheme: ColorScheme,
-        typography: Typography,
         moveTaskToBackOnReady: Boolean = false
     ) {
         viewModelScope.launch {
@@ -1688,17 +1684,13 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 FloatingMode.WINDOW -> launchFloatingWindowWithPermissionCheck(permissionLauncher) {
                     launchFloatingModeIn(
                         mode = FloatingMode.WINDOW,
-                        colorScheme = colorScheme,
-                        typography = typography,
                         moveTaskToBackOnReady = moveTaskToBackOnReady
                     )
                 }
-                FloatingMode.FULLSCREEN -> launchFullscreenVoiceModeWithPermissionCheck(permissionLauncher, colorScheme, typography)
+                FloatingMode.FULLSCREEN -> launchFullscreenVoiceModeWithPermissionCheck(permissionLauncher)
                 FloatingMode.SCREEN_OCR -> launchFloatingWindowWithPermissionCheck(permissionLauncher) {
                     launchFloatingModeIn(
                         mode = FloatingMode.WINDOW,
-                        colorScheme = colorScheme,
-                        typography = typography,
                         moveTaskToBackOnReady = moveTaskToBackOnReady
                     )
                 }
@@ -1713,8 +1705,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
 
-    fun toggleFloatingMode(colorScheme: ColorScheme? = null, typography: Typography? = null) {
-        floatingWindowDelegate.toggleFloatingMode(colorScheme, typography)
+    fun toggleFloatingMode() {
+        floatingWindowDelegate.toggleFloatingMode()
     }
 
     fun setMasterPermissionLevel(level: PermissionLevel) {
@@ -2350,30 +2342,21 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         fileChooserCallback = null
     }
 
-    /** 设置权限系统的颜色方案 */
-    fun setPermissionSystemColorScheme(colorScheme: ColorScheme?) {
-        toolPermissionSystem.setColorScheme(colorScheme)
-    }
-
     fun launchFloatingModeIn(
             mode: FloatingMode,
-            colorScheme: ColorScheme? = null,
-            typography: Typography? = null,
             moveTaskToBackOnReady: Boolean = false
     ) {
-        floatingWindowDelegate.launchInMode(mode, colorScheme, typography, moveTaskToBackOnReady)
+        floatingWindowDelegate.launchInMode(mode, moveTaskToBackOnReady)
     }
     
     /**
      * 从Widget启动悬浮窗到指定模式（使用默认主题）
      */
     fun launchFloatingWindowInMode(mode: FloatingMode) {
-        launchFloatingModeIn(mode, null, null)
+        launchFloatingModeIn(mode)
     }
 
     fun launchWindowFloatingModeAfterMicPermissionGranted(
-            colorScheme: ColorScheme? = null,
-            typography: Typography? = null,
             moveTaskToBackOnReady: Boolean = false
     ) {
         if (!Settings.canDrawOverlays(context)) {
@@ -2383,8 +2366,6 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
         launchFloatingModeIn(
             mode = FloatingMode.WINDOW,
-            colorScheme = colorScheme,
-            typography = typography,
             moveTaskToBackOnReady = moveTaskToBackOnReady
         )
     }
@@ -2409,8 +2390,6 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun launchFullscreenVoiceModeWithPermissionCheck(
             launcher: ActivityResultLauncher<String>,
-            colorScheme: ColorScheme? = null,
-            typography: Typography? = null
     ) {
         val hasMicPermission =
                 android.content.pm.PackageManager.PERMISSION_GRANTED ==
@@ -2423,7 +2402,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
             openOverlayPermissionSettings()
         } else {
             // Directly launch fullscreen voice mode
-            launchFloatingModeIn(FloatingMode.FULLSCREEN, colorScheme, typography)
+            launchFloatingModeIn(FloatingMode.FULLSCREEN)
         }
     }
 

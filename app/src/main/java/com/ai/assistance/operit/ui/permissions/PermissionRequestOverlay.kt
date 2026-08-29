@@ -1,6 +1,5 @@
 package com.ai.assistance.operit.ui.permissions
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -38,18 +37,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,11 +53,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -77,7 +69,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.services.ServiceLifecycleOwner
-import com.ai.assistance.operit.ui.floating.FloatingWindowTheme
+import com.ai.assistance.operit.ui.theme.NativeThemeOverlayHost
 import kotlinx.coroutines.delay
 
 
@@ -89,7 +81,6 @@ private fun PermissionRequestContent(
     onAllow: () -> Unit,
     onDeny: () -> Unit,
     onAlwaysAllow: () -> Unit,
-    colorScheme: ColorScheme? = null,
     tool: AITool? = null
 ) {
     var visible by remember { mutableStateOf(false) }
@@ -101,7 +92,7 @@ private fun PermissionRequestContent(
 
     val contentScrollState = rememberScrollState()
 
-    FloatingWindowTheme(colorScheme = colorScheme) {
+    NativeThemeOverlayHost {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -334,14 +325,6 @@ class PermissionRequestOverlay(private val context: Context) {
     private var windowManager: WindowManager? = null
     private var overlayView: ComposeView? = null
     private var lifecycleOwner: ServiceLifecycleOwner? = null
-    private var colorScheme: ColorScheme? = null
-
-    /**
-     * 设置颜色方案
-     */
-    fun setColorScheme(colorScheme: ColorScheme?) {
-        this.colorScheme = colorScheme
-    }
 
     /**
      * 检查是否有悬浮窗权限
@@ -408,13 +391,21 @@ class PermissionRequestOverlay(private val context: Context) {
             gravity = Gravity.TOP or Gravity.START
         }
 
+        lifecycleOwner = ServiceLifecycleOwner().apply {
+            handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            handleLifecycleEvent(Lifecycle.Event.ON_START)
+            handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        }
+
         overlayView = ComposeView(context).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setViewTreeLifecycleOwner(lifecycleOwner)
+            setViewTreeViewModelStoreOwner(lifecycleOwner)
+            setViewTreeSavedStateRegistryOwner(lifecycleOwner)
             setContent {
                 PermissionRequestContent(
                     toolName = tool.name,
                     operationDescription = operationDescription,
-                    colorScheme = colorScheme,
                     tool = tool,
                     onAllow = {
                         onResult(PermissionRequestResult.ALLOW)
@@ -430,18 +421,6 @@ class PermissionRequestOverlay(private val context: Context) {
                     }
                 )
             }
-        }
-
-        lifecycleOwner = ServiceLifecycleOwner().apply {
-            handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-            handleLifecycleEvent(Lifecycle.Event.ON_START)
-            handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        }
-
-        overlayView?.apply {
-            setViewTreeLifecycleOwner(lifecycleOwner)
-            setViewTreeViewModelStoreOwner(lifecycleOwner)
-            setViewTreeSavedStateRegistryOwner(lifecycleOwner)
         }
 
         try {

@@ -112,3 +112,10 @@
 - SHA-256：`0571913c9bdf59235eaa65d6abb6cdd94ba19b729ae5f0d672d908b7e282acad`
 - 首次构建提交 `f3178ba4` 在 `NativeThemeOffscreenHost.kt` 发现多余闭合括号；修复提交 `70a6bcce` 后 release 汇编成功。
 - release 汇编不执行单元测试或 Android Compose 测试；设备级图片、动态配色和视频背景验证仍待执行。
+
+### 2026-08-29：FLOATING 与权限 Overlay 宿主
+
+- 独立 Compose 根按 `FLOATING` 或 `OVERLAY` 环境消费活动主题快照、解析结果、Typography 和 Material 投影。
+- 浮窗聊天、状态指示器、WebSession 浏览器和最小化指示根已移除颜色字体序列化通道；权限请求 Overlay 不再从主聊天页接收颜色方案。
+- 保留浮窗 Service、WindowManager 模式、外部 `show_floating`/`initial_mode`/自动退出和权限决策接口。
+- 新增 FLOATING、OVERLAY 解析测试和独立主题宿主 Android Compose 测试；静态检查结果和 release 构建待本次提交推送后补充。

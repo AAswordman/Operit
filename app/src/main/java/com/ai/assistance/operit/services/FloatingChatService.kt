@@ -15,8 +15,6 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.view.View
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationCompat
@@ -33,10 +31,6 @@ import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
-import com.ai.assistance.operit.data.model.SerializableColorScheme
-import com.ai.assistance.operit.data.model.SerializableTypography
-import com.ai.assistance.operit.data.model.toComposeColorScheme
-import com.ai.assistance.operit.data.model.toComposeTypography
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.services.floating.FloatingWindowCallback
 import com.ai.assistance.operit.services.floating.FloatingWindowManager
@@ -46,7 +40,6 @@ import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.FileUtils
 import com.ai.assistance.operit.util.WaifuMessageProcessor
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -65,8 +58,6 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     private val CHANNEL_ID = "floating_chat_channel"
 
     private val PREF_KEY_STATUS_INDICATOR_STYLE = "status_indicator_style"
-    private val PREF_KEY_COLOR_SCHEME = "floating_color_scheme_json"
-    private val PREF_KEY_TYPOGRAPHY = "floating_typography_json"
 
     lateinit var windowState: FloatingWindowState
     private lateinit var windowManager: FloatingWindowManager
@@ -89,9 +80,6 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                 handleServiceCrash(thread, throwable)
             }
 
-    private val colorScheme = mutableStateOf<ColorScheme?>(null)
-    private val typography = mutableStateOf<Typography?>(null)
-    private val gson = Gson()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var hasHandledStartCommand = false
 
@@ -454,67 +442,6 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                 scheduleAutoExit(null)
             }
 
-            val hasColorSchemeExtra = intent?.hasExtra("COLOR_SCHEME") == true
-            if (hasColorSchemeExtra) {
-                val serializableColorScheme =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        intent?.getParcelableExtra(
-                            "COLOR_SCHEME",
-                            SerializableColorScheme::class.java
-                        )
-                    } else {
-                        @Suppress("DEPRECATION")
-                        intent?.getParcelableExtra<SerializableColorScheme>("COLOR_SCHEME")
-                    }
-                serializableColorScheme?.let {
-                    colorScheme.value = it.toComposeColorScheme()
-                    try {
-                        prefs.edit().putString(PREF_KEY_COLOR_SCHEME, gson.toJson(it)).apply()
-                    } catch (_: Exception) {
-                    }
-                }
-            } else {
-                val saved = prefs.getString(PREF_KEY_COLOR_SCHEME, null)
-                if (!saved.isNullOrBlank()) {
-                    try {
-                        val restored = gson.fromJson(saved, SerializableColorScheme::class.java)
-                        colorScheme.value = restored.toComposeColorScheme()
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG, "Failed to restore COLOR_SCHEME", e)
-                    }
-                }
-            }
-
-            val hasTypographyExtra = intent?.hasExtra("TYPOGRAPHY") == true
-            if (hasTypographyExtra) {
-                val serializableTypography =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        intent?.getParcelableExtra(
-                            "TYPOGRAPHY",
-                            SerializableTypography::class.java
-                        )
-                    } else {
-                        @Suppress("DEPRECATION")
-                        intent?.getParcelableExtra<SerializableTypography>("TYPOGRAPHY")
-                    }
-                serializableTypography?.let {
-                    typography.value = it.toComposeTypography()
-                    try {
-                        prefs.edit().putString(PREF_KEY_TYPOGRAPHY, gson.toJson(it)).apply()
-                    } catch (_: Exception) {
-                    }
-                }
-            } else {
-                val saved = prefs.getString(PREF_KEY_TYPOGRAPHY, null)
-                if (!saved.isNullOrBlank()) {
-                    try {
-                        val restored = gson.fromJson(saved, SerializableTypography::class.java)
-                        typography.value = restored.toComposeTypography()
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG, "Failed to restore TYPOGRAPHY", e)
-                    }
-                }
-            }
             val windowShown = windowManager.show()
             sendLifecycleBroadcast(
                 if (windowShown) ACTION_FLOATING_CHAT_WINDOW_SHOWN
@@ -723,10 +650,6 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     override fun getAttachments(): List<AttachmentInfo> = attachments.value
 
     override fun getInputProcessingState(): State<InputProcessingState> = inputProcessingState
-
-    override fun getColorScheme(): ColorScheme? = colorScheme.value
-
-    override fun getTypography(): Typography? = typography.value
 
     override fun saveState() {
         windowState.saveState()
