@@ -62,6 +62,8 @@ import com.ai.assistance.operit.ui.main.screens.ScreenRouteRegistry
 import com.ai.assistance.operit.ui.main.navigation.NavigationEntrySpec
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.theme.liquidGlass
+import com.ai.assistance.operit.ui.theme.renderer.navigation.NativeThemeNavigationDrawerItemV1
+import com.ai.assistance.operit.ui.theme.renderer.navigation.NativeThemeNavigationDrawerItemSemanticRoleV1
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -520,12 +522,19 @@ private fun NewSidebarTopContent(
         Spacer(modifier = Modifier.height(6.dp))
 
         navItems.forEach { item ->
-                CompactNavigationDrawerItem(
-                        icon = item.icon,
+                NativeThemeNavigationDrawerItemV1(
                         label = stringResource(id = item.titleResId),
                         selected = selectedItem == item,
-                        appearance = appearance,
-                        onClick = { onNavItemClick(item) }
+                        semanticRole =
+                                NativeThemeNavigationDrawerItemSemanticRoleV1.NAVIGATION_DESTINATION,
+                        leading = { modifier ->
+                                Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = null,
+                                        modifier = modifier
+                                )
+                        },
+                        onActivate = { onNavItemClick(item) }
                 )
         }
         if (pluginEntries.isNotEmpty()) {
@@ -539,12 +548,23 @@ private fun NewSidebarTopContent(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 pluginEntries.forEach { entry ->
-                        CompactNavigationDrawerItem(
-                                icon = entry.icon,
+                        NativeThemeNavigationDrawerItemV1(
                                 label = entry.title,
                                 selected = selectedRouteId == entry.routeId,
-                                appearance = appearance,
-                                onClick = { onNavigationEntryClick(entry) }
+                                semanticRole =
+                                        if (entry.action == null) {
+                                                NativeThemeNavigationDrawerItemSemanticRoleV1.NAVIGATION_DESTINATION
+                                        } else {
+                                                NativeThemeNavigationDrawerItemSemanticRoleV1.ACTION
+                                        },
+                                leading = { modifier ->
+                                        Icon(
+                                                imageVector = entry.icon,
+                                                contentDescription = null,
+                                                modifier = modifier
+                                        )
+                                },
+                                onActivate = { onNavigationEntryClick(entry) }
                         )
                 }
         }

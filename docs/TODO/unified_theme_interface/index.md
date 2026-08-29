@@ -39,6 +39,7 @@ Operit 的已发布主题以角色卡和群组为作用域，使用一组固定�
    - [主题设置重构](./3a_ThemeSettingsRedesign.md)
    - [Conversation 编辑器迁移](./3b_ConversationEditorMigration.md)
 4. [渲染契约与组件目录](./4_RendererContractAndCatalog.md)
+   - [组件契约核心与导航项试点](./4a_ComponentContractAndNavigationPilot.md)
 5. [主题包与 UI IR](./5_ThemePackageAndIr.md)
 6. [原生 UI 迁移](./6_NativeUiMigration.md)
 7. [独立渲染面适配](./7_AlternateSurfaceAdapters.md)
