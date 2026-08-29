@@ -6,6 +6,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
@@ -35,3 +36,10 @@ fun rememberActiveThemePreferenceSnapshot(): ThemePreferenceSnapshot {
     )
     return themeSnapshot
 }
+
+internal fun ThemePreferenceSnapshot.toThemeTarget(): ActivePrompt =
+    when (source) {
+        "character_card" -> ActivePrompt.CharacterCard(requireNotNull(sourceId))
+        "character_group" -> ActivePrompt.CharacterGroup(requireNotNull(sourceId))
+        else -> error("Theme snapshot source does not identify an active prompt: $source")
+    }

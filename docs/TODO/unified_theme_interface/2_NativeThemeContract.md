@@ -37,8 +37,8 @@
 - [DONE] 原有明暗配色与自定义颜色公式已从 `Theme.kt` 移入纯解析器
 - [DONE] 主 Compose 根同时提供已发布偏好快照和解析后的 V1 主题上下文
 - [DONE] 纯单元测试覆盖系统与固定明暗模式、自定义颜色、背景、字体和系统栏规格
-- [PENDING] 把窗口系统栏副作用提取为宿主适配器
-- [PENDING] 把背景播放器和素材错误处理提取为宿主适配器
-- [PENDING] 接入悬浮窗、Overlay、离屏输出和 Glance 宿主
+- [DONE] 主界面窗口系统栏副作用由 `NativeThemeMainWindowChromeHostAdapter` 应用
+- [DONE] 背景播放器、图片和视频资源失败事件由 `NativeThemeBackgroundMediaHostAdapter` 承载
+- [PENDING] 接入悬浮窗、Overlay 和 Glance 宿主；消息图片离屏导出已复用背景媒体适配器
 
 本阶段当前改动已经过两次独立静态审查，确认主界面行为与上游一致。独立 WebChat 及其颜色解析器未修改。
