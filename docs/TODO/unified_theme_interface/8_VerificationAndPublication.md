@@ -61,3 +61,14 @@
 - Conversation 预览接入生产 `CursorStyleChatMessage` 和 `BubbleStyleChatMessage`，删除旧手写聊天与头像预览。
 - 静态检查：`git diff --check` 通过，旧 Conversation UI 符号和生产引用已核对。
 - 按仓库执行准则，本批次未执行单元测试、Android Compose 测试或构建。
+
+### 2026-08-29：Conversation release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`41c45ef7`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-41c45ef7.apk`
+- 产物大小：`403269279` 字节
+- SHA-256：`62280222022a28f623298f00a5ce5ca9b4eeede87de7d7bc32f70f59a1286667`
+- 首次构建在 Kotlin 编译阶段发现文本键残留和默认参数类型问题，修复提交为 `41c45ef7` 后重试成功。
