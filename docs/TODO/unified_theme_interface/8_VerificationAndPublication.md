@@ -143,3 +143,15 @@
 - SHA-256：`05961dab8dd39a657ab1b77754055943a67a055d32e104bb07023f96a1a66f3e`
 - release 汇编验证了 GLANCE `ColorProvider`、`ColorFilter`、Widget 主题流、动态色监听、ToolPkg 颜色 token 和生产 Manifest 源集；本动作不执行 JVM 或 Android Compose 测试。
 - 设备级验证仍需覆盖语音 Widget 与 ToolPkg Widget 的活动角色/群组切换、固定主题模式、Android 12+ 壁纸替换、应用未预先打开的 Widget 冷启动、ToolPkg 配置和运行时刷新，以及所有 DSL 语义颜色 token。
+
+### 2026-08-30：组件契约核心与导航项试点 release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`f3e975f7`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-f3e975f7.apk`
+- 产物大小：`403297951` 字节
+- SHA-256：`d7b5b869b09cc2f270f958ce02a73eccbbc2e2234f2349328801f3ecaa9314c4`
+- release 汇编验证了组件契约、类型化目录 Key、`native_v1` 目录初始化、导航项参考渲染器和生产侧边栏调用；本动作不执行 JVM 或 Android Compose 测试。
+- 设备级验证仍需覆盖手机抽屉、展开平板侧边栏、原生路由项、ToolPkg 路由项、ToolPkg 动作项、选中状态、液态玻璃阴影和 48dp 触控区域。
