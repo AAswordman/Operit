@@ -100,3 +100,15 @@
 - 临时 `ScrollView` 的附加、测量、等待、捕获和移除统一在同一释放范围，取消或异常不会保留离屏视图。
 - 纯测试覆盖 OFFSCREEN 环境、自定义颜色、字体、背景和注入基底配色；静态检查：`git diff --check` 通过。
 - release 构建和设备级图片、动态配色、视频背景验证待本次提交推送后由构建服务执行。
+
+### 2026-08-29：OFFSCREEN 消息图片导出 release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`70a6bcce`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-70a6bcce.apk`
+- 产物大小：`403252895` 字节
+- SHA-256：`0571913c9bdf59235eaa65d6abb6cdd94ba19b729ae5f0d672d908b7e282acad`
+- 首次构建提交 `f3178ba4` 在 `NativeThemeOffscreenHost.kt` 发现多余闭合括号；修复提交 `70a6bcce` 后 release 汇编成功。
+- release 汇编不执行单元测试或 Android Compose 测试；设备级图片、动态配色和视频背景验证仍待执行。
