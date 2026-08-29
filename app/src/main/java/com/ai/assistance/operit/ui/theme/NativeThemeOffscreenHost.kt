@@ -53,7 +53,6 @@ internal fun resolveNativeThemeOffscreen(
             ),
         baseColorScheme = { darkTheme -> if (darkTheme) darkColorScheme else lightColorScheme },
     )
-}
 
 @Composable
 internal fun NativeThemeOffscreenHost(
