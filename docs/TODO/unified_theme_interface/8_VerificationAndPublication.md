@@ -80,3 +80,14 @@
 - 新增纯窗口和资源写回决策测试，覆盖隐藏状态栏、背景透明、自定义状态栏颜色、默认主题颜色、失败资源匹配和离屏透明度裁剪。
 - 静态检查：`git diff --check` 通过，主题根和离屏导出不再直接创建播放器或操作窗口系统栏。
 - 按仓库执行准则，本批次未运行单元测试、Android Compose 测试或构建。
+
+### 2026-08-29：主界面主题宿主适配器 release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`a7345720`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-a7345720.apk`
+- 产物大小：`403252895` 字节
+- SHA-256：`66b208733ec9444181895fd23cff07d101d07117d475bb9e0295077d2fab8411`
+- release 汇编成功；本动作不执行单元测试或 Android Compose 测试。
