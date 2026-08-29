@@ -119,3 +119,15 @@
 - 浮窗聊天、状态指示器、WebSession 浏览器和最小化指示根已移除颜色字体序列化通道；权限请求 Overlay 不再从主聊天页接收颜色方案。
 - 保留浮窗 Service、WindowManager 模式、外部 `show_floating`/`initial_mode`/自动退出和权限决策接口。
 - 新增 FLOATING、OVERLAY 解析测试和独立主题宿主 Android Compose 测试；静态检查结果和 release 构建待本次提交推送后补充。
+
+### 2026-08-30：FLOATING 与权限 Overlay release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`943d9e28`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-943d9e28.apk`
+- 产物大小：`403261087` 字节
+- SHA-256：`88b591bb46411feff32659dda0e645f60bdf23686c4917b89784ccf4f37423a2`
+- release 汇编验证了生产 Kotlin 源集和移除的浮窗主题传输引用；本动作不执行单元测试或 Android Compose 测试。
+- 设备级验证仍需覆盖浮窗权限、模式、IME、活动主题切换、动态色、自定义字体、权限决策和 WebSession 最小化状态。
