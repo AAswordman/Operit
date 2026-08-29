@@ -219,6 +219,148 @@ internal fun NativeThemeEditorTextKey.stringResourceId(): Int =
         NativeThemeEditorTextKey.SHOW_CHAT_FLOATING_DOTS -> R.string.show_chat_floating_dots_animation
         NativeThemeEditorTextKey.SHOW_CHAT_FLOATING_DOTS_DESCRIPTION ->
             R.string.show_chat_floating_dots_animation_desc
+        NativeThemeEditorTextKey.CONVERSATION -> R.string.theme_tab_chat
+        NativeThemeEditorTextKey.CONVERSATION_STYLE -> R.string.chat_style_title
+        NativeThemeEditorTextKey.CONVERSATION_STYLE_DESCRIPTION -> R.string.chat_style_desc
+        NativeThemeEditorTextKey.CONVERSATION_STYLE_CURSOR -> R.string.chat_style_cursor
+        NativeThemeEditorTextKey.CONVERSATION_STYLE_BUBBLE -> R.string.chat_style_bubble
+        NativeThemeEditorTextKey.CONVERSATION_CURSOR_APPEARANCE -> R.string.chat_style_title
+        NativeThemeEditorTextKey.CONVERSATION_CURSOR_FOLLOW_THEME ->
+            R.string.chat_style_cursor_user_follow_theme
+        NativeThemeEditorTextKey.CONVERSATION_CURSOR_FOLLOW_THEME_DESCRIPTION ->
+            R.string.chat_style_cursor_user_follow_theme_desc
+        NativeThemeEditorTextKey.CONVERSATION_CURSOR_LIQUID_GLASS ->
+            R.string.chat_style_cursor_user_bubble_liquid_glass
+        NativeThemeEditorTextKey.CONVERSATION_CURSOR_LIQUID_GLASS_DESCRIPTION ->
+            R.string.chat_style_cursor_user_bubble_liquid_glass_desc
+        NativeThemeEditorTextKey.CONVERSATION_CURSOR_WATER_GLASS ->
+            R.string.chat_style_cursor_user_bubble_water_glass
+        NativeThemeEditorTextKey.CONVERSATION_CURSOR_WATER_GLASS_DESCRIPTION ->
+            R.string.chat_style_cursor_user_bubble_water_glass_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_APPEARANCE ->
+            R.string.chat_style_bubble_advanced_options
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_SHOW_AVATAR ->
+            R.string.chat_style_bubble_show_avatar
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_SHOW_AVATAR_DESCRIPTION ->
+            R.string.chat_style_bubble_show_avatar_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_WIDE_LAYOUT ->
+            R.string.chat_style_bubble_wide_layout
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_WIDE_LAYOUT_DESCRIPTION ->
+            R.string.chat_style_bubble_wide_layout_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_LIQUID_GLASS ->
+            R.string.chat_style_bubble_user_bubble_liquid_glass
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_LIQUID_GLASS_DESCRIPTION ->
+            R.string.chat_style_bubble_user_bubble_liquid_glass_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_WATER_GLASS ->
+            R.string.chat_style_bubble_user_bubble_water_glass
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_WATER_GLASS_DESCRIPTION ->
+            R.string.chat_style_bubble_user_bubble_water_glass_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_LIQUID_GLASS ->
+            R.string.chat_style_bubble_ai_bubble_liquid_glass
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_LIQUID_GLASS_DESCRIPTION ->
+            R.string.chat_style_bubble_ai_bubble_liquid_glass_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_WATER_GLASS ->
+            R.string.chat_style_bubble_ai_bubble_water_glass
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_WATER_GLASS_DESCRIPTION ->
+            R.string.chat_style_bubble_ai_bubble_water_glass_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_RENDER_MODE ->
+            R.string.chat_style_bubble_image_render_mode_title
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_RENDER_MODE_DESCRIPTION ->
+            R.string.chat_style_bubble_image_render_mode_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH ->
+            R.string.chat_style_bubble_image_render_mode_nine_patch
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_RENDER_MODE_TILED ->
+            R.string.chat_style_bubble_image_render_mode_tiled
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_ROUNDED_CORNERS ->
+            R.string.chat_style_bubble_rounded_corners
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_ROUNDED_CORNERS_DESCRIPTION ->
+            R.string.chat_style_bubble_rounded_corners_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_ROUNDED_CORNERS_USER ->
+            R.string.chat_style_bubble_rounded_corners_user
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_ROUNDED_CORNERS_AI ->
+            R.string.chat_style_bubble_rounded_corners_ai
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_COLORS ->
+            R.string.chat_style_bubble_color_title
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_COLOR ->
+            R.string.chat_style_bubble_user_color
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_COLOR ->
+            R.string.chat_style_bubble_ai_color
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_TEXT_COLORS ->
+            R.string.chat_style_bubble_text_style_title
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_TEXT_COLOR ->
+            R.string.chat_style_bubble_user_text_color
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_TEXT_COLOR ->
+            R.string.chat_style_bubble_ai_text_color
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_FONT ->
+            R.string.chat_style_bubble_user_font_title
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_FONT ->
+            R.string.chat_style_bubble_ai_font_title
+        NativeThemeEditorTextKey.CONVERSATION_FONT_USE_CUSTOM -> R.string.enable_custom_font
+        NativeThemeEditorTextKey.CONVERSATION_FONT_USE_CUSTOM_DESCRIPTION ->
+            R.string.use_system_or_custom_font
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SOURCE -> R.string.font_type_label
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SOURCE_SYSTEM -> R.string.system_font
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SOURCE_FILE -> R.string.custom_font_file
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SYSTEM_NAME -> R.string.select_system_font
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SYSTEM_DEFAULT -> R.string.theme_font_default
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SYSTEM_SERIF -> R.string.theme_font_serif
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SYSTEM_SANS_SERIF -> R.string.theme_font_sans_serif
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SYSTEM_MONOSPACE -> R.string.theme_font_monospace
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SYSTEM_CURSIVE -> R.string.theme_font_cursive
+        NativeThemeEditorTextKey.CONVERSATION_FONT_FILE -> R.string.custom_font_file_title
+        NativeThemeEditorTextKey.CONVERSATION_FONT_FILE_DESCRIPTION ->
+            R.string.font_file_support_desc
+        NativeThemeEditorTextKey.CONVERSATION_FONT_SELECT_FILE -> R.string.select_font_file
+        NativeThemeEditorTextKey.CONVERSATION_FONT_CLEAR_FILE -> R.string.clear_font
+        NativeThemeEditorTextKey.CONVERSATION_FONT_CURRENT_FILE -> R.string.current_font_file_path
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_USER_IMAGE ->
+            R.string.chat_style_bubble_user_image_title
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_AI_IMAGE ->
+            R.string.chat_style_bubble_ai_image_title
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_DESCRIPTION ->
+            R.string.chat_style_bubble_image_desc
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_PICK_IMAGE ->
+            R.string.chat_style_bubble_pick_image
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_CLEAR_IMAGE ->
+            R.string.chat_style_bubble_clear_image
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_SELECTED ->
+            R.string.chat_style_bubble_image_selected
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_CROP_LEFT ->
+            R.string.chat_style_bubble_crop_left
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_CROP_TOP ->
+            R.string.chat_style_bubble_crop_top
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_CROP_RIGHT ->
+            R.string.chat_style_bubble_crop_right
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_CROP_BOTTOM ->
+            R.string.chat_style_bubble_crop_bottom
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_REPEAT_X_START ->
+            R.string.chat_style_bubble_repeat_x_start
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_REPEAT_X_END ->
+            R.string.chat_style_bubble_repeat_x_end
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_REPEAT_Y_START ->
+            R.string.chat_style_bubble_repeat_y_start
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_REPEAT_Y_END ->
+            R.string.chat_style_bubble_repeat_y_end
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_IMAGE_SCALE ->
+            R.string.chat_style_bubble_image_scale
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_PADDING_LEFT ->
+            R.string.chat_style_bubble_padding_left
+        NativeThemeEditorTextKey.CONVERSATION_BUBBLE_PADDING_RIGHT ->
+            R.string.chat_style_bubble_padding_right
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR -> R.string.avatar_customization_title
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR_DESCRIPTION -> R.string.theme_avatar_description
+        NativeThemeEditorTextKey.CONVERSATION_USER_AVATAR -> R.string.user_avatar_label
+        NativeThemeEditorTextKey.CONVERSATION_AI_AVATAR -> R.string.ai_avatar_label
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR_SELECTED -> R.string.avatar_updated
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR_RESET -> R.string.avatar_reset
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR_SHAPE -> R.string.avatar_shape_title
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR_SHAPE_CIRCLE -> R.string.avatar_shape_circle
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR_SHAPE_SQUARE -> R.string.avatar_shape_square
+        NativeThemeEditorTextKey.CONVERSATION_AVATAR_CORNER_RADIUS -> R.string.avatar_corner_radius
+        NativeThemeEditorTextKey.CONVERSATION_TARGET_METADATA -> R.string.theme_select_target
+        NativeThemeEditorTextKey.CONVERSATION_CHAT_TITLE -> R.string.custom_chat_title_label
+        NativeThemeEditorTextKey.CONVERSATION_CHAT_TITLE_PLACEHOLDER ->
+            R.string.custom_chat_title_placeholder
     }
 
 @Composable

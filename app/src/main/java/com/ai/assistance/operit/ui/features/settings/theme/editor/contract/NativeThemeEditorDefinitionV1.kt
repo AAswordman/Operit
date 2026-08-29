@@ -18,8 +18,28 @@ internal object NativeThemeEditorDefinitionV1 {
     val composer = NativeThemeEditorComposerDefinitionV1.section
     val composerStyle = NativeThemeEditorComposerDefinitionV1.style
     val composerAppearance = NativeThemeEditorComposerDefinitionV1.appearance
+    val conversation = NativeThemeEditorConversationDefinitionV1.section
+    val conversationStyle = NativeThemeEditorConversationDefinitionV1.style
+    val conversationCursorAppearance = NativeThemeEditorConversationDefinitionV1.cursorAppearance
+    val conversationBubbleAppearance = NativeThemeEditorConversationDefinitionV1.bubbleAppearance
+    val conversationBubbleColors = NativeThemeEditorConversationDefinitionV1.bubbleColors
+    val conversationUserFont = NativeThemeEditorConversationDefinitionV1.userFont
+    val conversationAiFont = NativeThemeEditorConversationDefinitionV1.aiFont
+    val conversationUserImage = NativeThemeEditorConversationDefinitionV1.userImage
+    val conversationAiImage = NativeThemeEditorConversationDefinitionV1.aiImage
+    val conversationAvatars = NativeThemeEditorConversationDefinitionV1.avatars
+    val conversationTargetMetadata = NativeThemeEditorConversationDefinitionV1.targetMetadata
     val appChrome = NativeThemeEditorAppChromeDefinitionV1.section
-    val sections = listOf(colorsAndMode, typography, background, messageDetails, composer, appChrome)
+    val sections =
+        listOf(
+            colorsAndMode,
+            typography,
+            background,
+            conversation,
+            messageDetails,
+            composer,
+            appChrome,
+        )
 
     init {
         validateNativeThemeEditorSectionsV1(sections)
@@ -72,8 +92,12 @@ internal fun validateNativeThemeEditorSectionsV1(
         }
     }
     items.filterIsInstance<NativeThemeAssetControlDefinitionV1>().forEach { control ->
-        require(control.field.storageRole == com.ai.assistance.operit.data.preferences.NativeThemePreferenceStorageRole.VISUAL) {
-            "Asset ${control.id.value} must bind a visual preference field."
+        require(
+            control.field.storageRole ==
+                com.ai.assistance.operit.data.preferences.NativeThemePreferenceStorageRole.VISUAL ||
+                control.action == NativeThemeAssetActionV1.AI_AVATAR,
+        ) {
+            "Asset ${control.id.value} must bind a visual field or the AI avatar metadata field."
         }
     }
     val colorFields =

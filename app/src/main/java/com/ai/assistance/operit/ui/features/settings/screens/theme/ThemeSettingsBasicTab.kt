@@ -86,6 +86,13 @@ internal fun ThemeSettingsBasicTab(
                             NativeThemeAssetActionV1.APP_FONT -> pickGlobalFont()
                             NativeThemeAssetActionV1.BACKGROUND_MEDIA ->
                                 error("Unsupported typography asset action: ${definition.action}")
+                            NativeThemeAssetActionV1.BUBBLE_USER_FONT,
+                            NativeThemeAssetActionV1.BUBBLE_AI_FONT,
+                            NativeThemeAssetActionV1.BUBBLE_USER_IMAGE,
+                            NativeThemeAssetActionV1.BUBBLE_AI_IMAGE,
+                            NativeThemeAssetActionV1.USER_AVATAR,
+                            NativeThemeAssetActionV1.AI_AVATAR ->
+                                error("Unsupported typography asset action: ${definition.action}")
                         }
                     },
                 )

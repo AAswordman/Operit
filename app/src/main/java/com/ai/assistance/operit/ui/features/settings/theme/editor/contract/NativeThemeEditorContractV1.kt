@@ -184,6 +184,103 @@ internal enum class NativeThemeEditorTextKey(val value: String) {
     SHOW_INPUT_PROCESSING_STATUS_DESCRIPTION("message.activity.show_processing.description"),
     SHOW_CHAT_FLOATING_DOTS("message.activity.show_dots"),
     SHOW_CHAT_FLOATING_DOTS_DESCRIPTION("message.activity.show_dots.description"),
+    CONVERSATION("conversation"),
+    CONVERSATION_STYLE("conversation.style"),
+    CONVERSATION_STYLE_DESCRIPTION("conversation.style.description"),
+    CONVERSATION_STYLE_CURSOR("conversation.style.cursor"),
+    CONVERSATION_STYLE_BUBBLE("conversation.style.bubble"),
+    CONVERSATION_CURSOR_APPEARANCE("conversation.cursor.appearance"),
+    CONVERSATION_CURSOR_FOLLOW_THEME("conversation.cursor.follow_theme"),
+    CONVERSATION_CURSOR_FOLLOW_THEME_DESCRIPTION("conversation.cursor.follow_theme.description"),
+    CONVERSATION_CURSOR_LIQUID_GLASS("conversation.cursor.liquid_glass"),
+    CONVERSATION_CURSOR_LIQUID_GLASS_DESCRIPTION("conversation.cursor.liquid_glass.description"),
+    CONVERSATION_CURSOR_WATER_GLASS("conversation.cursor.water_glass"),
+    CONVERSATION_CURSOR_WATER_GLASS_DESCRIPTION("conversation.cursor.water_glass.description"),
+    CONVERSATION_BUBBLE_APPEARANCE("conversation.bubble.appearance"),
+    CONVERSATION_BUBBLE_SHOW_AVATAR("conversation.bubble.show_avatar"),
+    CONVERSATION_BUBBLE_SHOW_AVATAR_DESCRIPTION("conversation.bubble.show_avatar.description"),
+    CONVERSATION_BUBBLE_WIDE_LAYOUT("conversation.bubble.wide_layout"),
+    CONVERSATION_BUBBLE_WIDE_LAYOUT_DESCRIPTION("conversation.bubble.wide_layout.description"),
+    CONVERSATION_BUBBLE_USER_LIQUID_GLASS("conversation.bubble.user.liquid_glass"),
+    CONVERSATION_BUBBLE_USER_LIQUID_GLASS_DESCRIPTION(
+        "conversation.bubble.user.liquid_glass.description"
+    ),
+    CONVERSATION_BUBBLE_USER_WATER_GLASS("conversation.bubble.user.water_glass"),
+    CONVERSATION_BUBBLE_USER_WATER_GLASS_DESCRIPTION(
+        "conversation.bubble.user.water_glass.description"
+    ),
+    CONVERSATION_BUBBLE_AI_LIQUID_GLASS("conversation.bubble.ai.liquid_glass"),
+    CONVERSATION_BUBBLE_AI_LIQUID_GLASS_DESCRIPTION(
+        "conversation.bubble.ai.liquid_glass.description"
+    ),
+    CONVERSATION_BUBBLE_AI_WATER_GLASS("conversation.bubble.ai.water_glass"),
+    CONVERSATION_BUBBLE_AI_WATER_GLASS_DESCRIPTION(
+        "conversation.bubble.ai.water_glass.description"
+    ),
+    CONVERSATION_BUBBLE_IMAGE_RENDER_MODE("conversation.bubble.image.render_mode"),
+    CONVERSATION_BUBBLE_IMAGE_RENDER_MODE_DESCRIPTION(
+        "conversation.bubble.image.render_mode.description"
+    ),
+    CONVERSATION_BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH("conversation.bubble.image.render_mode.nine_patch"),
+    CONVERSATION_BUBBLE_IMAGE_RENDER_MODE_TILED("conversation.bubble.image.render_mode.tiled"),
+    CONVERSATION_BUBBLE_ROUNDED_CORNERS_DESCRIPTION(
+        "conversation.bubble.rounded_corners.description"
+    ),
+    CONVERSATION_BUBBLE_ROUNDED_CORNERS_USER("conversation.bubble.rounded_corners.user"),
+    CONVERSATION_BUBBLE_ROUNDED_CORNERS_AI("conversation.bubble.rounded_corners.ai"),
+    CONVERSATION_BUBBLE_COLORS("conversation.bubble.colors"),
+    CONVERSATION_BUBBLE_USER_COLOR("conversation.bubble.user.color"),
+    CONVERSATION_BUBBLE_AI_COLOR("conversation.bubble.ai.color"),
+    CONVERSATION_BUBBLE_USER_TEXT_COLOR("conversation.bubble.user.text_color"),
+    CONVERSATION_BUBBLE_AI_TEXT_COLOR("conversation.bubble.ai.text_color"),
+    CONVERSATION_BUBBLE_USER_FONT("conversation.bubble.user.font"),
+    CONVERSATION_BUBBLE_AI_FONT("conversation.bubble.ai.font"),
+    CONVERSATION_FONT_USE_CUSTOM("conversation.font.use_custom"),
+    CONVERSATION_FONT_USE_CUSTOM_DESCRIPTION("conversation.font.use_custom.description"),
+    CONVERSATION_FONT_SOURCE("conversation.font.source"),
+    CONVERSATION_FONT_SOURCE_SYSTEM("conversation.font.source.system"),
+    CONVERSATION_FONT_SOURCE_FILE("conversation.font.source.file"),
+    CONVERSATION_FONT_SYSTEM_NAME("conversation.font.system_name"),
+    CONVERSATION_FONT_SYSTEM_DEFAULT("conversation.font.system.default"),
+    CONVERSATION_FONT_SYSTEM_SERIF("conversation.font.system.serif"),
+    CONVERSATION_FONT_SYSTEM_SANS_SERIF("conversation.font.system.sans_serif"),
+    CONVERSATION_FONT_SYSTEM_MONOSPACE("conversation.font.system.monospace"),
+    CONVERSATION_FONT_SYSTEM_CURSIVE("conversation.font.system.cursive"),
+    CONVERSATION_FONT_FILE("conversation.font.file"),
+    CONVERSATION_FONT_FILE_DESCRIPTION("conversation.font.file.description"),
+    CONVERSATION_FONT_SELECT_FILE("conversation.font.file.select"),
+    CONVERSATION_FONT_CLEAR_FILE("conversation.font.file.clear"),
+    CONVERSATION_FONT_CURRENT_FILE("conversation.font.file.current"),
+    CONVERSATION_BUBBLE_USER_IMAGE("conversation.bubble.user.image"),
+    CONVERSATION_BUBBLE_AI_IMAGE("conversation.bubble.ai.image"),
+    CONVERSATION_BUBBLE_IMAGE_DESCRIPTION("conversation.bubble.image.description"),
+    CONVERSATION_BUBBLE_PICK_IMAGE("conversation.bubble.image.pick"),
+    CONVERSATION_BUBBLE_CLEAR_IMAGE("conversation.bubble.image.clear"),
+    CONVERSATION_BUBBLE_IMAGE_SELECTED("conversation.bubble.image.selected"),
+    CONVERSATION_BUBBLE_CROP_LEFT("conversation.bubble.image.crop_left"),
+    CONVERSATION_BUBBLE_CROP_TOP("conversation.bubble.image.crop_top"),
+    CONVERSATION_BUBBLE_CROP_RIGHT("conversation.bubble.image.crop_right"),
+    CONVERSATION_BUBBLE_CROP_BOTTOM("conversation.bubble.image.crop_bottom"),
+    CONVERSATION_BUBBLE_REPEAT_X_START("conversation.bubble.image.repeat_x_start"),
+    CONVERSATION_BUBBLE_REPEAT_X_END("conversation.bubble.image.repeat_x_end"),
+    CONVERSATION_BUBBLE_REPEAT_Y_START("conversation.bubble.image.repeat_y_start"),
+    CONVERSATION_BUBBLE_REPEAT_Y_END("conversation.bubble.image.repeat_y_end"),
+    CONVERSATION_BUBBLE_IMAGE_SCALE("conversation.bubble.image.scale"),
+    CONVERSATION_BUBBLE_PADDING_LEFT("conversation.bubble.padding_left"),
+    CONVERSATION_BUBBLE_PADDING_RIGHT("conversation.bubble.padding_right"),
+    CONVERSATION_AVATAR("conversation.avatar"),
+    CONVERSATION_AVATAR_DESCRIPTION("conversation.avatar.description"),
+    CONVERSATION_USER_AVATAR("conversation.avatar.user"),
+    CONVERSATION_AI_AVATAR("conversation.avatar.ai"),
+    CONVERSATION_AVATAR_SELECTED("conversation.avatar.selected"),
+    CONVERSATION_AVATAR_RESET("conversation.avatar.reset"),
+    CONVERSATION_AVATAR_SHAPE("conversation.avatar.shape"),
+    CONVERSATION_AVATAR_SHAPE_CIRCLE("conversation.avatar.shape.circle"),
+    CONVERSATION_AVATAR_SHAPE_SQUARE("conversation.avatar.shape.square"),
+    CONVERSATION_AVATAR_CORNER_RADIUS("conversation.avatar.corner_radius"),
+    CONVERSATION_TARGET_METADATA("conversation.target_metadata"),
+    CONVERSATION_CHAT_TITLE("conversation.chat_title"),
+    CONVERSATION_CHAT_TITLE_PLACEHOLDER("conversation.chat_title.placeholder"),
 }
 
 internal enum class NativeThemeColorTargetV1(
@@ -311,9 +408,13 @@ internal sealed interface NativeThemeEditorItemDefinitionV1 {
     val description: NativeThemeEditorTextKey?
     val displayTitle: Boolean
     val visibleWhen: NativeThemeEditorPredicateV1
+    val enabledWhen: NativeThemeEditorPredicateV1
+        get() = NativeThemeEditorPredicateV1.Always
     val advanced: Boolean
 
     fun isVisible(values: ThemePreferenceValues): Boolean = visibleWhen.matches(values)
+
+    fun isEnabled(values: ThemePreferenceValues): Boolean = enabledWhen.matches(values)
 
     fun isCustomized(values: ThemePreferenceValues): Boolean
 }
@@ -326,6 +427,11 @@ internal sealed interface NativeThemeEditorValueChangeV1 {
 
     data class StringChanged(
         val definition: NativeThemeStringChoiceDefinitionV1,
+        val value: String,
+    ) : NativeThemeEditorValueChangeV1
+
+    data class TextChanged(
+        val definition: NativeThemeTextInputDefinitionV1,
         val value: String,
     ) : NativeThemeEditorValueChangeV1
 
@@ -379,6 +485,7 @@ internal data class NativeThemeBooleanControlDefinitionV1(
     val enabledIntValues: List<NativeThemeIntValueV1> = emptyList(),
     override val displayTitle: Boolean = true,
     override val visibleWhen: NativeThemeEditorPredicateV1 = NativeThemeEditorPredicateV1.Always,
+    override val enabledWhen: NativeThemeEditorPredicateV1 = NativeThemeEditorPredicateV1.Always,
     override val advanced: Boolean = false,
 ) : NativeThemeEditorItemDefinitionV1 {
     override fun isCustomized(values: ThemePreferenceValues): Boolean =
@@ -412,7 +519,7 @@ internal data class NativeThemeColorControlDefinitionV1(
     override val title: NativeThemeEditorTextKey,
     override val description: NativeThemeEditorTextKey?,
     val target: NativeThemeColorTargetV1,
-    val displayDefault: Int,
+    val displayDefault: Int? = null,
     override val displayTitle: Boolean = true,
     override val visibleWhen: NativeThemeEditorPredicateV1 = NativeThemeEditorPredicateV1.Always,
     override val advanced: Boolean = false,
@@ -457,6 +564,12 @@ internal enum class NativeThemeAssetActionV1(
 ) {
     APP_FONT(NativeThemePreferenceSchemaV1.customFontPath),
     BACKGROUND_MEDIA(NativeThemePreferenceSchemaV1.backgroundImageUri),
+    BUBBLE_USER_FONT(NativeThemePreferenceSchemaV1.bubbleUserCustomFontPath),
+    BUBBLE_AI_FONT(NativeThemePreferenceSchemaV1.bubbleAiCustomFontPath),
+    BUBBLE_USER_IMAGE(NativeThemePreferenceSchemaV1.bubbleUserImageUri),
+    BUBBLE_AI_IMAGE(NativeThemePreferenceSchemaV1.bubbleAiImageUri),
+    USER_AVATAR(NativeThemePreferenceSchemaV1.customUserAvatarUri),
+    AI_AVATAR(NativeThemePreferenceSchemaV1.customAiAvatarUri),
 }
 
 internal data class NativeThemeAssetControlDefinitionV1(
@@ -466,6 +579,7 @@ internal data class NativeThemeAssetControlDefinitionV1(
     val action: NativeThemeAssetActionV1,
     val selectLabel: NativeThemeEditorTextKey,
     val clearLabel: NativeThemeEditorTextKey? = null,
+    val valueStatusLabel: NativeThemeEditorTextKey? = null,
     val currentValueLabel: NativeThemeEditorTextKey? = null,
     val selectionField: NativeThemeStringField? = null,
     val selectLabelsByStringValue: Map<String, NativeThemeEditorTextKey> = emptyMap(),
@@ -483,6 +597,21 @@ internal data class NativeThemeAssetControlDefinitionV1(
         selectionField?.let { field -> values.string(field) }
             ?.let { value -> selectLabelsByStringValue[value] }
             ?: selectLabel
+}
+
+internal data class NativeThemeTextInputDefinitionV1(
+    override val id: NativeThemeEditorItemId,
+    override val title: NativeThemeEditorTextKey,
+    override val description: NativeThemeEditorTextKey?,
+    val field: NativeThemeStringField,
+    val placeholder: NativeThemeEditorTextKey? = null,
+    val singleLine: Boolean = true,
+    override val displayTitle: Boolean = true,
+    override val visibleWhen: NativeThemeEditorPredicateV1 = NativeThemeEditorPredicateV1.Always,
+    override val advanced: Boolean = false,
+) : NativeThemeEditorItemDefinitionV1 {
+    override fun isCustomized(values: ThemePreferenceValues): Boolean =
+        values.string(field) != field.defaultValue
 }
 
 internal data class NativeThemeEditorGroupDefinitionV1(

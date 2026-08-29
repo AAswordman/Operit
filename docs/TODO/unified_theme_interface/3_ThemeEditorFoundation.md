@@ -49,8 +49,8 @@
 - [DONE] 全局用户名和头像移出主题编辑器，归入 Profile & Identity；主题页保留目标级用户头像视觉覆盖
 - [DONE] Message Details & Motion 的推理、身份、诊断和活动反馈设置进入独立定义与平面 UI
 - [DONE] App Chrome 的状态栏、工具栏、侧滑菜单、聊天顶栏和顶栏内容颜色进入定义驱动 UI，旧手写 Color Section 已删除
-- [PENDING] 迁移 Conversation 的聊天样式、气泡素材和头像控件
-- [PENDING] 建立通用编辑控件目录与真实生产组件预览宿主
-- [PENDING] 将固定标签导航替换为定义驱动的分区导航
+- [DONE] Conversation 的聊天样式、气泡素材、目标头像和聊天标题进入定义驱动 UI
+- [DONE] 通用编辑器支持文本输入、目标资源动作和真实生产消息组件预览
+- [DONE] 固定标签导航已经由定义驱动的分区导航承载
 
 详细产品决策、分类和迁移顺序见 [主题设置重构](./3a_ThemeSettingsRedesign.md)。

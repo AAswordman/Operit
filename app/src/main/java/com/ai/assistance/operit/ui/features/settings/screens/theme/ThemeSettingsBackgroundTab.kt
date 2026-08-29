@@ -127,6 +127,13 @@ internal fun ThemeSettingsBackgroundTab(shared: ThemeSettingsShared) {
                     }
                 NativeThemeAssetActionV1.APP_FONT ->
                     error("Unsupported background asset action: ${definition.action}")
+                NativeThemeAssetActionV1.BUBBLE_USER_FONT,
+                NativeThemeAssetActionV1.BUBBLE_AI_FONT,
+                NativeThemeAssetActionV1.BUBBLE_USER_IMAGE,
+                NativeThemeAssetActionV1.BUBBLE_AI_IMAGE,
+                NativeThemeAssetActionV1.USER_AVATAR,
+                NativeThemeAssetActionV1.AI_AVATAR ->
+                    error("Unsupported background asset action: ${definition.action}")
             }
         },
         onValueChanged = { change ->
@@ -180,6 +187,8 @@ internal fun ThemeSettingsBackgroundTab(shared: ThemeSettingsShared) {
                         editorSession.setFloat(change.definition.field, change.value)
                     }
                 }
+                is NativeThemeEditorValueChangeV1.TextChanged ->
+                    error("Unsupported background text field: ${change.definition.field.name}")
             }
         },
     )

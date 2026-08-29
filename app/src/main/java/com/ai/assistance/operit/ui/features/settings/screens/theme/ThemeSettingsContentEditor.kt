@@ -61,6 +61,7 @@ import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
+import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.settings.theme.editor.state.ThemeEditorSaveMode
 import com.ai.assistance.operit.ui.main.navigation.RegisterRouteBackGuard
@@ -183,9 +184,6 @@ internal fun ThemeSettingsContentEditor(
     onRetryCharacterCards: () -> Unit,
 ) {
     val context = LocalContext.current
-    val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    )
     var selectedThemeTab by remember {
         mutableStateOf(ThemeSettingsTab.COLORS_AND_MODE)
     }
@@ -253,7 +251,7 @@ internal fun ThemeSettingsContentEditor(
         val document by observedEditorSession.document.collectAsState()
         document.draft
     }
-    val selectedAvatarUri = editorValues?.string("custom_ai_avatar_uri")
+    val selectedAvatarUri = editorValues?.string(NativeThemePreferenceSchemaV1.customAiAvatarUri)
     val selectedThemeTargetName =
         selectedCharacterGroup?.name
             ?: selectedCharacterCard?.name
@@ -428,44 +426,43 @@ internal fun ThemeSettingsContentEditor(
                     onSelectedTabChange = { selectedThemeTab = it },
                     scrollState = scrollState,
                     modifier = Modifier.fillMaxWidth().weight(1f),
-                     colorsAndModeContent = {
-                         ThemeSettingsBasicTab(
-                             shared = shared,
-                             section = ThemeSettingsBasicSection.COLORS_AND_MODE,
-                         )
-                     },
-                     typographyContent = {
-                         ThemeSettingsBasicTab(
-                             shared = shared,
-                             section = ThemeSettingsBasicSection.TYPOGRAPHY,
-                         )
+                    colorsAndModeContent = {
+                        ThemeSettingsBasicTab(
+                            shared = shared,
+                            section = ThemeSettingsBasicSection.COLORS_AND_MODE,
+                        )
+                    },
+                    typographyContent = {
+                        ThemeSettingsBasicTab(
+                            shared = shared,
+                            section = ThemeSettingsBasicSection.TYPOGRAPHY,
+                        )
                     },
                     backgroundContent = {
                         ThemeSettingsBackgroundTab(
                             shared = shared,
                         )
                     },
-                     conversationContent = {
-                         ThemeSettingsChatTab(
-                             shared = shared,
-                             cardColors = cardColors,
-                         )
-                     },
-                     messageDetailsContent = {
-                         ThemeSettingsMessageDetailsTab(
-                             editorSession = shared.editorSession,
-                         )
-                     },
-                     composerContent = {
+                    conversationContent = {
+                        ThemeSettingsConversationTab(
+                            shared = shared,
+                        )
+                    },
+                    messageDetailsContent = {
+                        ThemeSettingsMessageDetailsTab(
+                            editorSession = shared.editorSession,
+                        )
+                    },
+                    composerContent = {
                         ThemeSettingsInputTab(
                             editorSession = shared.editorSession,
                         )
                     },
-                      appChromeContent = {
-                         ThemeSettingsInterfaceTab(
-                             shared = shared,
-                         )
-                     },
+                    appChromeContent = {
+                        ThemeSettingsInterfaceTab(
+                            shared = shared,
+                        )
+                    },
                     footerContent = {
                         ThemeSettingsFooter(
                             showSaveSuccessMessage = showSaveSuccessMessage,

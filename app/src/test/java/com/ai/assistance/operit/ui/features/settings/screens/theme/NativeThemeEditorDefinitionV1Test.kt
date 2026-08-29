@@ -17,6 +17,7 @@ import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.Nativ
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeFloatCommitPolicyV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeFloatFormatV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeStringChoiceDefinitionV1
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeTextInputDefinitionV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.applyNativeThemeBooleanControlV1
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -35,6 +36,7 @@ class NativeThemeEditorDefinitionV1Test {
                         is NativeThemeColorControlDefinitionV1 -> item.target.field.name
                         is NativeThemeFloatControlDefinitionV1 -> item.field.name
                         is NativeThemeStringChoiceDefinitionV1 -> item.field.name
+                        is NativeThemeTextInputDefinitionV1 -> item.field.name
                     }
                 }
             }
@@ -295,10 +297,274 @@ class NativeThemeEditorDefinitionV1Test {
                 "message.activity.show_processing.description",
                 "message.activity.show_dots",
                 "message.activity.show_dots.description",
+                "conversation",
+                "conversation.style",
+                "conversation.style.description",
+                "conversation.style.cursor",
+                "conversation.style.bubble",
+                "conversation.cursor.appearance",
+                "conversation.cursor.follow_theme",
+                "conversation.cursor.follow_theme.description",
+                "conversation.cursor.liquid_glass",
+                "conversation.cursor.liquid_glass.description",
+                "conversation.cursor.water_glass",
+                "conversation.cursor.water_glass.description",
+                "conversation.bubble.appearance",
+                "conversation.bubble.show_avatar",
+                "conversation.bubble.show_avatar.description",
+                "conversation.bubble.wide_layout",
+                "conversation.bubble.wide_layout.description",
+                "conversation.bubble.user.liquid_glass",
+                "conversation.bubble.user.liquid_glass.description",
+                "conversation.bubble.user.water_glass",
+                "conversation.bubble.user.water_glass.description",
+                "conversation.bubble.ai.liquid_glass",
+                "conversation.bubble.ai.liquid_glass.description",
+                "conversation.bubble.ai.water_glass",
+                "conversation.bubble.ai.water_glass.description",
+                "conversation.bubble.image.render_mode",
+                "conversation.bubble.image.render_mode.description",
+                "conversation.bubble.image.render_mode.nine_patch",
+                "conversation.bubble.image.render_mode.tiled",
+                "conversation.bubble.rounded_corners.description",
+                "conversation.bubble.rounded_corners.user",
+                "conversation.bubble.rounded_corners.ai",
+                "conversation.bubble.colors",
+                "conversation.bubble.user.color",
+                "conversation.bubble.ai.color",
+                "conversation.bubble.user.text_color",
+                "conversation.bubble.ai.text_color",
+                "conversation.bubble.user.font",
+                "conversation.bubble.ai.font",
+                "conversation.font.use_custom",
+                "conversation.font.use_custom.description",
+                "conversation.font.source",
+                "conversation.font.source.system",
+                "conversation.font.source.file",
+                "conversation.font.system_name",
+                "conversation.font.system.default",
+                "conversation.font.system.serif",
+                "conversation.font.system.sans_serif",
+                "conversation.font.system.monospace",
+                "conversation.font.system.cursive",
+                "conversation.font.file",
+                "conversation.font.file.description",
+                "conversation.font.file.select",
+                "conversation.font.file.clear",
+                "conversation.font.file.current",
+                "conversation.bubble.user.image",
+                "conversation.bubble.ai.image",
+                "conversation.bubble.image.description",
+                "conversation.bubble.image.pick",
+                "conversation.bubble.image.clear",
+                "conversation.bubble.image.selected",
+                "conversation.bubble.image.crop_left",
+                "conversation.bubble.image.crop_top",
+                "conversation.bubble.image.crop_right",
+                "conversation.bubble.image.crop_bottom",
+                "conversation.bubble.image.repeat_x_start",
+                "conversation.bubble.image.repeat_x_end",
+                "conversation.bubble.image.repeat_y_start",
+                "conversation.bubble.image.repeat_y_end",
+                "conversation.bubble.image.scale",
+                "conversation.bubble.padding_left",
+                "conversation.bubble.padding_right",
+                "conversation.avatar",
+                "conversation.avatar.description",
+                "conversation.avatar.user",
+                "conversation.avatar.ai",
+                "conversation.avatar.selected",
+                "conversation.avatar.reset",
+                "conversation.avatar.shape",
+                "conversation.avatar.shape.circle",
+                "conversation.avatar.shape.square",
+                "conversation.avatar.corner_radius",
+                "conversation.target_metadata",
+                "conversation.chat_title",
+                "conversation.chat_title.placeholder",
             ),
             keys,
         )
         assertEquals(keys.size, keys.toSet().size)
+    }
+
+    @Test
+    fun conversationDefinitionCoversVisualAndTargetMetadataFields() {
+        val items =
+            NativeThemeEditorDefinitionV1.conversation.groups.flatMap { group -> group.items }
+        val fields = items.map { item -> item.fieldName() }
+
+        assertEquals(
+            listOf(
+                "chat_style",
+                "cursor_user_bubble_follow_theme",
+                "cursor_user_bubble_liquid_glass",
+                "cursor_user_bubble_water_glass",
+                "cursor_user_bubble_color",
+                "bubble_show_avatar",
+                "bubble_wide_layout_enabled",
+                "bubble_user_bubble_liquid_glass",
+                "bubble_user_bubble_water_glass",
+                "bubble_ai_bubble_liquid_glass",
+                "bubble_ai_bubble_water_glass",
+                "bubble_image_render_mode",
+                "bubble_rounded_corners_enabled",
+                "bubble_ai_rounded_corners_enabled",
+                "bubble_user_bubble_color",
+                "bubble_ai_bubble_color",
+                "bubble_user_text_color",
+                "bubble_ai_text_color",
+                "bubble_user_use_custom_font",
+                "bubble_user_font_type",
+                "bubble_user_system_font_name",
+                "bubble_user_custom_font_path",
+                "bubble_ai_use_custom_font",
+                "bubble_ai_font_type",
+                "bubble_ai_system_font_name",
+                "bubble_ai_custom_font_path",
+                "bubble_user_use_image",
+                "bubble_user_image_uri",
+                "bubble_user_image_crop_left",
+                "bubble_user_image_crop_top",
+                "bubble_user_image_crop_right",
+                "bubble_user_image_crop_bottom",
+                "bubble_user_image_repeat_start",
+                "bubble_user_image_repeat_end",
+                "bubble_user_image_repeat_y_start",
+                "bubble_user_image_repeat_y_end",
+                "bubble_user_image_scale",
+                "bubble_content_padding_left",
+                "bubble_content_padding_right",
+                "bubble_ai_use_image",
+                "bubble_ai_image_uri",
+                "bubble_ai_image_crop_left",
+                "bubble_ai_image_crop_top",
+                "bubble_ai_image_crop_right",
+                "bubble_ai_image_crop_bottom",
+                "bubble_ai_image_repeat_start",
+                "bubble_ai_image_repeat_end",
+                "bubble_ai_image_repeat_y_start",
+                "bubble_ai_image_repeat_y_end",
+                "bubble_ai_image_scale",
+                "bubble_ai_content_padding_left",
+                "bubble_ai_content_padding_right",
+                "custom_user_avatar_uri",
+                "custom_ai_avatar_uri",
+                "avatar_shape",
+                "avatar_corner_radius",
+                "custom_chat_title",
+            ),
+            fields,
+        )
+        assertEquals(fields.size, fields.toSet().size)
+
+        val conversationChatFields =
+            NativeThemePreferenceSchemaV1.fields
+                .filter { field -> field.section == NativeThemePreferenceSection.CHAT }
+                .filterNot { field ->
+                    field.name in
+                        setOf(
+                            "show_thinking_process",
+                            "show_status_tags",
+                            "show_input_processing_status",
+                            "show_chat_floating_dots_animation",
+                            "show_model_provider",
+                            "show_model_name",
+                            "show_role_name",
+                            "show_user_name",
+                            "show_message_token_stats",
+                            "show_message_timing_stats",
+                            "show_message_timestamp",
+                        )
+                }
+                .map { field -> field.name }
+                .toSet()
+        assertEquals(conversationChatFields, fields.toSet() - "custom_ai_avatar_uri" - "custom_chat_title")
+
+        val metadataFields =
+            items
+                .filter { item ->
+                    when (item) {
+                        is NativeThemeAssetControlDefinitionV1 ->
+                            item.field.storageRole.name == "TARGET_METADATA"
+                        is NativeThemeTextInputDefinitionV1 ->
+                            item.field.storageRole.name == "TARGET_METADATA"
+                        else -> false
+                    }
+                }
+                .map { item -> item.fieldName() }
+        assertEquals(listOf("custom_ai_avatar_uri", "custom_chat_title"), metadataFields)
+    }
+
+    @Test
+    fun conversationDefinitionKeepsStyleAndAssetVisibility() {
+        val defaults = ThemePreferenceValues.defaultVisual()
+        val bubbleValues =
+            defaults.withString(
+                NativeThemePreferenceSchemaV1.chatStyle,
+                NativeThemePreferenceOptionsV1.CHAT_STYLE_BUBBLE,
+            )
+        val userImageValues =
+            bubbleValues
+                .withBoolean(NativeThemePreferenceSchemaV1.bubbleUserUseImage, true)
+                .withString(NativeThemePreferenceSchemaV1.bubbleUserImageUri, "file:///bubble.png")
+        val userGlassValues =
+            userImageValues.withBoolean(
+                NativeThemePreferenceSchemaV1.bubbleUserBubbleLiquidGlass,
+                true,
+            )
+
+        assertTrue(NativeThemeEditorDefinitionV1.conversationCursorAppearance.isVisible(defaults))
+        assertFalse(NativeThemeEditorDefinitionV1.conversationBubbleAppearance.isVisible(defaults))
+        assertFalse(NativeThemeEditorDefinitionV1.conversationCursorAppearance.isVisible(bubbleValues))
+        assertTrue(NativeThemeEditorDefinitionV1.conversationBubbleAppearance.isVisible(bubbleValues))
+        assertEquals(
+            emptyList<String>(),
+            NativeThemeEditorDefinitionV1.conversationCursorAppearance
+                .visibleItems(defaults)
+                .filter { item -> item is NativeThemeColorControlDefinitionV1 }
+                .map { item -> item.fieldName() },
+        )
+        assertEquals(
+            listOf("cursor_user_bubble_color"),
+            NativeThemeEditorDefinitionV1.conversationCursorAppearance
+                .visibleItems(defaults.withBoolean(NativeThemePreferenceSchemaV1.cursorUserBubbleFollowTheme, false))
+                .filter { item -> item is NativeThemeColorControlDefinitionV1 }
+                .map { item -> item.fieldName() },
+        )
+        assertEquals(
+            listOf(
+                "bubble_user_use_image",
+            ),
+            NativeThemeEditorDefinitionV1.conversationUserImage
+                .visibleItems(bubbleValues)
+                .map { item -> item.fieldName() },
+        )
+        assertEquals(
+            listOf(
+                "bubble_user_use_image",
+                "bubble_user_image_uri",
+                "bubble_user_image_crop_left",
+                "bubble_user_image_crop_top",
+                "bubble_user_image_crop_right",
+                "bubble_user_image_crop_bottom",
+                "bubble_user_image_repeat_start",
+                "bubble_user_image_repeat_end",
+                "bubble_user_image_repeat_y_start",
+                "bubble_user_image_repeat_y_end",
+                "bubble_user_image_scale",
+                "bubble_content_padding_left",
+                "bubble_content_padding_right",
+            ),
+            NativeThemeEditorDefinitionV1.conversationUserImage
+                .visibleItems(userImageValues)
+                .map { item -> item.fieldName() },
+        )
+        val imageToggle =
+            NativeThemeEditorDefinitionV1.conversationUserImage.items.first()
+                as NativeThemeBooleanControlDefinitionV1
+        assertTrue(imageToggle.isEnabled(userImageValues))
+        assertFalse(imageToggle.isEnabled(userGlassValues))
     }
 
     @Test
@@ -354,6 +620,7 @@ class NativeThemeEditorDefinitionV1Test {
                 "colors_mode",
                 "typography",
                 "background",
+                "conversation",
                 "message_details",
                 "composer",
                 "app_chrome",
@@ -744,5 +1011,6 @@ class NativeThemeEditorDefinitionV1Test {
             is NativeThemeColorControlDefinitionV1 -> target.field.name
             is NativeThemeFloatControlDefinitionV1 -> field.name
             is NativeThemeStringChoiceDefinitionV1 -> field.name
+            is NativeThemeTextInputDefinitionV1 -> field.name
         }
 }

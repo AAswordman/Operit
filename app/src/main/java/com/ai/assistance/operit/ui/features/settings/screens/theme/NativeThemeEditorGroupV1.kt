@@ -37,6 +37,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +69,7 @@ import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.Nativ
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeFloatCommitPolicyV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeFloatFormatV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeStringChoiceDefinitionV1
+import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeTextInputDefinitionV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeEditorValueChangeV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.NativeThemeEditorValueOverridesV1
 import com.ai.assistance.operit.ui.features.settings.theme.editor.contract.applyNativeThemeBooleanControlV1
@@ -80,6 +82,7 @@ internal fun NativeThemeEditorGroupV1(
     editorSession: ThemeEditorSession,
     onColorRequested: ((NativeThemeColorControlDefinitionV1, Int) -> Unit)? = null,
     onAssetRequested: ((NativeThemeAssetControlDefinitionV1) -> Unit)? = null,
+    onAssetCleared: ((NativeThemeAssetControlDefinitionV1) -> Unit)? = null,
     valueOverrides: NativeThemeEditorValueOverridesV1 = NativeThemeEditorValueOverridesV1(),
     onValueChanged: ((NativeThemeEditorValueChangeV1) -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -130,6 +133,7 @@ internal fun NativeThemeEditorGroupV1(
             editorSession = editorSession,
             onColorRequested = onColorRequested,
             onAssetRequested = onAssetRequested,
+            onAssetCleared = onAssetCleared,
             onValueChanged = onValueChanged,
         )
 
@@ -165,6 +169,7 @@ internal fun NativeThemeEditorGroupV1(
                     editorSession = editorSession,
                     onColorRequested = onColorRequested,
                     onAssetRequested = onAssetRequested,
+                    onAssetCleared = onAssetCleared,
                     onValueChanged = onValueChanged,
                 )
             }
@@ -179,6 +184,7 @@ private fun NativeThemeEditorItemsV1(
     editorSession: ThemeEditorSession,
     onColorRequested: ((NativeThemeColorControlDefinitionV1, Int) -> Unit)?,
     onAssetRequested: ((NativeThemeAssetControlDefinitionV1) -> Unit)?,
+    onAssetCleared: ((NativeThemeAssetControlDefinitionV1) -> Unit)?,
     onValueChanged: ((NativeThemeEditorValueChangeV1) -> Unit)?,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -192,6 +198,7 @@ private fun NativeThemeEditorItemsV1(
                 editorSession = editorSession,
                 onColorRequested = onColorRequested,
                 onAssetRequested = onAssetRequested,
+                onAssetCleared = onAssetCleared,
                 onValueChanged = onValueChanged,
                 modifier = Modifier.padding(top = if (index == 0) 12.dp else 4.dp),
             )
@@ -206,6 +213,7 @@ private fun NativeThemeEditorItemV1(
     editorSession: ThemeEditorSession,
     onColorRequested: ((NativeThemeColorControlDefinitionV1, Int) -> Unit)?,
     onAssetRequested: ((NativeThemeAssetControlDefinitionV1) -> Unit)?,
+    onAssetCleared: ((NativeThemeAssetControlDefinitionV1) -> Unit)?,
     onValueChanged: ((NativeThemeEditorValueChangeV1) -> Unit)?,
     modifier: Modifier,
 ) {
@@ -214,6 +222,7 @@ private fun NativeThemeEditorItemV1(
             NativeThemeBooleanControlV1(
                 definition = definition,
                 checked = values.requiredBoolean(definition.field),
+                enabled = definition.isEnabled(values),
                 onCheckedChange = { checked ->
                     if (onValueChanged != null) {
                         onValueChanged(
@@ -271,7 +280,13 @@ private fun NativeThemeEditorItemV1(
                 onSelect = {
                     onAssetRequested?.invoke(definition)
                 },
-                onClear = { editorSession.setOptionalString(definition.field, null) },
+                onClear = {
+                    if (onAssetCleared != null) {
+                        onAssetCleared(definition)
+                    } else {
+                        editorSession.setOptionalString(definition.field, null)
+                    }
+                },
                 modifier = modifier,
             )
 
@@ -286,6 +301,22 @@ private fun NativeThemeEditorItemV1(
                         )
                     } else {
                         editorSession.setString(definition.field, value)
+                    }
+                },
+                modifier = modifier,
+            )
+
+        is NativeThemeTextInputDefinitionV1 ->
+            NativeThemeTextInputV1(
+                definition = definition,
+                value = values.string(definition.field) ?: "",
+                onValueChange = { value ->
+                    if (onValueChanged != null) {
+                        onValueChanged(
+                            NativeThemeEditorValueChangeV1.TextChanged(definition, value),
+                        )
+                    } else {
+                        editorSession.setOptionalString(definition.field, value)
                     }
                 },
                 modifier = modifier,
@@ -431,6 +462,14 @@ private fun NativeThemeAssetControlV1(
             }
         }
         value?.takeIf { it.isNotEmpty() }?.let { currentValue ->
+            definition.valueStatusLabel?.let { valueStatusLabel ->
+                Text(
+                    text = valueStatusLabel.localizedText(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
             val valueLabel = definition.currentValueLabel ?: return@let
             Text(
                 text =
@@ -528,6 +567,7 @@ private fun NativeThemeColorControlV1(
 private fun NativeThemeBooleanControlV1(
     definition: NativeThemeBooleanControlDefinitionV1,
     checked: Boolean,
+    enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier,
 ) {
@@ -538,6 +578,7 @@ private fun NativeThemeBooleanControlV1(
                 .defaultMinSize(minHeight = 64.dp)
                 .toggleable(
                     value = checked,
+                    enabled = enabled,
                     role = Role.Switch,
                     onValueChange = onCheckedChange,
                 )
@@ -563,7 +604,34 @@ private fun NativeThemeBooleanControlV1(
         } else {
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
         }
-        Switch(checked = checked, onCheckedChange = null)
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+    }
+}
+
+@Composable
+private fun NativeThemeTextInputV1(
+    definition: NativeThemeTextInputDefinitionV1,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(definition.title.localizedText()) },
+            placeholder = definition.placeholder?.let { key -> { Text(key.localizedText()) } },
+            singleLine = definition.singleLine,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        definition.description?.let { description ->
+            Text(
+                text = description.localizedText(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
     }
 }
 

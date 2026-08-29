@@ -53,3 +53,11 @@
 - 聊天与背景设置预览使用草稿主题解析器，保存完成阶段使用不可取消上下文保护暂存素材。
 - 静态检查：`git diff --check` 通过，删除文件和新接口引用已核对。
 - 按仓库执行准则，本批次未执行构建、单元测试或 Android Compose 测试。
+
+### 2026-08-29：Conversation 定义驱动迁移
+
+- 新增 `native_v1` Conversation 分区，覆盖聊天样式、气泡颜色、字体、图片参数、头像、圆角和目标聊天标题。
+- 资源选择继续使用编辑会话的暂存登记、代次校验、裁剪和 `.9.png` 参数解析。
+- Conversation 预览接入生产 `CursorStyleChatMessage` 和 `BubbleStyleChatMessage`，删除旧手写聊天与头像预览。
+- 静态检查：`git diff --check` 通过，旧 Conversation UI 符号和生产引用已核对。
+- 按仓库执行准则，本批次未执行单元测试、Android Compose 测试或构建。
