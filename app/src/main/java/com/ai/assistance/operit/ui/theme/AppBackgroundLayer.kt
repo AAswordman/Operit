@@ -21,7 +21,6 @@ fun AppBackgroundLayer(
     backgroundBlurRadius: Float,
     modifier: Modifier = Modifier.fillMaxSize(),
 ) {
-    val baseBackgroundColor = if (darkTheme) Color.Black else Color.White
     val background =
         NativeThemeBackgroundSpec(
             enabled = useBackgroundImage && backgroundImageUri != null,
@@ -33,6 +32,33 @@ fun AppBackgroundLayer(
             videoMuted = videoBackgroundMuted,
             videoLoop = videoBackgroundLoop,
         )
+
+    NativeThemeBackgroundLayer(
+        darkTheme = darkTheme,
+        background = background,
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun ResolvedThemeBackgroundLayer(
+    resolvedTheme: ResolvedNativeThemeV1,
+    modifier: Modifier = Modifier.fillMaxSize(),
+) {
+    NativeThemeBackgroundLayer(
+        darkTheme = resolvedTheme.darkTheme,
+        background = resolvedTheme.background,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun NativeThemeBackgroundLayer(
+    darkTheme: Boolean,
+    background: NativeThemeBackgroundSpec,
+    modifier: Modifier,
+) {
+    val baseBackgroundColor = if (darkTheme) Color.Black else Color.White
 
     Box(modifier = modifier.background(baseBackgroundColor)) {
         NativeThemeBackgroundMediaHostAdapter(

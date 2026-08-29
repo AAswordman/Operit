@@ -39,6 +39,7 @@
 - [DONE] 纯单元测试覆盖系统与固定明暗模式、自定义颜色、背景、字体和系统栏规格
 - [DONE] 主界面窗口系统栏副作用由 `NativeThemeMainWindowChromeHostAdapter` 应用
 - [DONE] 背景播放器、图片和视频资源失败事件由 `NativeThemeBackgroundMediaHostAdapter` 承载
-- [PENDING] 接入悬浮窗、Overlay 和 Glance 宿主；消息图片离屏导出已复用背景媒体适配器
+- [DONE] 消息图片离屏导出和编辑器预览通过 `NativeThemeOffscreenHost` 解析并注入 `OFFSCREEN` 主题
+- [PENDING] 接入悬浮窗、Overlay 和 Glance 宿主
 
 本阶段当前改动已经过两次独立静态审查，确认主界面行为与上游一致。独立 WebChat 及其颜色解析器未修改。

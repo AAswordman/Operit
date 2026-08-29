@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,8 +39,9 @@ import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorStyleChatMessage
-import com.ai.assistance.operit.ui.theme.AppBackgroundLayer
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.ui.theme.NativeThemeOffscreenHost
+import com.ai.assistance.operit.ui.theme.ResolvedThemeBackgroundLayer
+import com.ai.assistance.operit.ui.theme.resolveNativeThemeOffscreen
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -121,17 +120,12 @@ object MessageImageGenerator {
             
             // 在主线程上创建、附加和捕获 Composable 内容
             val bitmap = withContext(Dispatchers.Main) {
-                // 检查当前是否为暗色模式
-                val isDarkTheme = (context.resources.configuration.uiMode and 
-                    Configuration.UI_MODE_NIGHT_MASK) == 
-                    Configuration.UI_MODE_NIGHT_YES
-                
-                // 根据暗色模式选择颜色方案
-                val colorScheme = if (isDarkTheme) {
-                    darkColorScheme()
-                } else {
-                    lightColorScheme()
-                }
+                val resolvedTheme =
+                    resolveNativeThemeOffscreen(
+                        context = context,
+                        snapshot = themeSnapshot,
+                        systemDarkTheme = context.isSystemInDarkTheme(),
+                    )
                 
                 // 创建 ComposeView，包含所有消息内容
                 val composeView = ComposeView(context).apply {
@@ -145,24 +139,15 @@ object MessageImageGenerator {
                             .memoryCachePolicy(CachePolicy.ENABLED)
                             .build()
 
-                        CompositionLocalProvider(
-                            LocalImageLoader provides softwareImageLoader,
-                            LocalThemePreferenceSnapshot provides themeSnapshot,
-                        ) {
-                            MaterialTheme(colorScheme = colorScheme) {
+                        CompositionLocalProvider(LocalImageLoader provides softwareImageLoader) {
+                            NativeThemeOffscreenHost(
+                                snapshot = themeSnapshot,
+                                resolvedTheme = resolvedTheme,
+                            ) {
                             // 不再使用 Capturable，直接渲染内容
                             val density = LocalDensity.current
                             val widthDp = with(density) { width.toDp() }
                             val colorScheme = MaterialTheme.colorScheme
-                            val useBackgroundImage = themeSnapshot.useBackgroundImage
-                            val backgroundImageUri = themeSnapshot.backgroundImageUri
-                            val backgroundImageOpacity = themeSnapshot.backgroundImageOpacity
-                            val backgroundMediaType = themeSnapshot.backgroundMediaType
-                            val videoBackgroundMuted = themeSnapshot.videoBackgroundMuted
-                            val videoBackgroundLoop = themeSnapshot.videoBackgroundLoop
-                            val useBackgroundBlur = themeSnapshot.useBackgroundBlur
-                            val backgroundBlurRadius = themeSnapshot.backgroundBlurRadius
-
 
                             val cardBackgroundColor = if (includeBackground) Color.Transparent else colorScheme.surface
                             val headerBackgroundColor = if (includeBackground) Color.Transparent else colorScheme.surfaceVariant
@@ -194,16 +179,8 @@ object MessageImageGenerator {
                                                     .background(cardBackgroundColor)
                                         ) {
                                             if (includeBackground) {
-                                                AppBackgroundLayer(
-                                                    darkTheme = isDarkTheme,
-                                                    useBackgroundImage = useBackgroundImage,
-                                                    backgroundImageUri = backgroundImageUri,
-                                                    backgroundImageOpacity = backgroundImageOpacity,
-                                                    backgroundMediaType = backgroundMediaType,
-                                                    videoBackgroundMuted = videoBackgroundMuted,
-                                                    videoBackgroundLoop = videoBackgroundLoop,
-                                                    useBackgroundBlur = useBackgroundBlur,
-                                                    backgroundBlurRadius = backgroundBlurRadius,
+                                                ResolvedThemeBackgroundLayer(
+                                                    resolvedTheme = resolvedTheme,
                                                     modifier = Modifier.matchParentSize()
                                                 )
                                             }
@@ -336,66 +313,87 @@ object MessageImageGenerator {
                 
                 // 添加到根视图（视图在屏幕外，用户看不到）
                 rootView.addView(scrollView)
-                
-                // 手动触发测量和布局，确保内容完全展开
-                // 使用 EXACTLY 模式指定宽度，UNSPECIFIED 模式让高度自由扩展
-                val widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
-                val heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-                scrollView.measure(widthMeasureSpec, heightMeasureSpec)
-                scrollView.layout(0, 0, scrollView.measuredWidth, scrollView.measuredHeight)
-                
-                AppLogger.d(TAG, "ScrollView 测量完成，尺寸: ${scrollView.measuredWidth}x${scrollView.measuredHeight}")
-                
-                // 等待 Compose 完成布局（给它一些时间）
-                delay(500)
-                
-                val capturedBitmap: Bitmap
                 try {
-                    // 使用 ScrollView 子视图的完整高度创建 Bitmap
-                    // 这是关键：getChildAt(0).height 获取完整的内容高度
-                    val contentHeight = scrollView.getChildAt(0).height
-                    AppLogger.d(TAG, "内容完整高度: $contentHeight")
-                    
-                    var tempBitmap = Bitmap.createBitmap(
-                        scrollView.width,
-                        contentHeight,
-                        Bitmap.Config.ARGB_8888
+                    // The attached view can own an offscreen player, including during cancellation.
+                    val widthMeasureSpec =
+                        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+                    val heightMeasureSpec =
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                    scrollView.measure(widthMeasureSpec, heightMeasureSpec)
+                    scrollView.layout(0, 0, scrollView.measuredWidth, scrollView.measuredHeight)
+
+                    AppLogger.d(
+                        TAG,
+                        "ScrollView 测量完成，尺寸: ${scrollView.measuredWidth}x${scrollView.measuredHeight}",
                     )
-                    val canvas = Canvas(tempBitmap)
-                    
-                    // includeBackground=true 时，外围保持透明，仅卡片内部渲染应用背景
-                    val backgroundColor = if (includeBackground) {
-                        AndroidColor.TRANSPARENT
-                    } else if (isDarkTheme) {
-                        AndroidColor.BLACK
-                    } else {
-                        AndroidColor.WHITE
+
+                    // 等待 Compose 完成布局（给它一些时间）
+                    delay(500)
+
+                    try {
+                        // 使用 ScrollView 子视图的完整高度创建 Bitmap
+                        // 这是关键：getChildAt(0).height 获取完整的内容高度
+                        val contentHeight = scrollView.getChildAt(0).height
+                        AppLogger.d(TAG, "内容完整高度: $contentHeight")
+
+                        val tempBitmap =
+                            Bitmap.createBitmap(
+                                scrollView.width,
+                                contentHeight,
+                                Bitmap.Config.ARGB_8888,
+                            )
+                        try {
+                            val canvas = Canvas(tempBitmap)
+
+                            // includeBackground=true 时，外围保持透明，仅卡片内部渲染应用背景
+                            val backgroundColor =
+                                if (includeBackground) {
+                                    AndroidColor.TRANSPARENT
+                                } else if (resolvedTheme.darkTheme) {
+                                    AndroidColor.BLACK
+                                } else {
+                                    AndroidColor.WHITE
+                                }
+                            canvas.drawColor(backgroundColor)
+                            scrollView.draw(canvas)
+
+                            // 检查是否为硬件 Bitmap，如果是则转换为软件 Bitmap
+                            // 软件渲染不支持硬件 Bitmap，需要转换为软件 Bitmap
+                            val capturedBitmap =
+                                if (
+                                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                                        tempBitmap.config == Bitmap.Config.HARDWARE
+                                ) {
+                                    AppLogger.d(TAG, "检测到硬件 Bitmap，转换为软件 Bitmap")
+                                    val softwareBitmap = tempBitmap.copy(Bitmap.Config.ARGB_8888, false)
+                                    tempBitmap.recycle()
+                                    softwareBitmap
+                                } else {
+                                    tempBitmap
+                                }
+
+                            AppLogger.d(
+                                TAG,
+                                "捕获成功，图片尺寸: ${capturedBitmap.width}x${capturedBitmap.height}",
+                            )
+                            capturedBitmap
+                        } catch (e: Throwable) {
+                            if (!tempBitmap.isRecycled) {
+                                tempBitmap.recycle()
+                            }
+                            throw e
+                        }
+                    } catch (e: Throwable) {
+                        AppLogger.e(TAG, "捕获失败", e)
+                        throw RuntimeException(
+                            context.getString(R.string.message_image_capture_failed, e.message ?: ""),
+                            e,
+                        )
                     }
-                    canvas.drawColor(backgroundColor)
-                    
-                    scrollView.draw(canvas)
-                    
-                    // 检查是否为硬件 Bitmap，如果是则转换为软件 Bitmap
-                    // 软件渲染不支持硬件 Bitmap，需要转换为软件 Bitmap
-                    capturedBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && tempBitmap.config == Bitmap.Config.HARDWARE) {
-                        AppLogger.d(TAG, "检测到硬件 Bitmap，转换为软件 Bitmap")
-                        val softwareBitmap = tempBitmap.copy(Bitmap.Config.ARGB_8888, false)
-                        tempBitmap.recycle()
-                        softwareBitmap
-                    } else {
-                        tempBitmap
-                    }
-                    
-                    AppLogger.d(TAG, "捕获成功，图片尺寸: ${capturedBitmap.width}x${capturedBitmap.height}")
-                } catch (e: Throwable) {
-                    AppLogger.e(TAG, "捕获失败", e)
-                    throw RuntimeException(context.getString(R.string.message_image_capture_failed, e.message ?: ""), e)
                 } finally {
                     AppLogger.d(TAG, "从窗口移除 ScrollView")
-                    // 确保无论成功还是失败，都将视图移除
                     rootView.removeView(scrollView)
                 }
-                capturedBitmap
             }
             
             // 在 IO 线程上保存文件
@@ -428,6 +426,9 @@ object MessageImageGenerator {
     }
 }
 
+private fun Context.isSystemInDarkTheme(): Boolean =
+    (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+        Configuration.UI_MODE_NIGHT_YES
 
 private fun Context.findActivity(): Activity? {
     var context = this

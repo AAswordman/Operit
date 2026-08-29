@@ -129,6 +129,72 @@ class NativeThemeRuntimeTest {
         assertEquals(resolved.colorScheme, resolved.contentColorScheme)
     }
 
+    @Test
+    fun offscreenResolutionUsesTheTargetSnapshotInsteadOfSystemDefaults() {
+        val primary = Color(0xFF204060)
+        val values =
+            ThemePreferenceValues.defaultVisual()
+                .withBoolean(NativeThemePreferenceSchemaV1.useSystemTheme, false)
+                .withString(
+                    NativeThemePreferenceSchemaV1.themeMode,
+                    UserPreferencesManager.THEME_MODE_DARK,
+                )
+                .withBoolean(NativeThemePreferenceSchemaV1.useCustomColors, true)
+                .withInt(NativeThemePreferenceSchemaV1.customPrimaryColor, primary.toArgb())
+                .withBoolean(NativeThemePreferenceSchemaV1.useBackgroundImage, true)
+                .withString(
+                    NativeThemePreferenceSchemaV1.backgroundImageUri,
+                    "file:///theme/export-background.png",
+                )
+                .withBoolean(NativeThemePreferenceSchemaV1.useCustomFont, true)
+                .withString(NativeThemePreferenceSchemaV1.fontType, UserPreferencesManager.FONT_TYPE_FILE)
+                .withString(NativeThemePreferenceSchemaV1.customFontPath, "/theme/export-font.ttf")
+                .withFloat(NativeThemePreferenceSchemaV1.fontScale, 1.25f)
+        val resolved =
+            resolveNativeThemeOffscreen(
+                snapshot =
+                    ThemePreferenceSnapshot(
+                        source = "character_card",
+                        sourceId = "test-card",
+                        values = values,
+                    ),
+                systemDarkTheme = false,
+                lightColorScheme = lightColorScheme(),
+                darkColorScheme = darkColorScheme(),
+            )
+
+        assertEquals(NativeThemeHostSurface.OFFSCREEN, resolved.environment.hostSurface)
+        assertTrue(resolved.darkTheme)
+        assertEquals(lighten(primary, 0.2f), resolved.colorScheme.primary)
+        assertTrue(resolved.background.enabled)
+        assertEquals("file:///theme/export-background.png", resolved.background.uri)
+        assertTrue(resolved.typography.useCustomFont)
+        assertEquals("/theme/export-font.ttf", resolved.typography.customFontPath)
+        assertEquals(1.25f, resolved.typography.fontScale)
+    }
+
+    @Test
+    fun offscreenResolutionSelectsTheInjectedDarkBasePalette() {
+        val lightScheme = lightColorScheme(primary = Color.Red)
+        val darkScheme = darkColorScheme(primary = Color.Blue)
+        val resolved =
+            resolveNativeThemeOffscreen(
+                snapshot =
+                    ThemePreferenceSnapshot(
+                        source = "character_card",
+                        sourceId = "test-card",
+                        values = ThemePreferenceValues.defaultVisual(),
+                    ),
+                systemDarkTheme = true,
+                lightColorScheme = lightScheme,
+                darkColorScheme = darkScheme,
+            )
+
+        assertEquals(NativeThemeHostSurface.OFFSCREEN, resolved.environment.hostSurface)
+        assertTrue(resolved.darkTheme)
+        assertEquals(darkScheme, resolved.colorScheme)
+    }
+
     private fun resolve(
         values: ThemePreferenceValues = ThemePreferenceValues.defaultVisual(),
         systemDarkTheme: Boolean = false,
