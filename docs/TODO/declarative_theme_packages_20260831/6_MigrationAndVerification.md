@@ -26,3 +26,17 @@
 - 场景链接、资源校验、参数校验和能力校验都有稳定错误码
 - 固定安全面在主题包损坏或删除时始终可用
 - 主题包样例证明相同聊天语义能生成赛博、奇幻和像素三种完整界面
+
+## 构建记录
+
+### 2026-08-31：批次 1 清理 + 批次 2/3 基础 release 构建
+
+- 分支：`feat/plugin-interface`
+- 提交：`57646123`（移除 Theme Studio 试点）、`9b24f6f5`（stat 合同字段修复）、`db2e928b`（全局选择与 Scene 契约）
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-db2e928b.apk`
+- 产物大小：`403527327` 字节
+- SHA-256：`a0dfaf5538a206fad06e938db79c46655e4ae6e46a19ac56691226076a0089dd`
+- `57646123` 首轮编译失败：stat 合同回退 1.0 时误删 `styleFamily`/`styleParts`/`styleStateAxes` 必填参数；`9b24f6f5` 恢复最小 surface+content 声明后通过。
+- 本轮 release 汇编验证：Theme Studio 试点移除后生产源集编译通过；`theme_package_selection` DataStore、`ThemeInstanceV1` 模型、Scene DSL v1 契约/校验/目录与配套 JVM 测试源集纳入构建。JVM 测试未在本动作执行。
