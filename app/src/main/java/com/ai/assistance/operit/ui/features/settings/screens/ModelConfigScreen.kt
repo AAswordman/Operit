@@ -1376,9 +1376,11 @@ private fun ThinkingConfigurationsSection(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     when {
-                                        !canRestorePresets -> stringResource(R.string.thinking_config_add_preset)
-                                        availablePresetRules.isEmpty() -> stringResource(R.string.thinking_config_all_presets_added)
-                                        else -> stringResource(R.string.thinking_config_add_preset)
+                                        !canRestorePresets ->
+                                            stringResource(R.string.thinking_config_preset_add)
+                                        availablePresetRules.isEmpty() ->
+                                            stringResource(R.string.thinking_config_all_presets_added)
+                                        else -> stringResource(R.string.thinking_config_preset_add)
                                     }
                                 )
                             }
