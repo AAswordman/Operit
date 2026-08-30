@@ -1,0 +1,83 @@
+name: OperitX APK Build
+
+on:
+  push:
+    branches: [feature/nonox-integration, main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        run: sdkmanager "ndk;27.0.12077973"
+
+      - name: Install CMake
+        run: sdkmanager "cmake;3.22.1"
+
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Build ripgrep native library
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
+          rustup target add aarch64-linux-android
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$ANDROID_HOME/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android23-clang
+          cd tools/native_ripgrep
+          cargo build --release --target aarch64-linux-android
+          mkdir -p ../../app/src/main/jniLibs/arm64-v8a
+          cp target/aarch64-linux-android/release/liboperit_ripgrep.so ../../app/src/main/jniLibs/arm64-v8a/
+
+      - name: Create stub ffmpeg-kit AAR
+        run: |
+          mkdir -p /tmp/ffmpegkit-aar/jni/arm64-v8a /tmp/ffmpegkit-aar/classes
+          echo "Manifest-Version: 1.0" > /tmp/ffmpegkit-aar/classes/MANIFEST.MF
+          cat > /tmp/ffmpegkit-aar/AndroidManifest.xml << 'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.arthenica.ffmpegkit">
+          </manifest>
+          MANIFEST
+          cd /tmp/ffmpegkit-aar
+          for lib in libffmpegkit.so libffmpegkit_abidetect.so libavcodec.so libavdevice.so libavfilter.so libavformat.so libavutil.so libc++_shared.so libswresample.so libswscale.so; do
+            echo "stub" > jni/arm64-v8a/$lib
+          done
+          zip -r $GITHUB_WORKSPACE/app/libs/ffmpeg-kit-local.aar AndroidManifest.xml classes/ jni/
+
+      - name: Build new modules (provider, orchestration, memory)
+        run: |
+          ./gradlew :provider:compileDebugKotlin :orchestration:compileDebugKotlin :memory:compileDebugKotlin --no-daemon
+
+      - name: Run unit tests
+        run: |
+          ./gradlew :provider:testDebugUnitTest :orchestration:testDebugUnitTest :memory:testDebugUnitTest --no-daemon
+
+      - name: Build debug APK
+        run: |
+          ./gradlew assembleDebug -x compileDebugAidl --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonox-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
