@@ -187,10 +187,13 @@ class ThemePackageArchiveAndPublicationTest {
 
     @Test
     fun futureSchemaVersionIsRejected() {
-        val manifest = minimalManifest().copy(schemaVersion = 2)
+        val rawManifest =
+            json.encodeToString(minimalManifest())
+                .replace("\"schemaVersion\":1", "\"schemaVersion\":2")
+        val archive = writeArchive(minimalManifest(), rawManifestJson = rawManifest)
 
-        assertThrows(IllegalArgumentException::class.java) {
-            writeArchive(manifest)
+        assertThrows(ThemePackageArchiveValidationException::class.java) {
+            ThemePackageArchiveValidatorV1.validate(archive)
         }
     }
 

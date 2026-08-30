@@ -49,6 +49,12 @@ internal object ThemePackagePublicationV1 {
         if (target.exists()) return coordinate
 
         root.mkdirs()
+        val targetParent = requireNotNull(target.parentFile)
+        if (!targetParent.exists() && !targetParent.mkdirs()) {
+            throw ThemePackageInstallException(
+                "Unable to create the theme installation directory: ${targetParent.absolutePath}",
+            )
+        }
         val publishing = File(root, ".publishing-${UUID.randomUUID()}")
         try {
             publishing.mkdirs()
