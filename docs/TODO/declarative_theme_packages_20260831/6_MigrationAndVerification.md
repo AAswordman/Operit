@@ -29,6 +29,18 @@
 
 ## 构建记录
 
+### 2026-08-31：批次 E（`.otheme` 格式、安装器、内置参数和主题页）release 构建
+
+- 分支：`feat/plugin-interface`
+- 提交：`f437db2f`（manifest/校验器/发布器/安装器/设置页）、`7e3b49de`/`c52e6239`/`df6da944`（集成、可见性和原子发布修复）、`f03762f8`（基底/token 链接和背景穿透）、`f6a09d50`（格式文档与模型约束）
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-f6a09d50.apk`
+- 产物大小：`402953887` 字节
+- SHA-256：`1b0dd00bb83b551de832a6a903ad700029878522dc97a1b45bab62e63f460a31`
+- 容器验证：`:app:compileReleaseKotlin` 与 `:app:testReleaseUnitTest --tests "com.ai.assistance.operit.data.theme.packages.*" --tests "com.ai.assistance.operit.ui.theme.scene.*"` 通过。
+- 落地：专有 `.otheme` 扩展名、根 `operit-theme.json` 严格 manifest、资源 SHA-256/MIME/路径/压缩限制、内容寻址私有安装目录、精确基底依赖、内置 `operit.reference` 的主色/静态背景图参数、设置页本地导入/启用/卸载和参数编辑；场景 token/资源链接在安装阶段校验。尚未做设备端主题页操作和聊天场景换肤验证，后者属于批次 F。
+
 ### 2026-08-31：批次 D（Token 池 + Scene 渲染器 + 资产仓库）release 构建
 
 - 分支：`feat/plugin-interface`
