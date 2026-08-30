@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ai.assistance.operit.data.preferences.preferenceSchemaMigration
+import com.ai.assistance.operit.data.preferences.missingPreferencesSchemaMigration
 import com.ai.assistance.operit.data.preferences.versionedPreferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -22,14 +23,17 @@ private val themeSelectionJson = Json {
 
 private val Context.themePackageSelectionDataStore by versionedPreferencesDataStore(
     name = "theme_package_selection",
-    currentVersion = 1,
+    currentVersion = 2,
     createMigration = {
         preferenceSchemaMigration { version, preferences ->
-            check(version == 0) {
-                "Unsupported theme package selection schema migration from version $version"
+            when (version) {
+                0, 1 -> {
+                    preferences[THEME_INSTANCE_KEY] =
+                        themeSelectionJson.encodeToString(ThemeInstanceV1.defaultBundled())
+                }
+
+                else -> missingPreferencesSchemaMigration(version)
             }
-            preferences[THEME_INSTANCE_KEY] =
-                themeSelectionJson.encodeToString(ThemeInstanceV1.defaultBuiltIn())
         }
     },
 )

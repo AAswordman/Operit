@@ -15,8 +15,8 @@ class ThemePackageModelsV1Test {
         }
 
     @Test
-    fun defaultBuiltInRoundTripsThroughJson() {
-        val instance = ThemeInstanceV1.defaultBuiltIn()
+    fun defaultBundledRoundTripsThroughJson() {
+        val instance = ThemeInstanceV1.defaultBundled()
         val encoded = json.encodeToString(instance)
         assertEquals(instance, json.decodeFromString<ThemeInstanceV1>(encoded))
     }
@@ -26,7 +26,7 @@ class ThemePackageModelsV1Test {
         val instance =
             ThemeInstanceV1(
                 reference =
-                    ThemePackageReferenceV1.Installed(
+                    ThemePackageReferenceV1(
                         coordinate =
                             ThemePackageCoordinateV1(
                                 packageId = ThemePackageIdV1("author.cyber_night"),
@@ -69,7 +69,7 @@ class ThemePackageModelsV1Test {
     fun invalidParameterKeyIsRejected() {
         assertThrows(IllegalArgumentException::class.java) {
             ThemeInstanceV1(
-                reference = ThemeInstanceV1.defaultBuiltIn().reference,
+                reference = ThemeInstanceV1.defaultBundled().reference,
                 parameterValues =
                     mapOf("Bad Key" to ThemeParameterValueV1.BooleanValue(true)),
             )

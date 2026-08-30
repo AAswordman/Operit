@@ -53,10 +53,7 @@ internal value class ThemeParameterIdV1(val value: String) {
     }
 }
 
-/**
- * Identifies one immutable installed package version by content digest. Built-in themes never
- * synthesize a fake archive digest; they use [ThemePackageReferenceV1.BuiltIn] instead.
- */
+/** Identifies one immutable installed package version by content digest. */
 @Serializable
 internal data class ThemePackageCoordinateV1(
     val packageId: ThemePackageIdV1,
@@ -65,20 +62,9 @@ internal data class ThemePackageCoordinateV1(
 )
 
 @Serializable
-internal sealed interface ThemePackageReferenceV1 {
-    @Serializable
-    @SerialName("builtin")
-    data class BuiltIn(
-        val definitionId: ThemePackageIdV1,
-        val version: ThemePackageVersionV1,
-    ) : ThemePackageReferenceV1
-
-    @Serializable
-    @SerialName("installed")
-    data class Installed(
-        val coordinate: ThemePackageCoordinateV1,
-    ) : ThemePackageReferenceV1
-}
+internal data class ThemePackageReferenceV1(
+    val coordinate: ThemePackageCoordinateV1,
+)
 
 @Serializable
 internal sealed interface ThemeParameterValueV1 {
@@ -113,16 +99,9 @@ internal data class ThemeInstanceV1(
     }
 
     companion object {
-        val BUILTIN_REFERENCE_DEFINITION_ID = ThemePackageIdV1("operit.reference")
-        val BUILTIN_REFERENCE_VERSION = ThemePackageVersionV1("1.0.0")
-
-        fun defaultBuiltIn(): ThemeInstanceV1 =
+        fun defaultBundled(): ThemeInstanceV1 =
             ThemeInstanceV1(
-                reference =
-                    ThemePackageReferenceV1.BuiltIn(
-                        definitionId = BUILTIN_REFERENCE_DEFINITION_ID,
-                        version = BUILTIN_REFERENCE_VERSION,
-                    ),
+                reference = ThemePackageReferenceV1(ThemePackageDefaultV1.coordinate),
             )
     }
 }

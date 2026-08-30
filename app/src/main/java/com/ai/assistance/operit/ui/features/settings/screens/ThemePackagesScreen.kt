@@ -54,8 +54,8 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.theme.packages.PublishedThemeInstallationV1
 import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageBuiltInReferenceV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageBundledSamplesV1
+import com.ai.assistance.operit.data.theme.packages.ThemePackageDefaultV1
+import com.ai.assistance.operit.data.theme.packages.ThemePackageGlobalParameterIdsV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
 import com.ai.assistance.operit.data.theme.packages.ThemeParameterValueV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageReferenceV1
@@ -91,7 +91,7 @@ fun ThemePackagesScreen(
     val selectionRepository =
         remember(context) { ThemePackageSelectionRepository.getInstance(context) }
     val activeInstance by selectionRepository.selectionFlow.collectAsState(
-        initial = ThemeInstanceV1.defaultBuiltIn(),
+        initial = ThemeInstanceV1.defaultBundled(),
     )
     var installed by remember { mutableStateOf<List<PublishedThemeInstallationV1>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
@@ -139,7 +139,13 @@ fun ThemePackagesScreen(
                 uri,
                 android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
-            scope.launch { updateParameter(context, ThemePackageBuiltInReferenceV1.PARAM_BACKGROUND_IMAGE, ThemeParameterValueV1.StringValue(uri.toString())) }
+            scope.launch {
+                updateParameter(
+                    context,
+                    ThemePackageGlobalParameterIdsV1.BACKGROUND_IMAGE,
+                    ThemeParameterValueV1.StringValue(uri.toString()),
+                )
+            }
         }
 
     Scaffold(
@@ -171,41 +177,29 @@ fun ThemePackagesScreen(
                 }
             }
 
-            ThemeEntryCard(
-                title = ThemePackageBuiltInReferenceV1.manifest()
-                    .displayName.resolve(Locale.getDefault().language),
-                subtitle = stringResource(R.string.theme_packages_builtin),
-                selected = activeInstance.reference is ThemePackageReferenceV1.BuiltIn,
-                onActivate = {
-                    scope.launch {
-                        selectionRepository.replace(ThemeInstanceV1.defaultBuiltIn())
-                    }
-                },
-            )
-
             installed.forEach { installedPackage ->
                 val coordinate = installedPackage.coordinate
+                val isDefault = ThemePackageDefaultV1.isDefault(coordinate)
                 ThemeEntryCard(
                     title = installedPackage.manifest.displayName.resolve(Locale.getDefault().language),
                     subtitle =
-                        "${coordinate.packageId.value} · v${coordinate.version.value}",
-                    selected =
-                        (activeInstance.reference as? ThemePackageReferenceV1.Installed)
-                            ?.coordinate == coordinate,
+                        if (isDefault) {
+                            stringResource(R.string.theme_packages_builtin)
+                        } else {
+                            "${coordinate.packageId.value} · v${coordinate.version.value}"
+                        },
+                    selected = activeInstance.reference.coordinate == coordinate,
                     onActivate = {
                         scope.launch {
                             selectionRepository.replace(
                                 ThemeInstanceV1(
-                                    reference =
-                                        ThemePackageReferenceV1.Installed(
-                                            coordinate = coordinate,
-                                        ),
+                                    reference = ThemePackageReferenceV1(coordinate),
                                 ),
                             )
                         }
                     },
                     trailing =
-                        if (ThemePackageBundledSamplesV1.isBundled(coordinate)) {
+                        if (isDefault) {
                             null
                         } else {
                             {
@@ -241,33 +235,33 @@ fun ThemePackagesScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (activeInstance.reference is ThemePackageReferenceV1.BuiltIn) {
+            if (ThemePackageDefaultV1.isDefault(activeInstance.reference.coordinate)) {
                 PrimaryColorSection(
-                    activeArgb = activeInstance.parameterValues[ThemePackageBuiltInReferenceV1.PARAM_PRIMARY_COLOR]
+                    activeArgb = activeInstance.parameterValues[ThemePackageGlobalParameterIdsV1.PRIMARY_COLOR]
                         as? ThemeParameterValueV1.IntegerValue,
                     onPick = { argb ->
                         scope.launch {
                             updateParameter(
                                 context,
-                                ThemePackageBuiltInReferenceV1.PARAM_PRIMARY_COLOR,
+                                ThemePackageGlobalParameterIdsV1.PRIMARY_COLOR,
                                 ThemeParameterValueV1.IntegerValue(argb),
                             )
                         }
                     },
                     onReset = {
                         scope.launch {
-                            clearParameter(context, ThemePackageBuiltInReferenceV1.PARAM_PRIMARY_COLOR)
+                            clearParameter(context, ThemePackageGlobalParameterIdsV1.PRIMARY_COLOR)
                         }
                     },
                 )
 
                 BackgroundImageSection(
-                    currentUri = activeInstance.parameterValues[ThemePackageBuiltInReferenceV1.PARAM_BACKGROUND_IMAGE]
+                    currentUri = activeInstance.parameterValues[ThemePackageGlobalParameterIdsV1.BACKGROUND_IMAGE]
                         as? ThemeParameterValueV1.StringValue,
                     onPick = { backgroundPicker.launch(arrayOf("image/*")) },
                     onClear = {
                         scope.launch {
-                            clearParameter(context, ThemePackageBuiltInReferenceV1.PARAM_BACKGROUND_IMAGE)
+                            clearParameter(context, ThemePackageGlobalParameterIdsV1.BACKGROUND_IMAGE)
                         }
                     },
                 )

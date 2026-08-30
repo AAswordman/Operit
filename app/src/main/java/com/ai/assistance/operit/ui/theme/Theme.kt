@@ -22,9 +22,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.data.theme.packages.ActiveGlobalThemeParameterResolverV1
 import com.ai.assistance.operit.data.theme.packages.ActiveGlobalThemeParametersV1
 import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageBuiltInReferenceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageReferenceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageSelectionRepository
 import com.ai.assistance.operit.ui.theme.scene.ActiveThemeSceneRuntimeFactoryV1
 import com.ai.assistance.operit.ui.theme.scene.ActiveThemeSceneRuntimeV1
@@ -38,7 +36,7 @@ private fun rememberActiveThemeInstance(): ThemeInstanceV1 {
     val context = LocalContext.current
     val instance by remember(context) {
         ThemePackageSelectionRepository.getInstance(context).selectionFlow
-    }.collectAsState(initial = ThemeInstanceV1.defaultBuiltIn())
+    }.collectAsState(initial = ThemeInstanceV1.defaultBundled())
     return instance
 }
 
@@ -48,25 +46,13 @@ private fun rememberActiveThemeRuntime(): ActiveThemeSceneRuntimeV1 {
     val instance = rememberActiveThemeInstance()
     return remember(instance, context) {
         val installation =
-            when (val reference = instance.reference) {
-                is ThemePackageReferenceV1.BuiltIn -> null
-                is ThemePackageReferenceV1.Installed ->
-                    ThemePackageInstallerV1.getInstance(context).find(reference.coordinate)
-            }
-        val manifest =
-            installation?.manifest
-                ?: when (instance.reference) {
-                    is ThemePackageReferenceV1.BuiltIn -> ThemePackageBuiltInReferenceV1.manifest()
-                    is ThemePackageReferenceV1.Installed ->
-                        error("Active installed theme package is unavailable: ${instance.reference}")
-                }
-        val parameters =
-            ActiveGlobalThemeParameterResolverV1.resolve(instance) {
-                manifest
-            }
+            ThemePackageInstallerV1.getInstance(context)
+                .find(instance.reference.coordinate)
+                ?: error("Active theme package is unavailable: ${instance.reference.coordinate}")
+        val parameters = ActiveGlobalThemeParameterResolverV1.resolve(instance, installation.manifest)
         ActiveThemeSceneRuntimeFactoryV1.create(
-            manifest = manifest,
-            installationRoot = installation?.rootDir,
+            manifest = installation.manifest,
+            installationRoot = installation.rootDir,
             parameters = parameters,
         )
     }

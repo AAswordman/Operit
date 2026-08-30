@@ -17,7 +17,7 @@ internal data class ActiveThemeSceneRuntimeV1(
 internal object ActiveThemeSceneRuntimeFactoryV1 {
     fun create(
         manifest: ThemePackageManifestV1,
-        installationRoot: File?,
+        installationRoot: File,
         parameters: ActiveGlobalThemeParametersV1,
     ): ActiveThemeSceneRuntimeV1 {
         val chatMain =
@@ -27,9 +27,7 @@ internal object ActiveThemeSceneRuntimeFactoryV1 {
                 ?: error("Active theme has no chat.main scene: ${manifest.packageId}")
         val assets =
             manifest.assets.associate { asset ->
-                val root = installationRoot
-                    ?: error("Built-in theme cannot declare package assets: ${asset.key}")
-                asset.key to File(root, asset.path)
+                asset.key to File(installationRoot, asset.path)
             }
         return ActiveThemeSceneRuntimeV1(
             manifest = manifest,

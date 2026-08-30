@@ -29,10 +29,10 @@
 已落地基础：
 
 - 存储：独立版本化 DataStore `theme_package_selection`（schema 1），单键 JSON `theme_instance_json`，序列化模型 `ThemeInstanceV1`；记录缺失或非法直接失败，不静默换主题。
-- 内置参考主题：`operit.reference@1.0.0`（`ThemePackageReferenceV1.BuiltIn`），不伪造归档摘要；已安装包使用 `ThemePackageCoordinateV1(package_id, version, archive_sha256)` 精确坐标。
+- 默认主题：`operit.default@1.0.2` 是 `luojiaping/operit-theme-default` Release 的真实 `.otheme` 归档，APK 固定并校验其 SHA-256；全局选择和所有作者主题都使用 `ThemePackageCoordinateV1(package_id, version, archive_sha256)` 精确坐标。
 - Scene DSL v1 契约与校验已落地：`ui/theme/scene/` 的 `ThemeSceneContractV1` 节点集（stage/layer/row/column/grid/frame/host_slot/surface/image/nine_slice/text/path/transform）与 `ThemeSceneValidationV1` 结构化问题清单；场景目录注册 `app.shell@1.0` 与 `chat.main@1.0` 槽位契约。
 - `.otheme` v1 已落地：`ThemePackageManifestV1`、严格归档校验器、内容寻址发布器和本地导入器。校验覆盖路径遏制、重复条目、条目/解压大小、压缩比、SHA-256、资源魔数、位图上限、token/场景契约及基底坐标。
-- 内置 `operit.reference@1.0.0` 已公开 `primary_color` 与 `background_image` 两个参数；前者驱动受限全局配色派生，后者通过 SAF URI 提供静态背景图。
+- 默认主题公开 `primary_color` 与 `background_image` 两个参数；前者驱动受限全局配色派生，后者通过 SAF URI 提供静态背景图。
 
 ## 主题参数
 

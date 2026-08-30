@@ -31,6 +31,8 @@
 
 ### 2026-08-31：批次 F（chat.main 接线 + 赛博 `.otheme` 样例）release 构建
 
+此记录中的 bundled 赛博样例已被未发布阶段的外置主题仓库方案替换，不再代表当前 APK 内容。
+
 - 分支：`feat/plugin-interface`
 - 提交：`b88dee68`（chat.main 六槽 host 接线）、`033d60f1`/`7c2d8313`（赛博样例归档与根节点编码修复）、`ee2eaf40`（bundled 样例保留）、`433337cd`（九宫格源像素/目标 dp 语义修复）
 - 构建服务动作：`build_current_release`
@@ -38,9 +40,9 @@
 - 产物：`operit-release-feat_plugin-interface-433337cd.apk`
 - 产物大小：`403585491` 字节
 - SHA-256：`7d8776cda424f0f39ecec35f622e9cb9d39497b4c246490867651f591535b4cd`
-- 容器验证：`:app:compileReleaseKotlin` 与主题包/场景/全局主题 JVM 测试通过；真实 bundled `cyber-grid.otheme` 使用同一归档校验器通过。
+- 容器验证：`:app:compileReleaseKotlin` 与主题包/场景/全局主题 JVM 测试通过；当时的 bundled `cyber-grid.otheme` 使用同一归档校验器通过。
 - 落地：`ChatMainSceneHost` 将 configuration/header/transcript/composer/classic_settings_rail/overlay_stack 六个稳定语义槽映射到激活场景；reference 场景维持现有 Compose 行为；赛博包使用 NASA Hubble Ring Nebula 衍生背景（来源、归属和链接写入 manifest 与 `ATTRIBUTION.md`）及项目自生成九宫格框体。背景图已可透过主内容壳层。
-- 尚需设备验证：首次启动 bundled 包安装、主题页列表刷新、启用赛博包、主色/背景参数、输入/IME、聊天流式、选择器、TalkBack 与不同密度下九宫格框体。
+- 尚需设备验证：默认包首次安装、主题页列表刷新、从赛博 Release 导入并启用、主色/背景参数、输入/IME、聊天流式、选择器、TalkBack 与不同密度下九宫格框体。
 
 ### 2026-08-31：批次 E（`.otheme` 格式、安装器、内置参数和主题页）release 构建
 
@@ -52,7 +54,7 @@
 - 产物大小：`402953887` 字节
 - SHA-256：`1b0dd00bb83b551de832a6a903ad700029878522dc97a1b45bab62e63f460a31`
 - 容器验证：`:app:compileReleaseKotlin` 与 `:app:testReleaseUnitTest --tests "com.ai.assistance.operit.data.theme.packages.*" --tests "com.ai.assistance.operit.ui.theme.scene.*"` 通过。
-- 落地：专有 `.otheme` 扩展名、根 `operit-theme.json` 严格 manifest、资源 SHA-256/MIME/路径/压缩限制、内容寻址私有安装目录、精确基底依赖、内置 `operit.reference` 的主色/静态背景图参数、设置页本地导入/启用/卸载和参数编辑；场景 token/资源链接在安装阶段校验。尚未做设备端主题页操作和聊天场景换肤验证，后者属于批次 F。
+- 落地：专有 `.otheme` 扩展名、根 `operit-theme.json` 严格 manifest、资源 SHA-256/MIME/路径/压缩限制、内容寻址私有安装目录、精确基底依赖、默认 `operit.default` 的主色/静态背景图参数、设置页本地导入/启用/卸载和参数编辑；场景 token/资源链接在安装阶段校验。默认包源与赛博包源均在独立 GitHub 仓库维护，后者不随 APK 交付。尚未做设备端主题页操作和聊天场景换肤验证，后者属于批次 F。
 
 ### 2026-08-31：批次 D（Token 池 + Scene 渲染器 + 资产仓库）release 构建
 

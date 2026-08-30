@@ -44,7 +44,7 @@ import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.data.theme.packages.ThemePackageBundledSamplesV1
+import com.ai.assistance.operit.data.theme.packages.ThemePackageDefaultV1
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.data.preferences.initAndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.initUserPreferencesManager
@@ -207,12 +207,13 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             }
         }
 
-        applicationScope.launch {
-            try {
-                ThemePackageBundledSamplesV1.installCyberGridIfNeeded(applicationContext)
-            } catch (error: Throwable) {
-                AppLogger.e(TAG, "Bundled cyber theme installation failed", error)
+        try {
+            runBlocking(Dispatchers.IO) {
+                ThemePackageDefaultV1.ensureInstalled(applicationContext)
             }
+        } catch (error: Throwable) {
+            AppLogger.e(TAG, "Bundled default theme installation failed", error)
+            throw IllegalStateException("Unable to install the bundled default theme package.", error)
         }
 
         applicationScope.launch {
