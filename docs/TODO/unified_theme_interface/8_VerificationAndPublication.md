@@ -172,3 +172,16 @@
 - SHA-256：`4b907e38c0bad9b6f4423104c94650fcd8f7df4fafbb37c8bc3d00e742c70e52`
 - release 汇编验证了类型化状态编码、目录场景校验、五类基础组件、导航禁用事件约束及备份设置生产调用；本动作不执行 JVM 或 Android Compose 测试。
 - 设备级验证仍需覆盖备份概览与管理分区、策略/导入/导出格式及配置空间单选、Room DB 与原始快照操作、标准/警告/破坏性按钮、加载/成功/错误反馈、TalkBack 播报和 48dp 触控区域。
+
+### 2026-08-30：高级视觉样式契约 release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`0b4c3680`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-0b4c3680.apk`
+- 产物大小：`403498655` 字节
+- SHA-256：`3b4bcad07ee60478f413a4d4ec366199df579ff0247b10a04a01867486c3ff4e`
+- 初次提交 `d2e9c209` 在 Kotlin 编译阶段发现样式验证器缺少宿主表面导入和多余右括号；修复提交 `0b4c3680` 后重新构建成功。
+- release 汇编验证了样式值模型、三层链接器、组件部件和状态契约、逐表面能力校验及 `EDITOR_PREVIEW` 宿主源码；本动作不执行 JVM 或 Android Compose 测试。
+- 设备级验证仍需覆盖 `native_v1` 编译器、`ThemeSurface` 绘制器和已迁组件的生产样式消费，以及边框、模糊、材质、菜单和图标容器的视觉与无障碍矩阵。
