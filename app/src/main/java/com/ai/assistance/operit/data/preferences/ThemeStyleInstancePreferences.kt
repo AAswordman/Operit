@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.remove
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.ui.theme.NATIVE_THEME_V1_DEFINITION_ID

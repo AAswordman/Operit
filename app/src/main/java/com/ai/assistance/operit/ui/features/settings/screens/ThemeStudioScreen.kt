@@ -163,12 +163,12 @@ private fun ThemeStudioContent(initialTarget: ActivePrompt) {
     val userPreferencesManager = remember(context) { UserPreferencesManager.getInstance(context) }
     val targetThemeSnapshotFlow =
         remember(target, userPreferencesManager) {
-            when (target) {
+            when (val currentTarget = target) {
                 is ActivePrompt.CharacterCard ->
-                    userPreferencesManager.observeThemePreferenceSnapshot(characterCardId = target.id)
+                    userPreferencesManager.observeThemePreferenceSnapshot(characterCardId = currentTarget.id)
 
                 is ActivePrompt.CharacterGroup ->
-                    userPreferencesManager.observeThemePreferenceSnapshot(characterGroupId = target.id)
+                    userPreferencesManager.observeThemePreferenceSnapshot(characterGroupId = currentTarget.id)
             }
         }
     val targetThemeLoadFlow =
@@ -210,6 +210,9 @@ private fun ThemeStudioContent(initialTarget: ActivePrompt) {
                 systemDarkTheme = systemDarkTheme,
             )
         }
+    val defaultBorderColor = previewResolvedTheme.contentColorScheme.outline
+    val defaultIconContainerColor = previewResolvedTheme.contentColorScheme.primaryContainer
+    val defaultIconColor = previewResolvedTheme.contentColorScheme.onPrimaryContainer
     var draftLayer by remember(target) {
         mutableStateOf(ThemeStyleInstanceRecordV1.empty().instanceLayer)
     }
@@ -351,19 +354,20 @@ private fun ThemeStudioContent(initialTarget: ActivePrompt) {
         } else if (previewPlan == null) {
             ThemeStudioLinkIssue(linkResult)
         } else {
+            val currentPreviewPlan = previewPlan
             ThemeStudioPreview(
                 previewSnapshot = previewSnapshot,
                 previewResolvedTheme = previewResolvedTheme,
-                previewPlan = previewPlan,
+                previewPlan = currentPreviewPlan,
             )
             HorizontalDivider()
             ThemeStudioStatControls(
-                plan = previewPlan,
+                plan = currentPreviewPlan,
                 darkTheme = previewResolvedTheme.darkTheme,
                 enabled = !saving,
-                defaultBorderColor = previewResolvedTheme.contentColorScheme.outline,
-                defaultIconContainerColor = previewResolvedTheme.contentColorScheme.primaryContainer,
-                defaultIconColor = previewResolvedTheme.contentColorScheme.onPrimaryContainer,
+                defaultBorderColor = defaultBorderColor,
+                defaultIconContainerColor = defaultIconContainerColor,
+                defaultIconColor = defaultIconColor,
                 onSurfaceColorRequested = { colorField = ThemeStudioColorFieldV1.SURFACE },
                 onValueColorRequested = { colorField = ThemeStudioColorFieldV1.VALUE },
                 onLabelColorRequested = { colorField = ThemeStudioColorFieldV1.LABEL },
@@ -385,7 +389,7 @@ private fun ThemeStudioContent(initialTarget: ActivePrompt) {
                     updateLayer {
                         NativeThemeStatStyleInstanceEditorV1.setBorder(
                             layer = it,
-                            color = plan.borderColor(previewResolvedTheme.darkTheme) ?: defaultBorderColor,
+                            color = currentPreviewPlan.borderColor(previewResolvedTheme.darkTheme) ?: defaultBorderColor,
                             widthDp = width,
                         )
                     }
@@ -445,15 +449,15 @@ private fun ThemeStudioContent(initialTarget: ActivePrompt) {
                 ThemeStudioColorFieldV1.VALUE -> plan.value.color
                 ThemeStudioColorFieldV1.LABEL -> plan.label.color
                 ThemeStudioColorFieldV1.BORDER ->
-                    plan.borderColor(previewResolvedTheme.darkTheme) ?: previewResolvedTheme.contentColorScheme.outline
+                    plan.borderColor(previewResolvedTheme.darkTheme) ?: defaultBorderColor
 
                 ThemeStudioColorFieldV1.ICON_CONTAINER ->
                     plan.iconContainerColor(previewResolvedTheme.darkTheme)
-                        ?: previewResolvedTheme.contentColorScheme.primaryContainer
+                        ?: defaultIconContainerColor
 
                 ThemeStudioColorFieldV1.ICON ->
                     plan.leadingIconContainer?.contentColor?.toComposeColorV1(previewResolvedTheme.darkTheme)
-                        ?: previewPlan.leadingColor
+                        ?: plan.leadingColor
 
                 null -> null
             }
@@ -494,7 +498,7 @@ private fun ThemeStudioContent(initialTarget: ActivePrompt) {
                                 iconColor =
                                     selectedPreviewPlan.leadingIconContainer?.contentColor?.toComposeColorV1(
                                         previewResolvedTheme.darkTheme,
-                                    ) ?: previewResolvedTheme.contentColorScheme.onPrimaryContainer,
+                                    ) ?: defaultIconColor,
                             )
                         }
 
@@ -504,7 +508,7 @@ private fun ThemeStudioContent(initialTarget: ActivePrompt) {
                                 layer = it,
                                 containerColor =
                                     selectedPreviewPlan.iconContainerColor(previewResolvedTheme.darkTheme)
-                                        ?: previewResolvedTheme.contentColorScheme.primaryContainer,
+                                        ?: defaultIconContainerColor,
                                 iconColor = color,
                             )
                         }
