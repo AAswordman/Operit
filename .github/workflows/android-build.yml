@@ -14,7 +14,7 @@ on:
           - ':app:assembleClone'
           - ':app:bundleRelease'
   push:
-    branches: [main]
+    branches: [main, fix/chat-runtime-review]
     paths:
       - .github/workflows/android-build.yml
       - .gitmodules

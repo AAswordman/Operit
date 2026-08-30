@@ -5,6 +5,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 object ModelThinkingConfigDefaults {
+        private val providerRulesCache = mutableMapOf<String, String>()
+        private val providerRulesCacheLock = Any()
+
         val DEFAULT_JSON: String =
                 """
                 [
@@ -76,6 +79,20 @@ object ModelThinkingConfigDefaults {
                       {"id": "LOW", "label": "LOW", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "LOW"},
                       {"id": "MEDIUM", "label": "MEDIUM", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "MEDIUM"},
                       {"id": "HIGH", "label": "HIGH", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "HIGH"}
+                    ]
+                  },
+                  {
+                    "id": "deepseek-responses-reasoning-effort",
+                    "providers": ["DEEPSEEK"],
+                    "match": {"endpointSuffix": ["/responses"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning.effort",
+                    "required": true,
+                    "options": [
+                      {"id": "off", "label": "Off", "path": "reasoning.effort", "value": "none"},
+                      {"id": "low", "label": "Low", "path": "reasoning.effort", "value": "low"},
+                      {"id": "high", "label": "High", "path": "reasoning.effort", "value": "high"},
+                      {"id": "max", "label": "Max", "path": "reasoning.effort", "value": "max"}
                     ]
                   },
                   {
@@ -357,21 +374,24 @@ object ModelThinkingConfigDefaults {
                 if (provider.isEmpty()) {
                         return "[]"
                 }
+                synchronized(providerRulesCacheLock) {
+                        providerRulesCache[provider]?.let { return it }
 
-                val source = JSONArray(DEFAULT_JSON)
-                val target = JSONArray()
-                for (index in 0 until source.length()) {
-                        val rule = source.optJSONObject(index) ?: continue
-                        val providers = rule.optJSONArray("providers")
-                        val providerTypeIds = rule.optJSONArray("providerTypeIds")
-                        if (providers.containsProvider(provider) || providerTypeIds.containsProvider(provider)) {
-                                val configRule = JSONObject(rule.toString())
-                                configRule.remove("providers")
-                                configRule.remove("providerTypeIds")
-                                target.put(configRule)
+                        val source = JSONArray(DEFAULT_JSON)
+                        val target = JSONArray()
+                        for (index in 0 until source.length()) {
+                                val rule = source.optJSONObject(index) ?: continue
+                                val providers = rule.optJSONArray("providers")
+                                val providerTypeIds = rule.optJSONArray("providerTypeIds")
+                                if (providers.containsProvider(provider) || providerTypeIds.containsProvider(provider)) {
+                                        val configRule = JSONObject(rule.toString())
+                                        configRule.remove("providers")
+                                        configRule.remove("providerTypeIds")
+                                        target.put(configRule)
+                                }
                         }
+                        return target.toString().also { providerRulesCache[provider] = it }
                 }
-                return target.toString()
         }
 
 }

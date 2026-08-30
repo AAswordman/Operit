@@ -78,6 +78,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
+import sh.calvin.reorderable.ReorderableColumn
 
 private data class HeaderPreset(val nameResId: Int, val headers: Map<String, String>)
 
@@ -215,11 +217,10 @@ fun ModelConfigScreen(
         hasInitializedSelection = true
     }
 
-    // 加载所有配置名称
+    // 加载所有配置名称；摘要读取会复用同一次 DataStore 快照
     LaunchedEffect(configList) {
-        configList.forEach { id ->
-            val config = configManager.getModelConfigFlow(id).first()
-            configNameMap[id] = config.name
+        configManager.getAllConfigSummaries().forEach { summary ->
+            configNameMap[summary.id] = summary.name
         }
     }
 
@@ -1066,11 +1067,14 @@ private data class ThinkingOptionEditor(
     val id: String = "",
     val label: String = "",
     val path: String = "",
-    val value: String = ""
+    val value: String = "",
+    // UI-only identity keeps drag and focus state stable when the option moves.
+    val editorKey: String = UUID.randomUUID().toString(),
+    val mappingPlacementPending: Boolean = false
 )
 
 private val thinkingControlChoices =
-    listOf("levels" to "多档滑块", "toggle_only" to "仅开关")
+    listOf("levels" to "多选项滑块", "toggle_only" to "仅开关")
 
 private val thinkingMatchFieldChoices =
     listOf(
@@ -1081,7 +1085,21 @@ private val thinkingMatchFieldChoices =
         "firstSegment" to "斜杠前段",
         "lastSegmentPrefix" to "后段前缀",
         "lastSegmentContains" to "后段包含",
-        "lastSegmentRegex" to "后段正则"
+        "lastSegmentRegex" to "后段正则",
+        "endpointSuffix" to "端点后缀"
+    )
+
+private val thinkingMatchFieldDescriptions =
+    mapOf(
+        "modelContains" to "模型名称包含任意一个输入值时命中；多个值是“或”关系",
+        "modelPrefix" to "模型名称以任意一个输入值开头时命中",
+        "modelSuffix" to "模型名称以任意一个输入值结尾时命中",
+        "modelRegex" to "用正则表达式匹配完整模型名称",
+        "firstSegment" to "模型名按 / 分段后，第一段完全相等时命中",
+        "lastSegmentPrefix" to "模型名按 / 分段后，最后一段以输入值开头时命中",
+        "lastSegmentContains" to "模型名按 / 分段后，最后一段包含输入值时命中",
+        "lastSegmentRegex" to "用正则表达式匹配模型名的最后一段",
+        "endpointSuffix" to "请求地址以任意一个输入值结尾时命中；常用于 /responses",
     )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -1268,11 +1286,14 @@ private fun ThinkingConfigurationsSection(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        val settledEditingRule = currentEditingRule.copy(
+                            options = settlePendingThinkingOptions(currentEditingRule.options)
+                        )
                         if (currentEditingIndex == null) {
-                            rules = rules + currentEditingRule
+                            rules = rules + settledEditingRule
                         } else if (currentEditingIndex in rules.indices) {
                             rules = rules.toMutableList().also {
-                                it[currentEditingIndex] = currentEditingRule
+                                it[currentEditingIndex] = settledEditingRule
                             }
                         }
                         editingRuleIndex = null
@@ -1328,7 +1349,7 @@ private fun ThinkingRulePreviewCard(
     onMoveDown: () -> Unit,
 ) {
     val controlText = thinkingControlChoices.firstOrNull { it.first == rule.control }?.second ?: rule.control
-    val detail = if (rule.control == "levels") "${rule.options.size} 档" else "开关"
+    val detail = if (rule.control == "levels") "${rule.options.size} 个选项" else "开关"
     val parameterText = rule.parameterLabel.trim().ifEmpty { "未设置请求路径" }
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
@@ -1421,10 +1442,25 @@ private fun ThinkingRuleEditForm(rule: ThinkingRuleEditor, onRuleChange: (Thinki
     )
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ThinkingChoiceField(value = rule.control, label = "控件", choices = thinkingControlChoices, onValueChange = { onRuleChange(rule.copy(control = it)) }, modifier = Modifier.weight(1f))
-        ThinkingChoiceField(value = rule.matchField, label = "匹配方式", choices = thinkingMatchFieldChoices, onValueChange = { onRuleChange(rule.copy(matchField = it)) }, modifier = Modifier.weight(1f))
+        ThinkingChoiceField(
+            value = rule.matchField,
+            label = "匹配方式",
+            choices = thinkingMatchFieldChoices,
+            onValueChange = { onRuleChange(rule.copy(matchField = it)) },
+            modifier = Modifier.weight(1f),
+        )
     }
-    SettingsTextField(title = "匹配模型", subtitle = "多个值用逗号分隔", value = rule.matchValues, onValueChange = { onRuleChange(rule.copy(matchValues = it)) }, placeholder = "glm-, deepseek, gemini-2.5")
-    SettingsTextField(title = "默认请求路径", value = rule.parameterLabel, onValueChange = { onRuleChange(rule.copy(parameterLabel = it)) }, placeholder = "reasoning_effort 或 thinking.type")
+    val matchDescription = thinkingMatchFieldDescriptions[rule.matchField]
+    if (!matchDescription.isNullOrBlank()) {
+        Text(
+            text = matchDescription,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        )
+    }
+    SettingsTextField(title = "匹配模型", subtitle = "多个值用逗号分隔；满足任意一个值即可匹配", value = rule.matchValues, onValueChange = { onRuleChange(rule.copy(matchValues = it)) }, placeholder = "glm-, deepseek, gemini-2.5")
+    SettingsTextField(title = "默认请求路径", subtitle = "多选项没有单独填写路径时使用；点号表示 JSON 嵌套", value = rule.parameterLabel, onValueChange = { onRuleChange(rule.copy(parameterLabel = it)) }, placeholder = "reasoning_effort 或 reasoning.effort")
     SettingsSwitchRow(title = "始终开启思考", subtitle = "即使滑块关闭，也写入开启参数", checked = rule.required, onCheckedChange = { onRuleChange(rule.copy(required = it)) })
     ThinkingCollapsibleEditor(title = "开启 / 关闭时写入", subtitle = "按请求路径写入固定值", initiallyExpanded = false) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1433,7 +1469,7 @@ private fun ThinkingRuleEditForm(rule: ThinkingRuleEditor, onRuleChange: (Thinki
         }
     }
     if (rule.control == "levels") {
-        ThinkingCollapsibleEditor(title = "滑块档位", subtitle = "${rule.options.size} 个档位，决定滑块长度", initiallyExpanded = false) {
+        ThinkingCollapsibleEditor(title = "滑块选项", subtitle = "${rule.options.size} 个选项，决定滑块长度", initiallyExpanded = false) {
             ThinkingCompactOptionsEditor(options = rule.options, defaultPath = rule.parameterLabel, onOptionsChange = { onRuleChange(rule.copy(options = it)) })
         }
     }
@@ -1463,7 +1499,7 @@ private fun ThinkingChoiceField(
     label: String,
     choices: List<Pair<String, String>>,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val displayValue = choices.firstOrNull { it.first == value }?.second ?: value
@@ -1471,27 +1507,33 @@ private fun ThinkingChoiceField(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
-        modifier = modifier
+        modifier = modifier,
     ) {
         Surface(
             modifier = Modifier.menuAnchor().fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(displayValue, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text(
+                        displayValue,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
                 }
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             }
         }
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
         ) {
             choices.forEach { (choiceValue, choiceLabel) ->
                 DropdownMenuItem(
@@ -1499,7 +1541,7 @@ private fun ThinkingChoiceField(
                     onClick = {
                         onValueChange(choiceValue)
                         expanded = false
-                    }
+                    },
                 )
             }
         }
@@ -1529,12 +1571,14 @@ private fun ThinkingCompactActionsEditor(
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     SettingsTextField(
                         title = "路径",
+                        subtitle = "要修改的请求字段；点号表示 JSON 嵌套，例如 reasoning.summary",
                         value = action.path,
                         onValueChange = { path -> onActionsChange(actions.toMutableList().also { it[index] = action.copy(path = path) }) },
                         placeholder = "请求参数路径"
                     )
                     SettingsTextField(
                         title = "值",
+                        subtitle = "要写入请求的实际值；数组请填写 JSON，例如 [\"reasoning.encrypted_content\"]",
                         value = action.value,
                         onValueChange = { value -> onActionsChange(actions.toMutableList().also { it[index] = action.copy(value = value) }) },
                         placeholder = "写入值"
@@ -1556,48 +1600,189 @@ private fun ThinkingCompactOptionsEditor(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("滑块档位", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text("滑块选项", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
             TextButton(onClick = { onOptionsChange(options + ThinkingOptionEditor(path = defaultPath)) }) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("添加档位")
+                Text("添加选项")
             }
         }
-        options.forEachIndexed { index, option ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
-            ) {
-                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("档位 ${index + 1}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        IconButton(onClick = { onOptionsChange(options.toMutableList().also { it.removeAt(index) }) }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Delete, contentDescription = "删除", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+        ReorderableColumn(
+            list = options,
+            onSettle = { fromIndex, toIndex ->
+                onOptionsChange(
+                    moveThinkingOption(options, fromIndex, toIndex)
+                        .map { it.copy(mappingPlacementPending = false) }
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) { index, option, isDragging ->
+            key(option.editorKey) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
+                    shadowElevation = if (isDragging) 4.dp else 0.dp,
+                ) {
+                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                modifier = Modifier.draggableHandle(),
+                                onClick = {},
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DragHandle,
+                                    contentDescription = "拖动排序",
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                            Text("选项 ${index + 1}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            IconButton(onClick = { onOptionsChange(options.toMutableList().also { it.removeAt(index) }) }, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Default.Delete, contentDescription = "删除", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                            }
                         }
+                        SettingsTextField(
+                            title = "显示名",
+                            subtitle = "滑块上显示的名称，不会写入请求",
+                            value = option.label,
+                            onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(label = value) }) },
+                            placeholder = "例如：高"
+                        )
+                        SettingsTextField(
+                            title = "写入路径",
+                            subtitle = "选择该选项时修改的请求字段；留空则使用默认请求路径",
+                            value = option.path,
+                            onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(path = value) }) },
+                            placeholder = defaultPath
+                        )
+                        SettingsTextField(
+                            title = "写入值",
+                            subtitle = "选择该选项时写入的实际值；取值要符合服务商接口",
+                            value = option.value,
+                            onValueChange = { value ->
+                                onOptionsChange(
+                                    options.toMutableList().also {
+                                        it[index] = option.copy(
+                                            value = value,
+                                            mappingPlacementPending = true,
+                                        )
+                                    }
+                                )
+                            },
+                            placeholder = "例如：high",
+                            onFocusChanged = { isFocused ->
+                                if (!isFocused) {
+                                    val settled = settleThinkingOptionMapping(options, option.editorKey)
+                                    if (settled !== options) {
+                                        onOptionsChange(settled)
+                                    }
+                                }
+                            }
+                        )
                     }
-                    SettingsTextField(
-                        title = "显示名",
-                        value = option.label,
-                        onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(label = value) }) },
-                        placeholder = "例如：高"
-                    )
-                    SettingsTextField(
-                        title = "写入路径",
-                        value = option.path,
-                        onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(path = value) }) },
-                        placeholder = defaultPath
-                    )
-                    SettingsTextField(
-                        title = "写入值",
-                        value = option.value,
-                        onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(value = value) }) },
-                        placeholder = "例如：high"
-                    )
                 }
             }
         }
     }
+}
+
+private fun moveThinkingOption(
+    options: List<ThinkingOptionEditor>,
+    fromIndex: Int,
+    toIndex: Int,
+): List<ThinkingOptionEditor> {
+    if (fromIndex !in options.indices || toIndex !in options.indices || fromIndex == toIndex) {
+        return options
+    }
+    return options.toMutableList().apply {
+        add(toIndex, removeAt(fromIndex))
+    }
+}
+
+/**
+ * Repositions an option after its mapping value is edited. Exact duplicate values are grouped
+ * together; numeric values are ordered using the direction already present in the list. Other
+ * provider-specific strings are intentionally left untouched and can be ordered by dragging.
+ */
+private fun reorderThinkingOptionByMappingValue(
+    options: List<ThinkingOptionEditor>,
+    changedIndex: Int,
+): List<ThinkingOptionEditor> {
+    if (changedIndex !in options.indices) return options
+
+    val changedOption = options[changedIndex]
+    val value = changedOption.value.trim()
+    if (value.isEmpty()) return options
+
+    val duplicateIndex = options.indexOfLast { option ->
+        option.editorKey != changedOption.editorKey &&
+            option.value.trim().equals(value, ignoreCase = true)
+    }
+    if (duplicateIndex >= 0) {
+        val targetIndex = if (duplicateIndex < changedIndex) duplicateIndex + 1 else duplicateIndex
+        return moveThinkingOption(options, changedIndex, targetIndex)
+    }
+
+    val newNumber = value.toBigDecimalOrNull() ?: return options
+    val numericEntries = options.mapIndexedNotNull { index, option ->
+        if (index == changedIndex) {
+            null
+        } else {
+            option.value.trim().toBigDecimalOrNull()?.let { number -> index to number }
+        }
+    }
+    val otherNonBlankCount = options.count {
+        it.editorKey != changedOption.editorKey && it.value.trim().isNotEmpty()
+    }
+    if (numericEntries.size < 2 || numericEntries.size != otherNonBlankCount) return options
+
+    val directionPair = numericEntries.zipWithNext().firstOrNull { pair ->
+        pair.first.second != pair.second.second
+    } ?: return options
+    val ascending = directionPair.first.second < directionPair.second.second
+    val targetIndex = options.indices.firstOrNull { index ->
+        if (index == changedIndex) {
+            false
+        } else {
+            options[index].value.trim().toBigDecimalOrNull()?.let { candidate ->
+                if (ascending) candidate >= newNumber else candidate <= newNumber
+            } == true
+        }
+    } ?: return options
+
+    return moveThinkingOption(options, changedIndex, targetIndex)
+}
+
+private fun settleThinkingOptionMapping(
+    options: List<ThinkingOptionEditor>,
+    editorKey: String,
+): List<ThinkingOptionEditor> {
+    val changedIndex = options.indexOfFirst { it.editorKey == editorKey }
+    if (changedIndex !in options.indices || !options[changedIndex].mappingPlacementPending) {
+        return options
+    }
+
+    val reordered = reorderThinkingOptionByMappingValue(options, changedIndex)
+    return reordered.map { option ->
+        if (option.editorKey == editorKey) {
+            option.copy(mappingPlacementPending = false)
+        } else {
+            option
+        }
+    }
+}
+
+private fun settlePendingThinkingOptions(
+    options: List<ThinkingOptionEditor>,
+): List<ThinkingOptionEditor> {
+    var settled = options
+    options.filter { it.mappingPlacementPending }
+        .map { it.editorKey }
+        .forEach { editorKey ->
+            settled = settleThinkingOptionMapping(settled, editorKey)
+        }
+    return settled
 }
 
 private fun parseThinkingRuleEditors(raw: String): List<ThinkingRuleEditor> {
@@ -1639,19 +1824,24 @@ private fun serializeThinkingRuleEditors(rules: List<ThinkingRuleEditor>): Strin
         }
         if (rule.control == "levels") {
             val optionsArray = JSONArray()
+            val usedOptionIds = mutableSetOf<String>()
             rule.options.forEachIndexed { optionIndex, option ->
                 val valueText = option.value.trim()
                 val path = option.path.trim().ifEmpty { rule.parameterLabel.trim() }
                 if (option.id.isBlank() && option.label.isBlank() && path.isBlank() && valueText.isBlank()) {
                     return@forEachIndexed
                 }
+                val baseId = option.id.trim().ifEmpty {
+                    valueText.ifEmpty { "option-${optionIndex + 1}" }
+                }
+                var optionId = baseId
+                var duplicateSuffix = 2
+                while (!usedOptionIds.add(optionId)) {
+                    optionId = "$baseId-$duplicateSuffix"
+                    duplicateSuffix += 1
+                }
                 val optionObject = JSONObject()
-                optionObject.put(
-                    "id",
-                    option.id.trim().ifEmpty {
-                        valueText.ifEmpty { "option-${optionIndex + 1}" }
-                    }
-                )
+                optionObject.put("id", optionId)
                 option.label.trim().takeIf { it.isNotEmpty() }?.let { optionObject.put("label", it) }
                 path.takeIf { it.isNotEmpty() }?.let { optionObject.put("path", it) }
                 optionObject.put("value", parseThinkingEditorValue(valueText))

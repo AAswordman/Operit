@@ -47,6 +47,7 @@ class DeepseekProvider(
         thinkingConfigurations = thinkingConfigurations,
         thinkingOptionId = thinkingOptionId
     ) {
+    private val configuredApiEndpoint = apiEndpoint
 
     companion object {
         fun create(
@@ -114,7 +115,7 @@ class DeepseekProvider(
                 requestJson = jsonObject,
                 providerTypeId = ApiProviderType.DEEPSEEK.name,
                 modelName = modelName,
-                apiEndpoint = "",
+                apiEndpoint = configuredApiEndpoint,
                 thinkingConfigurations = thinkingConfigurations,
                 enableThinking = enableThinking,
                 optionId = thinkingOptionId,
@@ -497,12 +498,13 @@ class DeepseekProvider(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
         enableRetry: Boolean,
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
         // 直接调用父类的sendMessage实现
-        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
+        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, onRetryState, enableRetry, recordTokenUsage, onUsageFinalized)
     }
 }
 

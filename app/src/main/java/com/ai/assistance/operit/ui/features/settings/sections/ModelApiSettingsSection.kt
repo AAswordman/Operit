@@ -30,6 +30,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -1554,7 +1555,8 @@ internal fun SettingsTextField(
     valueFilter: ((String) -> String)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     unitText: String? = null,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    onFocusChanged: ((Boolean) -> Unit)? = null
 ) {
     val focusManager = LocalFocusManager.current
     val backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
@@ -1612,7 +1614,12 @@ internal fun SettingsTextField(
                             keyboardActions = keyboardActions,
                             visualTransformation = visualTransformation,
                             interactionSource = resolvedInteractionSource,
-                            modifier = Modifier.fillMaxWidth().bringIntoViewOnImeFocus(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewOnImeFocus()
+                                .onFocusChanged { focusState ->
+                                    onFocusChanged?.invoke(focusState.isFocused)
+                                },
                             textStyle =
                                     TextStyle(
                                             color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,

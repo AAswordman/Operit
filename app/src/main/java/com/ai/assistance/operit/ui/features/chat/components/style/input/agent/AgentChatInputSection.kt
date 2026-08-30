@@ -1778,20 +1778,27 @@ private fun AgentThinkingSettingsItem(
                     .background(popupContainerColor)
                     .padding(horizontal = 12.dp),
         ) {
+            val effectiveThinkingEnabled =
+                enableThinkingMode || thinkingQualityMapping?.reasoningRequired == true
             AgentThinkingSubSettingItem(
                 title = stringResource(R.string.thinking_mode),
-                icon = if (enableThinkingMode) Icons.Rounded.Psychology else Icons.Outlined.Psychology,
+                icon = if (effectiveThinkingEnabled) Icons.Rounded.Psychology else Icons.Outlined.Psychology,
                 iconTint =
-                    if (enableThinkingMode) {
+                    if (effectiveThinkingEnabled) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     },
-                isChecked = enableThinkingMode,
-                onToggle = onToggleThinkingMode,
+                isChecked = effectiveThinkingEnabled,
+                onToggle =
+                    if (thinkingQualityMapping?.reasoningRequired == true) {
+                        {}
+                    } else {
+                        onToggleThinkingMode
+                    },
                 onInfoClick = onThinkingModeInfoClick,
             )
-            if (enableThinkingMode) {
+            if (effectiveThinkingEnabled) {
                 thinkingQualityMapping
                     ?.takeIf { it.control == ThinkingQualityControl.LEVELS }
                     ?.let { mapping ->

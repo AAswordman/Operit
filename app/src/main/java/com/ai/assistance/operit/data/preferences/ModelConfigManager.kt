@@ -21,23 +21,29 @@ import com.ai.assistance.operit.data.model.StandardModelParameters
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ApiKeyInfo
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.json.JSONArray
+import org.json.JSONObject
 
 // 为ModelConfig创建专用的DataStore
 private val Context.modelConfigDataStore: DataStore<Preferences> by
         versionedPreferencesDataStore(
                 name = "model_configs",
-                currentVersion = 2,
+                currentVersion = 3,
         ) { appContext ->
             preferenceSchemaMigration { version, preferences ->
                 when (version) {
                     0 -> ModelConfigManager.migratePreferencesFromVersionZero(appContext, preferences)
                     1 -> ModelConfigManager.migratePreferencesFromVersionOne(preferences)
+                    2 -> ModelConfigManager.migratePreferencesFromVersionTwo(preferences)
                     else -> missingPreferencesSchemaMigration(version)
                 }
             }
@@ -111,7 +117,8 @@ class ModelConfigManager(private val context: Context) {
                     thinkingConfigurations = thinkingRulesForProvider(DEFAULT_API_PROVIDER_TYPE.name),
                     thinkingOptionId = firstThinkingOptionIdForModel(
                             DEFAULT_API_PROVIDER_TYPE.name,
-                            ApiPreferences.DEFAULT_MODEL_NAME
+                            ApiPreferences.DEFAULT_MODEL_NAME,
+                            ApiPreferences.DEFAULT_API_ENDPOINT
                     )
             )
         }
@@ -135,7 +142,11 @@ class ModelConfigManager(private val context: Context) {
                         if (currentThinkingConfigurations.isNotEmpty() && currentThinkingConfigurations != "[]") {
                             config.thinkingOptionId
                         } else {
-                            firstThinkingOptionIdForModel(config.apiProviderTypeId, config.modelName)
+                            firstThinkingOptionIdForModel(
+                                    config.apiProviderTypeId,
+                                    config.modelName,
+                                    config.apiEndpoint
+                            )
                         }
                 if (thinkingConfigurations == config.thinkingConfigurations &&
                                 thinkingOptionId == config.thinkingOptionId) {
@@ -151,24 +162,139 @@ class ModelConfigManager(private val context: Context) {
             }
         }
 
+        internal fun migratePreferencesFromVersionTwo(preferences: MutablePreferences) {
+            val configIds = preferences[CONFIG_LIST_KEY]?.let { json.decodeFromString<List<String>>(it) }
+                    ?: emptyList()
+
+            configIds.forEach { configId ->
+                val configKey = stringPreferencesKey("config_" + configId)
+                val configJson = preferences[configKey] ?: return@forEach
+                val config = runCatching { json.decodeFromString<ModelConfigData>(configJson) }
+                        .getOrNull()
+                        ?: return@forEach
+                if (!isDeepSeekProvider(config.apiProviderTypeId)) return@forEach
+
+                val hadResponsesRule = hasDeepSeekResponsesRule(config.thinkingConfigurations)
+                val thinkingConfigurations =
+                        ensureDeepSeekResponsesRule(config.thinkingConfigurations)
+                val thinkingOptionId =
+                        if (isDeepSeekResponsesEndpoint(config.apiEndpoint) && !hadResponsesRule) {
+                            firstThinkingOptionIdForRules(
+                                    config.apiProviderTypeId,
+                                    config.modelName,
+                                    thinkingConfigurations,
+                                    config.apiEndpoint
+                            ).ifEmpty { config.thinkingOptionId }
+                        } else {
+                            config.thinkingOptionId
+                        }
+
+                if (thinkingConfigurations == config.thinkingConfigurations &&
+                                thinkingOptionId == config.thinkingOptionId) {
+                    return@forEach
+                }
+
+                preferences[configKey] = json.encodeToString(
+                        config.copy(
+                                thinkingConfigurations = thinkingConfigurations,
+                                thinkingOptionId = thinkingOptionId
+                        )
+                )
+            }
+        }
+
+        private const val DEEPSEEK_RESPONSES_RULE_ID = "deepseek-responses-reasoning-effort"
+
+        private fun isDeepSeekProvider(providerTypeId: String): Boolean =
+                providerTypeId.equals(ApiProviderType.DEEPSEEK.name, ignoreCase = true)
+
+        private fun isDeepSeekResponsesEndpoint(apiEndpoint: String): Boolean =
+                apiEndpoint.trim()
+                        .substringBefore('?')
+                        .substringBefore('#')
+                        .trimEnd('/')
+                        .endsWith("/responses", ignoreCase = true)
+
+        private fun thinkingRulesArray(raw: String): JSONArray? {
+            val text = raw.trim().ifEmpty { "[]" }
+            return runCatching {
+                when {
+                    text.startsWith("[") -> JSONArray(text)
+                    text.startsWith("{") -> {
+                        val objectValue = JSONObject(text)
+                        objectValue.optJSONArray("rules") ?: JSONArray().put(objectValue)
+                    }
+                    else -> JSONArray(text)
+                }
+            }.getOrNull()
+        }
+
+        private fun hasDeepSeekResponsesRule(raw: String): Boolean {
+            val rules = thinkingRulesArray(raw) ?: return false
+            for (index in 0 until rules.length()) {
+                val rule = rules.optJSONObject(index) ?: continue
+                if (rule.optString("id", "") == DEEPSEEK_RESPONSES_RULE_ID) return true
+                val match = rule.optJSONObject("match")
+                val values = listOf(match?.opt("endpointSuffix"), rule.opt("endpointSuffix"))
+                if (values.any { value ->
+                            when (value) {
+                                is JSONArray -> (0 until value.length()).any {
+                                    isDeepSeekResponsesEndpoint(value.optString(it, ""))
+                                }
+                                is String -> isDeepSeekResponsesEndpoint(value)
+                                else -> false
+                            }
+                        }) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        private fun ensureDeepSeekResponsesRule(raw: String): String {
+            val rules = thinkingRulesArray(raw) ?: return raw
+            if (hasDeepSeekResponsesRule(raw)) return raw
+
+            val defaults = thinkingRulesArray(
+                    ModelThinkingConfigDefaults.forProvider(ApiProviderType.DEEPSEEK.name)
+            ) ?: return raw
+            val responseRule = (0 until defaults.length())
+                    .mapNotNull { defaults.optJSONObject(it) }
+                    .firstOrNull { it.optString("id", "") == DEEPSEEK_RESPONSES_RULE_ID }
+                    ?: return raw
+
+            val updated = JSONArray().put(JSONObject(responseRule.toString()))
+            for (index in 0 until rules.length()) {
+                rules.optJSONObject(index)?.let { updated.put(JSONObject(it.toString())) }
+            }
+            return updated.toString()
+        }
+
         internal fun thinkingRulesForProvider(providerTypeId: String): String =
                 ModelThinkingConfigDefaults.forProvider(providerTypeId)
 
-        internal fun firstThinkingOptionIdForProvider(providerTypeId: String): String =
-                firstThinkingOptionIdForModel(providerTypeId, "")
+        internal fun firstThinkingOptionIdForProvider(
+                providerTypeId: String,
+                apiEndpoint: String = ""
+        ): String = firstThinkingOptionIdForModel(providerTypeId, "", apiEndpoint)
 
-        internal fun firstThinkingOptionIdForModel(providerTypeId: String, modelName: String): String {
+        internal fun firstThinkingOptionIdForModel(
+                providerTypeId: String,
+                modelName: String,
+                apiEndpoint: String = ""
+        ): String {
                 val rules = thinkingRulesForProvider(providerTypeId)
-                return firstThinkingOptionIdForRules(providerTypeId, modelName, rules)
+                return firstThinkingOptionIdForRules(providerTypeId, modelName, rules, apiEndpoint)
         }
 
         internal fun firstThinkingOptionIdForRules(
                 providerTypeId: String,
                 modelName: String,
-                thinkingConfigurations: String
+                thinkingConfigurations: String,
+                apiEndpoint: String = ""
         ): String {
                 return ThinkingQualityMappingRegistry
-                        .resolve(providerTypeId, modelName, thinkingConfigurations)
+                        .resolve(providerTypeId, modelName, apiEndpoint, thinkingConfigurations)
                         .options
                         .firstOrNull()
                         ?.id
@@ -177,10 +303,15 @@ class ModelConfigManager(private val context: Context) {
 
         internal fun nextThinkingRulesForProvider(
                 current: ModelConfigData,
-                providerTypeId: String
+                providerTypeId: String,
+                apiEndpoint: String = ""
         ): String =
                 if (current.apiProviderTypeId == providerTypeId) {
-                    current.thinkingConfigurations
+                    if (isDeepSeekProvider(providerTypeId) && isDeepSeekResponsesEndpoint(apiEndpoint)) {
+                        ensureDeepSeekResponsesRule(current.thinkingConfigurations)
+                    } else {
+                        current.thinkingConfigurations
+                    }
                 } else {
                     thinkingRulesForProvider(providerTypeId)
                 }
@@ -188,13 +319,22 @@ class ModelConfigManager(private val context: Context) {
         internal fun nextThinkingOptionIdForProvider(
                 current: ModelConfigData,
                 providerTypeId: String,
-                modelName: String
+                modelName: String,
+                apiEndpoint: String = ""
         ): String =
                 // Keep a model's choice while editing it; built-in defaults apply only on provider changes.
                 if (current.apiProviderTypeId == providerTypeId) {
-                    current.thinkingOptionId
+                    val switchedToDeepSeekResponses =
+                            isDeepSeekProvider(providerTypeId) &&
+                                    isDeepSeekResponsesEndpoint(apiEndpoint) &&
+                                    !isDeepSeekResponsesEndpoint(current.apiEndpoint)
+                    if (switchedToDeepSeekResponses) {
+                        firstThinkingOptionIdForModel(providerTypeId, modelName, apiEndpoint)
+                    } else {
+                        current.thinkingOptionId
+                    }
                 } else {
-                    firstThinkingOptionIdForModel(providerTypeId, modelName)
+                    firstThinkingOptionIdForModel(providerTypeId, modelName, apiEndpoint)
                 }
     }
 
@@ -207,7 +347,7 @@ class ModelConfigManager(private val context: Context) {
                 val configList = preferences[CONFIG_LIST_KEY] ?: ""
                 if (configList.isEmpty()) emptyList()
                 else json.decodeFromString<List<String>>(configList)
-            }
+            }.flowOn(Dispatchers.IO)
 
     // 从原有ApiPreferences创建默认配置
     private fun createFreshDefaultConfig(): ModelConfigData {
@@ -224,25 +364,27 @@ class ModelConfigManager(private val context: Context) {
 
     // 从DataStore加载配置
     private suspend fun loadConfigFromDataStore(configId: String): ModelConfigData? {
-        val configKey = stringPreferencesKey("config_${configId}")
-        return context.modelConfigDataStore.data.first().let { preferences ->
-            val configJson = preferences[configKey]
-            if (configJson != null) {
-                try {
-                    json.decodeFromString<ModelConfigData>(configJson)
-                } catch (e: Exception) {
-                    // 如果解析失败，回退到创建一个新配置
+        return withContext(Dispatchers.IO) {
+            val configKey = stringPreferencesKey("config_${configId}")
+            context.modelConfigDataStore.data.first().let { preferences ->
+                val configJson = preferences[configKey]
+                if (configJson != null) {
+                    try {
+                        json.decodeFromString<ModelConfigData>(configJson)
+                    } catch (e: Exception) {
+                        // 如果解析失败，回退到创建一个新配置
+                        if (configId == DEFAULT_CONFIG_ID) {
+                            createFreshDefaultConfig()
+                        } else {
+                            ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
+                        }
+                    }
+                } else {
                     if (configId == DEFAULT_CONFIG_ID) {
                         createFreshDefaultConfig()
                     } else {
                         ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
                     }
-                }
-            } else {
-                if (configId == DEFAULT_CONFIG_ID) {
-                    createFreshDefaultConfig()
-                } else {
-                    ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
                 }
             }
         }
@@ -295,9 +437,26 @@ class ModelConfigManager(private val context: Context) {
     // 获取指定ID的配置
     fun getModelConfigFlow(configId: String): Flow<ModelConfigData> {
         return context.modelConfigDataStore.data.map { preferences ->
-            val config = loadConfigFromDataStore(configId) ?: ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
-            config
-        }
+            val configKey = stringPreferencesKey("config_${configId}")
+            val configJson = preferences[configKey]
+            if (configJson != null) {
+                try {
+                    json.decodeFromString<ModelConfigData>(configJson)
+                } catch (e: Exception) {
+                    if (configId == DEFAULT_CONFIG_ID) {
+                        createFreshDefaultConfig()
+                    } else {
+                        ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
+                    }
+                }
+            } else {
+                if (configId == DEFAULT_CONFIG_ID) {
+                    createFreshDefaultConfig()
+                } else {
+                    ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
+                }
+            }
+        }.flowOn(Dispatchers.IO)
     }
 
     // 获取指定ID的配置的非Flow版本
@@ -318,26 +477,43 @@ class ModelConfigManager(private val context: Context) {
 
     // 获取所有配置的摘要信息
     suspend fun getAllConfigSummaries(): List<ModelConfigSummary> {
-        val configIds = configListFlow.first()
-        val summaries = mutableListOf<ModelConfigSummary>()
+        return withContext(Dispatchers.IO) {
+            context.modelConfigDataStore.data.first().let { preferences ->
+                val configIds = preferences[CONFIG_LIST_KEY]?.let {
+                    json.decodeFromString<List<String>>(it)
+                } ?: emptyList()
 
-        for (id in configIds) {
-            val config = getModelConfigFlow(id).first()
-            summaries.add(
+                configIds.map { id ->
+                    val configKey = stringPreferencesKey("config_${id}")
+                    val configJson = preferences[configKey]
+                    val config = if (configJson != null) {
+                        runCatching { json.decodeFromString<ModelConfigData>(configJson) }
+                            .getOrElse {
+                                if (id == DEFAULT_CONFIG_ID) {
+                                    createFreshDefaultConfig()
+                                } else {
+                                    ModelConfigData(id = id, name = context.getString(R.string.model_config_config_id, id))
+                                }
+                            }
+                    } else if (id == DEFAULT_CONFIG_ID) {
+                        createFreshDefaultConfig()
+                    } else {
+                        ModelConfigData(id = id, name = context.getString(R.string.model_config_config_id, id))
+                    }
+
                     ModelConfigSummary(
-                            id = config.id,
-                            name = config.name,
-                            modelName = config.modelName,
-                            apiEndpoint = config.apiEndpoint,
-                            apiProviderType = config.apiProviderType,
-                            apiProviderTypeId = config.apiProviderTypeId,
-                            thinkingConfigurations = config.thinkingConfigurations,
-                            thinkingOptionId = config.thinkingOptionId
+                        id = config.id,
+                        name = config.name,
+                        modelName = config.modelName,
+                        apiEndpoint = config.apiEndpoint,
+                        apiProviderType = config.apiProviderType,
+                        apiProviderTypeId = config.apiProviderTypeId,
+                        thinkingConfigurations = config.thinkingConfigurations,
+                        thinkingOptionId = config.thinkingOptionId,
                     )
-            )
+                }
+            }
         }
-
-        return summaries
     }
 
     // 创建新配置
@@ -431,8 +607,8 @@ class ModelConfigManager(private val context: Context) {
                     modelName = modelName,
                     apiProviderType = apiProviderType,
                     apiProviderTypeId = apiProviderTypeId,
-                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId),
-                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName)
+                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint),
+                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName, apiEndpoint)
             )
         }
     }
@@ -455,8 +631,8 @@ class ModelConfigManager(private val context: Context) {
                     modelName = modelName,
                     apiProviderType = apiProviderType,
                     apiProviderTypeId = apiProviderTypeId,
-                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId),
-                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName),
+                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint),
+                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName, apiEndpoint),
                     mnnForwardType = mnnForwardType,
                     mnnThreadCount = mnnThreadCount
             )
@@ -491,8 +667,8 @@ class ModelConfigManager(private val context: Context) {
                     modelName = modelName,
                     apiProviderType = apiProviderType,
                     apiProviderTypeId = apiProviderTypeId,
-                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId),
-                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName),
+                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint),
+                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName, apiEndpoint),
                     mnnForwardType = mnnForwardType,
                     mnnThreadCount = mnnThreadCount,
                     llamaThreadCount = llamaThreadCount.coerceAtLeast(1),
