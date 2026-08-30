@@ -62,7 +62,6 @@ import com.ai.assistance.operit.ui.features.settings.screens.TagMarketScreen
 import com.ai.assistance.operit.ui.features.settings.screens.SettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.SpeechServicesSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ThemeSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ThemeStudioScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ToolPermissionSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.MnnModelDownloadScreen
 import com.ai.assistance.operit.ui.features.settings.screens.UserPreferencesSettingsScreen
@@ -605,7 +604,6 @@ sealed class Screen(
                     navigateToGitHubAccount = { navigateTo(GitHubAccount) },
                     navigateToModelConfig = { navigateTo(ModelConfig) },
                     navigateToThemeSettings = { navigateTo(ThemeSettings) },
-                    navigateToThemeStudio = { navigateTo(ThemeStudio) },
                     navigateToGlobalDisplaySettings = { navigateTo(GlobalDisplaySettings) },
                     navigateToModelPrompts = { navigateTo(ModelPromptsSettings) },
                     navigateToFunctionalConfig = { navigateTo(FunctionalConfig) },
@@ -1033,22 +1031,6 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             ThemeSettingsScreen()
-        }
-    }
-
-    data object ThemeStudio :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.theme_studio_title) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ThemeStudioScreen()
         }
     }
 

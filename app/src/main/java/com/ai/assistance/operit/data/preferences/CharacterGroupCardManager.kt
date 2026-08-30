@@ -56,7 +56,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
     private val userPreferencesManager = UserPreferencesManager.getInstance(context)
     private val waifuPreferences = WaifuPreferences.getInstance(context)
     private val customEmojiRepository by lazy { CustomEmojiRepository.getInstance(context) }
-    private val themeStyleInstancePreferences by lazy { ThemeStyleInstancePreferences.getInstance(context) }
 
     companion object {
         private val CHARACTER_GROUP_LIST = stringSetPreferencesKey("character_group_list")
@@ -198,7 +197,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
         }
 
         runCatching { userPreferencesManager.deleteCharacterGroupTheme(groupId) }
-        themeStyleInstancePreferences.clear(ActivePrompt.CharacterGroup(groupId))
         runCatching { waifuPreferences.deleteCharacterGroupWaifuSettings(groupId) }
         runCatching { customEmojiRepository.deleteCharacterGroupEmojis(groupId) }
         runCatching { ChatHistoryManager.getInstance(context).clearCharacterGroupBinding(groupId) }
@@ -255,10 +253,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
         runCatching {
             userPreferencesManager.cloneThemeBetweenCharacterGroups(sourceGroupId, targetGroupId)
         }
-        themeStyleInstancePreferences.clone(
-            source = ActivePrompt.CharacterGroup(sourceGroupId),
-            target = ActivePrompt.CharacterGroup(targetGroupId),
-        )
         runCatching {
             waifuPreferences.cloneWaifuSettingsBetweenCharacterGroups(sourceGroupId, targetGroupId)
         }
@@ -323,7 +317,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
         emojiSourcePrompt: ActivePrompt
     ) {
         runCatching { userPreferencesManager.deleteCharacterGroupTheme(group.id) }
-        themeStyleInstancePreferences.clear(ActivePrompt.CharacterGroup(group.id))
         runCatching { waifuPreferences.copyCurrentWaifuSettingsToCharacterGroup(group.id) }
         runCatching { customEmojiRepository.cloneEmojiSet(emojiSourcePrompt, ActivePrompt.CharacterGroup(group.id)) }
         runCatching {

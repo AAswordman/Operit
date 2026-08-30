@@ -87,7 +87,6 @@ class CharacterCardManager private constructor(private val context: Context) {
     // 添加WaifuPreferences引用用于Waifu模式配置管理
     private val waifuPreferences = WaifuPreferences.getInstance(context)
     private val customEmojiRepository by lazy { CustomEmojiRepository.getInstance(context) }
-    private val themeStyleInstancePreferences by lazy { ThemeStyleInstancePreferences.getInstance(context) }
     
     companion object {
         private val CHARACTER_CARD_LIST = stringSetPreferencesKey("character_card_list")
@@ -362,7 +361,6 @@ class CharacterCardManager private constructor(private val context: Context) {
     ) {
         // 新建角色卡使用默认主题，不继承创建时的当前主题。
         userPreferencesManager.deleteCharacterCardTheme(characterCardId)
-        themeStyleInstancePreferences.clear(ActivePrompt.CharacterCard(characterCardId))
         // 同时也复制当前Waifu模式配置
         waifuPreferences.copyCurrentWaifuSettingsToCharacterCard(characterCardId)
         // 同时复制创建前活跃目标的自定义表情配置
@@ -392,11 +390,6 @@ class CharacterCardManager private constructor(private val context: Context) {
         } catch (e: Exception) {
             AppLogger.e("CharacterCardManager", "克隆角色卡主题配置失败", e)
         }
-
-        themeStyleInstancePreferences.clone(
-            source = ActivePrompt.CharacterCard(sourceCharacterCardId),
-            target = ActivePrompt.CharacterCard(targetCharacterCardId),
-        )
 
         try {
             waifuPreferences.cloneWaifuSettingsBetweenCharacterCards(sourceCharacterCardId, targetCharacterCardId)
@@ -608,7 +601,6 @@ class CharacterCardManager private constructor(private val context: Context) {
 
         // 删除角色卡对应的主题配置
         userPreferencesManager.deleteCharacterCardTheme(id)
-        themeStyleInstancePreferences.clear(ActivePrompt.CharacterCard(id))
         // 删除角色卡对应的Waifu模式配置
         waifuPreferences.deleteCharacterCardWaifuSettings(id)
         // 删除角色卡对应的自定义表情配置
@@ -955,8 +947,7 @@ class CharacterCardManager private constructor(private val context: Context) {
         }
 
         if (card.id != DEFAULT_CHARACTER_CARD_ID) {
-            val hasStyleInstance = themeStyleInstancePreferences.has(ActivePrompt.CharacterCard(card.id))
-            if (!userPreferencesManager.hasCharacterCardTheme(card.id) && !hasStyleInstance) {
+            if (!userPreferencesManager.hasCharacterCardTheme(card.id)) {
                 createDefaultThemeForCharacterCard(card.id, resolveEmojiSourcePrompt())
             }
         }

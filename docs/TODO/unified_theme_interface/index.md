@@ -2,10 +2,12 @@
 title: Operit 统一主题接口
 fork: https://github.com/luojiaping/Operit.git
 branch: feat/plugin-interface
-status: implementation_in_progress
+status: superseded
 ---
 
 # Operit 统一主题接口
+
+> 此计划已被 [声明式全局主题包](../declarative_theme_packages_20260831/index.md) 取代。它保留开发过程记录，不再定义后续实现方向。
 
 ## 当前状态
 
@@ -43,7 +45,6 @@ Operit 的已发布主题以角色卡和群组为作用域，使用一组固定�
     - [基础组件契约与备份设置试点](./4b_FoundationContractsAndBackupPilot.md)
     - [高级视觉样式级联与宿主能力](./4c_AdvancedVisualStyleCascade.md)
     - [组件目录冻结集](./4d_ComponentCatalogFreezeSet.md)
-    - [Theme Studio 设置试点](./4e_ThemeStudioSettingsPilot.md)
 5. [主题包与样式链接](./5_ThemePackageAndStyleLinking.md)
 6. [原生 UI 迁移](./6_NativeUiMigration.md)
 7. [独立渲染面适配](./7_AlternateSurfaceAdapters.md)

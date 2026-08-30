@@ -11,16 +11,12 @@ import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentK
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentMemberId
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSemanticRoleV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSemanticsV1
-import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePartContractV1
-import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePartIdsV1
-import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePropertySetsV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSlotCardinalityV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSlotV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStateFieldV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStateValueV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentValueTypeV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentVersionV1
-import com.ai.assistance.operit.ui.theme.style.NativeThemeComponentFamilyIdV1
 
 internal data class NativeThemeStatStateV1(
     val label: String,
@@ -41,44 +37,10 @@ internal object NativeThemeStatContractV1 {
     val contract =
         NativeThemeComponentContractV1(
             id = NativeThemeComponentId("operit.data_display.stat"),
-            version = NativeThemeComponentVersionV1(major = 1, minor = 1),
+            version = NativeThemeComponentVersionV1(major = 1, minor = 0),
             category = NativeThemeComponentCategoryV1.DATA_DISPLAY,
             required = true,
-            supportedHostSurfaces =
-                setOf(
-                    NativeThemeHostSurface.MAIN,
-                    NativeThemeHostSurface.EDITOR_PREVIEW,
-                ),
-            styleFamily = NativeThemeComponentFamilyIdV1("operit.data_display"),
-            styleParts =
-                listOf(
-                    NativeThemeComponentStylePartContractV1(
-                        id = NativeThemeComponentStylePartIdsV1.surface,
-                        allowedProperties = NativeThemeComponentStylePropertySetsV1.surface,
-                        requiredProperties = NativeThemeComponentStylePropertySetsV1.surfaceRequired,
-                    ),
-                    NativeThemeComponentStylePartContractV1(
-                        id = NativeThemeComponentStylePartIdsV1.leading,
-                        allowedProperties = NativeThemeComponentStylePropertySetsV1.icon,
-                        requiredProperties = NativeThemeComponentStylePropertySetsV1.iconRequired,
-                    ),
-                    NativeThemeComponentStylePartContractV1(
-                        id = NativeThemeComponentStylePartIdsV1.label,
-                        allowedProperties = NativeThemeComponentStylePropertySetsV1.text,
-                        requiredProperties = NativeThemeComponentStylePropertySetsV1.textRequired,
-                    ),
-                    NativeThemeComponentStylePartContractV1(
-                        id = NativeThemeComponentStylePartIdsV1.value,
-                        allowedProperties = NativeThemeComponentStylePropertySetsV1.text,
-                        requiredProperties = NativeThemeComponentStylePropertySetsV1.textRequired,
-                    ),
-                    NativeThemeComponentStylePartContractV1(
-                        id = NativeThemeComponentStylePartIdsV1.content,
-                        allowedProperties = NativeThemeComponentStylePropertySetsV1.content,
-                        requiredProperties = NativeThemeComponentStylePropertySetsV1.contentRequired,
-                    ),
-                ),
-            styleStateAxes = emptyList(),
+            supportedHostSurfaces = setOf(NativeThemeHostSurface.MAIN),
             stateFields =
                 listOf(
                     NativeThemeComponentStateFieldV1(

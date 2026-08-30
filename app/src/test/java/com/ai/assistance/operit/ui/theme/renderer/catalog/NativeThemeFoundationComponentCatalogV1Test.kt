@@ -64,22 +64,14 @@ class NativeThemeFoundationComponentCatalogV1Test {
         )
         assertTrue(contracts.all { contract -> contract.required })
         assertTrue(
-            contracts.filterNot { contract -> contract.id == NativeThemeStatContractV1.contract.id }.all { contract ->
+            contracts.all { contract ->
                 contract.version == NativeThemeComponentVersionV1(major = 1, minor = 0)
-            }
-        )
-        assertEquals(
-            NativeThemeComponentVersionV1(major = 1, minor = 1),
-            NativeThemeStatContractV1.contract.version,
+            },
         )
         assertTrue(
-            contracts.filterNot { contract -> contract.id == NativeThemeStatContractV1.contract.id }.all { contract ->
+            contracts.all { contract ->
                 contract.supportedHostSurfaces == setOf(NativeThemeHostSurface.MAIN)
-            }
-        )
-        assertEquals(
-            setOf(NativeThemeHostSurface.MAIN, NativeThemeHostSurface.EDITOR_PREVIEW),
-            NativeThemeStatContractV1.contract.supportedHostSurfaces,
+            },
         )
     }
 

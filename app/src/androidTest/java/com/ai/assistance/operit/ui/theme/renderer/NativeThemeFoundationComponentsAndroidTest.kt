@@ -264,24 +264,6 @@ class NativeThemeFoundationComponentsAndroidTest {
         composeTestRule.onNodeWithTag("stat-leading", useUnmergedTree = true).assertExists()
     }
 
-    @Test
-    fun statRendersInsideAnEditorPreviewHostWithoutAThemeTargetSource() {
-        composeTestRule.setContent {
-            NativeThemeStatEditorPreviewTestHost {
-                NativeThemeStatV1(
-                    label = "Previewed stats",
-                    value = "8",
-                    leading = { modifier -> Box(Modifier.testTag("preview-stat-leading").then(modifier)) },
-                )
-            }
-        }
-
-        composeTestRule
-            .onNodeWithContentDescription("Previewed stats")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "8"))
-        composeTestRule.onNodeWithTag("preview-stat-leading", useUnmergedTree = true).assertExists()
-    }
-
     @Composable
     private fun NativeThemeStatTestHost(content: @Composable () -> Unit) {
         val snapshot =
@@ -305,25 +287,4 @@ class NativeThemeFoundationComponentsAndroidTest {
         )
     }
 
-    @Composable
-    private fun NativeThemeStatEditorPreviewTestHost(content: @Composable () -> Unit) {
-        val snapshot =
-            ThemePreferenceSnapshot(
-                source = "theme_editor_preview",
-                values = ThemePreferenceValues.defaultVisual(),
-            )
-        val resolvedTheme =
-            resolveNativeThemeForDetachedComposeHost(
-                snapshot = snapshot,
-                hostSurface = NativeThemeHostSurface.EDITOR_PREVIEW,
-                systemDarkTheme = false,
-                lightColorScheme = NativeThemeV1LightColorScheme,
-                darkColorScheme = NativeThemeV1DarkColorScheme,
-            )
-        NativeThemeOffscreenHost(
-            snapshot = snapshot,
-            resolvedTheme = resolvedTheme,
-            content = content,
-        )
-    }
 }
