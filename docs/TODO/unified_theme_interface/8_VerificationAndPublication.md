@@ -185,3 +185,17 @@
 - 初次提交 `d2e9c209` 在 Kotlin 编译阶段发现样式验证器缺少宿主表面导入和多余右括号；修复提交 `0b4c3680` 后重新构建成功。
 - release 汇编验证了样式值模型、三层链接器、组件部件和状态契约、逐表面能力校验及 `EDITOR_PREVIEW` 宿主源码；本动作不执行 JVM 或 Android Compose 测试。
 - 设备级验证仍需覆盖 `native_v1` 编译器、`ThemeSurface` 绘制器和已迁组件的生产样式消费，以及边框、模糊、材质、菜单和图标容器的视觉与无障碍矩阵。
+
+### 2026-08-30：Theme Studio Stat 试点 release 构建
+
+- 分支：`feat/plugin-interface`
+- 功能提交：`b9e7f33f`
+- 构建修复提交：`f7ee7533`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-f7ee7533.apk`
+- 产物大小：`403572383` 字节
+- SHA-256：`e8662174d2c9458d9ee6819f9f342e142d9db426ed7125ba794c9e3621df99c6`
+- 初次功能提交在 Kotlin 编译阶段发现 DataStore 导入、委托目标分支、设置控件变量作用域和 `RectangleShape` 导入问题；修复提交 `f7ee7533` 后重新构建成功。
+- release 汇编验证了 Theme Studio 路由、目标级样式实例存储、Stat `1.1` 的 `MAIN`/`EDITOR_PREVIEW` 运行时链接、实际 Stat renderer 消费、目标生命周期和生产资源源集；本动作不执行 JVM 或 Android Compose 测试。
+- 设备级验证仍需覆盖 Theme Studio 的角色卡/群组保存、Reset 草稿确认、复制/删除/导入生命周期、浅深色/字体缩放、边框和图标容器视觉、TalkBack 语义以及备份与聊天历史统计的实际刷新。
