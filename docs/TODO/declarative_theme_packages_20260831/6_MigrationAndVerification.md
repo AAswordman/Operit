@@ -29,6 +29,19 @@
 
 ## 构建记录
 
+### 2026-08-31：批次 F（chat.main 接线 + 赛博 `.otheme` 样例）release 构建
+
+- 分支：`feat/plugin-interface`
+- 提交：`b88dee68`（chat.main 六槽 host 接线）、`033d60f1`/`7c2d8313`（赛博样例归档与根节点编码修复）、`ee2eaf40`（bundled 样例保留）、`433337cd`（九宫格源像素/目标 dp 语义修复）
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-433337cd.apk`
+- 产物大小：`403585491` 字节
+- SHA-256：`7d8776cda424f0f39ecec35f622e9cb9d39497b4c246490867651f591535b4cd`
+- 容器验证：`:app:compileReleaseKotlin` 与主题包/场景/全局主题 JVM 测试通过；真实 bundled `cyber-grid.otheme` 使用同一归档校验器通过。
+- 落地：`ChatMainSceneHost` 将 configuration/header/transcript/composer/classic_settings_rail/overlay_stack 六个稳定语义槽映射到激活场景；reference 场景维持现有 Compose 行为；赛博包使用 NASA Hubble Ring Nebula 衍生背景（来源、归属和链接写入 manifest 与 `ATTRIBUTION.md`）及项目自生成九宫格框体。背景图已可透过主内容壳层。
+- 尚需设备验证：首次启动 bundled 包安装、主题页列表刷新、启用赛博包、主色/背景参数、输入/IME、聊天流式、选择器、TalkBack 与不同密度下九宫格框体。
+
 ### 2026-08-31：批次 E（`.otheme` 格式、安装器、内置参数和主题页）release 构建
 
 - 分支：`feat/plugin-interface`

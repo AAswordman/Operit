@@ -71,3 +71,10 @@
 - 像素主题的整数像素边界、像素字体、最近邻素材与离散控件状态
 
 三者必须使用相同的 `app.shell.v1` 与 `chat.main.v1` 语义输入和封闭事件。
+
+## 批次 F 进展
+
+- `ChatMainSceneHost` 已把上述六个根槽位接到现有聊天实现；消息滚动、IME、输入提交、选择器、工作区和 Computer Overlay 生命周期仍由宿主保留。
+- 内置 reference scene 使用相同槽位维持现有 Compose 行为。
+- bundled `operit.cyber_grid@1.0.0` `.otheme` 已提供真实 `chat.main` 场景：Hubble Ring Nebula 衍生背景、外框/头部/输入器九宫格装饰以及稳定槽位层。
+- 设备端视觉、无障碍和 IME 矩阵仍是批次 F 的完成门槛。
