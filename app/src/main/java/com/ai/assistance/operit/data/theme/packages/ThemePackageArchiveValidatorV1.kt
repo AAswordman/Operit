@@ -219,6 +219,7 @@ internal object ThemePackageArchiveValidatorV1 {
             throw ThemePackageArchiveValidationException("Theme token pool is invalid: [$issue.code] ${issue.message}")
         }
         validateFontTokenReferences(manifest)
+        validateSceneTokenReferences(manifest)
         val tokenIssues = manifest.scenes.flatMap { scene ->
             validateThemeSceneV1(
                 definition = scene,
@@ -255,6 +256,52 @@ internal object ThemePackageArchiveValidatorV1 {
                 }
             }
         }
+    }
+
+    private fun validateSceneTokenReferences(manifest: ThemePackageManifestV1) {
+        val tokens = manifest.tokens.tokens
+        fun requireColor(tokenId: com.ai.assistance.operit.ui.theme.scene.ThemeSceneTokenIdV1) {
+            if (tokens[tokenId.value] !is com.ai.assistance.operit.ui.theme.scene.ThemeSceneTokenValueV1.ColorToken) {
+                throw ThemePackageArchiveValidationException(
+                    "Scene references missing or non-color token: ${tokenId.value}",
+                )
+            }
+        }
+        fun requireTextStyle(tokenId: com.ai.assistance.operit.ui.theme.scene.ThemeSceneTokenIdV1) {
+            if (tokens[tokenId.value] !is com.ai.assistance.operit.ui.theme.scene.ThemeSceneTokenValueV1.TextStyleToken) {
+                throw ThemePackageArchiveValidationException(
+                    "Scene references missing or non-text-style token: ${tokenId.value}",
+                )
+            }
+        }
+        fun visit(node: ThemeSceneNodeV1) {
+            when (node) {
+                is ThemeSceneStageNodeV1 -> node.backgroundColorToken?.let(::requireColor)
+
+                is com.ai.assistance.operit.ui.theme.scene.ThemeSceneSurfaceNodeV1 -> {
+                    node.fillToken?.let(::requireColor)
+                    node.outlineToken?.let(::requireColor)
+                }
+
+                is ThemeScenePathNodeV1 -> {
+                    node.fillToken?.let(::requireColor)
+                    node.outlineToken?.let(::requireColor)
+                }
+
+                is ThemeSceneTextNodeV1 -> {
+                    val styleToken =
+                        node.styleToken
+                            ?: throw ThemePackageArchiveValidationException(
+                                "Scene text node ${node.nodeId.value} has no style token.",
+                            )
+                    requireTextStyle(styleToken)
+                }
+
+                else -> Unit
+            }
+            childrenOf(node).forEach(::visit)
+        }
+        manifest.scenes.forEach { scene -> visit(scene.rootNode) }
     }
 
     private fun validateBasis(manifest: ThemePackageManifestV1) {

@@ -57,6 +57,7 @@ import com.ai.assistance.operit.ui.main.navigation.ScreenRouteViewModelStoreOwne
 import com.ai.assistance.operit.ui.main.navigation.retainedRouteKeysOnContentAttach
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
+import com.ai.assistance.operit.ui.theme.LocalActiveGlobalThemeParameters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -172,6 +173,8 @@ fun AppContent(
     val drawerNavigationOffsetPx =
         with(density) { if (useTabletLayout) 40.dp.toPx() else 30.dp.toPx() }
     ImeWakeListeningEffect(context = context, density = density)
+    val hasThemeBackgroundImage =
+        LocalActiveGlobalThemeParameters.current.backgroundImageUri != null
     val appBarContentColor = MaterialTheme.colorScheme.onPrimary
 
     // 获取聊天历史管理器
@@ -351,7 +354,12 @@ fun AppContent(
                         }
                     )
                     .fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
+                color =
+                    if (hasThemeBackgroundImage) {
+                        Color.Transparent
+                    } else {
+                        MaterialTheme.colorScheme.background
+                    }
             ) {
                 if (isLoading) {
                     // 加载中状态

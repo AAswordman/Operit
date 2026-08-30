@@ -36,6 +36,15 @@ internal class ThemePackageInstallerV1 private constructor(
             try {
                 val validated =
                     ThemePackageArchiveValidatorV1.validate(staged, expectedSha256)
+                validated.manifest.basis?.let { basis ->
+                    val installed = ThemePackagePublicationV1.catalog(installedRoot).installations
+                    if (installed.none { installation -> installation.coordinate == basis }) {
+                        throw ThemePackageInstallException(
+                            "Theme package basis is not installed: " +
+                                "${basis.packageId.value}@${basis.version.value}",
+                        )
+                    }
+                }
                 ThemePackagePublicationV1.publish(
                     validatedArchive = staged,
                     validated = validated,

@@ -99,6 +99,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
         CompositionLocalProvider(
             LocalGlobalPresentation provides presentation,
             LocalResolvedGlobalTheme provides resolvedTheme,
+            LocalActiveGlobalThemeParameters provides themeParameters,
             LocalLiquidGlassBackdrop provides liquidGlassBackdrop,
             LocalWaterGlassState provides waterGlassState,
         ) {
