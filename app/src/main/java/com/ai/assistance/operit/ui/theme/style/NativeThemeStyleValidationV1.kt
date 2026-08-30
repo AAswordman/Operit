@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.theme.style
 
+import com.ai.assistance.operit.ui.theme.NativeThemeHostSurface
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentContractV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.validateNativeThemeComponentContractsV1
 
@@ -335,7 +336,6 @@ private fun validateScopeAgainstContracts(
                         path = "$path.stateRules[$index].selector.conditions[$conditionIndex]",
                         detail = "This style scope does not provide ${condition.value.name} for ${condition.axis.name}.",
                     )
-                )
             }
         }
         validatePatch(rule.patch, "$path.stateRules[$index].patch")
