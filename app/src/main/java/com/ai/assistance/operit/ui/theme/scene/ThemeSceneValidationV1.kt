@@ -13,6 +13,8 @@ internal enum class ThemeSceneIssueCodeV1 {
     REPEATED_SINGLE_SLOT,
     NODE_LIMIT_EXCEEDED,
     DEPTH_LIMIT_EXCEEDED,
+    UNKNOWN_TOKEN,
+    INVALID_TOKEN_REFERENCE,
 }
 
 internal data class ThemeSceneIssueV1(
