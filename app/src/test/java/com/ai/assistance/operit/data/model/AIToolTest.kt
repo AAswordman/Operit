@@ -53,10 +53,17 @@ class AIToolTest {
 
     @Test fun `create tool result with failure`() {
         val resultData = StringResultData("error occurred")
-        val result = ToolResult(toolName = "search", success = false, result = resultData, error = "Not found")
+        val result = ToolResult(
+            toolName = "search",
+            success = false,
+            result = resultData,
+            error = "Not found",
+            errorCode = "tool_execution_failed"
+        )
         assertEquals("search", result.toolName)
         assertFalse(result.success)
         assertEquals("Not found", result.error)
+        assertEquals("tool_execution_failed", result.errorCode)
     }
 
     @Test fun `create tool validation result valid`() {

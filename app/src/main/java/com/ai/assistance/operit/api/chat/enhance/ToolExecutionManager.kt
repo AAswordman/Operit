@@ -58,6 +58,14 @@ object ToolExecutionManager {
         return if (content.endsWith("\n")) content else "$content\n"
     }
 
+    internal fun resolveRuntimeErrorCode(result: ToolResult): String =
+        result.errorCode
+            ?: if (result.error?.contains("Invalid parameter", ignoreCase = true) == true) {
+                "invalid_arguments"
+            } else {
+                "tool_execution_failed"
+            }
+
     private fun resolveToolTarget(tool: AITool): ResolvedToolTarget {
         if (tool.name != PACKAGE_PROXY_TOOL_NAME &&
             tool.name != CliToolModeSupport.PROXY_TOOL_NAME
@@ -193,7 +201,8 @@ object ToolExecutionManager {
             toolName = resolveDisplayToolName(invocation.tool),
             success = false,
             result = StringResultData(""),
-            error = context.getString(R.string.character_card_tool_access_denied_runtime)
+            error = context.getString(R.string.character_card_tool_access_denied_runtime),
+            errorCode = "permission_denied"
         )
     }
 
@@ -239,7 +248,8 @@ object ToolExecutionManager {
             toolName = resultToolName,
             success = false,
             result = StringResultData(""),
-            error = errorMessage
+            error = errorMessage,
+            errorCode = "permission_denied"
         )
     }
 
@@ -392,7 +402,8 @@ object ToolExecutionManager {
                         toolName = invocation.tool.name,
                         success = false,
                         result = StringResultData(""),
-                        error = "Invalid parameters: ${validationResult.errorMessage}"
+                        error = "Invalid parameters: ${validationResult.errorMessage}",
+                        errorCode = "invalid_arguments"
                     )
                 )
             }
@@ -406,7 +417,8 @@ object ToolExecutionManager {
                     toolName = invocation.tool.name,
                     success = false,
                     result = StringResultData(""),
-                    error = "Tool execution error: ${e.message}"
+                    error = "Tool execution error: ${e.message}",
+                    errorCode = "tool_execution_failed"
                 )
             )
         }
@@ -422,7 +434,8 @@ object ToolExecutionManager {
     suspend fun checkToolPermission(
         toolHandler: AIToolHandler,
         invocation: ToolInvocation,
-        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
+        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        callerChatId: String? = null
     ): Pair<Boolean, ToolResult?> {
         val resolvedTarget = resolveToolTarget(invocation.tool)
         val permissionTool =
@@ -452,21 +465,26 @@ object ToolExecutionManager {
         if (hasPromptForPermission) {
             // 检查权限，如果需要则弹出权限请求界面
             val toolPermissionSystem = toolHandler.getToolPermissionSystem()
-            val hasPermission = toolPermissionSystem.checkToolPermission(permissionTool)
+            val permissionResult = toolPermissionSystem.checkToolPermission(
+                permissionTool,
+                chatId = callerChatId
+            )
 
-            // 如果权限被拒绝，创建错误结果
-            if (!hasPermission) {
+            if (!permissionResult.isGranted) {
+                val errorMessage = requireNotNull(permissionResult.errorMessage)
+                val errorCode = requireNotNull(permissionResult.errorCode)
                 val errorResult =
                     ToolResult(
                         toolName = resolvedTarget.displayName,
                         success = false,
                         result = StringResultData(""),
-                        error = "User cancelled the tool execution."
+                        error = errorMessage,
+                        errorCode = errorCode
                     )
                 toolHandler.notifyToolPermissionChecked(
                     permissionTool,
                     granted = false,
-                    reason = errorResult.error
+                    reason = errorMessage
                 )
                 return Pair(false, errorResult)
             }
@@ -501,7 +519,8 @@ object ToolExecutionManager {
         toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         callerName: String? = null,
         callerChatId: String? = null,
-        callerCardId: String? = null
+        callerCardId: String? = null,
+        onToolExecutionStarted: (suspend (String) -> Unit)? = null
     ): List<ToolResult> = coroutineScope {
         // 默认工具注册现在可能在启动阶段被延后；这里确保在真正执行工具前已完成注册
         // registerDefaultTools() 是幂等且线程安全的，可安全重复调用
@@ -575,7 +594,12 @@ object ToolExecutionManager {
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
                 AIToolHookDecision.Allow -> {
                     val (hasPermission, errorResult) =
-                        checkToolPermission(toolHandler, invocation, toolExposureMode)
+                        checkToolPermission(
+                            toolHandler = toolHandler,
+                            invocation = invocation,
+                            toolExposureMode = toolExposureMode,
+                            callerChatId = callerChatId
+                        )
                     if (hasPermission) {
                         permittedInvocations.add(invocation)
                     } else {
@@ -644,7 +668,8 @@ object ToolExecutionManager {
                         toolHandler = toolHandler,
                         packageManager = packageManager,
                         collector = collector,
-                        runtimeContext = toolRuntimeContext
+                        runtimeContext = toolRuntimeContext,
+                        onToolExecutionStarted = onToolExecutionStarted
                     )
                 executionResults[invocation] = result
             }
@@ -658,7 +683,8 @@ object ToolExecutionManager {
                     toolHandler = toolHandler,
                     packageManager = packageManager,
                     collector = collector,
-                    runtimeContext = toolRuntimeContext
+                    runtimeContext = toolRuntimeContext,
+                    onToolExecutionStarted = onToolExecutionStarted
                 )
             executionResults[invocation] = result
         }
@@ -685,7 +711,8 @@ object ToolExecutionManager {
         toolHandler: AIToolHandler,
         packageManager: PackageManager,
         collector: StreamCollector<String>,
-        runtimeContext: ToolRuntimeContext
+        runtimeContext: ToolRuntimeContext,
+        onToolExecutionStarted: (suspend (String) -> Unit)?
     ): ToolResult {
         val toolName = invocation.tool.name
         val displayToolName = resolveDisplayToolName(invocation.tool)
@@ -711,6 +738,7 @@ object ToolExecutionManager {
                     return@withContext notAvailableResult
                 }
 
+                onToolExecutionStarted?.invoke(displayToolName)
                 toolHandler.notifyToolExecutionStarted(invocation.tool)
 
                 val collectedResults = mutableListOf<ToolResult>()
@@ -745,7 +773,8 @@ object ToolExecutionManager {
                         toolName = displayToolName,
                         success = lastResult.success,
                         result = StringResultData(combinedResultString),
-                        error = lastResult.error
+                        error = lastResult.error,
+                        errorCode = lastResult.errorCode
                     )
                 toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
                 return@withContext finalResult

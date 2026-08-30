@@ -32,8 +32,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -259,6 +257,7 @@ open class OpenAIProvider(
                      onTokensUpdated = { _, _, _ -> },
                       onUsageReported = null,
                       onNonFatalError = {},
+                      onRetryState = {},
                       enableRetry = false,
                       recordTokenUsage = false,
                  )
@@ -1480,14 +1479,8 @@ open class OpenAIProvider(
         }
     }
 
-    private fun resolveRetryErrorText(context: Context, exception: Exception): String {
-        return when (exception) {
-            is SocketTimeoutException -> context.getString(R.string.openai_error_timeout)
-            is UnknownHostException -> context.getString(R.string.openai_error_cannot_resolve_host)
-            else -> exception.message?.takeIf { it.isNotBlank() }
-                ?: context.getString(R.string.openai_error_network_interrupted)
-        }
-    }
+    private fun resolveRetryErrorText(context: Context, exception: Exception): String =
+        ApiErrorClassifier.retryErrorText(context, exception)
 
     /**
      * 处理可重试错误的统一逻辑
@@ -1499,10 +1492,18 @@ open class OpenAIProvider(
         maxRetries: Int,
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
+        onRetryState: suspend (RuntimeRetryMetadata) -> Unit = {},
         onRetryAccepted: suspend () -> Unit,
         buildRetryMessage: (String, Int) -> String
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
+            throw exception
+        }
+        if (
+            exception is NonRetriableException &&
+                !LlmRetryPolicy.isRetryableClientStatus(exception.statusCode)
+        ) {
+            onNonFatalError(exception.message.orEmpty())
             throw exception
         }
         checkCancellation(context, exception)
@@ -1525,6 +1526,18 @@ open class OpenAIProvider(
         // A terminal failure must retain its streamed text; only a replacement request discards it.
         onRetryAccepted()
         val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
+        val classification = ApiErrorClassifier.classify(exception)
+        onRetryState(
+            RuntimeRetryMetadata(
+                retryAttempt = newRetryCount,
+                maxRetryAttempts = maxRetries,
+                retryAfterMs = retryDelayMs,
+                errorCode = classification.code,
+                providerCode = classification.providerCode,
+                httpStatusCode = classification.httpStatusCode,
+                errorMessage = errorText
+            )
+        )
         AppLogger.w("AIService", "【发送消息】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
         if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
             onNonFatalError(buildRetryMessage(errorText, newRetryCount))
@@ -3010,6 +3023,7 @@ open class OpenAIProvider(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
         enableRetry: Boolean,
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
@@ -3272,6 +3286,7 @@ open class OpenAIProvider(
                     maxRetries = maxRetries,
                     enableRetry = enableRetry,
                     onNonFatalError = onNonFatalError,
+                    onRetryState = onRetryState,
                     onRetryAccepted = { emitter.emitRollback(requestSavepointId) },
                     buildRetryMessage = { errorText, retryNumber ->
                         "【${context.getString(R.string.openai_retry_with_count, errorText, retryNumber)}】"

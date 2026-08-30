@@ -3,7 +3,9 @@ package com.ai.assistance.operit.services.core
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.util.stream.emptyStream
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MessageProcessingDelegateTest {
@@ -44,5 +46,12 @@ class MessageProcessingDelegateTest {
         assertEquals(4_000L, result.outputDurationMs)
         assertEquals(500L, result.waitDurationMs)
         assertEquals(5_000L, result.completedAt)
+    }
+
+    @Test
+    fun shouldPersistInterruptedMessage_skipsEmptyResponseAndKeepsPartialContent() {
+        assertFalse(MessageProcessingDelegate.shouldPersistInterruptedMessage(""))
+        assertFalse(MessageProcessingDelegate.shouldPersistInterruptedMessage("   \n"))
+        assertTrue(MessageProcessingDelegate.shouldPersistInterruptedMessage("partial response"))
     }
 }
