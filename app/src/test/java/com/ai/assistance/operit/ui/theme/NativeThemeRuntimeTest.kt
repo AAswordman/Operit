@@ -104,7 +104,7 @@ class NativeThemeRuntimeTest {
 
     private fun resolve(
         presentation: GlobalPresentationSnapshot,
-        systemDarkTheme: Boolean,
+        systemDarkTheme: Boolean = false,
         lightScheme: androidx.compose.material3.ColorScheme = lightColorScheme(),
         darkScheme: androidx.compose.material3.ColorScheme = darkColorScheme(),
     ): ResolvedGlobalTheme =
