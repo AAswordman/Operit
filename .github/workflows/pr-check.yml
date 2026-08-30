@@ -556,6 +556,15 @@ jobs:
           fi
           ./gradlew "${tasks[@]}" --stacktrace --no-daemon
 
+      - name: Summarize JVM test failures
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/script/summarize_test_failures.py \
+            --results-dir app/build/test-results/testDebugUnitTest \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+
   candidate:
     name: Candidate checks
     needs: [fast, android_build, android_tests]

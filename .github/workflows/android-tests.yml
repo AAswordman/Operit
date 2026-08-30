@@ -159,6 +159,15 @@ jobs:
       - name: Run JVM unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
 
+      - name: Summarize JVM test failures
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/script/summarize_test_failures.py \
+            --results-dir app/build/test-results/testDebugUnitTest \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+
       - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
