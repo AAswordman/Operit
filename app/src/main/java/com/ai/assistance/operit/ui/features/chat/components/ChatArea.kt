@@ -95,6 +95,7 @@ import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Summarize
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.ui.draw.alpha
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 import com.ai.assistance.operit.ui.common.markdown.markdownToPlainTextForCopy
@@ -204,6 +205,7 @@ fun ChatArea(
     onToggleFavoriteMessage: ((Long, Boolean) -> Unit)? = null,
     onCreateBranch: ((Long) -> Unit)? = null, // 添加创建分支回调参数
     onInsertSummary: ((ChatMessage) -> Unit)? = null, // 添加插入总结回调参数
+    onTranslateMessage: ((Long, String) -> Unit)? = null,
     onMentionRoleFromAvatar: ((String) -> Unit)? = null, // 长按角色头像提及
     autoScrollToBottom: Boolean = true,
     onAutoScrollToBottomChange: ((Boolean) -> Unit)? = null,
@@ -437,11 +439,12 @@ fun ChatArea(
                             onSwitchMessageVariant = onSwitchMessageVariant,
                             onSpeakMessage = onSpeakMessage,
                             onReplyToMessage = onReplyToMessage,
-                            onToggleFavoriteMessage = onToggleFavoriteMessage,
-                            onCreateBranch = onCreateBranch,
-                            onInsertSummary = onInsertSummary,
-                            onMentionRoleFromAvatar = onMentionRoleFromAvatar,
-                            chatStyle = chatStyle,
+                             onToggleFavoriteMessage = onToggleFavoriteMessage,
+                             onCreateBranch = onCreateBranch,
+                             onInsertSummary = onInsertSummary,
+                             onTranslateMessage = onTranslateMessage,
+                             onMentionRoleFromAvatar = onMentionRoleFromAvatar,
+                             chatStyle = chatStyle,
                             showMessageTokenStats = showMessageTokenStats,
                             showMessageTimingStats = showMessageTimingStats,
                             showMessageTimestamp = showMessageTimestamp,
@@ -609,6 +612,7 @@ private fun MessageItem(
     onToggleFavoriteMessage: ((Long, Boolean) -> Unit)? = null,
     onCreateBranch: ((Long) -> Unit)? = null, // 添加创建分支回调
     onInsertSummary: ((ChatMessage) -> Unit)? = null, // 添加插入总结回调
+    onTranslateMessage: ((Long, String) -> Unit)? = null,
     onMentionRoleFromAvatar: ((String) -> Unit)? = null, // 长按角色头像提及
     chatStyle: ChatStyle, // 新增参数
     showMessageTokenStats: Boolean = false,
@@ -646,6 +650,7 @@ private fun MessageItem(
     // 只有用户和AI的消息才能被操作
     val isActionable = message.sender == "user" || message.sender == "ai"
     val isHiddenUserMessage = isHiddenUserPlaceholder(message)
+    val translatableText = remember(message.content) { cleanMessageContentForCopy(message.content) }
 
     Box(
         modifier =
@@ -968,14 +973,14 @@ private fun MessageItem(
             // 回复选项
             if (message.sender == "ai") {
                 DropdownMenuItem(
-                text = {
+                    text = {
                         Text(
                             stringResource(R.string.reply_message),
                             style = MaterialTheme.typography.bodyMedium,
                             fontSize = 13.sp
-                       )
-                },
-                onClick = {
+                        )
+                    },
+                    onClick = {
                         onReplyToMessage?.invoke(message)
                         showContextMenu = false
                     },
@@ -983,6 +988,31 @@ private fun MessageItem(
                         Icon(
                             imageVector = Icons.Default.Reply,
                             contentDescription = stringResource(R.string.reply_message),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    modifier = Modifier.height(36.dp)
+                )
+            }
+
+            if (isActionable && !isHiddenUserMessage && translatableText.isNotBlank()) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(id = R.string.translate_message),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 13.sp
+                        )
+                    },
+                    onClick = {
+                        onTranslateMessage?.invoke(message.timestamp, translatableText)
+                        showContextMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Translate,
+                            contentDescription = stringResource(id = R.string.translate_message),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )

@@ -19,6 +19,7 @@ import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.enhance.TranslationModelNotConfiguredException
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileOperationData
@@ -31,6 +32,7 @@ import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.repository.MessageTranslationRepository
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.R
@@ -100,6 +102,12 @@ enum class ChatHistoryDisplayMode {
     CURRENT_CHARACTER_ONLY
 }
 
+data class TranslationUiState(
+    val isLoading: Boolean = false,
+    val translatedText: String? = null,
+    val errorMessage: String? = null,
+    val isFromCache: Boolean = false,
+)
 class ChatViewModel(private val context: Context) : ViewModel() {
 
     companion object {
@@ -158,6 +166,129 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     private val _replyToMessage = MutableStateFlow<ChatMessage?>(null)
     val replyToMessage: StateFlow<ChatMessage?> = _replyToMessage.asStateFlow()
 
+    private val messageTranslationRepository =
+        MessageTranslationRepository.getInstance(context)
+    private val _translationState = MutableStateFlow(TranslationUiState())
+    val translationState: StateFlow<TranslationUiState> = _translationState.asStateFlow()
+    private var translationJob: Job? = null
+
+    fun loadCachedTranslation(
+        chatId: String,
+        messageTimestamp: Long,
+        text: String,
+        targetLanguageCode: String,
+    ) {
+        translationJob?.cancel()
+        _translationState.value = TranslationUiState()
+        translationJob =
+            viewModelScope.launch {
+                try {
+                    val cachedTranslation =
+                        messageTranslationRepository.getCachedTranslation(
+                            chatId = chatId,
+                            messageTimestamp = messageTimestamp,
+                            sourceText = text,
+                            targetLanguageCode = targetLanguageCode,
+                        )
+                    _translationState.value =
+                        TranslationUiState(
+                            translatedText = cachedTranslation?.translatedText,
+                            isFromCache = cachedTranslation != null,
+                        )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "读取消息翻译缓存失败", e)
+                    _translationState.value = TranslationUiState()
+                }
+            }
+    }
+
+    fun translateMessage(
+        chatId: String,
+        messageTimestamp: Long,
+        text: String,
+        targetLanguageCode: String,
+        targetLanguagePromptName: String,
+    ) {
+        translationJob?.cancel()
+        translationJob =
+            viewModelScope.launch {
+                uiStateDelegate.clearError()
+                _translationState.value = TranslationUiState(isLoading = true)
+                try {
+                    val translatedText =
+                        EnhancedAIService.getInstance(context).translateText(
+                            text = text,
+                            targetLanguage = targetLanguagePromptName,
+                            onUpdate = { partialText ->
+                                _translationState.value =
+                                    TranslationUiState(
+                                        isLoading = true,
+                                        translatedText = partialText.takeIf { it.isNotBlank() },
+                                    )
+                            },
+                            onRetryError = { attempt, maxAttempts, error ->
+                                val detail =
+                                    error.takeIf { it.isNotBlank() }
+                                        ?: context.getString(R.string.translation_failed_unknown)
+                                uiStateDelegate.showToast(
+                                    context.getString(
+                                        R.string.translation_retry_error_status,
+                                        attempt,
+                                        maxAttempts,
+                                        detail,
+                                    )
+                                )
+                            },
+                        )
+                    if (translatedText.isBlank()) {
+                        throw IllegalStateException(
+                            context.getString(R.string.translation_empty_result)
+                        )
+                    }
+                    messageTranslationRepository.saveTranslation(
+                        chatId = chatId,
+                        messageTimestamp = messageTimestamp,
+                        sourceText = text,
+                        targetLanguageCode = targetLanguageCode,
+                        translatedText = translatedText,
+                    )
+                    _translationState.value =
+                        TranslationUiState(translatedText = translatedText)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: TranslationModelNotConfiguredException) {
+                    AppLogger.e(TAG, "未配置翻译模型", e)
+                    val errorMessage =
+                        context.getString(R.string.translation_model_not_configured)
+                    _translationState.value =
+                        _translationState.value.copy(
+                            isLoading = false,
+                            errorMessage = errorMessage,
+                        )
+                    uiStateDelegate.showToast(errorMessage)
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "翻译消息失败", e)
+                    val reason =
+                        e.localizedMessage?.takeIf { it.isNotBlank() }
+                            ?: context.getString(R.string.translation_failed_unknown)
+                    val errorMessage = context.getString(R.string.translation_failed, reason)
+                    _translationState.value =
+                        _translationState.value.copy(
+                            isLoading = false,
+                            errorMessage = errorMessage,
+                        )
+                    uiStateDelegate.showToast(errorMessage)
+                }
+            }
+    }
+
+    fun clearTranslationState() {
+        translationJob?.cancel()
+        translationJob = null
+        _translationState.value = TranslationUiState()
+    }
     // API服务
     private var enhancedAiService: EnhancedAIService? = null
 

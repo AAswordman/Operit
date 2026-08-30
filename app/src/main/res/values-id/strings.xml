@@ -1336,6 +1336,33 @@
     <string name="branch">Cabang</string>
     <string name="parent_chat">Obrolan Induk: %1$s</string>
     <string name="modify_memory">Ubah Memori</string>
+    <string name="translate_message">Terjemahkan</string>
+    <string name="translation_dialog_title">Terjemahkan Pesan</string>
+    <string name="translation_target_language">Bahasa target</string>
+    <string name="translation_original">Asli</string>
+    <string name="translation_result">Terjemahan</string>
+    <string name="translation_translate_action">Terjemahkan</string>
+    <string name="translation_retranslate_action">Terjemahkan ulang</string>
+    <string name="translation_retry_action">Coba lagi</string>
+    <string name="translation_copy_original">Salin teks asli</string>
+    <string name="translation_copy_result">Salin terjemahan</string>
+    <string name="translation_original_copied">Teks asli disalin</string>
+    <string name="translation_result_copied">Terjemahan disalin</string>
+    <string name="translation_cached_result">Tersimpan</string>
+    <string name="translation_model_not_configured">Model terjemahan belum dikonfigurasi. Konfigurasikan model di pengaturan model fungsi terlebih dahulu.</string>
+    <string name="translation_waiting">Pilih bahasa target untuk menerjemahkan</string>
+    <string name="translation_loading">Menerjemahkan…</string>
+    <string name="translation_empty_result">Model terjemahan tidak mengembalikan konten</string>
+    <string name="translation_failed">Terjemahan gagal: %1$s</string>
+    <string name="translation_failed_unknown">Kesalahan tidak diketahui</string>
+    <string name="translation_language_english">Inggris</string>
+    <string name="translation_language_korean">Korea</string>
+    <string name="translation_language_spanish">Spanyol</string>
+    <string name="translation_language_malay">Melayu</string>
+    <string name="translation_language_indonesian">Indonesia</string>
+    <string name="translation_language_portuguese">Portugis (Brasil)</string>
+    <string name="translation_language_romanian">Rumania</string>
+    <string name="translation_language_japanese">Jepang</string>
     <string name="delete_from_here">Hapus dari Sini</string>
     <string name="confirm_rollback_title">Konfirmasi Pengembalian</string>
 
@@ -1474,6 +1501,7 @@
     <string name="save_changes">Simpan Perubahan</string>
     <string name="back_to_list">Kembali ke Daftar</string>
     <string name="language_settings">Pengaturan Bahasa</string>
+    <string name="language_follow_system">Ikuti sistem</string>
     <string name="language_settings_desc">Ubah bahasa tampilan antarmuka aplikasi</string>
     <string name="change_language">Ubah Bahasa</string>
     <string name="select_language">Pilih Bahasa</string>
@@ -2669,8 +2697,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="thinking_settings">Berpikir</string>
     <string name="thinking_settings_desc">Kelola mode berpikir dan panduan berpikir</string>
     <string name="thinking_settings_active_count">%1$d item diaktifkan</string>
-    <string name="thinking_type_off">off</string>
-    <string name="thinking_type_mode">mode</string>
+    <string name="thinking_type_off">Nonaktif</string>
+    <string name="thinking_type_mode">Aktif</string>
     <string name="thinking_quality">Tingkat Pemikiran</string>
     <string name="thinking_quality_desc">Hanya berlaku dalam mode berpikir. Nilai yang tersedia mengikuti pemetaan nyata model dan penyedia saat ini.</string>
     <string name="model_config">Konfigurasi Model</string>
@@ -5132,7 +5160,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="toolreg_create_new_chat_in_group_desc">Buat obrolan baru (grup: %1$s)</string>
     <string name="toolreg_list_chats_desc">Daftar semua obrolan</string>
     <string name="toolreg_find_chat_desc">Cari obrolan: %1$s</string>
-    <string name="toolreg_agent_status_desc">Periksa status obrolan: %1$s</string>
+    <string name="toolreg_current_chat_runtime_state_desc">Periksa status obrolan: %1$s</string>
     <string name="toolreg_switch_chat_desc">Beralih ke obrolan: %1$s</string>
     <string name="toolreg_update_chat_title_desc">Perbarui judul obrolan: %1$s</string>
     <string name="toolreg_delete_chat_desc">Hapus obrolan: %1$s</string>
@@ -6014,8 +6042,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="provider_error_parsing_failed">Gagal mem-parsing respons</string>
     <string name="provider_error_retry_message">%1$s, sedang melakukan percobaan ulang ke-%2$d...</string>
     <string name="provider_error_timeout">Koneksi timeout</string>
-    <string name="provider_error_unknown_host">Tidak dapat mengatasi host</string>
     <string name="provider_error_network_interrupted">Jaringan terputus</string>
+    <string name="operit_network_error_format">Gagal: Permintaan jaringan gagal, kode status: %1$d, informasi kesalahan: %2$s</string>
     <string name="openai_error_request_cancelled">Permintaan telah dibatalkan oleh pengguna</string>
     <string name="openai_error_no_error_details">Tidak ada detail kesalahan</string>
     <string name="openai_error_api_request_failed_with_status">Permintaan API gagal, kode status: %1$d, pesan kesalahan: %2$s</string>
@@ -6426,7 +6454,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="enhanced_memory_tools_category">Alat Memori &amp; Pustaka Memori</string>
     <string name="openai_retry_with_count">%1$s, melakukan percobaan ulang ke-%2$d...</string>
     <string name="openai_error_timeout">Koneksi waktu habis</string>
-    <string name="openai_error_cannot_resolve_host">Tidak dapat mengatasi host</string>
     <string name="openai_error_network_interrupted">Jaringan terputus</string>
     <string name="openai_audio_video_omitted">Konten audio/video diabaikan, model saat ini tidak mendukung pemrosesan audio/video</string>
     <string name="openai_image_omitted">Konten gambar diabaikan, model saat ini tidak mendukung pemrosesan gambar</string>
@@ -7443,4 +7470,5 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="codex_auth_not_logged_in">Masuk dengan ChatGPT untuk menggunakan akses langganan Codex</string>
     <string name="codex_auth_account">Akun: %1$s</string>
     <string name="codex_endpoint_fixed">Endpoint Codex ditetapkan oleh sistem</string>
+<string name="translation_retry_error_status">Permintaan terjemahan gagal (percobaan %1$d/%2$d): %3$s</string>
 </resources>

@@ -9,10 +9,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ai.assistance.operit.data.dao.ChatContentDao
 import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
+import com.ai.assistance.operit.data.dao.MessageTranslationDao
 import com.ai.assistance.operit.data.dao.MessageVariantDao
 import com.ai.assistance.operit.data.dao.TokenUsageDao
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.MessageEntity
+import com.ai.assistance.operit.data.model.MessageTranslationEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
@@ -22,19 +24,20 @@ import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
         ChatEntity::class,
         MessageEntity::class,
         MessageVariantEntity::class,
+        MessageTranslationEntity::class,
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     /** 获取聊天DAO */
     abstract fun chatDao(): ChatDao
-
     /** 获取消息DAO */
     abstract fun messageDao(): MessageDao
     abstract fun messageVariantDao(): MessageVariantDao
+    abstract fun messageTranslationDao(): MessageTranslationDao
     abstract fun chatContentDao(): ChatContentDao
     abstract fun tokenUsageDao(): TokenUsageDao
 
@@ -219,11 +222,34 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 }
             }
-
         private val MIGRATION_19_20 =
             object : Migration(19, 20) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("ALTER TABLE chats ADD COLUMN `pinned` INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+        /** v21 -> v22: persistent message translation cache. */
+        private val MIGRATION_21_22 =
+            object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                            CREATE TABLE IF NOT EXISTS `message_translations` (
+                                `chatId` TEXT NOT NULL,
+                                `messageTimestamp` INTEGER NOT NULL,
+                                `targetLanguageCode` TEXT NOT NULL,
+                                `sourceTextHash` TEXT NOT NULL,
+                                `translatedText` TEXT NOT NULL,
+                                `updatedAt` INTEGER NOT NULL,
+                                PRIMARY KEY(`chatId`, `messageTimestamp`, `targetLanguageCode`),
+                                FOREIGN KEY(`chatId`) REFERENCES `chats`(`id`) ON DELETE CASCADE
+                            )
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_message_translations_chatId` " +
+                            "ON `message_translations` (`chatId`)"
+                    )
                 }
             }
 
@@ -449,7 +475,8 @@ abstract class AppDatabase : RoomDatabase() {
                                 MIGRATION_17_18,
                                 MIGRATION_18_19,
                                 MIGRATION_19_20,
-                                MIGRATION_20_21
+                                MIGRATION_20_21,
+                                MIGRATION_21_22
                             ) // 添加新的迁移
                             .build()
                     INSTANCE = instance
