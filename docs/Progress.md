@@ -13,6 +13,8 @@
 | All Phases | ✅ Complete |
 | New modules compile | ✅ (provider, orchestration, memory) |
 | Unit tests | ✅ 31/31 passing |
+| New features | ✅ SmartPromptCompressor, AgentQuestionChannel |
+| CI/CD | ✅ GitHub Actions workflow |
 | Integration | ✅ (sanitizer, root guard, manager) |
 | UI screens | ✅ (mode switcher, pricing, budget) |
 | ViewModels | ✅ (NonOXViewModel) |
@@ -171,6 +173,27 @@
 - Updated `BudgetStatsScreen` to use ViewModel state + error handling + refresh
 - Updated `OperitScreens.kt` to use default ViewModel parameter
 - File: `app/src/main/java/com/ai/assistance/operit/ui/features/nonox/viewmodel/NonOXViewModel.kt`
+
+## Additional Features
+
+### Task: SmartPromptCompressor (requirement 18)
+- Status: ✅ Done
+- Compresses prompts to save tokens
+- Removes redundant phrases, collapses whitespace
+- Detects and summarizes repeated sections
+- Summarizes long log blocks
+- Has enable/disable toggle
+- 8 unit tests
+- File: `app/src/main/java/com/ai/assistance/operit/core/prompts/SmartPromptCompressor.kt`
+
+### Task: AgentQuestionChannel (requirement 15)
+- Status: ✅ Done
+- Allows AI to ask questions back to user
+- Supports options and custom answers
+- Timeout handling
+- Question history tracking
+- 8 unit tests
+- File: `app/src/main/java/com/ai/assistance/operit/core/prompts/AgentQuestionChannel.kt`
 
 ## Phase 4: Memory & Context
 - **Status:** ✅ Complete

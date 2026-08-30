@@ -77,3 +77,14 @@ Integrated into navigation via `Screen` sealed class + `ScreenRouteRegistry` + `
 - Updated all screens to use ViewModel state instead of local state
 - Updated OperitScreens.kt to use default ViewModel parameter
 **Tag:** #ui #viewmodel #mvvm #architecture
+
+---
+
+## [2026-08-30] ปัญหา: SmartPromptCompressor and AgentQuestionChannel not implemented
+**อาการ:** Requirements 15 and 18 from PROJECT_PLAN.md had no implementation
+**สาเหตุ:** These features were listed as skeletons in Phase 4 but never fully implemented
+**วิธีแก้:** Created both modules:
+- `SmartPromptCompressor`: Compresses prompts by removing redundant phrases, collapsing whitespace, detecting repeated sections, and summarizing long logs. Has enable/disable toggle.
+- `AgentQuestionChannel`: Allows AI to ask questions back to user with options and custom answers. Supports timeout handling and question history tracking.
+- Added 16 unit tests (8 for each module)
+**Tag:** #prompts #compression #interaction #ux
