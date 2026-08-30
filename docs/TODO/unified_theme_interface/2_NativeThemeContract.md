@@ -39,7 +39,7 @@
 - [DONE] 纯单元测试覆盖系统与固定明暗模式、自定义颜色、背景、字体和系统栏规格
 - [DONE] 主界面窗口系统栏副作用由 `NativeThemeMainWindowChromeHostAdapter` 应用
 - [DONE] 背景播放器、图片和视频资源失败事件由 `NativeThemeBackgroundMediaHostAdapter` 承载
-- [DONE] 消息图片离屏导出和编辑器预览通过 `NativeThemeOffscreenHost` 解析并注入 `OFFSCREEN` 主题
+- [DONE] 消息图片离屏导出通过 `NativeThemeOffscreenHost` 解析并注入 `OFFSCREEN` 主题；主题编辑器预览以显式 `EDITOR_PREVIEW` 宿主解析主题
 - [DONE] 浮窗聊天、状态指示器、WebSession 浮动外壳和权限请求 Overlay 通过显式 `FLOATING` 或 `OVERLAY` 宿主解析主题
 - [DONE] 语音助手与 ToolPkg Glance Widget 通过受限静态颜色投影消费活动主题，并在主题与 Android 12+ 动态色变化时刷新
 

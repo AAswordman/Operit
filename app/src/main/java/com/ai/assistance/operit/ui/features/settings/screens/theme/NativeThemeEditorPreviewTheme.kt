@@ -6,8 +6,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
+import com.ai.assistance.operit.ui.theme.NativeThemeHostSurface
 import com.ai.assistance.operit.ui.theme.NativeThemeOffscreenHost
-import com.ai.assistance.operit.ui.theme.resolveNativeThemeOffscreen
+import com.ai.assistance.operit.ui.theme.resolveNativeThemeForDetachedComposeHost
 
 @Composable
 internal fun NativeThemeEditorPreviewTheme(
@@ -24,9 +25,10 @@ internal fun NativeThemeEditorPreviewTheme(
             )
         }
     val resolvedTheme =
-        resolveNativeThemeOffscreen(
+        resolveNativeThemeForDetachedComposeHost(
             context = context,
             snapshot = previewSnapshot,
+            hostSurface = NativeThemeHostSurface.EDITOR_PREVIEW,
             systemDarkTheme = systemDarkTheme,
         )
 

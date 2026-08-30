@@ -13,9 +13,9 @@ Operit 的已发布主题以角色卡和群组为作用域，使用一组固定�
 
 ## 意图
 
-把 Operit 控制的原生 UI 改造成统一、版本化且高度可定制的主题渲染平台。宿主持有业务状态、导航、动作执行和无障碍约束，主题实现持有组件内部布局、视觉层级、素材、图标和动效。内置主题与第三方主题使用相同的组件契约。
+把 Operit 控制的原生 Compose UI 改造成统一、版本化且高度可定制的主题渲染平台。宿主持有业务状态、导航、动作执行、组件结构和无障碍约束；主题通过令牌、组件族和组件状态样式控制颜色、文字、形状、边框、材质、图标容器、菜单和动效。内置主题与第三方主题使用相同的组件契约和样式解析器。
 
-第三方主题使用独立主题包。作者通过类型化 SDK 编写主题，构建工具将源码编译为宿主可校验的 UI IR。主题包显式锁定基底主题版本并覆盖任意组件，安装时链接为完整的渲染实现。首版不执行主题作者代码，但保留隔离控制器协议的版本空间。
+第三方主题使用独立样式包。样式包显式锁定基底主题版本、组件契约和 Compose 宿主能力，通过全局令牌、组件族和单组件状态覆盖链接为完整样式表。首版不执行主题作者代码，不开放任意布局、Canvas、脚本或组件控制器。
 
 ## 预期结果
 
@@ -39,9 +39,11 @@ Operit 的已发布主题以角色卡和群组为作用域，使用一组固定�
    - [主题设置重构](./3a_ThemeSettingsRedesign.md)
    - [Conversation 编辑器迁移](./3b_ConversationEditorMigration.md)
 4. [渲染契约与组件目录](./4_RendererContractAndCatalog.md)
-   - [组件契约核心与导航项试点](./4a_ComponentContractAndNavigationPilot.md)
-   - [基础组件契约与备份设置试点](./4b_FoundationContractsAndBackupPilot.md)
-5. [主题包与 UI IR](./5_ThemePackageAndIr.md)
+    - [组件契约核心与导航项试点](./4a_ComponentContractAndNavigationPilot.md)
+    - [基础组件契约与备份设置试点](./4b_FoundationContractsAndBackupPilot.md)
+    - [高级视觉样式级联与宿主能力](./4c_AdvancedVisualStyleCascade.md)
+    - [组件目录冻结集](./4d_ComponentCatalogFreezeSet.md)
+5. [主题包与样式链接](./5_ThemePackageAndStyleLinking.md)
 6. [原生 UI 迁移](./6_NativeUiMigration.md)
 7. [独立渲染面适配](./7_AlternateSurfaceAdapters.md)
 8. [验证与接口发布](./8_VerificationAndPublication.md)
@@ -54,4 +56,4 @@ Operit 的已发布主题以角色卡和群组为作用域，使用一组固定�
 - 首版主题包中的第三方可执行代码
 - 主题对业务数据、导航、权限和宿主生命周期的直接访问
 
-原生 WebView、Android View、Canvas、Glance 和悬浮窗的宿主外壳仍属于改造范围，其内部外部内容不属于主题接口。
+原生 WebView、Android View、Canvas、Glance 和悬浮窗的宿主外壳仍属于改造范围，其内部外部内容不属于主题接口。公开 Style API v1 只包含 Compose 的 `MAIN`、`FLOATING`、`OVERLAY`、`OFFSCREEN` 和 `EDITOR_PREVIEW` 表面。

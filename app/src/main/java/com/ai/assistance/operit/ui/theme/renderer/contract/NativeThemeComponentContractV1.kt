@@ -1,10 +1,18 @@
 package com.ai.assistance.operit.ui.theme.renderer.contract
 
 import com.ai.assistance.operit.ui.theme.NativeThemeHostSurface
+import com.ai.assistance.operit.ui.theme.style.NativeThemeComponentFamilyIdV1
+import com.ai.assistance.operit.ui.theme.style.NativeThemeStylePartIdV1
+import com.ai.assistance.operit.ui.theme.style.NativeThemeStylePropertyIdV1
+import com.ai.assistance.operit.ui.theme.style.NativeThemeStyleStateAxisV1
+import com.ai.assistance.operit.ui.theme.style.NativeThemeStyleStateAxisContractV1
+import com.ai.assistance.operit.ui.theme.style.accepts
+import kotlinx.serialization.Serializable
 
 private val COMPONENT_ID_PATTERN = Regex("^[a-z][a-z0-9]*(?:[._][a-z0-9]+)+$")
 private val MEMBER_ID_PATTERN = Regex("^[a-z][a-z0-9_]*$")
 
+@Serializable
 @JvmInline
 internal value class NativeThemeComponentId(val value: String) {
     init {
@@ -129,6 +137,94 @@ internal data class NativeThemeComponentSlotV1(
     val cardinality: NativeThemeComponentSlotCardinalityV1,
 )
 
+internal data class NativeThemeComponentStylePartContractV1(
+    val id: NativeThemeStylePartIdV1,
+    val allowedProperties: Set<NativeThemeStylePropertyIdV1>,
+    val requiredProperties: Set<NativeThemeStylePropertyIdV1> = emptySet(),
+    val required: Boolean = true,
+)
+
+internal object NativeThemeComponentStylePartIdsV1 {
+    val surface = NativeThemeStylePartIdV1("surface")
+    val label = NativeThemeStylePartIdV1("label")
+    val supportingText = NativeThemeStylePartIdV1("supporting_text")
+    val title = NativeThemeStylePartIdV1("title")
+    val description = NativeThemeStylePartIdV1("description")
+    val message = NativeThemeStylePartIdV1("message")
+    val value = NativeThemeStylePartIdV1("value")
+    val leading = NativeThemeStylePartIdV1("leading")
+    val indicator = NativeThemeStylePartIdV1("indicator")
+    val content = NativeThemeStylePartIdV1("content")
+}
+
+internal object NativeThemeComponentStylePropertySetsV1 {
+    val surface =
+        setOf(
+            NativeThemeStylePropertyIdV1.SURFACE_COLOR,
+            NativeThemeStylePropertyIdV1.SHAPE,
+            NativeThemeStylePropertyIdV1.BORDER_STACK,
+            NativeThemeStylePropertyIdV1.WHOLE_LAYER_OPACITY,
+            NativeThemeStylePropertyIdV1.CONTENT_BLUR,
+            NativeThemeStylePropertyIdV1.BACKDROP_BLUR,
+            NativeThemeStylePropertyIdV1.MATERIAL,
+            NativeThemeStylePropertyIdV1.SHADOW_STACK,
+            NativeThemeStylePropertyIdV1.PADDING,
+            NativeThemeStylePropertyIdV1.MOTION,
+        )
+    val text =
+        setOf(
+            NativeThemeStylePropertyIdV1.CONTENT_COLOR,
+            NativeThemeStylePropertyIdV1.TEXT_STYLE,
+            NativeThemeStylePropertyIdV1.WHOLE_LAYER_OPACITY,
+            NativeThemeStylePropertyIdV1.MOTION,
+        )
+    val icon =
+        setOf(
+            NativeThemeStylePropertyIdV1.CONTENT_COLOR,
+            NativeThemeStylePropertyIdV1.ICON_SIZE,
+            NativeThemeStylePropertyIdV1.ICON_CONTAINER,
+            NativeThemeStylePropertyIdV1.WHOLE_LAYER_OPACITY,
+            NativeThemeStylePropertyIdV1.MOTION,
+        )
+    val indicator =
+        setOf(
+            NativeThemeStylePropertyIdV1.SURFACE_COLOR,
+            NativeThemeStylePropertyIdV1.CONTENT_COLOR,
+            NativeThemeStylePropertyIdV1.SHAPE,
+            NativeThemeStylePropertyIdV1.BORDER_STACK,
+            NativeThemeStylePropertyIdV1.WHOLE_LAYER_OPACITY,
+            NativeThemeStylePropertyIdV1.MOTION,
+        )
+    val content =
+        setOf(
+            NativeThemeStylePropertyIdV1.SURFACE_COLOR,
+            NativeThemeStylePropertyIdV1.CONTENT_COLOR,
+            NativeThemeStylePropertyIdV1.SHAPE,
+            NativeThemeStylePropertyIdV1.BORDER_STACK,
+            NativeThemeStylePropertyIdV1.WHOLE_LAYER_OPACITY,
+            NativeThemeStylePropertyIdV1.PADDING,
+            NativeThemeStylePropertyIdV1.MOTION,
+        )
+    val surfaceRequired =
+        setOf(
+            NativeThemeStylePropertyIdV1.SURFACE_COLOR,
+            NativeThemeStylePropertyIdV1.SHAPE,
+        )
+    val textRequired =
+        setOf(
+            NativeThemeStylePropertyIdV1.CONTENT_COLOR,
+            NativeThemeStylePropertyIdV1.TEXT_STYLE,
+        )
+    val iconRequired = setOf(NativeThemeStylePropertyIdV1.CONTENT_COLOR)
+    val indicatorRequired =
+        setOf(
+            NativeThemeStylePropertyIdV1.SURFACE_COLOR,
+            NativeThemeStylePropertyIdV1.CONTENT_COLOR,
+            NativeThemeStylePropertyIdV1.SHAPE,
+        )
+    val contentRequired = setOf(NativeThemeStylePropertyIdV1.PADDING)
+}
+
 internal data class NativeThemeComponentCatalogStateMappingV1(
     val fieldId: NativeThemeComponentMemberId,
     val enumValueByState: Map<NativeThemeComponentCatalogStateV1, NativeThemeComponentMemberId>,
@@ -158,6 +254,9 @@ internal data class NativeThemeComponentContractV1(
     val category: NativeThemeComponentCategoryV1,
     val required: Boolean,
     val supportedHostSurfaces: Set<NativeThemeHostSurface>,
+    val styleFamily: NativeThemeComponentFamilyIdV1,
+    val styleParts: List<NativeThemeComponentStylePartContractV1>,
+    val styleStateAxes: List<NativeThemeStyleStateAxisContractV1>,
     val stateFields: List<NativeThemeComponentStateFieldV1>,
     val events: List<NativeThemeComponentEventV1>,
     val slots: List<NativeThemeComponentSlotV1>,
@@ -184,6 +283,38 @@ internal fun validateNativeThemeComponentContractsV1(
 private fun validateNativeThemeComponentContractV1(contract: NativeThemeComponentContractV1) {
     require(contract.supportedHostSurfaces.isNotEmpty()) {
         "Component ${contract.id.value} must support at least one host surface."
+    }
+    require(contract.styleParts.isNotEmpty()) {
+        "Component ${contract.id.value} must declare at least one style part."
+    }
+    require(contract.styleParts.map { part -> part.id }.distinct().size == contract.styleParts.size) {
+        "Component ${contract.id.value} style part IDs must be unique."
+    }
+    require(contract.styleParts.all { part -> part.allowedProperties.isNotEmpty() }) {
+        "Component ${contract.id.value} style parts must allow at least one property."
+    }
+    require(contract.styleParts.all { part -> part.requiredProperties.all { it in part.allowedProperties } }) {
+        "Component ${contract.id.value} required style properties must be allowed by their part."
+    }
+    require(contract.styleParts.any { part -> part.id == NativeThemeComponentStylePartIdsV1.surface }) {
+        "Component ${contract.id.value} must declare a surface style part."
+    }
+    require(contract.styleParts.any { part -> part.id == NativeThemeComponentStylePartIdsV1.content }) {
+        "Component ${contract.id.value} must declare a content style part."
+    }
+    require(contract.styleStateAxes.map { axis -> axis.axis }.distinct().size == contract.styleStateAxes.size) {
+        "Component ${contract.id.value} style state axes must be unique."
+    }
+    require(contract.styleStateAxes.all { axis -> axis.values.isNotEmpty() }) {
+        "Component ${contract.id.value} style state axes must declare at least one value."
+    }
+    require(contract.styleStateAxes.all { axis -> axis.values.all { value -> axis.axis.accepts(value) } }) {
+        "Component ${contract.id.value} style state axes contain invalid values."
+    }
+    val styleStateCombinationCount =
+        contract.styleStateAxes.fold(1L) { count, axis -> count * (axis.values.size + 1) }
+    require(styleStateCombinationCount <= 256L) {
+        "Component ${contract.id.value} style state combinations must not exceed 256."
     }
     require(contract.stateFields.map { field -> field.id }.distinct().size == contract.stateFields.size) {
         "Component ${contract.id.value} state field IDs must be unique."

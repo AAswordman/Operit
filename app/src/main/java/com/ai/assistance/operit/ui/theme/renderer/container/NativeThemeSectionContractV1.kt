@@ -11,12 +11,16 @@ import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentK
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentMemberId
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSemanticRoleV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSemanticsV1
+import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePartContractV1
+import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePartIdsV1
+import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePropertySetsV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSlotCardinalityV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSlotV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStateFieldV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStateValueV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentValueTypeV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentVersionV1
+import com.ai.assistance.operit.ui.theme.style.NativeThemeComponentFamilyIdV1
 
 internal data class NativeThemeSectionStateV1(
     val title: String,
@@ -43,6 +47,36 @@ internal object NativeThemeSectionContractV1 {
             category = NativeThemeComponentCategoryV1.CONTAINER,
             required = true,
             supportedHostSurfaces = setOf(NativeThemeHostSurface.MAIN),
+            styleFamily = NativeThemeComponentFamilyIdV1("operit.container"),
+            styleParts =
+                listOf(
+                    NativeThemeComponentStylePartContractV1(
+                        id = NativeThemeComponentStylePartIdsV1.surface,
+                        allowedProperties = NativeThemeComponentStylePropertySetsV1.surface,
+                        requiredProperties = NativeThemeComponentStylePropertySetsV1.surfaceRequired,
+                    ),
+                    NativeThemeComponentStylePartContractV1(
+                        id = NativeThemeComponentStylePartIdsV1.title,
+                        allowedProperties = NativeThemeComponentStylePropertySetsV1.text,
+                        requiredProperties = NativeThemeComponentStylePropertySetsV1.textRequired,
+                    ),
+                    NativeThemeComponentStylePartContractV1(
+                        id = NativeThemeComponentStylePartIdsV1.description,
+                        allowedProperties = NativeThemeComponentStylePropertySetsV1.text,
+                        requiredProperties = NativeThemeComponentStylePropertySetsV1.textRequired,
+                    ),
+                    NativeThemeComponentStylePartContractV1(
+                        id = NativeThemeComponentStylePartIdsV1.leading,
+                        allowedProperties = NativeThemeComponentStylePropertySetsV1.icon,
+                        requiredProperties = NativeThemeComponentStylePropertySetsV1.iconRequired,
+                    ),
+                    NativeThemeComponentStylePartContractV1(
+                        id = NativeThemeComponentStylePartIdsV1.content,
+                        allowedProperties = NativeThemeComponentStylePropertySetsV1.content,
+                        requiredProperties = NativeThemeComponentStylePropertySetsV1.contentRequired,
+                    ),
+                ),
+            styleStateAxes = emptyList(),
             stateFields =
                 listOf(
                     NativeThemeComponentStateFieldV1(

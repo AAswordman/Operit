@@ -8,12 +8,15 @@ import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_DARK
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_LIGHT
+import kotlinx.serialization.Serializable
 
+@Serializable
 internal enum class NativeThemeHostSurface {
     MAIN,
     FLOATING,
     OVERLAY,
     OFFSCREEN,
+    EDITOR_PREVIEW,
     GLANCE,
     DIAGNOSTIC,
 }
