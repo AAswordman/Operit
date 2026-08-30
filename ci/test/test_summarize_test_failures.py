@@ -8,7 +8,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "ci" / "script"))
 
-from summarize_test_failures import collect_failures, render_markdown  # noqa: E402
+from summarize_test_failures import (  # noqa: E402
+    collect_failures,
+    render_annotations,
+    render_markdown,
+)
 
 
 class SummarizeTestFailuresTest(unittest.TestCase):
@@ -54,6 +58,16 @@ class SummarizeTestFailuresTest(unittest.TestCase):
     def test_render_markdown_without_failures_states_none_recorded(self) -> None:
         markdown = render_markdown([])
         self.assertIn("No failed JVM tests recorded.", markdown)
+
+    def test_render_annotations_emits_error_commands(self) -> None:
+        annotations = render_annotations([("Sample", "fails", "expected 1")])
+        self.assertIn("::error title=Sample.fails::expected 1", annotations)
+
+    def test_render_annotations_counts_beyond_the_annotation_cap(self) -> None:
+        failures = [("Sample", f"fails{index}", "expected") for index in range(15)]
+        annotations = render_annotations(failures)
+        self.assertEqual(annotations.count("::error title=Sample.fails"), 10)
+        self.assertIn("5 more failed test(s) not annotated", annotations)
 
 
 if __name__ == "__main__":

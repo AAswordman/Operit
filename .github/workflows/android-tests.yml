@@ -166,7 +166,8 @@ jobs:
           set -euo pipefail
           python3 ci/script/summarize_test_failures.py \
             --results-dir app/build/test-results/testDebugUnitTest \
-            --step-summary "$GITHUB_STEP_SUMMARY"
+            --step-summary "$GITHUB_STEP_SUMMARY" \
+            --annotations
 
       - name: Upload Android test reports
         if: always()
