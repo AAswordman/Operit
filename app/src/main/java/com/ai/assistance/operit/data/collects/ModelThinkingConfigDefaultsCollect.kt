@@ -18,13 +18,13 @@ object ModelThinkingConfigDefaults {
                     "control": "levels",
                     "parameterLabel": "reasoning_effort",
                     "options": [
-                      {"id": "none", "label": "none", "path": "reasoning_effort", "value": "none"},
-                      {"id": "minimal", "label": "minimal", "path": "reasoning_effort", "value": "minimal"},
-                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
                       {"id": "medium", "label": "medium", "path": "reasoning_effort", "value": "medium"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
                       {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
                       {"id": "xhigh", "label": "xhigh", "path": "reasoning_effort", "value": "xhigh"},
-                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"}
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"},
+                      {"id": "minimal", "label": "minimal", "path": "reasoning_effort", "value": "minimal"},
+                      {"id": "none", "label": "none", "path": "reasoning_effort", "value": "none"}
                     ]
                   },
                   {
@@ -41,13 +41,13 @@ object ModelThinkingConfigDefaults {
                       {"path": "reasoning.effort", "value": "none"}
                     ],
                     "options": [
-                      {"id": "none", "label": "none", "path": "reasoning.effort", "value": "none"},
-                      {"id": "minimal", "label": "minimal", "path": "reasoning.effort", "value": "minimal"},
-                      {"id": "low", "label": "low", "path": "reasoning.effort", "value": "low"},
                       {"id": "medium", "label": "medium", "path": "reasoning.effort", "value": "medium"},
+                      {"id": "low", "label": "low", "path": "reasoning.effort", "value": "low"},
                       {"id": "high", "label": "high", "path": "reasoning.effort", "value": "high"},
                       {"id": "xhigh", "label": "xhigh", "path": "reasoning.effort", "value": "xhigh"},
-                      {"id": "max", "label": "max", "path": "reasoning.effort", "value": "max"}
+                      {"id": "max", "label": "max", "path": "reasoning.effort", "value": "max"},
+                      {"id": "minimal", "label": "minimal", "path": "reasoning.effort", "value": "minimal"},
+                      {"id": "none", "label": "none", "path": "reasoning.effort", "value": "none"}
                     ]
                   },
                   {
@@ -668,6 +668,233 @@ object ModelThinkingConfigDefaults {
                     "parameterLabel": "thinking.type",
                     "enable": [{"path": "thinking.type", "value": "enabled"}],
                     "disable": [{"path": "thinking.type", "value": "disabled"}]
+                  },
+                  {
+                    "id": "other-deepseek-responses-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {
+                      "modelContains": ["deepseek"],
+                      "endpointSuffix": ["/responses"]
+                    },
+                    "control": "levels",
+                    "parameterLabel": "reasoning.effort",
+                    "required": true,
+                    "options": [
+                      {"id": "high", "label": "high", "path": "reasoning.effort", "value": "high"},
+                      {"id": "low", "label": "low", "path": "reasoning.effort", "value": "low"},
+                      {"id": "max", "label": "max", "path": "reasoning.effort", "value": "max"},
+                      {"id": "off", "label": "off", "path": "reasoning.effort", "value": "none"}
+                    ]
+                  },
+                  {
+                    "id": "other-openai-responses-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {
+                      "modelRegex": ["(?:^|/)(?:gpt-5(?:[.-]|$)|o[134](?:[.-]|$))"],
+                      "endpointSuffix": ["/responses"]
+                    },
+                    "control": "levels",
+                    "parameterLabel": "reasoning.effort",
+                    "enable": [
+                      {"path": "reasoning.summary", "value": "auto"},
+                      {"path": "include", "value": ["reasoning.encrypted_content"]}
+                    ],
+                    "disable": [{"path": "reasoning.effort", "value": "none"}],
+                    "options": [
+                      {"id": "medium", "label": "medium", "path": "reasoning.effort", "value": "medium"},
+                      {"id": "low", "label": "low", "path": "reasoning.effort", "value": "low"},
+                      {"id": "high", "label": "high", "path": "reasoning.effort", "value": "high"},
+                      {"id": "xhigh", "label": "xhigh", "path": "reasoning.effort", "value": "xhigh"},
+                      {"id": "max", "label": "max", "path": "reasoning.effort", "value": "max"},
+                      {"id": "minimal", "label": "minimal", "path": "reasoning.effort", "value": "minimal"},
+                      {"id": "none", "label": "none", "path": "reasoning.effort", "value": "none"}
+                    ]
+                  },
+                  {
+                    "id": "other-deepseek-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {"modelContains": ["deepseek"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "disable": [{"path": "thinking.type", "value": "disabled"}],
+                    "options": [
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"}
+                    ]
+                  },
+                  {
+                    "id": "other-glm-53-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {"modelContains": ["glm-5.3", "glm-5-3"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "required": true,
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "options": [
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"},
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"}
+                    ]
+                  },
+                  {
+                    "id": "other-glm-current-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)glm-(?:5[.-][2-9]|[6-9])"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "disable": [{"path": "thinking.type", "value": "disabled"}],
+                    "options": [
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"},
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"}
+                    ]
+                  },
+                  {
+                    "id": "other-glm-thinking-toggle",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)glm-(?:4[.-][5-9]|[5-9])"]},
+                    "control": "toggle_only",
+                    "parameterLabel": "thinking.type",
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "disable": [{"path": "thinking.type", "value": "disabled"}]
+                  },
+                  {
+                    "id": "other-kimi-k3-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)kimi-k3(?:[.-]|$)"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "required": true,
+                    "options": [
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"},
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"}
+                    ]
+                  },
+                  {
+                    "id": "other-kimi-k27-forced-thinking",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)kimi-k2[.-]7(?:[.-]|$)"]},
+                    "control": "unsupported"
+                  },
+                  {
+                    "id": "other-kimi-k2-thinking-toggle",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)kimi-k2[.-][56](?:[.-]|$)"]},
+                    "control": "toggle_only",
+                    "parameterLabel": "thinking.type",
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "disable": [{"path": "thinking.type", "value": "disabled"}]
+                  },
+                  {
+                    "id": "other-grok-46-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)grok-4[.-]6(?:[.-]|$)"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "required": true,
+                    "options": [
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
+                      {"id": "medium", "label": "medium", "path": "reasoning_effort", "value": "medium"},
+                      {"id": "xhigh", "label": "xhigh", "path": "reasoning_effort", "value": "xhigh"}
+                    ]
+                  },
+                  {
+                    "id": "other-grok-45-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)grok-4[.-]5(?:[.-]|$)"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "required": true,
+                    "options": [
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
+                      {"id": "medium", "label": "medium", "path": "reasoning_effort", "value": "medium"}
+                    ]
+                  },
+                  {
+                    "id": "other-claude-adaptive-thinking",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)claude-(?:[^/]+-)?4[-.]?[6-9](?:[-.]|$)"]},
+                    "control": "levels",
+                    "parameterLabel": "output_config.effort",
+                    "enable": [
+                      {"path": "thinking.type", "value": "adaptive"},
+                      {"path": "thinking.display", "value": "summarized"}
+                    ],
+                    "options": [
+                      {"id": "medium", "label": "medium", "path": "output_config.effort", "value": "medium"},
+                      {"id": "low", "label": "low", "path": "output_config.effort", "value": "low"},
+                      {"id": "high", "label": "high", "path": "output_config.effort", "value": "high"}
+                    ]
+                  },
+                  {
+                    "id": "other-claude-extended-thinking",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)claude-(?:[^/]+-)?(?:3(?:[-.]|$)|4[-.]?[0-5](?:[-.]|$))"]},
+                    "control": "levels",
+                    "parameterLabel": "thinking.budget_tokens",
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "options": [
+                      {"id": "4096", "label": "4096", "path": "thinking.budget_tokens", "value": 4096},
+                      {"id": "1024", "label": "1024", "path": "thinking.budget_tokens", "value": 1024},
+                      {"id": "8192", "label": "8192", "path": "thinking.budget_tokens", "value": 8192},
+                      {"id": "16384", "label": "16384", "path": "thinking.budget_tokens", "value": 16384}
+                    ]
+                  },
+                  {
+                    "id": "other-gemini-3-thinking-level",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)gemini-3(?:[.-]|$)"]},
+                    "control": "levels",
+                    "parameterLabel": "thinkingLevel",
+                    "required": true,
+                    "enable": [{"path": "generationConfig.thinkingConfig.includeThoughts", "value": true}],
+                    "options": [
+                      {"id": "MEDIUM", "label": "MEDIUM", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "MEDIUM"},
+                      {"id": "LOW", "label": "LOW", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "LOW"},
+                      {"id": "HIGH", "label": "HIGH", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "HIGH"},
+                      {"id": "MINIMAL", "label": "MINIMAL", "path": "generationConfig.thinkingConfig.thinkingLevel", "value": "MINIMAL"}
+                    ]
+                  },
+                  {
+                    "id": "other-gemini-25-thinking-budget",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)gemini-2\\.5(?:[.-]|$)"]},
+                    "control": "levels",
+                    "parameterLabel": "thinkingBudget",
+                    "enable": [{"path": "generationConfig.thinkingConfig.includeThoughts", "value": true}],
+                    "disable": [
+                      {"path": "generationConfig.thinkingConfig.includeThoughts", "value": false},
+                      {"path": "generationConfig.thinkingConfig.thinkingBudget", "value": 0}
+                    ],
+                    "options": [
+                      {"id": "8192", "label": "8192", "path": "generationConfig.thinkingConfig.thinkingBudget", "value": 8192},
+                      {"id": "1024", "label": "1024", "path": "generationConfig.thinkingConfig.thinkingBudget", "value": 1024},
+                      {"id": "4096", "label": "4096", "path": "generationConfig.thinkingConfig.thinkingBudget", "value": 4096},
+                      {"id": "16384", "label": "16384", "path": "generationConfig.thinkingConfig.thinkingBudget", "value": 16384},
+                      {"id": "32768", "label": "32768", "path": "generationConfig.thinkingConfig.thinkingBudget", "value": 32768}
+                    ]
+                  },
+                  {
+                    "id": "other-openai-chat-reasoning-effort",
+                    "providers": ["OTHER"],
+                    "match": {"modelRegex": ["(?:^|/)(?:gpt-5(?:[.-]|$)|o[134](?:[.-]|$))"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "options": [
+                      {"id": "medium", "label": "medium", "path": "reasoning_effort", "value": "medium"},
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "xhigh", "label": "xhigh", "path": "reasoning_effort", "value": "xhigh"},
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"},
+                      {"id": "minimal", "label": "minimal", "path": "reasoning_effort", "value": "minimal"},
+                      {"id": "none", "label": "none", "path": "reasoning_effort", "value": "none"}
+                    ]
                   }
                 ]
                 """.trimIndent()
