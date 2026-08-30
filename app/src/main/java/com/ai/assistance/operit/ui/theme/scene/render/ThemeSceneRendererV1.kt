@@ -227,7 +227,11 @@ private fun ThemeSceneRenderNodeV1(
             Box(modifier = modifier.fillMaxSize().clipToBounds()) {
                 Box(
                     modifier =
-                        Modifier.matchParentSize().drawNineSlice(bitmap = bitmap, insets = node.capInsets),
+                        Modifier.matchParentSize().drawNineSlice(
+                            bitmap = bitmap,
+                            sourceInsets = node.sourceCapInsetsPx,
+                            destinationInsets = node.destinationCapInsetsDp,
+                        ),
                 )
                 node.child?.let { child ->
                     ThemeSceneRenderNodeV1(child, tokens, assets, hostSlots, textResolver, darkTheme)
@@ -346,13 +350,18 @@ private fun ThemeSceneEdgeInsetsV1.toPaddingValues() =
 
 private fun Modifier.drawNineSlice(
     bitmap: ImageBitmap,
-    insets: ThemeSceneEdgeInsetsV1,
+    sourceInsets: com.ai.assistance.operit.ui.theme.scene.ThemeScenePixelInsetsV1,
+    destinationInsets: ThemeSceneEdgeInsetsV1,
 ): Modifier =
     drawBehind {
-        val capLeft = insets.startDp.dp.toPx()
-        val capTop = insets.topDp.dp.toPx()
-        val capRight = insets.endDp.dp.toPx()
-        val capBottom = insets.bottomDp.dp.toPx()
+        val srcCapLeft = sourceInsets.startPx.toFloat()
+        val srcCapTop = sourceInsets.topPx.toFloat()
+        val srcCapRight = sourceInsets.endPx.toFloat()
+        val srcCapBottom = sourceInsets.bottomPx.toFloat()
+        val dstCapLeft = destinationInsets.startDp.dp.toPx()
+        val dstCapTop = destinationInsets.topDp.dp.toPx()
+        val dstCapRight = destinationInsets.endDp.dp.toPx()
+        val dstCapBottom = destinationInsets.bottomDp.dp.toPx()
         val srcWidth = bitmap.width.toFloat()
         val srcHeight = bitmap.height.toFloat()
         val dstWidth = size.width
@@ -382,14 +391,14 @@ private fun Modifier.drawNineSlice(
             )
         }
 
-        val srcInnerLeft = capLeft
-        val srcInnerTop = capTop
-        val srcInnerRight = (srcWidth - capRight).coerceAtLeast(capLeft)
-        val srcInnerBottom = (srcHeight - capBottom).coerceAtLeast(capTop)
-        val dstInnerLeft = capLeft
-        val dstInnerTop = capTop
-        val dstInnerRight = (dstWidth - capRight).coerceAtLeast(capLeft)
-        val dstInnerBottom = (dstHeight - capBottom).coerceAtLeast(capTop)
+        val srcInnerLeft = srcCapLeft
+        val srcInnerTop = srcCapTop
+        val srcInnerRight = (srcWidth - srcCapRight).coerceAtLeast(srcCapLeft)
+        val srcInnerBottom = (srcHeight - srcCapBottom).coerceAtLeast(srcCapTop)
+        val dstInnerLeft = dstCapLeft
+        val dstInnerTop = dstCapTop
+        val dstInnerRight = (dstWidth - dstCapRight).coerceAtLeast(dstCapLeft)
+        val dstInnerBottom = (dstHeight - dstCapBottom).coerceAtLeast(dstCapTop)
 
         drawRegion(0f, 0f, srcInnerLeft, srcInnerTop, 0f, 0f, dstInnerLeft, dstInnerTop)
         drawRegion(srcInnerLeft, 0f, srcInnerRight, srcInnerTop, dstInnerLeft, 0f, dstInnerRight, dstInnerTop)

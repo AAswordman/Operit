@@ -219,7 +219,20 @@ private fun walkNode(
             validateNonNegative(node.cornerRadiusDp, "$path/corner_radius", issues)
         }
 
-        is ThemeSceneNineSliceNodeV1 -> validateInsets(node.capInsets, path, issues)
+        is ThemeSceneNineSliceNodeV1 -> {
+            validateInsets(node.destinationCapInsetsDp, path, issues)
+            if (
+                node.sourceCapInsetsPx.startPx + node.sourceCapInsetsPx.endPx <= 0 ||
+                    node.sourceCapInsetsPx.topPx + node.sourceCapInsetsPx.bottomPx <= 0
+            ) {
+                issues +=
+                    ThemeSceneIssueV1(
+                        code = ThemeSceneIssueCodeV1.INVALID_METRIC,
+                        path = "$path/source_cap_insets",
+                        message = "Nine-slice source cap insets must reserve both axes.",
+                    )
+            }
+        }
 
         is ThemeScenePathNodeV1 -> {
             validateUnitInterval(node.opacity, "$path/opacity", issues)

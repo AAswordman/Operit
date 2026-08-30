@@ -48,7 +48,7 @@ author.cyber-night-v1.2.0.otheme
 ## 资源 v1
 
 - 位图：`png`、`jpeg`、`webp`，支持 fit、crop、stretch
-- 九宫格：位图加显式 cap inset 和中心 stretch 或 tile 策略
+- 九宫格：显式源资源像素 cap inset 和独立目标 dp cap inset；中心以 stretch 策略绘制
 - 字体：`ttf`、`otf`，以明确 family 和 face 注册
 - 路径：归一化 `M`、`L`、`Q`、`C`、`Z` 命令，用于形状和纯装饰
 - 根背景图：仅本地静态位图；视频背景留待后续格式版本

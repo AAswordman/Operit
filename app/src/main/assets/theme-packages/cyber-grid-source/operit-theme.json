@@ -144,7 +144,8 @@
                   "type": "nine_slice",
                   "nodeId": "outer_frame_asset",
                   "assetId": "outer_frame",
-                  "capInsets": {"startDp": 18.0, "topDp": 18.0, "endDp": 18.0, "bottomDp": 18.0}
+                  "sourceCapInsetsPx": {"startPx": 42, "topPx": 42, "endPx": 42, "bottomPx": 42},
+                  "destinationCapInsetsDp": {"startDp": 16.0, "topDp": 16.0, "endDp": 16.0, "bottomDp": 16.0}
                 }
               }
             ]
@@ -163,7 +164,8 @@
                   "type": "nine_slice",
                   "nodeId": "header_frame_asset",
                   "assetId": "header_frame",
-                  "capInsets": {"startDp": 16.0, "topDp": 16.0, "endDp": 16.0, "bottomDp": 16.0}
+                  "sourceCapInsetsPx": {"startPx": 28, "topPx": 28, "endPx": 28, "bottomPx": 28},
+                  "destinationCapInsetsDp": {"startDp": 12.0, "topDp": 12.0, "endDp": 12.0, "bottomDp": 12.0}
                 }
               }
             ]
@@ -196,7 +198,8 @@
                   "type": "nine_slice",
                   "nodeId": "composer_frame_asset",
                   "assetId": "composer_frame",
-                  "capInsets": {"startDp": 18.0, "topDp": 18.0, "endDp": 18.0, "bottomDp": 18.0}
+                  "sourceCapInsetsPx": {"startPx": 34, "topPx": 34, "endPx": 34, "bottomPx": 34},
+                  "destinationCapInsetsDp": {"startDp": 16.0, "topDp": 16.0, "endDp": 16.0, "bottomDp": 16.0}
                 }
               }
             ]

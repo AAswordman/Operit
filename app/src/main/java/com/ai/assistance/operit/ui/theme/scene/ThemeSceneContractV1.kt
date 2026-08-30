@@ -244,7 +244,8 @@ internal data class ThemeSceneImageNodeV1(
 internal data class ThemeSceneNineSliceNodeV1(
     override val nodeId: ThemeSceneNodeIdV1,
     val assetId: ThemeSceneAssetIdV1,
-    val capInsets: ThemeSceneEdgeInsetsV1,
+    val sourceCapInsetsPx: ThemeScenePixelInsetsV1,
+    val destinationCapInsetsDp: ThemeSceneEdgeInsetsV1,
     val child: ThemeSceneNodeV1? = null,
 ) : ThemeSceneNodeV1
 
@@ -309,6 +310,21 @@ internal data class ThemeSceneEdgeInsetsV1(
     val endDp: Float = 0f,
     val bottomDp: Float = 0f,
 )
+
+/** Source bitmap nine-slice cuts. Pixels are stable regardless of device density. */
+@Serializable
+internal data class ThemeScenePixelInsetsV1(
+    val startPx: Int = 0,
+    val topPx: Int = 0,
+    val endPx: Int = 0,
+    val bottomPx: Int = 0,
+) {
+    init {
+        require(startPx >= 0 && topPx >= 0 && endPx >= 0 && bottomPx >= 0) {
+            "Nine-slice source cap insets must not be negative."
+        }
+    }
+}
 
 @Serializable
 internal data class ThemeSceneDefinitionV1(
