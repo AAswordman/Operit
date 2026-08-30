@@ -89,9 +89,11 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val OCCUPATION_LOCKED = booleanPreferencesKey("occupation_locked")
         private val AI_STYLE_LOCKED = booleanPreferencesKey("ai_style_locked")
 
-        // 主题存储迁移标记
+        // 主题存储迁移标记与目标元数据键
         private val THEME_METADATA_MIGRATION_COMPLETED =
             booleanPreferencesKey("theme_metadata_migration_completed")
+        private val KEY_CUSTOM_AI_AVATAR_URI = stringPreferencesKey("custom_ai_avatar_uri")
+        private val KEY_CUSTOM_CHAT_TITLE = stringPreferencesKey("custom_chat_title")
         // 默认配置文件ID
         private const val DEFAULT_PROFILE_ID = "default"
 
@@ -580,10 +582,10 @@ class UserPreferencesManager private constructor(private val context: Context) {
     // ========== 角色卡/群组业务元数据 ==========
 
     private fun getCharacterCardMetadataPrefix(characterCardId: String): String =
-        "character_card_metadata_${'${'}characterCardId}_"
+        "character_card_metadata_${characterCardId}_"
 
     private fun getCharacterGroupMetadataPrefix(characterGroupId: String): String =
-        "character_group_metadata_${'${'}characterGroupId}_"
+        "character_group_metadata_${characterGroupId}_"
 
     /**
      * 一次性迁移：把主题前缀下的业务元数据（AI 头像、聊天标题）搬到独立 metadata 前缀，
@@ -595,7 +597,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         context.userPreferencesDataStore.edit { preferences ->
             if (preferences[THEME_METADATA_MIGRATION_COMPLETED] == true) return@edit
             val defaultUserAvatarKey = stringPreferencesKey(
-                "character_card_theme_${'${'}CharacterCardManager.DEFAULT_CHARACTER_CARD_ID}_custom_user_avatar_uri",
+                "character_card_theme_${CharacterCardManager.DEFAULT_CHARACTER_CARD_ID}_custom_user_avatar_uri",
             )
             preferences.asMap().keys.toList().forEach { key ->
                 val name = key.name
