@@ -118,9 +118,10 @@ fun ChatScreenContent(
         historyListState: LazyListState,
         showCharacterSelector: Boolean,
         onShowCharacterSelectorChange: (Boolean) -> Unit,
-        onSwitchCharacter: (CharacterSelectorTarget) -> Unit,
-        onOpenCharacterSettings: () -> Unit,
-        showChatFloatingDotsAnimation: Boolean = true,
+         onSwitchCharacter: (CharacterSelectorTarget) -> Unit,
+         onOpenCharacterSettings: () -> Unit,
+         showChatFloatingDotsAnimation: Boolean = true,
+         showHeader: Boolean = true,
 ) {
     // Multi-select mode state
     var isMultiSelectMode by remember { mutableStateOf(false) }
@@ -217,11 +218,13 @@ fun ChatScreenContent(
 
     Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            ChatScreenHeader(
-                    actualViewModel = actualViewModel,
-                    showChatHistorySelector = showChatHistorySelector,
-                    onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
-            )
+            if (showHeader) {
+                ChatScreenHeader(
+                        actualViewModel = actualViewModel,
+                        showChatHistorySelector = showChatHistorySelector,
+                        onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
+                )
+            }
             ChatArea(
                     chatHistory = chatHistory,
                     currentChatId = currentChatId,

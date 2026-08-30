@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 import com.ai.assistance.operit.data.theme.packages.ActiveGlobalThemeParametersV1
+import com.ai.assistance.operit.ui.theme.scene.ActiveThemeSceneRuntimeV1
 
 val LocalGlobalPresentation =
     compositionLocalOf<GlobalPresentationSnapshot> {
@@ -23,6 +24,11 @@ internal val LocalResolvedGlobalTheme =
 internal val LocalActiveGlobalThemeParameters =
     compositionLocalOf<ActiveGlobalThemeParametersV1> {
         error("LocalActiveGlobalThemeParameters is not provided.")
+    }
+
+internal val LocalActiveThemeSceneRuntime =
+    compositionLocalOf<ActiveThemeSceneRuntimeV1> {
+        error("LocalActiveThemeSceneRuntime is not provided.")
     }
 
 @Composable

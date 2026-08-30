@@ -26,6 +26,8 @@ import com.ai.assistance.operit.data.theme.packages.ThemePackageBuiltInReference
 import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageReferenceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageSelectionRepository
+import com.ai.assistance.operit.ui.theme.scene.ActiveThemeSceneRuntimeFactoryV1
+import com.ai.assistance.operit.ui.theme.scene.ActiveThemeSceneRuntimeV1
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.fletchmckee.liquid.liquefiable
@@ -41,19 +43,32 @@ private fun rememberActiveThemeInstance(): ThemeInstanceV1 {
 }
 
 @Composable
-private fun rememberActiveThemeParameters(): ActiveGlobalThemeParametersV1 {
+private fun rememberActiveThemeRuntime(): ActiveThemeSceneRuntimeV1 {
     val context = LocalContext.current
     val instance = rememberActiveThemeInstance()
     return remember(instance, context) {
-        ActiveGlobalThemeParameterResolverV1.resolve(instance) { reference ->
-            when (reference) {
-                is ThemePackageReferenceV1.BuiltIn -> ThemePackageBuiltInReferenceV1.manifest()
+        val installation =
+            when (val reference = instance.reference) {
+                is ThemePackageReferenceV1.BuiltIn -> null
                 is ThemePackageReferenceV1.Installed ->
-                    ThemePackageInstallerV1.getInstance(context)
-                        .find(reference.coordinate)
-                        ?.manifest
+                    ThemePackageInstallerV1.getInstance(context).find(reference.coordinate)
             }
-        }
+        val manifest =
+            installation?.manifest
+                ?: when (instance.reference) {
+                    is ThemePackageReferenceV1.BuiltIn -> ThemePackageBuiltInReferenceV1.manifest()
+                    is ThemePackageReferenceV1.Installed ->
+                        error("Active installed theme package is unavailable: ${instance.reference}")
+                }
+        val parameters =
+            ActiveGlobalThemeParameterResolverV1.resolve(instance) {
+                manifest
+            }
+        ActiveThemeSceneRuntimeFactoryV1.create(
+            manifest = manifest,
+            installationRoot = installation?.rootDir,
+            parameters = parameters,
+        )
     }
 }
 
@@ -61,7 +76,8 @@ private fun rememberActiveThemeParameters(): ActiveGlobalThemeParametersV1 {
 fun OperitTheme(content: @Composable () -> Unit) {
     val context = LocalContext.current
     val presentation = rememberGlobalPresentation()
-    val themeParameters = rememberActiveThemeParameters()
+    val themeRuntime = rememberActiveThemeRuntime()
+    val themeParameters = themeRuntime.parameters
     val systemDarkTheme = isSystemInDarkTheme()
     val resolvedTheme =
         resolveGlobalThemeV1(
@@ -100,6 +116,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
             LocalGlobalPresentation provides presentation,
             LocalResolvedGlobalTheme provides resolvedTheme,
             LocalActiveGlobalThemeParameters provides themeParameters,
+            LocalActiveThemeSceneRuntime provides themeRuntime,
             LocalLiquidGlassBackdrop provides liquidGlassBackdrop,
             LocalWaterGlassState provides waterGlassState,
         ) {

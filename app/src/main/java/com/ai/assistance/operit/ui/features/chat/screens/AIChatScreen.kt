@@ -106,6 +106,7 @@ import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
 import com.ai.assistance.operit.ui.features.chat.viewmodel.PendingMessageQueueState
 import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
+import com.ai.assistance.operit.ui.theme.LocalActiveGlobalThemeParameters
 import com.ai.assistance.operit.plugins.chatview.ChatViewEvent
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookParams
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookPluginRegistry
@@ -167,6 +168,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     // Get background image state
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val presentation = LocalGlobalPresentation.current
+    val hasThemeBackgroundImage =
+        LocalActiveGlobalThemeParameters.current.backgroundImageUri != null
     val showInputProcessingStatus = presentation.showInputProcessingStatus
     val enableEnterToSend by displayPreferencesManager.enableEnterToSend.collectAsState(initial = false)
     val showChatFloatingDotsAnimation = presentation.showChatFloatingDotsAnimation
@@ -707,13 +710,11 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         }
                 )
             } else {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .clipToBounds()
-                ) {
+                ChatMainSceneHost(
+                    configurationGate = {},
+                    header = {},
+                    transcript = {
+                        Box(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier =
                             Modifier
@@ -730,7 +731,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 showChatHistorySelector = showChatHistorySelector,
                                 chatHistory = chatHistory,
                                 isLoading = isLoading,
-                                hasBackgroundImage = hasBackgroundImage,
+                                 hasBackgroundImage = hasThemeBackgroundImage,
                                 editingMessageIndex = editingMessageIndex,
                                 editingMessageContent = editingMessageContent,
                                 chatScreenGestureConsumed = chatScreenGestureConsumed,
@@ -754,7 +755,11 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 onOpenCharacterSettings = onNavigateToModelPrompts,
                                 showChatFloatingDotsAnimation = showChatFloatingDotsAnimation,
                         )
-
+                            }
+                        }
+                    },
+                    classicSettingsRail = {
+                        Box(modifier = Modifier.fillMaxSize()) {
                         if (inputStyle == GlobalInputStyle.CLASSIC.value) {
                             ClassicChatSettingsBar(
                                     modifier =
@@ -838,8 +843,10 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                     characterCardBoundMemoryProfileId = characterCardBoundMemoryProfileId
                             )
                         }
-                    }
-
+                        }
+                    },
+                    composer = {
+                        Box(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier =
                             Modifier
@@ -889,7 +896,10 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 onRequestAutoScrollToBottom = requestAutoScrollToBottom,
                         )
                     }
-
+                        }
+                    },
+                    overlayStack = {
+                        Box(modifier = Modifier.fillMaxSize()) {
                     CharacterSelectorPanel(
                         isVisible = showCharacterSelector,
                         onDismiss = { showCharacterSelector = false },
@@ -953,7 +963,14 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                             }
                         }
                     }
-                }
+                        }
+                    },
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .clipToBounds(),
+                )
             }
         }
 

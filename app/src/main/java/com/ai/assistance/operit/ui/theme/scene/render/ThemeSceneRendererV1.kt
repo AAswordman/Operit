@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
@@ -102,7 +103,7 @@ private fun ThemeSceneRenderNodeV1(
             }
 
         is ThemeSceneLayerNodeV1 ->
-            Box(modifier) {
+            Box(modifier.fillMaxSize()) {
                 node.children.forEach { child ->
                     ThemeSceneRenderNodeV1(child, tokens, assets, hostSlots, textResolver, darkTheme)
                 }
@@ -151,19 +152,10 @@ private fun ThemeSceneRenderNodeV1(
         }
 
         is ThemeSceneFrameNodeV1 -> {
-            val anchored =
-                node.anchor?.let { anchor ->
-                    Modifier.anchoredRegion(
-                        startX = anchor.startX,
-                        startY = anchor.startY,
-                        endX = anchor.endX,
-                        endY = anchor.endY,
-                    )
-                } ?: Modifier
             Box(
                 modifier =
                     modifier
-                        .then(anchored)
+                        .sceneFrame(node)
                         .then(node.contentPadding?.let { Modifier.padding(it.toPaddingValues()) } ?: Modifier),
             ) {
                 ThemeSceneRenderNodeV1(node.child, tokens, assets, hostSlots, textResolver, darkTheme)
@@ -181,7 +173,9 @@ private fun ThemeSceneRenderNodeV1(
                             ?: Modifier,
                     ),
             ) {
-                content()
+                key(node.slotId.value) {
+                    content()
+                }
             }
         }
 
@@ -201,7 +195,14 @@ private fun ThemeSceneRenderNodeV1(
                     Modifier
                 }
             val alpha = if (node.opacity < 1f) Modifier.alpha(node.opacity) else Modifier
-            Box(modifier.then(fill).then(outline).then(alpha)) {
+            Box(
+                modifier =
+                    modifier
+                        .then(if (node.child == null) Modifier.fillMaxSize() else Modifier)
+                        .then(fill)
+                        .then(outline)
+                        .then(alpha),
+            ) {
                 node.child?.let { child ->
                     ThemeSceneRenderNodeV1(child, tokens, assets, hostSlots, textResolver, darkTheme)
                 }
@@ -212,7 +213,7 @@ private fun ThemeSceneRenderNodeV1(
             Image(
                 bitmap = assets.bitmap(node.assetId),
                 contentDescription = null,
-                modifier = modifier,
+                modifier = modifier.fillMaxSize(),
                 contentScale =
                     when (node.fit) {
                         ThemeSceneImageFitV1.FILL -> ContentScale.FillBounds
@@ -223,7 +224,7 @@ private fun ThemeSceneRenderNodeV1(
 
         is ThemeSceneNineSliceNodeV1 -> {
             val bitmap = assets.bitmap(node.assetId)
-            Box(modifier = modifier.clipToBounds()) {
+            Box(modifier = modifier.fillMaxSize().clipToBounds()) {
                 Box(
                     modifier =
                         Modifier.matchParentSize().drawNineSlice(bitmap = bitmap, insets = node.capInsets),
@@ -293,31 +294,46 @@ private fun ThemeSceneRenderNodeV1(
     }
 }
 
-private fun Modifier.anchoredRegion(
-    startX: Float,
-    startY: Float,
-    endX: Float,
-    endY: Float,
-): Modifier =
+private fun Modifier.sceneFrame(node: ThemeSceneFrameNodeV1): Modifier =
     layout { measurable, constraints ->
         val parentWidth = constraints.maxWidth.toFloat()
         val parentHeight = constraints.maxHeight.toFloat()
+        val anchor = node.anchor
+        val startX = anchor?.startX ?: 0f
+        val startY = anchor?.startY ?: 0f
+        val endX = anchor?.endX ?: 1f
+        val endY = anchor?.endY ?: 1f
         val regionLeft = (startX * parentWidth).roundToInt()
         val regionTop = (startY * parentHeight).roundToInt()
-        val regionWidth = ((endX - startX) * parentWidth).roundToInt()
-        val regionHeight = ((endY - startY) * parentHeight).roundToInt()
+        val regionWidth = ((endX - startX) * parentWidth).roundToInt().coerceAtLeast(0)
+        val regionHeight = ((endY - startY) * parentHeight).roundToInt().coerceAtLeast(0)
+        val targetWidth = node.width.resolve(regionWidth)
+        val targetHeight = node.height.resolve(regionHeight)
+        val minWidth = node.minWidthDp?.dp?.roundToPx() ?: 0
+        val maxWidth = node.maxWidthDp?.dp?.roundToPx() ?: targetWidth
+        val constrainedWidth = targetWidth.coerceIn(minWidth, maxWidth.coerceAtLeast(minWidth))
         val placeable =
             measurable.measure(
                 constraints.copy(
                     minWidth = 0,
                     minHeight = 0,
-                    maxWidth = regionWidth.coerceAtLeast(0),
-                    maxHeight = regionHeight.coerceAtLeast(0),
+                    maxWidth = constrainedWidth,
+                    maxHeight = targetHeight,
                 ),
             )
-        layout(placeable.width, placeable.height) {
+        layout(constraints.maxWidth, constraints.maxHeight) {
             placeable.placeRelative(regionLeft, regionTop)
         }
+    }
+
+private fun com.ai.assistance.operit.ui.theme.scene.ThemeSceneSizeV1.resolve(
+    region: Int,
+): Int =
+    when (this) {
+        com.ai.assistance.operit.ui.theme.scene.ThemeSceneSizeV1.Fill -> region
+        com.ai.assistance.operit.ui.theme.scene.ThemeSceneSizeV1.Wrap -> region
+        is com.ai.assistance.operit.ui.theme.scene.ThemeSceneSizeV1.Fraction ->
+            (region * value).roundToInt().coerceAtLeast(0)
     }
 
 private fun ThemeSceneEdgeInsetsV1.toPaddingValues() =

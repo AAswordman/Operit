@@ -1,5 +1,14 @@
 package com.ai.assistance.operit.data.theme.packages
 
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneCatalogV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneDefinitionV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneHostSlotNodeV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneLayerNodeV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneNodeIdV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneSlotIdV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneStageNodeV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneVersionV1
+
 /**
  * The built-in baseline theme shipped with the app. It is not an archive: its manifest lives
  * in code and users customize it through the two declared parameters, which is the new-
@@ -61,7 +70,41 @@ internal object ThemePackageBuiltInReferenceV1 {
                             ),
                     ),
                 ),
+            scenes =
+                listOf(
+                    ThemeSceneDefinitionV1(
+                        sceneId = ThemeSceneCatalogV1.CHAT_MAIN,
+                        version = ThemeSceneVersionV1(major = 1, minor = 0),
+                        rootNode =
+                            ThemeSceneStageNodeV1(
+                                nodeId = ThemeSceneNodeIdV1("root"),
+                                children =
+                                    listOf(
+                                        hostLayer("transcript_layer", "transcript"),
+                                        hostLayer("header_layer", "header"),
+                                        hostLayer("rail_layer", "classic_settings_rail"),
+                                        hostLayer("composer_layer", "composer"),
+                                        hostLayer("overlay_layer", "overlay_stack"),
+                                        hostLayer("configuration_layer", "configuration_gate"),
+                                    ),
+                            ),
+                    ),
+                ),
         )
+
+    private fun hostLayer(
+        nodeId: String,
+        slotId: String,
+    ) = ThemeSceneLayerNodeV1(
+        nodeId = ThemeSceneNodeIdV1(nodeId),
+        children =
+            listOf(
+                ThemeSceneHostSlotNodeV1(
+                    nodeId = ThemeSceneNodeIdV1("${nodeId}_slot"),
+                    slotId = ThemeSceneSlotIdV1(slotId),
+                ),
+            ),
+    )
 }
 
 /** Globally consumed theme parameter values resolved from the active [ThemeInstanceV1]. */
