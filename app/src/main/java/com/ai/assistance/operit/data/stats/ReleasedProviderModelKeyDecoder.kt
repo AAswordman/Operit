@@ -41,14 +41,23 @@ internal object ReleasedProviderModelKeyDecoder {
         )
     }
 
-    /** Used by migration code for released keys from before provider/model identities existed. */
+    /**
+     * Used by migration code for released keys from before provider/model identities existed.
+     * Keys that do not start with a known provider alias, such as pre-format function keys
+     * like `CHAT` or `FILE_BINDING`, return null so callers can skip them.
+     */
     fun decodeOrNull(
         encoded: String,
         additionalProviderAliases: Map<String, String> = emptyMap(),
-    ): ReleasedProviderModelKey? =
-        try {
+    ): ReleasedProviderModelKey? {
+        val known = (builtInProviderAliases.keys + additionalProviderAliases.keys)
+            .filter { encoded == it || encoded.startsWith("${it}_") }
+            .maxByOrNull(String::length)
+            ?: return null
+        return try {
             decode(encoded, additionalProviderAliases)
         } catch (_: IllegalArgumentException) {
             null
         }
+    }
 }
