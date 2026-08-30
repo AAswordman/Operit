@@ -28,23 +28,26 @@ class ThinkingQualityMappingTest {
 
         assertEquals(ThinkingQualityControl.LEVELS, mapping.control)
         assertEquals("reasoning_effort", mapping.parameterLabel)
-        assertEquals(listOf("low", "medium", "high", "xhigh"), mapping.options.map { it.displayLabel })
+        assertEquals(listOf("high", "low", "medium", "xhigh"), mapping.options.map { it.displayLabel })
         assertEquals("high", mapping.textValueFor("high"))
     }
 
     @Test
-    fun xaiKeepsGenericControlsForNewGrokModels() {
+    fun xaiLeavesUndocumentedLegacyGrokModelsUnconfigured() {
         val mapping = mapping(ApiProviderType.XAI, "grok-3-mini")
 
-        assertEquals(ThinkingQualityControl.LEVELS, mapping.control)
-        assertTrue(mapping.options.isNotEmpty())
+        assertEquals(ThinkingQualityControl.UNSUPPORTED, mapping.control)
+        assertTrue(mapping.options.isEmpty())
     }
 
     @Test
-    fun openAiUsesFiveNamedEffortValues() {
+    fun openAiUsesCurrentReasoningEffortValues() {
         val mapping = mapping(ApiProviderType.OPENAI, "gpt-5.6-luna")
 
-        assertEquals(listOf("low", "medium", "high", "xhigh", "max"), mapping.options.map { it.displayLabel })
+        assertEquals(
+            listOf("none", "minimal", "low", "medium", "high", "xhigh", "max"),
+            mapping.options.map { it.displayLabel }
+        )
         assertEquals("high", mapping.textValueFor("high"))
     }
 
@@ -181,7 +184,7 @@ class ThinkingQualityMappingTest {
         assertEquals(ThinkingQualityControl.LEVELS, mapping.control)
         assertEquals("reasoning_effort", mapping.parameterLabel)
         assertTrue(mapping.reasoningRequired)
-        assertEquals(listOf("low", "high", "max"), mapping.options.map { it.id })
+        assertEquals(listOf("max", "high", "low"), mapping.options.map { it.id })
     }
 
     @Test
@@ -192,11 +195,78 @@ class ThinkingQualityMappingTest {
         assertEquals("thinking.type", mapping.parameterLabel)
         assertFalse(mapping.reasoningRequired)
     }
-
     @Test
     fun zhipuLegacyModelsDoNotShowThinkingControls() {
         val mapping = mapping(ApiProviderType.ZHIPU, "glm-3-turbo")
 
         assertEquals(ThinkingQualityControl.UNSUPPORTED, mapping.control)
+    }
+
+    @Test
+    fun currentModelGenerationsOverrideLegacyThinkingRules() {
+        val gpt5 = mapping(ApiProviderType.OPENAI, "gpt-5.6-luna")
+        val gemini2 = mapping(ApiProviderType.GOOGLE, "gemini-2.0-flash")
+        val claude45 = mapping(ApiProviderType.ANTHROPIC, "claude-sonnet-4-5-20250929")
+        val claude46 = mapping(ApiProviderType.ANTHROPIC, "claude-sonnet-4-6")
+        val kimiK3 = mapping(ApiProviderType.MOONSHOT, "kimi-k3")
+        val kimiK27 = mapping(ApiProviderType.MOONSHOT, "kimi-k2.7-code")
+        val kimiK26 = mapping(ApiProviderType.MOONSHOT, "kimi-k2.6")
+
+        assertEquals(listOf("none", "minimal", "low", "medium", "high", "xhigh", "max"), gpt5.options.map { it.id })
+        assertEquals(ThinkingQualityControl.UNSUPPORTED, gemini2.control)
+        assertEquals("thinking.budget_tokens", claude45.parameterLabel)
+        assertEquals("output_config.effort", claude46.parameterLabel)
+        assertEquals("reasoning_effort", kimiK3.parameterLabel)
+        assertEquals(ThinkingQualityControl.UNSUPPORTED, kimiK27.control)
+        assertEquals(ThinkingQualityControl.TOGGLE_ONLY, kimiK26.control)
+    }
+
+    @Test
+    fun documentedNativeProviderPresetsWriteTheirOfficialFields() {
+        val qwen = mapping(ApiProviderType.ALIYUN, "qwen3.6-27b")
+        val mistral = mapping(ApiProviderType.MISTRAL, "mistral-medium-3-5")
+        val minimax = mapping(ApiProviderType.MINIMAX, "MiniMax-M3")
+        val antLing = mapping(ApiProviderType.ALIPAY_BAILING, "Ring-2.6-1T")
+        val infiniQwen = mapping(ApiProviderType.INFINIAI, "qwen3.6-27b")
+        val request = JSONObject()
+
+        ThinkingConfigurationApplier.apply(
+            requestJson = request,
+            providerTypeId = ApiProviderType.ALIYUN.name,
+            modelName = "qwen3.6-27b",
+            apiEndpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+            thinkingConfigurations = ModelThinkingConfigDefaults.forProvider(ApiProviderType.ALIYUN.name),
+            enableThinking = true,
+            optionId = "",
+        )
+
+        assertEquals(ThinkingQualityControl.TOGGLE_ONLY, qwen.control)
+        assertEquals(listOf("high", "off"), mistral.options.map { it.id })
+        assertEquals("thinking.type", minimax.parameterLabel)
+        assertEquals(listOf("high", "xhigh"), antLing.options.map { it.id })
+        assertEquals("enable_thinking", infiniQwen.parameterLabel)
+        assertTrue(request.getBoolean("enable_thinking"))
+    }
+
+    @Test
+    fun xunfeiSparkXUsesTheDocumentedThinkingToggle() {
+        val sparkX = mapping(ApiProviderType.XUNFEI, "spark-x")
+        val legacySpark = mapping(ApiProviderType.XUNFEI, "spark3.5")
+        val request = JSONObject()
+
+        ThinkingConfigurationApplier.apply(
+            requestJson = request,
+            providerTypeId = ApiProviderType.XUNFEI.name,
+            modelName = "spark-x",
+            apiEndpoint = "https://spark-api-open.xf-yun.com/x2/chat/completions",
+            thinkingConfigurations = ModelThinkingConfigDefaults.forProvider(ApiProviderType.XUNFEI.name),
+            enableThinking = true,
+            optionId = "",
+        )
+
+        assertEquals(ThinkingQualityControl.TOGGLE_ONLY, sparkX.control)
+        assertEquals("thinking.type", sparkX.parameterLabel)
+        assertEquals(ThinkingQualityControl.UNSUPPORTED, legacySpark.control)
+        assertEquals("enabled", request.getJSONObject("thinking").getString("type"))
     }
 }

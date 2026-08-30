@@ -67,7 +67,6 @@ class QwenAIProvider(
         val jsonObject = JSONObject(baseRequestBodyJson)
 
         applyQwenReasoningSettings(
-            context = context,
             requestJson = jsonObject,
             enableThinking = enableThinking
         )
@@ -89,16 +88,17 @@ class QwenAIProvider(
         return createJsonRequestBody(jsonObject.toString())
     }
 
-    private fun applyQwenReasoningSettings(
-        context: Context,
+    internal fun applyQwenReasoningSettings(
         requestJson: JSONObject,
         enableThinking: Boolean
     ) {
-        if (qwenProviderType != ApiProviderType.SILICONFLOW) {
+        if (
+            qwenProviderType != ApiProviderType.ALIYUN &&
+                qwenProviderType != ApiProviderType.SILICONFLOW
+        ) {
             return
         }
         ThinkingConfigurationApplier.apply(
-            context = context,
             requestJson = requestJson,
             providerTypeId = qwenProviderType.name,
             modelName = modelName,

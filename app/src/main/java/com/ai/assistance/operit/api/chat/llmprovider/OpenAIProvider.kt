@@ -44,8 +44,76 @@ import org.json.JSONArray
 import org.json.JSONObject
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 
+internal data class OpenAiCompatibleContentParts(
+    val reasoningContent: String,
+    val regularContent: String,
+)
+
+/** Splits OpenAI-compatible structured content, including Mistral thinking chunks. */
+internal fun splitOpenAiCompatibleContent(content: Any?): OpenAiCompatibleContentParts {
+    if (content is String) {
+        return OpenAiCompatibleContentParts(reasoningContent = "", regularContent = content)
+    }
+    if (content !is JSONArray) {
+        return OpenAiCompatibleContentParts(reasoningContent = "", regularContent = "")
+    }
+
+    val reasoning = StringBuilder()
+    val regular = StringBuilder()
+    for (index in 0 until content.length()) {
+        val part = content.optJSONObject(index)
+        if (part == null) {
+            appendOpenAiCompatibleText(content.opt(index), regular)
+            continue
+        }
+
+        when (part.optString("type", "")) {
+            "thinking", "reasoning" -> {
+                val initialLength = reasoning.length
+                appendOpenAiCompatibleText(part.opt("thinking"), reasoning)
+                if (reasoning.length == initialLength) {
+                    appendOpenAiCompatibleText(part.opt("reasoning"), reasoning)
+                }
+                if (reasoning.length == initialLength) {
+                    appendOpenAiCompatibleText(part.opt("text"), reasoning)
+                }
+            }
+
+            "text", "output_text" -> appendOpenAiCompatibleText(part.opt("text"), regular)
+            else -> appendOpenAiCompatibleText(part.opt("text"), regular)
+        }
+    }
+
+    return OpenAiCompatibleContentParts(
+        reasoningContent = reasoning.toString(),
+        regularContent = regular.toString(),
+    )
+}
+
+private fun appendOpenAiCompatibleText(value: Any?, target: StringBuilder) {
+    when (value) {
+        null, JSONObject.NULL -> Unit
+        is String -> target.append(value)
+        is JSONArray -> {
+            for (index in 0 until value.length()) {
+                appendOpenAiCompatibleText(value.opt(index), target)
+            }
+        }
+
+        is JSONObject -> {
+            val text = value.opt("text")
+            if (text != null && text != JSONObject.NULL) {
+                appendOpenAiCompatibleText(text, target)
+            } else {
+                appendOpenAiCompatibleText(value.opt("content"), target)
+            }
+        }
+    }
+}
+
 /**
  * OpenAI API格式的实现，支持标准OpenAI接口和兼容此格式的其他提供商
+
  *
  * ## enableToolCall 参数说明
  *
@@ -2879,20 +2947,22 @@ open class OpenAIProvider(
             }
 
             // 处理内容
+            val contentParts = splitOpenAiCompatibleContent(delta.opt("content"))
             val reasoningContent = delta.optString("reasoning_content", "").ifBlank {
-                delta.optString("reasoning", "")
+                delta.optString("reasoning", "").ifBlank { contentParts.reasoningContent }
             }
-            val regularContent = delta.optString("content", "")
+            val regularContent = contentParts.regularContent
             processContentDelta(reasoningContent, regularContent, state, emitter)
         }
         // 处理message格式（非流式响应）
         else {
             val message = choice.optJSONObject("message")
             if (message != null) {
+                val contentParts = splitOpenAiCompatibleContent(message.opt("content"))
                 val reasoningContent = message.optString("reasoning_content", "").ifBlank {
-                    message.optString("reasoning", "")
+                    message.optString("reasoning", "").ifBlank { contentParts.reasoningContent }
                 }
-                val regularContent = message.optString("content", "")
+                val regularContent = contentParts.regularContent
 
                 // 先处理思考内容（如果有）
                 if (reasoningContent.isNotNullOrEmpty() && !state.hasEmittedRegularContent) {
@@ -3227,9 +3297,14 @@ open class OpenAIProvider(
                                                 }
                                             }
 
+                                            val contentParts = splitOpenAiCompatibleContent(messageObj.opt("content"))
                                             val reasoningContent =
-                                                messageObj.optString("reasoning_content", "")
-                                            val regularContent = messageObj.optString("content", "")
+                                                messageObj.optString("reasoning_content", "").ifBlank {
+                                                    messageObj.optString("reasoning", "").ifBlank {
+                                                        contentParts.reasoningContent
+                                                    }
+                                                }
+                                            val regularContent = contentParts.regularContent
 
                                             // 处理思考内容（如果有）
                                             if (reasoningContent.isNotNullOrEmpty() && !hasEmittedRegularContent) {
