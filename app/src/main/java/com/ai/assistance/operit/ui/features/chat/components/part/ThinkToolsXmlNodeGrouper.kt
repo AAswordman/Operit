@@ -468,7 +468,7 @@ private fun shouldCollapseToolSequence(
     toolCount: Int,
     xmlToolRelatedCount: Int
 ): Boolean {
-    if (xmlToolRelatedCount <= 0) return false
+    if (toolCount <= 0 || xmlToolRelatedCount <= 0) return false
     return when (toolCollapseMode) {
         ToolCollapseMode.FULL -> true
         ToolCollapseMode.READ_ONLY, ToolCollapseMode.ALL -> toolCount >= 2 && xmlToolRelatedCount >= 2
@@ -481,7 +481,7 @@ private fun shouldCollapseThinkSequence(
     searchCount: Int,
     xmlToolRelatedCount: Int
 ): Boolean {
-    if (xmlToolRelatedCount <= 0) return false
+    if (xmlToolRelatedCount <= 0 || (toolCount <= 0 && searchCount <= 0)) return false
     return when (toolCollapseMode) {
         ToolCollapseMode.FULL -> true
         ToolCollapseMode.READ_ONLY, ToolCollapseMode.ALL ->

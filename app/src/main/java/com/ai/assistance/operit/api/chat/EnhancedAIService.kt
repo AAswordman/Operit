@@ -2157,7 +2157,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                             _inputProcessingState.value = InputProcessingState.WaitingToolResult(toolName)
                         }
                     }
-                }
+                },
+                onDisplayMarkupEmitted = { markup ->
+                    context.roundManager.appendContent(markup)
+                },
             )
 
             if (allToolResults.isNotEmpty()) {

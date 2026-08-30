@@ -29,6 +29,8 @@ import com.ai.assistance.operit.util.stream.splitBy
 import com.ai.assistance.operit.util.stream.stream
 import com.ai.assistance.operit.util.LocaleUtils
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
@@ -56,6 +58,24 @@ object ToolExecutionManager {
 
     private fun ensureEndsWithNewline(content: String): String {
         return if (content.endsWith("\n")) content else "$content\n"
+    }
+
+    internal suspend fun emitToolResultMarkup(
+        content: String,
+        collector: StreamCollector<String>,
+        onDisplayMarkupEmitted: suspend (String) -> Unit,
+        emissionMutex: Mutex? = null,
+    ) {
+        val displayContent = ensureEndsWithNewline(content)
+        suspend fun emitAtomically() {
+            onDisplayMarkupEmitted(displayContent)
+            collector.emit(displayContent)
+        }
+        if (emissionMutex == null) {
+            emitAtomically()
+        } else {
+            emissionMutex.withLock { emitAtomically() }
+        }
     }
 
     internal fun resolveRuntimeErrorCode(result: ToolResult): String =
@@ -520,8 +540,10 @@ object ToolExecutionManager {
         callerName: String? = null,
         callerChatId: String? = null,
         callerCardId: String? = null,
-        onToolExecutionStarted: (suspend (String) -> Unit)? = null
+        onToolExecutionStarted: (suspend (String) -> Unit)? = null,
+        onDisplayMarkupEmitted: suspend (String) -> Unit = {},
     ): List<ToolResult> = coroutineScope {
+        val resultEmissionMutex = Mutex()
         // 默认工具注册现在可能在启动阶段被延后；这里确保在真正执行工具前已完成注册
         // registerDefaultTools() 是幂等且线程安全的，可安全重复调用
         withContext(Dispatchers.Default) {
@@ -557,7 +579,12 @@ object ToolExecutionManager {
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
                 val toolResultStatusContent =
                     ConversationMarkupManager.formatToolResultForMessage(deniedResult)
-                collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                emitToolResultMarkup(
+                    content = toolResultStatusContent,
+                    collector = collector,
+                    onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                    emissionMutex = resultEmissionMutex,
+                )
             }
         }
 
@@ -580,7 +607,12 @@ object ToolExecutionManager {
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
                 val toolResultStatusContent =
                     ConversationMarkupManager.formatToolResultForMessage(deniedResult)
-                collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                emitToolResultMarkup(
+                    content = toolResultStatusContent,
+                    collector = collector,
+                    onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                    emissionMutex = resultEmissionMutex,
+                )
             }
         }
 
@@ -607,7 +639,12 @@ object ToolExecutionManager {
                             permissionDeniedResults.add(it)
                             val toolResultStatusContent =
                                 ConversationMarkupManager.formatToolResultForMessage(it)
-                            collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                            emitToolResultMarkup(
+                                content = toolResultStatusContent,
+                                collector = collector,
+                                onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                                emissionMutex = resultEmissionMutex,
+                            )
                         }
                     }
                 }
@@ -623,7 +660,12 @@ object ToolExecutionManager {
                     toolHandler.notifyToolExecutionFinished(invocation.tool)
                     val toolResultStatusContent =
                         ConversationMarkupManager.formatToolResultForMessage(interceptedResult)
-                    collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                    emitToolResultMarkup(
+                        content = toolResultStatusContent,
+                        collector = collector,
+                        onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                        emissionMutex = resultEmissionMutex,
+                    )
                 }
             }
         }
@@ -669,7 +711,9 @@ object ToolExecutionManager {
                         packageManager = packageManager,
                         collector = collector,
                         runtimeContext = toolRuntimeContext,
-                        onToolExecutionStarted = onToolExecutionStarted
+                        onToolExecutionStarted = onToolExecutionStarted,
+                        onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                        resultEmissionMutex = resultEmissionMutex,
                     )
                 executionResults[invocation] = result
             }
@@ -684,7 +728,9 @@ object ToolExecutionManager {
                     packageManager = packageManager,
                     collector = collector,
                     runtimeContext = toolRuntimeContext,
-                    onToolExecutionStarted = onToolExecutionStarted
+                    onToolExecutionStarted = onToolExecutionStarted,
+                    onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                    resultEmissionMutex = resultEmissionMutex,
                 )
             executionResults[invocation] = result
         }
@@ -712,7 +758,9 @@ object ToolExecutionManager {
         packageManager: PackageManager,
         collector: StreamCollector<String>,
         runtimeContext: ToolRuntimeContext,
-        onToolExecutionStarted: (suspend (String) -> Unit)?
+        onToolExecutionStarted: (suspend (String) -> Unit)?,
+        onDisplayMarkupEmitted: suspend (String) -> Unit,
+        resultEmissionMutex: Mutex,
     ): ToolResult {
         val toolName = invocation.tool.name
         val displayToolName = resolveDisplayToolName(invocation.tool)
@@ -726,7 +774,12 @@ object ToolExecutionManager {
                         buildToolNotAvailableErrorMessage(toolName, packageManager, toolHandler)
                     val notAvailableContent =
                         ConversationMarkupManager.createToolNotAvailableError(toolName, errorMessage)
-                    collector.emit(ensureEndsWithNewline(notAvailableContent))
+                    emitToolResultMarkup(
+                        content = notAvailableContent,
+                        collector = collector,
+                        onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                        emissionMutex = resultEmissionMutex,
+                    )
                     val notAvailableResult =
                         ToolResult(
                             toolName = displayToolName,
@@ -744,10 +797,15 @@ object ToolExecutionManager {
                 val collectedResults = mutableListOf<ToolResult>()
                 executeToolSafely(invocation, executor, toolHandler).collect { result ->
                     collectedResults.add(result)
-                    // 实时输出每个结果
+                    // Emit each result to the live stream and persist the same markup for the final chat message.
                     val toolResultStatusContent =
                         ConversationMarkupManager.formatToolResultForMessage(result)
-                    collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                    emitToolResultMarkup(
+                        content = toolResultStatusContent,
+                        collector = collector,
+                        onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                        emissionMutex = resultEmissionMutex,
+                    )
                 }
 
                 // 为此调用聚合最终结果
@@ -759,6 +817,12 @@ object ToolExecutionManager {
                             result = StringResultData(""),
                             error = "The tool execution returned no results."
                         )
+                    emitToolResultMarkup(
+                        content = ConversationMarkupManager.formatToolResultForMessage(emptyResult),
+                        collector = collector,
+                        onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                        emissionMutex = resultEmissionMutex,
+                    )
                     toolHandler.notifyToolExecutionResult(invocation.tool, emptyResult)
                     return@withContext emptyResult
                 }

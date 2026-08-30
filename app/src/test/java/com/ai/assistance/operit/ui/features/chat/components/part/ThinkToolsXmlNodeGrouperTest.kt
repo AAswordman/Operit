@@ -34,6 +34,50 @@ class ThinkToolsXmlNodeGrouperTest {
         assertEquals(initialGroup.stableKey, shiftedGroup.stableKey)
     }
 
+    @Test
+    fun `result-only sequence remains directly visible in full collapse mode`() {
+        val items =
+            ThinkToolsXmlNodeGrouper(
+                showThinkingProcess = true,
+                toolCollapseMode = ToolCollapseMode.FULL,
+            ).group(
+                nodes =
+                    listOf(
+                        xmlNode(
+                            401,
+                            "<tool_result_26C6 name=\"read_file_part\" status=\"error\"><content>missing path</content></tool_result_26C6>",
+                        ),
+                    ),
+                rendererId = "stream",
+            )
+
+        assertEquals(listOf(MarkdownGroupedItem.Single(0)), items)
+    }
+
+    @Test
+    fun `think followed only by a result does not create a zero-tool group`() {
+        val items =
+            ThinkToolsXmlNodeGrouper(
+                showThinkingProcess = true,
+                toolCollapseMode = ToolCollapseMode.FULL,
+            ).group(
+                nodes =
+                    listOf(
+                        xmlNode(501, "<think>checking the file</think>"),
+                        xmlNode(
+                            502,
+                            "<tool_result_26C6 name=\"read_file_part\" status=\"error\"><content>missing path</content></tool_result_26C6>",
+                        ),
+                    ),
+                rendererId = "stream",
+            )
+
+        assertEquals(
+            listOf(MarkdownGroupedItem.Single(0), MarkdownGroupedItem.Single(1)),
+            items,
+        )
+    }
+
     private fun List<MarkdownGroupedItem>.singleGroup(): MarkdownGroupedItem.Group {
         return filterIsInstance<MarkdownGroupedItem.Group>().single()
     }

@@ -1,8 +1,10 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
+import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.util.AppLogger
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -43,27 +45,49 @@ class XaiProviderReasoningTest {
     }
 
     @Test
-    fun enabledOptionsMapToXaiEfforts() {
+    fun configuredGrokOptionsMapToReasoningEfforts() {
+        val mapping = xaiMapping("grok-4.6")
+
+        assertEquals(ThinkingQualityControl.LEVELS, mapping.control)
+        assertEquals("reasoning_effort", mapping.parameterLabel)
         assertEquals(
             listOf("low", "medium", "high", "xhigh"),
-            listOf("low", "medium", "high", "xhigh").map {
-                XaiReasoningMapper.effortForOption(optionId = it)
-            }
+            mapping.options.map { it.id }
         )
     }
 
     @Test
-    fun mapperPreservesTheSelectedEffort() {
-        assertEquals(
-            "high",
-            XaiReasoningMapper.effortForOption(optionId = "high")
+    fun selectedGrokEffortIsWrittenToTheRequest() {
+        val request = JSONObject()
+
+        ThinkingConfigurationApplier.apply(
+            requestJson = request,
+            providerTypeId = ApiProviderType.XAI.name,
+            modelName = "grok-4.6",
+            apiEndpoint = "https://api.x.ai/v1/chat/completions",
+            thinkingConfigurations = ModelThinkingConfigDefaults.forProvider(ApiProviderType.XAI.name),
+            enableThinking = true,
+            optionId = "high",
         )
+
+        assertEquals("high", request.getString("reasoning_effort"))
     }
 
     @Test
-    fun reasoningEffortUsesTheGrokFamilyRule() {
-        assertTrue(xaiModelSupportsReasoningEffort("grok-4.6"))
-        assertTrue(xaiModelSupportsReasoningEffort("grok-4.5-latest"))
-        assertTrue(xaiModelSupportsReasoningEffort("grok-3-mini"))
+    fun grokFamilyUsesTheConfiguredReasoningRule() {
+        listOf("grok-4.6", "grok-4.5-latest", "grok-3-mini").forEach { modelName ->
+            val mapping = xaiMapping(modelName)
+            assertEquals(ThinkingQualityControl.LEVELS, mapping.control)
+            assertTrue(mapping.options.isNotEmpty())
+        }
+    }
+
+    private fun xaiMapping(modelName: String): ThinkingQualityMapping {
+        return ThinkingQualityMappingRegistry.resolve(
+            providerTypeId = ApiProviderType.XAI.name,
+            modelName = modelName,
+            apiEndpoint = "https://api.x.ai/v1/chat/completions",
+            thinkingConfigurations = ModelThinkingConfigDefaults.forProvider(ApiProviderType.XAI.name),
+        )
     }
 }
