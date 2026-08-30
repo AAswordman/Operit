@@ -59,6 +59,7 @@ import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.repository.MemoryRepository
 import com.ai.assistance.operit.ui.features.settings.components.CharacterCardAssignDialog
 import com.ai.assistance.operit.ui.features.settings.components.CharacterGroupAssignDialog
+import com.ai.assistance.operit.ui.theme.renderer.data.NativeThemeStatV1
 import java.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -753,48 +754,13 @@ private fun ChatManagementOverviewCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            StatChip(
-                icon = Icons.Default.History,
-                title = "$totalChatCount",
-                subtitle = context.getString(R.string.chat_records_label)
+            NativeThemeStatV1(
+                label = context.getString(R.string.chat_records_label),
+                value = "$totalChatCount",
+                leading = { modifier ->
+                    Icon(Icons.Default.History, contentDescription = null, modifier = modifier)
+                },
             )
-        }
-    }
-}
-
-@Composable
-private fun StatChip(
-    icon: ImageVector,
-    title: String,
-    subtitle: String
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -2330,4 +2296,3 @@ private suspend fun deleteSelectedChatHistories(
             skippedLockedCount = skippedLockedCount
         )
     }
-

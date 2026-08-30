@@ -5,13 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
@@ -21,24 +16,22 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.theme.renderer.action.NativeThemeActionButtonEmphasisV1
+import com.ai.assistance.operit.ui.theme.renderer.action.NativeThemeActionButtonV1
+import com.ai.assistance.operit.ui.theme.renderer.container.NativeThemeSectionV1
+import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusKindV1
+import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusV1
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -51,16 +44,17 @@ fun CharacterCardManagementCard(
     onImport: () -> Unit
 ) {
     val characterCardsTitle = stringResource(R.string.backup_character_cards_title)
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SectionHeader(
-                title = characterCardsTitle,
-                subtitle = stringResource(R.string.backup_character_cards_subtitle),
-                icon = Icons.Default.Person
+    NativeThemeSectionV1(
+        title = characterCardsTitle,
+        description = stringResource(R.string.backup_character_cards_subtitle),
+        leading = { modifier ->
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                modifier = modifier,
             )
+        },
+    ) {
 
             Text(
                 text = stringResource(
@@ -76,17 +70,21 @@ fun CharacterCardManagementCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ManagementButton(
-                    text = stringResource(R.string.backup_export),
-                    icon = Icons.Default.CloudDownload,
-                    onClick = onExport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_export),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onExport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                ManagementButton(
-                    text = stringResource(R.string.backup_import),
-                    icon = Icons.Default.CloudUpload,
-                    onClick = onImport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_import),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onImport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
 
@@ -94,39 +92,63 @@ fun CharacterCardManagementCard(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (operationState) {
                         CharacterCardOperation.EXPORTING ->
-                            OperationProgressView(
-                                message = stringResource(R.string.backup_exporting, characterCardsTitle)
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_exporting, characterCardsTitle),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
                             )
 
                         CharacterCardOperation.IMPORTING ->
-                            OperationProgressView(
-                                message = stringResource(R.string.backup_importing, characterCardsTitle)
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_importing, characterCardsTitle),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
                             )
 
-                        CharacterCardOperation.EXPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_export_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudDownload
-                        )
+                        CharacterCardOperation.EXPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_export_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        CharacterCardOperation.IMPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_import_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudUpload
-                        )
+                        CharacterCardOperation.IMPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_import_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudUpload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        CharacterCardOperation.FAILED -> OperationResultCard(
-                            title = stringResource(R.string.backup_operation_failed),
-                            message = operationMessage,
-                            icon = Icons.Default.Info,
-                            isError = true
-                        )
+                        CharacterCardOperation.FAILED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_operation_failed),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.ERROR,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
                         else -> {}
                     }
                 }
             }
-        }
     }
 }
 
@@ -146,16 +168,17 @@ fun DataManagementCard(
 ) {
     val chatTitle = stringResource(R.string.backup_chat_history)
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SectionHeader(
-                title = chatTitle,
-                subtitle = stringResource(R.string.backup_chat_history_subtitle),
-                icon = Icons.Default.History
+    NativeThemeSectionV1(
+        title = chatTitle,
+        description = stringResource(R.string.backup_chat_history_subtitle),
+        leading = { modifier ->
+            Icon(
+                imageVector = Icons.Default.History,
+                contentDescription = null,
+                modifier = modifier,
             )
+        },
+    ) {
 
             Text(
                 text = stringResource(R.string.backup_chat_current_count, totalChatCount),
@@ -168,24 +191,30 @@ fun DataManagementCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ManagementButton(
-                    text = stringResource(R.string.backup_export),
-                    icon = Icons.Default.CloudDownload,
-                    onClick = onExport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_export),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onExport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                ManagementButton(
-                    text = stringResource(R.string.backup_import),
-                    icon = Icons.Default.CloudUpload,
-                    onClick = onImport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_import),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onImport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                ManagementButton(
-                    text = stringResource(R.string.backup_delete_all),
-                    icon = Icons.Default.Delete,
-                    onClick = onDelete,
-                    isDestructive = true,
-                    modifier = Modifier.fillMaxWidth()
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_delete_all),
+                    leading = { modifier ->
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onDelete,
+                    emphasis = NativeThemeActionButtonEmphasisV1.DESTRUCTIVE,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 
@@ -200,45 +229,84 @@ fun DataManagementCard(
                                     totalCharacters = longTextExportTotalCharacters,
                                 )
                             } else {
-                                OperationProgressView(message = stringResource(R.string.backup_exporting, chatTitle))
+                                NativeThemeOperationStatusV1(
+                                    message = stringResource(R.string.backup_exporting, chatTitle),
+                                    kind = NativeThemeOperationStatusKindV1.LOADING,
+                                )
                             }
 
                         ChatHistoryOperation.IMPORTING ->
-                            OperationProgressView(message = stringResource(R.string.backup_importing, chatTitle))
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_importing, chatTitle),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
+                            )
 
                         ChatHistoryOperation.DELETING ->
-                            OperationProgressView(message = stringResource(R.string.backup_deleting))
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_deleting),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
+                            )
 
-                        ChatHistoryOperation.EXPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_export_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudDownload
-                        )
+                        ChatHistoryOperation.EXPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_export_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        ChatHistoryOperation.IMPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_import_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudUpload
-                        )
+                        ChatHistoryOperation.IMPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_import_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudUpload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        ChatHistoryOperation.DELETED -> OperationResultCard(
-                            title = stringResource(R.string.backup_delete_success),
-                            message = operationMessage,
-                            icon = Icons.Default.Delete
-                        )
+                        ChatHistoryOperation.DELETED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_delete_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        ChatHistoryOperation.FAILED -> OperationResultCard(
-                            title = stringResource(R.string.backup_operation_failed),
-                            message = operationMessage,
-                            icon = Icons.Default.Info,
-                            isError = true
-                        )
+                        ChatHistoryOperation.FAILED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_operation_failed),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.ERROR,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
                         else -> {}
                     }
                 }
             }
-        }
     }
 }
 
@@ -254,16 +322,17 @@ fun MemoryManagementCard(
 ) {
     val memoryTitle = stringResource(R.string.backup_memory_library)
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SectionHeader(
-                title = memoryTitle,
-                subtitle = stringResource(R.string.backup_memory_library_subtitle),
-                icon = Icons.Default.Psychology
+    NativeThemeSectionV1(
+        title = memoryTitle,
+        description = stringResource(R.string.backup_memory_library_subtitle),
+        leading = { modifier ->
+            Icon(
+                imageVector = Icons.Default.Psychology,
+                contentDescription = null,
+                modifier = modifier,
             )
+        },
+    ) {
 
             Text(
                 text = stringResource(R.string.backup_memory_current_count, totalMemoryCount, totalLinkCount),
@@ -276,17 +345,21 @@ fun MemoryManagementCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ManagementButton(
-                    text = stringResource(R.string.backup_export),
-                    icon = Icons.Default.CloudDownload,
-                    onClick = onExport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_export),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onExport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                ManagementButton(
-                    text = stringResource(R.string.backup_import),
-                    icon = Icons.Default.CloudUpload,
-                    onClick = onImport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_import),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onImport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
 
@@ -294,35 +367,63 @@ fun MemoryManagementCard(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (operationState) {
                         MemoryOperation.EXPORTING ->
-                            OperationProgressView(message = stringResource(R.string.backup_exporting, memoryTitle))
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_exporting, memoryTitle),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
+                            )
 
                         MemoryOperation.IMPORTING ->
-                            OperationProgressView(message = stringResource(R.string.backup_importing, memoryTitle))
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_importing, memoryTitle),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
+                            )
 
-                        MemoryOperation.EXPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_export_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudDownload
-                        )
+                        MemoryOperation.EXPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_export_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        MemoryOperation.IMPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_import_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudUpload
-                        )
+                        MemoryOperation.IMPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_import_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudUpload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        MemoryOperation.FAILED -> OperationResultCard(
-                            title = stringResource(R.string.backup_operation_failed),
-                            message = operationMessage,
-                            icon = Icons.Default.Info,
-                            isError = true
-                        )
+                        MemoryOperation.FAILED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_operation_failed),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.ERROR,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
                         else -> {}
                     }
                 }
             }
-        }
     }
 }
 
@@ -337,16 +438,17 @@ fun ModelConfigManagementCard(
 ) {
     val modelConfigTitle = stringResource(R.string.backup_model_config)
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SectionHeader(
-                title = modelConfigTitle,
-                subtitle = stringResource(R.string.backup_model_config_subtitle),
-                icon = Icons.Default.Settings
+    NativeThemeSectionV1(
+        title = modelConfigTitle,
+        description = stringResource(R.string.backup_model_config_subtitle),
+        leading = { modifier ->
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = null,
+                modifier = modifier,
             )
+        },
+    ) {
 
             Text(
                 text = stringResource(R.string.backup_model_config_current_count, totalConfigCount),
@@ -359,17 +461,21 @@ fun ModelConfigManagementCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ManagementButton(
-                    text = stringResource(R.string.backup_export),
-                    icon = Icons.Default.CloudDownload,
-                    onClick = onExport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_export),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onExport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                ManagementButton(
-                    text = stringResource(R.string.backup_import),
-                    icon = Icons.Default.CloudUpload,
-                    onClick = onImport,
-                    modifier = Modifier.weight(1f, fill = false)
+                NativeThemeActionButtonV1(
+                    label = stringResource(R.string.backup_import),
+                    leading = { modifier ->
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = modifier)
+                    },
+                    onActivate = onImport,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
 
@@ -377,136 +483,63 @@ fun ModelConfigManagementCard(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (operationState) {
                         ModelConfigOperation.EXPORTING ->
-                            OperationProgressView(message = stringResource(R.string.backup_exporting, modelConfigTitle))
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_exporting, modelConfigTitle),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
+                            )
 
                         ModelConfigOperation.IMPORTING ->
-                            OperationProgressView(message = stringResource(R.string.backup_importing, modelConfigTitle))
+                            NativeThemeOperationStatusV1(
+                                message = stringResource(R.string.backup_importing, modelConfigTitle),
+                                kind = NativeThemeOperationStatusKindV1.LOADING,
+                            )
 
-                        ModelConfigOperation.EXPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_export_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudDownload
-                        )
+                        ModelConfigOperation.EXPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_export_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        ModelConfigOperation.IMPORTED -> OperationResultCard(
-                            title = stringResource(R.string.backup_import_success),
-                            message = operationMessage,
-                            icon = Icons.Default.CloudUpload
-                        )
+                        ModelConfigOperation.IMPORTED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_import_success),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.CloudUpload,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
-                        ModelConfigOperation.FAILED -> OperationResultCard(
-                            title = stringResource(R.string.backup_operation_failed),
-                            message = operationMessage,
-                            icon = Icons.Default.Info,
-                            isError = true
-                        )
+                        ModelConfigOperation.FAILED ->
+                            NativeThemeOperationStatusV1(
+                                title = stringResource(R.string.backup_operation_failed),
+                                message = operationMessage,
+                                kind = NativeThemeOperationStatusKindV1.ERROR,
+                                leading = { modifier ->
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = modifier,
+                                    )
+                                },
+                            )
 
                         else -> {}
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun ManagementButton(
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    isDestructive: Boolean = false,
-    isWarning: Boolean = false,
-    enabled: Boolean = true
-) {
-    val colors = if (isDestructive) {
-        ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.error
-        )
-    } else if (isWarning) {
-        ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.tertiary
-        )
-    } else {
-        ButtonDefaults.filledTonalButtonColors()
-    }
-
-    FilledTonalButton(
-        onClick = onClick,
-        modifier = modifier,
-        colors = colors,
-        enabled = enabled,
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = text,
-            modifier = Modifier.size(ButtonDefaults.IconSize)
-        )
-        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-        Text(text)
-    }
-}
-
-@Composable
-fun OperationResultCard(
-    title: String,
-    message: String,
-    icon: ImageVector,
-    isError: Boolean = false
-) {
-    val containerColor = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
-    val contentColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = containerColor.copy(alpha = 0.2f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.padding(end = 16.dp)
-            )
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = contentColor,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun OperationProgressView(message: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-        )
     }
 }
 

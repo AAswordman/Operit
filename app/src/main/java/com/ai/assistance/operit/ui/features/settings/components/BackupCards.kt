@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
@@ -28,7 +26,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.theme.renderer.data.NativeThemeStatV1
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -70,25 +68,33 @@ fun OverviewCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                StatChip(
-                    icon = Icons.Default.History,
-                    title = "$totalChatCount",
-                    subtitle = stringResource(R.string.backup_chat_count)
+                NativeThemeStatV1(
+                    label = stringResource(R.string.backup_chat_count),
+                    value = "$totalChatCount",
+                    leading = { modifier ->
+                        Icon(Icons.Default.History, contentDescription = null, modifier = modifier)
+                    },
                 )
-                StatChip(
-                    icon = Icons.Default.Person,
-                    title = "$totalCharacterCardCount",
-                    subtitle = stringResource(R.string.backup_character_card_count)
+                NativeThemeStatV1(
+                    label = stringResource(R.string.backup_character_card_count),
+                    value = "$totalCharacterCardCount",
+                    leading = { modifier ->
+                        Icon(Icons.Default.Person, contentDescription = null, modifier = modifier)
+                    },
                 )
-                StatChip(
-                    icon = Icons.Default.Psychology,
-                    title = "$totalMemoryCount",
-                    subtitle = stringResource(R.string.backup_memory_count)
+                NativeThemeStatV1(
+                    label = stringResource(R.string.backup_memory_count),
+                    value = "$totalMemoryCount",
+                    leading = { modifier ->
+                        Icon(Icons.Default.Psychology, contentDescription = null, modifier = modifier)
+                    },
                 )
-                StatChip(
-                    icon = Icons.Default.Link,
-                    title = "$totalLinkCount",
-                    subtitle = stringResource(R.string.backup_memory_link_count)
+                NativeThemeStatV1(
+                    label = stringResource(R.string.backup_memory_link_count),
+                    value = "$totalLinkCount",
+                    leading = { modifier ->
+                        Icon(Icons.Default.Link, contentDescription = null, modifier = modifier)
+                    },
                 )
             }
         }
@@ -241,79 +247,6 @@ fun BackupFileStatItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun StatChip(
-    icon: ImageVector,
-    title: String,
-    subtitle: String
-) {
-    Surface(
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SectionHeader(
-    title: String,
-    subtitle: String,
-    icon: ImageVector
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(10.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

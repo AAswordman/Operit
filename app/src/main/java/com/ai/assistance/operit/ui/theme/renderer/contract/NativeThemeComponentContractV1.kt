@@ -59,6 +59,7 @@ internal enum class NativeThemeComponentValueTypeV1 {
     BOOLEAN,
     INTEGER,
     DECIMAL,
+    ENUM,
     SEMANTIC_ROLE,
 }
 
@@ -71,9 +72,19 @@ internal enum class NativeThemeComponentSlotCardinalityV1 {
 internal enum class NativeThemeComponentSemanticRoleV1 {
     ACTION,
     NAVIGATION_DESTINATION,
-    INPUT,
+    SINGLE_CHOICE_INPUT,
     STATUS,
     CONTENT,
+}
+
+internal enum class NativeThemeComponentAccessibilityRoleV1 {
+    BUTTON,
+    TAB,
+    RADIO_BUTTON,
+}
+
+internal enum class NativeThemeComponentLiveRegionModeV1 {
+    POLITE,
 }
 
 internal enum class NativeThemeComponentCatalogStateV1 {
@@ -89,7 +100,25 @@ internal enum class NativeThemeComponentCatalogStateV1 {
 internal data class NativeThemeComponentStateFieldV1(
     val id: NativeThemeComponentMemberId,
     val type: NativeThemeComponentValueTypeV1,
+    val required: Boolean = true,
+    val enumValues: List<NativeThemeComponentMemberId> = emptyList(),
 )
+
+internal sealed interface NativeThemeComponentStateValueV1 {
+    data class Text(val value: String) : NativeThemeComponentStateValueV1
+
+    data class BooleanValue(val value: Boolean) : NativeThemeComponentStateValueV1
+
+    data class IntegerValue(val value: Long) : NativeThemeComponentStateValueV1
+
+    data class DecimalValue(val value: Double) : NativeThemeComponentStateValueV1
+
+    data class EnumValue(val value: NativeThemeComponentMemberId) : NativeThemeComponentStateValueV1
+
+    data class SemanticRoleValue(
+        val value: NativeThemeComponentSemanticRoleV1,
+    ) : NativeThemeComponentStateValueV1
+}
 
 internal data class NativeThemeComponentEventV1(
     val id: NativeThemeComponentMemberId,
@@ -100,12 +129,26 @@ internal data class NativeThemeComponentSlotV1(
     val cardinality: NativeThemeComponentSlotCardinalityV1,
 )
 
+internal data class NativeThemeComponentCatalogStateMappingV1(
+    val fieldId: NativeThemeComponentMemberId,
+    val enumValueByState: Map<NativeThemeComponentCatalogStateV1, NativeThemeComponentMemberId>,
+)
+
 internal data class NativeThemeComponentSemanticsV1(
     val roles: Set<NativeThemeComponentSemanticRoleV1>,
     val roleStateField: NativeThemeComponentMemberId? = null,
     val accessibleLabelField: NativeThemeComponentMemberId?,
     val selectedStateField: NativeThemeComponentMemberId? = null,
     val enabledStateField: NativeThemeComponentMemberId? = null,
+    val headingField: NativeThemeComponentMemberId? = null,
+    val statusMessageField: NativeThemeComponentMemberId? = null,
+    val displayValueField: NativeThemeComponentMemberId? = null,
+    val accessibilityRoleBySemanticRole:
+        Map<NativeThemeComponentSemanticRoleV1, NativeThemeComponentAccessibilityRoleV1> =
+        emptyMap(),
+    val liveRegionMode: NativeThemeComponentLiveRegionModeV1? = null,
+    val indeterminateProgressStates: Set<NativeThemeComponentCatalogStateV1> = emptySet(),
+    val decorativeSlotIds: Set<NativeThemeComponentMemberId> = emptySet(),
     val minimumTouchTargetDp: Int? = null,
 )
 
@@ -120,10 +163,12 @@ internal data class NativeThemeComponentContractV1(
     val slots: List<NativeThemeComponentSlotV1>,
     val semantics: NativeThemeComponentSemanticsV1,
     val catalogStates: Set<NativeThemeComponentCatalogStateV1>,
+    val catalogStateMapping: NativeThemeComponentCatalogStateMappingV1? = null,
 )
 
 internal class NativeThemeComponentKeyV1<State : Any, Event : Any, Slots : Any>(
     val contract: NativeThemeComponentContractV1,
+    val encodeState: (State) -> Map<NativeThemeComponentMemberId, NativeThemeComponentStateValueV1>,
 )
 
 internal fun validateNativeThemeComponentContractsV1(
@@ -143,6 +188,20 @@ private fun validateNativeThemeComponentContractV1(contract: NativeThemeComponen
     require(contract.stateFields.map { field -> field.id }.distinct().size == contract.stateFields.size) {
         "Component ${contract.id.value} state field IDs must be unique."
     }
+    contract.stateFields.forEach { field ->
+        if (field.type == NativeThemeComponentValueTypeV1.ENUM) {
+            require(field.enumValues.isNotEmpty()) {
+                "Component ${contract.id.value} enum field ${field.id.value} must define values."
+            }
+            require(field.enumValues.distinct().size == field.enumValues.size) {
+                "Component ${contract.id.value} enum field ${field.id.value} values must be unique."
+            }
+        } else {
+            require(field.enumValues.isEmpty()) {
+                "Component ${contract.id.value} non-enum field ${field.id.value} cannot define enum values."
+            }
+        }
+    }
     require(contract.events.map { event -> event.id }.distinct().size == contract.events.size) {
         "Component ${contract.id.value} event IDs must be unique."
     }
@@ -160,16 +219,24 @@ private fun validateNativeThemeComponentContractV1(contract: NativeThemeComponen
             "Component ${contract.id.value} must bind multiple semantic roles to a state field."
         }
     }
-    if (
-        contract.semantics.roles.any { role ->
-            role == NativeThemeComponentSemanticRoleV1.ACTION ||
-                role == NativeThemeComponentSemanticRoleV1.NAVIGATION_DESTINATION ||
-                role == NativeThemeComponentSemanticRoleV1.INPUT
-        }
-    ) {
+    val interactiveSemanticRoles =
+        contract.semantics.roles.intersect(
+            setOf(
+                NativeThemeComponentSemanticRoleV1.ACTION,
+                NativeThemeComponentSemanticRoleV1.NAVIGATION_DESTINATION,
+                NativeThemeComponentSemanticRoleV1.SINGLE_CHOICE_INPUT,
+            )
+        )
+    if (interactiveSemanticRoles.isNotEmpty()) {
         require(contract.semantics.accessibleLabelField != null) {
             "Interactive component ${contract.id.value} must define an accessible label field."
         }
+        require(
+            contract.semantics.accessibilityRoleBySemanticRole.keys == interactiveSemanticRoles
+        ) {
+            "Interactive component ${contract.id.value} must map every semantic role to an accessibility role."
+        }
+        validateNativeThemeComponentAccessibilityRolesV1(contract)
     }
     if (NativeThemeComponentCatalogStateV1.SELECTED in contract.catalogStates) {
         require(contract.semantics.selectedStateField != null) {
@@ -183,6 +250,7 @@ private fun validateNativeThemeComponentContractV1(contract: NativeThemeComponen
     }
 
     val fieldsById = contract.stateFields.associateBy { field -> field.id }
+    val slotsById = contract.slots.associateBy { slot -> slot.id }
     validateSemanticField(
         componentId = contract.id,
         fieldId = contract.semantics.roleStateField,
@@ -211,10 +279,107 @@ private fun validateNativeThemeComponentContractV1(contract: NativeThemeComponen
         fieldsById = fieldsById,
         semanticName = "enabled state",
     )
+    validateSemanticField(
+        componentId = contract.id,
+        fieldId = contract.semantics.headingField,
+        expectedType = NativeThemeComponentValueTypeV1.TEXT,
+        fieldsById = fieldsById,
+        semanticName = "heading",
+    )
+    validateSemanticField(
+        componentId = contract.id,
+        fieldId = contract.semantics.statusMessageField,
+        expectedType = NativeThemeComponentValueTypeV1.TEXT,
+        fieldsById = fieldsById,
+        semanticName = "status message",
+    )
+    validateSemanticField(
+        componentId = contract.id,
+        fieldId = contract.semantics.displayValueField,
+        expectedType = NativeThemeComponentValueTypeV1.TEXT,
+        fieldsById = fieldsById,
+        semanticName = "display value",
+    )
+
+    if (NativeThemeComponentSemanticRoleV1.STATUS in contract.semantics.roles) {
+        require(contract.semantics.statusMessageField != null) {
+            "Status component ${contract.id.value} must bind its status message."
+        }
+        require(contract.semantics.liveRegionMode != null) {
+            "Status component ${contract.id.value} must define its live region mode."
+        }
+    }
+    if (contract.category == NativeThemeComponentCategoryV1.DATA_DISPLAY) {
+        require(contract.semantics.displayValueField != null) {
+            "Data display component ${contract.id.value} must bind its display value."
+        }
+    }
 
     if (contract.events.isNotEmpty()) {
         require((contract.semantics.minimumTouchTargetDp ?: 0) >= 48) {
             "Interactive component ${contract.id.value} must require at least a 48dp touch target."
+        }
+    }
+    require(contract.semantics.indeterminateProgressStates.all { state -> state in contract.catalogStates }) {
+        "Component ${contract.id.value} progress semantics reference an undeclared catalog state."
+    }
+    require(contract.semantics.decorativeSlotIds.all { slotId -> slotId in slotsById }) {
+        "Component ${contract.id.value} decorative semantics reference an unknown slot."
+    }
+
+    val dynamicCatalogStates =
+        contract.catalogStates.intersect(
+            setOf(
+                NativeThemeComponentCatalogStateV1.LOADING,
+                NativeThemeComponentCatalogStateV1.ERROR,
+                NativeThemeComponentCatalogStateV1.EMPTY,
+                NativeThemeComponentCatalogStateV1.STREAMING,
+            )
+        )
+    if (dynamicCatalogStates.isNotEmpty()) {
+        require(contract.catalogStateMapping != null) {
+            "Component ${contract.id.value} must map its dynamic catalog states to an enum field."
+        }
+    }
+    contract.catalogStateMapping?.let { mapping ->
+        val field = requireNotNull(fieldsById[mapping.fieldId]) {
+            "Component ${contract.id.value} catalog state mapping references unknown field ${mapping.fieldId.value}."
+        }
+        require(field.type == NativeThemeComponentValueTypeV1.ENUM) {
+            "Component ${contract.id.value} catalog state mapping must reference an ENUM field."
+        }
+        require(field.required) {
+            "Component ${contract.id.value} catalog state mapping must reference a required field."
+        }
+        require(mapping.enumValueByState.keys == contract.catalogStates) {
+            "Component ${contract.id.value} catalog state mapping must cover every catalog state."
+        }
+        require(mapping.enumValueByState.values.all { value -> value in field.enumValues }) {
+            "Component ${contract.id.value} catalog state mapping uses an unknown enum value."
+        }
+        require(mapping.enumValueByState.values.toSet().size == mapping.enumValueByState.size) {
+            "Component ${contract.id.value} catalog states must map to distinct enum values."
+        }
+    }
+}
+
+private fun validateNativeThemeComponentAccessibilityRolesV1(
+    contract: NativeThemeComponentContractV1,
+) {
+    contract.semantics.accessibilityRoleBySemanticRole.forEach { (semanticRole, accessibilityRole) ->
+        val expectedRole =
+            when (semanticRole) {
+                NativeThemeComponentSemanticRoleV1.ACTION ->
+                    NativeThemeComponentAccessibilityRoleV1.BUTTON
+                NativeThemeComponentSemanticRoleV1.NAVIGATION_DESTINATION ->
+                    NativeThemeComponentAccessibilityRoleV1.TAB
+                NativeThemeComponentSemanticRoleV1.SINGLE_CHOICE_INPUT ->
+                    NativeThemeComponentAccessibilityRoleV1.RADIO_BUTTON
+                NativeThemeComponentSemanticRoleV1.STATUS,
+                NativeThemeComponentSemanticRoleV1.CONTENT -> null
+            }
+        require(accessibilityRole == expectedRole) {
+            "Component ${contract.id.value} maps $semanticRole to the wrong accessibility role."
         }
     }
 }
@@ -232,5 +397,8 @@ private fun validateSemanticField(
     }
     require(field.type == expectedType) {
         "Component ${componentId.value} $semanticName must reference a $expectedType field."
+    }
+    require(field.required) {
+        "Component ${componentId.value} $semanticName must reference a required field."
     }
 }

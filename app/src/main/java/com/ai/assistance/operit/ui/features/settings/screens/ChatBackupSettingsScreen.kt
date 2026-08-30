@@ -7,48 +7,25 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -61,7 +38,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -98,15 +74,16 @@ import com.ai.assistance.operit.ui.features.settings.components.MemoryOperation
 import com.ai.assistance.operit.ui.features.settings.components.ModelConfigExportWarningDialog
 import com.ai.assistance.operit.ui.features.settings.components.ModelConfigManagementCard
 import com.ai.assistance.operit.ui.features.settings.components.ModelConfigOperation
-import com.ai.assistance.operit.ui.features.settings.components.ManagementButton
-import com.ai.assistance.operit.ui.features.settings.components.OperationProgressView
-import com.ai.assistance.operit.ui.features.settings.components.OperationResultCard
 import com.ai.assistance.operit.ui.features.settings.components.OverviewCard
 import com.ai.assistance.operit.ui.features.settings.components.ProfileSelectionDialog
 import com.ai.assistance.operit.ui.features.settings.components.RoomDbBackupListItem
-import com.ai.assistance.operit.ui.features.settings.components.SectionHeader
 import com.ai.assistance.operit.ui.features.settings.components.CharacterCardOperation
 import com.ai.assistance.operit.ui.main.MainActivity
+import com.ai.assistance.operit.ui.theme.renderer.action.NativeThemeActionButtonEmphasisV1
+import com.ai.assistance.operit.ui.theme.renderer.action.NativeThemeActionButtonV1
+import com.ai.assistance.operit.ui.theme.renderer.container.NativeThemeSectionV1
+import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusKindV1
+import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusV1
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -680,16 +657,13 @@ fun ChatBackupSettingsScreen() {
         }
 
         item {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    SectionHeader(
-                        title = stringResource(R.string.backup_room_db_title),
-                        subtitle = stringResource(R.string.backup_room_db_subtitle, roomDbMaxBackupCount),
-                        icon = Icons.Default.Storage
-                    )
+            NativeThemeSectionV1(
+                title = stringResource(R.string.backup_room_db_title),
+                description = stringResource(R.string.backup_room_db_subtitle, roomDbMaxBackupCount),
+                leading = { modifier ->
+                    Icon(Icons.Default.Storage, contentDescription = null, modifier = modifier)
+                },
+            ) {
 
                     Text(
                         modifier = Modifier.fillMaxWidth(),
@@ -797,10 +771,16 @@ fun ChatBackupSettingsScreen() {
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        ManagementButton(
-                            text = stringResource(R.string.backup_room_db_backup_now),
-                            icon = Icons.Default.CloudDownload,
-                            onClick = {
+                        NativeThemeActionButtonV1(
+                            label = stringResource(R.string.backup_room_db_backup_now),
+                            leading = { modifier ->
+                                Icon(
+                                    Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    modifier = modifier,
+                                )
+                            },
+                            onActivate = {
                                 scope.launch {
                                     roomDbBackupOperationState = RoomDatabaseBackupOperation.BACKING_UP
                                     try {
@@ -840,13 +820,19 @@ fun ChatBackupSettingsScreen() {
                                     }
                                 }
                             },
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier.weight(1f, fill = false),
                         )
 
-                        ManagementButton(
-                            text = stringResource(R.string.backup_room_db_restore_from_file),
-                            icon = Icons.Default.FileOpen,
-                            onClick = {
+                        NativeThemeActionButtonV1(
+                            label = stringResource(R.string.backup_room_db_restore_from_file),
+                            leading = { modifier ->
+                                Icon(
+                                    Icons.Default.FileOpen,
+                                    contentDescription = null,
+                                    modifier = modifier,
+                                )
+                            },
+                            onActivate = {
                                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                                     addCategory(Intent.CATEGORY_OPENABLE)
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -856,7 +842,7 @@ fun ChatBackupSettingsScreen() {
                                 roomDbRestoreFilePickerLauncher.launch(intent)
                             },
                             modifier = Modifier.weight(1f, fill = false),
-                            isWarning = true
+                            emphasis = NativeThemeActionButtonEmphasisV1.CAUTION,
                         )
                     }
 
@@ -885,19 +871,35 @@ fun ChatBackupSettingsScreen() {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             when (roomDbBackupOperationState) {
                                 RoomDatabaseBackupOperation.BACKING_UP ->
-                                    OperationProgressView(message = stringResource(R.string.backup_room_db_backing_up))
+                                    NativeThemeOperationStatusV1(
+                                        message = stringResource(R.string.backup_room_db_backing_up),
+                                        kind = NativeThemeOperationStatusKindV1.LOADING,
+                                    )
                                 RoomDatabaseBackupOperation.SUCCESS ->
-                                    OperationResultCard(
+                                    NativeThemeOperationStatusV1(
                                         title = stringResource(R.string.backup_export_success),
                                         message = roomDbBackupOperationMessage,
-                                        icon = Icons.Default.CloudDownload
+                                        kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                        leading = { modifier ->
+                                            Icon(
+                                                Icons.Default.CloudDownload,
+                                                contentDescription = null,
+                                                modifier = modifier,
+                                            )
+                                        },
                                     )
                                 RoomDatabaseBackupOperation.FAILED ->
-                                    OperationResultCard(
+                                    NativeThemeOperationStatusV1(
                                         title = stringResource(R.string.backup_operation_failed),
                                         message = roomDbBackupOperationMessage,
-                                        icon = Icons.Default.Info,
-                                        isError = true
+                                        kind = NativeThemeOperationStatusKindV1.ERROR,
+                                        leading = { modifier ->
+                                            Icon(
+                                                Icons.Default.Info,
+                                                contentDescription = null,
+                                                modifier = modifier,
+                                            )
+                                        },
                                     )
                                 else -> {}
                             }
@@ -908,19 +910,35 @@ fun ChatBackupSettingsScreen() {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             when (roomDbRestoreOperationState) {
                                 RoomDatabaseRestoreOperation.RESTORING ->
-                                    OperationProgressView(message = stringResource(R.string.backup_room_db_restoring))
+                                    NativeThemeOperationStatusV1(
+                                        message = stringResource(R.string.backup_room_db_restoring),
+                                        kind = NativeThemeOperationStatusKindV1.LOADING,
+                                    )
                                 RoomDatabaseRestoreOperation.SUCCESS ->
-                                    OperationResultCard(
+                                    NativeThemeOperationStatusV1(
                                         title = stringResource(R.string.backup_room_db_restore_success),
                                         message = roomDbRestoreOperationMessage,
-                                        icon = Icons.Default.Restore
+                                        kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                        leading = { modifier ->
+                                            Icon(
+                                                Icons.Default.Restore,
+                                                contentDescription = null,
+                                                modifier = modifier,
+                                            )
+                                        },
                                     )
                                 RoomDatabaseRestoreOperation.FAILED ->
-                                    OperationResultCard(
+                                    NativeThemeOperationStatusV1(
                                         title = stringResource(R.string.backup_room_db_restore_failed),
                                         message = roomDbRestoreOperationMessage,
-                                        icon = Icons.Default.Info,
-                                        isError = true
+                                        kind = NativeThemeOperationStatusKindV1.ERROR,
+                                        leading = { modifier ->
+                                            Icon(
+                                                Icons.Default.Info,
+                                                contentDescription = null,
+                                                modifier = modifier,
+                                            )
+                                        },
                                     )
                                 else -> {}
                             }
@@ -946,21 +964,17 @@ fun ChatBackupSettingsScreen() {
                             color = MaterialTheme.colorScheme.error
                         )
                     }
-                }
             }
         }
 
         item {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    SectionHeader(
-                        title = stringResource(R.string.backup_raw_snapshot_title),
-                        subtitle = stringResource(R.string.backup_raw_snapshot_subtitle),
-                        icon = Icons.Default.Storage
-                    )
+            NativeThemeSectionV1(
+                title = stringResource(R.string.backup_raw_snapshot_title),
+                description = stringResource(R.string.backup_raw_snapshot_subtitle),
+                leading = { modifier ->
+                    Icon(Icons.Default.Storage, contentDescription = null, modifier = modifier)
+                },
+            ) {
 
                     Text(
                         modifier = Modifier.fillMaxWidth(),
@@ -974,10 +988,16 @@ fun ChatBackupSettingsScreen() {
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        ManagementButton(
-                            text = stringResource(R.string.backup_raw_snapshot_backup_now),
-                            icon = Icons.Default.CloudDownload,
-                            onClick = {
+                        NativeThemeActionButtonV1(
+                            label = stringResource(R.string.backup_raw_snapshot_backup_now),
+                            leading = { modifier ->
+                                Icon(
+                                    Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    modifier = modifier,
+                                )
+                            },
+                            onActivate = {
                                 scope.launch {
                                     rawSnapshotOperationState = RawSnapshotOperation.BACKING_UP
                                     rawSnapshotOperationMessage = context.getString(R.string.backup_raw_snapshot_progress_preparing)
@@ -1026,13 +1046,19 @@ fun ChatBackupSettingsScreen() {
                                     }
                                 }
                             },
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier.weight(1f, fill = false),
                         )
 
-                        ManagementButton(
-                            text = stringResource(R.string.backup_raw_snapshot_restore_from_file),
-                            icon = Icons.Default.FileOpen,
-                            onClick = {
+                        NativeThemeActionButtonV1(
+                            label = stringResource(R.string.backup_raw_snapshot_restore_from_file),
+                            leading = { modifier ->
+                                Icon(
+                                    Icons.Default.FileOpen,
+                                    contentDescription = null,
+                                    modifier = modifier,
+                                )
+                            },
+                            onActivate = {
                                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                                     addCategory(Intent.CATEGORY_OPENABLE)
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -1042,7 +1068,7 @@ fun ChatBackupSettingsScreen() {
                                 rawSnapshotRestoreFilePickerLauncher.launch(intent)
                             },
                             modifier = Modifier.weight(1f, fill = false),
-                            isWarning = true
+                            emphasis = NativeThemeActionButtonEmphasisV1.CAUTION,
                         )
                     }
 
@@ -1050,35 +1076,49 @@ fun ChatBackupSettingsScreen() {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             when (rawSnapshotOperationState) {
                                 RawSnapshotOperation.BACKING_UP ->
-                                    OperationProgressView(
+                                    NativeThemeOperationStatusV1(
                                         message = rawSnapshotOperationMessage.ifBlank {
                                             stringResource(R.string.backup_raw_snapshot_backing_up)
-                                        }
+                                        },
+                                        kind = NativeThemeOperationStatusKindV1.LOADING,
                                     )
                                 RawSnapshotOperation.RESTORING ->
-                                    OperationProgressView(
+                                    NativeThemeOperationStatusV1(
                                         message = rawSnapshotOperationMessage.ifBlank {
                                             stringResource(R.string.backup_raw_snapshot_restoring)
-                                        }
+                                        },
+                                        kind = NativeThemeOperationStatusKindV1.LOADING,
                                     )
                                 RawSnapshotOperation.BACKUP_SUCCESS ->
-                                    OperationResultCard(
+                                    NativeThemeOperationStatusV1(
                                         title = stringResource(R.string.backup_export_success),
                                         message = rawSnapshotOperationMessage,
-                                        icon = Icons.Default.CloudDownload
+                                        kind = NativeThemeOperationStatusKindV1.SUCCESS,
+                                        leading = { modifier ->
+                                            Icon(
+                                                Icons.Default.CloudDownload,
+                                                contentDescription = null,
+                                                modifier = modifier,
+                                            )
+                                        },
                                     )
                                 RawSnapshotOperation.FAILED ->
-                                    OperationResultCard(
+                                    NativeThemeOperationStatusV1(
                                         title = stringResource(R.string.backup_operation_failed),
                                         message = rawSnapshotOperationMessage,
-                                        icon = Icons.Default.Info,
-                                        isError = true
+                                        kind = NativeThemeOperationStatusKindV1.ERROR,
+                                        leading = { modifier ->
+                                            Icon(
+                                                Icons.Default.Info,
+                                                contentDescription = null,
+                                                modifier = modifier,
+                                            )
+                                        },
                                     )
                                 else -> {}
                             }
                         }
                     }
-                }
             }
         }
     }

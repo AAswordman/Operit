@@ -21,6 +21,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class NativeThemeComponentCatalogV1Test {
@@ -116,7 +117,7 @@ class NativeThemeComponentCatalogV1Test {
                 NativeThemeComponentCatalogStateV1.SELECTED,
                 NativeThemeComponentCatalogStateV1.DISABLED,
             ),
-            scenarios.map { scenario -> scenario.catalogState }.toSet(),
+            scenarios.flatMap { scenario -> scenario.catalogStates }.toSet(),
         )
         assertEquals(setOf("normal", "selected", "disabled", "action"), scenariosById.keys)
         assertFalse(requireNotNull(scenariosById["normal"]).state.selected)
@@ -129,47 +130,41 @@ class NativeThemeComponentCatalogV1Test {
         )
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun catalogRejectsMissingRequiredImplementations() {
-        validateNativeThemeComponentCatalogV1(
-            definitionId = NATIVE_THEME_V1_DEFINITION_ID,
-            contractKeys = NativeThemeComponentContractsV1.keys,
-            implementations = emptyList(),
-        )
+        assertCatalogFailure("missing required components", implementations = emptyList())
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun catalogRejectsIncompatibleImplementationVersions() {
         val incompatible =
             NativeThemeComponentCatalogV1.navigationDrawerItem.copy(
                 implementedVersion = NativeThemeComponentVersionV1(major = 1, minor = 1)
             )
 
-        validateNativeThemeComponentCatalogV1(
-            definitionId = NATIVE_THEME_V1_DEFINITION_ID,
-            contractKeys = NativeThemeComponentContractsV1.keys,
-            implementations = listOf(incompatible),
+        assertCatalogFailure(
+            expectedMessage = "incompatible version",
+            implementations = replaceNavigationImplementation(incompatible),
         )
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun catalogRejectsIncompleteCatalogStateCoverage() {
         val incomplete =
             NativeThemeComponentCatalogV1.navigationDrawerItem.copy(
                 scenarios =
                     NativeThemeComponentCatalogV1.navigationDrawerItem.scenarios.filterNot { scenario ->
-                        scenario.catalogState == NativeThemeComponentCatalogStateV1.SELECTED
+                        NativeThemeComponentCatalogStateV1.SELECTED in scenario.catalogStates
                     }
             )
 
-        validateNativeThemeComponentCatalogV1(
-            definitionId = NATIVE_THEME_V1_DEFINITION_ID,
-            contractKeys = NativeThemeComponentContractsV1.keys,
-            implementations = listOf(incomplete),
+        assertCatalogFailure(
+            expectedMessage = "cover its catalog states",
+            implementations = replaceNavigationImplementation(incomplete),
         )
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun catalogRejectsIncompleteSemanticRoleCoverage() {
         val incomplete =
             NativeThemeComponentCatalogV1.navigationDrawerItem.copy(
@@ -180,14 +175,13 @@ class NativeThemeComponentCatalogV1Test {
                     }
             )
 
-        validateNativeThemeComponentCatalogV1(
-            definitionId = NATIVE_THEME_V1_DEFINITION_ID,
-            contractKeys = NativeThemeComponentContractsV1.keys,
-            implementations = listOf(incomplete),
+        assertCatalogFailure(
+            expectedMessage = "cover its semantic roles",
+            implementations = replaceNavigationImplementation(incomplete),
         )
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun catalogRejectsDuplicateScenarioIds() {
         val scenarios = NativeThemeComponentCatalogV1.navigationDrawerItem.scenarios
         val invalid =
@@ -195,41 +189,39 @@ class NativeThemeComponentCatalogV1Test {
                 scenarios = scenarios + scenarios.first()
             )
 
-        validateNativeThemeComponentCatalogV1(
-            definitionId = NATIVE_THEME_V1_DEFINITION_ID,
-            contractKeys = NativeThemeComponentContractsV1.keys,
-            implementations = listOf(invalid),
+        assertCatalogFailure(
+            expectedMessage = "scenario IDs must be unique",
+            implementations = replaceNavigationImplementation(invalid),
         )
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun catalogRejectsDuplicateImplementationIds() {
-        validateNativeThemeComponentCatalogV1(
-            definitionId = NATIVE_THEME_V1_DEFINITION_ID,
-            contractKeys = NativeThemeComponentContractsV1.keys,
+        assertCatalogFailure(
+            expectedMessage = "implementation IDs must be unique",
             implementations =
-                listOf(
+                NativeThemeComponentCatalogV1.implementations +
                     NativeThemeComponentCatalogV1.navigationDrawerItem,
-                    NativeThemeComponentCatalogV1.navigationDrawerItem,
-                ),
         )
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun catalogRejectsUnregisteredTypedKeys() {
         val unregisteredKey =
             NativeThemeComponentKeyV1<
                 NativeThemeNavigationDrawerItemStateV1,
                 NativeThemeNavigationDrawerItemEventV1,
                 NativeThemeNavigationDrawerItemSlotsV1,
-            >(NativeThemeNavigationDrawerItemContractV1.contract)
+            >(
+                contract = NativeThemeNavigationDrawerItemContractV1.contract,
+                encodeState = NativeThemeNavigationDrawerItemContractV1.key.encodeState,
+            )
         val invalid =
             NativeThemeComponentCatalogV1.navigationDrawerItem.copy(key = unregisteredKey)
 
-        validateNativeThemeComponentCatalogV1(
-            definitionId = NATIVE_THEME_V1_DEFINITION_ID,
-            contractKeys = NativeThemeComponentContractsV1.keys,
-            implementations = listOf(invalid),
+        assertCatalogFailure(
+            expectedMessage = "unregistered typed key",
+            implementations = replaceNavigationImplementation(invalid),
         )
     }
 
@@ -253,6 +245,12 @@ class NativeThemeComponentCatalogV1Test {
 
         dispatchNativeThemeNavigationDrawerItemEventV1(
             event = NativeThemeNavigationDrawerItemEventV1.Activate,
+            enabled = true,
+            onActivate = { activations += 1 },
+        )
+        dispatchNativeThemeNavigationDrawerItemEventV1(
+            event = NativeThemeNavigationDrawerItemEventV1.Activate,
+            enabled = false,
             onActivate = { activations += 1 },
         )
 
@@ -273,5 +271,36 @@ class NativeThemeComponentCatalogV1Test {
 
         assertTrue(state.selected)
         assertFalse(changed.selected)
+    }
+
+    private fun replaceNavigationImplementation(
+        replacement: NativeThemeComponentImplementationV1<
+            NativeThemeNavigationDrawerItemStateV1,
+            NativeThemeNavigationDrawerItemEventV1,
+            NativeThemeNavigationDrawerItemSlotsV1,
+        >,
+    ): List<NativeThemeComponentImplementationV1<*, *, *>> =
+        NativeThemeComponentCatalogV1.implementations.map { implementation ->
+            if (implementation === NativeThemeComponentCatalogV1.navigationDrawerItem) {
+                replacement
+            } else {
+                implementation
+            }
+        }
+
+    private fun assertCatalogFailure(
+        expectedMessage: String,
+        implementations: List<NativeThemeComponentImplementationV1<*, *, *>>,
+    ) {
+        try {
+            validateNativeThemeComponentCatalogV1(
+                definitionId = NATIVE_THEME_V1_DEFINITION_ID,
+                contractKeys = NativeThemeComponentContractsV1.keys,
+                implementations = implementations,
+            )
+            fail("Expected catalog validation to fail with: $expectedMessage")
+        } catch (error: IllegalArgumentException) {
+            assertTrue(error.message.orEmpty().contains(expectedMessage))
+        }
     }
 }

@@ -119,7 +119,7 @@ internal object NativeThemeNavigationDrawerItemRendererV1 :
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        slots.leading(Modifier.size(20.dp))
+                        slots.leading(Modifier.size(20.dp).clearAndSetSemantics {})
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = state.label,
@@ -167,7 +167,7 @@ internal fun NativeThemeNavigationDrawerItemV1(
                 ),
             slots = NativeThemeNavigationDrawerItemSlotsV1(leading = leading),
             onEvent = { event ->
-                dispatchNativeThemeNavigationDrawerItemEventV1(event, onActivate)
+                dispatchNativeThemeNavigationDrawerItemEventV1(event, enabled, onActivate)
             },
             modifier = modifier,
         )
@@ -175,9 +175,10 @@ internal fun NativeThemeNavigationDrawerItemV1(
 
 internal fun dispatchNativeThemeNavigationDrawerItemEventV1(
     event: NativeThemeNavigationDrawerItemEventV1,
+    enabled: Boolean,
     onActivate: () -> Unit,
 ) {
     when (event) {
-        NativeThemeNavigationDrawerItemEventV1.Activate -> onActivate()
+        NativeThemeNavigationDrawerItemEventV1.Activate -> if (enabled) onActivate()
     }
 }

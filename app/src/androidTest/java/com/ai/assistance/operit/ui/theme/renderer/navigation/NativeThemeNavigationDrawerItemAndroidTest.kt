@@ -45,7 +45,7 @@ class NativeThemeNavigationDrawerItemAndroidTest {
                     selected = true,
                     semanticRole =
                         NativeThemeNavigationDrawerItemSemanticRoleV1.NAVIGATION_DESTINATION,
-                    leading = { modifier -> Box(modifier.testTag("leading")) },
+                    leading = { modifier -> Box(Modifier.testTag("leading").then(modifier)) },
                     onActivate = { activations += 1 },
                 )
             }

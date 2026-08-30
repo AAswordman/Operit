@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.features.settings.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +46,7 @@ import com.ai.assistance.operit.data.converter.ExportFormat
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ImportStrategy
 import com.ai.assistance.operit.data.model.MemorySpace
+import com.ai.assistance.operit.ui.theme.renderer.input.NativeThemeChoiceItemV1
 
 @Composable
 fun DeleteConfirmationDialog(
@@ -92,26 +92,29 @@ fun MemoryImportStrategyDialog(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StrategyOption(
-                        title = texts.skipTitle,
-                        description = texts.skipDesc,
+                Column(
+                    modifier = Modifier.selectableGroup(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    NativeThemeChoiceItemV1(
+                        label = texts.skipTitle,
+                        supportingText = texts.skipDesc,
                         selected = selectedStrategy == ImportStrategy.SKIP,
-                        onClick = { selectedStrategy = ImportStrategy.SKIP }
+                        onSelect = { selectedStrategy = ImportStrategy.SKIP },
                     )
 
-                    StrategyOption(
-                        title = texts.updateTitle,
-                        description = texts.updateDesc,
+                    NativeThemeChoiceItemV1(
+                        label = texts.updateTitle,
+                        supportingText = texts.updateDesc,
                         selected = selectedStrategy == ImportStrategy.UPDATE,
-                        onClick = { selectedStrategy = ImportStrategy.UPDATE }
+                        onSelect = { selectedStrategy = ImportStrategy.UPDATE },
                     )
 
-                    StrategyOption(
-                        title = texts.createNewTitle,
-                        description = texts.createNewDesc,
+                    NativeThemeChoiceItemV1(
+                        label = texts.createNewTitle,
+                        supportingText = texts.createNewDesc,
                         selected = selectedStrategy == ImportStrategy.CREATE_NEW,
-                        onClick = { selectedStrategy = ImportStrategy.CREATE_NEW }
+                        onSelect = { selectedStrategy = ImportStrategy.CREATE_NEW },
                     )
                 }
             }
@@ -125,54 +128,6 @@ fun MemoryImportStrategyDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.backup_cancel)) }
         }
     )
-}
-
-@Composable
-fun StrategyOption(
-    title: String,
-    description: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        border = if (selected)
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        else
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = selected,
-                onClick = onClick
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
 }
 
 @Composable
@@ -192,42 +147,17 @@ fun ProfileSelectionDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 360.dp)
+                    .selectableGroup()
             ) {
                 items(profiles, key = { it.id }) { profile ->
-                    Card(
+                    NativeThemeChoiceItemV1(
+                        label = profile.name,
+                        selected = selectedProfileId == profile.id,
+                        onSelect = { onProfileSelected(profile.id) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        onClick = { onProfileSelected(profile.id) },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (selectedProfileId == profile.id)
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            else
-                                MaterialTheme.colorScheme.surface
-                        ),
-                        border = if (selectedProfileId == profile.id)
-                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                        else
-                            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = selectedProfileId == profile.id,
-                                onClick = { onProfileSelected(profile.id) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = profile.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (selectedProfileId == profile.id) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    }
+                        .padding(vertical = 4.dp),
+                    )
                 }
             }
         },
@@ -396,6 +326,7 @@ fun ExportFormatDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 360.dp)
+                    .selectableGroup()
             ) {
                 item {
                     Text(
@@ -406,42 +337,42 @@ fun ExportFormatDialog(
                 }
 
                 item {
-                    FormatOption(
-                        format = ExportFormat.JSON,
-                        title = stringResource(R.string.backup_format_json),
-                        description = stringResource(R.string.backup_format_json_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_json),
+                        supportingText = stringResource(R.string.backup_format_json_desc),
                         selected = selectedFormat == ExportFormat.JSON,
-                        onClick = { onFormatSelected(ExportFormat.JSON) }
+                        onSelect = { onFormatSelected(ExportFormat.JSON) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
 
                 item {
-                    FormatOption(
-                        format = ExportFormat.MARKDOWN,
-                        title = stringResource(R.string.backup_format_markdown),
-                        description = stringResource(R.string.backup_format_markdown_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_markdown),
+                        supportingText = stringResource(R.string.backup_format_markdown_desc),
                         selected = selectedFormat == ExportFormat.MARKDOWN,
-                        onClick = { onFormatSelected(ExportFormat.MARKDOWN) }
+                        onSelect = { onFormatSelected(ExportFormat.MARKDOWN) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
 
                 item {
-                    FormatOption(
-                        format = ExportFormat.HTML,
-                        title = stringResource(R.string.backup_format_html),
-                        description = stringResource(R.string.backup_format_html_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_html),
+                        supportingText = stringResource(R.string.backup_format_html_desc),
                         selected = selectedFormat == ExportFormat.HTML,
-                        onClick = { onFormatSelected(ExportFormat.HTML) }
+                        onSelect = { onFormatSelected(ExportFormat.HTML) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
 
                 item {
-                    FormatOption(
-                        format = ExportFormat.TXT,
-                        title = stringResource(R.string.backup_format_txt),
-                        description = stringResource(R.string.backup_format_txt_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_txt),
+                        supportingText = stringResource(R.string.backup_format_txt_desc),
                         selected = selectedFormat == ExportFormat.TXT,
-                        onClick = { onFormatSelected(ExportFormat.TXT) }
+                        onSelect = { onFormatSelected(ExportFormat.TXT) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
             }
@@ -474,6 +405,7 @@ fun ImportFormatDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 360.dp)
+                    .selectableGroup()
             ) {
                 item {
                     Text(
@@ -484,52 +416,52 @@ fun ImportFormatDialog(
                 }
 
                 item {
-                    ImportFormatOption(
-                        format = ChatFormat.OPERIT,
-                        title = stringResource(R.string.backup_format_operit),
-                        description = stringResource(R.string.backup_format_operit_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_operit),
+                        supportingText = stringResource(R.string.backup_format_operit_desc),
                         selected = selectedFormat == ChatFormat.OPERIT,
-                        onClick = { onFormatSelected(ChatFormat.OPERIT) }
+                        onSelect = { onFormatSelected(ChatFormat.OPERIT) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
 
                 item {
-                    ImportFormatOption(
-                        format = ChatFormat.CHATGPT,
-                        title = stringResource(R.string.backup_format_chatgpt),
-                        description = stringResource(R.string.backup_format_chatgpt_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_chatgpt),
+                        supportingText = stringResource(R.string.backup_format_chatgpt_desc),
                         selected = selectedFormat == ChatFormat.CHATGPT,
-                        onClick = { onFormatSelected(ChatFormat.CHATGPT) }
+                        onSelect = { onFormatSelected(ChatFormat.CHATGPT) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
 
                 item {
-                    ImportFormatOption(
-                        format = ChatFormat.CHATBOX,
-                        title = stringResource(R.string.backup_format_chatbox),
-                        description = stringResource(R.string.backup_format_chatbox_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_chatbox),
+                        supportingText = stringResource(R.string.backup_format_chatbox_desc),
                         selected = selectedFormat == ChatFormat.CHATBOX,
-                        onClick = { onFormatSelected(ChatFormat.CHATBOX) }
+                        onSelect = { onFormatSelected(ChatFormat.CHATBOX) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
 
                 item {
-                    ImportFormatOption(
-                        format = ChatFormat.MARKDOWN,
-                        title = stringResource(R.string.backup_format_markdown),
-                        description = stringResource(R.string.backup_format_markdown_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_markdown),
+                        supportingText = stringResource(R.string.backup_format_markdown_desc),
                         selected = selectedFormat == ChatFormat.MARKDOWN,
-                        onClick = { onFormatSelected(ChatFormat.MARKDOWN) }
+                        onSelect = { onFormatSelected(ChatFormat.MARKDOWN) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
 
                 item {
-                    ImportFormatOption(
-                        format = ChatFormat.GENERIC_JSON,
-                        title = stringResource(R.string.backup_format_generic_json),
-                        description = stringResource(R.string.backup_format_generic_json_desc),
+                    NativeThemeChoiceItemV1(
+                        label = stringResource(R.string.backup_format_generic_json),
+                        supportingText = stringResource(R.string.backup_format_generic_json_desc),
                         selected = selectedFormat == ChatFormat.GENERIC_JSON,
-                        onClick = { onFormatSelected(ChatFormat.GENERIC_JSON) }
+                        onSelect = { onFormatSelected(ChatFormat.GENERIC_JSON) },
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
             }
@@ -545,108 +477,6 @@ fun ImportFormatDialog(
             }
         }
     )
-}
-
-@Composable
-fun ImportFormatOption(
-    format: ChatFormat,
-    title: String,
-    description: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        border = if (selected)
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        else
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = selected,
-                onClick = onClick
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun FormatOption(
-    format: ExportFormat,
-    title: String,
-    description: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        border = if (selected)
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-        else
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = selected,
-                onClick = onClick
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
 }
 
 @Composable

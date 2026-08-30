@@ -1,4 +1,4 @@
-package com.ai.assistance.operit.ui.theme.renderer.navigation
+package com.ai.assistance.operit.ui.theme.renderer.action
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,48 +20,41 @@ import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentS
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentValueTypeV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentVersionV1
 
-internal enum class NativeThemeNavigationDrawerItemSemanticRoleV1 {
-    NAVIGATION_DESTINATION,
-    ACTION,
+internal enum class NativeThemeActionButtonEmphasisV1 {
+    STANDARD,
+    CAUTION,
+    DESTRUCTIVE,
 }
 
-internal data class NativeThemeNavigationDrawerItemStateV1(
+internal data class NativeThemeActionButtonStateV1(
     val label: String,
-    val selected: Boolean,
     val enabled: Boolean,
-    val semanticRole: NativeThemeNavigationDrawerItemSemanticRoleV1,
+    val emphasis: NativeThemeActionButtonEmphasisV1,
 )
 
-internal sealed interface NativeThemeNavigationDrawerItemEventV1 {
-    data object Activate : NativeThemeNavigationDrawerItemEventV1
+internal sealed interface NativeThemeActionButtonEventV1 {
+    data object Activate : NativeThemeActionButtonEventV1
 }
 
-internal data class NativeThemeNavigationDrawerItemSlotsV1(
+internal data class NativeThemeActionButtonSlotsV1(
     val leading: @Composable (Modifier) -> Unit,
 )
 
-internal fun NativeThemeNavigationDrawerItemSemanticRoleV1.toComponentSemanticRoleV1():
-    NativeThemeComponentSemanticRoleV1 =
-    when (this) {
-        NativeThemeNavigationDrawerItemSemanticRoleV1.NAVIGATION_DESTINATION ->
-            NativeThemeComponentSemanticRoleV1.NAVIGATION_DESTINATION
-        NativeThemeNavigationDrawerItemSemanticRoleV1.ACTION ->
-            NativeThemeComponentSemanticRoleV1.ACTION
-    }
-
-internal object NativeThemeNavigationDrawerItemContractV1 {
+internal object NativeThemeActionButtonContractV1 {
     val labelFieldId = NativeThemeComponentMemberId("label")
-    val selectedFieldId = NativeThemeComponentMemberId("selected")
     val enabledFieldId = NativeThemeComponentMemberId("enabled")
-    val semanticRoleFieldId = NativeThemeComponentMemberId("semantic_role")
+    val emphasisFieldId = NativeThemeComponentMemberId("emphasis")
+    val standardEmphasisId = NativeThemeComponentMemberId("standard")
+    val cautionEmphasisId = NativeThemeComponentMemberId("caution")
+    val destructiveEmphasisId = NativeThemeComponentMemberId("destructive")
     val activateEventId = NativeThemeComponentMemberId("activate")
     val leadingSlotId = NativeThemeComponentMemberId("leading")
 
     val contract =
         NativeThemeComponentContractV1(
-            id = NativeThemeComponentId("operit.navigation.drawer_item"),
+            id = NativeThemeComponentId("operit.action.button"),
             version = NativeThemeComponentVersionV1(major = 1, minor = 0),
-            category = NativeThemeComponentCategoryV1.NAVIGATION,
+            category = NativeThemeComponentCategoryV1.ACTION,
             required = true,
             supportedHostSurfaces = setOf(NativeThemeHostSurface.MAIN),
             stateFields =
@@ -71,16 +64,18 @@ internal object NativeThemeNavigationDrawerItemContractV1 {
                         type = NativeThemeComponentValueTypeV1.TEXT,
                     ),
                     NativeThemeComponentStateFieldV1(
-                        id = selectedFieldId,
-                        type = NativeThemeComponentValueTypeV1.BOOLEAN,
-                    ),
-                    NativeThemeComponentStateFieldV1(
                         id = enabledFieldId,
                         type = NativeThemeComponentValueTypeV1.BOOLEAN,
                     ),
                     NativeThemeComponentStateFieldV1(
-                        id = semanticRoleFieldId,
-                        type = NativeThemeComponentValueTypeV1.SEMANTIC_ROLE,
+                        id = emphasisFieldId,
+                        type = NativeThemeComponentValueTypeV1.ENUM,
+                        enumValues =
+                            listOf(
+                                standardEmphasisId,
+                                cautionEmphasisId,
+                                destructiveEmphasisId,
+                            ),
                     ),
                 ),
             events = listOf(NativeThemeComponentEventV1(activateEventId)),
@@ -89,25 +84,17 @@ internal object NativeThemeNavigationDrawerItemContractV1 {
                     NativeThemeComponentSlotV1(
                         id = leadingSlotId,
                         cardinality = NativeThemeComponentSlotCardinalityV1.REQUIRED_SINGLE,
-                    ),
+                    )
                 ),
             semantics =
                 NativeThemeComponentSemanticsV1(
-                    roles =
-                        setOf(
-                            NativeThemeComponentSemanticRoleV1.NAVIGATION_DESTINATION,
-                            NativeThemeComponentSemanticRoleV1.ACTION,
-                        ),
-                    roleStateField = semanticRoleFieldId,
+                    roles = setOf(NativeThemeComponentSemanticRoleV1.ACTION),
                     accessibleLabelField = labelFieldId,
-                    selectedStateField = selectedFieldId,
                     enabledStateField = enabledFieldId,
                     accessibilityRoleBySemanticRole =
                         mapOf(
-                            NativeThemeComponentSemanticRoleV1.NAVIGATION_DESTINATION to
-                                NativeThemeComponentAccessibilityRoleV1.TAB,
                             NativeThemeComponentSemanticRoleV1.ACTION to
-                                NativeThemeComponentAccessibilityRoleV1.BUTTON,
+                                NativeThemeComponentAccessibilityRoleV1.BUTTON
                         ),
                     decorativeSlotIds = setOf(leadingSlotId),
                     minimumTouchTargetDp = 48,
@@ -115,27 +102,28 @@ internal object NativeThemeNavigationDrawerItemContractV1 {
             catalogStates =
                 setOf(
                     NativeThemeComponentCatalogStateV1.NORMAL,
-                    NativeThemeComponentCatalogStateV1.SELECTED,
                     NativeThemeComponentCatalogStateV1.DISABLED,
                 ),
         )
 
     val key =
         NativeThemeComponentKeyV1<
-            NativeThemeNavigationDrawerItemStateV1,
-            NativeThemeNavigationDrawerItemEventV1,
-            NativeThemeNavigationDrawerItemSlotsV1,
+            NativeThemeActionButtonStateV1,
+            NativeThemeActionButtonEventV1,
+            NativeThemeActionButtonSlotsV1,
         >(
             contract = contract,
             encodeState = { state ->
                 mapOf(
                     labelFieldId to NativeThemeComponentStateValueV1.Text(state.label),
-                    selectedFieldId to
-                        NativeThemeComponentStateValueV1.BooleanValue(state.selected),
                     enabledFieldId to NativeThemeComponentStateValueV1.BooleanValue(state.enabled),
-                    semanticRoleFieldId to
-                        NativeThemeComponentStateValueV1.SemanticRoleValue(
-                            state.semanticRole.toComponentSemanticRoleV1()
+                    emphasisFieldId to
+                        NativeThemeComponentStateValueV1.EnumValue(
+                            when (state.emphasis) {
+                                NativeThemeActionButtonEmphasisV1.STANDARD -> standardEmphasisId
+                                NativeThemeActionButtonEmphasisV1.CAUTION -> cautionEmphasisId
+                                NativeThemeActionButtonEmphasisV1.DESTRUCTIVE -> destructiveEmphasisId
+                            }
                         ),
                 )
             },

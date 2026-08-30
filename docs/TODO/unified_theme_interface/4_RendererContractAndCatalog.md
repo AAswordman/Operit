@@ -33,8 +33,9 @@
 4. 登记应用外壳及聊天、模型、角色、市场、工作流、记忆、工具箱和悬浮窗领域契约
 5. 建立可交互组件目录、完整状态矩阵和 Theme Studio 入口
 
-首个最小单元见 [组件契约核心与导航项试点](./4a_ComponentContractAndNavigationPilot.md)。公开 Theme API v1 尚未冻结，本阶段新增类型均为内部草案。
+首个最小单元见 [组件契约核心与导航项试点](./4a_ComponentContractAndNavigationPilot.md)，下一单元见 [基础组件契约与备份设置试点](./4b_FoundationContractsAndBackupPilot.md)。公开 Theme API v1 尚未冻结，本阶段新增类型均为内部草案。
 
 ## 实施进度
 
 - [DONE] 建立组件契约核心、类型化 `native_v1` 目录和主侧边栏导航项试点
+- [DONE] 建立五类基础组件契约并迁移备份设置试点
