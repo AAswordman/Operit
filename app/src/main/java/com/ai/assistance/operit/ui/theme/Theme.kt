@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.data.theme.packages.ActiveGlobalThemeParameterResolverV1
+import com.ai.assistance.operit.data.theme.packages.ActiveGlobalThemeParametersV1
 import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageBuiltInReferenceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
