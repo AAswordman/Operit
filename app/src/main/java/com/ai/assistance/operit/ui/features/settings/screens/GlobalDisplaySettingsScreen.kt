@@ -33,6 +33,11 @@ import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
 import com.ai.assistance.operit.data.preferences.AndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
+import com.ai.assistance.operit.data.preferences.GlobalChatStyle
+import com.ai.assistance.operit.data.preferences.GlobalInputStyle
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalThemeMode
 import com.ai.assistance.operit.data.preferences.RootCommandExecutionMode
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -51,6 +56,10 @@ fun GlobalDisplaySettingsScreen(
 ) {
     val context = LocalContext.current
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
+    val globalPresentation = remember { GlobalPresentationManager.getInstance(context) }
+    val presentation by globalPresentation.snapshotFlow.collectAsState(
+        initial = GlobalPresentationSnapshot.default()
+    )
     val apiPreferences = remember { ApiPreferences.getInstance(context) }
     val userPreferences = remember { UserPreferencesManager.getInstance(context) }
     val scope = rememberCoroutineScope()
@@ -191,6 +200,313 @@ fun GlobalDisplaySettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(scrollState)
         ) {
+            SectionTitle(
+                text = stringResource(R.string.global_presentation_section),
+                icon = Icons.Default.Palette
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(componentBackgroundColor)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.global_presentation_theme_mode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GlobalThemeMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = presentation.themeMode == mode,
+                            onClick = {
+                                if (presentation.themeMode != mode) {
+                                    scope.launch { globalPresentation.setThemeMode(mode) }
+                                }
+                            },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        when (mode) {
+                                            GlobalThemeMode.SYSTEM -> R.string.global_presentation_theme_mode_system
+                                            GlobalThemeMode.LIGHT -> R.string.global_presentation_theme_mode_light
+                                            GlobalThemeMode.DARK -> R.string.global_presentation_theme_mode_dark
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(componentBackgroundColor)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.global_presentation_font_scale),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    var fontScaleSlider by remember(presentation.fontScale) {
+                        mutableFloatStateOf(presentation.fontScale)
+                    }
+                    Slider(
+                        value = fontScaleSlider,
+                        onValueChange = { fontScaleSlider = it },
+                        onValueChangeFinished = {
+                            scope.launch { globalPresentation.setFontScale(fontScaleSlider) }
+                        },
+                        valueRange = GlobalPresentationSnapshot.MIN_FONT_SCALE..
+                            GlobalPresentationSnapshot.MAX_FONT_SCALE,
+                        modifier = Modifier.weight(1f).padding(vertical = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${(fontScaleSlider * 100).roundToInt()}%",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(componentBackgroundColor)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.global_presentation_chat_style),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GlobalChatStyle.entries.forEach { style ->
+                        FilterChip(
+                            selected = presentation.chatStyle == style,
+                            onClick = {
+                                if (presentation.chatStyle != style) {
+                                    scope.launch { globalPresentation.setChatStyle(style) }
+                                }
+                            },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        when (style) {
+                                            GlobalChatStyle.CURSOR -> R.string.global_presentation_chat_style_cursor
+                                            GlobalChatStyle.BUBBLE -> R.string.global_presentation_chat_style_bubble
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.global_presentation_input_style),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GlobalInputStyle.entries.forEach { style ->
+                        FilterChip(
+                            selected = presentation.inputStyle == style,
+                            onClick = {
+                                if (presentation.inputStyle != style) {
+                                    scope.launch { globalPresentation.setInputStyle(style) }
+                                }
+                            },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        when (style) {
+                                            GlobalInputStyle.AGENT -> R.string.global_presentation_input_style_agent
+                                            GlobalInputStyle.CLASSIC -> R.string.global_presentation_input_style_classic
+                                        }
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = stringResource(R.string.global_presentation_message_details),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_thinking_process),
+                subtitle = "",
+                checked = presentation.showThinkingProcess,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowThinkingProcess(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_status_tags),
+                subtitle = "",
+                checked = presentation.showStatusTags,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowStatusTags(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_input_processing_status),
+                subtitle = "",
+                checked = presentation.showInputProcessingStatus,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowInputProcessingStatus(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_chat_floating_dots_animation),
+                subtitle = "",
+                checked = presentation.showChatFloatingDotsAnimation,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowChatFloatingDotsAnimation(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_model_provider),
+                subtitle = "",
+                checked = presentation.showModelProvider,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowModelProvider(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_model_name),
+                subtitle = "",
+                checked = presentation.showModelName,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowModelName(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_role_name),
+                subtitle = "",
+                checked = presentation.showRoleName,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowRoleName(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_user_name),
+                subtitle = "",
+                checked = presentation.showUserName,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowUserName(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_message_token_stats),
+                subtitle = "",
+                checked = presentation.showMessageTokenStats,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowMessageTokenStats(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_message_timing_stats),
+                subtitle = "",
+                checked = presentation.showMessageTimingStats,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowMessageTimingStats(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_show_message_timestamp),
+                subtitle = "",
+                checked = presentation.showMessageTimestamp,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setShowMessageTimestamp(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_bubble_show_avatar),
+                subtitle = "",
+                checked = presentation.bubbleShowAvatar,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setBubbleShowAvatar(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_bubble_wide_layout),
+                subtitle = "",
+                checked = presentation.bubbleWideLayoutEnabled,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setBubbleWideLayoutEnabled(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.global_presentation_cursor_user_bubble_follow_theme),
+                subtitle = "",
+                checked = presentation.cursorUserBubbleFollowTheme,
+                onCheckedChange = {
+                    scope.launch { globalPresentation.setCursorUserBubbleFollowTheme(it) }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             SectionTitle(
                 text = stringResource(R.string.message_display_settings),
                 icon = Icons.Default.Message

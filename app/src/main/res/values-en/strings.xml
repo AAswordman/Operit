@@ -4948,6 +4948,33 @@
     <string name="software_identity_option_operit">Operit AI</string>
     <string name="software_identity_option_lingshu">Lingshu AI</string>
     <string name="reset_all_display_settings">Reset All Display Settings</string>
+    <string name="global_presentation_section">Theme &amp; Presentation</string>
+    <string name="global_presentation_theme_mode">Theme mode</string>
+    <string name="global_presentation_theme_mode_system">Follow system</string>
+    <string name="global_presentation_theme_mode_light">Light</string>
+    <string name="global_presentation_theme_mode_dark">Dark</string>
+    <string name="global_presentation_font_scale">Font size</string>
+    <string name="global_presentation_chat_style">Chat style</string>
+    <string name="global_presentation_chat_style_cursor">Cursor</string>
+    <string name="global_presentation_chat_style_bubble">Bubble</string>
+    <string name="global_presentation_input_style">Input style</string>
+    <string name="global_presentation_input_style_agent">Agent</string>
+    <string name="global_presentation_input_style_classic">Classic</string>
+    <string name="global_presentation_message_details">Message display</string>
+    <string name="global_presentation_show_thinking_process">Show thinking process</string>
+    <string name="global_presentation_show_status_tags">Show status tags</string>
+    <string name="global_presentation_show_input_processing_status">Show input processing status</string>
+    <string name="global_presentation_show_chat_floating_dots_animation">Show floating dots animation</string>
+    <string name="global_presentation_show_model_provider">Show model provider</string>
+    <string name="global_presentation_show_model_name">Show model name</string>
+    <string name="global_presentation_show_role_name">Show role name</string>
+    <string name="global_presentation_show_user_name">Show user name</string>
+    <string name="global_presentation_show_message_token_stats">Show token stats</string>
+    <string name="global_presentation_show_message_timing_stats">Show timing stats</string>
+    <string name="global_presentation_show_message_timestamp">Show timestamp</string>
+    <string name="global_presentation_bubble_show_avatar">Show avatar in bubbles</string>
+    <string name="global_presentation_bubble_wide_layout">Wide bubble layout</string>
+    <string name="global_presentation_cursor_user_bubble_follow_theme">User bubble color follows theme</string>
     
     <!-- Chat History Management -->
     <string name="default_profile_name">Default Profile</string>

@@ -33,6 +33,7 @@ import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
@@ -90,6 +91,7 @@ class WebChatHttpBridge(
     private val core = runtimeHolder.getCore(ChatRuntimeSlot.MAIN)
     private val chatHistoryManager = ChatHistoryManager.getInstance(appContext)
     private val userPreferencesManager = UserPreferencesManager.getInstance(appContext)
+    private val globalPresentationManager = GlobalPresentationManager.getInstance(appContext)
     private val displayPreferencesManager = DisplayPreferencesManager.getInstance(appContext)
     private val activePromptManager = ActivePromptManager.getInstance(appContext)
     private val characterCardManager = CharacterCardManager.getInstance(appContext)
@@ -268,20 +270,17 @@ class WebChatHttpBridge(
 
     private fun handleBootstrap(): NanoHTTPD.Response {
         val currentChatId = core.currentChatId.value
-        val snapshot = runBlocking {
-            val chat = if (currentChatId == null) null else currentChatMeta(currentChatId)
-            resolveThemePreferenceSnapshot(chat)
-        }
+        val presentation = runBlocking { globalPresentationManager.snapshotFlow.first() }
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
             WebBootstrapResponse(
                 versionName = BuildConfig.VERSION_NAME,
                 currentChatId = currentChatId,
-                defaultChatStyle = snapshot.chatStyle,
-                defaultInputStyle = snapshot.inputStyle,
-                showThinkingProcess = snapshot.showThinkingProcess,
-                showStatusTags = snapshot.showStatusTags,
-                showInputProcessingStatus = snapshot.showInputProcessingStatus,
+                defaultChatStyle = presentation.chatStyle.value,
+                defaultInputStyle = presentation.inputStyle.value,
+                showThinkingProcess = presentation.showThinkingProcess,
+                showStatusTags = presentation.showStatusTags,
+                showInputProcessingStatus = presentation.showInputProcessingStatus,
                 capabilities = WebCapabilities(
                     attachments = true,
                     perChatTheme = true,
