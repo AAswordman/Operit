@@ -105,26 +105,19 @@ class ApiErrorClassifierTest {
     @Test
     fun classifiesSevenLocalNetworkFailuresWithOperitCodes() {
         val cases = listOf(
-            UnknownHostException("api.example.com") to
-                ("dns_resolution_failed" to OperitNetworkErrorCode.DNS_RESOLUTION_FAILED),
-            ConnectException("Connection refused") to
-                ("connection_refused" to OperitNetworkErrorCode.CONNECTION_REFUSED),
-            NoRouteToHostException("Network is unreachable") to
-                ("network_unreachable" to OperitNetworkErrorCode.NETWORK_UNREACHABLE),
-            SocketException("Connection reset") to
-                ("connection_reset" to OperitNetworkErrorCode.CONNECTION_RESET),
-            EOFException("unexpected end of stream") to
-                ("connection_closed" to OperitNetworkErrorCode.CONNECTION_CLOSED),
-            SSLHandshakeException("certificate verify failed") to
-                ("tls_handshake_failed" to OperitNetworkErrorCode.TLS_HANDSHAKE_FAILED),
-            SocketTimeoutException("read timed out") to
-                ("connection_timeout" to OperitNetworkErrorCode.CONNECTION_TIMEOUT)
+            UnknownHostException("api.example.com") to OperitNetworkError.DNS_RESOLUTION_FAILED,
+            ConnectException("Connection refused") to OperitNetworkError.CONNECTION_REFUSED,
+            NoRouteToHostException("Network is unreachable") to OperitNetworkError.NETWORK_UNREACHABLE,
+            SocketException("Connection reset") to OperitNetworkError.CONNECTION_RESET,
+            EOFException("unexpected end of stream") to OperitNetworkError.CONNECTION_CLOSED,
+            SSLHandshakeException("certificate verify failed") to OperitNetworkError.TLS_HANDSHAKE_FAILED,
+            SocketTimeoutException("read timed out") to OperitNetworkError.CONNECTION_TIMEOUT,
         )
 
         cases.forEach { (throwable, expected) ->
             val error = ApiErrorClassifier.classify(throwable)
-            assertEquals(expected.first, error.code)
-            assertEquals(expected.second, error.appCode)
+            assertEquals(expected.classificationCode, error.code)
+            assertEquals(expected.appCode, error.appCode)
             assertTrue(error.recoverable)
             assertEquals(null, error.httpStatusCode)
         }
@@ -147,7 +140,7 @@ class ApiErrorClassifierTest {
         )
 
         assertEquals("dns_resolution_failed", error.code)
-        assertEquals(OperitNetworkErrorCode.DNS_RESOLUTION_FAILED, error.appCode)
+        assertEquals(OperitNetworkError.DNS_RESOLUTION_FAILED.appCode, error.appCode)
     }
 
     @Test
