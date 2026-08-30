@@ -115,7 +115,6 @@
         "minor": 0
       },
       "rootNode": {
-        "type": "stage",
         "nodeId": "root",
         "backgroundColorToken": "color.background",
         "children": [
