@@ -29,6 +29,18 @@
 
 ## 构建记录
 
+### 2026-08-31：stat 目录版本修复 release 构建（含目录校验 JVM 测试）
+
+- 分支：`feat/plugin-interface`
+- 提交：`07e47f87`（stat implementedVersion 回 1.0）、`f6e0ae63`（测试编译修复：`NativeThemeRuntimeTest` 缺省参数 + 删分支既有坏测试 `XaiProviderReasoningTest`，其实现 `XaiReasoningMapper` 已在 `b9a0ce01` 后续重构中移除而测试残留）
+- 设备事故：`5d6c20c9` APK 启动即崩——`NativeThemeComponentCatalogV1.<clinit>` 校验"stat 合同 1.0 vs 实现 1.1"抛 `IllegalArgumentException` → `ExceptionInInitializerError`。release 汇编不执行 object 初始化，故历轮构建未拦截。
+- 修复验证：`07e47f87` 全量核对六组件合同/实现版本一致；`f6e0ae63` 在构建容器内运行 `:app:testReleaseUnitTest`（`*CatalogV1*`、`ui.theme.*`、`GlobalPresentationPreferencesTest`、`data.theme.packages.*`、`ui.theme.scene.*`）全部通过——目录 `<clinit>` 校验自此被测试覆盖。
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-f6e0ae63.apk`
+- 产物大小：`402880159` 字节
+- SHA-256：`87c45ce74f7ab6d2275da93cc5dfdf3b62f60a4c00235c54de8e8c1dcb9b6132`
+
 ### 2026-08-31：批次 C（旧存储清除 + 元数据搬前缀）release 构建
 
 - 分支：`feat/plugin-interface`
