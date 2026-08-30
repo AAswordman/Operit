@@ -7,13 +7,18 @@ import android.content.ServiceConnection
 import android.os.Build
 import android.os.IBinder
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateApplicationState
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.util.stream.SharedStream
-import com.ai.assistance.operit.core.tools.AgentStatusResultData
+import com.ai.assistance.operit.core.tools.ChatRuntimeErrorResultData
+import com.ai.assistance.operit.core.tools.ChatRuntimeRetryResultData
+import com.ai.assistance.operit.core.tools.CurrentChatRuntimeStateResultData
+import com.ai.assistance.operit.core.tools.GlobalChatRuntimeStateResultData
 import com.ai.assistance.operit.core.tools.ChatCreationResultData
 import com.ai.assistance.operit.core.tools.ChatFindResultData
 import com.ai.assistance.operit.core.tools.ChatListResultData
@@ -379,124 +384,105 @@ class StandardChatManagerTool(private val context: Context) {
     }
 
     /**
-     * 查询对话输入状态
+     * 查询当前对话运行状态
      */
-    suspend fun agentStatus(tool: AITool): ToolResult {
+    suspend fun getCurrentChatRuntimeState(tool: AITool): ToolResult {
         return try {
-            val chatId = tool.parameters.find { it.name == "chat_id" }?.value?.trim()
-            if (chatId.isNullOrBlank()) {
-                return ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = AgentStatusResultData(chatId = "", state = "unknown"),
-                    error = "Invalid parameter: missing chat_id"
-                )
-            }
+            val requestedChatId = tool.parameters
+                .find { it.name == "chat_id" }
+                ?.value
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+            val chatId = requestedChatId
+                ?: chatRuntimeHolder.getCore(ChatRuntimeSlot.MAIN).currentChatId.value
+                ?: chatRuntimeHolder.getCore(ChatRuntimeSlot.FLOATING).currentChatId.value
+                ?: ""
 
-            val chatHistoryManager = ChatHistoryManager.getInstance(appContext)
-            val title = chatHistoryManager.getChatTitle(chatId)
-            if (title == null) {
-                return ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = AgentStatusResultData(chatId = chatId, state = "unknown"),
-                    error = "Chat does not exist: $chatId"
-                )
-            }
-
-            val connected = ensureServiceConnected()
-            val chatService = chatCore
-            if (!connected || chatService == null) {
-                return ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = AgentStatusResultData(chatId = chatId, state = "unknown"),
-                    error = "Chat service not connected"
-                )
-            }
-
-            val state = chatService.inputProcessingStateByChatId.value[chatId] ?: InputProcessingState.Idle
-            var stateKey = "idle"
-            var message: String? = null
-            var isIdle = false
-            var isProcessing = false
-            when (state) {
-                is InputProcessingState.Idle -> {
-                    stateKey = "idle"
-                    isIdle = true
-                }
-                is InputProcessingState.Completed -> {
-                    stateKey = "completed"
-                    isIdle = true
-                }
-                is InputProcessingState.Processing -> {
-                    stateKey = "processing"
-                    message = state.message
-                    isProcessing = true
-                }
-                is InputProcessingState.Connecting -> {
-                    stateKey = "connecting"
-                    message = state.message
-                    isProcessing = true
-                }
-                is InputProcessingState.Receiving -> {
-                    stateKey = "receiving"
-                    message = state.message
-                    isProcessing = true
-                }
-                is InputProcessingState.ExecutingTool -> {
-                    stateKey = "executing_tool"
-                    message = state.toolName
-                    isProcessing = true
-                }
-                is InputProcessingState.ToolProgress -> {
-                    stateKey = "tool_progress"
-                    message = if (state.message.isNotBlank()) {
-                        "${state.toolName}: ${state.message}"
-                    } else {
-                        "${state.toolName}: ${(state.progress * 100).toInt()}%"
-                    }
-                    isProcessing = true
-                }
-                is InputProcessingState.ProcessingToolResult -> {
-                    stateKey = "processing_tool_result"
-                    message = state.toolName
-                    isProcessing = true
-                }
-                is InputProcessingState.Summarizing -> {
-                    stateKey = "summarizing"
-                    message = state.message
-                    isProcessing = true
-                }
-                is InputProcessingState.ExecutingPlan -> {
-                    stateKey = "executing_plan"
-                    message = state.message
-                    isProcessing = true
-                }
-                is InputProcessingState.Error -> {
-                    stateKey = "error"
-                    message = state.message
+            if (requestedChatId != null) {
+                val chatHistoryManager = ChatHistoryManager.getInstance(appContext)
+                if (chatHistoryManager.getChatTitle(requestedChatId) == null) {
+                    return ToolResult(
+                        toolName = tool.name,
+                        success = false,
+                        result = CurrentChatRuntimeStateResultData(chatId = requestedChatId, aiBehavior = "unknown"),
+                        error = "Chat does not exist: $requestedChatId"
+                    )
                 }
             }
 
+            val snapshot = if (chatId.isBlank()) {
+                null
+            } else {
+                ChatRuntimeStateStore.getSnapshot(chatId)
+            }
+            val error = snapshot?.error
+            val retry = snapshot?.retry
             ToolResult(
                 toolName = tool.name,
                 success = true,
-                result = AgentStatusResultData(
+                result = CurrentChatRuntimeStateResultData(
                     chatId = chatId,
-                    state = stateKey,
-                    message = message,
-                    isIdle = isIdle,
-                    isProcessing = isProcessing
+                    aiBehavior = snapshot?.phase?.wireName ?: "idle",
+                    userState = snapshot?.userState?.wireName,
+                    applicationState = snapshot?.applicationState?.wireName
+                        ?: ChatRuntimeStateApplicationState.BACKGROUND.wireName,
+                    toolName = snapshot?.toolName,
+                    error = error?.let {
+                        ChatRuntimeErrorResultData(
+                            source = it.source.wireName,
+                            code = it.code,
+                            message = it.message,
+                            recoverable = it.recoverable,
+                            appCode = it.appCode,
+                            providerCode = it.providerCode,
+                            httpStatusCode = it.httpStatusCode
+                        )
+                    },
+                    retry = retry?.let {
+                        ChatRuntimeRetryResultData(
+                            attempt = it.attempt,
+                            maxAttempts = it.maxAttempts,
+                            retryAfterMs = it.retryAfterMs
+                        )
+                    }
                 )
             )
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Failed to get agent status", e)
+            AppLogger.e(TAG, "Failed to get current chat runtime state", e)
             ToolResult(
                 toolName = tool.name,
                 success = false,
-                result = AgentStatusResultData(chatId = "", state = "unknown"),
-                error = "Error getting agent status: ${e.message}"
+                result = CurrentChatRuntimeStateResultData(chatId = "", aiBehavior = "unknown"),
+                error = "Error getting current chat runtime state: ${e.message}"
+            )
+        }
+    }
+
+    /** 查询全局聊天运行状态 */
+    suspend fun getGlobalChatRuntimeState(tool: AITool): ToolResult {
+        return try {
+            val snapshot = ChatRuntimeStateStore.globalSnapshot.value
+            ToolResult(
+                toolName = tool.name,
+                success = true,
+                result = GlobalChatRuntimeStateResultData(
+                    globalActivity = snapshot.activity.wireName,
+                    applicationState = snapshot.applicationState.wireName,
+                    activeChatIds = snapshot.activeChatIds,
+                    updatedAt = snapshot.updatedAt
+                )
+            )
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Failed to get global chat runtime state", e)
+            ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = GlobalChatRuntimeStateResultData(
+                    globalActivity = "idle",
+                    applicationState = ChatRuntimeStateApplicationState.BACKGROUND.wireName,
+                    activeChatIds = emptyList()
+                ),
+                error = "Error getting global chat runtime state: ${e.message}"
             )
         }
     }

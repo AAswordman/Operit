@@ -6,6 +6,7 @@ import android.os.Bundle
 import com.ai.assistance.operit.util.AppLogger
 import android.view.WindowManager
 import com.ai.assistance.operit.api.chat.AIForegroundService
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateApplicationState
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleEvent
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookParams
@@ -16,6 +17,9 @@ import com.ai.assistance.operit.core.tools.agent.ShowerController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
@@ -35,6 +39,10 @@ object ActivityLifecycleManager : Application.ActivityLifecycleCallbacks {
     private var activityCount = 0
     private var startedActivityCount = 0
     private var isAppInForeground = false
+    private val _applicationVisibilityState =
+        MutableStateFlow(ChatRuntimeStateApplicationState.BACKGROUND)
+    val applicationVisibilityState: StateFlow<ChatRuntimeStateApplicationState> =
+        _applicationVisibilityState.asStateFlow()
     private var keepScreenOnPreferenceRequestCount = 0
     private var keepScreenOnForcedRequestCount = 0
 
@@ -149,6 +157,7 @@ object ActivityLifecycleManager : Application.ActivityLifecycleCallbacks {
         )
         if (!isAppInForeground && startedActivityCount > 0) {
             isAppInForeground = true
+            _applicationVisibilityState.value = ChatRuntimeStateApplicationState.FOREGROUND
             ExternalChatHttpAutoStarter.ensureRunningIfEnabled(
                 context = appContext,
                 reason = "application_foreground"
@@ -218,6 +227,7 @@ object ActivityLifecycleManager : Application.ActivityLifecycleCallbacks {
         )
         if (isAppInForeground && startedActivityCount == 0) {
             isAppInForeground = false
+            _applicationVisibilityState.value = ChatRuntimeStateApplicationState.BACKGROUND
             AppLifecycleHookPluginRegistry.dispatchAsync(
                 event = AppLifecycleEvent.APPLICATION_BACKGROUND,
                 params = AppLifecycleHookParams(context = appContext)

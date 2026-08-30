@@ -15,7 +15,7 @@ import {
     UIPageResultData, UIActionResultData, CombinedOperationResultData, AutomationExecutionResultData,
     CalculationResultData, FFmpegResultData, ADBResultData, IntentResultData, TerminalCommandResultData, HiddenTerminalCommandResultData, TerminalSessionScreenResultData, MusicPlaybackResultData,
     FilePartContentData, FileApplyResultData, WorkflowListResultData, WorkflowResultData, WorkflowDetailResultData,
-    ChatServiceStartResultData, ChatCreationResultData, ChatListResultData, ChatFindResultData, AgentStatusResultData,
+    ChatServiceStartResultData, ChatCreationResultData, ChatListResultData, ChatFindResultData, CurrentChatRuntimeStateResultData, GlobalChatRuntimeStateResultData,
     ChatSwitchResultData, ChatTitleUpdateResultData, ChatDeleteResultData, MessageSendResultData, MemoryQueryResultData, MemoryLinkResultData, MemoryLinkQueryResultData, GrepResultData,
     ChatMessagesResultData, CharacterCardListResultData,
     EnvironmentVariableReadResultData, EnvironmentVariableWriteResultData,
@@ -196,7 +196,8 @@ export interface ToolResultMap {
     'create_new_chat': ChatCreationResultData;
     'list_chats': ChatListResultData;
     'find_chat': ChatFindResultData;
-    'agent_status': AgentStatusResultData;
+    'get_current_chat_runtime_state': CurrentChatRuntimeStateResultData;
+    'get_global_chat_runtime_state': GlobalChatRuntimeStateResultData;
     'switch_chat': ChatSwitchResultData;
     'update_chat_title': ChatTitleUpdateResultData;
     'delete_chat': ChatDeleteResultData;

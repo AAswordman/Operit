@@ -1806,20 +1806,77 @@ export interface ChatFindResultData {
     toString(): string;
 }
 
-/**
- * Agent status result data
- */
-export interface AgentStatusResultData {
-    /** Target chat id */
-    chatId: string;
-    /** Current state key */
-    state: string;
-    /** Optional detail message */
+export type ChatRuntimeStateBehavior =
+    | 'idle'
+    | 'requesting'
+    | 'thinking'
+    | 'processing_tool_result'
+    | 'executing_plan'
+    | 'calling_tool'
+    | 'waiting_tool_result'
+    | 'waiting_tool_confirmation'
+    | 'generating_response'
+    | 'summarizing'
+    | 'retrying'
+    | 'cancelled'
+    | 'error';
+
+export type ChatRuntimeStateErrorSource = 'ai' | 'tool' | 'api' | 'system';
+
+export interface ChatRuntimeStateError {
+    source: ChatRuntimeStateErrorSource;
+    code: string;
     message?: string | null;
-    /** Whether the chat is idle */
+    recoverable: boolean;
+    appCode?: number | null;
+    providerCode?: string | null;
+    httpStatusCode?: number | null;
+}
+
+export interface ChatRuntimeStateRetry {
+    attempt?: number | null;
+    maxAttempts?: number | null;
+    retryAfterMs?: number | null;
+}
+
+/**
+ * Current chat runtime state result data
+ */
+export interface CurrentChatRuntimeStateResultData {
+    /** Target chat id; empty when no current conversation is selected */
+    chatId: string;
+    /** Current AI runtime behavior phase */
+    aiBehavior: ChatRuntimeStateBehavior;
+    /** current user interaction state */
+    userState?: string | null;
+    /** Application foreground/background state */
+    applicationState: string;
+    /** Tool associated with the current runtime state, when applicable */
+    toolName?: string | null;
+    /** Structured error associated with the current phase, when available */
+    error?: ChatRuntimeStateError | null;
+    /** Current or most recent retry context, when available */
+    retry?: ChatRuntimeStateRetry | null;
+    /** Whether the conversation is idle */
     isIdle: boolean;
-    /** Whether the chat is processing */
-    isProcessing: boolean;
+    /** Whether the conversation has active runtime work */
+    isActive: boolean;
+    /** Returns a formatted string representation */
+    toString(): string;
+}
+
+/**
+ * Global chat runtime state result data
+ */
+export interface GlobalChatRuntimeStateResultData {
+    /** Whether any chat currently has active work */
+    globalActivity: string;
+    /** Application foreground/background state */
+    applicationState: string;
+    /** IDs of active chats */
+    activeChatIds: string[];
+    /** State update timestamp */
+    updatedAt: number;
     /** Returns a formatted string representation */
     toString(): string;
 }
@@ -1843,8 +1900,12 @@ export interface ChatFindResult extends BaseResult {
     data: ChatFindResultData;
 }
 
-export interface AgentStatusResult extends BaseResult {
-    data: AgentStatusResultData;
+export interface CurrentChatRuntimeStateResult extends BaseResult {
+    data: CurrentChatRuntimeStateResultData;
+}
+
+export interface GlobalChatRuntimeStateResult extends BaseResult {
+    data: GlobalChatRuntimeStateResultData;
 }
 
 export interface ChatSwitchResult extends BaseResult {

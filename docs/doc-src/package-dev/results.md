@@ -218,7 +218,10 @@
 - `CharacterCardListResultData`
 - `CharacterCardInfo`
 - `ChatFindResultData`
-- `AgentStatusResultData`
+- `ChatRuntimeStateError`
+- `ChatRuntimeStateRetry`
+- `CurrentChatRuntimeStateResultData`
+- `GlobalChatRuntimeStateResultData`
 
 同时也定义了对应的包装结果：
 
@@ -226,7 +229,8 @@
 - `ChatCreationResult`
 - `ChatListResult`
 - `ChatFindResult`
-- `AgentStatusResult`
+- `CurrentChatRuntimeStateResult`
+- `GlobalChatRuntimeStateResult`
 - `ChatSwitchResult`
 - `ChatTitleUpdateResult`
 - `ChatDeleteResult`

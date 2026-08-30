@@ -1200,17 +1200,22 @@ object SystemToolPromptsInternal {
                                 )
                         ),
                         ToolPrompt(
-                            name = "agent_status",
-                            description = "Check a chat's input processing status.",
+                            name = "get_current_chat_runtime_state",
+                            description = "Check the current runtime state of a conversation.",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
                                         name = "chat_id",
                                         type = "string",
-                                        description = "target chat id",
-                                        required = true
+                                        description = "optional target chat id; omit for the current conversation",
+                                        required = false
                                     )
                                 )
+                        ),
+                        ToolPrompt(
+                            name = "get_global_chat_runtime_state",
+                            description = "Check the global chat runtime state.",
+                            parametersStructured = emptyList()
                         ),
                         ToolPrompt(
                             name = "switch_chat",
@@ -4192,17 +4197,22 @@ object SystemToolPromptsInternal {
                                 )
                         ),
                         ToolPrompt(
-                            name = "agent_status",
-                            description = "查询对话的输入处理状态。",
+                            name = "get_current_chat_runtime_state",
+                            description = "查询当前对话运行状态。",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
                                         name = "chat_id",
                                         type = "string",
-                                        description = "目标对话 ID",
-                                        required = true
+                                        description = "可选，目标对话 ID；省略时查询当前对话",
+                                        required = false
                                     )
                                 )
+                        ),
+                        ToolPrompt(
+                            name = "get_global_chat_runtime_state",
+                            description = "查询全局聊天运行状态。",
+                            parametersStructured = emptyList()
                         ),
                         ToolPrompt(
                             name = "switch_chat",

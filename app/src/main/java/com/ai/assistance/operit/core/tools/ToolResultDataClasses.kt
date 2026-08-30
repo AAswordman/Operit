@@ -2077,18 +2077,55 @@ data class ChatFindResultData(
     }
 }
 
-/** 对话输入状态结果数据 */
+/** 聊天运行状态中的结构化错误。 */
 @Serializable
-data class AgentStatusResultData(
-    val chatId: String,
-    val state: String,
+data class ChatRuntimeErrorResultData(
+    val source: String,
+    val code: String,
     val message: String? = null,
-    val isIdle: Boolean = false,
-    val isProcessing: Boolean = false
+    val recoverable: Boolean = false,
+    val appCode: Int? = null,
+    val providerCode: String? = null,
+    val httpStatusCode: Int? = null
+)
+
+/** 聊天运行状态中的最近一次重试上下文。 */
+@Serializable
+data class ChatRuntimeRetryResultData(
+    val attempt: Int? = null,
+    val maxAttempts: Int? = null,
+    val retryAfterMs: Long? = null
+)
+
+/** 当前对话运行状态结果数据 */
+@Serializable
+data class CurrentChatRuntimeStateResultData(
+    val chatId: String,
+    val aiBehavior: String,
+    val userState: String? = null,
+    val applicationState: String = "background",
+    val toolName: String? = null,
+    val error: ChatRuntimeErrorResultData? = null,
+    val retry: ChatRuntimeRetryResultData? = null,
+    val isIdle: Boolean = aiBehavior == "idle",
+    val isActive: Boolean = aiBehavior != "idle" && aiBehavior != "cancelled"
 ) : ToolResultData() {
     override fun toString(): String {
-        val detail = message?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-        return "Chat $chatId status: $state$detail"
+        val detail = toolName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
+        return "Chat $chatId aiBehavior: $aiBehavior$detail"
+    }
+}
+
+/** 全局聊天运行状态结果数据 */
+@Serializable
+data class GlobalChatRuntimeStateResultData(
+    val globalActivity: String,
+    val applicationState: String = "background",
+    val activeChatIds: List<String> = emptyList(),
+    val updatedAt: Long = System.currentTimeMillis()
+) : ToolResultData() {
+    override fun toString(): String {
+        return "Global chat runtime: $globalActivity (activeChats=${activeChatIds.size})"
     }
 }
 

@@ -119,14 +119,22 @@
             ]
         },
         {
-            "name": "agent_status",
+            "name": "get_current_chat_runtime_state",
             "description": {
-                "zh": "查询对话的输入处理状态。",
-                "en": "Check a chat's input processing status."
+                "zh": "查询当前对话运行状态。",
+                "en": "Check the current runtime state of a conversation."
             },
             "parameters": [
-                { "name": "chat_id", "description": { "zh": "目标对话 ID", "en": "Target chat id" }, "type": "string", "required": true }
+                { "name": "chat_id", "description": { "zh": "可选：目标对话 ID；为空时查询当前对话", "en": "Optional target chat id; omit for the current conversation" }, "type": "string", "required": false }
             ]
+        },
+        {
+            "name": "get_global_chat_runtime_state",
+            "description": {
+                "zh": "查询全局聊天运行状态。",
+                "en": "Check the global chat runtime state."
+            },
+            "parameters": []
         },
         {
             "name": "list_character_cards",
@@ -186,8 +194,8 @@ const HistoryChat = (function () {
         index?: number;
     };
 
-    type AgentStatusParams = {
-        chat_id: string;
+    type ChatRuntimeStateParams = {
+        chat_id?: string;
     };
 
     type ChatWithAgentParams = {
@@ -402,15 +410,23 @@ const HistoryChat = (function () {
         };
     }
 
-    async function agent_status_impl(params: AgentStatusParams): Promise<ToolResponse> {
+    async function get_current_chat_runtime_state_impl(params: ChatRuntimeStateParams): Promise<ToolResponse> {
         const chatId = (params?.chat_id ?? '').toString().trim();
-        if (!chatId) {
-            throw new Error('Missing parameter: chat_id');
-        }
-        const result = await Tools.Chat.agentStatus(chatId);
+        const result = await Tools.Chat.getCurrentChatRuntimeState(chatId || undefined);
         return {
             success: true,
-            message: '对话状态查询完成',
+            message: '对话当前运行状态查询完成',
+            data: {
+                result,
+            },
+        };
+    }
+
+    async function get_global_chat_runtime_state_impl(): Promise<ToolResponse> {
+        const result = await Tools.Chat.getGlobalChatRuntimeState();
+        return {
+            success: true,
+            message: '全局聊天运行状态查询完成',
             data: {
                 result,
             },
@@ -526,7 +542,7 @@ const HistoryChat = (function () {
                 data: {
                     chat_id: chatId,
                     timeout: true,
-                    hint: '可以通过 agent_status 查看该 agent 是否已处理你的问题。',
+                    hint: '可以通过 get_current_chat_runtime_state 查看该 agent 当前运行状态。',
                 },
             };
         }
@@ -593,8 +609,12 @@ const HistoryChat = (function () {
         return await wrapToolExecution(find_chat_impl, params);
     }
 
-    async function agent_status(params: AgentStatusParams): Promise<void> {
-        return await wrapToolExecution(agent_status_impl, params);
+    async function get_current_chat_runtime_state(params: ChatRuntimeStateParams): Promise<void> {
+        return await wrapToolExecution(get_current_chat_runtime_state_impl, params);
+    }
+
+    async function get_global_chat_runtime_state(): Promise<void> {
+        return await wrapToolExecutionNoParams(get_global_chat_runtime_state_impl);
     }
 
     async function list_character_cards(): Promise<void> {
@@ -623,7 +643,8 @@ const HistoryChat = (function () {
         rename_chat,
         delete_chat,
         chat_with_agent,
-        agent_status,
+        get_current_chat_runtime_state,
+        get_global_chat_runtime_state,
         list_character_cards,
         main,
     };
@@ -636,6 +657,7 @@ exports.read_messages_range = HistoryChat.read_messages_range;
 exports.rename_chat = HistoryChat.rename_chat;
 exports.delete_chat = HistoryChat.delete_chat;
 exports.chat_with_agent = HistoryChat.chat_with_agent;
-exports.agent_status = HistoryChat.agent_status;
+exports.get_current_chat_runtime_state = HistoryChat.get_current_chat_runtime_state;
+exports.get_global_chat_runtime_state = HistoryChat.get_global_chat_runtime_state;
 exports.list_character_cards = HistoryChat.list_character_cards;
 exports.main = HistoryChat.main;

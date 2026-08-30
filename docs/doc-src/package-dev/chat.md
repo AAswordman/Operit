@@ -71,9 +71,37 @@ findChat({ query, match?, index? }): Promise<ChatFindResultData>
 
 根据标题或 ID 查找聊天。
 
-### `agentStatus(chatId)`
+### `getCurrentChatRuntimeState(chatId?)`
 
-查看某个聊天当前是否在处理中。
+```ts
+getCurrentChatRuntimeState(chatId?: string): Promise<CurrentChatRuntimeStateResultData>
+```
+
+查询当前对话运行状态。省略 `chatId` 时查询默认当前对话，传入 `chatId` 时查询指定对话。返回的 `aiBehavior` 可能为：
+
+- `idle`
+- `requesting`（请求已发出，等待首个模型响应事件）
+- `thinking`
+- `processing_tool_result`
+- `executing_plan`
+- `calling_tool`
+- `waiting_tool_result`
+- `waiting_tool_confirmation`
+- `generating_response`
+- `summarizing`
+- `retrying`
+- `cancelled`（用户取消当前操作；下一次非终止状态会替换它）
+- `error`
+
+返回值还包含用户交互状态、应用前后台状态、工具名称，以及可选的 `error` 和 `retry` 对象。`error.source` 为 `ai`、`tool`、`api` 或 `system`，`error.code` 是可扩展的归一化字符串；Operit 本地网络错误通过 `error.appCode` 暴露 `5000` 至 `5006` 的应用码，服务商原始 code 和 HTTP 状态位于 `error.providerCode`、`error.httpStatusCode`。`retry` 包含 `attempt`、`maxAttempts` 和 `retryAfterMs`。这个接口不暴露 `main`/`floating` runtime 选择器。
+
+### `getGlobalChatRuntimeState()`
+
+```ts
+getGlobalChatRuntimeState(): Promise<GlobalChatRuntimeStateResultData>
+```
+
+查询所有聊天聚合后的运行状态，返回 `globalActivity`、`applicationState`、`activeChatIds` 和 `updatedAt`。
 
 ### `switchTo(chatId)`
 
@@ -133,7 +161,8 @@ getMessagesRange(chatId: string, options: { order?: 'asc' | 'desc'; start: numbe
 - `ChatCreationResultData`
 - `ChatListResultData`
 - `ChatFindResultData`
-- `AgentStatusResultData`
+- `CurrentChatRuntimeStateResultData`
+- `GlobalChatRuntimeStateResultData`
 - `ChatSwitchResultData`
 - `ChatTitleUpdateResultData`
 - `ChatDeleteResultData`

@@ -4,6 +4,7 @@ import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatTurnOptions
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 class ChatServiceCore(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
+    private val runtimeSlot: ChatRuntimeSlot,
     private val selectionMode: ChatSelectionMode = ChatSelectionMode.FOLLOW_GLOBAL
 ) {
     companion object {
@@ -161,6 +163,7 @@ class ChatServiceCore(
         messageProcessingDelegate = MessageProcessingDelegate(
             context = context,
             coroutineScope = coroutineScope,
+            runtimeSlot = runtimeSlot,
             getEnhancedAiService = { enhancedAiService },
             getFullChatHistory = { chatId -> chatHistoryDelegate.getChatHistory(chatId) },
             getRuntimeChatHistory = { chatId -> chatHistoryDelegate.getRuntimeChatHistory(chatId) },
@@ -409,6 +412,9 @@ class ChatServiceCore(
 
     val inputProcessingStateByChatId: StateFlow<Map<String, InputProcessingState>>
         get() = messageProcessingDelegate.inputProcessingStateByChatId
+
+    val userDraftStateByChatId: StateFlow<Map<String, Boolean>>
+        get() = messageProcessingDelegate.userDraftStateByChatId
 
     val currentTurnToolInvocationCountByChatId: StateFlow<Map<String, Int>>
         get() = messageProcessingDelegate.currentTurnToolInvocationCountByChatId

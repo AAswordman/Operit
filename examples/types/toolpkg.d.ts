@@ -34,6 +34,7 @@ export namespace ToolPkg {
         | ChatInputEventName
         | ChatViewEventName
         | ChatMessageEventName
+        | ChatRuntimeStateEventName
         | "navigation_entry_action"
         | ToolLifecycleEventName
         | PromptInputEventName
@@ -129,6 +130,60 @@ export namespace ToolPkg {
 
     export type ChatMessageEventName =
         | "message_persisted";
+
+    export type ChatRuntimeStateEventName =
+        | "state_snapshot"
+        | "state_changed";
+
+    export type ChatRuntimeStateBehavior =
+        | "idle"
+        | "requesting"
+        | "thinking"
+        | "processing_tool_result"
+        | "executing_plan"
+        | "calling_tool"
+        | "waiting_tool_result"
+        | "waiting_tool_confirmation"
+        | "generating_response"
+        | "summarizing"
+        | "retrying"
+        | "cancelled"
+        | "error";
+
+    export type ChatRuntimeStateErrorSource = "ai" | "tool" | "api" | "system";
+
+    export interface ChatRuntimeStateError extends JsonObject {
+        source: ChatRuntimeStateErrorSource;
+        code: string;
+        message?: string | null;
+        recoverable: boolean;
+        appCode?: number | null;
+        providerCode?: string | null;
+        httpStatusCode?: number | null;
+    }
+
+    export interface ChatRuntimeStateRetry extends JsonObject {
+        attempt?: number | null;
+        maxAttempts?: number | null;
+        retryAfterMs?: number | null;
+    }
+
+    export interface ChatRuntimeStateEventPayload extends JsonObject {
+        scope: "global" | "session";
+        event: ChatRuntimeStateEventName;
+        chatId?: string;
+        aiBehavior?: ChatRuntimeStateBehavior;
+        userState?: string | null;
+        applicationState: "foreground" | "background";
+        toolName?: string | null;
+        error?: ChatRuntimeStateError | null;
+        retry?: ChatRuntimeStateRetry | null;
+        globalActivity: "idle" | "active";
+        activeChatIds: string[];
+        updatedAt?: number;
+    }
+
+    export type ChatRuntimeStateHookHandler = HookHandler<ChatRuntimeStateEventPayload>;
 
     export interface ChatInputHookObjectResult extends JsonObject {
         action?: "allow" | "block" | "replace" | "consume";
@@ -761,6 +816,11 @@ export namespace ToolPkg {
         function: ChatMessageHookHandler;
     }
 
+    export interface ChatRuntimeStateHookRegistration {
+        id: string;
+        function: ChatRuntimeStateHookHandler;
+    }
+
     export interface ToolLifecycleHookRegistration {
         id: string;
         function: ToolLifecycleHookHandler;
@@ -899,6 +959,7 @@ export namespace ToolPkg {
         registerChatInputHook(definition: ChatInputHookRegistration): void;
         registerChatViewHook(definition: ChatViewHookRegistration): void;
         registerChatMessageHook(definition: ChatMessageHookRegistration): void;
+        registerChatRuntimeStateHook(definition: ChatRuntimeStateHookRegistration): void;
         registerToolLifecycleHook(definition: ToolLifecycleHookRegistration): void;
         registerPromptInputHook(definition: PromptInputHookRegistration): void;
         registerPromptHistoryHook(definition: PromptHistoryHookRegistration): void;
@@ -938,6 +999,8 @@ declare global {
     function registerToolPkgChatViewHook(definition: ToolPkg.ChatViewHookRegistration): void;
 
     function registerToolPkgChatMessageHook(definition: ToolPkg.ChatMessageHookRegistration): void;
+
+    function registerToolPkgChatRuntimeStateHook(definition: ToolPkg.ChatRuntimeStateHookRegistration): void;
 
     function registerToolPkgToolLifecycleHook(definition: ToolPkg.ToolLifecycleHookRegistration): void;
 

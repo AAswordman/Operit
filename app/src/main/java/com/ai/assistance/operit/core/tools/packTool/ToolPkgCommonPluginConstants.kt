@@ -20,6 +20,7 @@ internal const val TOOLPKG_EVENT_INPUT_MENU_TOGGLE = "toolpkg_input_menu_toggle"
 internal const val TOOLPKG_EVENT_CHAT_INPUT = "toolpkg_chat_input"
 internal const val TOOLPKG_EVENT_CHAT_VIEW = "toolpkg_chat_view"
 internal const val TOOLPKG_EVENT_CHAT_MESSAGE = "toolpkg_chat_message"
+internal const val TOOLPKG_EVENT_CHAT_RUNTIME_STATE = "toolpkg_chat_runtime_state"
 internal const val TOOLPKG_EVENT_NAVIGATION_ENTRY_ACTION = "toolpkg_navigation_entry_action"
 internal const val TOOLPKG_EVENT_TOOL_LIFECYCLE = "toolpkg_tool_lifecycle"
 internal const val TOOLPKG_EVENT_PROMPT_INPUT = "toolpkg_prompt_input"
@@ -53,6 +54,8 @@ internal const val TOOLPKG_REGISTRATION_CHAT_VIEW_HOOK =
     "registerToolPkgChatViewHook"
 internal const val TOOLPKG_REGISTRATION_CHAT_MESSAGE_HOOK =
     "registerToolPkgChatMessageHook"
+internal const val TOOLPKG_REGISTRATION_CHAT_RUNTIME_STATE_HOOK =
+    "registerToolPkgChatRuntimeStateHook"
 internal const val TOOLPKG_REGISTRATION_TOOL_LIFECYCLE_HOOK =
     "registerToolPkgToolLifecycleHook"
 internal const val TOOLPKG_REGISTRATION_PROMPT_INPUT_HOOK =
