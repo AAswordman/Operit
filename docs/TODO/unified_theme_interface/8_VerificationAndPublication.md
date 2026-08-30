@@ -155,3 +155,15 @@
 - SHA-256：`d7b5b869b09cc2f270f958ce02a73eccbbc2e2234f2349328801f3ecaa9314c4`
 - release 汇编验证了组件契约、类型化目录 Key、`native_v1` 目录初始化、导航项参考渲染器和生产侧边栏调用；本动作不执行 JVM 或 Android Compose 测试。
 - 设备级验证仍需覆盖手机抽屉、展开平板侧边栏、原生路由项、ToolPkg 路由项、ToolPkg 动作项、选中状态、液态玻璃阴影和 48dp 触控区域。
+
+### 2026-08-30：基础组件契约与备份设置试点 release 构建
+
+- 分支：`feat/plugin-interface`
+- 代码提交：`8b975eec`
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-8b975eec.apk`
+- 产物大小：`403322527` 字节
+- SHA-256：`4b907e38c0bad9b6f4423104c94650fcd8f7df4fafbb37c8bc3d00e742c70e52`
+- release 汇编验证了类型化状态编码、目录场景校验、五类基础组件、导航禁用事件约束及备份设置生产调用；本动作不执行 JVM 或 Android Compose 测试。
+- 设备级验证仍需覆盖备份概览与管理分区、策略/导入/导出格式及配置空间单选、Room DB 与原始快照操作、标准/警告/破坏性按钮、加载/成功/错误反馈、TalkBack 播报和 48dp 触控区域。
