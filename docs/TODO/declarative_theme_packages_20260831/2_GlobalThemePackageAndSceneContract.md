@@ -14,6 +14,22 @@
 
 用户主题选择是应用级 `ThemeInstance`。它固定引用一个已安装的包版本，并仅保存该包参数值。角色卡和群组不再保存主题实例。
 
+## `.otheme` 专有格式
+
+主题包是可上架 Operit 插件市场的专有 `.otheme` 文件，而不是用户直接处理的通用归档。容器内部使用 ZIP 存储，但必须在根目录精确存在唯一 `operit-theme.json`，其 `schemaVersion` 必须等于 `1`；该入口文件和专有扩展名共同构成格式身份。ZIP comment 写入 `Operit Theme Package` 作为辅助标识。
+
+```
+author.cyber-night-v1.2.0.otheme
+├── operit-theme.json
+└── assets/
+    ├── background.webp
+    ├── frame.nine.png
+    ├── display.ttf
+    └── glow.path
+```
+
+`operit-theme.json` 使用严格 JSON：未知字段拒绝。它包含身份、精确基底、能力、资源清单、变体、作者公开参数、token 和场景树。市场下载资产的 SHA-256 直接成为 `ThemePackageCoordinateV1.archiveSha256`。
+
 ## Scene DSL v1
 
 首版不是自由 UI 语言。它只允许宿主实现且可校验的节点：
@@ -33,9 +49,9 @@
 
 - 位图：`png`、`jpeg`、`webp`，支持 fit、crop、stretch
 - 九宫格：位图加显式 cap inset 和中心 stretch 或 tile 策略
-- 字体：`ttf`、`otf`、`ttc`，以明确 family 和 face 注册
+- 字体：`ttf`、`otf`，以明确 family 和 face 注册
 - 路径：归一化 `M`、`L`、`Q`、`C`、`Z` 命令，用于形状和纯装饰
-- 根背景视频：仅 `MAIN`，本地静音循环 `mp4`，不能参与复杂裁切或混合
+- 根背景图：仅本地静态位图；视频背景留待后续格式版本
 
 导入器限制资源路径、MIME、像素数、字节数、节点数、路径复杂度和包总大小。所有资源在应用私有目录中按内容摘要保存。
 

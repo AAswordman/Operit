@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.theme.packages
 
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneDefinitionV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneIdV1
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneTokenSetV1
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -13,17 +14,18 @@ const val THEME_PACKAGE_MANIFEST_ENTRY = "operit-theme.json"
 const val THEME_PACKAGE_EXTENSION = "otheme"
 const val THEME_PACKAGE_ZIP_COMMENT = "Operit Theme Package"
 
-/** Locale-keyed text; the key "*" is the fallback entry. */
+/** Locale-keyed text; the key "*" is the required default locale entry. */
 @Serializable
 internal data class ThemePackageLocalizedTextV1(
     val values: Map<String, String>,
 ) {
     init {
         require(values.isNotEmpty()) { "Localized text must declare at least one entry." }
+        require(values.containsKey("*")) { "Localized text must declare the default '*' entry." }
         require(values.values.all { it.isNotEmpty() }) { "Localized text entries must not be empty." }
     }
 
-    fun resolve(locale: String): String = values[locale] ?: values["*"] ?: values.values.first()
+    fun resolve(locale: String): String = values[locale] ?: values.getValue("*")
 }
 
 @Serializable
@@ -44,6 +46,15 @@ internal data class ThemePackageAssetEntryV1(
 ) {
     init {
         require(MEMBER_ID_PATTERN.matches(key)) { "Theme asset key must be a member ID: $key" }
+        require(
+            path.isNotBlank() &&
+                !path.startsWith('/') &&
+                !path.contains('\\') &&
+                !path.contains(':') &&
+                path.split('/').none { segment -> segment == ".." },
+        ) {
+            "Theme asset path must be a portable relative archive path: $path"
+        }
         require(SHA256_PATTERN.matches(sha256)) { "Theme asset digest must be lowercase sha-256." }
         require(byteSize > 0) { "Theme asset byte size must be positive." }
     }
@@ -122,6 +133,15 @@ internal data class ThemePackageCapabilitiesV1(
     init {
         require(hostSurfaces.isNotEmpty()) { "Theme package must declare at least one host surface." }
         require(scenes.isNotEmpty()) { "Theme package must declare at least one scene." }
+        require(hostSurfaces.all { surface -> surface in SUPPORTED_HOST_SURFACES }) {
+            "Theme package declares an unsupported host surface: $hostSurfaces"
+        }
+        scenes.forEach(::ThemeSceneIdV1)
+    }
+
+    private companion object {
+        val SUPPORTED_HOST_SURFACES =
+            setOf("main", "floating", "overlay", "offscreen", "glance", "diagnostic")
     }
 }
 

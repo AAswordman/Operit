@@ -53,7 +53,9 @@ status: implementation_in_progress
 
 1. 清理旧 Theme Studio 与目标级视觉主题路径
 2. 建立全局主题选择、包身份与基础参考主题
-3. 实现纯声明式场景和资源模型
-4. 固化 `app.shell`、`chat.main` 的语义与参考渲染器
-5. 安装、校验、预览和激活主题包
-6. 按 UI 目录迁移剩余 Operit 原生页面
+3. 实现纯声明式场景、token 与资源模型
+4. 实现 `.otheme` 格式、不可变安装、内置参数化基底和主题设置页
+5. 固化 `app.shell`、`chat.main` 的语义与参考渲染器
+6. 用赛博参考 `.otheme` 验证聊天主场景
+7. 按 UI 目录迁移剩余 Operit 原生页面
+8. 单列批次接入插件市场 `theme` artifact 类型、发布和安装链路
