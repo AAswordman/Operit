@@ -4954,6 +4954,7 @@
     <string name="theme_packages_import">Import theme package (.otheme)</string>
     <string name="theme_packages_import_success">Installed: %1$s</string>
     <string name="theme_packages_import_failed">Failed to import theme package</string>
+    <string name="theme_packages_refresh">Refresh theme list</string>
     <string name="theme_packages_not_theme_file">Selected file is not a .otheme theme package</string>
     <string name="theme_packages_uninstall">Uninstall</string>
     <string name="theme_packages_uninstalled">Uninstalled</string>

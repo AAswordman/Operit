@@ -60,6 +60,9 @@ internal class ThemePackageInstallerV1 private constructor(
             val target =
                 ThemePackagePublicationV1.installationDir(installedRoot, coordinate)
             if (!target.exists()) return@withContext false
+            check(!ThemePackageBundledSamplesV1.isBundled(coordinate)) {
+                "Bundled theme packages cannot be uninstalled: ${coordinate.packageId.value}"
+            }
             val active =
                 ThemePackageSelectionRepository.getInstance(context)
                     .selectionFlow

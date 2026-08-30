@@ -5402,6 +5402,7 @@
     <string name="theme_packages_import">导入主题包（.otheme）</string>
     <string name="theme_packages_import_success">已安装：%1$s</string>
     <string name="theme_packages_import_failed">主题包导入失败</string>
+    <string name="theme_packages_refresh">刷新主题列表</string>
     <string name="theme_packages_not_theme_file">所选文件不是 .otheme 主题包</string>
     <string name="theme_packages_uninstall">卸载</string>
     <string name="theme_packages_uninstalled">已卸载</string>

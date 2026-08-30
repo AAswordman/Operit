@@ -55,6 +55,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.theme.packages.PublishedThemeInstallationV1
 import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageBuiltInReferenceV1
+import com.ai.assistance.operit.data.theme.packages.ThemePackageBundledSamplesV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
 import com.ai.assistance.operit.data.theme.packages.ThemeParameterValueV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageReferenceV1
@@ -153,11 +154,22 @@ fun ThemePackagesScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp),
         ) {
-            Text(
-                text = stringResource(R.string.theme_packages_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(vertical = 12.dp),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.theme_packages_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = ::reload, enabled = !busy) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = stringResource(R.string.theme_packages_refresh),
+                    )
+                }
+            }
 
             ThemeEntryCard(
                 title = ThemePackageBuiltInReferenceV1.manifest()
@@ -192,29 +204,38 @@ fun ThemePackagesScreen(
                             )
                         }
                     },
-                    trailing = {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    val message =
-                                        try {
-                                            installer.uninstall(coordinate)
-                                            reload()
-                                            context.getString(R.string.theme_packages_uninstalled)
-                                        } catch (error: Throwable) {
-                                            error.message
-                                                ?: context.getString(R.string.theme_packages_uninstall_failed)
+                    trailing =
+                        if (ThemePackageBundledSamplesV1.isBundled(coordinate)) {
+                            null
+                        } else {
+                            {
+                                IconButton(
+                                    onClick = {
+                                        scope.launch {
+                                            val message =
+                                                try {
+                                                    installer.uninstall(coordinate)
+                                                    reload()
+                                                    context.getString(R.string.theme_packages_uninstalled)
+                                                } catch (error: Throwable) {
+                                                    error.message
+                                                        ?: context.getString(
+                                                            R.string.theme_packages_uninstall_failed,
+                                                        )
+                                                }
+                                            snackbar.showSnackbar(message)
                                         }
-                                    snackbar.showSnackbar(message)
+                                    },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = stringResource(
+                                            R.string.theme_packages_uninstall,
+                                        ),
+                                    )
                                 }
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.theme_packages_uninstall),
-                            )
-                        }
-                    },
+                            }
+                        },
                 )
             }
 

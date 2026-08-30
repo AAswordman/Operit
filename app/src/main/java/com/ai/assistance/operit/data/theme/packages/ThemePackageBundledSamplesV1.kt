@@ -31,4 +31,8 @@ internal object ThemePackageBundledSamplesV1 {
             }
         }
     }
+
+    fun isBundled(coordinate: ThemePackageCoordinateV1): Boolean =
+        coordinate.packageId.value == CYBER_GRID_PACKAGE_ID &&
+            coordinate.version.value == CYBER_GRID_VERSION
 }
