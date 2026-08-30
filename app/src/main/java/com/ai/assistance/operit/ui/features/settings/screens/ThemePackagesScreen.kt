@@ -53,17 +53,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.theme.packages.PublishedThemeInstallationV1
-import com.ai.assistance.operit.data.theme.packages.ThemeArchiveSha256V1
 import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageBuiltInReferenceV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageIdV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageLocalizedTextV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageManifestV1
 import com.ai.assistance.operit.data.theme.packages.ThemeParameterValueV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageReferenceV1
 import com.ai.assistance.operit.data.theme.packages.ThemePackageSelectionRepository
-import com.ai.assistance.operit.data.theme.packages.ThemePackageVersionV1
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -103,7 +98,7 @@ fun ThemePackagesScreen(
     fun reload() {
         scope.launch(Dispatchers.IO) {
             val catalog = installer.catalog()
-            withContext(Dispatchers.Main) { installed = catalog.packages }
+            withContext(Dispatchers.Main) { installed = catalog.installations }
         }
     }
 

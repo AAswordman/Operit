@@ -280,6 +280,8 @@ internal object ThemePackageArchiveValidatorV1 {
                     references += current.assetId.value to ThemeAssetKindV1.PATH
 
                 is ThemeSceneTextNodeV1 -> Unit
+
+                else -> Unit
             }
             childrenOf(current).forEach(::visit)
         }
@@ -362,5 +364,5 @@ internal object ThemePackageArchiveValidatorV1 {
         explicitNulls = false
     }
 
-    private fun normalizeEntryName(name: String): String = name.trimStart("./".toSet())
+    private fun normalizeEntryName(name: String): String = name.trimStart('.', '/')
 }

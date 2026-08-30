@@ -40,10 +40,10 @@ private fun rememberActiveThemeInstance(): ThemeInstanceV1 {
 }
 
 @Composable
-fun rememberActiveThemeParameters() {
+fun rememberActiveThemeParameters(): ActiveGlobalThemeParametersV1 {
     val context = LocalContext.current
     val instance = rememberActiveThemeInstance()
-    remember(instance) {
+    return remember(instance, context) {
         ActiveGlobalThemeParameterResolverV1.resolve(instance) { reference ->
             when (reference) {
                 is ThemePackageReferenceV1.BuiltIn -> ThemePackageBuiltInReferenceV1.manifest()

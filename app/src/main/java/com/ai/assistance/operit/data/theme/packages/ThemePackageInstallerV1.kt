@@ -72,7 +72,7 @@ internal class ThemePackageInstallerV1 private constructor(
     private fun stage(archive: File): File {
         stagingRoot.mkdirs()
         val staged = File(stagingRoot, "${UUID.randomUUID()}.$THEME_PACKAGE_EXTENSION")
-        if (!archive.renameTo(staged) && !archive.copyTo(staged, overwrite = true).isFile) {
+        if (!archive.copyTo(staged, overwrite = true).isFile) {
             throw ThemePackageInstallException("Unable to stage theme archive for validation.")
         }
         return staged
