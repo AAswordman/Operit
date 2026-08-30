@@ -115,11 +115,14 @@ jobs:
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: steps.apk_build.outcome == 'success'
+        if: always()
         with:
-          name: nonox-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: nonox-build-output
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/intermediates/kotlin_classes/debug/
           retention-days: 14
+          if-no-files-found: warn
 
       - name: Report build status
         if: steps.apk_build.outcome == 'failure'
