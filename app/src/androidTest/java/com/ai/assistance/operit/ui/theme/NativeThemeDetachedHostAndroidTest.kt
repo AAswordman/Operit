@@ -6,13 +6,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Rule
@@ -25,59 +22,44 @@ class NativeThemeDetachedHostAndroidTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun detachedHostProvidesSnapshotResolvedThemeAndScaledTypography() {
-        val primary = Color(0xFF204060)
+    fun detachedHostProvidesPresentationResolvedThemeAndScaledTypography() {
         val fontScale = 1.25f
-        val snapshot =
-            ThemePreferenceSnapshot(
-                source = "character_card",
-                sourceId = "detached-host-test",
-                values =
-                    ThemePreferenceValues.defaultVisual()
-                        .withBoolean(NativeThemePreferenceSchemaV1.useSystemTheme, false)
-                        .withString(
-                            NativeThemePreferenceSchemaV1.themeMode,
-                            UserPreferencesManager.THEME_MODE_LIGHT,
-                        )
-                        .withBoolean(NativeThemePreferenceSchemaV1.useCustomColors, true)
-                        .withInt(NativeThemePreferenceSchemaV1.customPrimaryColor, primary.toArgb())
-                        .withFloat(NativeThemePreferenceSchemaV1.fontScale, fontScale),
+        val presentation =
+            GlobalPresentationSnapshot(
+                themeMode = GlobalThemeMode.LIGHT,
+                fontScale = fontScale,
             )
         val resolvedTheme =
-            resolveNativeThemeForDetachedComposeHost(
-                snapshot = snapshot,
+            resolveGlobalThemeForDetachedComposeHost(
+                presentation = presentation,
                 hostSurface = NativeThemeHostSurface.FLOATING,
                 systemDarkTheme = true,
                 lightColorScheme = lightColorScheme(),
                 darkColorScheme = darkColorScheme(),
             )
-        var providedSnapshot: ThemePreferenceSnapshot? = null
-        var providedResolvedTheme: ResolvedNativeThemeV1? = null
-        var providedPrimary: Color? = null
+        var providedPresentation: GlobalPresentationSnapshot? = null
+        var providedResolvedTheme: ResolvedGlobalTheme? = null
         var providedBodyLargeSize = Typography().bodyLarge.fontSize
 
         composeTestRule.setContent {
             NativeThemeOffscreenHost(
-                snapshot = snapshot,
+                presentation = presentation,
                 resolvedTheme = resolvedTheme,
             ) {
-                val localSnapshot = LocalThemePreferenceSnapshot.current
-                val localResolvedTheme = LocalResolvedNativeThemeV1.current
-                val materialPrimary = MaterialTheme.colorScheme.primary
+                val localPresentation = LocalGlobalPresentation.current
+                val localResolvedTheme = LocalResolvedGlobalTheme.current
                 val materialBodyLargeSize = MaterialTheme.typography.bodyLarge.fontSize
                 SideEffect {
-                    providedSnapshot = localSnapshot
+                    providedPresentation = localPresentation
                     providedResolvedTheme = localResolvedTheme
-                    providedPrimary = materialPrimary
                     providedBodyLargeSize = materialBodyLargeSize
                 }
             }
         }
 
         composeTestRule.runOnIdle {
-            assertSame(snapshot, providedSnapshot)
+            assertSame(presentation, providedPresentation)
             assertSame(resolvedTheme, providedResolvedTheme)
-            assertEquals(primary, providedPrimary)
             assertEquals(Typography().bodyLarge.fontSize * fontScale, providedBodyLargeSize)
         }
     }

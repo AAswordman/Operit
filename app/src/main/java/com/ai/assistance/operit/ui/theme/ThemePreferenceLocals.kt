@@ -6,40 +6,25 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.preferences.ActivePromptManager
-import com.ai.assistance.operit.data.preferences.CharacterCardManager
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 
-val LocalThemePreferenceSnapshot =
-    compositionLocalOf<ThemePreferenceSnapshot> {
-        error("LocalThemePreferenceSnapshot is not provided.")
+val LocalGlobalPresentation =
+    compositionLocalOf<GlobalPresentationSnapshot> {
+        error("LocalGlobalPresentation is not provided.")
     }
 
-internal val LocalResolvedNativeThemeV1 =
-    compositionLocalOf<ResolvedNativeThemeV1> {
-        error("LocalResolvedNativeThemeV1 is not provided.")
+internal val LocalResolvedGlobalTheme =
+    compositionLocalOf<ResolvedGlobalTheme> {
+        error("LocalResolvedGlobalTheme is not provided.")
     }
 
 @Composable
-fun rememberActiveThemePreferenceSnapshot(): ThemePreferenceSnapshot {
+fun rememberGlobalPresentation(): GlobalPresentationSnapshot {
     val context = LocalContext.current
-    val activePromptManager = remember(context) { ActivePromptManager.getInstance(context) }
-    val themeSnapshot by activePromptManager.activeThemePreferenceSnapshotFlow.collectAsState(
-        initial =
-            ThemePreferenceSnapshot(
-                source = "character_card",
-                sourceId = CharacterCardManager.DEFAULT_CHARACTER_CARD_ID,
-                values = ThemePreferenceValues.defaultVisual(),
-            ),
+    val manager = remember(context) { GlobalPresentationManager.getInstance(context) }
+    val presentation by manager.snapshotFlow.collectAsState(
+        initial = GlobalPresentationSnapshot.default(),
     )
-    return themeSnapshot
+    return presentation
 }
-
-internal fun ThemePreferenceSnapshot.toThemeTarget(): ActivePrompt =
-    when (source) {
-        "character_card" -> ActivePrompt.CharacterCard(requireNotNull(sourceId))
-        "character_group" -> ActivePrompt.CharacterGroup(requireNotNull(sourceId))
-        else -> error("Theme snapshot source does not identify an active prompt: $source")
-    }

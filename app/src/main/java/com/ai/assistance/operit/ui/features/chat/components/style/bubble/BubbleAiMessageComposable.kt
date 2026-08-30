@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -52,14 +51,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
+import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
 import com.ai.assistance.operit.ui.theme.ProvideAiMarkdownTextLayoutSettings
-import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
-import com.ai.assistance.operit.ui.theme.liquidGlass
-import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
-import com.ai.assistance.operit.ui.theme.waterGlass
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 
@@ -77,14 +70,6 @@ private val ExpandedBubbleLayoutNodeTypes =
 @Composable
 fun BubbleAiMessageComposable(
     message: ChatMessage,
-    backgroundColor: Color,
-    textColor: Color,
-    enableLiquidGlass: Boolean = false,
-    enableWaterGlass: Boolean = false,
-    bubbleImageStyle: BubbleImageStyleConfig? = null,
-    bubbleRoundedCornersEnabled: Boolean = true,
-    bubbleContentPaddingLeft: Float = 12f,
-    bubbleContentPaddingRight: Float = 12f,
     initialThinkingExpanded: Boolean = false,
     allowExpandedThinkingFullHeight: Boolean = false,
     expandThinkToolsGroups: Boolean = false,
@@ -99,26 +84,22 @@ fun BubbleAiMessageComposable(
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
-    val themeSnapshot = LocalThemePreferenceSnapshot.current
-    val bubbleShowAvatar = themeSnapshot.bubbleShowAvatar
-    val bubbleWideLayoutEnabled = themeSnapshot.bubbleWideLayoutEnabled
-    val showThinkingProcess = themeSnapshot.showThinkingProcess
-    val showStatusTags = themeSnapshot.showStatusTags
+    val presentation = LocalGlobalPresentation.current
+    val bubbleShowAvatar = presentation.bubbleShowAvatar
+    val bubbleWideLayoutEnabled = presentation.bubbleWideLayoutEnabled
+    val showThinkingProcess = presentation.showThinkingProcess
+    val showStatusTags = presentation.showStatusTags
     val effectiveShowThinkingProcess = if (forceShowThinkingProcess) true else showThinkingProcess
-    val avatarShapePref = themeSnapshot.avatarShape
-    val avatarCornerRadius = themeSnapshot.avatarCornerRadius
-    val bubbleAiUseCustomFont = themeSnapshot.bubbleAiUseCustomFont
-    val bubbleAiFontType = themeSnapshot.bubbleAiFontType
-    val bubbleAiSystemFontName = themeSnapshot.bubbleAiSystemFontName
-    val bubbleAiCustomFontPath = themeSnapshot.bubbleAiCustomFontPath
-    
-    val showModelProvider = themeSnapshot.showModelProvider
-    val showModelName = themeSnapshot.showModelName
-    val showRoleName = themeSnapshot.showRoleName
+
+    val showModelProvider = presentation.showModelProvider
+    val showModelName = presentation.showModelName
+    val showRoleName = presentation.showRoleName
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
-    
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val backgroundColor = MaterialTheme.colorScheme.surface
+
     // 根据角色名获取头像
-    val aiAvatarUri by remember(message.roleName, themeSnapshot.customAiAvatarUri) {
+    val aiAvatarUri by remember(message.roleName) {
         if (message.roleName != null) {
             try {
                 runBlocking {
@@ -126,24 +107,18 @@ fun BubbleAiMessageComposable(
                     if (characterCard != null) {
                         preferencesManager.getAiAvatarForCharacterCardFlow(characterCard.id)
                     } else {
-                        flowOf(themeSnapshot.customAiAvatarUri)
+                        flowOf(null)
                     }
                 }
             } catch (e: Exception) {
-                flowOf(themeSnapshot.customAiAvatarUri)
+                flowOf(null)
             }
         } else {
-            flowOf(themeSnapshot.customAiAvatarUri)
+            flowOf(null)
         }
     }.collectAsState(initial = null)
 
-    val avatarShape = remember(avatarShapePref, avatarCornerRadius) {
-        if (avatarShapePref == UserPreferencesManager.AVATAR_SHAPE_SQUARE) {
-            RoundedCornerShape(avatarCornerRadius.dp)
-        } else {
-            CircleShape
-        }
-    }
+    val avatarShape = CircleShape
     val roleNameText = if (showRoleName && message.roleName.isNotEmpty()) message.roleName else ""
     val metadataText = buildString {
         if (showModelName && message.modelName.isNotEmpty()) {
@@ -231,40 +206,8 @@ fun BubbleAiMessageComposable(
                 heightMemory?.updateMeasured(message.timestamp, size.height)
             }
         }
-    val baseTypography = MaterialTheme.typography
-    val bubbleTypography =
-        remember(
-            context,
-            bubbleAiUseCustomFont,
-            bubbleAiFontType,
-            bubbleAiSystemFontName,
-            bubbleAiCustomFontPath,
-            baseTypography,
-        ) {
-            applyFontFamilyToTypography(
-                baseTypography = baseTypography,
-                fontFamily =
-                    resolveConfiguredFontFamily(
-                        context = context,
-                        useCustomFont = bubbleAiUseCustomFont,
-                        fontType = bubbleAiFontType,
-                        systemFontName = bubbleAiSystemFontName,
-                        customFontPath = bubbleAiCustomFontPath,
-                    ),
-            )
-        }
-    val waterGlassEnabled = enableWaterGlass && isWaterGlassSupported()
-    val liquidGlassEnabled =
-        !waterGlassEnabled && enableLiquidGlass && isLiquidGlassSupported()
-    val effectiveBubbleImageStyle =
-        if (liquidGlassEnabled || waterGlassEnabled) {
-            null
-        } else {
-            bubbleImageStyle
-        }
 
-    MaterialTheme(typography = bubbleTypography) {
-        ProvideAiMarkdownTextLayoutSettings {
+    ProvideAiMarkdownTextLayoutSettings {
         if (bubbleWideLayoutEnabled) {
         val headerVisible = bubbleShowAvatar || roleNameText.isNotEmpty() || metadataText.isNotEmpty()
         val avatarModifier = Modifier
@@ -358,12 +301,7 @@ fun BubbleAiMessageComposable(
                         contentScale = ContentScale.Fit,
                     )
                 } else {
-                    val bubbleShape =
-                        if (bubbleRoundedCornersEnabled) {
-                            RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
-                        } else {
-                            RoundedCornerShape(0.dp)
-                        }
+                    val bubbleShape = RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
                     val bubbleModifier =
                         Modifier
                             .widthIn(max = maxBubbleWidth)
@@ -383,9 +321,9 @@ fun BubbleAiMessageComposable(
                                     enableDialogs = enableDialogs,
                                     modifier =
                                         Modifier.padding(
-                                            start = bubbleContentPaddingLeft.dp,
+                                            start = 12.dp,
                                             top = 12.dp,
-                                            end = bubbleContentPaddingRight.dp,
+                                            end = 12.dp,
                                             bottom = 12.dp,
                                     ),
                                     state = rendererState,
@@ -402,9 +340,9 @@ fun BubbleAiMessageComposable(
                                     enableDialogs = enableDialogs,
                                     modifier =
                                         Modifier.padding(
-                                            start = bubbleContentPaddingLeft.dp,
+                                            start = 12.dp,
                                             top = 12.dp,
-                                            end = bubbleContentPaddingRight.dp,
+                                            end = 12.dp,
                                             bottom = 12.dp,
                                     ),
                                     state = rendererState,
@@ -414,53 +352,13 @@ fun BubbleAiMessageComposable(
                         }
                     }
 
-                    if (effectiveBubbleImageStyle != null) {
-                        BubbleImageBackgroundSurface(
-                            imageStyle = effectiveBubbleImageStyle,
-                            shape = bubbleShape,
-                            modifier = bubbleModifier,
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            renderContent()
-                        }
-                    } else {
-                        Surface(
-                            modifier =
-                                bubbleModifier
-                                    .waterGlass(
-                                        enabled = waterGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.7.dp,
-                                        overlayAlphaBoost = 0.08f,
-                                    )
-                                    .liquidGlass(
-                                        enabled = liquidGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.28.dp,
-                                        blurRadius = 28.dp,
-                                        overlayAlphaBoost = 0.10f,
-                                        enableLens = false,
-                                    ),
-                            shape = bubbleShape,
-                            color =
-                                if (liquidGlassEnabled || waterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    backgroundColor
-                                },
-                            tonalElevation =
-                                if (liquidGlassEnabled || waterGlassEnabled) {
-                                    0.dp
-                                } else {
-                                    2.dp
-                                },
-                        ) {
-                            renderContent()
-                        }
+                    Surface(
+                        modifier = bubbleModifier,
+                        shape = bubbleShape,
+                        color = backgroundColor,
+                        tonalElevation = 2.dp,
+                    ) {
+                        renderContent()
                     }
                 }
             }
@@ -563,12 +461,7 @@ fun BubbleAiMessageComposable(
                     )
                 } else {
                     // Message bubble
-                    val bubbleShape =
-                        if (bubbleRoundedCornersEnabled) {
-                            RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
-                        } else {
-                            RoundedCornerShape(0.dp)
-                        }
+                    val bubbleShape = RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
                     val bubbleModifier =
                         Modifier
                             .widthIn(max = maxBubbleWidth)
@@ -590,9 +483,9 @@ fun BubbleAiMessageComposable(
                                     enableDialogs = enableDialogs,
                                     modifier =
                                         Modifier.padding(
-                                            start = bubbleContentPaddingLeft.dp,
+                                            start = 12.dp,
                                             top = 12.dp,
-                                            end = bubbleContentPaddingRight.dp,
+                                            end = 12.dp,
                                             bottom = 12.dp,
                                     ),
                                     state = rendererState,
@@ -611,9 +504,9 @@ fun BubbleAiMessageComposable(
                                     enableDialogs = enableDialogs,
                                     modifier =
                                         Modifier.padding(
-                                            start = bubbleContentPaddingLeft.dp,
+                                            start = 12.dp,
                                             top = 12.dp,
-                                            end = bubbleContentPaddingRight.dp,
+                                            end = 12.dp,
                                             bottom = 12.dp,
                                     ),
                                     state = rendererState,
@@ -623,59 +516,18 @@ fun BubbleAiMessageComposable(
                         }
                     }
 
-                    if (effectiveBubbleImageStyle != null) {
-                        BubbleImageBackgroundSurface(
-                            imageStyle = effectiveBubbleImageStyle,
-                            shape = bubbleShape,
-                            modifier = bubbleModifier,
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            renderContent()
-                        }
-                    } else {
-                        Surface(
-                            modifier =
-                                bubbleModifier
-                                    .waterGlass(
-                                        enabled = waterGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.7.dp,
-                                        overlayAlphaBoost = 0.08f,
-                                    )
-                                    .liquidGlass(
-                                        enabled = liquidGlassEnabled,
-                                        shape = bubbleShape,
-                                        containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.28.dp,
-                                        blurRadius = 28.dp,
-                                        overlayAlphaBoost = 0.10f,
-                                        enableLens = false,
-                                    ),
-                            shape = bubbleShape,
-                            color =
-                                if (liquidGlassEnabled || waterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    backgroundColor
-                                },
-                            tonalElevation =
-                                if (liquidGlassEnabled || waterGlassEnabled) {
-                                    0.dp
-                                } else {
-                                    2.dp
-                                }
-                        ) {
-                            renderContent()
-                        }
+                    Surface(
+                        modifier = bubbleModifier,
+                        shape = bubbleShape,
+                        color = backgroundColor,
+                        tonalElevation = 2.dp,
+                    ) {
+                        renderContent()
                     }
                 }
             }
         }
         }
-    }
     }
     }
 

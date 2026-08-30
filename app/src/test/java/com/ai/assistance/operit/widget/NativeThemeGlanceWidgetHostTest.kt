@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.widget
 
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalThemeMode
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -21,17 +21,13 @@ class NativeThemeGlanceWidgetHostTest {
     }
 
     @Test
-    fun everyActiveThemeEmissionRefreshesInstalledWidgets() = runTest {
+    fun everyPresentationEmissionRefreshesInstalledWidgets() = runTest {
         val updates = mutableListOf<String>()
-        val snapshot =
-            ThemePreferenceSnapshot(
-                source = "character_card",
-                sourceId = "glance-refresh-test",
-                values = ThemePreferenceValues.defaultVisual(),
-            )
+        val presentation = GlobalPresentationSnapshot(themeMode = GlobalThemeMode.SYSTEM)
 
         NativeThemeGlanceWidgetHost.refreshForThemeChanges(
-            themeSnapshots = flowOf(snapshot, snapshot.copy(sourceId = "glance-refresh-next")),
+            themeSnapshots =
+                flowOf(presentation, presentation.copy(themeMode = GlobalThemeMode.DARK)),
             onThemeChanged = { updates += "refresh" },
         )
 

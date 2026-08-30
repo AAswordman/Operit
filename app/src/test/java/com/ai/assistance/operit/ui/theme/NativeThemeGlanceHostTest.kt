@@ -3,11 +3,8 @@ package com.ai.assistance.operit.ui.theme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -20,7 +17,7 @@ class NativeThemeGlanceHostTest {
         val nightPrimary = Color(0xFF80B0E0)
         val palette =
             resolveNativeThemeGlancePalette(
-                snapshot = testSnapshot(),
+                presentation = GlobalPresentationSnapshot.default(),
                 lightColorScheme =
                     lightColorScheme(
                         primary = dayPrimary,
@@ -52,15 +49,8 @@ class NativeThemeGlanceHostTest {
         val darkPrimary = Color(0xFF7090C0)
         val palette =
             resolveNativeThemeGlancePalette(
-                snapshot =
-                    testSnapshot(
-                        ThemePreferenceValues.defaultVisual()
-                            .withBoolean(NativeThemePreferenceSchemaV1.useSystemTheme, false)
-                            .withString(
-                                NativeThemePreferenceSchemaV1.themeMode,
-                                UserPreferencesManager.THEME_MODE_DARK,
-                            ),
-                    ),
+                presentation =
+                    GlobalPresentationSnapshot(themeMode = GlobalThemeMode.DARK),
                 lightColorScheme = lightColorScheme(primary = Color(0xFF204060)),
                 darkColorScheme = darkColorScheme(primary = darkPrimary),
             )
@@ -72,28 +62,6 @@ class NativeThemeGlanceHostTest {
     }
 
     @Test
-    fun customColorsUseTheNativeThemeDerivationForGlanceProjection() {
-        val primary = Color(0xFF204060)
-        val palette =
-            resolveNativeThemeGlancePalette(
-                snapshot =
-                    testSnapshot(
-                        ThemePreferenceValues.defaultVisual()
-                            .withBoolean(NativeThemePreferenceSchemaV1.useSystemTheme, true)
-                            .withBoolean(NativeThemePreferenceSchemaV1.useCustomColors, true)
-                            .withInt(NativeThemePreferenceSchemaV1.customPrimaryColor, primary.toArgb()),
-                    ),
-                lightColorScheme = lightColorScheme(),
-                darkColorScheme = darkColorScheme(),
-            )
-
-        assertEquals(primary, palette.primary.day)
-        assertEquals(lighten(primary, 0.2f), palette.primary.night)
-        assertEquals(Color.Black, palette.onSurface.day)
-        assertEquals(Color.White, palette.onSurface.night)
-    }
-
-    @Test
     fun alphaProjectionRetainsTheDayAndNightThemeColors() {
         val color = NativeThemeGlanceColor(day = Color.Red, night = Color.Blue)
 
@@ -102,21 +70,4 @@ class NativeThemeGlanceHostTest {
         assertEquals(Color.Red.copy(alpha = 0.8f), translucent.day)
         assertEquals(Color.Blue.copy(alpha = 0.8f), translucent.night)
     }
-
-    private fun testSnapshot(
-        values: ThemePreferenceValues = ThemePreferenceValues.defaultVisual(),
-    ): ThemePreferenceSnapshot =
-        ThemePreferenceSnapshot(
-            source = "character_card",
-            sourceId = "glance-host-test",
-            values = values,
-        )
-
-    private fun lighten(color: Color, factor: Float): Color =
-        Color(
-            red = color.red + (1f - color.red) * factor,
-            green = color.green + (1f - color.green) * factor,
-            blue = color.blue + (1f - color.blue) * factor,
-            alpha = color.alpha,
-        )
 }

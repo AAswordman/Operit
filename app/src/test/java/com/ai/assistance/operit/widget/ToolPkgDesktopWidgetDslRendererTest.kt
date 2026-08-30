@@ -4,8 +4,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 import com.ai.assistance.operit.ui.theme.NativeThemeGlanceColor
 import com.ai.assistance.operit.ui.theme.NativeThemeGlancePaletteV1
 import com.ai.assistance.operit.ui.theme.resolveNativeThemeGlancePalette
@@ -19,12 +18,7 @@ class ToolPkgDesktopWidgetDslRendererTest {
     fun semanticColorTokensResolveFromTheGlancePalette() {
         val palette =
             resolveNativeThemeGlancePalette(
-                snapshot =
-                    ThemePreferenceSnapshot(
-                        source = "character_card",
-                        sourceId = "widget-token-test",
-                        values = ThemePreferenceValues.defaultVisual(),
-                    ),
+                presentation = GlobalPresentationSnapshot.default(),
                 lightColorScheme =
                     lightColorScheme(
                         primary = Color(0xFF205080),
@@ -69,12 +63,7 @@ class ToolPkgDesktopWidgetDslRendererTest {
             )
         val palette =
             resolveNativeThemeGlancePalette(
-                snapshot =
-                    ThemePreferenceSnapshot(
-                        source = "character_card",
-                        sourceId = "widget-token-extended-test",
-                        values = ThemePreferenceValues.defaultVisual(),
-                    ),
+                presentation = GlobalPresentationSnapshot.default(),
                 lightColorScheme = lightScheme,
                 darkColorScheme = darkScheme,
             )
@@ -109,12 +98,7 @@ class ToolPkgDesktopWidgetDslRendererTest {
     fun everyMaterialColorSchemeColorFieldResolvesAsAGlanceToken() {
         val palette =
             resolveNativeThemeGlancePalette(
-                snapshot =
-                    ThemePreferenceSnapshot(
-                        source = "character_card",
-                        sourceId = "widget-token-surface-test",
-                        values = ThemePreferenceValues.defaultVisual(),
-                    ),
+                presentation = GlobalPresentationSnapshot.default(),
                 lightColorScheme = lightColorScheme(),
                 darkColorScheme = darkColorScheme(),
             )

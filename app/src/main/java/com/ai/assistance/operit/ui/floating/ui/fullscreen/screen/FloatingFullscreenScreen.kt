@@ -78,7 +78,6 @@ import com.ai.assistance.operit.ui.floating.ui.fullscreen.components.EditPanel
 import com.ai.assistance.operit.ui.floating.ui.fullscreen.components.MessageDisplay
 import com.ai.assistance.operit.ui.floating.ui.fullscreen.components.WaveVisualizerSection
 import com.ai.assistance.operit.ui.floating.ui.fullscreen.viewmodel.rememberFloatingFullscreenModeViewModel
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import java.util.Random
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -138,8 +137,7 @@ fun FloatingFullscreenMode(floatContext: FloatContext) {
             is ActivePrompt.CharacterGroup -> activeGroupAvatarUri ?: activeGroupFallbackMemberAvatarUri
             is ActivePrompt.CharacterCard -> activeCardAvatarUri
         }
-    val themeSnapshot = LocalThemePreferenceSnapshot.current
-    val aiAvatarUri = activeCharacterAvatarUri ?: themeSnapshot.customAiAvatarUri
+    val aiAvatarUri = activeCharacterAvatarUri
 
     val avatarModelFactory = remember { AvatarModelFactoryImpl() }
     val avatarRepository = remember { AvatarRepository.getInstance(context, avatarModelFactory) }

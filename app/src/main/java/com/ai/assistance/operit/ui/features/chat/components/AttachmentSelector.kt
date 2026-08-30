@@ -326,7 +326,6 @@ fun AttachmentSelectorPanel(
 @Composable
 fun AttachmentSelectorPopupPanel(
         visible: Boolean,
-        containerColor: Color,
         onAttachImage: (String) -> Unit,
         onAttachFile: (String) -> Unit,
         onAttachScreenContent: () -> Unit,
@@ -456,7 +455,7 @@ fun AttachmentSelectorPopupPanel(
         ) {
             Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = containerColor,
+                    color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 4.dp,
                     modifier =
                             Modifier.padding(bottom = 44.dp, end = 12.dp)

@@ -17,7 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,9 +52,6 @@ fun ChatScreenHeader(
         modifier: Modifier = Modifier,
         actualViewModel: ChatViewModel,
         showChatHistorySelector: Boolean,
-        chatHeaderTransparent: Boolean,
-        chatHeaderHistoryIconColor: Int?,
-        chatHeaderPipIconColor: Int?,
         onCharacterSwitcherClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -134,10 +130,7 @@ fun ChatScreenHeader(
             modifier =
                     modifier
                             .fillMaxWidth()
-                            .background(
-                                    if (chatHeaderTransparent) Color.Transparent
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                            )
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
                             .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -148,8 +141,6 @@ fun ChatScreenHeader(
                 modifier = Modifier.weight(1f),
                 isFloatingMode = isFloatingMode,
                 onLaunchFloatingWindow = launchFloatingWindow,
-                historyIconColor = chatHeaderHistoryIconColor,
-                pipIconColor = chatHeaderPipIconColor,
                 runningTaskCount = activeStreamingChatIds.size,
                 activeCharacterName = activeCharacterGroup?.name ?: activeCharacterCard?.name ?: "",
                 activeCharacterAvatarUri = activeCharacterAvatarUri,

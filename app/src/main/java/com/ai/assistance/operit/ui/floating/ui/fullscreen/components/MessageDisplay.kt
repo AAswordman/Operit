@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.rememberChatMessageHeightMemory
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 
 /**
  * 消息显示组件
@@ -42,13 +40,6 @@ fun MessageDisplay(
     showSpeechOverlay: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val themeSnapshot = LocalThemePreferenceSnapshot.current
-    val bubbleUserRoundedCornersEnabled = themeSnapshot.bubbleUserRoundedCornersEnabled
-    val bubbleAiRoundedCornersEnabled = themeSnapshot.bubbleAiRoundedCornersEnabled
-    val bubbleUserContentPaddingLeft = themeSnapshot.bubbleUserContentPaddingLeft
-    val bubbleUserContentPaddingRight = themeSnapshot.bubbleUserContentPaddingRight
-    val bubbleAiContentPaddingLeft = themeSnapshot.bubbleAiContentPaddingLeft
-    val bubbleAiContentPaddingRight = themeSnapshot.bubbleAiContentPaddingRight
     val listState = rememberLazyListState()
     val displayMessages =
         messages
@@ -61,13 +52,6 @@ fun MessageDisplay(
             listState.animateScrollToItem(0)
         }
     }
-
-    val userMessageColor = MaterialTheme.colorScheme.primaryContainer
-    val aiMessageColor = MaterialTheme.colorScheme.surface
-    val userTextColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val aiTextColor = MaterialTheme.colorScheme.onSurface
-    val systemMessageColor = MaterialTheme.colorScheme.surfaceVariant
-    val systemTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     val listAlpha by animateFloatAsState(targetValue = 1f)
 
@@ -113,18 +97,6 @@ fun MessageDisplay(
             ) { _, message ->
                 BubbleStyleChatMessage(
                     message = message,
-                    userMessageColor = userMessageColor,
-                    aiMessageColor = aiMessageColor,
-                    userTextColor = userTextColor,
-                    aiTextColor = aiTextColor,
-                    systemMessageColor = systemMessageColor,
-                    systemTextColor = systemTextColor,
-                    bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                    bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                    bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                    bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                    bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                    bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
                     heightMemory = messageHeightMemory,
                     enableDialogs = false
                 )
@@ -146,18 +118,6 @@ fun MessageDisplay(
                 if (speechPreviewText.isNotBlank()) {
                     BubbleStyleChatMessage(
                         message = ChatMessage(sender = "user", content = speechPreviewText, timestamp = 0L),
-                        userMessageColor = userMessageColor,
-                        aiMessageColor = aiMessageColor,
-                        userTextColor = userTextColor,
-                        aiTextColor = aiTextColor,
-                        systemMessageColor = systemMessageColor,
-                        systemTextColor = systemTextColor,
-                        bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                        bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                        bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                        bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                        bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                        bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
                         enableDialogs = false
                     )
                 }

@@ -2,7 +2,6 @@
 package com.ai.assistance.operit.ui.features.chat.components.style.bubble
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.ChatMessageHeightMemory
 import com.ai.assistance.operit.ui.features.chat.components.style.cursor.SummaryMessageComposable
@@ -15,24 +14,6 @@ import com.ai.assistance.operit.util.stream.Stream
 @Composable
 fun BubbleStyleChatMessage(
     message: ChatMessage,
-    userMessageColor: Color,
-    aiMessageColor: Color,
-    userTextColor: Color,
-    aiTextColor: Color,
-    systemMessageColor: Color,
-    systemTextColor: Color,
-    userMessageLiquidGlassEnabled: Boolean = false,
-    userMessageWaterGlassEnabled: Boolean = false,
-    aiMessageLiquidGlassEnabled: Boolean = false,
-    aiMessageWaterGlassEnabled: Boolean = false,
-    userBubbleImageStyle: BubbleImageStyleConfig? = null,
-    aiBubbleImageStyle: BubbleImageStyleConfig? = null,
-    bubbleUserRoundedCornersEnabled: Boolean = true,
-    bubbleAiRoundedCornersEnabled: Boolean = true,
-    bubbleUserContentPaddingLeft: Float = 12f,
-    bubbleUserContentPaddingRight: Float = 12f,
-    bubbleAiContentPaddingLeft: Float = 12f,
-    bubbleAiContentPaddingRight: Float = 12f,
     initialThinkingExpanded: Boolean = false,
     allowExpandedThinkingFullHeight: Boolean = false,
     expandThinkToolsGroups: Boolean = false,
@@ -49,28 +30,12 @@ fun BubbleStyleChatMessage(
         "user" -> {
             BubbleUserMessageComposable(
                 message = message,
-                backgroundColor = userMessageColor,
-                textColor = userTextColor,
-                enableLiquidGlass = userMessageLiquidGlassEnabled,
-                enableWaterGlass = userMessageWaterGlassEnabled,
-                bubbleImageStyle = userBubbleImageStyle,
-                bubbleRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                bubbleContentPaddingLeft = bubbleUserContentPaddingLeft,
-                bubbleContentPaddingRight = bubbleUserContentPaddingRight,
                 enableDialogs = enableDialogs,
             )
         }
         "ai" -> {
             BubbleAiMessageComposable(
                 message = message,
-                backgroundColor = aiMessageColor,
-                textColor = aiTextColor,
-                enableLiquidGlass = aiMessageLiquidGlassEnabled,
-                enableWaterGlass = aiMessageWaterGlassEnabled,
-                bubbleImageStyle = aiBubbleImageStyle,
-                bubbleRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                bubbleContentPaddingLeft = bubbleAiContentPaddingLeft,
-                bubbleContentPaddingRight = bubbleAiContentPaddingRight,
                 initialThinkingExpanded = initialThinkingExpanded,
                 allowExpandedThinkingFullHeight = allowExpandedThinkingFullHeight,
                 expandThinkToolsGroups = expandThinkToolsGroups,
@@ -84,8 +49,6 @@ fun BubbleStyleChatMessage(
         "summary" -> {
             SummaryMessageComposable(
                 message = message,
-                backgroundColor = systemMessageColor.copy(alpha = 0.7f),
-                textColor = systemTextColor,
                 onDelete = {
                     if (index != -1) {
                         onDeleteMessage?.invoke(index)

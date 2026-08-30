@@ -41,7 +41,7 @@ import com.ai.assistance.operit.data.backup.RoomDatabaseBackupPreferences
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupScheduler
 import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
-import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.data.preferences.initAndroidPermissionPreferences
@@ -188,8 +188,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         applicationScope.launch {
             NativeThemeGlanceWidgetHost.refreshForThemeChanges(
                 themeSnapshots =
-                    ActivePromptManager.getInstance(applicationContext)
-                        .activeThemePreferenceSnapshotFlow,
+                    GlobalPresentationManager.getInstance(applicationContext).snapshotFlow,
             ) {
                 try {
                     NativeThemeGlanceWidgetHost.refreshAll(applicationContext)

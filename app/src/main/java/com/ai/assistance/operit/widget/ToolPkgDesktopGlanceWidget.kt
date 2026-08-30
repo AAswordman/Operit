@@ -26,17 +26,15 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.ui.theme.NativeThemeGlanceHost
 import com.ai.assistance.operit.ui.theme.NativeThemeGlancePaletteV1
 import kotlinx.coroutines.flow.first
 
 class ToolPkgDesktopGlanceWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val themeSnapshot =
-            ActivePromptManager.getInstance(context)
-                .activeThemePreferenceSnapshotFlow
-                .first()
+        val presentation =
+            GlobalPresentationManager.getInstance(context).snapshotFlow.first()
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         val selection = ToolPkgDesktopWidgetHost.resolveSelection(context, appWidgetId)
         val renderData =
@@ -50,7 +48,7 @@ class ToolPkgDesktopGlanceWidget : GlanceAppWidget() {
         provideContent {
             NativeThemeGlanceHost(
                 context = context,
-                initialSnapshot = themeSnapshot,
+                initialPresentation = presentation,
             ) { themePalette ->
                 ToolPkgDesktopWidgetContent(
                     context = context,

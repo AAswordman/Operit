@@ -705,14 +705,6 @@ private fun ChatMessagesView(
     val messageHeightMemory = rememberChatMessageHeightMemory(displayMessages)
     val coroutineScope = rememberCoroutineScope()
     val lastMessage = floatContext.messages.lastOrNull()
-    val userMessageColor = MaterialTheme.colorScheme.primaryContainer
-    val aiMessageColor = MaterialTheme.colorScheme.surface
-    val userTextColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val aiTextColor = MaterialTheme.colorScheme.onSurface
-    val systemMessageColor = MaterialTheme.colorScheme.surfaceVariant
-    val systemTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val thinkingBackgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-    val thinkingTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     // 滚动状态
     var autoScrollToBottom by remember { mutableStateOf(true) }
@@ -835,14 +827,6 @@ private fun ChatMessagesView(
                         FloatingMessageItem(
                             index = actualIndex,
                             message = item,
-                            userMessageColor = userMessageColor,
-                            aiMessageColor = aiMessageColor,
-                            userTextColor = userTextColor,
-                            aiTextColor = aiTextColor,
-                            systemMessageColor = systemMessageColor,
-                            systemTextColor = systemTextColor,
-                            thinkingBackgroundColor = thinkingBackgroundColor,
-                            thinkingTextColor = thinkingTextColor,
                             heightMemory = messageHeightMemory,
                             onSelectMessageToEdit = null,
                         )
@@ -894,27 +878,11 @@ private data object FloatingLoadingItem
 private fun FloatingMessageItem(
     index: Int,
     message: ChatMessage,
-    userMessageColor: Color,
-    aiMessageColor: Color,
-    userTextColor: Color,
-    aiTextColor: Color,
-    systemMessageColor: Color,
-    systemTextColor: Color,
-    thinkingBackgroundColor: Color,
-    thinkingTextColor: Color,
     heightMemory: ChatMessageHeightMemory,
     onSelectMessageToEdit: ((Int, ChatMessage, String) -> Unit)?,
 ) {
     CursorStyleChatMessage(
         message = message,
-        userMessageColor = userMessageColor,
-        aiMessageColor = aiMessageColor,
-        userTextColor = userTextColor,
-        aiTextColor = aiTextColor,
-        systemMessageColor = systemMessageColor,
-        systemTextColor = systemTextColor,
-        thinkingBackgroundColor = thinkingBackgroundColor,
-        thinkingTextColor = thinkingTextColor,
         heightMemory = heightMemory,
         index = index,
         enableDialogs = false,

@@ -854,6 +854,14 @@ class UserPreferencesManager private constructor(private val context: Context) {
         }
     }
 
+    fun getCustomChatTitleForCharacterCardFlow(characterCardId: String): Flow<String?> {
+        return context.userPreferencesDataStore.data.map { preferences ->
+            val prefix = getCharacterCardThemePrefix(characterCardId)
+            val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_CHAT_TITLE.name}")
+            preferences[key]
+        }
+    }
+
     suspend fun saveCustomChatTitleForCharacterGroup(characterGroupId: String, title: String?) {
         context.userPreferencesDataStore.edit { preferences ->
             val prefix = getCharacterGroupThemePrefix(characterGroupId)
@@ -863,6 +871,14 @@ class UserPreferencesManager private constructor(private val context: Context) {
             } else {
                 preferences.remove(key)
             }
+        }
+    }
+
+    fun getCustomChatTitleForCharacterGroupFlow(characterGroupId: String): Flow<String?> {
+        return context.userPreferencesDataStore.data.map { preferences ->
+            val prefix = getCharacterGroupThemePrefix(characterGroupId)
+            val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_CHAT_TITLE.name}")
+            preferences[key]
         }
     }
 

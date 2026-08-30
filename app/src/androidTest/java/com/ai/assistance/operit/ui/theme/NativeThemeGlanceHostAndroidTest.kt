@@ -2,23 +2,23 @@ package com.ai.assistance.operit.ui.theme
 
 import android.content.Context
 import android.os.Build
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ai.assistance.operit.data.preferences.NativeThemePreferenceSchemaV1
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,19 +33,14 @@ class NativeThemeGlanceHostAndroidTest {
     fun android12ContextProjectsDynamicColorsForBothLauncherModes() {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val snapshot =
-            ThemePreferenceSnapshot(
-                source = "character_card",
-                sourceId = "glance-android-test",
-                values = ThemePreferenceValues.defaultVisual(),
-            )
+        val presentation = GlobalPresentationSnapshot.default()
         val palette =
             resolveNativeThemeGlancePalette(
                 context = context,
-                snapshot = snapshot,
+                presentation = presentation,
             )
 
-        assertDynamicColorProjection(context, snapshot, palette)
+        assertDynamicColorProjection(context, presentation, palette)
 
         assertEquals(NativeThemeHostSurface.GLANCE, palette.dayTheme.environment.hostSurface)
         assertEquals(NativeThemeHostSurface.GLANCE, palette.nightTheme.environment.hostSurface)
@@ -55,19 +50,17 @@ class NativeThemeGlanceHostAndroidTest {
 
     @Test
     fun activeGlanceContentReprojectsForThemeAndDynamicColorChanges() {
-        val initialPrimary = Color(0xFF205080)
-        val changedPrimary = Color(0xFF805020)
-        val initialSnapshot = customColorSnapshot("glance-active-initial", initialPrimary)
-        val changedSnapshot = customColorSnapshot("glance-active-changed", changedPrimary)
-        val themeSnapshots = MutableStateFlow(initialSnapshot)
+        val initialPresentation = GlobalPresentationSnapshot(themeMode = GlobalThemeMode.LIGHT)
+        val changedPresentation = GlobalPresentationSnapshot(themeMode = GlobalThemeMode.DARK)
+        val presentations = MutableStateFlow(initialPresentation)
         val dynamicColorRevisions = MutableStateFlow(0)
         var observedPalette: NativeThemeGlancePaletteV1? = null
 
         composeTestRule.setContent {
             NativeThemeGlanceContentHost(
                 context = LocalContext.current,
-                initialSnapshot = initialSnapshot,
-                themeSnapshots = themeSnapshots,
+                initialPresentation = initialPresentation,
+                presentations = presentations,
                 dynamicColorRevisions = dynamicColorRevisions,
             ) { palette ->
                 SideEffect { observedPalette = palette }
@@ -75,15 +68,20 @@ class NativeThemeGlanceHostAndroidTest {
         }
 
         composeTestRule.runOnIdle {
-            assertEquals(initialPrimary, requireNotNull(observedPalette).primary.day)
+            val palette = requireNotNull(observedPalette)
+            org.junit.Assert.assertFalse(palette.dayTheme.darkTheme)
+            org.junit.Assert.assertTrue(palette.nightTheme.darkTheme)
         }
         val initialPalette = requireNotNull(observedPalette)
 
         composeTestRule.runOnIdle {
-            themeSnapshots.value = changedSnapshot
+            presentations.value = changedPresentation
         }
         composeTestRule.runOnIdle {
-            assertEquals(changedPrimary, requireNotNull(observedPalette).primary.day)
+            val palette = requireNotNull(observedPalette)
+            assertTrue(palette.dayTheme.darkTheme)
+            assertTrue(palette.nightTheme.darkTheme)
+            assertEquals(palette.primary.day, palette.primary.night)
         }
         val changedPalette = requireNotNull(observedPalette)
 
@@ -99,12 +97,12 @@ class NativeThemeGlanceHostAndroidTest {
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
     private fun assertDynamicColorProjection(
         context: Context,
-        snapshot: ThemePreferenceSnapshot,
+        presentation: GlobalPresentationSnapshot,
         palette: NativeThemeGlancePaletteV1,
     ) {
         val expected =
             resolveNativeThemeGlancePalette(
-                snapshot = snapshot,
+                presentation = presentation,
                 lightColorScheme = dynamicLightColorScheme(context),
                 darkColorScheme = dynamicDarkColorScheme(context),
             )
@@ -114,22 +112,4 @@ class NativeThemeGlanceHostAndroidTest {
         assertEquals(expected.onSurface.day, palette.onSurface.day)
         assertEquals(expected.onSurface.night, palette.onSurface.night)
     }
-
-    private fun customColorSnapshot(
-        sourceId: String,
-        primary: Color,
-    ): ThemePreferenceSnapshot =
-        ThemePreferenceSnapshot(
-            source = "character_card",
-            sourceId = sourceId,
-            values =
-                ThemePreferenceValues.defaultVisual()
-                    .withBoolean(NativeThemePreferenceSchemaV1.useSystemTheme, false)
-                    .withString(
-                        NativeThemePreferenceSchemaV1.themeMode,
-                        UserPreferencesManager.THEME_MODE_LIGHT,
-                    )
-                    .withBoolean(NativeThemePreferenceSchemaV1.useCustomColors, true)
-                    .withInt(NativeThemePreferenceSchemaV1.customPrimaryColor, primary.toArgb()),
-        )
 }

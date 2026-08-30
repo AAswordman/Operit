@@ -13,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.ai.assistance.operit.ui.common.markdown.StreamMarkdownRendererState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.model.ChatMessage
@@ -30,7 +29,7 @@ import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.onSizeChanged
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
 import com.ai.assistance.operit.ui.theme.ProvideAiMarkdownTextLayoutSettings
 
 /**
@@ -42,8 +41,6 @@ import com.ai.assistance.operit.ui.theme.ProvideAiMarkdownTextLayoutSettings
 @Composable
 fun AiMessageComposable(
     message: ChatMessage,
-    backgroundColor: Color,
-    textColor: Color,
     onLinkClick: ((String) -> Unit)? = null,
     initialThinkingExpanded: Boolean = false,
     allowExpandedThinkingFullHeight: Boolean = false,
@@ -55,15 +52,17 @@ fun AiMessageComposable(
 ) {
     val context = LocalContext.current
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
-    val themeSnapshot = LocalThemePreferenceSnapshot.current
-    val showThinkingProcess = themeSnapshot.showThinkingProcess
-    val showStatusTags = themeSnapshot.showStatusTags
+    val presentation = LocalGlobalPresentation.current
+    val showThinkingProcess = presentation.showThinkingProcess
+    val showStatusTags = presentation.showStatusTags
     val effectiveShowThinkingProcess = if (forceShowThinkingProcess) true else showThinkingProcess
-    
-    val showModelProvider = themeSnapshot.showModelProvider
-    val showModelName = themeSnapshot.showModelName
-    val showRoleName = themeSnapshot.showRoleName
+
+    val showModelProvider = presentation.showModelProvider
+    val showModelName = presentation.showModelName
+    val showRoleName = presentation.showRoleName
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val backgroundColor = MaterialTheme.colorScheme.surface
 
     // 链接预览弹窗状态
     var showLinkDialog by remember { mutableStateOf(false) }

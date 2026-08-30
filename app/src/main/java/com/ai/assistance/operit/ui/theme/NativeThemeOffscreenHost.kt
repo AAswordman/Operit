@@ -11,30 +11,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 
-internal fun resolveNativeThemeOffscreen(
+internal fun resolveGlobalThemeOffscreen(
     context: Context,
-    snapshot: ThemePreferenceSnapshot,
+    presentation: GlobalPresentationSnapshot,
     systemDarkTheme: Boolean,
-): ResolvedNativeThemeV1 =
-    resolveNativeThemeForDetachedComposeHost(
+): ResolvedGlobalTheme =
+    resolveGlobalThemeForDetachedComposeHost(
         context = context,
-        snapshot = snapshot,
+        presentation = presentation,
         hostSurface = NativeThemeHostSurface.OFFSCREEN,
         systemDarkTheme = systemDarkTheme,
     )
 
-internal fun resolveNativeThemeForDetachedComposeHost(
+internal fun resolveGlobalThemeForDetachedComposeHost(
     context: Context,
-    snapshot: ThemePreferenceSnapshot,
+    presentation: GlobalPresentationSnapshot,
     hostSurface: NativeThemeHostSurface,
     systemDarkTheme: Boolean,
-): ResolvedNativeThemeV1 {
+): ResolvedGlobalTheme {
     val (lightColorScheme, darkColorScheme) = resolveNativeThemeDetachedBaseColorSchemes(context)
 
-    return resolveNativeThemeForDetachedComposeHost(
-        snapshot = snapshot,
+    return resolveGlobalThemeForDetachedComposeHost(
+        presentation = presentation,
         hostSurface = hostSurface,
         systemDarkTheme = systemDarkTheme,
         lightColorScheme = lightColorScheme,
@@ -60,29 +60,15 @@ internal fun resolveNativeThemeDetachedBaseColorSchemes(
     return lightColorScheme to darkColorScheme
 }
 
-internal fun resolveNativeThemeOffscreen(
-    snapshot: ThemePreferenceSnapshot,
-    systemDarkTheme: Boolean,
-    lightColorScheme: ColorScheme,
-    darkColorScheme: ColorScheme,
-): ResolvedNativeThemeV1 =
-    resolveNativeThemeForDetachedComposeHost(
-        snapshot = snapshot,
-        hostSurface = NativeThemeHostSurface.OFFSCREEN,
-        systemDarkTheme = systemDarkTheme,
-        lightColorScheme = lightColorScheme,
-        darkColorScheme = darkColorScheme,
-    )
-
-internal fun resolveNativeThemeForDetachedComposeHost(
-    snapshot: ThemePreferenceSnapshot,
+internal fun resolveGlobalThemeForDetachedComposeHost(
+    presentation: GlobalPresentationSnapshot,
     hostSurface: NativeThemeHostSurface,
     systemDarkTheme: Boolean,
     lightColorScheme: ColorScheme,
     darkColorScheme: ColorScheme,
-): ResolvedNativeThemeV1 =
-    resolveNativeThemeV1(
-        snapshot = snapshot,
+): ResolvedGlobalTheme =
+    resolveGlobalThemeV1(
+        presentation = presentation,
         environment =
             NativeThemeEnvironment(
                 hostSurface = hostSurface,
@@ -93,11 +79,11 @@ internal fun resolveNativeThemeForDetachedComposeHost(
 
 @Composable
 internal fun NativeThemeOffscreenHost(
-    snapshot: ThemePreferenceSnapshot,
-    resolvedTheme: ResolvedNativeThemeV1,
+    presentation: GlobalPresentationSnapshot,
+    resolvedTheme: ResolvedGlobalTheme,
     content: @Composable () -> Unit,
 ) = NativeThemeResolvedComposeHost(
-    snapshot = snapshot,
+    presentation = presentation,
     resolvedTheme = resolvedTheme,
     content = content,
 )
@@ -124,17 +110,17 @@ private fun NativeThemeActiveDetachedComposeHost(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val snapshot = rememberActiveThemePreferenceSnapshot()
+    val presentation = rememberGlobalPresentation()
     val resolvedTheme =
-        resolveNativeThemeForDetachedComposeHost(
+        resolveGlobalThemeForDetachedComposeHost(
             context = context,
-            snapshot = snapshot,
+            presentation = presentation,
             hostSurface = hostSurface,
             systemDarkTheme = isSystemInDarkTheme(),
         )
 
     NativeThemeResolvedComposeHost(
-        snapshot = snapshot,
+        presentation = presentation,
         resolvedTheme = resolvedTheme,
         content = content,
     )
@@ -142,29 +128,21 @@ private fun NativeThemeActiveDetachedComposeHost(
 
 @Composable
 private fun NativeThemeResolvedComposeHost(
-    snapshot: ThemePreferenceSnapshot,
-    resolvedTheme: ResolvedNativeThemeV1,
+    presentation: GlobalPresentationSnapshot,
+    resolvedTheme: ResolvedGlobalTheme,
     content: @Composable () -> Unit,
 ) {
-    val context = LocalContext.current
     val typography =
-        remember(context, resolvedTheme.typography) {
-            createCustomTypography(
-                context = context,
-                useCustomFont = resolvedTheme.typography.useCustomFont,
-                fontType = resolvedTheme.typography.fontType,
-                systemFontName = resolvedTheme.typography.systemFontName,
-                customFontPath = resolvedTheme.typography.customFontPath,
-                fontScale = resolvedTheme.typography.fontScale,
-            )
+        remember(resolvedTheme.fontScale) {
+            createCustomTypography(fontScale = resolvedTheme.fontScale)
         }
 
     CompositionLocalProvider(
-        LocalThemePreferenceSnapshot provides snapshot,
-        LocalResolvedNativeThemeV1 provides resolvedTheme,
+        LocalGlobalPresentation provides presentation,
+        LocalResolvedGlobalTheme provides resolvedTheme,
     ) {
         MaterialTheme(
-            colorScheme = resolvedTheme.contentColorScheme,
+            colorScheme = resolvedTheme.colorScheme,
             typography = typography,
             content = content,
         )

@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -30,8 +29,6 @@ import com.ai.assistance.operit.data.model.ChatMessage
 @Composable
 fun SummaryMessageComposable(
     message: ChatMessage,
-    backgroundColor: Color,
-    textColor: Color,
     onDelete: () -> Unit,
     enableDialog: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
     onEdit: ((ChatMessage) -> Unit)? = null

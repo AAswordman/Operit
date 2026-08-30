@@ -1,7 +1,6 @@
 package com.ai.assistance.operit.ui.features.chat.components.style.cursor
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.ChatMessageHeightMemory
 import com.ai.assistance.operit.util.stream.Stream
@@ -13,16 +12,6 @@ import com.ai.assistance.operit.util.stream.Stream
 @Composable
 fun CursorStyleChatMessage(
         message: ChatMessage,
-        userMessageColor: Color,
-        userMessageLiquidGlassEnabled: Boolean = false,
-        userMessageWaterGlassEnabled: Boolean = false,
-        aiMessageColor: Color,
-        userTextColor: Color,
-        aiTextColor: Color,
-        systemMessageColor: Color,
-        systemTextColor: Color,
-        thinkingBackgroundColor: Color,
-        thinkingTextColor: Color,
         supportToolMarkup: Boolean = true,
         initialThinkingExpanded: Boolean = false,
         allowExpandedThinkingFullHeight: Boolean = false,
@@ -39,18 +28,12 @@ fun CursorStyleChatMessage(
         "user" -> {
             UserMessageComposable(
                     message = message,
-                    backgroundColor = userMessageColor,
-                    enableLiquidGlass = userMessageLiquidGlassEnabled,
-                    enableWaterGlass = userMessageWaterGlassEnabled,
-                    textColor = userTextColor,
                     enableDialogs = enableDialogs,
             )
         }
         "ai" -> {
             AiMessageComposable(
                     message = message,
-                    backgroundColor = aiMessageColor,
-                    textColor = aiTextColor,
                     initialThinkingExpanded = initialThinkingExpanded,
                     allowExpandedThinkingFullHeight = allowExpandedThinkingFullHeight,
                     expandThinkToolsGroups = expandThinkToolsGroups,
@@ -63,8 +46,6 @@ fun CursorStyleChatMessage(
         "summary" -> {
             SummaryMessageComposable(
                     message = message,
-                    backgroundColor = systemMessageColor.copy(alpha = 0.7f),
-                    textColor = systemTextColor,
                     onDelete = {
                         if (index != -1) {
                             onDeleteMessage?.invoke(index)

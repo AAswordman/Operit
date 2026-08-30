@@ -38,8 +38,6 @@ fun ChatHeader(
         modifier: Modifier = Modifier,
         onLaunchFloatingWindow: () -> Unit = {},
         isFloatingMode: Boolean = false,
-        historyIconColor: Int? = null,
-        pipIconColor: Int? = null,
         runningTaskCount: Int = 0,
         activeCharacterName: String,
         activeCharacterAvatarUri: String?,
@@ -70,9 +68,7 @@ fun ChatHeader(
                                                 imageVector = Icons.Default.History,
                                                 contentDescription =
                                                         if (showChatHistorySelector) stringResource(R.string.hide_history) else stringResource(R.string.show_history),
-                                                tint =
-                                                        historyIconColor?.let { Color(it) }
-                                                                ?: MaterialTheme.colorScheme.onPrimaryContainer,
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 modifier = Modifier.size(20.dp)
                                         )
                                         Text(
@@ -106,11 +102,10 @@ fun ChatHeader(
                                                 contentDescription =
                                                         if (showChatHistorySelector) stringResource(R.string.hide_history) else stringResource(R.string.show_history),
                                                 tint =
-                                                        historyIconColor?.let { Color(it) }
-                                                                ?: if (showChatHistorySelector)
-                                                                        MaterialTheme.colorScheme.primary
-                                                                else
-                                                                        MaterialTheme.colorScheme.onSurface
+                                                        if (showChatHistorySelector)
+                                                                MaterialTheme.colorScheme.primary
+                                                        else
+                                                                MaterialTheme.colorScheme.onSurface
                                                                                 .copy(alpha = 0.7f),
                                                 modifier = Modifier.size(20.dp)
                                         )
@@ -139,12 +134,11 @@ fun ChatHeader(
                                         contentDescription =
                                                 if (isFloatingMode) stringResource(R.string.close_floating_window) else stringResource(R.string.open_floating_window),
                                         tint =
-                                                pipIconColor?.let { Color(it) }
-                                                        ?: if (isFloatingMode)
-                                                                MaterialTheme.colorScheme.primary
-                                                        else
-                                                                MaterialTheme.colorScheme.onSurface
-                                                                        .copy(alpha = 0.7f),
+                                                if (isFloatingMode)
+                                                        MaterialTheme.colorScheme.primary
+                                                else
+                                                        MaterialTheme.colorScheme.onSurface
+                                                                .copy(alpha = 0.7f),
                                         modifier = Modifier.size(20.dp)
                                 )
                         }

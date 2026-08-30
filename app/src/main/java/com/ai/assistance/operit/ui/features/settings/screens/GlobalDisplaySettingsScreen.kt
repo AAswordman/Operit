@@ -44,7 +44,6 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.services.floating.StatusIndicatorStyle
 import com.ai.assistance.operit.ui.components.CustomScaffold
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import kotlin.math.roundToInt
@@ -88,7 +87,6 @@ fun GlobalDisplaySettingsScreen(
         initial = UserPreferencesManager.DEFAULT_LONG_PASTED_TEXT_FILE_THRESHOLD
     )
 
-    val hasBackgroundImage = LocalThemePreferenceSnapshot.current.useBackgroundImage
     val uiAccessibilityMode by userPreferences.uiAccessibilityMode.collectAsState(initial = false)
     val softwareIdentity by userPreferences.softwareIdentity.collectAsState(
         initial = UserPreferencesManager.SOFTWARE_IDENTITY_OPERIT
@@ -180,11 +178,7 @@ fun GlobalDisplaySettingsScreen(
         )
     }
 
-    val componentBackgroundColor = if (hasBackgroundImage) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-    }
+    val componentBackgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
     val selectedCollapseMode =
         collapseModeOptions[collapseModeSliderValue.roundToInt().coerceIn(0, collapseModeOptions.lastIndex)]
 

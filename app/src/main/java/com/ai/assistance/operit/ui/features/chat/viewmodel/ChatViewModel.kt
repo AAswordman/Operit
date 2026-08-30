@@ -6,7 +6,6 @@ import android.content.Intent
 import android.provider.Settings
 import com.ai.assistance.operit.util.AppLogger
 import androidx.activity.result.ActivityResultLauncher
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TextFieldValue.Companion
@@ -1002,21 +1001,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     fun shareMessages(
         context: Context,
         messageIndices: Set<Int>,
-        userMessageColor: Color,
-        aiMessageColor: Color,
-        userTextColor: Color,
-        aiTextColor: Color,
-        systemMessageColor: Color,
-        systemTextColor: Color,
-        thinkingBackgroundColor: Color,
-        thinkingTextColor: Color,
         chatStyle: ChatStyle,
-        cursorUserBubbleLiquidGlass: Boolean = false,
-        cursorUserBubbleWaterGlass: Boolean = false,
-        bubbleUserBubbleLiquidGlass: Boolean = false,
-        bubbleUserBubbleWaterGlass: Boolean = false,
-        bubbleAiBubbleLiquidGlass: Boolean = false,
-        bubbleAiBubbleWaterGlass: Boolean = false,
         initialThinkingExpanded: Boolean = false,
         expandThinkToolsGroups: Boolean = false,
         includeBackground: Boolean = true,
@@ -1048,21 +1033,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                     .generateMessageImage(
                         context = context,
                         messages = selectedMessages,
-                        userMessageColor = userMessageColor,
-                        aiMessageColor = aiMessageColor,
-                        userTextColor = userTextColor,
-                        aiTextColor = aiTextColor,
-                        systemMessageColor = systemMessageColor,
-                        systemTextColor = systemTextColor,
-                        thinkingBackgroundColor = thinkingBackgroundColor,
-                        thinkingTextColor = thinkingTextColor,
                         chatStyle = chatStyle,
-                        cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                        cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                        bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                        bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                        bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                        bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
                         initialThinkingExpanded = initialThinkingExpanded,
                         expandThinkToolsGroups = expandThinkToolsGroups,
                         includeBackground = includeBackground,

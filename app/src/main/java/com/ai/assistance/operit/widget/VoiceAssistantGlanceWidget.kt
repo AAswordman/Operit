@@ -27,7 +27,7 @@ import androidx.glance.layout.size
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.theme.NativeThemeGlanceHost
@@ -46,14 +46,12 @@ import kotlinx.coroutines.flow.first
 class VoiceAssistantGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val themeSnapshot =
-            ActivePromptManager.getInstance(context)
-                .activeThemePreferenceSnapshotFlow
-                .first()
+        val presentation =
+            GlobalPresentationManager.getInstance(context).snapshotFlow.first()
         provideContent {
             NativeThemeGlanceHost(
                 context = context,
-                initialSnapshot = themeSnapshot,
+                initialPresentation = presentation,
             ) { themePalette ->
                 VoiceAssistantWidgetContent(
                     context = context,

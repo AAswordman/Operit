@@ -2,7 +2,7 @@ package com.ai.assistance.operit.widget
 
 import android.content.Context
 import androidx.glance.appwidget.updateAll
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 
@@ -23,7 +23,7 @@ internal object NativeThemeGlanceWidgetHost {
     }
 
     internal suspend fun refreshForThemeChanges(
-        themeSnapshots: Flow<ThemePreferenceSnapshot>,
+        themeSnapshots: Flow<GlobalPresentationSnapshot>,
         onThemeChanged: suspend () -> Unit,
     ) {
         themeSnapshots.collect { onThemeChanged() }

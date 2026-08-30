@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.common.NavItem
 import com.ai.assistance.operit.ui.common.displays.FpsCounter
@@ -57,7 +57,6 @@ import com.ai.assistance.operit.ui.main.navigation.ScreenRouteViewModelStoreOwne
 import com.ai.assistance.operit.ui.main.navigation.retainedRouteKeysOnContentAttach
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -173,32 +172,7 @@ fun AppContent(
     val drawerNavigationOffsetPx =
         with(density) { if (useTabletLayout) 40.dp.toPx() else 30.dp.toPx() }
     ImeWakeListeningEffect(context = context, density = density)
-    val themeSnapshot = LocalThemePreferenceSnapshot.current
-    val useBackgroundImage = themeSnapshot.useBackgroundImage
-    val backgroundImageUri = themeSnapshot.backgroundImageUri
-    val hasBackgroundImage = useBackgroundImage && backgroundImageUri != null
-
-    // Get toolbar transparency setting
-    val toolbarTransparent = themeSnapshot.toolbarTransparent
-    
-    // Get AppBar custom color settings
-    val useCustomAppBarColor = themeSnapshot.useCustomAppBarColor
-    val customAppBarColor = themeSnapshot.customAppBarColor
-
-    // Get AppBar content color settings
-    val forceAppBarContentColor = themeSnapshot.forceAppBarContentColor
-    val appBarContentColorMode = themeSnapshot.appBarContentColorMode
-
-    val appBarContentColor =
-            if (forceAppBarContentColor) {
-                when (appBarContentColorMode) {
-                    UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_LIGHT -> Color.White
-                    UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_DARK -> Color.Black
-                    else -> MaterialTheme.colorScheme.onPrimary
-                }
-            } else {
-                MaterialTheme.colorScheme.onPrimary
-            }
+    val appBarContentColor = MaterialTheme.colorScheme.onPrimary
 
     // 获取聊天历史管理器
     val chatHistoryManager = ChatHistoryManager.getInstance(context)
@@ -206,7 +180,8 @@ fun AppContent(
     val chatHistories =
             chatHistoryManager.chatHistoriesFlow.collectAsState(initial = emptyList()).value
 
-    val customChatTitle = themeSnapshot.customChatTitle
+    val activePromptManager = remember(context) { ActivePromptManager.getInstance(context) }
+    val customChatTitle by activePromptManager.activeCustomChatTitleFlow.collectAsState(initial = null)
 
 
     // 当前聊天标题
@@ -351,12 +326,7 @@ fun AppContent(
                     actions = actions,
                     colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor =
-                        when {
-                            toolbarTransparent -> Color.Transparent
-                            useCustomAppBarColor && customAppBarColor != null -> Color(customAppBarColor)
-                            else -> MaterialTheme.colorScheme.primary
-                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = appBarContentColor,
                         navigationIconContentColor = appBarContentColor,
                         actionIconContentColor = appBarContentColor
@@ -381,9 +351,7 @@ fun AppContent(
                         }
                     )
                     .fillMaxSize(),
-                color =
-                if (hasBackgroundImage) Color.Transparent
-                else MaterialTheme.colorScheme.background
+                color = MaterialTheme.colorScheme.background
             ) {
                 if (isLoading) {
                     // 加载中状态
@@ -446,7 +414,7 @@ fun AppContent(
                                                 navController = navController,
                                                 navigateTo = onScreenChange,
                                                 onGoBack = onGoBack,
-                                                hasBackgroundImage = hasBackgroundImage,
+                                                hasBackgroundImage = false,
                                                 onLoading = onLoading,
                                                 onError = onError,
                                                 onGestureConsumed = if (screenSnapshot is Screen.AiChat) onGestureConsumed else { _ -> }

@@ -9,8 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.glance.color.ColorProvider as DayNightColorProvider
 import androidx.glance.unit.ColorProvider
-import com.ai.assistance.operit.data.preferences.ActivePromptManager
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 import java.lang.reflect.Field
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
@@ -33,8 +33,8 @@ internal data class NativeThemeGlanceColor(
 }
 
 internal data class NativeThemeGlancePaletteV1(
-    val dayTheme: ResolvedNativeThemeV1,
-    val nightTheme: ResolvedNativeThemeV1,
+    val dayTheme: ResolvedGlobalTheme,
+    val nightTheme: ResolvedGlobalTheme,
     val primary: NativeThemeGlanceColor,
     val onPrimary: NativeThemeGlanceColor,
     val primaryContainer: NativeThemeGlanceColor,
@@ -72,14 +72,14 @@ internal object NativeThemeGlanceDynamicColorTracker {
 @Composable
 internal fun NativeThemeGlanceHost(
     context: Context,
-    initialSnapshot: ThemePreferenceSnapshot,
+    initialPresentation: GlobalPresentationSnapshot,
     content: @Composable (NativeThemeGlancePaletteV1) -> Unit,
 ) {
-    val activePromptManager = remember(context) { ActivePromptManager.getInstance(context) }
+    val presentationManager = remember(context) { GlobalPresentationManager.getInstance(context) }
     NativeThemeGlanceContentHost(
         context = context,
-        initialSnapshot = initialSnapshot,
-        themeSnapshots = activePromptManager.activeThemePreferenceSnapshotFlow,
+        initialPresentation = initialPresentation,
+        presentations = presentationManager.snapshotFlow,
         dynamicColorRevisions = NativeThemeGlanceDynamicColorTracker.revision,
         content = content,
     )
@@ -88,16 +88,16 @@ internal fun NativeThemeGlanceHost(
 @Composable
 internal fun NativeThemeGlanceContentHost(
     context: Context,
-    initialSnapshot: ThemePreferenceSnapshot,
-    themeSnapshots: Flow<ThemePreferenceSnapshot>,
+    initialPresentation: GlobalPresentationSnapshot,
+    presentations: Flow<GlobalPresentationSnapshot>,
     dynamicColorRevisions: StateFlow<Int>,
     content: @Composable (NativeThemeGlancePaletteV1) -> Unit,
 ) {
-    val snapshot by themeSnapshots.collectAsState(initial = initialSnapshot)
+    val presentation by presentations.collectAsState(initial = initialPresentation)
     val dynamicColorRevision by dynamicColorRevisions.collectAsState()
     val themePalette =
-        remember(context, snapshot, dynamicColorRevision) {
-            resolveNativeThemeGlancePalette(context, snapshot)
+        remember(context, presentation, dynamicColorRevision) {
+            resolveNativeThemeGlancePalette(context, presentation)
         }
     content(themePalette)
 }
@@ -142,32 +142,32 @@ private fun resolveNativeThemeGlanceColorPairs(
 
 internal fun resolveNativeThemeGlancePalette(
     context: Context,
-    snapshot: ThemePreferenceSnapshot,
+    presentation: GlobalPresentationSnapshot,
 ): NativeThemeGlancePaletteV1 {
     val (lightColorScheme, darkColorScheme) = resolveNativeThemeDetachedBaseColorSchemes(context)
     return resolveNativeThemeGlancePalette(
-        snapshot = snapshot,
+        presentation = presentation,
         lightColorScheme = lightColorScheme,
         darkColorScheme = darkColorScheme,
     )
 }
 
 internal fun resolveNativeThemeGlancePalette(
-    snapshot: ThemePreferenceSnapshot,
+    presentation: GlobalPresentationSnapshot,
     lightColorScheme: ColorScheme,
     darkColorScheme: ColorScheme,
 ): NativeThemeGlancePaletteV1 {
     val dayTheme =
-        resolveNativeThemeForDetachedComposeHost(
-            snapshot = snapshot,
+        resolveGlobalThemeForDetachedComposeHost(
+            presentation = presentation,
             hostSurface = NativeThemeHostSurface.GLANCE,
             systemDarkTheme = false,
             lightColorScheme = lightColorScheme,
             darkColorScheme = darkColorScheme,
         )
     val nightTheme =
-        resolveNativeThemeForDetachedComposeHost(
-            snapshot = snapshot,
+        resolveGlobalThemeForDetachedComposeHost(
+            presentation = presentation,
             hostSurface = NativeThemeHostSurface.GLANCE,
             systemDarkTheme = true,
             lightColorScheme = lightColorScheme,

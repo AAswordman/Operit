@@ -29,19 +29,15 @@ class ActivePromptManager private constructor(context: Context) {
         }.distinctUntilChanged()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val activeThemePreferenceSnapshotFlow: Flow<ThemePreferenceSnapshot> =
+    val activeCustomChatTitleFlow: Flow<String?> =
         activePromptFlow
             .flatMapLatest { prompt ->
                 when (prompt) {
                     is ActivePrompt.CharacterGroup ->
-                        userPreferencesManager.observeThemePreferenceSnapshot(
-                            characterGroupId = prompt.id,
-                        )
+                        userPreferencesManager.getCustomChatTitleForCharacterGroupFlow(prompt.id)
 
                     is ActivePrompt.CharacterCard ->
-                        userPreferencesManager.observeThemePreferenceSnapshot(
-                            characterCardId = prompt.id,
-                        )
+                        userPreferencesManager.getCustomChatTitleForCharacterCardFlow(prompt.id)
                 }
             }
             .distinctUntilChanged()

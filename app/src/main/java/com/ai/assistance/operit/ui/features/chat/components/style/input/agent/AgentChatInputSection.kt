@@ -69,23 +69,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
@@ -100,7 +86,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
@@ -151,10 +136,6 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.r
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
-import com.ai.assistance.operit.ui.theme.liquidGlass
-import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.ChatUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -181,11 +162,6 @@ fun AgentChatInputSection(
     onAttachMemory: () -> Unit = {},
     onAttachPackage: (String) -> Unit = {},
     onTakePhoto: (Uri) -> Unit,
-    hasBackgroundImage: Boolean = false,
-    chatInputTransparent: Boolean = false,
-    chatInputFloating: Boolean = false,
-    chatInputLiquidGlass: Boolean = false,
-    chatInputWaterGlass: Boolean = false,
     modifier: Modifier = Modifier,
     externalAttachmentPanelState: Boolean? = null,
     onAttachmentPanelStateChange: ((Boolean) -> Unit)? = null,
@@ -497,39 +473,6 @@ fun AgentChatInputSection(
         }
     }
 
-    val isDarkTheme = MaterialTheme.colorScheme.onSurface.luminance() > 0.5f
-    val darkModeInputColor =
-        lerp(
-            MaterialTheme.colorScheme.surface,
-            MaterialTheme.colorScheme.onSurface,
-            0.08f,
-        )
-
-    val inputContainerColor =
-        when {
-            chatInputTransparent -> Color.Transparent
-            isDarkTheme && hasBackgroundImage -> darkModeInputColor.copy(alpha = 0.82f)
-            isDarkTheme -> darkModeInputColor
-            hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-            else -> MaterialTheme.colorScheme.surface
-        }
-    val popupContainerColor =
-        when {
-            isDarkTheme && chatInputTransparent -> darkModeInputColor
-            isDarkTheme -> inputContainerColor
-            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-        }
-    val queueContainerColor =
-        when {
-            chatInputTransparent -> MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
-            else -> inputContainerColor
-        }
-    val queueItemColor =
-        when {
-            chatInputTransparent -> MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-            isDarkTheme -> MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-            else -> MaterialTheme.colorScheme.surface
-        }
     val modelLabel =
         if (displayModelName.isBlank()) {
             context.getString(R.string.model_config)
@@ -648,14 +591,7 @@ fun AgentChatInputSection(
             Triple(MaterialTheme.colorScheme.primary, "", 0f)
         }
 
-    val floatingContainerModifier =
-        if (chatInputFloating) {
-            modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-        } else {
-            modifier
-        }
-
-    Surface(color = Color.Transparent, modifier = floatingContainerModifier) {
+    Surface(color = Color.Transparent, modifier = modifier) {
         Column {
             replyToMessage?.let { message ->
                 Surface(
@@ -709,8 +645,6 @@ fun AgentChatInputSection(
                 onDeleteMessage = onDeletePendingQueueMessage,
                 onEditMessage = onEditPendingQueueMessage,
                 onSendMessage = onSendPendingQueueMessage,
-                containerColor = queueContainerColor,
-                itemColor = queueItemColor,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )
 
@@ -753,381 +687,21 @@ fun AgentChatInputSection(
                 }
             }
 
-            val inputCardShape =
-                if (chatInputFloating) {
-                    RoundedCornerShape(22.dp)
-                } else {
-                    RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                }
-            val inputLiquidGlassEnabled =
-                chatInputTransparent && chatInputLiquidGlass && !chatInputWaterGlass && isLiquidGlassSupported()
-            val inputWaterGlassEnabled =
-                chatInputTransparent && chatInputWaterGlass && isWaterGlassSupported()
-            val inputLiquidGlassTint =
-                if (isDarkTheme) {
-                    darkModeInputColor
-                } else {
-                    MaterialTheme.colorScheme.surface
-                }
-            val inputContainerEffectModifier =
-                if (isDarkTheme) {
-                    Modifier.topEdgeHighlight(
-                        shape = inputCardShape,
-                        lineColor =
-                            MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = if (chatInputFloating) 0.03f else 0.05f,
-                            ),
-                        glowColor =
-                            MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = if (chatInputFloating) 0.008f else 0.015f,
-                            ),
-                        glowHeight = if (chatInputFloating) 1.dp else 2.dp,
-                    )
-                } else {
-                    Modifier.outerDiffuseShadow(
-                        shape = inputCardShape,
-                        spread = if (chatInputFloating) 3.dp else 6.dp,
-                    )
-                }
-
-            if (chatInputTransparent) {
-                // 透明模式：暗色顶部高光，亮色保持原阴影
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = if (chatInputFloating) 2.dp else 4.dp)
-                            .then(inputContainerEffectModifier)
-                            .waterGlass(
-                                enabled = inputWaterGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.7.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.04f else 0.08f,
-                            )
-                            .liquidGlass(
-                                enabled = inputLiquidGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.42.dp,
-                                blurRadius = if (chatInputFloating) 16.dp else 20.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.06f else 0.10f,
-                            )
-                            .clip(inputCardShape)
-                            .background(
-                                if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    inputContainerColor
-                                }
-                            ),
-                ) {
+            val inputCardShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .clip(inputCardShape)
+                        .background(MaterialTheme.colorScheme.surface),
+            ) {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = userMessage,
-                        onValueChange = onUserMessageChange,
-                        visualTransformation = mentionVisualTransformation,
-                        placeholder = {
-                            Text(
-                                if (isWorkspaceOpen) {
-                                    context.getString(R.string.input_question_with_workspace)
-                                } else {
-                                    context.getString(R.string.input_question_hint)
-                                },
-                                style = inputTextStyle,
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
-                        textStyle = inputTextStyle,
-                        maxLines = 6,
-                        minLines = 1,
-                        singleLine = false,
-                        keyboardOptions =
-                            KeyboardOptions(
-                                imeAction = if (enableEnterToSend) ImeAction.Send else ImeAction.Default
-                            ),
-                        keyboardActions =
-                            if (enableEnterToSend) {
-                                KeyboardActions(onSend = { handleEnterSendAction() })
-                            } else {
-                                KeyboardActions()
-                            },
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent,
-                                disabledBorderColor = Color.Transparent,
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                            ),
-                        shape = RoundedCornerShape(14.dp),
-                        trailingIcon = {
-                            IconButton(onClick = { showFullscreenInput.value = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.Fullscreen,
-                                    contentDescription = stringResource(R.string.chat_fullscreen_input),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                        enabled = !isProcessing || allowTextInputWhileProcessing,
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier.weight(1f),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color.Transparent,
-                                modifier =
-                                    Modifier
-                                        .widthIn(min = 0.dp, max = 220.dp)
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                            shape = RoundedCornerShape(12.dp),
-                                        )
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .clickable(onClick = onModelSelectorClick),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = modelLabel,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.widthIn(max = 160.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector =
-                                            if (showModelSelectorPopup.value) {
-                                                Icons.Default.KeyboardArrowUp
-                                            } else {
-                                                Icons.Default.KeyboardArrowDown
-                                            },
-                                        contentDescription = context.getString(R.string.select_model_config),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            }
-                        }
-
-                        Box(
-                            modifier =
-                                Modifier
-                                    .padding(start = 6.dp)
-                                    .size(34.dp)
-                                    .clickable(
-                                        enabled = true,
-                                        onClick = {
-                                            showModelSelectorPopup.value = false
-                                            showExtraSettingsPopup.value = !showExtraSettingsPopup.value
-                                        },
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Tune,
-                                contentDescription = context.getString(R.string.settings_options),
-                                tint =
-                                    if (showExtraSettingsPopup.value) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-
-                        Box(
-                            modifier =
-                                Modifier
-                                    .padding(start = 8.dp)
-                                    .size(36.dp)
-                                    .clickable(
-                                        enabled = true,
-                                        onClick = {
-                                            showModelSelectorPopup.value = false
-                                            showExtraSettingsPopup.value = false
-                                            setShowAttachmentPanel(!showAttachmentPanel)
-                                        },
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = context.getString(R.string.add_attachment),
-                                tint =
-                                    if (showAttachmentPanel) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                                    },
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        val actionButtonBackground =
-                            when {
-                                showCancelAction -> MaterialTheme.colorScheme.error
-                                showQueueAction -> MaterialTheme.colorScheme.tertiary
-                                canSendMessage ->
-                                    if (isOverTokenLimit) {
-                                        MaterialTheme.colorScheme.secondary
-                                    } else {
-                                        MaterialTheme.colorScheme.primary
-                                    }
-                                else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                            }
-
-                        val actionButtonIconTint =
-                            when {
-                                showCancelAction -> MaterialTheme.colorScheme.onError
-                                showQueueAction -> MaterialTheme.colorScheme.onTertiary
-                                canSendMessage ->
-                                    if (isOverTokenLimit) {
-                                        MaterialTheme.colorScheme.onSecondary
-                                    } else {
-                                        MaterialTheme.colorScheme.onPrimary
-                                    }
-                                else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
-                            }
-
-                        Box(
-                            modifier = Modifier.size(40.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (showProcessingStatus) {
-                                CircularProgressIndicator(
-                                    progress = { processingProgressValue },
-                                    modifier = Modifier.fillMaxSize(),
-                                    color = processingProgressColor,
-                                    trackColor = processingProgressColor.copy(alpha = 0.2f),
-                                    strokeWidth = 2.dp,
-                                )
-                            }
-
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(36.dp)
-                                        .background(actionButtonBackground, CircleShape)
-                                        .clickable(
-                                            enabled = sendButtonEnabled,
-                                            onClick = {
-                                                when {
-                                                    showCancelAction -> onCancelMessage()
-                                                    showQueueAction -> {
-                                                        onQueueMessage()
-                                                        setShowAttachmentPanel(false)
-                                                    }
-                                                    canSendMessage -> {
-                                                        if (isOverTokenLimit) {
-                                                            showTokenLimitDialog.value = true
-                                                        } else {
-                                                            onSendMessage()
-                                                            setShowAttachmentPanel(false)
-                                                        }
-                                                    }
-                                                    else -> {
-                                                        actualViewModel.onFloatingButtonClick(
-                                                            FloatingMode.FULLSCREEN,
-                                                            voicePermissionLauncher,
-                                                        )
-                                                    }
-                                                }
-                                            },
-                                        ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector =
-                                        when {
-                                            showCancelAction -> Icons.Default.Close
-                                            showQueueAction -> Icons.Default.Add
-                                            canSendMessage -> Icons.AutoMirrored.Filled.Send
-                                            else -> Icons.Default.Mic
-                                        },
-                                    contentDescription =
-                                        when {
-                                            showCancelAction -> context.getString(R.string.cancel)
-                                            showQueueAction -> context.getString(R.string.chat_queue_add_message)
-                                            canSendMessage -> context.getString(R.string.send)
-                                            else -> context.getString(R.string.voice_input)
-                                        },
-                                    tint = actionButtonIconTint,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        }
-                    }
-
-                    tokenLimitWarning()
-                }
-            }
-            } else {
-                // 非透明模式：暗色顶部高光，亮色保持原阴影
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = if (chatInputFloating) 2.dp else 4.dp)
-                            .then(inputContainerEffectModifier)
-                            .waterGlass(
-                                enabled = inputWaterGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.7.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.04f else 0.08f,
-                            )
-                            .liquidGlass(
-                                enabled = inputLiquidGlassEnabled,
-                                shape = inputCardShape,
-                                containerColor = inputLiquidGlassTint,
-                                shadowElevation = if (chatInputFloating) 12.dp else 18.dp,
-                                borderWidth = 0.42.dp,
-                                blurRadius = if (chatInputFloating) 16.dp else 20.dp,
-                                overlayAlphaBoost = if (chatInputFloating) 0.06f else 0.10f,
-                            )
-                            .clip(inputCardShape)
-                            .background(
-                                if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                                    Color.Transparent
-                                } else {
-                                    inputContainerColor
-                                }
-                            ),
-                ) {
-                    Column(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
+                ) {
                         OutlinedTextField(
                             value = userMessage,
                             onValueChange = onUserMessageChange,
@@ -1384,13 +958,11 @@ fun AgentChatInputSection(
                         }
 
                         tokenLimitWarning()
-                    }
                 }
             }
 
             AgentModelSelectorPopup(
                 visible = showModelSelectorPopup.value,
-                popupContainerColor = popupContainerColor,
                 configSummaries = configSummaries,
                 currentConfigMapping = effectiveConfigMapping,
                 enableThinkingMode = enableThinkingMode,
@@ -1415,7 +987,6 @@ fun AgentChatInputSection(
 
             AgentExtraSettingsPopup(
                 visible = showExtraSettingsPopup.value,
-                popupContainerColor = popupContainerColor,
                 preferenceProfiles = preferenceProfiles,
                 currentProfileId = effectiveProfileId,
                 onSelectMemory = onSelectMemory,
@@ -1450,7 +1021,6 @@ fun AgentChatInputSection(
 
             AttachmentSelectorPopupPanel(
                 visible = showAttachmentPanel,
-                containerColor = popupContainerColor,
                 onAttachImage = { filePath -> onAttachmentRequest(filePath) },
                 onAttachFile = { filePath -> onAttachmentRequest(filePath) },
                 onAttachScreenContent = onAttachScreenContent,
@@ -1477,7 +1047,6 @@ fun AgentChatInputSection(
 @Composable
 private fun AgentModelSelectorPopup(
     visible: Boolean,
-    popupContainerColor: Color,
     configSummaries: List<ModelConfigSummary>,
     currentConfigMapping: FunctionConfigMapping,
     enableThinkingMode: Boolean,
@@ -1581,7 +1150,6 @@ private fun AgentModelSelectorPopup(
                 shape = RoundedCornerShape(8.dp),
                 colors =
                     CardDefaults.cardColors(
-                        containerColor = popupContainerColor,
                     ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
@@ -1593,7 +1161,6 @@ private fun AgentModelSelectorPopup(
                             .verticalScroll(rememberScrollState()),
                 ) {
                     AgentThinkingSettingsItem(
-                        popupContainerColor = popupContainerColor,
                         enableThinkingMode = enableThinkingMode || thinkingQualityMapping?.reasoningRequired == true,
                         onToggleThinkingMode = if (thinkingQualityMapping?.reasoningRequired == true) ({}) else onToggleThinkingMode,
                         thinkingOptionId = thinkingOptionId,
@@ -1667,7 +1234,6 @@ private fun AgentModelSelectorPopup(
                         },
                     )
                     AgentModelSelectorItem(
-                        popupContainerColor = popupContainerColor,
                         configSummaries = configSummaries,
                         currentConfigMapping = currentConfigMapping,
                         onSelectModel = onSelectModel,
@@ -1685,7 +1251,6 @@ private fun AgentModelSelectorPopup(
             }
             infoPopupContent?.let { content ->
                 AgentInfoPopup(
-                    popupContainerColor = popupContainerColor,
                     infoPopupContent = content,
                     onDismiss = { infoPopupContent = null },
                 )
@@ -1696,7 +1261,6 @@ private fun AgentModelSelectorPopup(
 
 @Composable
 private fun AgentThinkingSettingsItem(
-    popupContainerColor: Color,
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
     thinkingOptionId: String,
@@ -1768,7 +1332,7 @@ private fun AgentThinkingSettingsItem(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .background(popupContainerColor)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 12.dp),
         ) {
             AgentThinkingSubSettingItem(
@@ -1948,7 +1512,6 @@ private fun AgentMaxContextSettingItem(
 
 @Composable
 private fun AgentModelSelectorItem(
-    popupContainerColor: Color,
     configSummaries: List<ModelConfigSummary>,
     currentConfigMapping: FunctionConfigMapping,
     onSelectModel: (String, Int) -> Unit,
@@ -2035,7 +1598,7 @@ private fun AgentModelSelectorItem(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .background(popupContainerColor)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
             if (configSummaries.isEmpty()) {
@@ -2135,7 +1698,7 @@ private fun AgentModelSelectorItem(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .background(popupContainerColor)
+                                        .background(MaterialTheme.colorScheme.surface)
                                         .padding(start = 16.dp, top = 4.dp, bottom = 4.dp, end = 8.dp),
                             ) {
                                 val validIndex =
@@ -2217,7 +1780,6 @@ private fun AgentModelSelectorItem(
 @Composable
 private fun AgentExtraSettingsPopup(
     visible: Boolean,
-    popupContainerColor: Color,
     preferenceProfiles: List<MemorySpace>,
     currentProfileId: String,
     onSelectMemory: (String) -> Unit,
@@ -2320,7 +1882,6 @@ private fun AgentExtraSettingsPopup(
                 shape = RoundedCornerShape(8.dp),
                 colors =
                     CardDefaults.cardColors(
-                        containerColor = popupContainerColor,
                     ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
@@ -2455,7 +2016,6 @@ private fun AgentExtraSettingsPopup(
             )
             infoPopupContent?.let { content ->
                 AgentInfoPopup(
-                    popupContainerColor = popupContainerColor,
                     infoPopupContent = content,
                     onDismiss = { infoPopupContent = null },
                 )
@@ -3056,7 +2616,6 @@ private fun AgentActionSettingItem(
 
 @Composable
 private fun AgentInfoPopup(
-    popupContainerColor: Color,
     infoPopupContent: Pair<String, String>,
     onDismiss: () -> Unit,
 ) {
@@ -3094,7 +2653,6 @@ private fun AgentInfoPopup(
                 shape = RoundedCornerShape(8.dp),
                 colors =
                     CardDefaults.cardColors(
-                        containerColor = popupContainerColor,
                     ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
@@ -3120,219 +2678,3 @@ private fun AgentInfoPopup(
     }
 }
 
-private fun Modifier.outerDiffuseShadow(
-    shape: Shape,
-    spread: Dp,
-    color: Color = Color.Black.copy(alpha = 0.025f),
-    layers: Int = 5,
-): Modifier =
-    this.drawWithCache {
-        val outline = shape.createOutline(size, layoutDirection, this)
-        val innerPath = outlineToPath(outline)
-        val layerCount = layers.coerceAtLeast(1)
-        val spreadPx = spread.toPx().coerceAtLeast(0f)
-
-        onDrawWithContent {
-            drawContent()
-            if (spreadPx <= 0f || color.alpha <= 0f) return@onDrawWithContent
-
-            clipPath(innerPath, clipOp = ClipOp.Difference) {
-                when (outline) {
-                    is Outline.Generic -> {
-                        repeat(layerCount) { index ->
-                            val ratio = (index + 1) / layerCount.toFloat()
-                            val strokeWidth = spreadPx * ratio * 2f
-                            val alpha = color.alpha * (1f - ratio).coerceAtLeast(0f)
-                            if (strokeWidth > 0f && alpha > 0f) {
-                                drawPath(
-                                    path = outline.path,
-                                    color = color.copy(alpha = alpha),
-                                    style = Stroke(width = strokeWidth),
-                                )
-                            }
-                        }
-                    }
-
-                    else -> {
-                        repeat(layerCount) { index ->
-                            val ratio = (index + 1) / layerCount.toFloat()
-                            val expansion = spreadPx * ratio
-                            val alpha = color.alpha * (1f - ratio).coerceAtLeast(0f)
-                            if (alpha > 0f) {
-                                drawPath(
-                                    path = expandedOutlinePath(outline, expansion),
-                                    color = color.copy(alpha = alpha),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-private fun Modifier.topEdgeHighlight(
-    shape: Shape,
-    lineColor: Color,
-    glowColor: Color,
-    lineWidth: Dp = 1.dp,
-    glowHeight: Dp = 12.dp,
-): Modifier =
-    this.drawWithCache {
-        val outline = shape.createOutline(size, layoutDirection, this)
-        val innerPath = outlineToPath(outline)
-        val lineWidthPx = lineWidth.toPx().coerceAtLeast(0f)
-        val glowHeightPx = glowHeight.toPx().coerceAtLeast(0f)
-
-        onDrawWithContent {
-            drawContent()
-            if ((lineColor.alpha <= 0f && glowColor.alpha <= 0f) || size.width <= 0f || size.height <= 0f) {
-                return@onDrawWithContent
-            }
-
-            clipPath(innerPath) {
-                if (glowColor.alpha > 0f && glowHeightPx > 0f) {
-                    val glowLayers = 4
-                    repeat(glowLayers) { index ->
-                        val ratio = (index + 1) / glowLayers.toFloat()
-                        val strokeWidth = lineWidthPx + glowHeightPx * ratio * 2f
-                        val alpha = glowColor.alpha * (1f - ratio).coerceAtLeast(0f)
-                        if (alpha <= 0f || strokeWidth <= 0f) return@repeat
-
-                        when (outline) {
-                            is Outline.Rounded -> {
-                                drawRoundedTopEdge(
-                                    roundRect = outline.roundRect,
-                                    color = glowColor.copy(alpha = alpha),
-                                    strokeWidth = strokeWidth,
-                                )
-                            }
-
-                            else -> {
-                                drawLine(
-                                    color = glowColor.copy(alpha = alpha),
-                                    start = Offset(0f, 0f),
-                                    end = Offset(size.width, 0f),
-                                    strokeWidth = strokeWidth,
-                                )
-                            }
-                        }
-                    }
-                }
-                if (lineColor.alpha > 0f && lineWidthPx > 0f) {
-                    when (outline) {
-                        is Outline.Rounded -> {
-                            drawRoundedTopEdge(
-                                roundRect = outline.roundRect,
-                                color = lineColor,
-                                strokeWidth = lineWidthPx,
-                            )
-                        }
-
-                        else -> {
-                            drawLine(
-                                color = lineColor,
-                                start = Offset(0f, 0f),
-                                end = Offset(size.width, 0f),
-                                strokeWidth = lineWidthPx,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoundedTopEdge(
-    roundRect: RoundRect,
-    color: Color,
-    strokeWidth: Float,
-) {
-    val leftRadius = roundRect.topLeftCornerRadius.x.coerceAtLeast(0f)
-    val rightRadius = roundRect.topRightCornerRadius.x.coerceAtLeast(0f)
-    val y = roundRect.top
-    val startX = roundRect.left + leftRadius
-    val endX = roundRect.right - rightRadius
-
-    if (endX > startX) {
-        drawLine(
-            color = color,
-            start = Offset(startX, y),
-            end = Offset(endX, y),
-            strokeWidth = strokeWidth,
-        )
-    }
-
-    if (leftRadius > 0f) {
-        drawArc(
-            color = color,
-            startAngle = 180f,
-            sweepAngle = 90f,
-            useCenter = false,
-            topLeft = Offset(roundRect.left, roundRect.top),
-            size = Size(leftRadius * 2f, leftRadius * 2f),
-            style = Stroke(width = strokeWidth),
-        )
-    }
-
-    if (rightRadius > 0f) {
-        drawArc(
-            color = color,
-            startAngle = 270f,
-            sweepAngle = 90f,
-            useCenter = false,
-            topLeft = Offset(roundRect.right - rightRadius * 2f, roundRect.top),
-            size = Size(rightRadius * 2f, rightRadius * 2f),
-            style = Stroke(width = strokeWidth),
-        )
-    }
-}
-
-private fun outlineToPath(outline: Outline): Path =
-    Path().apply {
-        when (outline) {
-            is Outline.Rectangle -> addRect(outline.rect)
-            is Outline.Rounded -> addRoundRect(outline.roundRect)
-            is Outline.Generic -> addPath(outline.path)
-        }
-    }
-
-private fun expandedOutlinePath(outline: Outline, expansion: Float): Path =
-    Path().apply {
-        when (outline) {
-            is Outline.Rectangle -> {
-                addRect(
-                    Rect(
-                        left = outline.rect.left - expansion,
-                        top = outline.rect.top - expansion,
-                        right = outline.rect.right + expansion,
-                        bottom = outline.rect.bottom + expansion,
-                    ),
-                )
-            }
-
-            is Outline.Rounded -> {
-                val rounded = outline.roundRect
-                addRoundRect(
-                    RoundRect(
-                        left = rounded.left - expansion,
-                        top = rounded.top - expansion,
-                        right = rounded.right + expansion,
-                        bottom = rounded.bottom + expansion,
-                        topLeftCornerRadius = expandCornerRadius(rounded.topLeftCornerRadius, expansion),
-                        topRightCornerRadius = expandCornerRadius(rounded.topRightCornerRadius, expansion),
-                        bottomRightCornerRadius = expandCornerRadius(rounded.bottomRightCornerRadius, expansion),
-                        bottomLeftCornerRadius = expandCornerRadius(rounded.bottomLeftCornerRadius, expansion),
-                    ),
-                )
-            }
-
-            is Outline.Generic -> addPath(outline.path)
-        }
-    }
-
-private fun expandCornerRadius(base: CornerRadius, expansion: Float): CornerRadius =
-    CornerRadius(
-        x = (base.x + expansion).coerceAtLeast(0f),
-        y = (base.y + expansion).coerceAtLeast(0f),
-    )

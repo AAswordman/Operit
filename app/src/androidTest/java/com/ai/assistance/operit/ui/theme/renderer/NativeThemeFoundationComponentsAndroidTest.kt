@@ -35,13 +35,12 @@ import com.ai.assistance.operit.ui.theme.renderer.data.NativeThemeStatV1
 import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusKindV1
 import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusV1
 import com.ai.assistance.operit.ui.theme.renderer.input.NativeThemeChoiceItemV1
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 import com.ai.assistance.operit.ui.theme.NativeThemeHostSurface
 import com.ai.assistance.operit.ui.theme.NativeThemeOffscreenHost
 import com.ai.assistance.operit.ui.theme.NativeThemeV1DarkColorScheme
 import com.ai.assistance.operit.ui.theme.NativeThemeV1LightColorScheme
-import com.ai.assistance.operit.ui.theme.resolveNativeThemeForDetachedComposeHost
+import com.ai.assistance.operit.ui.theme.resolveGlobalThemeForDetachedComposeHost
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -266,22 +265,17 @@ class NativeThemeFoundationComponentsAndroidTest {
 
     @Composable
     private fun NativeThemeStatTestHost(content: @Composable () -> Unit) {
-        val snapshot =
-            ThemePreferenceSnapshot(
-                source = "character_card",
-                sourceId = "default_character",
-                values = ThemePreferenceValues.defaultVisual(),
-            )
+        val presentation = GlobalPresentationSnapshot.default()
         val resolvedTheme =
-            resolveNativeThemeForDetachedComposeHost(
-                snapshot = snapshot,
+            resolveGlobalThemeForDetachedComposeHost(
+                presentation = presentation,
                 hostSurface = NativeThemeHostSurface.MAIN,
                 systemDarkTheme = false,
                 lightColorScheme = NativeThemeV1LightColorScheme,
                 darkColorScheme = NativeThemeV1DarkColorScheme,
             )
         NativeThemeOffscreenHost(
-            snapshot = snapshot,
+            presentation = presentation,
             resolvedTheme = resolvedTheme,
             content = content,
         )

@@ -99,9 +99,8 @@ import androidx.compose.ui.draw.alpha
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 import com.ai.assistance.operit.ui.common.markdown.markdownToPlainTextForCopy
 import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorStyleChatMessage
-import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.LatexMathMlConverter
 import java.text.SimpleDateFormat
@@ -180,15 +179,6 @@ fun ChatArea(
     aiReferences: List<AiReference> = emptyList(),
     isLoading: Boolean,
     enableDialogs: Boolean = true,
-    userMessageColor: Color,
-    aiMessageColor: Color,
-    userTextColor: Color,
-    aiTextColor: Color,
-    systemMessageColor: Color,
-    systemTextColor: Color,
-    thinkingBackgroundColor: Color,
-    thinkingTextColor: Color,
-    hasBackgroundImage: Boolean = false,
     modifier: Modifier = Modifier,
     onSelectMessageToEdit: ((Int, ChatMessage, String) -> Unit)? = null,
     onCopyMessage: ((ChatMessage) -> Unit)? = null,
@@ -215,37 +205,19 @@ fun ChatArea(
     onShowLatestDisplayWindow: (() -> Unit)? = null,
     loadMessageLocatorEntries: (suspend (String, String) -> List<ChatMessageLocatorPreview>)? = null,
     onRevealMessageForLocator: (suspend (Long) -> Boolean)? = null,
-    topPadding: Dp = 0.dp,
     bottomPadding: Dp = 0.dp,
     chatStyle: ChatStyle = ChatStyle.CURSOR, // 新增参数，默认为CURSOR风格
-    cursorUserBubbleLiquidGlass: Boolean = false,
-    cursorUserBubbleWaterGlass: Boolean = false,
-    bubbleUserBubbleLiquidGlass: Boolean = false,
-    bubbleUserBubbleWaterGlass: Boolean = false,
-    bubbleAiBubbleLiquidGlass: Boolean = false,
-    bubbleAiBubbleWaterGlass: Boolean = false,
     isMultiSelectMode: Boolean = false, // 是否处于多选模式
     selectedMessageIndices: Set<Int> = emptySet(), // 已选中的消息索引集合
     onToggleMultiSelectMode: ((Int?) -> Unit)? = null, // 切换多选模式的回调，可传入要初始选中的消息索引
     onToggleMessageSelection: ((Int) -> Unit)? = null, // 切换消息选中状态的回调
-    horizontalPadding: Dp = 16.dp, // 水平内边距，可自定义
-    bubbleUserImageStyle: BubbleImageStyleConfig? = null,
-    bubbleAiImageStyle: BubbleImageStyleConfig? = null,
-    bubbleUserRoundedCornersEnabled: Boolean = true,
-    bubbleAiRoundedCornersEnabled: Boolean = true,
-    bubbleUserContentPaddingLeft: Float = 12f,
-    bubbleUserContentPaddingRight: Float = 12f,
-    bubbleAiContentPaddingLeft: Float = 12f,
-    bubbleAiContentPaddingRight: Float = 12f,
     showChatFloatingDotsAnimation: Boolean = true,
 ) {
-    val context = LocalContext.current
-    val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
-    val themeSnapshot = LocalThemePreferenceSnapshot.current
-    val showMessageTokenStats = themeSnapshot.showMessageTokenStats
-    val showMessageTimingStats = themeSnapshot.showMessageTimingStats
-    val showMessageTimestamp = themeSnapshot.showMessageTimestamp
+    val presentation = LocalGlobalPresentation.current
+    val showMessageTokenStats = presentation.showMessageTokenStats
+    val showMessageTimingStats = presentation.showMessageTimingStats
+    val showMessageTimestamp = presentation.showMessageTimestamp
     var viewportHeightPx by remember { mutableStateOf(0) }
     val messageAnchors = remember(currentChatId) { mutableStateMapOf<Long, ChatScrollMessageAnchor>() }
     var pendingJumpToMessageTimestamp by remember(currentChatId) { mutableStateOf<Long?>(null) }
@@ -372,10 +344,10 @@ fun ChatArea(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding)
+                    .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState)
                     .background(Color.Transparent)
-                    .padding(top = topPadding, bottom = bottomPadding),
+                    .padding(bottom = bottomPadding),
         ) {
             if (hasOlderDisplayHistory) {
                 Text(
@@ -419,14 +391,6 @@ fun ChatArea(
                             index = actualIndex,
                             message = message,
                             enableDialogs = enableDialogs,
-                            userMessageColor = userMessageColor,
-                            aiMessageColor = aiMessageColor,
-                            userTextColor = userTextColor,
-                            aiTextColor = aiTextColor,
-                            systemMessageColor = systemMessageColor,
-                            systemTextColor = systemTextColor,
-                            thinkingBackgroundColor = thinkingBackgroundColor,
-                            thinkingTextColor = thinkingTextColor,
                             onSelectMessageToEdit = onSelectMessageToEdit,
                             onCopyMessage = onCopyMessage,
                             onDeleteMessage = onDeleteMessage,
@@ -445,26 +409,12 @@ fun ChatArea(
                             showMessageTokenStats = showMessageTokenStats,
                             showMessageTimingStats = showMessageTimingStats,
                             showMessageTimestamp = showMessageTimestamp,
-                            cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                            cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                            bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                            bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                            bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                            bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
                             isHidden = shouldHide,
                             isMultiSelectMode = isMultiSelectMode,
                             isSelected = selectedMessageIndices.contains(actualIndex),
                             onToggleSelection = { onToggleMessageSelection?.invoke(actualIndex) },
                             onToggleMultiSelectMode = onToggleMultiSelectMode,
                             messageIndex = actualIndex,
-                            bubbleUserImageStyle = bubbleUserImageStyle,
-                            bubbleAiImageStyle = bubbleAiImageStyle,
-                            bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                            bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                            bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                            bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                            bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                            bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
                         )
                     }
                 }
@@ -503,7 +453,7 @@ fun ChatArea(
                         ) {
                             Box(modifier = Modifier.padding(start = 16.dp)) {
                                 if (showChatFloatingDotsAnimation) {
-                                    LoadingDotsIndicator(aiTextColor)
+                                    LoadingDotsIndicator()
                                 }
                             }
                         }
@@ -518,7 +468,7 @@ fun ChatArea(
                         ) {
                             Box(modifier = Modifier.padding(start = 16.dp)) {
                                 if (showChatFloatingDotsAnimation) {
-                                    LoadingDotsIndicator(aiTextColor)
+                                    LoadingDotsIndicator()
                                 }
                             }
                         }
@@ -588,14 +538,6 @@ private fun MessageItem(
     index: Int,
     message: ChatMessage,
     enableDialogs: Boolean,
-    userMessageColor: Color,
-    aiMessageColor: Color,
-    userTextColor: Color,
-    aiTextColor: Color,
-    systemMessageColor: Color,
-    systemTextColor: Color,
-    thinkingBackgroundColor: Color,
-    thinkingTextColor: Color,
     onSelectMessageToEdit: ((Int, ChatMessage, String) -> Unit)?,
     onCopyMessage: ((ChatMessage) -> Unit)?,
     onDeleteMessage: ((Int) -> Unit)?,
@@ -614,26 +556,12 @@ private fun MessageItem(
     showMessageTokenStats: Boolean = false,
     showMessageTimingStats: Boolean = false,
     showMessageTimestamp: Boolean = false,
-    cursorUserBubbleLiquidGlass: Boolean = false,
-    cursorUserBubbleWaterGlass: Boolean = false,
-    bubbleUserBubbleLiquidGlass: Boolean = false,
-    bubbleUserBubbleWaterGlass: Boolean = false,
-    bubbleAiBubbleLiquidGlass: Boolean = false,
-    bubbleAiBubbleWaterGlass: Boolean = false,
     isHidden: Boolean = false, // 新增参数控制隐藏
     isMultiSelectMode: Boolean = false, // 是否处于多选模式
     isSelected: Boolean = false, // 是否被选中
     onToggleSelection: (() -> Unit)? = null, // 切换选中状态的回调
     onToggleMultiSelectMode: ((Int?) -> Unit)? = null, // 切换多选模式的回调，可传入要初始选中的消息索引
     messageIndex: Int, // 消息索引，用于进入多选时自动选中
-    bubbleUserImageStyle: BubbleImageStyleConfig? = null,
-    bubbleAiImageStyle: BubbleImageStyleConfig? = null,
-    bubbleUserRoundedCornersEnabled: Boolean = true,
-    bubbleAiRoundedCornersEnabled: Boolean = true,
-    bubbleUserContentPaddingLeft: Float = 12f,
-    bubbleUserContentPaddingRight: Float = 12f,
-    bubbleAiContentPaddingLeft: Float = 12f,
-    bubbleAiContentPaddingRight: Float = 12f,
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
     var showMessageInfoDialog by remember { mutableStateOf(false) }
@@ -681,16 +609,6 @@ private fun MessageItem(
                 ChatStyle.CURSOR -> {
                     CursorStyleChatMessage(
                         message = message,
-                        userMessageColor = userMessageColor,
-                        userMessageLiquidGlassEnabled = cursorUserBubbleLiquidGlass,
-                        userMessageWaterGlassEnabled = cursorUserBubbleWaterGlass,
-                        aiMessageColor = aiMessageColor,
-                        userTextColor = userTextColor,
-                        aiTextColor = aiTextColor,
-                        systemMessageColor = systemMessageColor,
-                        systemTextColor = systemTextColor,
-                        thinkingBackgroundColor = thinkingBackgroundColor,
-                        thinkingTextColor = thinkingTextColor,
                         supportToolMarkup = true,
                         initialThinkingExpanded = false,
                         onDeleteMessage = onDeleteMessage,
@@ -705,24 +623,6 @@ private fun MessageItem(
                 ChatStyle.BUBBLE -> {
                     BubbleStyleChatMessage(
                         message = message,
-                        userMessageColor = userMessageColor,
-                        aiMessageColor = aiMessageColor,
-                        userTextColor = userTextColor,
-                        aiTextColor = aiTextColor,
-                        systemMessageColor = systemMessageColor,
-                        systemTextColor = systemTextColor,
-                        userMessageLiquidGlassEnabled = bubbleUserBubbleLiquidGlass,
-                        userMessageWaterGlassEnabled = bubbleUserBubbleWaterGlass,
-                        aiMessageLiquidGlassEnabled = bubbleAiBubbleLiquidGlass,
-                        aiMessageWaterGlassEnabled = bubbleAiBubbleWaterGlass,
-                        userBubbleImageStyle = bubbleUserImageStyle,
-                        aiBubbleImageStyle = bubbleAiImageStyle,
-                        bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                        bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                        bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                        bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                        bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                        bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
                         isHidden = isHidden,
                         onDeleteMessage = onDeleteMessage,
                         index = index,
@@ -1439,8 +1339,9 @@ private fun MessageFooterBar(
 }
 
 @Composable
-private fun LoadingDotsIndicator(textColor: Color) {
+private fun LoadingDotsIndicator() {
     val infiniteTransition = rememberInfiniteTransition()
+    val textColor = MaterialTheme.colorScheme.onSurface
 
     Row(
         modifier = Modifier.padding(vertical = 4.dp),

@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -69,10 +67,6 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.P
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.PendingQueueMessageItem
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
-import com.ai.assistance.operit.ui.theme.liquidGlass
-import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.ChatUtils
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
@@ -99,11 +93,6 @@ fun ClassicChatInputSection(
     onAttachMemory: () -> Unit = {},
     onAttachPackage: (String) -> Unit = {},
     onTakePhoto: (Uri) -> Unit,
-    hasBackgroundImage: Boolean = false,
-    chatInputTransparent: Boolean = false,
-    chatInputFloating: Boolean = false,
-    chatInputLiquidGlass: Boolean = false,
-    chatInputWaterGlass: Boolean = false,
     modifier: Modifier = Modifier,
     externalAttachmentPanelState: Boolean? = null,
     onAttachmentPanelStateChange: ((Boolean) -> Unit)? = null,
@@ -232,67 +221,13 @@ fun ClassicChatInputSection(
         setShowAttachmentPanel(false)
     }
 
-    val surfaceColor = when {
-        chatInputTransparent -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
-        hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        else -> MaterialTheme.colorScheme.surface
-    }
-    val queueContainerColor = when {
-        chatInputTransparent -> MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
-        else -> surfaceColor
-    }
-    val queueItemColor = when {
-        chatInputTransparent -> MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-        hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-        else -> MaterialTheme.colorScheme.surface
-    }
-    val inputLiquidGlassEnabled =
-        chatInputTransparent && chatInputLiquidGlass && !chatInputWaterGlass && isLiquidGlassSupported()
-    val inputWaterGlassEnabled =
-        chatInputTransparent && chatInputWaterGlass && isWaterGlassSupported()
-    val containerShape = if (chatInputFloating) RoundedCornerShape(22.dp) else RoundedCornerShape(0.dp)
-    val containerModifier =
-        if (chatInputFloating) {
-            modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-        } else {
-            modifier
-        }
+    val containerModifier = modifier
 
     Box(
         modifier =
             containerModifier
-                .then(
-                    if (chatInputFloating && !inputLiquidGlassEnabled && !inputWaterGlassEnabled) {
-                        Modifier.shadow(4.dp, containerShape, clip = false)
-                    } else {
-                        Modifier
-                    }
-                )
-                .waterGlass(
-                    enabled = inputWaterGlassEnabled,
-                    shape = containerShape,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    shadowElevation = if (chatInputFloating) 10.dp else 14.dp,
-                    borderWidth = 0.7.dp,
-                    overlayAlphaBoost = if (chatInputFloating) 0.04f else 0.08f,
-                )
-                .liquidGlass(
-                    enabled = inputLiquidGlassEnabled,
-                    shape = containerShape,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    shadowElevation = if (chatInputFloating) 10.dp else 14.dp,
-                    borderWidth = 0.42.dp,
-                    blurRadius = if (chatInputFloating) 16.dp else 20.dp,
-                    overlayAlphaBoost = if (chatInputFloating) 0.06f else 0.10f,
-                )
                 .clip(containerShape)
-                .background(
-                    if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                        Color.Transparent
-                    } else {
-                        surfaceColor
-                    }
-                ),
+                .background(MaterialTheme.colorScheme.surface),
     ) {
         Column {
             // Reply preview section
@@ -354,8 +289,6 @@ fun ClassicChatInputSection(
                 onDeleteMessage = onDeletePendingQueueMessage,
                 onEditMessage = onEditPendingQueueMessage,
                 onSendMessage = onSendPendingQueueMessage,
-                containerColor = queueContainerColor,
-                itemColor = queueItemColor,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
@@ -470,15 +403,12 @@ fun ClassicChatInputSection(
                 }
             }
 
-            val classicInputRowHorizontalPadding = if (chatInputFloating) 14.dp else 22.dp
-            val classicInputRowVerticalPadding = if (chatInputFloating) 6.dp else 8.dp
-
             Row(
                 modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = classicInputRowHorizontalPadding)
-                    .padding(top = classicInputRowVerticalPadding, bottom = classicInputRowVerticalPadding)
+                    .padding(horizontal = 22.dp)
+                    .padding(top = 8.dp, bottom = 8.dp)
                     .wrapContentHeight(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -538,13 +468,7 @@ fun ClassicChatInputSection(
                                         shape = classicInputShape,
                                     )
                                     .clip(classicInputShape)
-                                    .background(
-                                        if (inputLiquidGlassEnabled || inputWaterGlassEnabled) {
-                                            Color.Transparent
-                                        } else {
-                                            MaterialTheme.colorScheme.surface
-                                        }
-                                    )
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .padding(start = 14.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {

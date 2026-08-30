@@ -21,9 +21,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
-import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
+import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -113,15 +112,10 @@ class NativeThemeNavigationDrawerItemAndroidTest {
 
     @androidx.compose.runtime.Composable
     private fun TestTheme(content: @androidx.compose.runtime.Composable () -> Unit) {
-        CompositionLocalProvider(LocalThemePreferenceSnapshot provides testSnapshot()) {
+        CompositionLocalProvider(
+            LocalGlobalPresentation provides GlobalPresentationSnapshot.default(),
+        ) {
             MaterialTheme(content = content)
         }
     }
-
-    private fun testSnapshot(): ThemePreferenceSnapshot =
-        ThemePreferenceSnapshot(
-            source = "character_card",
-            sourceId = "component-catalog-test",
-            values = ThemePreferenceValues.defaultVisual(),
-        )
 }

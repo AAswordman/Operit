@@ -26,7 +26,6 @@ import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginDialog
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
@@ -73,13 +72,7 @@ fun SettingsScreen(
                 }
         }
 
-        val hasBackgroundImage = LocalThemePreferenceSnapshot.current.useBackgroundImage
-        
-        val cardContainerColor = if (hasBackgroundImage) {
-                MaterialTheme.colorScheme.surface
-        } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        }
+        val cardContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 
         Column(
                 modifier = Modifier.fillMaxSize()

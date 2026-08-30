@@ -31,7 +31,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -46,10 +45,8 @@ import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ActivePrompt
 
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
-import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspaceBackupManager
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -73,9 +70,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.InputChip
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalDensityimport androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
@@ -102,14 +97,6 @@ fun ChatScreenContent(
         showChatHistorySelector: Boolean,
         chatHistory: List<ChatMessage>,
         isLoading: Boolean,
-        userMessageColor: Color,
-        aiMessageColor: Color,
-        userTextColor: Color,
-        aiTextColor: Color,
-        systemMessageColor: Color,
-        systemTextColor: Color,
-        thinkingBackgroundColor: Color,
-        thinkingTextColor: Color,
         hasBackgroundImage: Boolean,
         editingMessageIndex: MutableState<Int?>,
         editingMessageContent: MutableState<String>,
@@ -126,36 +113,14 @@ fun ChatScreenContent(
         coroutineScope: CoroutineScope,
         chatHistories: List<ChatHistory>,
         currentChatId: String,
-        chatHeaderTransparent: Boolean,
-        chatHeaderHistoryIconColor: Int?,
-          chatHeaderPipIconColor: Int?,
-          chatHeaderOverlayMode: Boolean,
         chatStyle: ChatStyle,
-        cursorUserBubbleLiquidGlass: Boolean = false,
-        cursorUserBubbleWaterGlass: Boolean = false,
-        bubbleUserBubbleLiquidGlass: Boolean = false,
-        bubbleUserBubbleWaterGlass: Boolean = false,
-        bubbleAiBubbleLiquidGlass: Boolean = false,
-        bubbleAiBubbleWaterGlass: Boolean = false,
         historyListState: LazyListState,
         showCharacterSelector: Boolean,
         onShowCharacterSelectorChange: (Boolean) -> Unit,
         onSwitchCharacter: (CharacterSelectorTarget) -> Unit,
         onOpenCharacterSettings: () -> Unit,
-        chatAreaHorizontalPadding: Float = 16f,
-        bubbleUserImageStyle: BubbleImageStyleConfig? = null,
-        bubbleAiImageStyle: BubbleImageStyleConfig? = null,
-        bubbleUserRoundedCornersEnabled: Boolean = true,
-        bubbleAiRoundedCornersEnabled: Boolean = true,
-        bubbleUserContentPaddingLeft: Float = 12f,
-        bubbleUserContentPaddingRight: Float = 12f,
-        bubbleAiContentPaddingLeft: Float = 12f,
-        bubbleAiContentPaddingRight: Float = 12f,
         showChatFloatingDotsAnimation: Boolean = true,
 ) {
-    val density = LocalDensity.current
-    var headerHeight by remember { mutableStateOf(0.dp) }
-
     // Multi-select mode state
     var isMultiSelectMode by remember { mutableStateOf(false) }
     var selectedMessageIndices by remember { mutableStateOf(setOf<Int>()) }
@@ -250,228 +215,85 @@ fun ChatScreenContent(
     }
 
     Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
-        if (chatHeaderOverlayMode && chatHeaderTransparent) {
-            // 覆盖模式：Header浮动在ChatArea之上
-            Box(modifier = Modifier.fillMaxSize()) {
-                ChatArea(
-                        chatHistory = chatHistory,
-                        currentChatId = currentChatId,
-                        scrollState = scrollState,
-                        isLoading = isLoading,
-                        enableDialogs = enableMessageDialogs,
-                        userMessageColor = userMessageColor,
-                        aiMessageColor = aiMessageColor,
-                        userTextColor = userTextColor,
-                        aiTextColor = aiTextColor,
-                        systemMessageColor = systemMessageColor,
-                        systemTextColor = systemTextColor,
-                        thinkingBackgroundColor = thinkingBackgroundColor,
-                        thinkingTextColor = thinkingTextColor,
-                        hasBackgroundImage = hasBackgroundImage,
-                        modifier = Modifier.fillMaxSize(),
-                        onSelectMessageToEdit = onSelectMessageToEditCallback,
-                        onDeleteMessage = { index -> actualViewModel.deleteMessage(index) },
-                        onDeleteCurrentMessageVariant = { index ->
-                            actualViewModel.deleteCurrentMessageVariant(index)
-                        },
-                        onDeleteMessagesFrom = { index -> actualViewModel.deleteMessagesFrom(index) },
-                        onRollbackToMessage = { index -> pendingRollbackIndex = index },
-                        onRegenerateMessage = { index -> actualViewModel.regenerateSingleAiMessage(index) },
-                        onSwitchMessageVariant = { index, targetVariantIndex ->
-                            actualViewModel.switchMessageVariant(index, targetVariantIndex)
-                        },
-                        onSpeakMessage = { content -> actualViewModel.speakMessage(content) },
-                        onAutoReadMessage = { content -> actualViewModel.enableAutoReadAndSpeak(content) },
-                        onReplyToMessage = { message -> actualViewModel.setReplyToMessage(message) },
-                        onToggleFavoriteMessage = { timestamp, isFavorite ->
-                            actualViewModel.setMessageFavorite(timestamp, isFavorite)
-                        },
-                        onCreateBranch = { timestamp -> actualViewModel.createBranch(timestamp) },
-                        onInsertSummary = { message -> actualViewModel.insertSummary(message) },
-                        onMentionRoleFromAvatar = { roleName -> actualViewModel.insertRoleMention(roleName) },
-                        autoScrollToBottom = autoScrollToBottom,
-                        onAutoScrollToBottomChange = onAutoScrollToBottomChange,
-                        hasOlderDisplayHistory = hasOlderDisplayHistory,
-                        hasNewerDisplayHistory = hasNewerDisplayHistory,
-                        isLoadingDisplayWindow = isLoadingDisplayWindow,
-                        onLoadOlderDisplayWindow = {
-                            actualViewModel.loadOlderMessagesForCurrentChat()
-                        },
-                        onLoadNewerDisplayWindow = {
-                            actualViewModel.loadNewerMessagesForCurrentChat()
-                        },
-                        onShowLatestDisplayWindow = {
-                            actualViewModel.showLatestMessagesForCurrentChat()
-                        },
-                        loadMessageLocatorEntries = { chatId, query ->
-                            actualViewModel.loadChatMessageLocatorPreviews(chatId, query)
-                        },
-                        onRevealMessageForLocator = { targetTimestamp ->
-                            actualViewModel.revealMessageForCurrentChat(targetTimestamp)
-                        },
-                        topPadding = headerHeight,
-                        bottomPadding = bottomInset,
-                        chatStyle = chatStyle,
-                        cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                        cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                        bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                        bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                        bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                        bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
-                        isMultiSelectMode = isMultiSelectMode,
-                        selectedMessageIndices = selectedMessageIndices,
-                        onToggleMultiSelectMode = { initialIndex ->
-                            isMultiSelectMode = !isMultiSelectMode
-                            if (!isMultiSelectMode) {
-                                selectedMessagesCopyJob?.cancel()
-                                selectedMessagesCopyJob = null
-                                isCopyingSelectedMessages = false
-                                selectedMessageIndices = emptySet()
-                                showMultiSelectActionsMenu = false
-                            } else if (initialIndex != null) {
-                                // 进入多选模式时，自动选中触发的消息
-                                selectedMessageIndices = setOf(initialIndex)
-                            }
-                        },
-                        onToggleMessageSelection = { index ->
-                            selectedMessageIndices = if (selectedMessageIndices.contains(index)) {
-                                selectedMessageIndices - index
-                            } else {
-                                selectedMessageIndices + index
-                            }
-                        },
-                        horizontalPadding = chatAreaHorizontalPadding.dp,
-                        bubbleUserImageStyle = bubbleUserImageStyle,
-                        bubbleAiImageStyle = bubbleAiImageStyle,
-                        bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                        bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                        bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                        bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                        bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                        bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
-                        showChatFloatingDotsAnimation = showChatFloatingDotsAnimation,
-                )
-                ChatScreenHeader(
-                        modifier =
-                                Modifier.onGloballyPositioned { coordinates ->
-                                    headerHeight = with(density) { coordinates.size.height.toDp() }
-                                },
-                        actualViewModel = actualViewModel,
-                        showChatHistorySelector = showChatHistorySelector,
-                        chatHeaderTransparent = chatHeaderTransparent,
-                        chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
-                        chatHeaderPipIconColor = chatHeaderPipIconColor,
-                        onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
-                )
-            }
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                ChatScreenHeader(
-                        actualViewModel = actualViewModel,
-                        showChatHistorySelector = showChatHistorySelector,
-                        chatHeaderTransparent = chatHeaderTransparent,
-                        chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
-                        chatHeaderPipIconColor = chatHeaderPipIconColor,
-                        onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
-                )
-                ChatArea(
-                        chatHistory = chatHistory,
-                        currentChatId = currentChatId,
-                        scrollState = scrollState,
-                        isLoading = isLoading,
-                        enableDialogs = enableMessageDialogs,
-                        userMessageColor = userMessageColor,
-                        aiMessageColor = aiMessageColor,
-                        userTextColor = userTextColor,
-                        aiTextColor = aiTextColor,
-                        systemMessageColor = systemMessageColor,
-                        systemTextColor = systemTextColor,
-                        thinkingBackgroundColor = thinkingBackgroundColor,
-                        thinkingTextColor = thinkingTextColor,
-                        hasBackgroundImage = hasBackgroundImage,
-                        modifier = Modifier.fillMaxSize(),
-                        onSelectMessageToEdit = onSelectMessageToEditCallback,
-                        onDeleteMessage = { index -> actualViewModel.deleteMessage(index) },
-                        onDeleteCurrentMessageVariant = { index ->
-                            actualViewModel.deleteCurrentMessageVariant(index)
-                        },
-                        onDeleteMessagesFrom = { index -> actualViewModel.deleteMessagesFrom(index) },
-                        onRollbackToMessage = { index -> pendingRollbackIndex = index },
-                        onRegenerateMessage = { index -> actualViewModel.regenerateSingleAiMessage(index) },
-                        onSwitchMessageVariant = { index, targetVariantIndex ->
-                            actualViewModel.switchMessageVariant(index, targetVariantIndex)
-                        },
-                        onSpeakMessage = { content -> actualViewModel.speakMessage(content) },
-                        onReplyToMessage = { message -> actualViewModel.setReplyToMessage(message) },
-                        onToggleFavoriteMessage = { timestamp, isFavorite ->
-                            actualViewModel.setMessageFavorite(timestamp, isFavorite)
-                        },
-                        onCreateBranch = { timestamp -> actualViewModel.createBranch(timestamp) },
-                        onInsertSummary = { message -> actualViewModel.insertSummary(message) },
-                        onAutoReadMessage = { content -> actualViewModel.enableAutoReadAndSpeak(content) },
-                        onMentionRoleFromAvatar = { roleName -> actualViewModel.insertRoleMention(roleName) },
-                        autoScrollToBottom = autoScrollToBottom,
-                        onAutoScrollToBottomChange = onAutoScrollToBottomChange,
-                        hasOlderDisplayHistory = hasOlderDisplayHistory,
-                        hasNewerDisplayHistory = hasNewerDisplayHistory,
-                        isLoadingDisplayWindow = isLoadingDisplayWindow,
-                        onLoadOlderDisplayWindow = {
-                            actualViewModel.loadOlderMessagesForCurrentChat()
-                        },
-                        onLoadNewerDisplayWindow = {
-                            actualViewModel.loadNewerMessagesForCurrentChat()
-                        },
-                        onShowLatestDisplayWindow = {
-                            actualViewModel.showLatestMessagesForCurrentChat()
-                        },
-                        loadMessageLocatorEntries = { chatId, query ->
-                            actualViewModel.loadChatMessageLocatorPreviews(chatId, query)
-                        },
-                        onRevealMessageForLocator = { targetTimestamp ->
-                            actualViewModel.revealMessageForCurrentChat(targetTimestamp)
-                        },
-                        bottomPadding = bottomInset,
-                        chatStyle = chatStyle,
-                        cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                        cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                        bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                        bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                        bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                        bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
-                        isMultiSelectMode = isMultiSelectMode,
-                        selectedMessageIndices = selectedMessageIndices,
-                        horizontalPadding = chatAreaHorizontalPadding.dp,
-                        onToggleMultiSelectMode = { initialIndex ->
-                            isMultiSelectMode = !isMultiSelectMode
-                            if (!isMultiSelectMode) {
-                                selectedMessagesCopyJob?.cancel()
-                                selectedMessagesCopyJob = null
-                                isCopyingSelectedMessages = false
-                                selectedMessageIndices = emptySet()
-                                showMultiSelectActionsMenu = false
-                            } else if (initialIndex != null) {
-                                // 进入多选模式时，自动选中触发的消息
-                                selectedMessageIndices = setOf(initialIndex)
-                            }
-                        },
-                        onToggleMessageSelection = { index ->
-                            selectedMessageIndices = if (selectedMessageIndices.contains(index)) {
-                                selectedMessageIndices - index
-                            } else {
-                                selectedMessageIndices + index
-                            }
-                        },
-                        showChatFloatingDotsAnimation = showChatFloatingDotsAnimation,
-                        bubbleUserImageStyle = bubbleUserImageStyle,
-                        bubbleAiImageStyle = bubbleAiImageStyle,
-                        bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                        bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                        bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                        bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                        bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                        bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
-                )
-            }
+        Column(modifier = Modifier.fillMaxSize()) {
+            ChatScreenHeader(
+                    actualViewModel = actualViewModel,
+                    showChatHistorySelector = showChatHistorySelector,
+                    onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
+            )
+            ChatArea(
+                    chatHistory = chatHistory,
+                    currentChatId = currentChatId,
+                    scrollState = scrollState,
+                    isLoading = isLoading,
+                    enableDialogs = enableMessageDialogs,
+                    modifier = Modifier.fillMaxSize(),
+                    onSelectMessageToEdit = onSelectMessageToEditCallback,
+                    onDeleteMessage = { index -> actualViewModel.deleteMessage(index) },
+                    onDeleteCurrentMessageVariant = { index ->
+                        actualViewModel.deleteCurrentMessageVariant(index)
+                    },
+                    onDeleteMessagesFrom = { index -> actualViewModel.deleteMessagesFrom(index) },
+                    onRollbackToMessage = { index -> pendingRollbackIndex = index },
+                    onRegenerateMessage = { index -> actualViewModel.regenerateSingleAiMessage(index) },
+                    onSwitchMessageVariant = { index, targetVariantIndex ->
+                        actualViewModel.switchMessageVariant(index, targetVariantIndex)
+                    },
+                    onSpeakMessage = { content -> actualViewModel.speakMessage(content) },
+                    onReplyToMessage = { message -> actualViewModel.setReplyToMessage(message) },
+                    onToggleFavoriteMessage = { timestamp, isFavorite ->
+                        actualViewModel.setMessageFavorite(timestamp, isFavorite)
+                    },
+                    onCreateBranch = { timestamp -> actualViewModel.createBranch(timestamp) },
+                    onInsertSummary = { message -> actualViewModel.insertSummary(message) },
+                    onAutoReadMessage = { content -> actualViewModel.enableAutoReadAndSpeak(content) },
+                    onMentionRoleFromAvatar = { roleName -> actualViewModel.insertRoleMention(roleName) },
+                    autoScrollToBottom = autoScrollToBottom,
+                    onAutoScrollToBottomChange = onAutoScrollToBottomChange,
+                    hasOlderDisplayHistory = hasOlderDisplayHistory,
+                    hasNewerDisplayHistory = hasNewerDisplayHistory,
+                    isLoadingDisplayWindow = isLoadingDisplayWindow,
+                    onLoadOlderDisplayWindow = {
+                        actualViewModel.loadOlderMessagesForCurrentChat()
+                    },
+                    onLoadNewerDisplayWindow = {
+                        actualViewModel.loadNewerMessagesForCurrentChat()
+                    },
+                    onShowLatestDisplayWindow = {
+                        actualViewModel.showLatestMessagesForCurrentChat()
+                    },
+                    loadMessageLocatorEntries = { chatId, query ->
+                        actualViewModel.loadChatMessageLocatorPreviews(chatId, query)
+                    },
+                    onRevealMessageForLocator = { targetTimestamp ->
+                        actualViewModel.revealMessageForCurrentChat(targetTimestamp)
+                    },
+                    bottomPadding = bottomInset,
+                    chatStyle = chatStyle,
+                    isMultiSelectMode = isMultiSelectMode,
+                    selectedMessageIndices = selectedMessageIndices,
+                    onToggleMultiSelectMode = { initialIndex ->
+                        isMultiSelectMode = !isMultiSelectMode
+                        if (!isMultiSelectMode) {
+                            selectedMessagesCopyJob?.cancel()
+                            selectedMessagesCopyJob = null
+                            isCopyingSelectedMessages = false
+                            selectedMessageIndices = emptySet()
+                            showMultiSelectActionsMenu = false
+                        } else if (initialIndex != null) {
+                            // 进入多选模式时，自动选中触发的消息
+                            selectedMessageIndices = setOf(initialIndex)
+                        }
+                    },
+                    onToggleMessageSelection = { index ->
+                        selectedMessageIndices = if (selectedMessageIndices.contains(index)) {
+                            selectedMessageIndices - index
+                        } else {
+                            selectedMessageIndices + index
+                        }
+                    },
+                    showChatFloatingDotsAnimation = showChatFloatingDotsAnimation,
+            )
         }
 
         // 多选模式底部操作栏
@@ -901,21 +723,7 @@ fun ChatScreenContent(
                     actualViewModel.shareMessages(
                         context = context,
                         messageIndices = selectedMessageIndices,
-                        userMessageColor = userMessageColor,
-                        aiMessageColor = aiMessageColor,
-                        userTextColor = userTextColor,
-                        aiTextColor = aiTextColor,
-                        systemMessageColor = systemMessageColor,
-                        systemTextColor = systemTextColor,
-                        thinkingBackgroundColor = thinkingBackgroundColor,
-                        thinkingTextColor = thinkingTextColor,
                         chatStyle = chatStyle,
-                        cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                        cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                        bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                        bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                        bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                        bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
                         initialThinkingExpanded = sharePreviewThinkingExpanded,
                         expandThinkToolsGroups = sharePreviewExpandThinkToolsGroups,
                         includeBackground = sharePreviewIncludeBackground,

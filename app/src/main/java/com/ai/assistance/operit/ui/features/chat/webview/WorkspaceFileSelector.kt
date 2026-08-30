@@ -28,8 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
@@ -45,10 +43,6 @@ import com.ai.assistance.operit.core.tools.packTool.PackageManager as ToolPackag
 import com.ai.assistance.operit.data.skill.SkillRepository
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.process.GitIgnoreFilter
-import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
-import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
-import com.ai.assistance.operit.ui.theme.liquidGlass
-import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.FileUtils
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -61,14 +55,6 @@ private const val MAX_FILE_SUGGESTIONS = 10
 private val workspaceFileSuggestionComparator =
     compareBy<WorkspaceFileSuggestion> { it.score }
         .thenBy { it.relativePath.lowercase() }
-
-data class MentionSuggestionPanelStyle(
-    val hasBackgroundImage: Boolean,
-    val chatInputTransparent: Boolean,
-    val chatInputFloating: Boolean,
-    val chatInputLiquidGlass: Boolean,
-    val chatInputWaterGlass: Boolean,
-)
 
 private data class WorkspaceFileSuggestion(
     val relativePath: String,
@@ -103,7 +89,6 @@ private sealed interface WorkspaceFileSuggestionLoadState {
 fun MentionSuggestionPanel(
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel,
-    panelStyle: MentionSuggestionPanelStyle,
     onFileSelected: (String) -> Unit,
     onPackageSelected: (String) -> Unit,
 ) {
@@ -165,36 +150,6 @@ fun MentionSuggestionPanel(
         }
 
     val colors = MaterialTheme.colorScheme
-    val isDarkTheme = colors.onSurface.luminance() > 0.5f
-    val darkModePanelColor =
-        lerp(
-            colors.surface,
-            colors.onSurface,
-            0.08f,
-        )
-    val panelContainerColor =
-        when {
-            panelStyle.chatInputTransparent -> Color.Transparent
-            isDarkTheme && panelStyle.hasBackgroundImage -> darkModePanelColor.copy(alpha = 0.82f)
-            isDarkTheme -> darkModePanelColor
-            panelStyle.hasBackgroundImage -> colors.surface.copy(alpha = 0.85f)
-            else -> colors.surface
-        }
-    val panelGlassTint =
-        if (isDarkTheme) {
-            darkModePanelColor
-        } else {
-            colors.surface
-        }
-    val panelLiquidGlassEnabled =
-        panelStyle.chatInputTransparent &&
-            panelStyle.chatInputLiquidGlass &&
-            !panelStyle.chatInputWaterGlass &&
-            isLiquidGlassSupported()
-    val panelWaterGlassEnabled =
-        panelStyle.chatInputTransparent &&
-            panelStyle.chatInputWaterGlass &&
-            isWaterGlassSupported()
     val panelShape = RoundedCornerShape(22.dp)
 
     Box(
@@ -202,38 +157,9 @@ fun MentionSuggestionPanel(
             modifier
                 .fillMaxWidth()
                 .widthIn(max = 420.dp)
-                .then(
-                    if (!panelLiquidGlassEnabled && !panelWaterGlassEnabled) {
-                        Modifier.border(1.dp, colors.outlineVariant.copy(alpha = 0.32f), panelShape)
-                    } else {
-                        Modifier
-                    },
-                )
-                .waterGlass(
-                    enabled = panelWaterGlassEnabled,
-                    shape = panelShape,
-                    containerColor = panelGlassTint,
-                    shadowElevation = if (panelStyle.chatInputFloating) 12.dp else 18.dp,
-                    borderWidth = 0.7.dp,
-                    overlayAlphaBoost = if (panelStyle.chatInputFloating) 0.04f else 0.08f,
-                )
-                .liquidGlass(
-                    enabled = panelLiquidGlassEnabled,
-                    shape = panelShape,
-                    containerColor = panelGlassTint,
-                    shadowElevation = if (panelStyle.chatInputFloating) 12.dp else 18.dp,
-                    borderWidth = 0.42.dp,
-                    blurRadius = if (panelStyle.chatInputFloating) 16.dp else 20.dp,
-                    overlayAlphaBoost = if (panelStyle.chatInputFloating) 0.06f else 0.10f,
-                )
+                .border(1.dp, colors.outlineVariant.copy(alpha = 0.32f), panelShape)
                 .clip(panelShape)
-                .background(
-                    if (panelLiquidGlassEnabled || panelWaterGlassEnabled) {
-                        Color.Transparent
-                    } else {
-                        panelContainerColor
-                    },
-                ),
+                .background(colors.surface),
     ) {
         LazyColumn(
             modifier =

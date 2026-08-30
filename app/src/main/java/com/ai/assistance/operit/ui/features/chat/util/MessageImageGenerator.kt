@@ -35,13 +35,12 @@ import coil.ImageLoader
 import coil.compose.LocalImageLoader
 import coil.request.CachePolicy
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorStyleChatMessage
 import com.ai.assistance.operit.ui.theme.NativeThemeOffscreenHost
-import com.ai.assistance.operit.ui.theme.ResolvedThemeBackgroundLayer
-import com.ai.assistance.operit.ui.theme.resolveNativeThemeOffscreen
+import com.ai.assistance.operit.ui.theme.resolveGlobalThemeOffscreen
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -52,27 +51,19 @@ import java.io.FileOutputStream
 
 /**
  * 消息图片生成器
- * 
+ *
  * 将选中的消息渲染为图片，用于分享
  * 使用 ScrollView + ComposeView 方案支持任意长度的内容
  */
 object MessageImageGenerator {
-    
+
     private const val TAG = "MessageImageGenerator"
-    
+
     /**
      * 生成消息图片
-     * 
+     *
      * @param context Android 上下文
      * @param messages 要渲染的消息列表
-     * @param userMessageColor 用户消息背景色
-     * @param aiMessageColor AI消息背景色
-     * @param userTextColor 用户消息文字颜色
-     * @param aiTextColor AI消息文字颜色
-     * @param systemMessageColor 系统消息背景色
-     * @param systemTextColor 系统消息文字颜色
-     * @param thinkingBackgroundColor 思考块背景色
-     * @param thinkingTextColor 思考块文字颜色
      * @param chatStyle 聊天风格
      * @param width 图片宽度（像素）
      * @return 生成的图片文件
@@ -80,14 +71,6 @@ object MessageImageGenerator {
     suspend fun generateMessageImage(
         context: Context,
         messages: List<ChatMessage>,
-        userMessageColor: Color,
-        aiMessageColor: Color,
-        userTextColor: Color,
-        aiTextColor: Color,
-        systemMessageColor: Color,
-        systemTextColor: Color,
-        thinkingBackgroundColor: Color,
-        thinkingTextColor: Color,
         chatStyle: ChatStyle = ChatStyle.CURSOR,
         cursorUserBubbleLiquidGlass: Boolean = false,
         cursorUserBubbleWaterGlass: Boolean = false,
@@ -109,10 +92,8 @@ object MessageImageGenerator {
                 throw IllegalArgumentException("Message list cannot be empty")
             }
             val allowExpandedThinkingFullHeight = initialThinkingExpanded
-            val themeSnapshot =
-                ActivePromptManager.getInstance(context)
-                    .activeThemePreferenceSnapshotFlow
-                    .first()
+            val presentation =
+                GlobalPresentationManager.getInstance(context).snapshotFlow.first()
             
             // 获取 Activity 和根视图，用于临时附加 ComposeView
             val activity = context.findActivity() ?: throw IllegalStateException("Context is not an Activity.")
@@ -121,9 +102,9 @@ object MessageImageGenerator {
             // 在主线程上创建、附加和捕获 Composable 内容
             val bitmap = withContext(Dispatchers.Main) {
                 val resolvedTheme =
-                    resolveNativeThemeOffscreen(
+                    resolveGlobalThemeOffscreen(
                         context = context,
-                        snapshot = themeSnapshot,
+                        presentation = presentation,
                         systemDarkTheme = context.isSystemInDarkTheme(),
                     )
                 
@@ -141,7 +122,7 @@ object MessageImageGenerator {
 
                         CompositionLocalProvider(LocalImageLoader provides softwareImageLoader) {
                             NativeThemeOffscreenHost(
-                                snapshot = themeSnapshot,
+                                presentation = presentation,
                                 resolvedTheme = resolvedTheme,
                             ) {
                             // 不再使用 Capturable，直接渲染内容
@@ -178,13 +159,6 @@ object MessageImageGenerator {
                                                     )
                                                     .background(cardBackgroundColor)
                                         ) {
-                                            if (includeBackground) {
-                                                ResolvedThemeBackgroundLayer(
-                                                    resolvedTheme = resolvedTheme,
-                                                    modifier = Modifier.matchParentSize()
-                                                )
-                                            }
-
                                             Column(
                                                 modifier = Modifier.fillMaxWidth().wrapContentHeight()
                                             ) {
@@ -240,16 +214,6 @@ object MessageImageGenerator {
                                                             ChatStyle.BUBBLE -> {
                                                                 BubbleStyleChatMessage(
                                                                     message = message,
-                                                                    userMessageColor = userMessageColor,
-                                                                    aiMessageColor = aiMessageColor,
-                                                                    userTextColor = userTextColor,
-                                                                    aiTextColor = aiTextColor,
-                                                                    systemMessageColor = systemMessageColor,
-                                                                    systemTextColor = systemTextColor,
-                                                                    userMessageLiquidGlassEnabled = bubbleUserBubbleLiquidGlass,
-                                                                    userMessageWaterGlassEnabled = bubbleUserBubbleWaterGlass,
-                                                                    aiMessageLiquidGlassEnabled = bubbleAiBubbleLiquidGlass,
-                                                                    aiMessageWaterGlassEnabled = bubbleAiBubbleWaterGlass,
                                                                     initialThinkingExpanded = initialThinkingExpanded,
                                                                     allowExpandedThinkingFullHeight = allowExpandedThinkingFullHeight,
                                                                     expandThinkToolsGroups = expandThinkToolsGroups,
@@ -260,16 +224,6 @@ object MessageImageGenerator {
                                                             ChatStyle.CURSOR -> {
                                                                 CursorStyleChatMessage(
                                                                     message = message,
-                                                                    userMessageColor = userMessageColor,
-                                                                    userMessageLiquidGlassEnabled = cursorUserBubbleLiquidGlass,
-                                                                    userMessageWaterGlassEnabled = cursorUserBubbleWaterGlass,
-                                                                    aiMessageColor = aiMessageColor,
-                                                                    userTextColor = userTextColor,
-                                                                    aiTextColor = aiTextColor,
-                                                                    systemMessageColor = systemMessageColor,
-                                                                    systemTextColor = systemTextColor,
-                                                                    thinkingBackgroundColor = thinkingBackgroundColor,
-                                                                    thinkingTextColor = thinkingTextColor,
                                                                     supportToolMarkup = true,
                                                                     initialThinkingExpanded = initialThinkingExpanded,
                                                                     allowExpandedThinkingFullHeight = allowExpandedThinkingFullHeight,

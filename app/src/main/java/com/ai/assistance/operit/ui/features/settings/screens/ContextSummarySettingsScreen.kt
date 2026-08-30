@@ -67,7 +67,6 @@ import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.components.CustomScaffold
-import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -96,13 +95,7 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
             initial = ApiPreferences.DEFAULT_MAX_MEDIA_HISTORY_USER_TURNS
         )
 
-    val hasBackgroundImage = LocalThemePreferenceSnapshot.current.useBackgroundImage
-    val componentBackgroundColor =
-        if (hasBackgroundImage) {
-            MaterialTheme.colorScheme.surface
-        } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-        }
+    val componentBackgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
 
     LaunchedEffect(Unit) {
         maxImageHistoryUserTurnsInput = apiPreferences.maxImageHistoryUserTurnsFlow.first().toString()
