@@ -58,6 +58,7 @@ import com.ai.assistance.operit.util.markdown.MarkdownNode
 import com.ai.assistance.operit.util.markdown.MarkdownNodeStable
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.markdown.SmartString
+import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamInterceptor
 import com.ai.assistance.operit.util.stream.StreamRollbackPrefix
@@ -191,7 +192,8 @@ private fun replaceRollbackTail(
         .forEach { conversionCache.remove(it) }
     xmlNodeStreams.keys
         .filter { it >= sharedPrefixSize }
-        .forEach { xmlNodeStreams.remove(it) }
+        .toList()
+        .forEach { releaseXmlNodeStream(xmlNodeStreams, it) }
 }
 
 private fun appendHtmlBreakNode(
@@ -220,8 +222,26 @@ internal fun MarkdownNode.toStableNode(): MarkdownNodeStable {
     return MarkdownNodeStable(
         type = this.type,
         content = this.content.toString(),
-        children = this.children.map { it.toStableNode() }
+        children = this.children.map { it.toStableNode() },
+        nodeId = this.nodeId,
     )
+}
+
+internal fun markdownNodeRenderKey(rendererId: String, nodeId: Long, fallbackIndex: Int): String {
+    val identity = if (nodeId != 0L) "id-$nodeId" else "index-$fallbackIndex"
+    return "node-$rendererId-$identity"
+}
+
+internal fun releaseXmlNodeStream(
+    xmlNodeStreams: MutableMap<Int, Stream<String>>,
+    nodeIndex: Int,
+) {
+    val stream = xmlNodeStreams.remove(nodeIndex)
+    (stream as? MutableSharedStream<*>)?.resetReplayCache()
+}
+
+internal fun clearXmlNodeStreams(xmlNodeStreams: MutableMap<Int, Stream<String>>) {
+    xmlNodeStreams.keys.toList().forEach { releaseXmlNodeStream(xmlNodeStreams, it) }
 }
 
 private fun areRenderNodesSynchronized(
@@ -376,7 +396,7 @@ class StreamMarkdownRendererState {
         nodeAnimationStates.clear()
         conversionCache.clear()
         collectedContent.clear()
-        xmlNodeStreams.clear()
+        clearXmlNodeStreams(xmlNodeStreams)
         streamParsingCompletedSuccessfully = false
     }
 }
@@ -464,7 +484,7 @@ fun StreamMarkdownRenderer(
             renderNodes.clear()
             conversionCache.clear()
             rendererState.collectedContent.clear()
-            xmlNodeStreams.clear()
+            clearXmlNodeStreams(xmlNodeStreams)
             rendererState.streamParsingCompletedSuccessfully = false
         } else {
             val rollbackNodes =
@@ -637,8 +657,17 @@ fun StreamMarkdownRenderer(
                         }
                     }
                 } else {
-                    blockStream.collect { contentChunk ->
-                        batchUpdater.appendBlockChunk(newNode, contentChunk)
+                    try {
+                        blockStream.collect { contentChunk ->
+                            batchUpdater.appendBlockChunk(newNode, contentChunk)
+                        }
+                    } finally {
+                        if (tempBlockType == MarkdownProcessorType.XML_BLOCK) {
+                            // A closed XML block is fully represented by newNode.content. Keeping its
+                            // replay buffer after this point only duplicates completed tool output.
+                            releaseXmlNodeStream(xmlNodeStreams, nodeIndex)
+                            batchUpdater.requestUpdate()
+                        }
                     }
                 }
 
@@ -930,12 +959,12 @@ fun StreamMarkdownRenderer(
 
         if (shouldReuseExistingNodes) {
             // 从流式渲染切到静态渲染时，避免沿用已结束的 XML 子流导致子节点渲染异常
-            xmlNodeStreams.clear()
+            clearXmlNodeStreams(xmlNodeStreams)
             // 内容一致且已有节点，跳过解析
             return@LaunchedEffect
         }
 
-        xmlNodeStreams.clear()
+        clearXmlNodeStreams(xmlNodeStreams)
         
         // 移除时间计算相关变量
         val cachedNodes = MarkdownNodeCache.get(content)
@@ -947,13 +976,8 @@ fun StreamMarkdownRenderer(
             nodes.addAll(cachedNodes)
             renderNodes.clear()
             renderNodes.addAll(cachedNodes.map { it.toStableNode() })
-            // 确保动画状态也被设置
-            val newStates = mutableMapOf<String, Boolean>()
-            cachedNodes.forEachIndexed { index, node ->
-                val nodeKey = "static-node-$rendererId-$index"
-                newStates[nodeKey] = true
-            }
-            nodeAnimationStates.putAll(newStates)
+            // 静态内容默认可见，不保留逐节点动画状态
+            nodeAnimationStates.clear()
             // 移除应用缓存节点相关时间日志
             return@LaunchedEffect
         }
@@ -977,13 +1001,8 @@ fun StreamMarkdownRenderer(
                     // 清理转换缓存，因为内容已完全改变
                     conversionCache.clear()
 
-                    // 更新所有节点的动画状态为可见
-                    val newStates = mutableMapOf<String, Boolean>()
-                    parsedNodes.forEachIndexed { index, node ->
-                        val nodeKey = "static-node-$rendererId-$index"
-                        newStates[nodeKey] = true
-                    }
-                    nodeAnimationStates.putAll(newStates)
+                    // 静态内容默认可见，不保留逐节点动画状态
+                    nodeAnimationStates.clear()
 
                     // 移除UI更新时间相关日志
                 }
@@ -1101,11 +1120,8 @@ private fun UnifiedMarkdownCanvas(
     }
 
     fun nodeKeyForIndex(index: Int): String {
-        return if (rendererId.startsWith("static-")) {
-            "static-node-$rendererId-$index"
-        } else {
-            "node-$rendererId-$index"
-        }
+        val nodeId = nodes.getOrNull(index)?.nodeId ?: 0L
+        return markdownNodeRenderKey(rendererId, nodeId, index)
     }
 
     val tailNode = nodes.lastOrNull()
@@ -1244,7 +1260,7 @@ private fun synchronizeRenderNodes(
         } else {
             // 添加新节点
             renderNodes.add(stableNode)
-            val nodeKey = "node-$rendererId-$i"
+            val nodeKey = markdownNodeRenderKey(rendererId, sourceNode.nodeId, i)
             nodeAnimationStates[nodeKey] = false // 准备播放动画
             keysToAnimate.add(nodeKey)
         }
@@ -1263,8 +1279,8 @@ private fun synchronizeRenderNodes(
     }
 
     // 4. 清理已被移除节点的 XML 子流
-    val keysToRemove = xmlNodeStreams.keys.filter { it !in nodes.indices }
-    keysToRemove.forEach { xmlNodeStreams.remove(it) }
+    val keysToRemove = xmlNodeStreams.keys.filter { it !in nodes.indices }.toList()
+    keysToRemove.forEach { releaseXmlNodeStream(xmlNodeStreams, it) }
 
 
     // 启动所有新标记节点的动画
@@ -1275,7 +1291,7 @@ private fun synchronizeRenderNodes(
             keysToAnimate.forEach { key ->
                 // 检查以防万一节点在此期间被移除
                 if (nodeAnimationStates.containsKey(key)) {
-                    nodeAnimationStates[key] = true
+                    nodeAnimationStates.remove(key)
                 }
             }
         }
