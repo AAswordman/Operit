@@ -44,6 +44,7 @@ import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.theme.packages.ThemePackageBundledSamplesV1
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.data.preferences.initAndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.initUserPreferencesManager
@@ -203,6 +204,14 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
                 }
             } catch (error: Throwable) {
                 AppLogger.e(TAG, "Theme storage metadata migration failed", error)
+            }
+        }
+
+        applicationScope.launch {
+            try {
+                ThemePackageBundledSamplesV1.installCyberGridIfNeeded(applicationContext)
+            } catch (error: Throwable) {
+                AppLogger.e(TAG, "Bundled cyber theme installation failed", error)
             }
         }
 

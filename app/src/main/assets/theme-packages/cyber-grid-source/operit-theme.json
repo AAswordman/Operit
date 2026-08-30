@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "packageId": "operit.cyber_grid",
+  "version": "1.0.0",
+  "displayName": {
+    "values": {
+      "*": "赛博网格",
+      "en": "Cyber Grid"
+    }
+  },
+  "author": {
+    "values": {
+      "*": "Operit Reference Themes"
+    }
+  },
+  "description": {
+    "values": {
+      "*": "Hubble 星云背景、青蓝霓虹框和洋红信号线组成的聊天壳层。",
+      "en": "A chat shell with a Hubble nebula backdrop, cyan neon frames, and magenta signal lines."
+    }
+  },
+  "attribution": {
+    "text": {
+      "values": {
+        "*": "Background image: The Ring Nebula (M57), The Hubble Heritage Team (AURA/STScI/NASA)."
+      }
+    },
+    "sourceUrl": "https://science.nasa.gov/asset/hubble/the-ring-nebula-m57/"
+  },
+  "capabilities": {
+    "hostSurfaces": ["main"],
+    "scenes": ["chat.main"]
+  },
+  "variants": [
+    {
+      "id": "neon",
+      "label": {
+        "values": {
+          "*": "霓虹",
+          "en": "Neon"
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "id": "primary_color",
+      "type": "COLOR",
+      "defaultValue": {
+        "type": "color",
+        "argb": 4278246655
+      },
+      "label": {
+        "values": {
+          "*": "主色",
+          "en": "Primary color"
+        }
+      }
+    }
+  ],
+  "assets": [
+    {
+      "key": "cyber_nebula",
+      "path": "assets/cyber-nebula.jpg",
+      "kind": "BITMAP",
+      "sha256": "8211b22b372efa7e3d5658dd8c71323507c66310a129eeffd5ad6af9537d1c25",
+      "byteSize": 309427
+    },
+    {
+      "key": "outer_frame",
+      "path": "assets/outer-frame.png",
+      "kind": "NINE_SLICE",
+      "sha256": "9195f6693e4339a1c1d5d1d458bc93f184bf47c1ead1015e10d1fae06267849b",
+      "byteSize": 291
+    },
+    {
+      "key": "header_frame",
+      "path": "assets/header-frame.png",
+      "kind": "NINE_SLICE",
+      "sha256": "894b0483d69b4ecb414a61444ca4a5f89a54aac57eed44b1f949ec272c481316",
+      "byteSize": 275
+    },
+    {
+      "key": "composer_frame",
+      "path": "assets/composer-frame.png",
+      "kind": "NINE_SLICE",
+      "sha256": "7a11440efb859108262ae4cac203b0a5e08e51d6d64f08bced4d5d03e9576933",
+      "byteSize": 285
+    }
+  ],
+  "tokens": {
+    "tokens": {
+      "color.background": {
+        "type": "color",
+        "lightArgb": 4278589738,
+        "darkArgb": 4278323223
+      },
+      "color.cyan": {
+        "type": "color",
+        "lightArgb": 4278246655,
+        "darkArgb": 4285131007
+      },
+      "color.magenta": {
+        "type": "color",
+        "lightArgb": 4294916069,
+        "darkArgb": 4294934000
+      }
+    }
+  },
+  "scenes": [
+    {
+      "sceneId": "chat.main",
+      "version": {
+        "major": 1,
+        "minor": 0
+      },
+      "rootNode": {
+        "type": "stage",
+        "nodeId": "root",
+        "backgroundColorToken": "color.background",
+        "children": [
+          {
+            "type": "layer",
+            "nodeId": "nebula_layer",
+            "children": [
+              {
+                "type": "image",
+                "nodeId": "nebula_image",
+                "assetId": "cyber_nebula",
+                "fit": "CROP"
+              }
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "outer_frame_layer",
+            "children": [
+              {
+                "type": "frame",
+                "nodeId": "outer_frame_region",
+                "anchor": {"startX": 0.0, "startY": 0.0, "endX": 1.0, "endY": 1.0},
+                "width": {"type": "fill"},
+                "height": {"type": "fill"},
+                "child": {
+                  "type": "nine_slice",
+                  "nodeId": "outer_frame_asset",
+                  "assetId": "outer_frame",
+                  "capInsets": {"startDp": 18.0, "topDp": 18.0, "endDp": 18.0, "bottomDp": 18.0}
+                }
+              }
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "header_frame_layer",
+            "children": [
+              {
+                "type": "frame",
+                "nodeId": "header_frame_region",
+                "anchor": {"startX": 0.0, "startY": 0.0, "endX": 1.0, "endY": 0.16},
+                "width": {"type": "fill"},
+                "height": {"type": "fill"},
+                "child": {
+                  "type": "nine_slice",
+                  "nodeId": "header_frame_asset",
+                  "assetId": "header_frame",
+                  "capInsets": {"startDp": 16.0, "topDp": 16.0, "endDp": 16.0, "bottomDp": 16.0}
+                }
+              }
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "transcript_layer",
+            "children": [
+              {"type": "host_slot", "nodeId": "transcript_slot", "slotId": "transcript"}
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "header_slot_layer",
+            "children": [
+              {"type": "host_slot", "nodeId": "header_slot", "slotId": "header"}
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "composer_frame_layer",
+            "children": [
+              {
+                "type": "frame",
+                "nodeId": "composer_frame_region",
+                "anchor": {"startX": 0.02, "startY": 0.79, "endX": 0.98, "endY": 0.985},
+                "width": {"type": "fill"},
+                "height": {"type": "fill"},
+                "child": {
+                  "type": "nine_slice",
+                  "nodeId": "composer_frame_asset",
+                  "assetId": "composer_frame",
+                  "capInsets": {"startDp": 18.0, "topDp": 18.0, "endDp": 18.0, "bottomDp": 18.0}
+                }
+              }
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "rail_layer",
+            "children": [
+              {"type": "host_slot", "nodeId": "rail_slot", "slotId": "classic_settings_rail"}
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "composer_layer",
+            "children": [
+              {"type": "host_slot", "nodeId": "composer_slot", "slotId": "composer"}
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "overlay_layer",
+            "children": [
+              {"type": "host_slot", "nodeId": "overlay_slot", "slotId": "overlay_stack"}
+            ]
+          },
+          {
+            "type": "layer",
+            "nodeId": "configuration_layer",
+            "children": [
+              {"type": "host_slot", "nodeId": "configuration_slot", "slotId": "configuration_gate"}
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -71,6 +71,18 @@ internal data class ThemePackageVariantV1(
 }
 
 @Serializable
+internal data class ThemePackageAttributionV1(
+    val text: ThemePackageLocalizedTextV1,
+    val sourceUrl: String,
+) {
+    init {
+        require(sourceUrl.startsWith("https://")) {
+            "Theme package attribution source URL must use HTTPS."
+        }
+    }
+}
+
+@Serializable
 internal enum class ThemeParameterTypeV1 {
     COLOR,
     BOOLEAN,
@@ -154,6 +166,7 @@ internal data class ThemePackageManifestV1(
     val displayName: ThemePackageLocalizedTextV1,
     val author: ThemePackageLocalizedTextV1? = null,
     val description: ThemePackageLocalizedTextV1? = null,
+    val attribution: ThemePackageAttributionV1? = null,
     val basis: ThemePackageCoordinateV1? = null,
     val capabilities: ThemePackageCapabilitiesV1,
     val variants: List<ThemePackageVariantV1> = emptyList(),
