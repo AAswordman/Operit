@@ -13,7 +13,7 @@ METADATA
     "tools": [
         {
             "name": "terminal",
-            "description": { "zh": "在Ubuntu环境中执行命令并收集输出结果。运行环境：完整的Ubuntu系统，已正确挂载sdcard和storage目录，可访问Android存储空间。所有命令将会在相同的会话执行且上下文连贯。强烈建议每次都显式传 timeoutMs，避免命令卡住。禁止使用 `set -e`、`set -o errexit` 等会改变 shell 退出行为的命令，这会导致终端会话直接退出并卡死。若未传，前台默认15秒超时；background=true 时不使用该默认超时。命令超时时会取消当前命令并保留终端会话。", "en": "Execute commands in an Ubuntu environment and collect output. Environment: full Ubuntu system with sdcard/storage mounted, allowing access to Android storage. Automatically preserves working-directory context. Strongly recommend explicitly passing timeoutMs every time to avoid hangs. Do not use commands such as `set -e` or `set -o errexit` that change shell exit behavior, because they can cause the terminal session to exit and hang. If omitted, foreground mode defaults to 15s timeout; background=true does not use this default timeout. When a command times out, the current command is cancelled and the terminal session is kept." },
+            "description": { "zh": "在Ubuntu环境中执行命令并收集输出结果。运行环境：完整的Ubuntu系统，已正确挂载sdcard和storage目录，可访问Android存储空间。所有命令将会在相同的会话执行且上下文连贯。强烈建议每次都显式传 timeoutMs，避免命令卡住。禁止使用 `set -e`、`set -o errexit` 等会改变 shell 退出行为的命令，否则可能导致终端会话退出并卡住。若未传，前台默认15秒超时；background=true 时不使用该默认超时。命令超时时会取消当前命令并关闭终端会话，后续调用会创建新会话。", "en": "Execute commands in an Ubuntu environment and collect output. Environment: full Ubuntu system with sdcard/storage mounted, allowing access to Android storage. Automatically preserves working-directory context. Strongly recommend explicitly passing timeoutMs every time to avoid hangs. Do not use commands such as `set -e` or `set -o errexit` that change the shell exit behavior, because they may cause the terminal session to exit and hang. If omitted, foreground mode defaults to 15s timeout; background=true does not use this default timeout. When a command times out, the current command is cancelled and the terminal session is closed; the next call creates a new session." },
             "parameters": [
                 {
                     "name": "command",
@@ -37,7 +37,7 @@ METADATA
         },
         {
             "name": "terminal_wait",
-            "description": { "zh": "等待同一终端会话中的上一条命令执行完成。与 sleep 不同，本工具会在命令实际完成时提前返回，而不是固定睡眠。超时时会取消当前执行中的命令并保留终端会话。", "en": "Wait until the previous command in the same terminal session finishes. Unlike sleep, this tool can return early as soon as the command actually completes. On timeout, the currently executing command is cancelled and the terminal session is kept." },
+            "description": { "zh": "等待同一终端会话中的上一条命令执行完成。与 sleep 不同，本工具会在命令实际完成时提前返回，而不是固定睡眠。超时时会取消当前执行中的命令并关闭终端会话，后续调用会创建新会话。", "en": "Wait until the previous command in the same terminal session finishes. Unlike sleep, this tool can return early as soon as the command actually completes. On timeout, the currently executing command is cancelled and the terminal session is closed; the next call creates a new session." },
             "parameters": [
                 {
                     "name": "sessionId",
@@ -134,6 +134,21 @@ const superAdmin = (function () {
             : BACKGROUND_TERMINAL_SESSION_PREFIX;
         return `${prefix}_${Date.now()}`;
     }
+    function isTerminalTimeoutError(error) {
+        const message = String(error instanceof Error ? error.message : error ?? "").toLowerCase();
+        return message.includes("timed out") || message.includes("timeout") || message.includes("超时");
+    }
+    async function closeTerminalSessionQuietly(sessionId) {
+        if (!sessionId) {
+            return;
+        }
+        try {
+            await Tools.System.terminal.close(sessionId);
+        }
+        catch (error) {
+            console.warn(`[terminal] 关闭失效会话失败: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
     async function persistTerminalOutputIfTooLong(command, result) {
         const outputStr = typeof result?.output === "string"
             ? result.output
@@ -214,8 +229,20 @@ const superAdmin = (function () {
             const session = await Tools.System.terminal.create(getDefaultTerminalSessionName());
             const sessionId = session.sessionId;
             // 调用系统工具执行终端命令
-            const result = await Tools.System.terminal.exec(sessionId, command, timeout);
-            const timedOut = result.timedOut === true;
+            let result;
+            try {
+                result = await Tools.System.terminal.exec(sessionId, command, timeout);
+            }
+            catch (error) {
+                if (isTerminalTimeoutError(error)) {
+                    await closeTerminalSessionQuietly(sessionId);
+                }
+                throw error;
+            }
+            const timedOut = result?.timedOut === true;
+            if (timedOut) {
+                await closeTerminalSessionQuietly(sessionId);
+            }
             const persistedResult = await persistTerminalOutputIfTooLong(command, result);
             if (persistedResult) {
                 persistedResult.timeoutMsUsed = timeout;
@@ -264,9 +291,21 @@ const superAdmin = (function () {
             const marker = `__OPERIT_TERMINAL_WAIT_DONE_${Date.now()}_${Math.floor(Math.random() * 1000000)}__`;
             const waitCommand = `printf '${marker}\\n'`;
             const startedAt = Date.now();
-            const result = await Tools.System.terminal.exec(sessionId, waitCommand, timeout);
+            let result;
+            try {
+                result = await Tools.System.terminal.exec(sessionId, waitCommand, timeout);
+            }
+            catch (error) {
+                if (isTerminalTimeoutError(error)) {
+                    await closeTerminalSessionQuietly(sessionId);
+                }
+                throw error;
+            }
             const elapsedMs = Date.now() - startedAt;
             const timedOut = result?.timedOut === true;
+            if (timedOut) {
+                await closeTerminalSessionQuietly(sessionId);
+            }
             const outputStr = typeof result?.output === "string"
                 ? result.output
                 : String(result?.output ?? "");
