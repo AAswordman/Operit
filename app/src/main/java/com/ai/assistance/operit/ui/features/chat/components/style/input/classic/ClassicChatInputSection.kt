@@ -226,7 +226,6 @@ fun ClassicChatInputSection(
     Box(
         modifier =
             containerModifier
-                .clip(containerShape)
                 .background(MaterialTheme.colorScheme.surface),
     ) {
         Column {
