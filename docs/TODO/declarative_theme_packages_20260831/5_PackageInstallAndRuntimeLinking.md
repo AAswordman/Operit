@@ -23,6 +23,12 @@
 
 应用级选择记录保存 `package_id`、精确版本、内容摘要、主题变体和参数值。主题切换作为一个事务更新；所有主题 Compose 宿主观察同一已解析运行时结果。
 
+已落地基础：
+
+- 存储：独立版本化 DataStore `theme_package_selection`（schema 1），单键 JSON `theme_instance_json`，序列化模型 `ThemeInstanceV1`；记录缺失或非法直接失败，不静默换主题。
+- 内置参考主题：`operit.reference@1.0.0`（`ThemePackageReferenceV1.BuiltIn`），不伪造归档摘要；已安装包使用 `ThemePackageCoordinateV1(package_id, version, archive_sha256)` 精确坐标。
+- Scene DSL v1 契约与校验已落地：`ui/theme/scene/` 的 `ThemeSceneContractV1` 节点集（stage/layer/row/column/grid/frame/host_slot/surface/image/nine_slice/text/path/transform）与 `ThemeSceneValidationV1` 结构化问题清单；场景目录注册 `app.shell@1.0` 与 `chat.main@1.0` 槽位契约。
+
 ## 主题参数
 
 主题作者可公开颜色、变体、背景、字体或有限枚举参数。参数模式控制名称、本地化、范围和依赖。普通设置只根据该模式生成控件，不包含组件级样式工作台。
