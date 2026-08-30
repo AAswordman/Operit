@@ -1083,17 +1083,6 @@ class UserPreferencesManager private constructor(private val context: Context) {
         }
     }
 
-    suspend fun replaceThemeForPrompt(
-        target: ActivePrompt,
-        values: ThemePreferenceValues,
-    ) {
-        context.userPreferencesDataStore.edit { preferences ->
-            val prefix = themePrefixForPrompt(target)
-            writeVisualThemeValues(preferences, prefix, values)
-            writeThemeTargetMetadata(preferences, prefix, values)
-        }
-    }
-
     suspend fun mutateThemeForPrompt(
         target: ActivePrompt,
         transform: (ThemePreferenceValues) -> ThemePreferenceValues,

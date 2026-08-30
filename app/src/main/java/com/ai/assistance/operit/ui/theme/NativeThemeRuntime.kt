@@ -16,7 +16,6 @@ internal enum class NativeThemeHostSurface {
     FLOATING,
     OVERLAY,
     OFFSCREEN,
-    EDITOR_PREVIEW,
     GLANCE,
     DIAGNOSTIC,
 }

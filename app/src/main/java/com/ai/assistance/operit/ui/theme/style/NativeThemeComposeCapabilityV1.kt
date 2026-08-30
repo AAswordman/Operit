@@ -85,7 +85,6 @@ internal object NativeThemeComposeStyleSurfacesV1 {
             NativeThemeHostSurface.FLOATING,
             NativeThemeHostSurface.OVERLAY,
             NativeThemeHostSurface.OFFSCREEN,
-            NativeThemeHostSurface.EDITOR_PREVIEW,
         )
 }
 

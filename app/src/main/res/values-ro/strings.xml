@@ -88,31 +88,6 @@
     <string name="nav_help">Manual de utilizare</string>
 
     <!-- Color Picker -->
-    <string name="colorpicker_select_primary">Alege culoarea principală</string>
-    <string name="colorpicker_select_secondary">Alege o culoare secundară</string>
-    <string name="colorpicker_select_statusbar">Alege culoarea barei de stare</string>
-    <string name="colorpicker_select_navigation_drawer_background">Alegeți culoarea de fundal a meniului lateral glisant</string>
-    <string name="colorpicker_select_navigation_drawer_accent">Alege culoarea de evidențiere pentru meniul lateral glisant</string>
-    <string name="colorpicker_select_history_icon">Alege culoarea pictogramei istoricului</string>
-    <string name="colorpicker_select_pip_icon">Alegeți culoarea pictogramei ferestrei plutitoare</string>
-    <string name="colorpicker_select_cursor_user_bubble">Selectarea culorii ferestrei de mesaje pentru utilizator în modul de comandă</string>
-    <string name="colorpicker_select_bubble_user_bubble">Selectarea culorii balonului de dialog al utilizatorului</string>
-    <string name="colorpicker_select_bubble_ai_bubble">Alege modul dialogicAICuloarea bulelor</string>
-    <string name="colorpicker_select_bubble_user_text">Selectarea culorii textului utilizatorului în modul dialog</string>
-    <string name="colorpicker_select_bubble_ai_text">Alege modul dialogicAICuloarea textului</string>
-    <string name="colorpicker_select_color">Alegeți culoarea</string>
-    <string name="colorpicker_sample_text">Text de exemplu</string>
-    <string name="colorpicker_high_contrast">Contrast ridicat</string>
-    <string name="colorpicker_low_contrast">Contrast redus</string>
-    <string name="colorpicker_manual_input">Introducerea manuală a culorilor</string>
-    <string name="colorpicker_paste">Lipiți</string>
-    <string name="colorpicker_apply">Aplicații</string>
-    <string name="colorpicker_apply_rgb">Aplicații RGB</string>
-    <string name="colorpicker_apply_hsv">Aplicații HSV</string>
-    <string name="colorpicker_recently_used">Utilizare recentă</string>
-    <string name="colorpicker_recommended">Culori recomandate</string>
-    <string name="colorpicker_confirm">Confirmare</string>
-    <string name="colorpicker_cancel">Anulare</string>
 
     <!-- Chat History Settings -->
     <string name="chathistory_internal_storage">Memorie internă</string>
@@ -715,91 +690,11 @@
     <string name="plugin_pnpm_missing">Nu este instalat pe terminalpnpm, vă rugăm să instalați mai întâi</string>
 
     <!-- Theme Settings Screen -->
-    <string name="theme_title_mode">Modul tematic</string>
-    <string name="theme_tab_basic">Noțiuni de bază</string>
-    <string name="theme_load_failed">Setările temei nu au putut fi încărcate</string>
-    <string name="theme_tab_background">Context</string>
-    <string name="theme_tab_chat">Conversație</string>
-    <string name="theme_tab_input">Câmp de introducere</string>
-    <string name="theme_tab_interface">Bara de interfață</string>
-    <string name="theme_follow_system">Aplică tema sistemului</string>
-    <string name="theme_follow_system_desc">După activare, tema se va schimba automat în funcție de modul întunecat al sistemului</string>
-    <string name="theme_select">Alegeți o temă</string>
-    <string name="theme_light">Tema în culori deschise</string>
-    <string name="theme_dark">Tema în culori închise</string>
-    <string name="theme_title_color">Personalizare culori</string>
-    <string name="theme_custom_color">Scheme de culori personalizate</string>
-    <string name="theme_use_custom_color">Utilizarea culorilor personalizate</string>
-    <string name="theme_custom_color_desc">După activare, poți personaliza schema de culori principală a aplicației</string>
-    <string name="theme_primary_color">Culoarea principală</string>
-    <string name="theme_secondary_color">Culoare secundară</string>
-    <string name="theme_save_colors">Salvare setări de culori</string>
-    <string name="theme_title_background">Personalizarea fundalului</string>
-    <string name="theme_bg_media">Setări media de fundal</string>
-    <string name="theme_use_custom_bg">Utilizarea unui fundal personalizat</string>
-    <string name="theme_custom_bg_desc">După activare, puteți alege o imagine de fundal personalizată sau un videoclip</string>
-    <string name="theme_media_type">Tipuri de mass-media</string>
-    <string name="theme_media_image">Imagine</string>
-    <string name="theme_media_video">Video</string>
-    <string name="theme_no_bg_selected">Faceți clic pe butonul de selectare pentru a adăuga un fundal</string>
-    <string name="theme_select_video">Alege un videoclip</string>
-    <string name="theme_select_image">Alege o imagine</string>
-    <string name="theme_bg_opacity">Opacitatea fundalului: %1$d%%</string>
-    <string name="theme_reset">Researează la tema implicită</string>
-    <string name="theme_saved">Setările au fost salvate</string>
-    <string name="theme_video_too_large">Fișierul video este prea mare, ceea ce poate duce la încetinirea sau blocarea aplicației. Vă rugăm să alegeți un fișier mai mic de30MBvideoclipul.</string>
-    <string name="theme_video_saved">Videoclipul de fundal a fost salvat</string>
-    <string name="theme_image_saved">Imaginea de fundal a fost salvată</string>
     <string name="theme_copy_failed">Nu se poate copia videoclipul. Vă rugăm să alegeți un alt videoclip.</string>
-    <string name="theme_image_crop_failed">Eșec la decuparea imaginii: %1$s</string>
-    <string name="theme_image_migrated">Imaginea de fundal a fost mutată în memoria internă</string>
-    <string name="theme_old_image_failed">Nu se poate accesa imaginea de fundal veche; funcția de imagine de fundal a fost dezactivată</string>
     <string name="theme_crop_image">Decuparea imaginilor</string>
     <string name="theme_crop_done">Finalizat</string>
     <string name="theme_unmute">Anulează modul silențios</string>
     <string name="theme_mute">Mod silențios</string>
-    <string name="theme_loop_off">Pornește ciclul</string>
-    <string name="theme_loop_on">Oprirea ciclului</string>
-    <string name="theme_loop_enabled">Redarea în buclă este activată</string>
-    <string name="theme_loop_disabled">Redarea în buclă este dezactivată</string>
-    <string name="theme_toolbar_transparent">Setări bara de instrumente</string>
-    <string name="theme_toolbar_transparent_desc">Bara de instrumente transparentă</string>
-    <string name="theme_toolbar_transparent_desc_desc">După activare, bara de instrumente va deveni transparentă</string>
-    <string name="theme_appbar_color">Culoarea barei de sus</string>
-    <string name="theme_use_custom_appbar_color">Personalizarea culorii barei de sus</string>
-    <string name="theme_use_custom_appbar_color_desc">După activare, puteți personaliza culoarea barei de sus</string>
-    <string name="theme_navigation_drawer_title">Setări meniu lateral glisant</string>
-    <string name="theme_navigation_drawer_water_glass">Meniul glisant cu efect de sticlă de apă</string>
-    <string name="theme_navigation_drawer_water_glass_desc">După activare, meniul glisant din stânga va afișa un efect de sticlă de apă</string>
-    <string name="theme_navigation_drawer_button_liquid_glass">Fundal din sticlă mată pentru butoanele din bara laterală</string>
-    <string name="theme_navigation_drawer_button_liquid_glass_desc">După activare, fiecare buton din bara laterală va afișa un fundal cu efect de sticlă mată</string>
-    <string name="theme_navigation_drawer_background_color">Culoarea de fundal a meniului lateral</string>
-    <string name="theme_navigation_drawer_accent_color">Culoarea de evidențiere a meniului lateral</string>
-    <string name="theme_use_custom_navigation_drawer_background_color">Personalizarea culorii de fundal a meniului lateral glisant</string>
-    <string name="theme_use_custom_navigation_drawer_background_color_desc">După activare, puteți personaliza culoarea de fundal a meniului glisant din stânga</string>
-    <string name="theme_use_custom_navigation_drawer_accent_color">Culoarea de evidențiere a meniului lateral personalizat</string>
-    <string name="theme_use_custom_navigation_drawer_accent_color_desc">După activare, puteți personaliza în mod unitar culorile siglei mărcii, ale subtitlurilor, ale stării conexiunii la internet și ale liniilor de separare</string>
-    <string name="theme_statusbar_color">Culoarea barei de stare</string>
-    <string name="theme_use_custom_statusbar_color">Personalizarea culorii barei de stare</string>
-    <string name="theme_use_custom_statusbar_color_desc">După activare, poți personaliza culoarea barei de stare</string>
-    <string name="theme_statusbar_hidden">Ascunde bara de stare</string>
-    <string name="theme_statusbar_hidden_desc">Odată activată, bara de stare va fi ascunsă complet, oferind un spațiu de afișare mai mare</string>
-    <string name="theme_statusbar_transparent">Bara de stare transparentă</string>
-    <string name="theme_statusbar_transparent_desc">După activare, bara de stare va deveni transparentă, integrându-se perfect în fundal</string>
-    <string name="theme_chat_history_selector_transparent">Selectorul de istoric transparent</string>
-    <string name="theme_chat_history_selector_transparent_desc">După activare, fereastra de selectare a istoricului conversațiilor va deveni transparentă</string>
-    <string name="theme_chat_header_transparent">Bara de chat transparentă</string>
-    <string name="theme_chat_header_transparent_desc">După activare, bara de sus a ferestrei de chat va deveni transparentă</string>
-    <string name="theme_chat_header_transparent_title">Setări pentru bara de sus a ferestrei de chat</string>
-    <string name="theme_chat_input_transparent_title">Setări pentru câmpurile de introducere</string>
-    <string name="theme_chat_input_transparent">Câmp de introducere transparent</string>
-    <string name="theme_chat_input_transparent_desc">După activare, caseta de introducere a mesajelor din chat va deveni transparentă</string>
-    <string name="theme_chat_input_floating">Câmp de introducere plutitor</string>
-    <string name="theme_chat_input_floating_desc">După activare, câmpul de introducere se va transforma dintr-un element aliniat la fundul paginii într-un dreptunghi cu colțuri rotunjite complet, care plutește; ambele stiluri de introducere vor fi active</string>
-    <string name="theme_chat_input_liquid_glass">Câmp de introducere cu sticlă mată</string>
-    <string name="theme_chat_input_liquid_glass_desc">După activare, se va afișa o casetă de introducere transparentă iOS Efect de sticlă mată</string>
-    <string name="theme_chat_input_water_glass">Câmpul de introducere a silicatului de sodiu</string>
-    <string name="theme_chat_input_water_glass_desc">După activare, caseta de introducere transparentă va afișa un efect de sticlă lichidă</string>
 
     <!-- Floating Window -->
     <string name="floating_chat_window">Fereastră plutitoare de chat</string>
@@ -856,8 +751,6 @@
     <string name="settings_model_prompts">Setarea cuvintelor-cheie pentru model</string>
     <string name="settings_model_prompts_desc">PersonalizareAICuvintele de introducere ale sistemului pentru asistent, inclusiv prezentarea personală și stilul de exprimare, fac caAIcare corespunde mai bine așteptărilor dumneavoastră</string>
     <string name="settings_configure_prompts">Configurarea cuvintelor-cheie</string>
-    <string name="settings_theme_appearance">Teme și aspect</string>
-    <string name="settings_theme_appearance_desc">Personalizarea aspectului aplicației, inclusiv modul întunecat/Modul de afișare în culori deschise și scheme de culori personalizate</string>
     <string name="settings_customize_theme">Teme personalizate</string>
     <string name="settings_global_display">Afișare și comportament</string>
     <string name="settings_global_display_subtitle">Opțiuni globale pentru gestionarea stilului de afișare, a comportamentelor automate, a capturilor de ecran etc.</string>
@@ -1703,21 +1596,7 @@
     <string name="accessibility_risk_warning_confirm">Confirmare continuare</string>
     <string name="accessibility_risk_warning_cancel">Anulare</string>
 
-    <string name="theme_appbar_content_color_title">Culoarea conținutului din bara de sus</string>
-    <string name="theme_force_appbar_content_color">Aplicarea obligatorie a culorii conținutului din bara de sus</string>
-    <string name="theme_force_appbar_content_color_desc">După activare, culorile titlurilor și pictogramelor din bara de sus vor rămâne fixe, nefiind influențate de fundal</string>
-    <string name="theme_appbar_content_color_mode">Modul de culoare</string>
-    <string name="theme_appbar_content_color_light">Culoare deschisă (Nuanțe de alb)</string>
-    <string name="theme_appbar_content_color_dark">Culoare închisă (Gama de culori negre)</string>
 
-    <string name="theme_chat_header_icons_color_title">Culoarea pictogramelor din bara de sus a ferestrei de chat</string>
-    <string name="theme_chat_header_history_icon_color">Culoarea pictogramei istoricului</string>
-    <string name="theme_chat_header_pip_icon_color">Culoarea pictogramei ferestrei flotante</string>
-    <string name="theme_chat_header_overlay_mode">Modul de acoperire</string>
-    <string name="theme_chat_header_overlay_mode_desc">După activare, bara de sus transparentă va fi afișată ca un strat suprapus, fără a ocupa spațiul destinat mesajelor</string>
-    <string name="theme_background_blur">Fundal estompat</string>
-    <string name="theme_background_blur_desc">Aplicarea unui efect de estompare gaussiană unei imagini sau unui videoclip de fundal</string>
-    <string name="theme_background_blur_radius">Raza de estompare</string>
 
     <!-- Toast Messages -->
     <string name="pip_package_install_success">PIP Pachetul a fost instalat cu succes</string>
@@ -3399,7 +3278,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <!-- Settings Screen Subtitles -->
     <string name="settings_user_preferences_subtitle">Editare și previzualizare user.md</string>
     <string name="settings_language_subtitle">Schimbarea limbii interfeței</string>
-    <string name="settings_theme_subtitle">Personalizarea temelor și a aspectului</string>
     <string name="layout_adjustment">Reorganizare</string>
     <string name="layout_adjustment_subtitle">Ajustarea poziției și a marginilor elementelor din interfață</string>
     <string name="settings_model_params_subtitle">Parametrii modelului șiAPIConfigurație</string>
@@ -3679,109 +3557,12 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="delete_icon">Ștergere</string>
 
     <!-- Theme Settings Additional Strings -->
-    <string name="theme_on_color_mode">Culoarea textului temei</string>
-    <string name="theme_on_color_auto">Automat</string>
-    <string name="theme_on_color_light">Culoare deschisă</string>
-    <string name="theme_on_color_dark">Culoare închisă</string>
-    <string name="chat_style_title">Stilul de conversație</string>
-    <string name="chat_style_desc">Alege stilul interfeței de chat</string>
-    <string name="chat_style_cursor">Caseta de comandă</string>
-    <string name="chat_style_bubble">Caseta de dialog</string>
-    <string name="input_style_title">Stilul câmpului de introducere</string>
-    <string name="input_style_desc">Selectarea stilului zonei de introducere a mesajului</string>
-    <string name="input_style_classic">Stil clasic</string>
-    <string name="input_style_agent">AgentStil</string>
-    <string name="input_style_agent_reserved">AgentȘablonul este în curs de dezvoltare; în prezent, este disponibil doar un acces provizoriu</string>
-    <string name="chat_style_bubble_show_avatar">Afișează poza de profil</string>
-    <string name="chat_style_bubble_show_avatar_desc">Afișarea utilizatorilor și a AI Avatarul</string>
-    <string name="chat_style_bubble_wide_layout">Bule mai largi</string>
-    <string name="chat_style_bubble_wide_layout_desc">După deschidere, balonul de dialog va apărea sub avatar, iar numele personajului va fi afișat pe aceeași linie cu avatarul, oferind astfel un spațiu mai mare pentru afișarea mesajului</string>
-    <string name="chat_style_bubble_image_render_mode_title">Modul de redare a baloanelor din imagini</string>
-    <string name="chat_style_bubble_image_render_mode_desc">Opțional .9 Modul de întindere sau modul de dispunere în grilă de 9 pătrate</string>
-    <string name="chat_style_bubble_image_render_mode_nine_patch">.9Modul</string>
-    <string name="chat_style_bubble_image_render_mode_tiled">Aranjare în grilă de 9 pătrate</string>
-    <string name="chat_style_bubble_rounded_corners">Activare bule cu colțuri rotunjite</string>
-    <string name="chat_style_bubble_rounded_corners_desc">După închidere, balonul de mesaj utilizează un dreptunghi cu colțuri drepte</string>
-    <string name="chat_style_bubble_rounded_corners_user">Utilizator</string>
-    <string name="chat_style_bubble_rounded_corners_ai">AI</string>
-    <string name="chat_style_bubble_advanced_options">Opțiuni avansate</string>
-    <string name="chat_style_bubble_padding_left">Marginea interioară stângă</string>
-    <string name="chat_style_bubble_padding_right">Marginea interioară dreaptă</string>
-    <string name="chat_style_cursor_user_follow_theme">Caseta de mesaje pentru utilizatori în stil imperativ se adaptează la culorile temei</string>
-    <string name="chat_style_cursor_user_follow_theme_desc">După închidere, se poate personaliza culoarea ferestrei de mesaje pentru utilizator în modul comandă (se acceptă transparența)</string>
-    <string name="chat_style_cursor_user_bubble_liquid_glass">Mesaj imperativ pentru utilizator pe fundal de sticlă mată</string>
-    <string name="chat_style_cursor_user_bubble_liquid_glass_desc">După activare, se va afișa fundalul mesajelor utilizatorului în modul comandă iOS Efect de sticlă mată</string>
-    <string name="chat_style_cursor_user_bubble_water_glass">Mesaj de comandă pentru utilizator pe fundal de sticlă de apă</string>
-    <string name="chat_style_cursor_user_bubble_water_glass_desc">După activare, fundalul mesajelor utilizatorului în modul comandă va afișa un efect de sticlă lichidă</string>
-    <string name="chat_style_bubble_user_bubble_liquid_glass">Mesaj pentru utilizator în stil bule, pe fundal de sticlă mată</string>
-    <string name="chat_style_bubble_user_bubble_liquid_glass_desc">După activare, se va afișa fundalul cu bule de mesaje pentru utilizatori iOS Efect de sticlă mată</string>
-    <string name="chat_style_bubble_user_bubble_water_glass">Mesaj pentru utilizatori cu bule, pe fundal de sticlă hidraulică</string>
-    <string name="chat_style_bubble_user_bubble_water_glass_desc">După activare, fundalul mesajelor utilizatorilor sub formă de bule va afișa un efect de sticlă lichidă</string>
-    <string name="chat_style_bubble_ai_bubble_liquid_glass">tip cu buleAIȘtiri pe fundal de sticlă mată</string>
-    <string name="chat_style_bubble_ai_bubble_liquid_glass_desc">După activare, în stilul „bule”AIContextul știrii va fi afișat iOS Efect de sticlă mată</string>
-    <string name="chat_style_bubble_ai_bubble_water_glass">tip cu buleAIFundal cu sticlă de apă și mesaje</string>
-    <string name="chat_style_bubble_ai_bubble_water_glass_desc">După activare, în stilul „bule”AIÎn fundalul mesajului se va afișa efectul de silicat de sodiu</string>
-    <string name="chat_style_cursor_user_bubble_color">Fereastră de mesaj pentru utilizator în stil imperativ</string>
-    <string name="chat_style_bubble_color_title">Culoarea baloanelor de dialog</string>
-    <string name="chat_style_bubble_user_color">Balonul utilizatorului</string>
-    <string name="chat_style_bubble_ai_color">AIBule</string>
-    <string name="chat_style_bubble_text_style_title">Stil de text dialogic</string>
-    <string name="chat_style_bubble_user_text_color">Textul utilizatorului</string>
-    <string name="chat_style_bubble_ai_text_color">AIText</string>
-    <string name="chat_style_bubble_user_font_title">Fonturi personalizate</string>
-    <string name="chat_style_bubble_ai_font_title">AIFont</string>
-    <string name="chat_style_bubble_user_image_title">Imagine cu balonul utilizatorului</string>
-    <string name="chat_style_bubble_ai_image_title">AIImagini cu bule de săpun</string>
-    <string name="chat_style_bubble_image_desc">După activare, se utilizează baloane de text cu imagini, fiind acceptate funcțiile de decupare și întindere repetată în partea centrală</string>
-    <string name="chat_style_bubble_user_image_disabled_by_glass">În prezent, este activat fundalul cu sticlă mată sau sticlă transparentă cu bule de aer; imaginea cu bule de aer a utilizatorului nu va fi afișată</string>
-    <string name="chat_style_bubble_ai_image_disabled_by_glass">Este activat în prezentAIFundal din sticlă mată cu bule sau sticlă transparentă,AIImaginile cu bule nu se afișează</string>
-    <string name="chat_style_bubble_pick_image">Alege o imagine</string>
-    <string name="chat_style_bubble_clear_image">Șterge imaginile</string>
-    <string name="chat_style_bubble_no_image_selected">Nu s-a selectat nicio imagine</string>
-    <string name="chat_style_bubble_image_selected">Imagine selectată</string>
-    <string name="chat_style_bubble_crop_left">Decupare la stânga</string>
-    <string name="chat_style_bubble_crop_top">Tăiere sus</string>
-    <string name="chat_style_bubble_crop_right">Decupare în dreapta</string>
-    <string name="chat_style_bubble_crop_bottom">Decupare inferioară</string>
-    <string name="chat_style_bubble_repeat_start">Începutul segmentului repetat</string>
-    <string name="chat_style_bubble_repeat_end">Sfârșitul segmentului repetat</string>
-    <string name="chat_style_bubble_repeat_x_start">Punctul de repetiție orizontală</string>
-    <string name="chat_style_bubble_repeat_x_end">Punctul final de repetare orizontală</string>
-    <string name="chat_style_bubble_repeat_y_start">Punctul de pornire al repetării verticale</string>
-    <string name="chat_style_bubble_repeat_y_end">Punctul final al repetării pe verticală</string>
-    <string name="chat_style_bubble_image_scale">Mărire/micșorare a întregii imagini</string>
-    <string name="chat_style_preview_title">Previzualizare stil</string>
-    <string name="chat_style_preview_user_message">Aceasta este previzualizarea mesajului utilizatorului</string>
-    <string name="chat_style_preview_ai_message">Acesta esteAIPrevizualizare știri</string>
-    <string name="chat_style_preview_user_name">Numele de utilizator</string>
-    <string name="chat_style_preview_ai_name">Numele personajului</string>
-    <string name="chat_style_preview_ai_meta">Model de exemplu by Exemple de furnizori</string>
-    <string name="chat_style_preview_user_source_title">Previzualizare în format „9 pătrate” a imaginii originale a utilizatorului</string>
-    <string name="chat_style_preview_ai_source_title">AIPrevizualizare în format „9 pătrate” a imaginii originale</string>
-    <string name="chat_style_bubble_image_saved">Imaginea cu bule a fost salvată</string>
-    <string name="display_options_title">Opțiuni de afișare</string>
-    <string name="theme_message_reasoning_title">Raționamentul mesajului</string>
-    <string name="theme_message_identity_title">Identitatea mesajului</string>
-    <string name="theme_message_diagnostics_title">Diagnosticarea mesajului</string>
-    <string name="theme_message_activity_title">Feedback de activitate</string>
-    <string name="show_thinking_process">Afișează procesul de gândire</string>
     <string name="show_thinking_process_desc">ComutareAISe procesează &lt;think&gt; Vizibilitatea etichetelor</string>
-    <string name="show_status_tags">Afișează eticheta de stare a sarcinii</string>
     <string name="show_status_tags_desc">Comutarea vizibilității etichetelor pentru starea „Sarcină finalizată” și „În așteptare”</string>
-    <string name="show_input_processing_status">Afișează starea procesării datelor de intrare</string>
     <string name="show_input_processing_status_desc">Se afișează deasupra câmpului de introducereAIStarea „În curs de procesare” a sarcinii</string>
-    <string name="show_chat_floating_dots_animation">Afișează animația cu balonul de dialog</string>
     <string name="show_chat_floating_dots_animation_desc">în AI Afișarea animației de tip „floating” a zonei de dialog în timpul încărcării răspunsului</string>
-    <string name="avatar_customization_title">Avatar personalizat</string>
-    <string name="user_avatar_label">Avatarul utilizatorului</string>
     <string name="global_user_avatar_label">Avatarul global al utilizatorului</string>
-    <string name="ai_avatar_label">AI Avatar</string>
-    <string name="character_avatar">Avatarul personajului</string>
     <string name="bind">Asociere</string>
-    <string name="avatar_shape_title">Forma avatarului</string>
-    <string name="avatar_shape_circle">Circular</string>
-    <string name="avatar_shape_square">pătrat</string>
-    <string name="avatar_corner_radius">Profil cu colțuri rotunjite</string>
     <string name="avatar_corner_decrease">Reducerea rotunjirii colțurilor</string>
     <string name="avatar_corner_increase">Mărirea rotunjirii colțurilor</string>
 
@@ -3792,8 +3573,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="global_user_name_desc">Stabiliți un nume de utilizator global, care va fi utilizat în toate conversațiileAISe folosește pentru a vă adresa. Acest nume este comun tuturor cărților de personaj.</string>
 
     <string name="ui_text_title">Textul din interfață</string>
-    <string name="custom_chat_title_label">Titlu personalizat pentru chat</string>
-    <string name="custom_chat_title_placeholder">De exemplu:AIasistent</string>
     <string name="save_title_desc">Păstrează titlul</string>
 
     <!-- Model Configuration Screen -->
@@ -4011,7 +3790,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="screen_title_tag_market">Piața etichetelor</string>
     <string name="screen_title_model_prompts_settings">Editarea cărților de personaj</string>
     <string name="screen_title_functional_config">Configurarea modelului funcțional</string>
-    <string name="screen_title_theme_settings">Setări temă</string>
     <string name="screen_title_global_display_settings">Afișare și comportament</string>
     <string name="screen_title_layout_adjustment">Reorganizare</string>
     <string name="screen_title_chat_history_settings">Gestionarea istoricului conversațiilor</string>
@@ -5356,21 +5134,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_limit_exceeded_message">A depășit limita maximăTokenrestricție (%1$d / %2$d)</string>
 
     <!-- Font Settings -->
-    <string name="font_file_saved">Fișierul cu fonturi a fost salvat (.%1$s)</string>
-    <string name="font_file_save_failed">Eșec la salvarea fișierului de fonturi</string>
-    <string name="unsupported_font_format">Format de fișier neacceptat. Vă rugăm să selectați .ttf, .otf sau .ttc Fișiere de fonturi</string>
-    <string name="enable_custom_font">Activarea fonturilor personalizate</string>
-    <string name="use_system_or_custom_font">Utilizarea fonturilor de sistem sau a fișierelor de fonturi personalizate</string>
-    <string name="font_type_label">Tipul de font</string>
-    <string name="system_font">Fonturi de sistem</string>
-    <string name="custom_font_file">Fișiere personalizate</string>
-    <string name="select_system_font">Selectați fontul sistemului</string>
     <string name="custom_font_file_title">Fișiere de fonturi personalizate</string>
-    <string name="font_file_support_desc">Susținere .ttf,.otf și .ttc Fișiere de fonturi</string>
-    <string name="select_font_file">Selectați fișierul de fonturi</string>
-    <string name="clear_font">Ștergere fonturi</string>
-    <string name="current_font_file_path">Fișierul de fonturi curent:\n%1$s</string>
-    <string name="font_size_scale_label">Redimensionarea dimensiunii fontului (%1$s)</string>
 
     <!-- Chat History Batch -->
     <string name="no_available_character_cards_toast">Nu există încă nicio fișă de personaj disponibilă; te rugăm să creezi mai întâi o fișă de personaj</string>
@@ -5465,19 +5229,12 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <!-- Global Display Settings -->
     <string name="global_display_settings_description">Aceste setări controlează comportamentul general de afișare, independent de configurările fișelor de personaj și ale temelor.</string>
     <string name="message_display_settings">Afișare setări mesaje</string>
-    <string name="show_model_provider">Afișează furnizorii de modele</string>
     <string name="show_model_provider_description">înAIÎn mesaj se afișează numele furnizorului modelului</string>
-    <string name="show_model_name">Afișează numele modelului</string>
     <string name="show_model_name_description">înAINumele modelului utilizat, așa cum apare în mesaj</string>
-    <string name="show_role_name">Afișează numele cărții personajului</string>
     <string name="show_role_name_description">înAIMesajul afișează numele cărții personajului curent</string>
-    <string name="show_user_name">Afișează numele utilizatorului</string>
     <string name="show_user_name_description">Afișarea numelui utilizatorului în mesajele utilizatorului</string>
-    <string name="show_message_token_stats">Afișează mesajul Token Buletin informativ</string>
     <string name="show_message_token_stats_description">în AI În partea de jos a știrii se afișează un mesaj concis token Informații privind traficul de intrare și ieșire și memoria cache</string>
-    <string name="show_message_timing_stats">Raport privind durata de afișare a mesajelor</string>
     <string name="show_message_timing_stats_description">în AI În partea de jos a mesajului se afișează primul pachet și timpul necesar pentru generare</string>
-    <string name="show_message_timestamp">Afișează ora mesajului</string>
     <string name="show_message_timestamp_description">în AI În partea de jos a mesajului este afișată ora la care a fost postat mesajul respectiv</string>
     <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (Primul %2$s Generare %3$s)</string>
@@ -6491,20 +6248,10 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="uidebugger_close_panel">Închide panoul</string>
     <string name="uidebugger_minimize">Minimizare</string>
     <string name="activity_monitor_close">Închide</string>
-    <string name="theme_background_preview">Previzualizare imagine de fundal</string>
-    <string name="theme_recrop">Redimensionare</string>
-    <string name="theme_default_character_card">Cartea de personaj implicită</string>
-    <string name="theme_font_settings">Setări fonturi</string>
     <string name="app_content_navigate_back">Înapoi</string>
     <string name="app_content_collapse_sidebar">Ascunde bara laterală</string>
     <string name="app_content_expand_sidebar">Afișează bara laterală</string>
     <string name="app_content_loading">Se încarcă...</string>
-    <string name="theme_font_default">Fontul implicit</string>
-    <string name="theme_font_serif">fontă cu serife (Serif)</string>
-    <string name="theme_font_sans_serif">Font sans-serif (Sans Serif)</string>
-    <string name="theme_font_monospace">Font cu lățime uniformă (Monospace)</string>
-    <string name="theme_font_cursive">scris de mână (Cursive)</string>
-    <string name="theme_avatar_description">Notă: Avatarul utilizatorului din stânga este o setare specifică fiecărei fișe de personaj; dacă este necompletat, se va utiliza avatarul general al utilizatorului din dreapta. Avatarul general al utilizatorului este comun pentru toate fișele de personaj.</string>
     <string name="functional_config_model_count">%1$dun model</string>
     <string name="functional_config_test_title_generation_user_text">Aș dori să-mi planific o călătorie de trei zile la Tokyo, care să includă informații despre transport, cazare și recomandări culinare.</string>
     <string name="functional_config_test_grep_intent">Găsiți fragmentele care conțin formule de salut.</string>

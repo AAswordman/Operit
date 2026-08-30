@@ -74,7 +74,7 @@ inline fun <VM : ViewModel> viewModelFactory(crossinline f: () -> VM) =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UpdateScreen(onNavigateToThemeSettings: () -> Unit) {
+fun UpdateScreen() {
     val context = LocalContext.current
     val viewModel: UpdateViewModel = viewModel(factory = viewModelFactory {
         UpdateViewModel(context.applicationContext)
@@ -89,7 +89,6 @@ fun UpdateScreen(onNavigateToThemeSettings: () -> Unit) {
             is UpdateUiState.Success -> {
                 UpdateList(
                     updates = state.updates,
-                    onNavigateToThemeSettings = onNavigateToThemeSettings,
                     onRefresh = { viewModel.loadUpdates() }
                 )
             }
@@ -103,7 +102,6 @@ fun UpdateScreen(onNavigateToThemeSettings: () -> Unit) {
 @Composable
 fun UpdateList(
     updates: List<UpdateInfo>,
-    onNavigateToThemeSettings: () -> Unit,
     onRefresh: () -> Unit
 ) {
     val context = LocalContext.current
@@ -122,8 +120,7 @@ fun UpdateList(
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(intent)
-                },
-                onNavigateToThemeSettings = onNavigateToThemeSettings
+                }
             )
         }
     }
@@ -168,8 +165,7 @@ fun ErrorState(message: String, onRetry: () -> Unit) {
 fun UpdateCard(
     updateInfo: UpdateInfo,
     isFirst: Boolean = false,
-    onOpenRelease: (String) -> Unit,
-    onNavigateToThemeSettings: () -> Unit
+    onOpenRelease: (String) -> Unit
 ) {
     var isDescriptionExpanded by remember { mutableStateOf(false) }
     val descriptionLines = updateInfo.description.lines()

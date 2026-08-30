@@ -30,26 +30,6 @@
     <string name="chat_reply_instruction">User is replying to your previous message:</string>
     <string name="chat_workspace_status">Workspace Status</string>
     <string name="attach_local_storage_repo">Attach Local Storage Repository</string>
-    <string name="chat_style_bubble_show_avatar">Show avatars</string>
-    <string name="chat_style_bubble_show_avatar_desc">Show user and AI avatars in bubble chat style</string>
-    <string name="chat_style_bubble_wide_layout">Wider bubbles</string>
-    <string name="chat_style_bubble_wide_layout_desc">Place bubbles below avatars and keep role names aligned with avatars to free more room for message content</string>
-    <string name="chat_style_bubble_image_render_mode_title">Image bubble render mode</string>
-    <string name="chat_style_bubble_image_render_mode_desc">Choose .9 stretch mode or 9-slice tiled mode</string>
-    <string name="chat_style_bubble_image_render_mode_nine_patch">.9 mode</string>
-    <string name="chat_style_bubble_image_render_mode_tiled">9-slice tiled</string>
-    <string name="chat_style_bubble_rounded_corners">Enable rounded bubbles</string>
-    <string name="chat_style_bubble_rounded_corners_desc">When disabled, message bubbles use square corners</string>
-    <string name="chat_style_bubble_rounded_corners_user">User</string>
-    <string name="chat_style_bubble_rounded_corners_ai">AI</string>
-    <string name="chat_style_bubble_advanced_options">Advanced options</string>
-    <string name="chat_style_bubble_padding_left">Left padding</string>
-    <string name="chat_style_bubble_padding_right">Right padding</string>
-    <string name="chat_style_bubble_text_style_title">Bubble text style</string>
-    <string name="chat_style_bubble_user_text_color">User text</string>
-    <string name="chat_style_bubble_ai_text_color">AI text</string>
-    <string name="chat_style_bubble_user_font_title">User font</string>
-    <string name="chat_style_bubble_ai_font_title">AI font</string>
 
     <!-- Floating Window Module -->
     <string name="floating_screen_content">Screen Content</string>
@@ -98,29 +78,6 @@
     <string name="nav_help">User Manual</string>
 
     <!-- Color Picker -->
-    <string name="colorpicker_select_primary">Select primary color</string>
-    <string name="colorpicker_select_secondary">Select secondary color</string>
-    <string name="colorpicker_select_statusbar">Select status bar color</string>
-    <string name="colorpicker_select_history_icon">Select history icon color</string>
-    <string name="colorpicker_select_pip_icon">Select floating window icon color</string>
-    <string name="colorpicker_select_cursor_user_bubble">Select command-style user bubble color</string>
-    <string name="colorpicker_select_bubble_user_bubble">Select dialog-style user bubble color</string>
-    <string name="colorpicker_select_bubble_ai_bubble">Select dialog-style AI bubble color</string>
-    <string name="colorpicker_select_bubble_user_text">Select dialog-style user text color</string>
-    <string name="colorpicker_select_bubble_ai_text">Select dialog-style AI text color</string>
-    <string name="colorpicker_select_color">Select color</string>
-    <string name="colorpicker_sample_text">Sample text</string>
-    <string name="colorpicker_high_contrast">High contrast</string>
-    <string name="colorpicker_low_contrast">Low contrast</string>
-    <string name="colorpicker_manual_input">Manually input color</string>
-    <string name="colorpicker_paste">Paste</string>
-    <string name="colorpicker_apply">Apply</string>
-    <string name="colorpicker_apply_rgb">Apply RGB</string>
-    <string name="colorpicker_apply_hsv">Apply HSV</string>
-    <string name="colorpicker_recently_used">Recently used</string>
-    <string name="colorpicker_recommended">Recommended colors</string>
-    <string name="colorpicker_confirm">OK</string>
-    <string name="colorpicker_cancel">Cancel</string>
 
     <!-- Chat History Settings -->
     <string name="chathistory_internal_storage">Internal storage</string>
@@ -801,62 +758,12 @@
     <string name="load_newer_history">Tap to load newer messages</string>
 
     <!-- Theme Settings Screen -->
-    <string name="theme_title_mode">Theme Mode</string>
-    <string name="theme_tab_basic">Basic</string>
-    <string name="theme_tab_background">Background</string>
-    <string name="theme_tab_chat">Chat</string>
-    <string name="theme_tab_input">Input</string>
-    <string name="theme_tab_interface">Interface</string>
-    <string name="theme_follow_system">Follow System Theme</string>
-    <string name="theme_follow_system_desc">When enabled, theme will automatically switch based on system dark mode</string>
-    <string name="theme_select">Select Theme</string>
-    <string name="theme_light">Light Theme</string>
-    <string name="theme_dark">Dark Theme</string>
-    <string name="theme_title_color">Color Customization</string>
-    <string name="theme_custom_color">Custom Colors</string>
-    <string name="theme_use_custom_color">Use Custom Colors</string>
-    <string name="theme_custom_color_desc">When enabled, you can customize the app\'s main colors</string>
-    <string name="theme_primary_color">Primary</string>
-    <string name="theme_secondary_color">Secondary</string>
-    <string name="theme_save_colors">Save Color Settings</string>
-    <string name="theme_title_background">Background Customization</string>
-    <string name="theme_bg_media">Background Media Settings</string>
-    <string name="theme_use_custom_bg">Use Custom Background</string>
-    <string name="theme_custom_bg_desc">When enabled, you can select a custom background image or video</string>
-    <string name="theme_media_type">Media Type</string>
-    <string name="theme_media_image">Image</string>
-    <string name="theme_media_video">Video</string>
-    <string name="theme_no_bg_selected">Click select button to add background</string>
-    <string name="theme_select_video">Select Video</string>
-    <string name="theme_select_image">Select Image</string>
-    <string name="theme_bg_opacity">Background opacity: %1$d%%</string>
-    <string name="theme_reset">Reset to Default Theme</string>
-    <string name="theme_saved">Settings saved</string>
-    <string name="theme_select_target">Select theme target</string>
-    <string name="theme_unsaved_title">Save theme changes?</string>
-    <string name="theme_unsaved_message">Changes for the current theme target have not been saved.</string>
     <string name="theme_save_failed">Failed to save theme</string>
-    <string name="theme_load_failed">Failed to load theme settings</string>
-    <string name="theme_save_and_continue">Save and continue</string>
-    <string name="theme_discard_and_continue">Don\'t save</string>
-    <string name="theme_edit_target_character">Current character theme</string>
-    <string name="theme_edit_target_group">Current character group theme</string>
-    <string name="theme_target_switch_failed">Failed to switch theme target</string>
-    <string name="theme_video_too_large">Video file is too large and may cause lag or crashes. Please select videos less than 30MB.</string>
-    <string name="theme_video_saved">Background video saved</string>
-    <string name="theme_image_saved">Background image saved</string>
     <string name="theme_copy_failed">Cannot copy video, please select another video</string>
-    <string name="theme_image_crop_failed">Failed to crop image: %1$s</string>
-    <string name="theme_image_migrated">Background image migrated to internal storage</string>
-    <string name="theme_old_image_failed">Unable to access old background image, background image feature has been disabled</string>
     <string name="theme_crop_image">Crop Image</string>
     <string name="theme_crop_done">Done</string>
     <string name="theme_unmute">Unmute</string>
     <string name="theme_mute">Mute</string>
-    <string name="theme_loop_off">Enable loop</string>
-    <string name="theme_loop_on">Disable loop</string>
-    <string name="theme_loop_enabled">Loop playback enabled</string>
-    <string name="theme_loop_disabled">Loop playback disabled</string>
     
     <!-- Floating Window -->
     <string name="floating_chat_window">Floating Chat Window</string>
@@ -911,8 +818,6 @@
     <string name="settings_model_prompts">Model Prompt Settings</string>
     <string name="settings_model_prompts_desc">Customize AI assistant\'s system prompts, including self-introduction and tone style, to better meet your expectations</string>
     <string name="settings_configure_prompts">Configure Prompts</string>
-    <string name="settings_theme_appearance">Theme and Appearance</string>
-    <string name="settings_theme_appearance_desc">Personalize app appearance, including dark/light mode and custom color schemes</string>
     <string name="settings_customize_theme">Customize Theme</string>
     <string name="settings_global_display">Display &amp; Behavior</string>
     <string name="settings_global_display_subtitle">Manage global options for display style, automation behavior, and screenshots</string>
@@ -2203,47 +2108,6 @@
     <string name="rename">Rename</string>
     
     <!-- Theme Settings -->
-    <string name="theme_appbar_content_color_title">App Bar Content Color</string>
-    <string name="theme_appbar_content_color_mode">Color Mode</string>
-    <string name="theme_appbar_content_color_light">Light (White Scheme)</string>
-    <string name="theme_appbar_content_color_dark">Dark (Black Scheme)</string>
-    <string name="theme_background_blur">Background Blur</string>
-    <string name="theme_background_blur_desc">Add Gaussian blur effect to background images or videos</string>
-    <string name="theme_background_blur_radius">Blur Radius</string>
-    <string name="theme_chat_header_history_icon_color">Chat Header History Icon Color</string>
-    <string name="theme_chat_header_pip_icon_color">Chat Header PIP Icon Color</string>
-    <string name="theme_chat_header_overlay_mode">Overlay Mode</string>
-    <string name="theme_chat_header_overlay_mode_desc">When enabled, transparent header will be displayed as overlay without taking up message space</string>
-    <string name="theme_force_appbar_content_color">Force App Bar Content Color</string>
-    <string name="theme_force_appbar_content_color_desc">When enabled, app bar title and icon colors will be fixed and not affected by background</string>
-    <string name="theme_chat_header_icons_color_title">Chat Header Icons Color</string>
-    <string name="theme_statusbar_color">Status Bar Color</string>
-    <string name="theme_use_custom_statusbar_color">Custom Status Bar Color</string>
-    <string name="theme_use_custom_statusbar_color_desc">When enabled, you can customize the status bar color</string>
-    <string name="theme_statusbar_hidden">Hide Status Bar</string>
-    <string name="theme_statusbar_hidden_desc">When enabled, the status bar will be completely hidden for more display space</string>
-    <string name="theme_statusbar_transparent">Transparent Status Bar</string>
-    <string name="theme_statusbar_transparent_desc">When enabled, the status bar will become transparent and blend with the background</string>
-    <string name="theme_chat_history_selector_transparent">Transparent History Selector</string>
-    <string name="theme_chat_history_selector_transparent_desc">When enabled, the chat history selector will become transparent</string>
-    <string name="theme_chat_header_transparent">Transparent Chat Header</string>
-    <string name="theme_chat_header_transparent_desc">When enabled, the chat header will become transparent</string>
-    <string name="theme_chat_header_transparent_title">Chat Header Settings</string>
-    <string name="theme_chat_input_transparent_title">Input Box Settings</string>
-    <string name="theme_chat_input_transparent">Transparent Input Box</string>
-    <string name="theme_chat_input_transparent_desc">When enabled, the chat input box will become transparent</string>
-    <string name="theme_chat_input_floating">Floating Input Box</string>
-    <string name="theme_chat_input_floating_desc">When enabled, the input box will float above the bottom edge as a fully rounded rectangle for both input styles</string>
-    <string name="theme_chat_input_liquid_glass">Frosted Glass Input Box</string>
-    <string name="theme_chat_input_liquid_glass_desc">When enabled, the transparent input box will use an iOS-style frosted glass effect</string>
-    <string name="theme_chat_input_water_glass">Water Glass Input Box</string>
-    <string name="theme_chat_input_water_glass_desc">When enabled, the transparent input box will use a water glass effect</string>
-    <string name="theme_toolbar_transparent">Toolbar Settings</string>
-    <string name="theme_toolbar_transparent_desc">Transparent Toolbar</string>
-    <string name="theme_toolbar_transparent_desc_desc">When enabled, the toolbar will become transparent</string>
-    <string name="theme_appbar_color">App Bar Color</string>
-    <string name="theme_use_custom_appbar_color">Custom App Bar Color</string>
-    <string name="theme_use_custom_appbar_color_desc">When enabled, you can customize the app bar color</string>
 
     <!-- Toast Messages -->
     <string name="confirmation_code_copied">Confirmation code copied!</string>
@@ -3096,20 +2960,10 @@
     <string name="uidebugger_close_panel">Close panel</string>
     <string name="uidebugger_minimize">Minimize</string>
     <string name="activity_monitor_close">Close</string>
-    <string name="theme_background_preview">Background preview</string>
-    <string name="theme_recrop">Recrop</string>
-    <string name="theme_default_character_card">Default character card</string>
-    <string name="theme_font_settings">Font settings</string>
     <string name="app_content_navigate_back">Back</string>
     <string name="app_content_collapse_sidebar">Collapse sidebar</string>
     <string name="app_content_expand_sidebar">Expand sidebar</string>
     <string name="app_content_loading">Loading...</string>
-    <string name="theme_font_default">Default Font</string>
-    <string name="theme_font_serif">Serif</string>
-    <string name="theme_font_sans_serif">Sans Serif</string>
-    <string name="theme_font_monospace">Monospace</string>
-    <string name="theme_font_cursive">Cursive</string>
-    <string name="theme_avatar_description">Note: The user avatar on the left is a character card exclusive setting. When empty, it will use the global user avatar on the right. The global user avatar is shared across all character cards.</string>
     <string name="functional_config_model_count">%1$d models</string>
     <string name="functional_config_test_title_generation_user_text">I want to plan a three-day trip to Tokyo, including transport, hotels, and food recommendations.</string>
     <string name="functional_config_test_grep_intent">Find the greeting in the snippet.</string>
@@ -3529,7 +3383,6 @@
     <!-- Settings Screen Subtitles -->
     <string name="settings_user_preferences_subtitle">Manage global identity, profiles, and memory spaces</string>
     <string name="settings_language_subtitle">Interface language switching</string>
-    <string name="settings_theme_subtitle">Theme and appearance customization</string>
     <string name="layout_adjustment">Layout Adjustment</string>
     <string name="layout_adjustment_subtitle">Adjust UI element positions and margins</string>
     <string name="settings_model_params_subtitle">Model parameters and API configuration</string>
@@ -3875,81 +3728,11 @@
     <string name="delete_icon">Delete</string>
   
     <!-- Theme Settings Additional Strings -->
-    <string name="theme_on_color_mode">Theme Text Color</string>
-    <string name="theme_on_color_auto">Auto</string>
-    <string name="theme_on_color_light">Light</string>
-    <string name="theme_on_color_dark">Dark</string>
-    <string name="chat_style_title">Chat Style</string>
-    <string name="chat_style_desc">Choose chat interface style</string>
-    <string name="chat_style_cursor">Command Box</string>
-    <string name="chat_style_bubble">Bubble</string>
-    <string name="input_style_title">Input Style</string>
-    <string name="input_style_desc">Choose the style for the message input area</string>
-    <string name="input_style_classic">Classic</string>
-    <string name="input_style_agent">Agent</string>
-    <string name="input_style_agent_reserved">Agent style is in development; this is a reserved entry for now</string>
-    <string name="chat_style_cursor_user_follow_theme">Follow theme color for command-style user bubble</string>
-    <string name="chat_style_cursor_user_follow_theme_desc">When disabled, you can set a custom command-style user bubble color (including alpha)</string>
-    <string name="chat_style_cursor_user_bubble_liquid_glass">Command-style user bubble frosted glass</string>
-    <string name="chat_style_cursor_user_bubble_liquid_glass_desc">When enabled, the command-style user bubble background will use an iOS-style frosted glass effect</string>
-    <string name="chat_style_cursor_user_bubble_water_glass">Command-style user bubble water glass</string>
-    <string name="chat_style_cursor_user_bubble_water_glass_desc">When enabled, the command-style user bubble background will use a water glass effect</string>
-    <string name="chat_style_cursor_user_bubble_color">Command-style user bubble</string>
-    <string name="chat_style_bubble_color_title">Dialog-style bubble colors</string>
-    <string name="chat_style_bubble_user_bubble_liquid_glass">Dialog-style user bubble frosted glass</string>
-    <string name="chat_style_bubble_user_bubble_liquid_glass_desc">When enabled, the dialog-style user bubble background will use an iOS-style frosted glass effect</string>
-    <string name="chat_style_bubble_user_bubble_water_glass">Dialog-style user bubble water glass</string>
-    <string name="chat_style_bubble_user_bubble_water_glass_desc">When enabled, the dialog-style user bubble background will use a water glass effect</string>
-    <string name="chat_style_bubble_user_color">User bubble</string>
-    <string name="chat_style_bubble_ai_color">AI bubble</string>
-    <string name="chat_style_bubble_user_image_title">User bubble image</string>
-    <string name="chat_style_bubble_ai_image_title">AI bubble image</string>
-    <string name="chat_style_bubble_image_desc">Use an image bubble with crop and repeat-segment stretching</string>
-    <string name="chat_style_bubble_pick_image">Select image</string>
-    <string name="chat_style_bubble_clear_image">Clear image</string>
-    <string name="chat_style_bubble_no_image_selected">No image selected</string>
-    <string name="chat_style_bubble_image_selected">Image selected</string>
-    <string name="chat_style_bubble_crop_left">Crop left</string>
-    <string name="chat_style_bubble_crop_top">Crop top</string>
-    <string name="chat_style_bubble_crop_right">Crop right</string>
-    <string name="chat_style_bubble_crop_bottom">Crop bottom</string>
-    <string name="chat_style_bubble_repeat_start">Repeat start</string>
-    <string name="chat_style_bubble_repeat_end">Repeat end</string>
-    <string name="chat_style_bubble_repeat_x_start">Repeat X start</string>
-    <string name="chat_style_bubble_repeat_x_end">Repeat X end</string>
-    <string name="chat_style_bubble_repeat_y_start">Repeat Y start</string>
-    <string name="chat_style_bubble_repeat_y_end">Repeat Y end</string>
-    <string name="chat_style_bubble_image_scale">Image scale</string>
-    <string name="chat_style_preview_title">Style preview</string>
-    <string name="chat_style_preview_user_message">This is a user message preview</string>
-    <string name="chat_style_preview_ai_message">This is an AI message preview</string>
-    <string name="chat_style_preview_user_name">User Name</string>
-    <string name="chat_style_preview_ai_name">Role Name</string>
-    <string name="chat_style_preview_ai_meta">Sample Model by Sample Provider</string>
-    <string name="chat_style_preview_user_source_title">User source 9-slice preview</string>
-    <string name="chat_style_preview_ai_source_title">AI source 9-slice preview</string>
-    <string name="chat_style_bubble_image_saved">Bubble image saved</string>
-    <string name="display_options_title">Display Options</string>
-    <string name="theme_message_reasoning_title">Message reasoning</string>
-    <string name="theme_message_identity_title">Message identity</string>
-    <string name="theme_message_diagnostics_title">Message diagnostics</string>
-    <string name="theme_message_activity_title">Activity feedback</string>
-    <string name="show_thinking_process">Show Thinking Process</string>
     <string name="show_thinking_process_desc">Toggle visibility of &lt;think&gt; tags in AI responses</string>
-    <string name="show_status_tags">Show Status Tags</string>
     <string name="show_status_tags_desc">Toggle visibility of task completion and waiting status tags</string>
-    <string name="show_input_processing_status">Show Input Processing Status</string>
     <string name="show_input_processing_status_desc">Show AI task processing status above input box</string>
-    <string name="avatar_customization_title">Avatar Customization</string>
-    <string name="user_avatar_label">User Avatar</string>
     <string name="global_user_avatar_label">Global User Avatar</string>
-    <string name="ai_avatar_label">AI Avatar</string>
-    <string name="character_avatar">Character Avatar</string>
     <string name="bind">Bind</string>
-    <string name="avatar_shape_title">Avatar Shape</string>
-    <string name="avatar_shape_circle">Circle</string>
-    <string name="avatar_shape_square">Square</string>
-    <string name="avatar_corner_radius">Avatar Corner Radius</string>
     <string name="avatar_corner_decrease">Decrease Corner</string>
     <string name="avatar_corner_increase">Increase Corner</string>
     
@@ -3960,8 +3743,6 @@
     <string name="global_user_name_desc">Set a global user name that will be used by AI to address you in all conversations. This name is shared across all character cards.</string>
     
     <string name="ui_text_title">UI Text</string>
-    <string name="custom_chat_title_label">Custom Chat Title</string>
-    <string name="custom_chat_title_placeholder">e.g.: AI Assistant</string>
     <string name="save_title_desc">Save Title</string>
   
     <!-- Model Configuration Screen -->
@@ -4193,7 +3974,6 @@
     <string name="screen_title_tag_market">Tag Market</string>
     <string name="screen_title_model_prompts_settings">Character Card Editor</string>
     <string name="screen_title_functional_config">Functional Model Configuration</string>
-    <string name="screen_title_theme_settings">Theme Settings</string>
     <string name="screen_title_global_display_settings">Display &amp; Behavior</string>
     <string name="screen_title_layout_adjustment">Layout Adjustment</string>
     <string name="screen_title_chat_history_settings">Chat History Management</string>
@@ -5062,21 +4842,7 @@
     <string name="token_limit_exceeded_message">Maximum token limit exceeded (%1$d / %2$d)</string>
     
     <!-- Font Settings -->
-    <string name="font_file_saved">Font file saved (.%1$s)</string>
-    <string name="font_file_save_failed">Failed to save font file</string>
-    <string name="unsupported_font_format">Unsupported file format, please select .ttf, .otf or .ttc font file</string>
-    <string name="enable_custom_font">Enable Custom Font</string>
-    <string name="use_system_or_custom_font">Use system font or custom font file</string>
-    <string name="font_type_label">Font Type</string>
-    <string name="system_font">System Font</string>
-    <string name="custom_font_file">Custom File</string>
-    <string name="select_system_font">Select System Font</string>
     <string name="custom_font_file_title">Custom Font File</string>
-    <string name="font_file_support_desc">Supports .ttf, .otf and .ttc font files</string>
-    <string name="select_font_file">Select Font File</string>
-    <string name="clear_font">Clear Font</string>
-    <string name="current_font_file_path">Current font file:\n%1$s</string>
-    <string name="font_size_scale_label">Font Size Scale (%1$s)</string>
     
     <!-- Chat History Batch -->
     <string name="no_available_character_cards_toast">No available character cards, please create one first</string>
@@ -5150,19 +4916,12 @@
     <!-- Global Display Settings -->
     <string name="global_display_settings_description">These settings control global display behavior, independent of character cards and theme configurations.</string>
     <string name="message_display_settings">Message Display Settings</string>
-    <string name="show_model_provider">Show Model Provider</string>
     <string name="show_model_provider_description">Display model provider name in AI messages</string>
-    <string name="show_model_name">Show Model Name</string>
     <string name="show_model_name_description">Display the model name being used in AI messages</string>
-    <string name="show_role_name">Show Role Card Name</string>
     <string name="show_role_name_description">Display current character card name in AI messages</string>
-    <string name="show_user_name">Show User Name</string>
     <string name="show_user_name_description">Display user name in user messages</string>
-    <string name="show_message_token_stats">Show Message Token Summary</string>
     <string name="show_message_token_stats_description">Show compact token upload, output, and cache info below AI messages</string>
-    <string name="show_message_timing_stats">Show Message Timing Summary</string>
     <string name="show_message_timing_stats_description">Show first-token and generation timing below AI messages</string>
-    <string name="show_message_timestamp">Show Message Time</string>
     <string name="show_message_timestamp_description">Show the time of that AI message below it</string>
     <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (first %2$s out %3$s)</string>
@@ -7624,7 +7383,6 @@
     <string name="remove_character_group_binding">Remove character group binding</string>
     <string name="removed_character_group_binding">Removed character group binding for %1$d chat(s)</string>
     <string name="select_group_or_unbind">Select a character group or unbind</string>
-    <string name="show_chat_floating_dots_animation">Show chat floating dots animation</string>
     <string name="show_chat_floating_dots_animation_desc">Show floating dots animation in the chat area while the AI reply is loading</string>
     <string name="target_character_group_optional">Target Character Group (Optional)</string>
     <string name="unbound_character_group">Unbound Character Group</string>
@@ -7729,25 +7487,6 @@
 
     <string name="sidebar_permission_short">Permissions</string>
     <string name="sidebar_status_normal">Normal</string>
-    <string name="colorpicker_select_navigation_drawer_background">Select Navigation Drawer Background Color</string>
-    <string name="colorpicker_select_navigation_drawer_accent">Select Navigation Drawer Accent Color</string>
-    <string name="theme_navigation_drawer_title">Navigation Drawer Settings</string>
-    <string name="theme_navigation_drawer_water_glass">Water Glass Navigation Drawer</string>
-    <string name="theme_navigation_drawer_water_glass_desc">When enabled, the left navigation drawer will display a water glass effect</string>
-    <string name="theme_navigation_drawer_button_liquid_glass">Sidebar Button Frosted Glass Background</string>
-    <string name="theme_navigation_drawer_button_liquid_glass_desc">When enabled, each sidebar button will display a frosted glass background</string>
-    <string name="theme_navigation_drawer_background_color">Navigation Drawer Background Color</string>
-    <string name="theme_navigation_drawer_accent_color">Navigation Drawer Accent Color</string>
-    <string name="theme_use_custom_navigation_drawer_background_color">Custom Navigation Drawer Background Color</string>
-    <string name="theme_use_custom_navigation_drawer_background_color_desc">When enabled, you can customize the background color of the left navigation drawer</string>
-    <string name="theme_use_custom_navigation_drawer_accent_color">Custom Navigation Drawer Accent Color</string>
-    <string name="theme_use_custom_navigation_drawer_accent_color_desc">When enabled, you can uniformly customize the brand logo, subtitle, network status, and divider line colors</string>
-    <string name="chat_style_bubble_ai_bubble_liquid_glass">Bubble AI Message Frosted Glass Background</string>
-    <string name="chat_style_bubble_ai_bubble_liquid_glass_desc">When enabled, the bubble AI message background will display an iOS-style frosted glass effect</string>
-    <string name="chat_style_bubble_ai_bubble_water_glass">Bubble AI Message Water Glass Background</string>
-    <string name="chat_style_bubble_ai_bubble_water_glass_desc">When enabled, the bubble AI message background will display a water glass effect</string>
-    <string name="chat_style_bubble_user_image_disabled_by_glass">User bubble frosted glass or water glass background is currently enabled, user bubble images will not take effect</string>
-    <string name="chat_style_bubble_ai_image_disabled_by_glass">AI bubble frosted glass or water glass background is currently enabled, AI bubble images will not take effect</string>
     <string name="login_github_to_manage_scripts">Log in to GitHub to publish and manage your scripts</string>
     <string name="login_github_to_manage_packages">Log in to GitHub to publish and manage your packages</string>
     <string name="market_tab_artifact">Sandbox Packages</string>

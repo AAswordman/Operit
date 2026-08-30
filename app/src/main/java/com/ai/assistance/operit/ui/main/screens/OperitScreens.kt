@@ -60,9 +60,7 @@ import com.ai.assistance.operit.ui.features.settings.screens.ModelConfigEntryMod
 import com.ai.assistance.operit.ui.features.settings.screens.ModelPromptsSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.TagMarketScreen
 import com.ai.assistance.operit.ui.features.settings.screens.SettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.SpeechServicesSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ThemeSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ToolPermissionSettingsScreen
+import com.ai.assistance.operit.ui.features.settings.screens.SpeechServicesSettingsScreenimport com.ai.assistance.operit.ui.features.settings.screens.ToolPermissionSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.MnnModelDownloadScreen
 import com.ai.assistance.operit.ui.features.settings.screens.UserPreferencesSettingsScreen
 import com.ai.assistance.operit.ui.features.tokenstats.TokenUsageStatisticsScreen
@@ -603,7 +601,6 @@ sealed class Screen(
                     navigateToToolPermissions = { navigateTo(ToolPermission) },
                     navigateToGitHubAccount = { navigateTo(GitHubAccount) },
                     navigateToModelConfig = { navigateTo(ModelConfig) },
-                    navigateToThemeSettings = { navigateTo(ThemeSettings) },
                     navigateToGlobalDisplaySettings = { navigateTo(GlobalDisplaySettings) },
                     navigateToModelPrompts = { navigateTo(ModelPromptsSettings) },
                     navigateToFunctionalConfig = { navigateTo(FunctionalConfig) },
@@ -702,7 +699,7 @@ sealed class Screen(
             onError: (String) -> Unit,
             onGestureConsumed: (Boolean) -> Unit
         ) {
-            UpdateScreen(onNavigateToThemeSettings = { navigateTo(ThemeSettings) })
+            UpdateScreen()
         }
     }
 
@@ -1015,22 +1012,6 @@ sealed class Screen(
                     onBackPressed = onGoBack,
                     onNavigateToModelConfig = { navigateTo(ModelConfig) }
             )
-        }
-    }
-
-    data object ThemeSettings :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_theme_settings) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ThemeSettingsScreen()
         }
     }
 

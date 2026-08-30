@@ -95,18 +95,6 @@ class ActivePromptManager private constructor(context: Context) {
         }
     }
 
-    suspend fun commitThemeDraft(
-        target: ActivePrompt,
-        values: ThemePreferenceValues,
-    ) {
-        themeOperations.runTransition {
-            userPreferencesManager.replaceThemeForPrompt(
-                target = target,
-                values = values,
-            )
-        }
-    }
-
     suspend fun resetThemeDraft(
         target: ActivePrompt,
         values: ThemePreferenceValues,
