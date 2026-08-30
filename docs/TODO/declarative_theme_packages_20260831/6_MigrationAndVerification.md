@@ -29,6 +29,18 @@
 
 ## 构建记录
 
+### 2026-08-31：批次 C（旧存储清除 + 元数据搬前缀）release 构建
+
+- 分支：`feat/plugin-interface`
+- 提交：`a5547df0`（删旧存储/API + 迁移）、`5d6c20c9`（键常量与模板字符串修复）
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-5d6c20c9.apk`
+- 产物大小：`402880159` 字节
+- SHA-256：`787b005ea7f07695aa803c2ed126f81dafc80d7ec97efa2c2c4751534f73776c`
+- 落地：删 `ThemePreferenceSnapshot`/`NativeThemePreferenceSchemaV1`/`RulesV1`/`OptionsV1`/`ThemeScopeMigrationPolicy`/`ThemeTargetOperationCoordinator`/`ThemeColorSchemeResolver` 及 UPM 全部 per-target 主题 API、死键常量、recentColors；`ActivePromptManager` 移除主题协调器；两个管理器移除主题生命周期调用；AI 头像/聊天标题存储搬到 `character_{card,group}_metadata_{id}_` 前缀（`migrateLegacyThemeStorage` 一次性迁移，启动执行，旧视觉键全清，默认卡用户头像并入全局）；WebChat `/theme` 与 structured render 改读全局呈现（AI 头像按聊天绑定保留）。
+- `a5547df0` 首轮失败：迁移函数模板字符串转义损坏与两个元数据键常量被误删；`5d6c20c9` 修复。
+
 ### 2026-08-31：批次 A/B（编辑器删除 + 全局呈现运行时）release 构建
 
 - 分支：`feat/plugin-interface`
