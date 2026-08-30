@@ -58,7 +58,7 @@ fun ChatScreenHeader(
         modifier: Modifier = Modifier,
         actualViewModel: ChatViewModel,
         showChatHistorySelector: Boolean,
-        chatHeaderTransparent: Boolean,
+        chatHeaderOpacity: Float,
         chatHeaderHistoryIconColor: Int?,
         chatHeaderPipIconColor: Int?,
         onCharacterSwitcherClick: () -> Unit
@@ -144,8 +144,9 @@ fun ChatScreenHeader(
                     modifier
                             .fillMaxWidth()
                             .background(
-                                    if (chatHeaderTransparent) Color.Transparent
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(
+                                        alpha = 0.2f * chatHeaderOpacity.coerceIn(0f, 1f),
+                                    ),
                             )
                             .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,

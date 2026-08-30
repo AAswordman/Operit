@@ -183,6 +183,7 @@ fun AgentChatInputSection(
     onTakePhoto: (Uri) -> Unit,
     hasBackgroundImage: Boolean = false,
     chatInputTransparent: Boolean = false,
+    chatInputOpacity: Float = if (chatInputTransparent) 0f else 1f,
     chatInputFloating: Boolean = false,
     chatInputLiquidGlass: Boolean = false,
     chatInputWaterGlass: Boolean = false,
@@ -508,14 +509,16 @@ fun AgentChatInputSection(
             0.08f,
         )
 
-    val inputContainerColor =
+    val inputOpacity = chatInputOpacity.coerceIn(0f, 1f)
+    val inputContainerBaseColor =
         when {
-            chatInputTransparent -> Color.Transparent
             isDarkTheme && hasBackgroundImage -> darkModeInputColor.copy(alpha = 0.82f)
             isDarkTheme -> darkModeInputColor
             hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
             else -> MaterialTheme.colorScheme.surface
         }
+    val inputContainerColor =
+        inputContainerBaseColor.copy(alpha = inputContainerBaseColor.alpha * inputOpacity)
     val popupContainerColor =
         when {
             isDarkTheme && chatInputTransparent -> darkModeInputColor

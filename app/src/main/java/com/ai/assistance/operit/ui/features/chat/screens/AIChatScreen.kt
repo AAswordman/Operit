@@ -175,8 +175,9 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val themeSnapshot = LocalThemePreferenceSnapshot.current
     val useBackgroundImage = themeSnapshot.useBackgroundImage
     val backgroundImageUri = themeSnapshot.backgroundImageUri
-    val chatHeaderTransparent = themeSnapshot.chatHeaderTransparent
-    val chatInputTransparent = themeSnapshot.chatInputTransparent
+    val chatHeaderOpacity = themeSnapshot.chatHeaderOpacity.coerceIn(0f, 1f)
+    val chatInputOpacity = themeSnapshot.chatInputOpacity.coerceIn(0f, 1f)
+    val chatInputTransparent = chatInputOpacity < 1f
     val chatInputFloating = themeSnapshot.chatInputFloating
     val chatInputLiquidGlassRaw = themeSnapshot.chatInputLiquidGlass
     val chatInputWaterGlass = themeSnapshot.chatInputWaterGlass
@@ -960,7 +961,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 coroutineScope = coroutineScope,
                                 chatHistories = chatHistories,
                                 currentChatId = currentChatId ?: "",
-                                chatHeaderTransparent = chatHeaderTransparent,
+                                chatHeaderOpacity = chatHeaderOpacity,
                                 chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
                                 chatHeaderPipIconColor = chatHeaderPipIconColor,
                                 chatHeaderOverlayMode = chatHeaderOverlayMode,
@@ -1092,6 +1093,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 inputState = inputProcessingState,
                                 hasBackgroundImage = effectiveHasBackgroundImage,
                                 chatInputTransparent = chatInputTransparent,
+                                chatInputOpacity = chatInputOpacity,
                                 chatInputFloating = chatInputFloating,
                                 chatInputLiquidGlass = chatInputLiquidGlass,
                                 chatInputWaterGlass = chatInputWaterGlass,
@@ -1488,6 +1490,7 @@ private fun ChatInputBottomBar(
     inputState: InputProcessingState,
     hasBackgroundImage: Boolean,
     chatInputTransparent: Boolean,
+    chatInputOpacity: Float,
     chatInputFloating: Boolean,
     chatInputLiquidGlass: Boolean,
     chatInputWaterGlass: Boolean,
@@ -1885,6 +1888,7 @@ private fun ChatInputBottomBar(
                 onTakePhoto = actualViewModel::handleTakenPhoto,
                 hasBackgroundImage = hasBackgroundImage,
                 chatInputTransparent = chatInputTransparent,
+                chatInputOpacity = chatInputOpacity,
                 chatInputFloating = chatInputFloating,
                 chatInputLiquidGlass = chatInputLiquidGlass,
                 chatInputWaterGlass = chatInputWaterGlass,
@@ -1981,6 +1985,7 @@ private fun ChatInputBottomBar(
                 onTakePhoto = actualViewModel::handleTakenPhoto,
                 hasBackgroundImage = hasBackgroundImage,
                 chatInputTransparent = chatInputTransparent,
+                chatInputOpacity = chatInputOpacity,
                 chatInputFloating = chatInputFloating,
                 chatInputLiquidGlass = chatInputLiquidGlass,
                 chatInputWaterGlass = chatInputWaterGlass,

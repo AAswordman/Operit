@@ -108,6 +108,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
         // 工具栏透明度设置
         private val TOOLBAR_TRANSPARENT = booleanPreferencesKey("toolbar_transparent")
+        private val TOOLBAR_OPACITY = floatPreferencesKey("toolbar_opacity")
 
         // 侧滑菜单玻璃效果设置
         private val NAVIGATION_DRAWER_WATER_GLASS =
@@ -135,9 +136,12 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val USE_CUSTOM_STATUS_BAR_COLOR = booleanPreferencesKey("use_custom_status_bar_color")
         private val CUSTOM_STATUS_BAR_COLOR = intPreferencesKey("custom_status_bar_color")
         private val STATUS_BAR_TRANSPARENT = booleanPreferencesKey("status_bar_transparent")
+        private val STATUS_BAR_OPACITY = floatPreferencesKey("status_bar_opacity")
         private val STATUS_BAR_HIDDEN = booleanPreferencesKey("status_bar_hidden")
         private val CHAT_HEADER_TRANSPARENT = booleanPreferencesKey("chat_header_transparent")
+        private val CHAT_HEADER_OPACITY = floatPreferencesKey("chat_header_opacity")
         private val CHAT_INPUT_TRANSPARENT = booleanPreferencesKey("chat_input_transparent")
+        private val CHAT_INPUT_OPACITY = floatPreferencesKey("chat_input_opacity")
         private val CHAT_INPUT_FLOATING = booleanPreferencesKey("chat_input_floating")
         private val CHAT_INPUT_LIQUID_GLASS = booleanPreferencesKey("chat_input_liquid_glass")
         private val CHAT_INPUT_WATER_GLASS = booleanPreferencesKey("chat_input_water_glass")
@@ -296,6 +300,10 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val KEY_CUSTOM_CHAT_TITLE = stringPreferencesKey("custom_chat_title")
         private val KEY_SHOW_INPUT_PROCESSING_STATUS = booleanPreferencesKey("show_input_processing_status")
         private val KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION = booleanPreferencesKey("show_chat_floating_dots_animation")
+        private val KEY_AI_MESSAGE_MARKDOWN_LATEX_ENABLED =
+            booleanPreferencesKey("ai_message_markdown_latex_enabled")
+        private val KEY_USER_MESSAGE_MARKDOWN_LATEX_ENABLED =
+            booleanPreferencesKey("user_message_markdown_latex_enabled")
         private val KEY_UI_ACCESSIBILITY_MODE = booleanPreferencesKey("ui_accessibility_mode")
         private val KEY_BETA_PLAN_ENABLED = booleanPreferencesKey("beta_plan_enabled")
         private val KEY_SOFTWARE_IDENTITY = stringPreferencesKey("software_identity")
@@ -827,7 +835,9 @@ class UserPreferencesManager private constructor(private val context: Context) {
             CURSOR_USER_BUBBLE_WATER_GLASS, BUBBLE_USER_BUBBLE_LIQUID_GLASS, BUBBLE_USER_BUBBLE_WATER_GLASS,
             BUBBLE_AI_BUBBLE_LIQUID_GLASS, BUBBLE_AI_BUBBLE_WATER_GLASS, BUBBLE_USER_USE_IMAGE,
             BUBBLE_AI_USE_IMAGE, BUBBLE_USER_ROUNDED_CORNERS_ENABLED, BUBBLE_AI_ROUNDED_CORNERS_ENABLED, KEY_SHOW_THINKING_PROCESS, KEY_SHOW_STATUS_TAGS,
-            KEY_SHOW_INPUT_PROCESSING_STATUS, KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION, USE_CUSTOM_FONT,
+            KEY_SHOW_INPUT_PROCESSING_STATUS, KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION,
+            KEY_AI_MESSAGE_MARKDOWN_LATEX_ENABLED, KEY_USER_MESSAGE_MARKDOWN_LATEX_ENABLED,
+            USE_CUSTOM_FONT,
             BUBBLE_USER_USE_CUSTOM_FONT, BUBBLE_AI_USE_CUSTOM_FONT, KEY_SHOW_MODEL_PROVIDER,
             KEY_SHOW_MODEL_NAME, KEY_SHOW_ROLE_NAME, KEY_SHOW_USER_NAME,
             KEY_SHOW_MESSAGE_TOKEN_STATS, KEY_SHOW_MESSAGE_TIMING_STATS,
@@ -847,7 +857,8 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     private fun getAllFloatThemeKeys(): List<Preferences.Key<Float>> {
         return listOf(
-            BACKGROUND_IMAGE_OPACITY, BACKGROUND_BLUR_RADIUS, KEY_AVATAR_CORNER_RADIUS, FONT_SCALE,
+            BACKGROUND_IMAGE_OPACITY, TOOLBAR_OPACITY, STATUS_BAR_OPACITY, CHAT_HEADER_OPACITY,
+            CHAT_INPUT_OPACITY, BACKGROUND_BLUR_RADIUS, KEY_AVATAR_CORNER_RADIUS, FONT_SCALE,
             BUBBLE_USER_IMAGE_CROP_LEFT, BUBBLE_USER_IMAGE_CROP_TOP, BUBBLE_USER_IMAGE_CROP_RIGHT,
             BUBBLE_USER_IMAGE_CROP_BOTTOM, BUBBLE_USER_IMAGE_REPEAT_START, BUBBLE_USER_IMAGE_REPEAT_END,
             BUBBLE_USER_IMAGE_REPEAT_Y_START, BUBBLE_USER_IMAGE_REPEAT_Y_END, BUBBLE_USER_IMAGE_SCALE,
@@ -977,6 +988,24 @@ class UserPreferencesManager private constructor(private val context: Context) {
         copyLegacyRepeatYValue(BUBBLE_USER_IMAGE_REPEAT_Y_END, BUBBLE_USER_IMAGE_REPEAT_END)
         copyLegacyRepeatYValue(BUBBLE_AI_IMAGE_REPEAT_Y_START, BUBBLE_AI_IMAGE_REPEAT_START)
         copyLegacyRepeatYValue(BUBBLE_AI_IMAGE_REPEAT_Y_END, BUBBLE_AI_IMAGE_REPEAT_END)
+
+        fun copyLegacyTransparencyValue(
+            opacityKey: Preferences.Key<Float>,
+            transparentKey: Preferences.Key<Boolean>,
+        ) {
+            val opacitySourceKey = floatPreferencesKey("${prefix}${opacityKey.name}")
+            if (preferences.contains(opacitySourceKey)) return
+
+            val transparentSourceKey = booleanPreferencesKey("${prefix}${transparentKey.name}")
+            if (preferences[transparentSourceKey] == true) {
+                floats[opacityKey.name] = 0f
+            }
+        }
+
+        copyLegacyTransparencyValue(TOOLBAR_OPACITY, TOOLBAR_TRANSPARENT)
+        copyLegacyTransparencyValue(STATUS_BAR_OPACITY, STATUS_BAR_TRANSPARENT)
+        copyLegacyTransparencyValue(CHAT_HEADER_OPACITY, CHAT_HEADER_TRANSPARENT)
+        copyLegacyTransparencyValue(CHAT_INPUT_OPACITY, CHAT_INPUT_TRANSPARENT)
 
         return ThemePreferenceValues(
             strings = strings,

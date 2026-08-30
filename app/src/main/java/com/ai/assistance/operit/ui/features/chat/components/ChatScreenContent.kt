@@ -132,7 +132,7 @@ fun ChatScreenContent(
         coroutineScope: CoroutineScope,
         chatHistories: List<ChatHistory>,
         currentChatId: String,
-        chatHeaderTransparent: Boolean,
+        chatHeaderOpacity: Float,
         chatHeaderHistoryIconColor: Int?,
           chatHeaderPipIconColor: Int?,
           chatHeaderOverlayMode: Boolean,
@@ -269,7 +269,7 @@ fun ChatScreenContent(
     }
 
     Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
-        if (chatHeaderOverlayMode && chatHeaderTransparent) {
+        if (chatHeaderOverlayMode && chatHeaderOpacity < 1f) {
             // 覆盖模式：Header浮动在ChatArea之上
             Box(modifier = Modifier.fillMaxSize()) {
                 ChatArea(
@@ -378,7 +378,7 @@ fun ChatScreenContent(
                                 },
                         actualViewModel = actualViewModel,
                         showChatHistorySelector = showChatHistorySelector,
-                        chatHeaderTransparent = chatHeaderTransparent,
+                        chatHeaderOpacity = chatHeaderOpacity,
                         chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
                         chatHeaderPipIconColor = chatHeaderPipIconColor,
                         onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
@@ -389,7 +389,7 @@ fun ChatScreenContent(
                 ChatScreenHeader(
                         actualViewModel = actualViewModel,
                         showChatHistorySelector = showChatHistorySelector,
-                        chatHeaderTransparent = chatHeaderTransparent,
+                        chatHeaderOpacity = chatHeaderOpacity,
                         chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
                         chatHeaderPipIconColor = chatHeaderPipIconColor,
                         onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }

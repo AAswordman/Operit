@@ -832,7 +832,7 @@ internal fun ThemeSettingsChatStyleSection(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                ThemeSettingsBubbleOpacitySlider(
+                ThemeSettingsOpacitySlider(
                     title =
                         stringResource(
                             id = R.string.chat_style_bubble_user_opacity,
@@ -851,7 +851,7 @@ internal fun ThemeSettingsChatStyleSection(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                ThemeSettingsBubbleOpacitySlider(
+                ThemeSettingsOpacitySlider(
                     title =
                         stringResource(
                             id = R.string.chat_style_bubble_ai_opacity,

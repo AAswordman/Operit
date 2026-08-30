@@ -778,6 +778,7 @@
     <string name="theme_toolbar_transparent">工具栏设置</string>
     <string name="theme_toolbar_transparent_desc">透明工具栏</string>
     <string name="theme_toolbar_transparent_desc_desc">开启后，工具栏将变为透明</string>
+    <string name="theme_toolbar_opacity">工具栏不透明度: %1$d%%</string>
     <string name="theme_appbar_color">顶栏颜色</string>
     <string name="theme_use_custom_appbar_color">自定义顶栏颜色</string>
     <string name="theme_use_custom_appbar_color_desc">开启后可以自定义顶栏的颜色</string>
@@ -799,12 +800,15 @@
     <string name="theme_statusbar_hidden_desc">开启后将完全隐藏状态栏，获得更大的显示空间</string>
     <string name="theme_statusbar_transparent">透明状态栏</string>
     <string name="theme_statusbar_transparent_desc">开启后状态栏将变为透明，与背景融为一体</string>
+    <string name="theme_statusbar_opacity">状态栏不透明度: %1$d%%</string>
     <string name="theme_chat_history_selector_transparent">透明历史选择器</string>
     <string name="theme_chat_history_selector_transparent_desc">开启后聊天历史选择器将变为透明</string>
     <string name="theme_chat_header_transparent">透明聊天栏</string>
     <string name="theme_chat_header_transparent_desc">开启后聊天顶栏将变为透明</string>
     <string name="theme_chat_header_transparent_title">聊天顶栏设置</string>
+    <string name="theme_chat_header_opacity">聊天顶栏不透明度: %1$d%%</string>
     <string name="theme_chat_input_transparent_title">输入框设置</string>
+    <string name="theme_chat_input_opacity">输入框不透明度: %1$d%%</string>
     <string name="theme_chat_input_transparent">透明输入框</string>
     <string name="theme_chat_input_transparent_desc">开启后聊天输入框将变为透明</string>
     <string name="theme_chat_input_floating">输入框悬浮</string>

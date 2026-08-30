@@ -178,8 +178,8 @@ fun AppContent(
     val backgroundImageUri = themeSnapshot.backgroundImageUri
     val hasBackgroundImage = useBackgroundImage && backgroundImageUri != null
 
-    // Get toolbar transparency setting
-    val toolbarTransparent = themeSnapshot.toolbarTransparent
+    // Get toolbar opacity setting
+    val toolbarOpacity = themeSnapshot.toolbarOpacity.coerceIn(0f, 1f)
     
     // Get AppBar custom color settings
     val useCustomAppBarColor = themeSnapshot.useCustomAppBarColor
@@ -352,11 +352,14 @@ fun AppContent(
                     colors =
                     TopAppBarDefaults.topAppBarColors(
                         containerColor =
-                        when {
-                            toolbarTransparent -> Color.Transparent
-                            useCustomAppBarColor && customAppBarColor != null -> Color(customAppBarColor)
-                            else -> MaterialTheme.colorScheme.primary
-                        },
+                            (
+                                when {
+                                    useCustomAppBarColor && customAppBarColor != null ->
+                                        Color(customAppBarColor)
+
+                                    else -> MaterialTheme.colorScheme.primary
+                                }
+                            ).copy(alpha = toolbarOpacity),
                         titleContentColor = appBarContentColor,
                         navigationIconContentColor = appBarContentColor,
                         actionIconContentColor = appBarContentColor

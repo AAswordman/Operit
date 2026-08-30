@@ -23,6 +23,7 @@ import com.ai.assistance.operit.ui.features.settings.components.ColorSelectionIt
 import com.ai.assistance.operit.ui.features.settings.components.ThemeModeOption
 import com.ai.assistance.operit.ui.features.settings.screens.theme.ThemeEditorSession
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground
+import kotlin.math.roundToInt
 
 internal enum class ThemeSettingsColorContentMode {
     PALETTE,
@@ -35,10 +36,10 @@ internal fun ThemeSettingsColorCustomizationSection(
     cardColors: CardColors,
     editorSession: ThemeEditorSession,
     statusBarHiddenInput: Boolean,
-    statusBarTransparentInput: Boolean,
+    statusBarOpacityInput: Float,
     useCustomStatusBarColorInput: Boolean,
     customStatusBarColorInput: Int,
-    toolbarTransparentInput: Boolean,
+    toolbarOpacityInput: Float,
     useCustomAppBarColorInput: Boolean,
     customAppBarColorInput: Int,
     navigationDrawerWaterGlassInput: Boolean,
@@ -47,7 +48,7 @@ internal fun ThemeSettingsColorCustomizationSection(
     navigationDrawerBackgroundColorInput: Int,
     useCustomNavigationDrawerAccentColorInput: Boolean,
     navigationDrawerAccentColorInput: Int,
-    chatHeaderTransparentInput: Boolean,
+    chatHeaderOpacityInput: Float,
     chatHeaderOverlayModeInput: Boolean,
     forceAppBarContentColorInput: Boolean,
     appBarContentColorModeInput: String,
@@ -99,39 +100,22 @@ internal fun ThemeSettingsColorCustomizationSection(
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.theme_statusbar_transparent),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color =
-                            if (statusBarHiddenInput) {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
+            ThemeSettingsOpacitySlider(
+                title =
+                    stringResource(
+                        id = R.string.theme_statusbar_opacity,
+                        (statusBarOpacityInput.coerceIn(0f, 1f) * 100).roundToInt(),
+                    ),
+                opacity = statusBarOpacityInput,
+                enabled = !statusBarHiddenInput,
+                onOpacityChange = {
+                    editorSession.setVisualOpacity(
+                        opacityKey = "status_bar_opacity",
+                        legacyTransparentKey = "status_bar_transparent",
+                        value = it,
                     )
-                    Text(
-                        text = stringResource(id = R.string.theme_statusbar_transparent_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color =
-                            if (statusBarHiddenInput) {
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
-                }
-                Switch(
-                    checked = statusBarTransparentInput,
-                    enabled = !statusBarHiddenInput,
-                    onCheckedChange = { editorSession.setBoolean("status_bar_transparent", it) },
-                )
-            }
+                },
+            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -145,7 +129,7 @@ internal fun ThemeSettingsColorCustomizationSection(
                         text = stringResource(id = R.string.theme_use_custom_statusbar_color),
                         style = MaterialTheme.typography.bodyMedium,
                         color =
-                            if (statusBarTransparentInput || statusBarHiddenInput) {
+                            if (statusBarHiddenInput) {
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             } else {
                                 MaterialTheme.colorScheme.onSurface
@@ -156,7 +140,7 @@ internal fun ThemeSettingsColorCustomizationSection(
                             stringResource(id = R.string.theme_use_custom_statusbar_color_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color =
-                            if (statusBarTransparentInput || statusBarHiddenInput) {
+                            if (statusBarHiddenInput) {
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -165,7 +149,7 @@ internal fun ThemeSettingsColorCustomizationSection(
                 }
                 Switch(
                     checked = useCustomStatusBarColorInput,
-                    enabled = !statusBarTransparentInput && !statusBarHiddenInput,
+                    enabled = !statusBarHiddenInput,
                     onCheckedChange = {
                         editorSession.setBoolean("use_custom_status_bar_color", it)
                     },
@@ -177,10 +161,10 @@ internal fun ThemeSettingsColorCustomizationSection(
                 ColorSelectionItem(
                     title = stringResource(id = R.string.theme_statusbar_color),
                     color = Color(customStatusBarColorInput),
-                    enabled = !statusBarTransparentInput && !statusBarHiddenInput,
+                    enabled = !statusBarHiddenInput,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
-                        if (!statusBarTransparentInput && !statusBarHiddenInput) {
+                        if (!statusBarHiddenInput) {
                             onShowColorPicker("statusBar")
                         }
                     },
@@ -199,28 +183,21 @@ internal fun ThemeSettingsColorCustomizationSection(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.theme_toolbar_transparent_desc),
-                        style = MaterialTheme.typography.bodyMedium,
+            ThemeSettingsOpacitySlider(
+                title =
+                    stringResource(
+                        id = R.string.theme_toolbar_opacity,
+                        (toolbarOpacityInput.coerceIn(0f, 1f) * 100).roundToInt(),
+                    ),
+                opacity = toolbarOpacityInput,
+                onOpacityChange = {
+                    editorSession.setVisualOpacity(
+                        opacityKey = "toolbar_opacity",
+                        legacyTransparentKey = "toolbar_transparent",
+                        value = it,
                     )
-                    Text(
-                        text =
-                            stringResource(id = R.string.theme_toolbar_transparent_desc_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = toolbarTransparentInput,
-                    onCheckedChange = { editorSession.setBoolean("toolbar_transparent", it) },
-                )
-            }
+                },
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -241,12 +218,11 @@ internal fun ThemeSettingsColorCustomizationSection(
                 }
                 Switch(
                     checked = useCustomAppBarColorInput,
-                    enabled = !toolbarTransparentInput,
                     onCheckedChange = { editorSession.setBoolean("use_custom_app_bar_color", it) },
                 )
             }
 
-            if (useCustomAppBarColorInput && !toolbarTransparentInput) {
+            if (useCustomAppBarColorInput) {
                 ColorSelectionItem(
                     title = stringResource(id = R.string.theme_appbar_color),
                     color = Color(customAppBarColorInput),
@@ -424,29 +400,23 @@ internal fun ThemeSettingsColorCustomizationSection(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.theme_chat_header_transparent),
-                        style = MaterialTheme.typography.bodyMedium,
+            ThemeSettingsOpacitySlider(
+                title =
+                    stringResource(
+                        id = R.string.theme_chat_header_opacity,
+                        (chatHeaderOpacityInput.coerceIn(0f, 1f) * 100).roundToInt(),
+                    ),
+                opacity = chatHeaderOpacityInput,
+                onOpacityChange = {
+                    editorSession.setVisualOpacity(
+                        opacityKey = "chat_header_opacity",
+                        legacyTransparentKey = "chat_header_transparent",
+                        value = it,
                     )
-                    Text(
-                        text = stringResource(id = R.string.theme_chat_header_transparent_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = chatHeaderTransparentInput,
-                    onCheckedChange = { editorSession.setBoolean("chat_header_transparent", it) },
-                )
-            }
+                },
+            )
 
-            if (chatHeaderTransparentInput) {
+            if (chatHeaderOpacityInput < 1f) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),

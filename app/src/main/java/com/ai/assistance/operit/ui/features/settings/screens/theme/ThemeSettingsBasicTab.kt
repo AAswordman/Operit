@@ -133,10 +133,10 @@ private fun ThemeSettingsBasicColorPanel(
     val defaultAppBarColor = MaterialTheme.colorScheme.surface.toArgb()
     val defaultHeaderIconColor = Color.Gray.toArgb()
     val statusBarHiddenInput = values.requiredBoolean("status_bar_hidden")
-    val statusBarTransparentInput = values.requiredBoolean("status_bar_transparent")
+    val statusBarOpacityInput = values.requiredFloat("status_bar_opacity")
     val useCustomStatusBarColorInput = values.requiredBoolean("use_custom_status_bar_color")
     val customStatusBarColorInput = values.int("custom_status_bar_color") ?: defaultStatusBarColor
-    val toolbarTransparentInput = values.requiredBoolean("toolbar_transparent")
+    val toolbarOpacityInput = values.requiredFloat("toolbar_opacity")
     val useCustomAppBarColorInput = values.requiredBoolean("use_custom_app_bar_color")
     val customAppBarColorInput = values.int("custom_app_bar_color") ?: defaultAppBarColor
     val navigationDrawerWaterGlassInput =
@@ -153,7 +153,7 @@ private fun ThemeSettingsBasicColorPanel(
     val navigationDrawerAccentColorInput =
         values.int("custom_navigation_drawer_accent_color")
             ?: defaultNavigationDrawerAccentColor
-    val chatHeaderTransparentInput = values.requiredBoolean("chat_header_transparent")
+    val chatHeaderOpacityInput = values.requiredFloat("chat_header_opacity")
     val chatHeaderOverlayModeInput = values.requiredBoolean("chat_header_overlay_mode")
     val forceAppBarContentColorInput =
         values.requiredBoolean("force_app_bar_content_color_enabled")
@@ -173,10 +173,10 @@ private fun ThemeSettingsBasicColorPanel(
         cardColors = cardColors,
         editorSession = editorSession,
         statusBarHiddenInput = statusBarHiddenInput,
-        statusBarTransparentInput = statusBarTransparentInput,
+        statusBarOpacityInput = statusBarOpacityInput,
         useCustomStatusBarColorInput = useCustomStatusBarColorInput,
         customStatusBarColorInput = customStatusBarColorInput,
-        toolbarTransparentInput = toolbarTransparentInput,
+        toolbarOpacityInput = toolbarOpacityInput,
         useCustomAppBarColorInput = useCustomAppBarColorInput,
         customAppBarColorInput = customAppBarColorInput,
         navigationDrawerWaterGlassInput = navigationDrawerWaterGlassInput,
@@ -185,7 +185,7 @@ private fun ThemeSettingsBasicColorPanel(
         navigationDrawerBackgroundColorInput = navigationDrawerBackgroundColorInput,
         useCustomNavigationDrawerAccentColorInput = useCustomNavigationDrawerAccentColorInput,
         navigationDrawerAccentColorInput = navigationDrawerAccentColorInput,
-        chatHeaderTransparentInput = chatHeaderTransparentInput,
+        chatHeaderOpacityInput = chatHeaderOpacityInput,
         chatHeaderOverlayModeInput = chatHeaderOverlayModeInput,
         forceAppBarContentColorInput = forceAppBarContentColorInput,
         appBarContentColorModeInput = appBarContentColorModeInput,

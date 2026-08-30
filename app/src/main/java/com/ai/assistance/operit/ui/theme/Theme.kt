@@ -122,7 +122,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
     val videoBackgroundLoop = themeSnapshot.videoBackgroundLoop
     val useCustomStatusBarColor = themeSnapshot.useCustomStatusBarColor
     val customStatusBarColorValue = themeSnapshot.customStatusBarColor
-    val statusBarTransparent = themeSnapshot.statusBarTransparent
+    val statusBarOpacity = themeSnapshot.statusBarOpacity.coerceIn(0f, 1f)
     val statusBarHidden = themeSnapshot.statusBarHidden
     val useBackgroundBlur = themeSnapshot.useBackgroundBlur
     val backgroundBlurRadius = themeSnapshot.backgroundBlurRadius
@@ -203,12 +203,17 @@ fun OperitTheme(content: @Composable () -> Unit) {
                 insetsController?.show(WindowInsetsCompat.Type.statusBars())
                 
                 // 状态栏颜色和图标颜色控制
-                val statusBarColor = when {
-                    statusBarTransparent -> Color.Transparent.toArgb()
-                    useBackgroundImage && backgroundImageUri != null -> Color.Transparent.toArgb()  // 有背景时透明
-                    useCustomStatusBarColor && customStatusBarColorValue != null -> customStatusBarColorValue!!.toInt()
-                    else -> colorScheme.primary.toArgb()
-                }
+                val statusBarBaseColor =
+                    when {
+                        useCustomStatusBarColor && customStatusBarColorValue != null ->
+                            Color(customStatusBarColorValue)
+
+                        else -> colorScheme.primary
+                    }
+                val statusBarColor =
+                    statusBarBaseColor
+                        .copy(alpha = statusBarBaseColor.alpha * statusBarOpacity)
+                        .toArgb()
                 window.statusBarColor = statusBarColor
 
                 // 根据状态栏背景色动态设置状态栏图标颜色

@@ -9,9 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 @Composable
-internal fun ThemeSettingsBubbleOpacitySlider(
+internal fun ThemeSettingsOpacitySlider(
     title: String,
     opacity: Float,
+    enabled: Boolean = true,
     onOpacityChange: (Float) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -24,6 +25,7 @@ internal fun ThemeSettingsBubbleOpacitySlider(
             onValueChange = onOpacityChange,
             valueRange = 0f..1f,
             steps = 99,
+            enabled = enabled,
         )
     }
 }

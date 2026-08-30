@@ -101,6 +101,7 @@ fun ClassicChatInputSection(
     onTakePhoto: (Uri) -> Unit,
     hasBackgroundImage: Boolean = false,
     chatInputTransparent: Boolean = false,
+    chatInputOpacity: Float = if (chatInputTransparent) 0f else 1f,
     chatInputFloating: Boolean = false,
     chatInputLiquidGlass: Boolean = false,
     chatInputWaterGlass: Boolean = false,
@@ -237,11 +238,13 @@ fun ClassicChatInputSection(
         setShowAttachmentPanel(false)
     }
 
-    val surfaceColor = when {
-        chatInputTransparent -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
-        hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-        else -> MaterialTheme.colorScheme.surface
-    }
+    val inputOpacity = chatInputOpacity.coerceIn(0f, 1f)
+    val surfaceBaseColor =
+        when {
+            hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+            else -> MaterialTheme.colorScheme.surface
+        }
+    val surfaceColor = surfaceBaseColor.copy(alpha = surfaceBaseColor.alpha * inputOpacity)
     val queueContainerColor = when {
         chatInputTransparent -> MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
         else -> surfaceColor

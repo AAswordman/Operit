@@ -104,6 +104,19 @@ internal class ThemeEditorSession(
         update { it.withFloat(name, value) }
     }
 
+    fun setVisualOpacity(
+        opacityKey: String,
+        legacyTransparentKey: String,
+        value: Float,
+    ) {
+        val opacity = value.coerceIn(0f, 1f)
+        update {
+            it
+                .withFloat(opacityKey, opacity)
+                .withBoolean(legacyTransparentKey, opacity <= 0f)
+        }
+    }
+
     fun reset() {
         val resetValues =
             ThemePreferenceValues.defaultVisual()
