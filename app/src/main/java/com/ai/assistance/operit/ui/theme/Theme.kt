@@ -41,7 +41,7 @@ private fun rememberActiveThemeInstance(): ThemeInstanceV1 {
 }
 
 @Composable
-fun rememberActiveThemeParameters(): ActiveGlobalThemeParametersV1 {
+private fun rememberActiveThemeParameters(): ActiveGlobalThemeParametersV1 {
     val context = LocalContext.current
     val instance = rememberActiveThemeInstance()
     return remember(instance, context) {
