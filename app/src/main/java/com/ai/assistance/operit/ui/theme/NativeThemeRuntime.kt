@@ -42,14 +42,70 @@ internal fun resolveGlobalThemeV1(
     presentation: GlobalPresentationSnapshot,
     environment: NativeThemeEnvironment,
     baseColorScheme: (darkTheme: Boolean) -> ColorScheme,
+    primaryColor: Color? = null,
 ): ResolvedGlobalTheme {
     val darkTheme =
         presentation.themeMode == GlobalThemeMode.DARK ||
             (presentation.themeMode == GlobalThemeMode.SYSTEM && environment.systemDarkTheme)
+    val baseline = baseColorScheme(darkTheme)
     return ResolvedGlobalTheme(
         environment = environment,
         darkTheme = darkTheme,
-        colorScheme = baseColorScheme(darkTheme),
+        colorScheme =
+            primaryColor?.let { color ->
+                deriveColorSchemeWithPrimary(baseline, color, darkTheme)
+            } ?: baseline,
         fontScale = presentation.fontScale,
     )
 }
+
+/**
+ * Restricted primary-color derivation for theme packages: primary roles shift to the theme
+ * color with readable container/on roles; every other role stays on the host baseline so a
+ * package can never gut system colors by declaring one parameter.
+ */
+private fun deriveColorSchemeWithPrimary(
+    baseline: ColorScheme,
+    primary: Color,
+    darkTheme: Boolean,
+): ColorScheme {
+    val onPrimary = contrastingNativeThemeColor(primary)
+    return if (darkTheme) {
+        val adjustedPrimary = lightenNativeThemeColor(primary, 0.2f)
+        baseline.copy(
+            primary = adjustedPrimary,
+            onPrimary = contrastingNativeThemeColor(adjustedPrimary),
+            primaryContainer = darkenNativeThemeColor(primary, 0.3f),
+            onPrimaryContainer = Color.White,
+        )
+    } else {
+        val primaryContainer = lightenNativeThemeColor(primary, 0.7f)
+        baseline.copy(
+            primary = primary,
+            onPrimary = onPrimary,
+            primaryContainer = primaryContainer,
+            onPrimaryContainer = contrastingNativeThemeColor(primaryContainer),
+        )
+    }
+}
+
+private fun contrastingNativeThemeColor(color: Color): Color {
+    val luminance = 0.299 * color.red + 0.587 * color.green + 0.114 * color.blue
+    return if (luminance > 0.5) Color.Black else Color.White
+}
+
+private fun lightenNativeThemeColor(color: Color, factor: Float): Color =
+    Color(
+        red = color.red + (1f - color.red) * factor,
+        green = color.green + (1f - color.green) * factor,
+        blue = color.blue + (1f - color.blue) * factor,
+        alpha = color.alpha,
+    )
+
+private fun darkenNativeThemeColor(color: Color, factor: Float): Color =
+    Color(
+        red = color.red * (1f - factor),
+        green = color.green * (1f - factor),
+        blue = color.blue * (1f - factor),
+        alpha = color.alpha,
+    )

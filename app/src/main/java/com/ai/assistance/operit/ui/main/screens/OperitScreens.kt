@@ -52,6 +52,7 @@ import com.ai.assistance.operit.ui.features.settings.screens.ContextSummarySetti
 import com.ai.assistance.operit.ui.features.settings.screens.ExternalHttpChatSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.FunctionalConfigScreen
 import com.ai.assistance.operit.ui.features.settings.screens.GlobalDisplaySettingsScreen
+import com.ai.assistance.operit.ui.features.settings.screens.ThemePackagesScreen
 import com.ai.assistance.operit.ui.features.settings.screens.GitHubAccountScreen
 import com.ai.assistance.operit.ui.features.settings.screens.LanguageSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.LayoutAdjustmentSettingsScreen
@@ -603,6 +604,7 @@ sealed class Screen(
                     navigateToGitHubAccount = { navigateTo(GitHubAccount) },
                     navigateToModelConfig = { navigateTo(ModelConfig) },
                     navigateToGlobalDisplaySettings = { navigateTo(GlobalDisplaySettings) },
+                    navigateToThemePackages = { navigateTo(ThemePackages) },
                     navigateToModelPrompts = { navigateTo(ModelPromptsSettings) },
                     navigateToFunctionalConfig = { navigateTo(FunctionalConfig) },
                     navigateToChatHistorySettings = { navigateTo(ChatHistorySettings) },
@@ -1013,6 +1015,22 @@ sealed class Screen(
                     onBackPressed = onGoBack,
                     onNavigateToModelConfig = { navigateTo(ModelConfig) }
             )
+        }
+    }
+
+    data object ThemePackages :
+            Screen(navItem = NavItem.Settings, titleRes = R.string.theme_packages_title) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            ThemePackagesScreen(onGoBack = onGoBack)
         }
     }
 

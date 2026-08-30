@@ -40,6 +40,7 @@ fun SettingsScreen(
         navigateToGitHubAccount: () -> Unit,
         navigateToToolPermissions: () -> Unit,
         navigateToModelConfig: () -> Unit,
+        navigateToThemePackages: () -> Unit,
         navigateToGlobalDisplaySettings: () -> Unit,
         navigateToModelPrompts: () -> Unit,
         navigateToFunctionalConfig: () -> Unit,
@@ -141,6 +142,13 @@ fun SettingsScreen(
                                 onClick = navigateToLanguageSettings
                         )
                         
+
+                        CompactSettingsItem(
+                                title = stringResource(R.string.theme_packages_title),
+                                subtitle = stringResource(R.string.theme_packages_builtin),
+                                icon = Icons.Default.Palette,
+                                onClick = navigateToThemePackages
+                        )
 
                         CompactSettingsItem(
                                 title = stringResource(R.string.settings_global_display),
