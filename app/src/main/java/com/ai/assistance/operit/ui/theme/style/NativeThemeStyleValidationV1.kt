@@ -50,6 +50,7 @@ internal enum class NativeThemeStyleIssueCodeV1 {
     DECLARED_CAPABILITY_SURFACE_MISMATCH,
     UNUSED_DECLARED_CAPABILITY,
     UNUSED_DECLARED_CAPABILITY_SURFACE,
+    UNSUPPORTED_COMPOSE_RENDER_PLAN,
 }
 
 internal data class NativeThemeStyleIssueV1(

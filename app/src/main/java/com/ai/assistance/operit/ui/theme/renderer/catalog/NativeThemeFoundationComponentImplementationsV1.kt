@@ -190,7 +190,7 @@ internal object NativeThemeFoundationComponentImplementationsV1 {
             NativeThemeStatSlotsV1,
         >(
             key = NativeThemeStatContractV1.key,
-            implementedVersion = NativeThemeComponentVersionV1(major = 1, minor = 0),
+            implementedVersion = NativeThemeComponentVersionV1(major = 1, minor = 1),
             renderer = NativeThemeStatRendererV1,
             semanticRoleOf = { NativeThemeComponentSemanticRoleV1.CONTENT },
             scenarios =

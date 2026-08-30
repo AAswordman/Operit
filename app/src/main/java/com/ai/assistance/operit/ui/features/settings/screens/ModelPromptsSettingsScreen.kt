@@ -709,16 +709,10 @@ fun ModelPromptsSettingsScreen(
     fun duplicateCharacterCard(card: CharacterCard) {
         scope.launch {
             val duplicatedCard = card.copy(
-                id = "", // 将由createCharacterCard生成新ID
                 name = "${card.name}" + context.getString(R.string.card_copy_suffix),
                 isDefault = false
             )
-            val newCardId = characterCardManager.createCharacterCard(duplicatedCard)
-            characterCardManager.cloneBindingsFromCharacterCard(card.id, newCardId)
-            activePromptManager.saveCustomChatTitleForPrompt(
-                ActivePrompt.CharacterCard(newCardId),
-                duplicatedCard.name.ifEmpty { null },
-            )
+            characterCardManager.duplicateCharacterCard(duplicatedCard)
             showDuplicateSuccessMessage = true
             refreshTrigger++
         }

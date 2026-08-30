@@ -67,6 +67,21 @@ class ActivePromptManager private constructor(context: Context) {
         return themeOperations.runTransition(action)
     }
 
+    internal suspend fun <T> runThemeTransitionForExistingTarget(
+        target: ActivePrompt,
+        action: suspend () -> T,
+    ): T {
+        return themeOperations.runTransition {
+            val exists =
+                when (target) {
+                    is ActivePrompt.CharacterCard -> characterCardManager.hasCharacterCard(target.id)
+                    is ActivePrompt.CharacterGroup -> characterGroupCardManager.hasCharacterGroupCard(target.id)
+                }
+            require(exists) { "Theme target no longer exists: $target" }
+            action()
+        }
+    }
+
     suspend fun mutateActiveThemeForPrompt(
         target: ActivePrompt,
         transform: (ThemePreferenceValues) -> ThemePreferenceValues,

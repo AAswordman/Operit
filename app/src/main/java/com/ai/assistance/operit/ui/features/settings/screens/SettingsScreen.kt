@@ -42,6 +42,7 @@ fun SettingsScreen(
         navigateToToolPermissions: () -> Unit,
         navigateToModelConfig: () -> Unit,
         navigateToThemeSettings: () -> Unit,
+        navigateToThemeStudio: () -> Unit,
         navigateToGlobalDisplaySettings: () -> Unit,
         navigateToModelPrompts: () -> Unit,
         navigateToFunctionalConfig: () -> Unit,
@@ -154,6 +155,13 @@ fun SettingsScreen(
                                 subtitle = stringResource(id = R.string.settings_theme_subtitle),
                                 icon = Icons.Default.Palette,
                                 onClick = navigateToThemeSettings
+                        )
+
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.settings_theme_studio),
+                                subtitle = stringResource(id = R.string.settings_theme_studio_subtitle),
+                                icon = Icons.Default.Tune,
+                                onClick = navigateToThemeStudio
                         )
                         
                         CompactSettingsItem(

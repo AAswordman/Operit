@@ -8286,4 +8286,30 @@
     <string name="codex_reset_after_days">Resets in %1$d days</string>
     <string name="codex_reset_after_clock">Resets in %1$02d:%2$02d</string>
     <string name="conversation_media_file_link">&lt;link type=&quot;file&quot; id=&quot;%1$s&quot; filename=&quot;%2$s&quot;&gt;PDF&lt;/link&gt;</string>
+    <string name="settings_theme_studio">Theme Studio</string>
+    <string name="settings_theme_studio_subtitle">Component styles and preview</string>
+    <string name="theme_studio_title">Theme Studio</string>
+    <string name="theme_studio_target_character">Character card: %1$s</string>
+    <string name="theme_studio_target_group">Group: %1$s</string>
+    <string name="theme_studio_stat_preview">Stat component preview</string>
+    <string name="theme_studio_stat_component">Stat component</string>
+    <string name="theme_studio_stat_label">Messages processed</string>
+    <string name="theme_studio_stat_value">128</string>
+    <string name="theme_studio_surface_color">Surface color</string>
+    <string name="theme_studio_value_color">Value color</string>
+    <string name="theme_studio_label_color">Label color</string>
+    <string name="theme_studio_shape">Shape</string>
+    <string name="theme_studio_rounded">Rounded</string>
+    <string name="theme_studio_capsule">Capsule</string>
+    <string name="theme_studio_corner_radius">Corner radius</string>
+    <string name="theme_studio_opacity">Opacity</string>
+    <string name="theme_studio_padding">Padding</string>
+    <string name="theme_studio_border">Border</string>
+    <string name="theme_studio_border_color">Border color</string>
+    <string name="theme_studio_border_width">Border width</string>
+    <string name="theme_studio_icon_container">Icon container</string>
+    <string name="theme_studio_icon_container_color">Icon container color</string>
+    <string name="theme_studio_icon_color">Icon color</string>
+    <string name="theme_studio_save_failed">Unable to save Theme Studio styles</string>
+    <string name="theme_studio_link_error">Style instance cannot be linked: %1$s · %2$s</string>
 </resources>

@@ -48,7 +48,7 @@
 - 场景：成功、加载、错误
 - 语义：礼貌播报状态；加载态提供不确定进度语义
 
-### `operit.data_display.stat@1.0`
+### `operit.data_display.stat@1.1`
 
 - 状态：`label`、`value`
 - 必需插槽：`leading`
@@ -74,7 +74,7 @@
 
 ## 验收标准
 
-- 每个基础类别至少有一个稳定 ID、`1.0` 版本、类型化 Key 和 `native_v1` 实现
+- 每个基础类别至少有一个稳定 ID、类型化 Key 和 `native_v1` 实现；`operit.data_display.stat` 在 Theme Studio 试点中升至 `1.1`，新增 `EDITOR_PREVIEW` 宿主表面
 - 有限枚举字段拒绝空值域和重复值；非枚举字段拒绝携带枚举值
 - 目录覆盖五个新契约的全部声明状态和语义角色
 - 操作按钮与单选项在禁用时不派发事件，并保持至少 48dp 触控区域
@@ -88,7 +88,7 @@
 - `NativeThemeComponentKeyV1` 通过非反射状态编码器将类型化状态映射到契约值；目录校验必需与可选字段、值类型、有限枚举、语义角色和未知字段
 - 目录场景改用可组合状态标签，校验正常态互斥、选择与禁用字段、动态状态枚举映射、枚举值域完整覆盖及可选字段有值与无值场景
 - 语义元数据登记语义角色到平台可访问角色的映射、标题、状态消息、展示值、礼貌播报、不确定进度和装饰插槽
-- `native_v1` 登记 `operit.action.button@1.0`、`operit.input.choice_item@1.0`、`operit.container.section@1.0`、`operit.feedback.operation_status@1.0` 和 `operit.data_display.stat@1.0`
+- `native_v1` 登记 `operit.action.button@1.0`、`operit.input.choice_item@1.0`、`operit.container.section@1.0`、`operit.feedback.operation_status@1.0` 和 `operit.data_display.stat@1.1`
 - 操作按钮和单选项在内置渲染器与宿主事件适配器两层执行禁用约束；单选项整行只保留一个 RadioButton 动作语义并维持原 72dp 内容高度
 - 四个备份管理卡、Room DB 和原始快照分区已接入基础目录；策略、格式、配置空间、操作状态和两处统计展示已迁移
 - 旧管理按钮、三套格式单选项、操作进度与结果、共享分区标题及两处统计项实现已删除，业务枚举、回调、可见条件和文件流程未改变

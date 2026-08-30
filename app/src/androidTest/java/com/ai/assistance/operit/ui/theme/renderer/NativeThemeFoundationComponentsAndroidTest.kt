@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -34,6 +35,13 @@ import com.ai.assistance.operit.ui.theme.renderer.data.NativeThemeStatV1
 import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusKindV1
 import com.ai.assistance.operit.ui.theme.renderer.feedback.NativeThemeOperationStatusV1
 import com.ai.assistance.operit.ui.theme.renderer.input.NativeThemeChoiceItemV1
+import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
+import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
+import com.ai.assistance.operit.ui.theme.NativeThemeHostSurface
+import com.ai.assistance.operit.ui.theme.NativeThemeOffscreenHost
+import com.ai.assistance.operit.ui.theme.NativeThemeV1DarkColorScheme
+import com.ai.assistance.operit.ui.theme.NativeThemeV1LightColorScheme
+import com.ai.assistance.operit.ui.theme.resolveNativeThemeForDetachedComposeHost
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -239,7 +247,7 @@ class NativeThemeFoundationComponentsAndroidTest {
     @Test
     fun statMergesLabelValueAndLeadingSlotIntoOneDescription() {
         composeTestRule.setContent {
-            MaterialTheme {
+            NativeThemeStatTestHost {
                 NativeThemeStatV1(
                     label = "Conversations",
                     value = "128",
@@ -254,5 +262,68 @@ class NativeThemeFoundationComponentsAndroidTest {
             .onNodeWithContentDescription("Conversations")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "128"))
         composeTestRule.onNodeWithTag("stat-leading", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun statRendersInsideAnEditorPreviewHostWithoutAThemeTargetSource() {
+        composeTestRule.setContent {
+            NativeThemeStatEditorPreviewTestHost {
+                NativeThemeStatV1(
+                    label = "Previewed stats",
+                    value = "8",
+                    leading = { modifier -> Box(Modifier.testTag("preview-stat-leading").then(modifier)) },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription("Previewed stats")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "8"))
+        composeTestRule.onNodeWithTag("preview-stat-leading", useUnmergedTree = true).assertExists()
+    }
+
+    @Composable
+    private fun NativeThemeStatTestHost(content: @Composable () -> Unit) {
+        val snapshot =
+            ThemePreferenceSnapshot(
+                source = "character_card",
+                sourceId = "default_character",
+                values = ThemePreferenceValues.defaultVisual(),
+            )
+        val resolvedTheme =
+            resolveNativeThemeForDetachedComposeHost(
+                snapshot = snapshot,
+                hostSurface = NativeThemeHostSurface.MAIN,
+                systemDarkTheme = false,
+                lightColorScheme = NativeThemeV1LightColorScheme,
+                darkColorScheme = NativeThemeV1DarkColorScheme,
+            )
+        NativeThemeOffscreenHost(
+            snapshot = snapshot,
+            resolvedTheme = resolvedTheme,
+            content = content,
+        )
+    }
+
+    @Composable
+    private fun NativeThemeStatEditorPreviewTestHost(content: @Composable () -> Unit) {
+        val snapshot =
+            ThemePreferenceSnapshot(
+                source = "theme_editor_preview",
+                values = ThemePreferenceValues.defaultVisual(),
+            )
+        val resolvedTheme =
+            resolveNativeThemeForDetachedComposeHost(
+                snapshot = snapshot,
+                hostSurface = NativeThemeHostSurface.EDITOR_PREVIEW,
+                systemDarkTheme = false,
+                lightColorScheme = NativeThemeV1LightColorScheme,
+                darkColorScheme = NativeThemeV1DarkColorScheme,
+            )
+        NativeThemeOffscreenHost(
+            snapshot = snapshot,
+            resolvedTheme = resolvedTheme,
+            content = content,
+        )
     }
 }

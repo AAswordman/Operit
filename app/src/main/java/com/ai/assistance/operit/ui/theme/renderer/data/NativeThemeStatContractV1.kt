@@ -41,10 +41,14 @@ internal object NativeThemeStatContractV1 {
     val contract =
         NativeThemeComponentContractV1(
             id = NativeThemeComponentId("operit.data_display.stat"),
-            version = NativeThemeComponentVersionV1(major = 1, minor = 0),
+            version = NativeThemeComponentVersionV1(major = 1, minor = 1),
             category = NativeThemeComponentCategoryV1.DATA_DISPLAY,
             required = true,
-            supportedHostSurfaces = setOf(NativeThemeHostSurface.MAIN),
+            supportedHostSurfaces =
+                setOf(
+                    NativeThemeHostSurface.MAIN,
+                    NativeThemeHostSurface.EDITOR_PREVIEW,
+                ),
             styleFamily = NativeThemeComponentFamilyIdV1("operit.data_display"),
             styleParts =
                 listOf(
