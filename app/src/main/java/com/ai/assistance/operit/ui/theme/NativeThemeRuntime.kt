@@ -36,6 +36,8 @@ internal val NativeThemeV1DarkColorScheme =
 internal val NativeThemeV1LightColorScheme =
     lightColorScheme(primary = Purple40, secondary = PurpleGrey40, tertiary = Pink40)
 
+internal const val NATIVE_THEME_V1_DEFINITION_ID = "operit.native_v1"
+
 internal fun resolveGlobalThemeV1(
     presentation: GlobalPresentationSnapshot,
     environment: NativeThemeEnvironment,
