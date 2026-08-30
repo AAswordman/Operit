@@ -29,6 +29,18 @@
 
 ## 构建记录
 
+### 2026-08-31：批次 A/B（编辑器删除 + 全局呈现运行时）release 构建
+
+- 分支：`feat/plugin-interface`
+- 提交：`1af02486`（删编辑器 51 文件 -11595 行）、`124c4385`（全局呈现设置 + 设置页 + WebChat bootstrap）、`c2608005`（运行时切全局源 50 文件 -4011 行）、`5150a08e`/`c1b60f11`（编译修复）
+- 构建服务动作：`build_current_release`
+- 构建服务状态：`success`
+- 产物：`operit-release-feat_plugin-interface-c1b60f11.apk`
+- 产物大小：`402908831` 字节
+- SHA-256：`27bb291eeb76b811101ed3df19d84b45f97eaa6e7266377632ecabcb355df373`
+- 期间失败：`1af02486` import 拼接语法错误；`c2608005` 子代理三处残留（ChatScreenContent import 拼接、BubbleUser 重复 import、ClassicChatInputSection containerShape）与 `NATIVE_THEME_V1_DEFINITION_ID` 误删；均已修复。
+- 落地：`LocalThemePreferenceSnapshot`/`rememberActiveThemePreferenceSnapshot`/`activeThemePreferenceSnapshotFlow` 及快照驱动解析全部移除；`resolveGlobalThemeV1` + `LocalGlobalPresentation`/`LocalResolvedGlobalTheme` 成为唯一主题源；背景媒体/自定义颜色/玻璃/贴图/自定义字体/chrome 定制从运行时删除；AppContent/抽屉/聊天组件/浮屏/离屏/Glance 全部切全局；WebChat bootstrap 改读全局呈现。JVM/Compose 测试未在本动作执行。
+
 ### 2026-08-31：批次 1 清理 + 批次 2/3 基础 release 构建
 
 - 分支：`feat/plugin-interface`
