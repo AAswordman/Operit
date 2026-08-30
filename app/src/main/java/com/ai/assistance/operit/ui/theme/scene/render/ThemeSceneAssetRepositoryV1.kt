@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /** Normalized path commands resolved from one path asset, in the unit square [0,1]x[0,1]. */
 internal data class ThemeScenePathDataV1(
-    val commands: List<ThemeScenePathCommandV1>,
+    val commands: List<Command>,
 ) {
     sealed interface Command {
         data class MoveTo(val x: Float, val y: Float) : Command
@@ -39,8 +39,6 @@ internal data class ThemeScenePathDataV1(
         data object Close : Command
     }
 }
-
-internal typealias ThemeScenePathCommandV1 = ThemeScenePathDataV1.Command
 
 internal class ThemeScenePathParseException(message: String) : IllegalArgumentException(message)
 
@@ -74,7 +72,7 @@ internal class ThemeSceneAssetRepositoryV1(
 
     fun pathData(assetId: ThemeSceneAssetIdV1): ThemeScenePathDataV1 =
         pathCache.getOrPut(assetId.value) {
-            ThemeScenePathDataV1(parsePathCommands(fileFor(assetId).readText(Charsets.UTF_8)))
+            ThemeScenePathDataV1(parseThemeScenePathCommands(fileFor(assetId).readText(Charsets.UTF_8)))
         }
 
     fun composePath(assetId: ThemeSceneAssetIdV1, widthPx: Float, heightPx: Float): Path {
@@ -82,13 +80,13 @@ internal class ThemeSceneAssetRepositoryV1(
         val path = Path()
         data.commands.forEach { command ->
             when (command) {
-                is ThemeScenePathCommandV1.MoveTo ->
+                is ThemeScenePathDataV1.Command.MoveTo ->
                     path.moveTo(command.x * widthPx, command.y * heightPx)
 
-                is ThemeScenePathCommandV1.LineTo ->
+                is ThemeScenePathDataV1.Command.LineTo ->
                     path.lineTo(command.x * widthPx, command.y * heightPx)
 
-                is ThemeScenePathCommandV1.QuadTo ->
+                is ThemeScenePathDataV1.Command.QuadTo ->
                     path.quadraticBezierTo(
                         command.controlX * widthPx,
                         command.controlY * heightPx,
@@ -96,7 +94,7 @@ internal class ThemeSceneAssetRepositoryV1(
                         command.endY * heightPx,
                     )
 
-                is ThemeScenePathCommandV1.CubicTo ->
+                is ThemeScenePathDataV1.Command.CubicTo ->
                     path.cubicTo(
                         command.control1X * widthPx,
                         command.control1Y * heightPx,
@@ -106,7 +104,7 @@ internal class ThemeSceneAssetRepositoryV1(
                         command.endY * heightPx,
                     )
 
-                ThemeScenePathCommandV1.Close -> path.close()
+                ThemeScenePathDataV1.Command.Close -> path.close()
             }
         }
         return path
@@ -143,8 +141,8 @@ internal class ThemeSceneAssetRepositoryV1(
 }
 
 /** Parses whitespace/comma separated normalized path commands: M/L/Q/C with float pairs, Z. */
-internal fun parseThemeScenePathCommands(text: String): List<ThemeScenePathCommandV1> {
-    val commands = mutableListOf<ThemeScenePathCommandV1>()
+internal fun parseThemeScenePathCommands(text: String): List<ThemeScenePathDataV1.Command> {
+    val commands = mutableListOf<ThemeScenePathDataV1.Command>()
     val tokens = PATH_TOKEN_REGEX.findAll(text).map { it.value }.toList()
     var index = 0
 
@@ -166,20 +164,20 @@ internal fun parseThemeScenePathCommands(text: String): List<ThemeScenePathComma
 
     while (index < tokens.size) {
         when (tokens[index++]) {
-            "M" -> commands += ThemeScenePathCommandV1.MoveTo(nextFloat("M"), nextFloat("M"))
-            "L" -> commands += ThemeScenePathCommandV1.LineTo(nextFloat("L"), nextFloat("L"))
+            "M" -> commands += ThemeScenePathDataV1.Command.MoveTo(nextFloat("M"), nextFloat("M"))
+            "L" -> commands += ThemeScenePathDataV1.Command.LineTo(nextFloat("L"), nextFloat("L"))
             "Q" -> commands +=
-                ThemeScenePathCommandV1.QuadTo(
+                ThemeScenePathDataV1.Command.QuadTo(
                     nextFloat("Q"), nextFloat("Q"), nextFloat("Q"), nextFloat("Q"),
                 )
 
             "C" -> commands +=
-                ThemeScenePathCommandV1.CubicTo(
+                ThemeScenePathDataV1.Command.CubicTo(
                     nextFloat("C"), nextFloat("C"), nextFloat("C"),
                     nextFloat("C"), nextFloat("C"), nextFloat("C"),
                 )
 
-            "Z" -> commands += ThemeScenePathCommandV1.Close
+            "Z" -> commands += ThemeScenePathDataV1.Command.Close
 
             other ->
                 throw ThemeScenePathParseException(
