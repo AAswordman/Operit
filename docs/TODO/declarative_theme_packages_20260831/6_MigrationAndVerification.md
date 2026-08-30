@@ -29,6 +29,17 @@
 
 ## 构建记录
 
+### 2026-08-31：批次 D（Token 池 + Scene 渲染器 + 资产仓库）release 构建
+
+- 分支：`feat/plugin-interface`
+- 提交：`5a2cb156`（Token 模型/渲染器/资产仓库 + 测试）、`77cc96b2`/`8e999f75`（编译修复：路径解析器引用、IntOffset/IntSize、when-else）
+- 构建服务动作：`build_current_release` + 容器内 `:app:testReleaseUnitTest --tests "com.ai.assistance.operit.ui.theme.scene.*"`
+- 构建服务状态：`success`；JVM 测试通过
+- 产物：`operit-release-feat_plugin-interface-8e999f75.apk`
+- 产物大小：`402904735` 字节
+- SHA-256：`77754653710eda4e81d62fa2ee497bec5aef25dd19eae406e8f04ea6af41b2b3`
+- 落地：`ThemeSceneTokenSetV1`（颜色/尺寸/文字样式 token，fail-fast 解析器 + 引用校验，文字样式支持包内字体）；`ThemeSceneAssetRepositoryV1`（位图解码带 4096² 像素上限、字体 FontFamily、归一化 M/L/Q/C/Z 路径解析与像素投影）；`ThemeSceneRendererV1`（13 种节点 Compose 渲染：stage/layer/row/column/grid/frame 锚定布局/host_slot 注入/surface 填充描边/位图三种 fit/九宫格九区拉伸/文字/路径填充描边/graphicsLayer 变换）。纯增量，未接线任何页面。
+
 ### 2026-08-31：stat 目录版本修复 release 构建（含目录校验 JVM 测试）
 
 - 分支：`feat/plugin-interface`
