@@ -179,9 +179,10 @@ internal fun parseThemeScenePathCommands(text: String): List<ThemeScenePathDataV
 
             "Z" -> commands += ThemeScenePathDataV1.Command.Close
 
-            other ->
+            else ->
                 throw ThemeScenePathParseException(
-                    "Unsupported path command token: $other (only M, L, Q, C, Z are allowed)",
+                    "Unsupported path command token: ${tokens[index - 1]} " +
+                        "(only M, L, Q, C, Z are allowed)",
                 )
         }
     }

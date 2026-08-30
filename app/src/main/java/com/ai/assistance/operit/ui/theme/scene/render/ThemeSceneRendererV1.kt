@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -18,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -361,10 +359,10 @@ private fun Modifier.drawNineSlice(
             if (srcW == 0 || srcH == 0 || dstW == 0 || dstH == 0) return
             drawImage(
                 image = bitmap,
-                srcOffset = Offset(srcLeft.roundToInt(), srcTop.roundToInt()),
-                srcSize = androidx.compose.ui.geometry.IntSize(srcW, srcH),
-                dstOffset = Offset(dstLeft.roundToInt(), dstTop.roundToInt()),
-                dstSize = androidx.compose.ui.geometry.IntSize(dstW, dstH),
+                srcOffset = androidx.compose.ui.unit.IntOffset(srcLeft.roundToInt(), srcTop.roundToInt()),
+                srcSize = androidx.compose.ui.unit.IntSize(srcW, srcH),
+                dstOffset = androidx.compose.ui.unit.IntOffset(dstLeft.roundToInt(), dstTop.roundToInt()),
+                dstSize = androidx.compose.ui.unit.IntSize(dstW, dstH),
             )
         }
 
