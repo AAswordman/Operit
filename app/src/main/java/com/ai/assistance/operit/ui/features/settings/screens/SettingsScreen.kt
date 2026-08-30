@@ -54,7 +54,10 @@ fun SettingsScreen(
         navigateToWaifuModeSettings: () -> Unit,
         navigateToTokenUsageStatistics: () -> Unit,
         navigateToContextSummarySettings: () -> Unit,
-        navigateToLayoutAdjustmentSettings: () -> Unit
+        navigateToLayoutAdjustmentSettings: () -> Unit,
+        navigateToNonOXModeSwitcher: () -> Unit = {},
+        navigateToNonOXModelPricing: () -> Unit = {},
+        navigateToNonOxBudgetStats: () -> Unit = {}
 ) {
         val context = LocalContext.current
         val githubAuth = remember { GitHubAuthPreferences.getInstance(context) }
@@ -198,6 +201,34 @@ fun SettingsScreen(
                                 onClick = navigateToSpeechServicesSettings
                         )
                         
+                }
+
+                // ======= OperitX (NonOX) =======
+                SettingsSection(
+                        title = "NonO Assistant",
+                        icon = Icons.Default.SmartToy,
+                        containerColor = cardContainerColor
+                ) {
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.nonox_mode_switcher),
+                                subtitle = "Switch between Chat, IDE, CLI, and Image-gen modes",
+                                icon = Icons.Default.SwapHoriz,
+                                onClick = navigateToNonOXModeSwitcher
+                        )
+                        
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.nonox_model_pricing),
+                                subtitle = "View model pricing from configured providers",
+                                icon = Icons.Default.AttachMoney,
+                                onClick = navigateToNonOXModelPricing
+                        )
+                        
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.nonox_budget_stats),
+                                subtitle = "Context budget usage and cost tracking",
+                                icon = Icons.Default.Speed,
+                                onClick = navigateToNonOxBudgetStats
+                        )
                 }
 
                 // ======= 提示词配置 =======

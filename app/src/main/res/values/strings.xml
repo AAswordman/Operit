@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Operit AI</string>
+    <string name="app_name">NonO Assistant</string>
     <string name="accessibility_service_description">用于获取UI层次结构，为AI助手提供更快速的界面分析能力，不会收集或存储任何个人信息。</string>
     
     <!-- 模型选择器相关 -->
@@ -4167,6 +4167,11 @@
     <string name="screen_title_autoglm_tool">autoglm执行</string>
     <string name="screen_title_default_assistant_guide">默认助手设置</string>
     <string name="screen_title_mcp_market">MCP 市场</string>
+    
+    <!-- OperitX screens -->
+    <string name="nonox_mode_switcher">Mode Switcher</string>
+    <string name="nonox_model_pricing">Model Pricing</string>
+    <string name="nonox_budget_stats">Budget Stats</string>
     <string name="screen_title_skill_market">Skill 市场</string>
     <string name="screen_title_skill_publish">发布 Skill</string>
     <string name="screen_title_skill_detail">Skill 详情</string>

@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<resources><string name="app_name">Operar IA</string>
+<resources><string name="app_name">NonO Assistant</string>
     <string name="accessibility_service_description">Ele é usado para obter a hierarquia da IU e fornecer recursos de análise de interface mais rápidos para o assistente de IA. Nenhuma informação pessoal será coletada ou armazenada.</string>
     <string name="model_selector_title">Selecione a configuração do modelo</string>
     <string name="model_selector_toggle">Mostrar seletor de modelo</string>

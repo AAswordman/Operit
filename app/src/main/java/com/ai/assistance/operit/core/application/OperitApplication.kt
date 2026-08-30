@@ -358,6 +358,17 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             val toolHandler = AIToolHandler.getInstance(this@OperitApplication)
             toolHandler.registerDefaultTools()
             AppLogger.d(TAG, "【启动计时】AIToolHandler初始化并注册工具完成（异步/串行） - ${System.currentTimeMillis() - toolStartTime}ms")
+
+            // Initialize OperitX integration modules (provider, orchestration, memory)
+            val nonoStartTime = System.currentTimeMillis()
+            try {
+                com.ai.assistance.operit.core.integration.NonOIntegrationManager.initialize(this@OperitApplication)
+                // Register tool sanitizer hook for XML contamination fix (§10)
+                toolHandler.addToolHook(com.ai.assistance.operit.core.tools.sanitizer.ToolSanitizerHook())
+                AppLogger.d(TAG, "【启动计时】NonOIntegrationManager初始化完成（异步/串行） - ${System.currentTimeMillis() - nonoStartTime}ms")
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "NonOIntegrationManager initialization failed", e)
+            }
         }
         
         // 初始化工作流调度器（异步）

@@ -364,6 +364,19 @@ object ScreenRouteRegistry {
                 entryId = "hidden.chat_history_settings",
                 screen = Screen.ChatHistorySettings,
                 launchNavItem = NavItem.ChatHistorySettings
+            ),
+            // OperitX screens
+            hostEntryDefinition(
+                entryId = "hidden.nonox_mode_switcher",
+                screen = Screen.NonOXModeSwitcher
+            ),
+            hostEntryDefinition(
+                entryId = "hidden.nonox_model_pricing",
+                screen = Screen.NonOXModelPricing
+            ),
+            hostEntryDefinition(
+                entryId = "hidden.nonox_budget_stats",
+                screen = Screen.NonOxBudgetStats
             )
         )
 

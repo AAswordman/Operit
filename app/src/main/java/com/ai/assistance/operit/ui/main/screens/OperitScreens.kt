@@ -616,7 +616,10 @@ sealed class Screen(
                     navigateToWaifuModeSettings = { navigateTo(WaifuModeSettings) },
                     navigateToTokenUsageStatistics = { navigateTo(TokenUsageStatistics) },
                     navigateToContextSummarySettings = { navigateTo(ContextSummarySettings) },
-                    navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) }
+                    navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) },
+                    navigateToNonOXModeSwitcher = { navigateTo(NonOXModeSwitcher) },
+                    navigateToNonOXModelPricing = { navigateTo(NonOXModelPricing) },
+                    navigateToNonOxBudgetStats = { navigateTo(NonOxBudgetStats) }
             )
         }
     }
@@ -1524,6 +1527,58 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             AutoGlmToolScreen()
+        }
+    }
+
+    // OperitX screens
+    data object NonOXModeSwitcher : Screen(navItem = NavItem.Settings, titleRes = R.string.nonox_mode_switcher) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            com.ai.assistance.operit.ui.features.nonox.screens.ModeSwitcherScreen(
+                onGoBack = onGoBack
+            )
+        }
+    }
+
+    data object NonOXModelPricing : Screen(navItem = NavItem.Settings, titleRes = R.string.nonox_model_pricing) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            com.ai.assistance.operit.ui.features.nonox.screens.ModelPricingScreen(
+                onGoBack = onGoBack
+            )
+        }
+    }
+
+    data object NonOxBudgetStats : Screen(navItem = NavItem.Settings, titleRes = R.string.nonox_budget_stats) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            com.ai.assistance.operit.ui.features.nonox.screens.BudgetStatsScreen(
+                onGoBack = onGoBack
+            )
         }
     }
 

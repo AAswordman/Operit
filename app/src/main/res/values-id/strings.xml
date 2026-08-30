@@ -205,7 +205,7 @@
     <string name="colorpicker_select_statusbar">Pilih warna bilah status</string>
     <string name="colorpicker_select_navigation_drawer_background">Pilih warna latar menu geser samping</string>
 
-    <string name="app_name">Operit AI</string>
+    <string name="app_name">NonO Assistant</string>
     <string name="accessibility_service_description">Digunakan untuk mendapatkan hierarki UI, memberikan kemampuan analisis antarmuka yang lebih cepat untuk asisten AI, tidak akan mengumpulkan atau menyimpan informasi pribadi apa pun.</string>
     <string name="model_selector_title">Pilih Konfigurasi Model</string>
     <string name="model_selector_toggle">Tampilkan Pemilih Model</string>

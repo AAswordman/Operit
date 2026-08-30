@@ -22,6 +22,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.sanitizer.ToolCallSanitizer
+import com.ai.nonoassistance.tools.permission.RootExecutionGuard
 import com.ai.assistance.operit.ui.common.displays.MessageContentParser
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
@@ -43,6 +45,19 @@ object ToolExecutionManager {
     private const val PACKAGE_CHAT_ID_PARAM = "__operit_package_chat_id"
     private const val PACKAGE_CALLER_CARD_ID_PARAM = "__operit_package_caller_card_id"
     private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
+
+    // Sanitizer for tool call parameters — fixes XML tag contamination from §10
+    private val toolCallSanitizer = ToolCallSanitizer()
+
+    // Root execution guard — controls root/sudo command permissions per role
+    private val rootExecutionGuard = RootExecutionGuard()
+
+    // Tools that execute shell commands and need root permission checks
+    private val SHELL_EXECUTION_TOOLS = setOf(
+        "execute_shell",
+        "execute_in_terminal_session",
+        "execute_in_terminal_session_streaming"
+    )
 
     data class ToolRuntimeContext(
         val callerCardId: String? = null,
@@ -320,8 +335,13 @@ object ToolExecutionManager {
                     MessageContentParser.toolParamPattern.findAll(toolBody)
                         .forEach { paramMatch ->
                             val paramName = paramMatch.groupValues[1]
-                            val paramValue = paramMatch.groupValues[2]
-                            parameters.add(ToolParameter(paramName, unescapeXml(paramValue)))
+                            val rawValue = unescapeXml(paramMatch.groupValues[2])
+                            // Sanitize XML tag contamination (§10 fix)
+                            val paramValue = toolCallSanitizer.sanitize(rawValue)
+                            if (rawValue != paramValue) {
+                                AppLogger.d(TAG, "Sanitized param '$paramName' in tool '$toolName'")
+                            }
+                            parameters.add(ToolParameter(paramName, paramValue))
                         }
 
                     val tool = AITool(name = toolName, parameters = parameters)
@@ -604,12 +624,67 @@ object ToolExecutionManager {
             }
         }
 
+        // 3.5 Root command permission check (§11 PermissionMatrix)
+        val rootPermittedInvocations = mutableListOf<ToolInvocation>()
+        val rootDeniedResults = mutableListOf<ToolResult>()
+        for (invocation in permittedInvocations) {
+            if (SHELL_EXECUTION_TOOLS.contains(invocation.tool.name)) {
+                val command = invocation.tool.parameters
+                    .find { it.name == "command" }
+                    ?.value
+                    .orEmpty()
+                if (command.isNotEmpty()) {
+                    val decision = rootExecutionGuard.checkRootCommand(command)
+                    when (decision) {
+                        is RootExecutionGuard.RootPermissionDecision.Blocked -> {
+                            val deniedResult = ToolResult(
+                                toolName = invocation.tool.name,
+                                success = false,
+                                result = StringResultData(""),
+                                error = decision.reason
+                            )
+                            rootDeniedResults.add(deniedResult)
+                            toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
+                            toolHandler.notifyToolExecutionFinished(invocation.tool)
+                            val toolResultStatusContent =
+                                ConversationMarkupManager.formatToolResultForMessage(deniedResult)
+                            collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                            continue
+                        }
+                        is RootExecutionGuard.RootPermissionDecision.RequiresConfirmation -> {
+                            // For root commands requiring confirmation, treat as ASK permission
+                            val needsConfirmResult = ToolResult(
+                                toolName = invocation.tool.name,
+                                success = false,
+                                result = StringResultData(""),
+                                error = decision.message
+                            )
+                            rootDeniedResults.add(needsConfirmResult)
+                            toolHandler.notifyToolExecutionResult(invocation.tool, needsConfirmResult)
+                            toolHandler.notifyToolExecutionFinished(invocation.tool)
+                            val toolResultStatusContent =
+                                ConversationMarkupManager.formatToolResultForMessage(needsConfirmResult)
+                            collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                            continue
+                        }
+                        is RootExecutionGuard.RootPermissionDecision.Allowed -> {
+                            rootPermittedInvocations.add(invocation)
+                        }
+                    }
+                } else {
+                    rootPermittedInvocations.add(invocation)
+                }
+            } else {
+                rootPermittedInvocations.add(invocation)
+            }
+        }
+
         val injectedInvocations =
             if (callerName.isNullOrBlank() && callerChatId.isNullOrBlank() && callerCardId.isNullOrBlank()) {
-                permittedInvocations
+                rootPermittedInvocations
             } else {
                 val jsPackageNames = packageManager.getAvailablePackages().keys
-                permittedInvocations.map { invocation ->
+                rootPermittedInvocations.map { invocation ->
                     injectPackageCallContext(
                         invocation = invocation,
                         jsPackageNames = jsPackageNames,

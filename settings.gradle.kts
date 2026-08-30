@@ -17,7 +17,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Operit"
+rootProject.name = "OperitX"
 include(":app")
 include(":dragonbones")
 project(":dragonbones").projectDir = file("avator/dragonbones")
@@ -32,3 +32,8 @@ include(":fbx")
 project(":fbx").projectDir = file("avator/fbx")
 include(":showerclient")
 include(":quickjs")
+
+// OperitX new modules
+include(":provider")
+include(":orchestration")
+include(":memory")

@@ -394,7 +394,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.ai.assistance.operit"
+        applicationId = "com.ai.nonoassistance"
         minSdk = 26
         targetSdk = 34
         versionCode = 46
@@ -435,7 +435,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
-            resValue("string", "app_name", "Operit Debug")
+            resValue("string", "app_name", "NonO Assistant Debug")
         }
         create("clone") {
             initWith(getByName("debug"))
@@ -444,7 +444,7 @@ android {
                 signingConfig = releaseSigningConfig
             }
             matchingFallbacks += listOf("debug")
-            resValue("string", "app_name", "Operit Clone")
+            resValue("string", "app_name", "NonO Assistant Clone")
         }
         create("nightly") {
             isMinifyEnabled = false
@@ -585,6 +585,9 @@ dependencies {
     implementation(project(":fbx"))
     implementation(project(":showerclient"))
     implementation(project(":quickjs"))
+    implementation(project(":provider"))
+    implementation(project(":orchestration"))
+    implementation(project(":memory"))
 
     // glTF runtime rendering (Filament)
     implementation("com.google.android.filament:filament-android:1.69.2")

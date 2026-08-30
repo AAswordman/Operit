@@ -1,0 +1,67 @@
+{
+  "lastUpdated": "2026-08-29T00:00:00Z",
+  "providers": {
+    "deepseek": {
+      "models": {
+        "deepseek-chat": {
+          "inputPerMillionTokens": 0.14,
+          "outputPerMillionTokens": 0.28,
+          "currency": "USD"
+        },
+        "deepseek-reasoner": {
+          "inputPerMillionTokens": 0.55,
+          "outputPerMillionTokens": 2.19,
+          "currency": "USD"
+        },
+        "deepseek-coder": {
+          "inputPerMillionTokens": 0.14,
+          "outputPerMillionTokens": 0.28,
+          "currency": "USD"
+        }
+      }
+    },
+    "google": {
+      "models": {
+        "gemini-2.5-flash": {
+          "inputPerMillionTokens": 0.15,
+          "outputPerMillionTokens": 0.60,
+          "currency": "USD"
+        },
+        "gemini-2.5-pro": {
+          "inputPerMillionTokens": 1.25,
+          "outputPerMillionTokens": 10.00,
+          "currency": "USD"
+        },
+        "gemini-2.0-flash": {
+          "inputPerMillionTokens": 0.10,
+          "outputPerMillionTokens": 0.40,
+          "currency": "USD"
+        }
+      }
+    },
+    "openai": {
+      "models": {
+        "gpt-4o": {
+          "inputPerMillionTokens": 2.50,
+          "outputPerMillionTokens": 10.00,
+          "currency": "USD"
+        },
+        "gpt-4o-mini": {
+          "inputPerMillionTokens": 0.15,
+          "outputPerMillionTokens": 0.60,
+          "currency": "USD"
+        },
+        "o1": {
+          "inputPerMillionTokens": 15.00,
+          "outputPerMillionTokens": 60.00,
+          "currency": "USD"
+        },
+        "o3-mini": {
+          "inputPerMillionTokens": 1.10,
+          "outputPerMillionTokens": 4.40,
+          "currency": "USD"
+        }
+      }
+    }
+  }
+}

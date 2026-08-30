@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Operit AI</string>
+    <string name="app_name">NonO Assistant</string>
     <string name="accessibility_service_description">UI 계층 구조를 가져오는 데 사용되며 AI 보조자에게 더 빠른 인터페이스 분석 기능을 제공하며 개인 정보를 수집하거나 저장하지 않습니다.</string>
     <string name="model_selector_title">모델 구성 선택</string>
     <string name="model_selector_toggle">모델 선택기 표시</string>

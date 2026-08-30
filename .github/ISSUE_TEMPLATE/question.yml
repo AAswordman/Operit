@@ -24,7 +24,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Operit 版本 / Operit version
+      label: NonO Assistant 版本 / NonO Assistant version
       description: 请填写完整版本和补丁号。
       placeholder: 例如 1.12.0+4、Nightly 日期或 commit hash
     validations:
