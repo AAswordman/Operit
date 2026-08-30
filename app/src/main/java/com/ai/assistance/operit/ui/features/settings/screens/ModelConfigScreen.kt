@@ -46,6 +46,7 @@ import com.ai.assistance.operit.api.chat.llmprovider.ChatConfigReadinessIssue
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConfigConnectionTester
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestType
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
+import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
@@ -1111,6 +1112,51 @@ private val thinkingMatchFieldDescriptions =
         "endpointSuffix" to R.string.thinking_config_match_desc_endpoint_suffix,
     )
 
+private fun thinkingPresetDisplayName(rule: ThinkingRuleEditor): String =
+    when (rule.id) {
+        "openai-chat-reasoning-effort" -> "OpenAI Chat Completions"
+        "openai-responses-reasoning-effort" -> "OpenAI Responses"
+        "deepseek-responses-reasoning-effort" -> "DeepSeek Responses API"
+        "deepseek-reasoning-effort" -> "DeepSeek Chat API"
+        "gemini-25-thinking-budget" -> "Gemini 2.5 Thinking Budget"
+        "gemini-thinking-level" -> "Gemini Thinking Level"
+        "anthropic-extended-budget" -> "Claude 3 Thinking Budget"
+        "anthropic-adaptive-effort" -> "Claude Adaptive Thinking"
+        else -> {
+            val shortenedId = rule.id
+                .removeSuffix("-reasoning-effort")
+                .removeSuffix("-thinking-toggle")
+                .removeSuffix("-thinking-budget")
+            shortenedId
+                .split('-')
+                .filter { it.isNotBlank() }
+                .joinToString(" ") { token ->
+                    when (token.lowercase()) {
+                        "openai" -> "OpenAI"
+                        "deepseek" -> "DeepSeek"
+                        "opencode" -> "OpenCode"
+                        "xai" -> "xAI"
+                        "glm" -> "GLM"
+                        "mnn" -> "MNN"
+                        "api" -> "API"
+                        else -> token.replaceFirstChar { it.uppercase() }
+                    }
+                }
+                .ifBlank { rule.parameterLabel }
+        }
+    }
+
+private fun thinkingPresetDetail(rule: ThinkingRuleEditor, valueSeparator: String): String {
+    val matchValues = rule.matchValues
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString(valueSeparator)
+    return listOf(rule.parameterLabel.trim(), matchValues)
+        .filter { it.isNotEmpty() }
+        .joinToString(" · ")
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun ThinkingConfigurationsSection(
@@ -1132,6 +1178,32 @@ private fun ThinkingConfigurationsSection(
     var sectionExpanded by rememberSaveable(config.id) { mutableStateOf(false) }
     var editingRuleIndex by rememberSaveable(config.id) { mutableStateOf<Int?>(null) }
     var editingRule by remember(config.id) { mutableStateOf<ThinkingRuleEditor?>(null) }
+    var showPresetPicker by rememberSaveable(config.id) { mutableStateOf(false) }
+    var selectedPresetIds by remember(config.id) { mutableStateOf<Set<String>>(emptySet()) }
+    val providerPresetRules = remember(config.apiProviderTypeId) {
+        runCatching {
+            parseThinkingRuleEditors(
+                ModelThinkingConfigDefaults.forProvider(config.apiProviderTypeId)
+            )
+        }.getOrElse { emptyList() }
+    }
+    val canRestorePresets = parsedRules.isSuccess
+    val serializedRules = serializeThinkingRuleEditors(rules)
+    val availablePresetIds = remember(config.apiProviderTypeId, canRestorePresets, serializedRules) {
+        if (canRestorePresets) {
+            ModelThinkingConfigDefaults.missingPresetIdsForProvider(
+                providerTypeId = config.apiProviderTypeId,
+                currentConfigurations = serializedRules,
+            )
+        } else {
+            emptyList()
+        }
+    }
+    val availablePresetRules = providerPresetRules.filter { rule ->
+        rule.id.trim() in availablePresetIds
+    }
+    val hasBuiltInPresets = providerPresetRules.isNotEmpty()
+    val context = LocalContext.current
     val saveFailedText = stringResource(R.string.save_failed)
     val invalidConfigText = stringResource(R.string.thinking_config_invalid_json)
     val saveMutex = remember(config.id) { Mutex() }
@@ -1171,6 +1243,28 @@ private fun ThinkingConfigurationsSection(
                 EnhancedAIService.refreshAllServices(configManager.appContext)
             }
         }
+    }
+
+    fun addPresetRules(presetIds: Set<String>) {
+        val mergedConfigurations = ModelThinkingConfigDefaults.mergeSelectedPresetsForProvider(
+            providerTypeId = config.apiProviderTypeId,
+            currentConfigurations = serializeThinkingRuleEditors(rules),
+            selectedPresetIds = presetIds,
+        )
+        val mergedRules = runCatching { parseThinkingRuleEditors(mergedConfigurations) }.getOrNull()
+        if (mergedRules == null) {
+            configurationError = invalidConfigText
+            return
+        }
+        val addedCount = mergedRules.size - rules.size
+        if (addedCount <= 0) {
+            return
+        }
+        configurationError = null
+        rules = mergedRules
+        showNotification(
+            context.getString(R.string.thinking_config_preset_added_count, addedCount)
+        )
     }
 
     RegisterModelConfigSaveAction(
@@ -1260,23 +1354,147 @@ private fun ThinkingConfigurationsSection(
                             )
                         }
                     }
-                    TextButton(
-                        onClick = {
-                            editingRuleIndex = null
-                            editingRule = ThinkingRuleEditor(
-                                id = "custom-thinking-${rules.size + 1}",
-                                parameterLabel = "reasoning_effort"
-                            )
-                        },
-                        modifier = Modifier.align(Alignment.End)
+                    FlowRow(
+                        modifier = Modifier.align(Alignment.End),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.thinking_config_add_rule))
+                        if (hasBuiltInPresets) {
+                            val canAddPresets = canRestorePresets && availablePresetRules.isNotEmpty()
+                            OutlinedButton(
+                                onClick = {
+                                    if (availablePresetRules.size == 1) {
+                                        addPresetRules(setOf(availablePresetRules.single().id))
+                                    } else {
+                                        selectedPresetIds = emptySet()
+                                        showPresetPicker = true
+                                    }
+                                },
+                                enabled = canAddPresets,
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    when {
+                                        !canRestorePresets -> stringResource(R.string.thinking_config_add_preset)
+                                        availablePresetRules.isEmpty() -> stringResource(R.string.thinking_config_all_presets_added)
+                                        else -> stringResource(R.string.thinking_config_add_preset)
+                                    }
+                                )
+                            }
+                        }
+                        TextButton(
+                            onClick = {
+                                editingRuleIndex = null
+                                editingRule = ThinkingRuleEditor(
+                                    id = "custom-thinking-${rules.size + 1}",
+                                    parameterLabel = "reasoning_effort"
+                                )
+                            }
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.thinking_config_add_rule))
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (showPresetPicker) {
+        val selectablePresetIds = availablePresetRules.map { it.id.trim() }.filter { it.isNotEmpty() }.toSet()
+        val activeSelectedPresetIds = selectedPresetIds.intersect(selectablePresetIds)
+        AlertDialog(
+            onDismissRequest = {
+                showPresetPicker = false
+                selectedPresetIds = emptySet()
+            },
+            title = { Text(stringResource(R.string.thinking_config_preset_dialog_title)) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.thinking_config_preset_dialog_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    availablePresetRules.forEach { preset ->
+                        val presetId = preset.id.trim()
+                        val checked = presetId in activeSelectedPresetIds
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    selectedPresetIds = if (checked) {
+                                        activeSelectedPresetIds - presetId
+                                    } else {
+                                        activeSelectedPresetIds + presetId
+                                    }
+                                }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { isChecked ->
+                                    selectedPresetIds = if (isChecked) {
+                                        activeSelectedPresetIds + presetId
+                                    } else {
+                                        activeSelectedPresetIds - presetId
+                                    }
+                                },
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    thinkingPresetDisplayName(preset),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                thinkingPresetDetail(preset, modelValueSeparator).takeIf { it.isNotBlank() }?.let { detail ->
+                                    Text(
+                                        detail,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        addPresetRules(activeSelectedPresetIds)
+                        showPresetPicker = false
+                        selectedPresetIds = emptySet()
+                    },
+                    enabled = activeSelectedPresetIds.isNotEmpty(),
+                ) {
+                    Text(
+                        stringResource(
+                            R.string.thinking_config_preset_add_selected,
+                            activeSelectedPresetIds.size,
+                        )
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPresetPicker = false
+                        selectedPresetIds = emptySet()
+                    }
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     val currentEditingIndex = editingRuleIndex

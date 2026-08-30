@@ -8146,4 +8146,18 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="thinking_config_option_value_subtitle">Valoarea reală scrisă pentru această opțiune; trebuie să respecte API-ul furnizorului</string>
     <string name="thinking_config_option_value_placeholder">De exemplu: high</string>
     <string name="thinking_config_invalid_json">Configurare de raționament nevalidă</string>
+
+    <string name="thinking_config_preset_add">Adaugă presetare integrată</string>
+    <string name="thinking_config_all_presets_added">Toate presetările integrate au fost adăugate</string>
+    <string name="thinking_config_preset_dialog_title">Adaugă presetări integrate de raționament</string>
+    <string name="thinking_config_preset_dialog_subtitle">Sunt afișate doar presetările acestui furnizor care nu au fost încă adăugate. Poți adăuga mai multe odată.</string>
+    <string name="thinking_config_preset_add_selected">Adaugă %1$d presetări</string>
+    <string name="thinking_config_preset_added_count">Au fost adăugate %1$d presetări integrate</string>
+    <string name="chat_message_rendering_title">Redarea mesajelor</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Redă Markdown și LaTeX în mesajele AI</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Afișează Markdown și expresiile LaTeX din mesajele AI ca conținut formatat.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Redă Markdown și LaTeX în mesajele utilizatorului</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Afișează Markdown și expresiile LaTeX din mesajele utilizatorului ca conținut formatat.</string>
+    <string name="chat_style_bubble_user_opacity">Opacitatea balonului utilizatorului: %1$d%%</string>
+    <string name="chat_style_bubble_ai_opacity">Opacitatea balonului AI: %1$d%%</string>
 </resources>

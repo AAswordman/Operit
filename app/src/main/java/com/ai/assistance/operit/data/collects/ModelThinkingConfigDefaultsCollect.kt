@@ -394,6 +394,96 @@ object ModelThinkingConfigDefaults {
                 }
         }
 
+        fun missingPresetIdsForProvider(
+                providerTypeId: String,
+                currentConfigurations: String
+        ): List<String> {
+                val currentRules = rulesArray(currentConfigurations) ?: return emptyList()
+                val existingIds = currentRules.ruleIds()
+                return rulesArray(forProvider(providerTypeId))
+                        ?.ruleIds()
+                        ?.filterNot(existingIds::contains)
+                        .orEmpty()
+        }
+
+        fun mergeSelectedPresetsForProvider(
+                providerTypeId: String,
+                currentConfigurations: String,
+                selectedPresetIds: Set<String>
+        ): String {
+                val currentRules = rulesArray(currentConfigurations) ?: return currentConfigurations
+                val selectedIds = selectedPresetIds.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                if (selectedIds.isEmpty()) {
+                        return currentConfigurations
+                }
+
+                val defaultRules = rulesArray(forProvider(providerTypeId))?.ruleObjects().orEmpty()
+                val defaultOrder = defaultRules.mapIndexedNotNull { index, rule ->
+                        rule.optString("id", "").trim().takeIf { it.isNotEmpty() }?.let { it to index }
+                }.toMap()
+                if (defaultOrder.isEmpty()) {
+                        return currentConfigurations
+                }
+
+                val mergedRules = currentRules.ruleObjects().toMutableList()
+                val existingIds = mergedRules.mapTo(mutableSetOf()) { it.optString("id", "").trim() }
+                defaultRules.forEach { preset ->
+                        val presetId = preset.optString("id", "").trim()
+                        if (presetId !in selectedIds || presetId.isEmpty() || presetId in existingIds) {
+                                return@forEach
+                        }
+
+                        val presetOrder = defaultOrder.getValue(presetId)
+                        val nextPresetIndex = mergedRules.indexOfFirst { rule ->
+                                defaultOrder[rule.optString("id", "").trim()]?.let { it > presetOrder } == true
+                        }
+                        val insertAt = if (nextPresetIndex >= 0) {
+                                nextPresetIndex
+                        } else {
+                                val previousPresetIndex = mergedRules.indexOfLast { rule ->
+                                        defaultOrder[rule.optString("id", "").trim()]?.let { it < presetOrder } == true
+                                }
+                                if (previousPresetIndex >= 0) previousPresetIndex + 1 else mergedRules.size
+                        }
+                        mergedRules.add(insertAt, JSONObject(preset.toString()))
+                        existingIds += presetId
+                }
+
+                return JSONArray().apply { mergedRules.forEach { put(it) } }.toString()
+        }
+
+        private fun rulesArray(raw: String): JSONArray? {
+                val text = raw.trim().ifEmpty { "[]" }
+                return runCatching {
+                        when {
+                                text.startsWith("[") -> JSONArray(text)
+                                text.startsWith("{") -> {
+                                        val container = JSONObject(text)
+                                        container.optJSONArray("rules") ?: JSONArray().put(container)
+                                }
+                                else -> JSONArray(text)
+                        }
+                }.getOrNull()
+        }
+
+        private fun JSONArray.ruleObjects(): List<JSONObject> =
+                buildList {
+                        for (index in 0 until length()) {
+                                optJSONObject(index)?.let { add(it) }
+                        }
+                }
+
+        private fun JSONArray.ruleIds(): Set<String> =
+                buildSet {
+                        for (index in 0 until length()) {
+                                optJSONObject(index)
+                                        ?.optString("id", "")
+                                        ?.trim()
+                                        ?.takeIf { it.isNotEmpty() }
+                                        ?.let(::add)
+                        }
+                }
+
 }
 
 private fun JSONArray?.containsProvider(provider: String): Boolean {

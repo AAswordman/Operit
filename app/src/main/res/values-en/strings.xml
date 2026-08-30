@@ -8414,4 +8414,17 @@
     <string name="thinking_config_option_value_subtitle">Actual value written for this option; it must match the provider API</string>
     <string name="thinking_config_option_value_placeholder">For example: high</string>
     <string name="thinking_config_invalid_json">Invalid thinking configuration</string>
+    <string name="thinking_config_preset_add">Add built-in preset</string>
+    <string name="thinking_config_all_presets_added">All built-in presets added</string>
+    <string name="thinking_config_preset_dialog_title">Add built-in thinking presets</string>
+    <string name="thinking_config_preset_dialog_subtitle">Only presets not already added for this provider are shown. You can add multiple presets at once.</string>
+    <string name="thinking_config_preset_add_selected">Add %1$d presets</string>
+    <string name="thinking_config_preset_added_count">Added %1$d built-in presets</string>
+    <string name="chat_message_rendering_title">Message rendering</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Render Markdown and LaTeX in AI messages</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Display Markdown and LaTeX expressions in AI messages as rich content.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Render Markdown and LaTeX in user messages</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Display Markdown and LaTeX expressions in user messages as rich content.</string>
+    <string name="chat_style_bubble_user_opacity">User bubble opacity: %1$d%%</string>
+    <string name="chat_style_bubble_ai_opacity">AI bubble opacity: %1$d%%</string>
 </resources>

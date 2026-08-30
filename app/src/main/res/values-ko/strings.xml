@@ -7398,4 +7398,18 @@
     <string name="thinking_config_option_value_subtitle">이 옵션에서 작성할 실제 값이며 제공업체 API에 맞아야 합니다</string>
     <string name="thinking_config_option_value_placeholder">예: high</string>
     <string name="thinking_config_invalid_json">잘못된 사고 설정</string>
+
+    <string name="thinking_config_preset_add">내장 프리셋 추가</string>
+    <string name="thinking_config_all_presets_added">모든 내장 프리셋이 추가됨</string>
+    <string name="thinking_config_preset_dialog_title">내장 사고 프리셋 추가</string>
+    <string name="thinking_config_preset_dialog_subtitle">현재 제공업체에 아직 추가되지 않은 프리셋만 표시됩니다. 여러 프리셋을 한 번에 추가할 수 있습니다.</string>
+    <string name="thinking_config_preset_add_selected">프리셋 %1$d개 추가</string>
+    <string name="thinking_config_preset_added_count">내장 프리셋 %1$d개를 추가했습니다</string>
+    <string name="chat_message_rendering_title">메시지 렌더링</string>
+    <string name="chat_message_rendering_ai_markdown_latex">AI 메시지의 Markdown 및 LaTeX 렌더링</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">AI 메시지의 Markdown 및 LaTeX 수식을 서식 있는 콘텐츠로 표시합니다.</string>
+    <string name="chat_message_rendering_user_markdown_latex">사용자 메시지의 Markdown 및 LaTeX 렌더링</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">사용자 메시지의 Markdown 및 LaTeX 수식을 서식 있는 콘텐츠로 표시합니다.</string>
+    <string name="chat_style_bubble_user_opacity">사용자 말풍선 투명도: %1$d%%</string>
+    <string name="chat_style_bubble_ai_opacity">AI 말풍선 투명도: %1$d%%</string>
 </resources>

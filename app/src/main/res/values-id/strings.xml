@@ -7552,4 +7552,17 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="thinking_config_option_value_subtitle">Nilai yang ditulis untuk opsi ini; harus sesuai dengan API penyedia</string>
     <string name="thinking_config_option_value_placeholder">Contoh: high</string>
     <string name="thinking_config_invalid_json">Konfigurasi penalaran tidak valid</string>
+    <string name="thinking_config_preset_add">Tambahkan preset bawaan</string>
+    <string name="thinking_config_all_presets_added">Semua preset bawaan telah ditambahkan</string>
+    <string name="thinking_config_preset_dialog_title">Tambahkan preset penalaran bawaan</string>
+    <string name="thinking_config_preset_dialog_subtitle">Hanya preset penyedia ini yang belum ditambahkan yang ditampilkan. Anda dapat menambahkan beberapa preset sekaligus.</string>
+    <string name="thinking_config_preset_add_selected">Tambahkan %1$d preset</string>
+    <string name="thinking_config_preset_added_count">%1$d preset bawaan telah ditambahkan</string>
+    <string name="chat_message_rendering_title">Perenderan pesan</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Render Markdown dan LaTeX dalam pesan AI</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Tampilkan Markdown dan ekspresi LaTeX dalam pesan AI sebagai konten kaya.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Render Markdown dan LaTeX dalam pesan pengguna</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Tampilkan Markdown dan ekspresi LaTeX dalam pesan pengguna sebagai konten kaya.</string>
+    <string name="chat_style_bubble_user_opacity">Opasitas gelembung pengguna: %1$d%%</string>
+    <string name="chat_style_bubble_ai_opacity">Opasitas gelembung AI: %1$d%%</string>
 </resources>

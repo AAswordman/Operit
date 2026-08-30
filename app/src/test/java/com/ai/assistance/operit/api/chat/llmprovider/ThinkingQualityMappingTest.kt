@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.llmprovider
 
 import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
 import com.ai.assistance.operit.data.model.ApiProviderType
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -116,6 +117,44 @@ class ThinkingQualityMappingTest {
         )
 
         assertEquals("none", request.getJSONObject("reasoning").getString("effort"))
+    }
+
+    @Test
+    fun restoringDeepSeekResponsesPresetKeepsBuiltInRulePrecedence() {
+        val providerTypeId = ApiProviderType.DEEPSEEK.name
+        val responsesPresetId = "deepseek-responses-reasoning-effort"
+        val chatPresetId = "deepseek-reasoning-effort"
+        val defaults = JSONArray(ModelThinkingConfigDefaults.forProvider(providerTypeId))
+        val chatRule = (0 until defaults.length())
+            .mapNotNull { index -> defaults.optJSONObject(index) }
+            .first { rule -> rule.optString("id") == chatPresetId }
+        val chatOnlyConfigurations = JSONArray()
+            .put(JSONObject(chatRule.toString()))
+            .toString()
+
+        assertEquals(
+            listOf(responsesPresetId),
+            ModelThinkingConfigDefaults.missingPresetIdsForProvider(
+                providerTypeId,
+                chatOnlyConfigurations,
+            )
+        )
+
+        val restoredConfigurations = ModelThinkingConfigDefaults.mergeSelectedPresetsForProvider(
+            providerTypeId = providerTypeId,
+            currentConfigurations = chatOnlyConfigurations,
+            selectedPresetIds = setOf(responsesPresetId),
+        )
+        val restoredRules = JSONArray(restoredConfigurations)
+        assertEquals(responsesPresetId, restoredRules.getJSONObject(0).getString("id"))
+        assertEquals(chatPresetId, restoredRules.getJSONObject(1).getString("id"))
+
+        val restoredAgain = ModelThinkingConfigDefaults.mergeSelectedPresetsForProvider(
+            providerTypeId = providerTypeId,
+            currentConfigurations = restoredConfigurations,
+            selectedPresetIds = setOf(responsesPresetId),
+        )
+        assertEquals(2, JSONArray(restoredAgain).length())
     }
 
     @Test

@@ -7389,4 +7389,18 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="thinking_config_option_value_subtitle">Valor real escrito para esta opção; deve corresponder à API do provedor</string>
     <string name="thinking_config_option_value_placeholder">Por exemplo: high</string>
     <string name="thinking_config_invalid_json">Configuração de raciocínio inválida</string>
+
+    <string name="thinking_config_preset_add">Adicionar predefinição integrada</string>
+    <string name="thinking_config_all_presets_added">Todas as predefinições integradas foram adicionadas</string>
+    <string name="thinking_config_preset_dialog_title">Adicionar predefinições de raciocínio integradas</string>
+    <string name="thinking_config_preset_dialog_subtitle">São mostradas apenas as predefinições deste provedor que ainda não foram adicionadas. Você pode adicionar várias de uma vez.</string>
+    <string name="thinking_config_preset_add_selected">Adicionar %1$d predefinições</string>
+    <string name="thinking_config_preset_added_count">%1$d predefinições integradas foram adicionadas</string>
+    <string name="chat_message_rendering_title">Renderização de mensagens</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Renderizar Markdown e LaTeX em mensagens de IA</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Exibe Markdown e expressões LaTeX em mensagens de IA como conteúdo rico.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Renderizar Markdown e LaTeX em mensagens do usuário</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Exibe Markdown e expressões LaTeX em mensagens do usuário como conteúdo rico.</string>
+    <string name="chat_style_bubble_user_opacity">Opacidade do balão do usuário: %1$d%%</string>
+    <string name="chat_style_bubble_ai_opacity">Opacidade do balão da IA: %1$d%%</string>
 </resources>

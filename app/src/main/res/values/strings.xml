@@ -8406,4 +8406,17 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <string name="thinking_config_preset_add">添加内置预设</string>
+    <string name="thinking_config_all_presets_added">所有内置预设已添加</string>
+    <string name="thinking_config_preset_dialog_title">添加内置思考预设</string>
+    <string name="thinking_config_preset_dialog_subtitle">仅显示当前提供商尚未添加的预设。可同时选择多个预设。</string>
+    <string name="thinking_config_preset_add_selected">添加 %1$d 个预设</string>
+    <string name="thinking_config_preset_added_count">已添加 %1$d 个内置预设</string>
+    <string name="chat_message_rendering_title">消息渲染</string>
+    <string name="chat_message_rendering_ai_markdown_latex">AI 消息 Markdown 和 LaTeX 渲染</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">将 AI 消息中的 Markdown 和 LaTeX 表达式以富文本显示</string>
+    <string name="chat_message_rendering_user_markdown_latex">用户消息 Markdown 和 LaTeX 渲染</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">将用户消息中的 Markdown 和 LaTeX 表达式以富文本显示</string>
+    <string name="chat_style_bubble_user_opacity">用户气泡透明度：%1$d%%</string>
+    <string name="chat_style_bubble_ai_opacity">AI 气泡透明度：%1$d%%</string>
 </resources>

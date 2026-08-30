@@ -114,6 +114,8 @@ data class ThemePreferenceValues(
                     "show_message_timestamp" to false,
                     "show_input_processing_status" to true,
                     "show_chat_floating_dots_animation" to true,
+                    "ai_message_markdown_latex_enabled" to true,
+                    "user_message_markdown_latex_enabled" to false,
                     "use_custom_font" to false,
                     "bubble_user_use_custom_font" to false,
                     "bubble_ai_use_custom_font" to false,
@@ -297,4 +299,8 @@ data class ThemePreferenceSnapshot(
     val customChatTitle: String? get() = values.string("custom_chat_title")
     val showChatFloatingDotsAnimation: Boolean
         get() = values.requiredBoolean("show_chat_floating_dots_animation")
+    val aiMessageMarkdownLatexEnabled: Boolean
+        get() = values.requiredBoolean("ai_message_markdown_latex_enabled")
+    val userMessageMarkdownLatexEnabled: Boolean
+        get() = values.requiredBoolean("user_message_markdown_latex_enabled")
 }

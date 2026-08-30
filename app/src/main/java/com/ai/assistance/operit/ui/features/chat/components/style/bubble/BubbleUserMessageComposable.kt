@@ -54,6 +54,7 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.chat.components.attachments.AttachmentViewerDialog
 import com.ai.assistance.operit.ui.features.chat.components.attachments.ChatAttachment
 import com.ai.assistance.operit.ui.features.chat.components.style.common.HiddenUserMessagePlaceholderContent
+import com.ai.assistance.operit.ui.features.chat.components.style.common.MessageTextContent
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 import com.ai.assistance.operit.util.ImageBitmapLimiter
 import com.ai.assistance.operit.util.ImagePoolManager
@@ -103,6 +104,7 @@ fun BubbleUserMessageComposable(
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
     val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val renderUserMarkdownAndLatex = themeSnapshot.userMessageMarkdownLatexEnabled
     val bubbleShowAvatar = themeSnapshot.bubbleShowAvatar
     val bubbleWideLayoutEnabled = themeSnapshot.bubbleWideLayoutEnabled
     val customUserAvatarUri = themeSnapshot.customUserAvatarUri
@@ -431,10 +433,11 @@ fun BubbleUserMessageComposable(
                                     subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
                                 )
                             } else {
-                                Text(
+                                MessageTextContent(
                                     text = textContent,
-                                    color = effectiveTextColor,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    textColor = effectiveTextColor,
+                                    renderMarkdownAndLatex = renderUserMarkdownAndLatex,
+                                    enableDialogs = enableDialogs,
                                 )
                             }
                         }
@@ -490,8 +493,10 @@ fun BubbleUserMessageComposable(
                                     )
                                 }
                             } else {
-                                Text(
+                                MessageTextContent(
                                     text = textContent,
+                                    textColor = effectiveTextColor,
+                                    renderMarkdownAndLatex = renderUserMarkdownAndLatex,
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
@@ -499,8 +504,7 @@ fun BubbleUserMessageComposable(
                                             end = bubbleContentPaddingRight.dp,
                                             bottom = 12.dp,
                                         ),
-                                    color = effectiveTextColor,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    enableDialogs = enableDialogs,
                                 )
                             }
                         }
@@ -572,10 +576,11 @@ fun BubbleUserMessageComposable(
                                     subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
                                 )
                             } else {
-                                Text(
+                                MessageTextContent(
                                     text = textContent,
-                                    color = effectiveTextColor,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    textColor = effectiveTextColor,
+                                    renderMarkdownAndLatex = renderUserMarkdownAndLatex,
+                                    enableDialogs = enableDialogs,
                                 )
                             }
                         }
@@ -631,8 +636,10 @@ fun BubbleUserMessageComposable(
                                     )
                                 }
                             } else {
-                                Text(
+                                MessageTextContent(
                                     text = textContent,
+                                    textColor = effectiveTextColor,
+                                    renderMarkdownAndLatex = renderUserMarkdownAndLatex,
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
@@ -640,8 +647,7 @@ fun BubbleUserMessageComposable(
                                             end = bubbleContentPaddingRight.dp,
                                             bottom = 12.dp,
                                         ),
-                                    color = effectiveTextColor,
-                                    style = MaterialTheme.typography.bodyMedium
+                                    enableDialogs = enableDialogs,
                                 )
                             }
                         }

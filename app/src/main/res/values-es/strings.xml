@@ -7619,4 +7619,17 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="thinking_config_option_value_subtitle">Valor real que se escribirá para esta opción; debe cumplir la API del proveedor</string>
     <string name="thinking_config_option_value_placeholder">Por ejemplo: high</string>
     <string name="thinking_config_invalid_json">Configuración de razonamiento no válida</string>
+    <string name="thinking_config_preset_add">Añadir preajuste integrado</string>
+    <string name="thinking_config_all_presets_added">Todos los preajustes integrados ya están añadidos</string>
+    <string name="thinking_config_preset_dialog_title">Añadir preajustes integrados de razonamiento</string>
+    <string name="thinking_config_preset_dialog_subtitle">Solo se muestran los preajustes de este proveedor que aún no se han añadido. Puedes añadir varios a la vez.</string>
+    <string name="thinking_config_preset_add_selected">Añadir %1$d preajustes</string>
+    <string name="thinking_config_preset_added_count">Se añadieron %1$d preajustes integrados</string>
+    <string name="chat_message_rendering_title">Renderizado de mensajes</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Renderizar Markdown y LaTeX en los mensajes de IA</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Muestra Markdown y expresiones LaTeX de los mensajes de IA como contenido enriquecido.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Renderizar Markdown y LaTeX en los mensajes del usuario</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Muestra Markdown y expresiones LaTeX de los mensajes del usuario como contenido enriquecido.</string>
+    <string name="chat_style_bubble_user_opacity">Opacidad de la burbuja del usuario: %1$d%%</string>
+    <string name="chat_style_bubble_ai_opacity">Opacidad de la burbuja de IA: %1$d%%</string>
 </resources>
