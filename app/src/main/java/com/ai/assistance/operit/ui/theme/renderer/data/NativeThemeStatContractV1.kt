@@ -15,8 +15,12 @@ import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentS
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentSlotV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStateFieldV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStateValueV1
+import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePartContractV1
+import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePartIdsV1
+import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentStylePropertySetsV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentValueTypeV1
 import com.ai.assistance.operit.ui.theme.renderer.contract.NativeThemeComponentVersionV1
+import com.ai.assistance.operit.ui.theme.style.NativeThemeComponentFamilyIdV1
 
 internal data class NativeThemeStatStateV1(
     val label: String,
@@ -41,6 +45,21 @@ internal object NativeThemeStatContractV1 {
             category = NativeThemeComponentCategoryV1.DATA_DISPLAY,
             required = true,
             supportedHostSurfaces = setOf(NativeThemeHostSurface.MAIN),
+            styleFamily = NativeThemeComponentFamilyIdV1("operit.data_display"),
+            styleParts =
+                listOf(
+                    NativeThemeComponentStylePartContractV1(
+                        id = NativeThemeComponentStylePartIdsV1.surface,
+                        allowedProperties = NativeThemeComponentStylePropertySetsV1.surface,
+                        requiredProperties = NativeThemeComponentStylePropertySetsV1.surfaceRequired,
+                    ),
+                    NativeThemeComponentStylePartContractV1(
+                        id = NativeThemeComponentStylePartIdsV1.content,
+                        allowedProperties = NativeThemeComponentStylePropertySetsV1.content,
+                        requiredProperties = NativeThemeComponentStylePropertySetsV1.contentRequired,
+                    ),
+                ),
+            styleStateAxes = emptyList(),
             stateFields =
                 listOf(
                     NativeThemeComponentStateFieldV1(
