@@ -89,236 +89,16 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val OCCUPATION_LOCKED = booleanPreferencesKey("occupation_locked")
         private val AI_STYLE_LOCKED = booleanPreferencesKey("ai_style_locked")
 
-        // 主题设置相关键
-        private val THEME_MODE = stringPreferencesKey(NativeThemePreferenceSchemaV1.themeMode.name)
-        private val USE_SYSTEM_THEME =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useSystemTheme.name)
-        private val CUSTOM_PRIMARY_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.customPrimaryColor.name)
-        private val CUSTOM_SECONDARY_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.customSecondaryColor.name)
-        private val USE_CUSTOM_COLORS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomColors.name)
-        private val CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED =
-            booleanPreferencesKey("character_theme_default_migration_completed")
-        private val USE_BACKGROUND_IMAGE =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useBackgroundImage.name)
-        private val BACKGROUND_IMAGE_URI =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.backgroundImageUri.name)
-        private val BACKGROUND_IMAGE_OPACITY =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.backgroundImageOpacity.name)
-
-        // 背景媒体类型和视频设置
-        private val BACKGROUND_MEDIA_TYPE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.backgroundMediaType.name)
-        private val VIDEO_BACKGROUND_MUTED =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.videoBackgroundMuted.name)
-        private val VIDEO_BACKGROUND_LOOP =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.videoBackgroundLoop.name)
-
-        // 工具栏透明度设置
-        private val TOOLBAR_TRANSPARENT =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.toolbarTransparent.name)
-
-        // 侧滑菜单玻璃效果设置
-        private val NAVIGATION_DRAWER_WATER_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.navigationDrawerWaterGlass.name)
-        private val NAVIGATION_DRAWER_BUTTON_LIQUID_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.navigationDrawerButtonLiquidGlass.name)
-
-        // 侧滑菜单背景色设置
-        private val USE_CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR =
-            booleanPreferencesKey(
-                NativeThemePreferenceSchemaV1.useCustomNavigationDrawerBackgroundColor.name
-            )
-        private val CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.customNavigationDrawerBackgroundColor.name)
-
-        // 侧滑菜单强调色设置（品牌标识/小标题/网络状态/分隔线共用）
-        private val USE_CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomNavigationDrawerAccentColor.name)
-        private val CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.customNavigationDrawerAccentColor.name)
-        
-        // AppBar 自定义颜色设置
-        private val USE_CUSTOM_APP_BAR_COLOR =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomAppBarColor.name)
-        private val CUSTOM_APP_BAR_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.customAppBarColor.name)
-
-        // 状态栏颜色设置
-        private val USE_CUSTOM_STATUS_BAR_COLOR =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomStatusBarColor.name)
-        private val CUSTOM_STATUS_BAR_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.customStatusBarColor.name)
-        private val STATUS_BAR_TRANSPARENT =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.statusBarTransparent.name)
-        private val STATUS_BAR_HIDDEN =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.statusBarHidden.name)
-        private val CHAT_HEADER_TRANSPARENT =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderTransparent.name)
-        private val CHAT_INPUT_TRANSPARENT =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputTransparent.name)
-        private val CHAT_INPUT_FLOATING =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputFloating.name)
-        private val CHAT_INPUT_LIQUID_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputLiquidGlass.name)
-        private val CHAT_INPUT_WATER_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatInputWaterGlass.name)
-
-        // AppBar 内容颜色设置
-        private val FORCE_APP_BAR_CONTENT_COLOR_ENABLED =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.forceAppBarContentColorEnabled.name)
-        private val APP_BAR_CONTENT_COLOR_MODE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.appBarContentColorMode.name)
-
-        // ChatHeader 图标颜色设置
-        private val CHAT_HEADER_HISTORY_ICON_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderHistoryIconColor.name)
-        private val CHAT_HEADER_PIP_ICON_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderPipIconColor.name)
-        private val CHAT_HEADER_OVERLAY_MODE =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.chatHeaderOverlayMode.name)
-
-        // 背景模糊设置
-        private val USE_BACKGROUND_BLUR =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useBackgroundBlur.name)
-        private val BACKGROUND_BLUR_RADIUS =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.backgroundBlurRadius.name)
-
-        // 字体设置
-        private val USE_CUSTOM_FONT =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.useCustomFont.name)
-        private val FONT_TYPE = stringPreferencesKey(NativeThemePreferenceSchemaV1.fontType.name)
-        private val SYSTEM_FONT_NAME =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.systemFontName.name)
-        private val CUSTOM_FONT_PATH =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.customFontPath.name)
-        private val FONT_SCALE = floatPreferencesKey(NativeThemePreferenceSchemaV1.fontScale.name)
-
-        // Chat style preference
-        private val CHAT_STYLE = stringPreferencesKey(NativeThemePreferenceSchemaV1.chatStyle.name)
-        private val INPUT_STYLE = stringPreferencesKey(NativeThemePreferenceSchemaV1.inputStyle.name)
-
-        private val BUBBLE_SHOW_AVATAR =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleShowAvatar.name)
-        private val BUBBLE_WIDE_LAYOUT_ENABLED =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleWideLayoutEnabled.name)
-        private val CURSOR_USER_BUBBLE_FOLLOW_THEME =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleFollowTheme.name)
-        private val CURSOR_USER_BUBBLE_LIQUID_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleLiquidGlass.name)
-        private val CURSOR_USER_BUBBLE_WATER_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleWaterGlass.name)
-        private val CURSOR_USER_BUBBLE_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.cursorUserBubbleColor.name)
-        private val BUBBLE_USER_BUBBLE_LIQUID_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserBubbleLiquidGlass.name)
-        private val BUBBLE_USER_BUBBLE_WATER_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserBubbleWaterGlass.name)
-        private val BUBBLE_AI_BUBBLE_LIQUID_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiBubbleLiquidGlass.name)
-        private val BUBBLE_AI_BUBBLE_WATER_GLASS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiBubbleWaterGlass.name)
-        private val BUBBLE_USER_BUBBLE_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserBubbleColor.name)
-        private val BUBBLE_AI_BUBBLE_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiBubbleColor.name)
-        private val BUBBLE_USER_TEXT_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserTextColor.name)
-        private val BUBBLE_AI_TEXT_COLOR =
-            intPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiTextColor.name)
-        private val BUBBLE_USER_USE_CUSTOM_FONT =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserUseCustomFont.name)
-        private val BUBBLE_USER_FONT_TYPE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserFontType.name)
-        private val BUBBLE_USER_SYSTEM_FONT_NAME =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserSystemFontName.name)
-        private val BUBBLE_USER_CUSTOM_FONT_PATH =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserCustomFontPath.name)
-        private val BUBBLE_AI_USE_CUSTOM_FONT =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiUseCustomFont.name)
-        private val BUBBLE_AI_FONT_TYPE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiFontType.name)
-        private val BUBBLE_AI_SYSTEM_FONT_NAME =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiSystemFontName.name)
-        private val BUBBLE_AI_CUSTOM_FONT_PATH =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiCustomFontPath.name)
-        private val BUBBLE_USER_USE_IMAGE =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserUseImage.name)
-        private val BUBBLE_AI_USE_IMAGE =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiUseImage.name)
-        private val BUBBLE_USER_IMAGE_URI =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageUri.name)
-        private val BUBBLE_AI_IMAGE_URI =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageUri.name)
-        private val BUBBLE_USER_IMAGE_CROP_LEFT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropLeft.name)
-        private val BUBBLE_USER_IMAGE_CROP_TOP =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropTop.name)
-        private val BUBBLE_USER_IMAGE_CROP_RIGHT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropRight.name)
-        private val BUBBLE_USER_IMAGE_CROP_BOTTOM =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageCropBottom.name)
-        private val BUBBLE_USER_IMAGE_REPEAT_START =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatStart.name)
-        private val BUBBLE_USER_IMAGE_REPEAT_END =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatEnd.name)
-        private val BUBBLE_USER_IMAGE_REPEAT_Y_START =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYStart.name)
-        private val BUBBLE_USER_IMAGE_REPEAT_Y_END =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageRepeatYEnd.name)
-        private val BUBBLE_USER_IMAGE_SCALE =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserImageScale.name)
-        private val BUBBLE_AI_IMAGE_CROP_LEFT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropLeft.name)
-        private val BUBBLE_AI_IMAGE_CROP_TOP =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropTop.name)
-        private val BUBBLE_AI_IMAGE_CROP_RIGHT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropRight.name)
-        private val BUBBLE_AI_IMAGE_CROP_BOTTOM =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageCropBottom.name)
-        private val BUBBLE_AI_IMAGE_REPEAT_START =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatStart.name)
-        private val BUBBLE_AI_IMAGE_REPEAT_END =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatEnd.name)
-        private val BUBBLE_AI_IMAGE_REPEAT_Y_START =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatYStart.name)
-        private val BUBBLE_AI_IMAGE_REPEAT_Y_END =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageRepeatYEnd.name)
-        private val BUBBLE_AI_IMAGE_SCALE =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiImageScale.name)
-        private val BUBBLE_IMAGE_RENDER_MODE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.bubbleImageRenderMode.name)
-        private val BUBBLE_USER_ROUNDED_CORNERS_ENABLED =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserRoundedCornersEnabled.name)
-        private val BUBBLE_AI_ROUNDED_CORNERS_ENABLED =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiRoundedCornersEnabled.name)
-        private val BUBBLE_USER_CONTENT_PADDING_LEFT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserContentPaddingLeft.name)
-        private val BUBBLE_USER_CONTENT_PADDING_RIGHT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleUserContentPaddingRight.name)
-        private val BUBBLE_AI_CONTENT_PADDING_LEFT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiContentPaddingLeft.name)
-        private val BUBBLE_AI_CONTENT_PADDING_RIGHT =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.bubbleAiContentPaddingRight.name)
-
+        // 主题存储迁移标记
+        private val THEME_METADATA_MIGRATION_COMPLETED =
+            booleanPreferencesKey("theme_metadata_migration_completed")
         // 默认配置文件ID
         private const val DEFAULT_PROFILE_ID = "default"
 
-        // 主题模式常量
-        const val THEME_MODE_LIGHT = NativeThemePreferenceOptionsV1.THEME_MODE_LIGHT
-        const val THEME_MODE_DARK = NativeThemePreferenceOptionsV1.THEME_MODE_DARK
 
         // AppBar 内容颜色模式常量
-        const val APP_BAR_CONTENT_COLOR_MODE_LIGHT =
-            NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_LIGHT
-        const val APP_BAR_CONTENT_COLOR_MODE_DARK =
-            NativeThemePreferenceOptionsV1.APP_BAR_CONTENT_COLOR_MODE_DARK
 
         // 背景媒体类型常量
-        const val MEDIA_TYPE_IMAGE = NativeThemePreferenceOptionsV1.MEDIA_TYPE_IMAGE
-        const val MEDIA_TYPE_VIDEO = NativeThemePreferenceOptionsV1.MEDIA_TYPE_VIDEO
         
         // 默认语言
         const val DEFAULT_LANGUAGE = LanguageCodes.AUTO
@@ -327,50 +107,8 @@ class UserPreferencesManager private constructor(private val context: Context) {
         const val SOFTWARE_IDENTITY_OPERIT = "operit_ai"
         const val SOFTWARE_IDENTITY_LINGSHU = "lingshu_ai"
 
-        const val CHAT_STYLE_CURSOR = NativeThemePreferenceOptionsV1.CHAT_STYLE_CURSOR
-        const val CHAT_STYLE_BUBBLE = NativeThemePreferenceOptionsV1.CHAT_STYLE_BUBBLE
 
-        const val INPUT_STYLE_CLASSIC = NativeThemePreferenceOptionsV1.INPUT_STYLE_CLASSIC
-        const val INPUT_STYLE_AGENT = NativeThemePreferenceOptionsV1.INPUT_STYLE_AGENT
-        const val BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE =
-            NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_TILED_NINE_SLICE
-        const val BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH =
-            NativeThemePreferenceOptionsV1.BUBBLE_IMAGE_RENDER_MODE_NINE_PATCH
 
-        private val KEY_SHOW_THINKING_PROCESS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showThinkingProcess.name)
-        private val KEY_SHOW_STATUS_TAGS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showStatusTags.name)
-        private val KEY_SHOW_MODEL_PROVIDER =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showModelProvider.name)
-        private val KEY_SHOW_MODEL_NAME =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showModelName.name)
-        private val KEY_SHOW_ROLE_NAME =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showRoleName.name)
-        private val KEY_SHOW_USER_NAME =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showUserName.name)
-        private val KEY_SHOW_MESSAGE_TOKEN_STATS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showMessageTokenStats.name)
-        private val KEY_SHOW_MESSAGE_TIMING_STATS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showMessageTimingStats.name)
-        private val KEY_SHOW_MESSAGE_TIMESTAMP =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showMessageTimestamp.name)
-        private val KEY_CUSTOM_USER_AVATAR_URI =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.customUserAvatarUri.name)
-        private val KEY_CUSTOM_AI_AVATAR_URI =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.customAiAvatarUri.name)
-        private val KEY_AVATAR_SHAPE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.avatarShape.name)
-        private val KEY_AVATAR_CORNER_RADIUS =
-            floatPreferencesKey(NativeThemePreferenceSchemaV1.avatarCornerRadius.name)
-        private val KEY_ON_COLOR_MODE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.onColorMode.name)
-        private val KEY_CUSTOM_CHAT_TITLE =
-            stringPreferencesKey(NativeThemePreferenceSchemaV1.customChatTitle.name)
-        private val KEY_SHOW_INPUT_PROCESSING_STATUS =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showInputProcessingStatus.name)
-        private val KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION =
-            booleanPreferencesKey(NativeThemePreferenceSchemaV1.showChatFloatingDotsAnimation.name)
         private val KEY_UI_ACCESSIBILITY_MODE = booleanPreferencesKey("ui_accessibility_mode")
         private val KEY_BETA_PLAN_ENABLED = booleanPreferencesKey("beta_plan_enabled")
         private val KEY_SOFTWARE_IDENTITY = stringPreferencesKey("software_identity")
@@ -391,26 +129,17 @@ class UserPreferencesManager private constructor(private val context: Context) {
             intPreferencesKey("long_pasted_text_file_threshold")
 
         // 最近使用颜色
-        private val RECENT_COLORS = stringPreferencesKey("recent_colors")
 
 
-        const val AVATAR_SHAPE_CIRCLE = NativeThemePreferenceOptionsV1.AVATAR_SHAPE_CIRCLE
-        const val AVATAR_SHAPE_SQUARE = NativeThemePreferenceOptionsV1.AVATAR_SHAPE_SQUARE
 
-        const val ON_COLOR_MODE_AUTO = NativeThemePreferenceOptionsV1.ON_COLOR_MODE_AUTO
-        const val ON_COLOR_MODE_LIGHT = NativeThemePreferenceOptionsV1.ON_COLOR_MODE_LIGHT
-        const val ON_COLOR_MODE_DARK = NativeThemePreferenceOptionsV1.ON_COLOR_MODE_DARK
 
         // 字体类型常量
-        const val FONT_TYPE_SYSTEM = NativeThemePreferenceOptionsV1.FONT_TYPE_SYSTEM
-        const val FONT_TYPE_FILE = NativeThemePreferenceOptionsV1.FONT_TYPE_FILE
         
         // 系统字体名称常量
-        const val SYSTEM_FONT_DEFAULT = NativeThemePreferenceOptionsV1.SYSTEM_FONT_DEFAULT
-        const val SYSTEM_FONT_SERIF = NativeThemePreferenceOptionsV1.SYSTEM_FONT_SERIF
-        const val SYSTEM_FONT_SANS_SERIF = NativeThemePreferenceOptionsV1.SYSTEM_FONT_SANS_SERIF
-        const val SYSTEM_FONT_MONOSPACE = NativeThemePreferenceOptionsV1.SYSTEM_FONT_MONOSPACE
-        const val SYSTEM_FONT_CURSIVE = NativeThemePreferenceOptionsV1.SYSTEM_FONT_CURSIVE
+        const val SYSTEM_FONT_SERIF = "serif"
+        const val SYSTEM_FONT_SANS_SERIF = "sans-serif"
+        const val SYSTEM_FONT_MONOSPACE = "monospace"
+        const val SYSTEM_FONT_CURSIVE = "cursive"
 
         const val DEFAULT_LONG_PASTED_TEXT_FILE_THRESHOLD = 3000
     }
@@ -713,40 +442,6 @@ class UserPreferencesManager private constructor(private val context: Context) {
                 ?: DEFAULT_LONG_PASTED_TEXT_FILE_THRESHOLD
         }
 
-    // 获取最近使用颜色
-    val recentColorsFlow: Flow<List<Int>> =
-        context.userPreferencesDataStore.data.map { preferences ->
-            val colorsString = preferences[RECENT_COLORS] ?: ""
-            if (colorsString.isBlank()) {
-                emptyList()
-            } else {
-                colorsString.split(",").mapNotNull { it.toIntOrNull() }
-            }
-        }
-
-    // 添加最近使用颜色
-    suspend fun addRecentColor(color: Int) {
-        context.userPreferencesDataStore.edit { preferences ->
-            val currentColorsString = preferences[RECENT_COLORS] ?: ""
-            val currentColors =
-                if (currentColorsString.isBlank()) {
-                    mutableListOf()
-                } else {
-                    currentColorsString.split(",").mapNotNull { it.toIntOrNull() }.toMutableList()
-                }
-
-            // 移除已存在的相同颜色，以确保新添加的在最前面
-            currentColors.remove(color)
-            // 添加新颜色到列表开头
-            currentColors.add(0, color)
-
-            // 限制历史记录数量，例如最多14个
-            val trimmedColors = currentColors.take(14)
-
-            preferences[RECENT_COLORS] = trimmedColors.joinToString(",")
-        }
-    }
-
     // 保存聊天设置按钮右边距
     suspend fun saveChatSettingsButtonEndPadding(padding: Float) {
         context.userPreferencesDataStore.edit { preferences ->
@@ -804,7 +499,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     fun getAiAvatarForCharacterCardFlow(characterCardId: String): Flow<String?> {
         return context.userPreferencesDataStore.data.map { preferences ->
-            val prefix = getCharacterCardThemePrefix(characterCardId)
+            val prefix = getCharacterCardMetadataPrefix(characterCardId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             preferences[key]
         }
@@ -812,7 +507,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     
     suspend fun saveAiAvatarForCharacterCard(characterCardId: String, avatarUri: String?) {
         context.userPreferencesDataStore.edit { preferences ->
-            val prefix = getCharacterCardThemePrefix(characterCardId)
+            val prefix = getCharacterCardMetadataPrefix(characterCardId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             if (avatarUri != null) {
                 preferences[key] = avatarUri
@@ -824,7 +519,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     fun getAiAvatarForCharacterGroupFlow(characterGroupId: String): Flow<String?> {
         return context.userPreferencesDataStore.data.map { preferences ->
-            val prefix = getCharacterGroupThemePrefix(characterGroupId)
+            val prefix = getCharacterGroupMetadataPrefix(characterGroupId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             preferences[key]
         }
@@ -832,7 +527,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     suspend fun saveAiAvatarForCharacterGroup(characterGroupId: String, avatarUri: String?) {
         context.userPreferencesDataStore.edit { preferences ->
-            val prefix = getCharacterGroupThemePrefix(characterGroupId)
+            val prefix = getCharacterGroupMetadataPrefix(characterGroupId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             if (avatarUri != null) {
                 preferences[key] = avatarUri
@@ -844,7 +539,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     suspend fun saveCustomChatTitleForCharacterCard(characterCardId: String, title: String?) {
         context.userPreferencesDataStore.edit { preferences ->
-            val prefix = getCharacterCardThemePrefix(characterCardId)
+            val prefix = getCharacterCardMetadataPrefix(characterCardId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_CHAT_TITLE.name}")
             if (!title.isNullOrEmpty()) {
                 preferences[key] = title
@@ -856,7 +551,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     fun getCustomChatTitleForCharacterCardFlow(characterCardId: String): Flow<String?> {
         return context.userPreferencesDataStore.data.map { preferences ->
-            val prefix = getCharacterCardThemePrefix(characterCardId)
+            val prefix = getCharacterCardMetadataPrefix(characterCardId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_CHAT_TITLE.name}")
             preferences[key]
         }
@@ -864,7 +559,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     suspend fun saveCustomChatTitleForCharacterGroup(characterGroupId: String, title: String?) {
         context.userPreferencesDataStore.edit { preferences ->
-            val prefix = getCharacterGroupThemePrefix(characterGroupId)
+            val prefix = getCharacterGroupMetadataPrefix(characterGroupId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_CHAT_TITLE.name}")
             if (!title.isNullOrEmpty()) {
                 preferences[key] = title
@@ -876,411 +571,50 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     fun getCustomChatTitleForCharacterGroupFlow(characterGroupId: String): Flow<String?> {
         return context.userPreferencesDataStore.data.map { preferences ->
-            val prefix = getCharacterGroupThemePrefix(characterGroupId)
+            val prefix = getCharacterGroupMetadataPrefix(characterGroupId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_CHAT_TITLE.name}")
             preferences[key]
         }
     }
 
-    // ========== 角色卡/群组主题绑定功能 ==========
+    // ========== 角色卡/群组业务元数据 ==========
 
-    private fun getCharacterCardThemePrefix(characterCardId: String): String =
-        "character_card_theme_${characterCardId}_"
+    private fun getCharacterCardMetadataPrefix(characterCardId: String): String =
+        "character_card_metadata_${'${'}characterCardId}_"
 
-    private fun getCharacterGroupThemePrefix(characterGroupId: String): String =
-        "character_group_theme_${characterGroupId}_"
+    private fun getCharacterGroupMetadataPrefix(characterGroupId: String): String =
+        "character_group_metadata_${'${'}characterGroupId}_"
 
-    private fun getAllStringThemeKeys(): List<Preferences.Key<String>> {
-        return NativeThemePreferenceSchemaV1.stringFields.map { field ->
-            stringPreferencesKey(field.name)
-        }
-    }
-
-    private fun getVisualStringThemeKeys(): List<Preferences.Key<String>> {
-        return NativeThemePreferenceSchemaV1.visualStringFields.map { field ->
-            stringPreferencesKey(field.name)
-        }
-    }
-
-    private fun getTargetMetadataStringThemeKeys(): List<Preferences.Key<String>> {
-        return NativeThemePreferenceSchemaV1.targetMetadataStringFields.map { field ->
-            stringPreferencesKey(field.name)
-        }
-    }
-
-    private fun getAllBooleanThemeKeys(): List<Preferences.Key<Boolean>> {
-        return NativeThemePreferenceSchemaV1.booleanFields.map { field ->
-            booleanPreferencesKey(field.name)
-        }
-    }
-
-    private fun getAllIntThemeKeys(): List<Preferences.Key<Int>> {
-        return NativeThemePreferenceSchemaV1.intFields.map { field ->
-            intPreferencesKey(field.name)
-        }
-    }
-
-    private fun getAllFloatThemeKeys(): List<Preferences.Key<Float>> {
-        return NativeThemePreferenceSchemaV1.floatFields.map { field ->
-            floatPreferencesKey(field.name)
-        }
-    }
-
-    private fun copyThemeValues(
-        preferences: MutablePreferences,
-        sourcePrefix: String?,
-        targetPrefix: String,
-        clearMissingTargetValues: Boolean,
-    ) {
-        getAllStringThemeKeys().forEach { key ->
-            val sourceKey = sourcePrefix?.let { stringPreferencesKey("${it}${key.name}") } ?: key
-            val targetKey = stringPreferencesKey("${targetPrefix}${key.name}")
-            if (preferences.contains(sourceKey)) {
-                preferences[targetKey] = preferences[sourceKey]!!
-            } else if (clearMissingTargetValues) {
-                preferences.remove(targetKey)
-            }
-        }
-        getAllBooleanThemeKeys().forEach { key ->
-            val sourceKey = sourcePrefix?.let { booleanPreferencesKey("${it}${key.name}") } ?: key
-            val targetKey = booleanPreferencesKey("${targetPrefix}${key.name}")
-            if (preferences.contains(sourceKey)) {
-                preferences[targetKey] = preferences[sourceKey]!!
-            } else if (clearMissingTargetValues) {
-                preferences.remove(targetKey)
-            }
-        }
-        getAllIntThemeKeys().forEach { key ->
-            val sourceKey = sourcePrefix?.let { intPreferencesKey("${it}${key.name}") } ?: key
-            val targetKey = intPreferencesKey("${targetPrefix}${key.name}")
-            if (preferences.contains(sourceKey)) {
-                preferences[targetKey] = preferences[sourceKey]!!
-            } else if (clearMissingTargetValues) {
-                preferences.remove(targetKey)
-            }
-        }
-        getAllFloatThemeKeys().forEach { key ->
-            val sourceKey = sourcePrefix?.let { floatPreferencesKey("${it}${key.name}") } ?: key
-            val targetKey = floatPreferencesKey("${targetPrefix}${key.name}")
-            if (preferences.contains(sourceKey)) {
-                preferences[targetKey] = preferences[sourceKey]!!
-            } else if (clearMissingTargetValues) {
-                preferences.remove(targetKey)
-            }
-        }
-    }
-
-    private fun themePrefixForPrompt(target: ActivePrompt): String {
-        return when (target) {
-            is ActivePrompt.CharacterCard -> getCharacterCardThemePrefix(target.id)
-            is ActivePrompt.CharacterGroup -> getCharacterGroupThemePrefix(target.id)
-        }
-    }
-
-    private fun clearVisualThemeValues(preferences: MutablePreferences, prefix: String) {
-        getVisualStringThemeKeys().forEach { key ->
-            val targetKey = stringPreferencesKey("${prefix}${key.name}")
-            preferences.remove(targetKey)
-        }
-        getAllBooleanThemeKeys().forEach { key ->
-            val targetKey = booleanPreferencesKey("${prefix}${key.name}")
-            preferences.remove(targetKey)
-        }
-        getAllIntThemeKeys().forEach { key ->
-            val targetKey = intPreferencesKey("${prefix}${key.name}")
-            preferences.remove(targetKey)
-        }
-        getAllFloatThemeKeys().forEach { key ->
-            val targetKey = floatPreferencesKey("${prefix}${key.name}")
-            preferences.remove(targetKey)
-        }
-    }
-
-    private fun readThemePreferenceValues(
-        preferences: Preferences,
-        prefix: String,
-    ): ThemePreferenceValues {
-        val defaults = ThemePreferenceValues.defaultVisual()
-        val strings = defaults.strings.toMutableMap()
-        val booleans = defaults.booleans.toMutableMap()
-        val ints = defaults.ints.toMutableMap()
-        val floats = defaults.floats.toMutableMap()
-
-        getAllStringThemeKeys().forEach { key ->
-            val sourceKey = stringPreferencesKey("${prefix}${key.name}")
-            preferences[sourceKey]?.let { strings[key.name] = it }
-        }
-        getAllBooleanThemeKeys().forEach { key ->
-            val sourceKey = booleanPreferencesKey("${prefix}${key.name}")
-            preferences[sourceKey]?.let { booleans[key.name] = it }
-        }
-        getAllIntThemeKeys().forEach { key ->
-            val sourceKey = intPreferencesKey("${prefix}${key.name}")
-            preferences[sourceKey]?.let { ints[key.name] = it }
-        }
-        getAllFloatThemeKeys().forEach { key ->
-            val sourceKey = floatPreferencesKey("${prefix}${key.name}")
-            preferences[sourceKey]?.let { floats[key.name] = it }
-        }
-
-        NativeThemePreferenceSchemaV1.floatFields.forEach { field ->
-            val releasedSource = field.releasedSource ?: return@forEach
-            val verticalSourceKey = floatPreferencesKey("${prefix}${field.name}")
-            if (!preferences.contains(verticalSourceKey)) {
-                val releasedSourceKey = floatPreferencesKey("${prefix}${releasedSource.name}")
-                preferences[releasedSourceKey]?.let { floats[field.name] = it }
-            }
-        }
-
-        return ThemePreferenceValues(
-            strings = strings,
-            booleans = booleans,
-            ints = ints,
-            floats = floats,
-        )
-    }
-
-    private fun writeVisualThemeValues(
-        preferences: MutablePreferences,
-        prefix: String,
-        values: ThemePreferenceValues,
-    ) {
-        getVisualStringThemeKeys().forEach { key ->
-            val targetKey = stringPreferencesKey("${prefix}${key.name}")
-            val value = values.string(key.name)
-            if (value == null) {
-                preferences.remove(targetKey)
-            } else {
-                preferences[targetKey] = value
-            }
-        }
-        getAllBooleanThemeKeys().forEach { key ->
-            val targetKey = booleanPreferencesKey("${prefix}${key.name}")
-            val value = values.boolean(key.name)
-            if (value == null) {
-                preferences.remove(targetKey)
-            } else {
-                preferences[targetKey] = value
-            }
-        }
-        getAllIntThemeKeys().forEach { key ->
-            val targetKey = intPreferencesKey("${prefix}${key.name}")
-            val value = values.int(key.name)
-            if (value == null) {
-                preferences.remove(targetKey)
-            } else {
-                preferences[targetKey] = value
-            }
-        }
-        getAllFloatThemeKeys().forEach { key ->
-            val targetKey = floatPreferencesKey("${prefix}${key.name}")
-            val value = values.float(key.name)
-            if (value == null) {
-                preferences.remove(targetKey)
-            } else {
-                preferences[targetKey] = value
-            }
-        }
-    }
-
-    private fun writeThemeTargetMetadata(
-        preferences: MutablePreferences,
-        prefix: String,
-        values: ThemePreferenceValues,
-    ) {
-        getTargetMetadataStringThemeKeys().forEach { key ->
-            val targetKey = stringPreferencesKey("${prefix}${key.name}")
-            val value = values.string(key.name)
-            if (value == null) {
-                preferences.remove(targetKey)
-            } else {
-                preferences[targetKey] = value
-            }
-        }
-    }
-
-    suspend fun mutateThemeForPrompt(
-        target: ActivePrompt,
-        transform: (ThemePreferenceValues) -> ThemePreferenceValues,
-    ) {
+    /**
+     * 一次性迁移：把主题前缀下的业务元数据（AI 头像、聊天标题）搬到独立 metadata 前缀，
+     * 并清除全部旧目标级视觉主题键。返回默认角色卡遗留的用户头像供调用方并入全局
+     * 用户头像（仅当全局为空时写入）；无遗留时返回 null。
+     */
+    suspend fun migrateLegacyThemeStorage(): String? {
+        var pendingGlobalUserAvatar: String? = null
         context.userPreferencesDataStore.edit { preferences ->
-            val prefix = themePrefixForPrompt(target)
-            val values = transform(readThemePreferenceValues(preferences, prefix))
-            writeVisualThemeValues(preferences, prefix, values)
-            writeThemeTargetMetadata(preferences, prefix, values)
-        }
-    }
-
-    suspend fun resetVisualThemeForPrompt(
-        target: ActivePrompt,
-        values: ThemePreferenceValues,
-    ) {
-        context.userPreferencesDataStore.edit { preferences ->
-            val prefix = themePrefixForPrompt(target)
-            clearVisualThemeValues(preferences, prefix)
-            writeThemeTargetMetadata(preferences, prefix, values)
-        }
-    }
-
-    private suspend fun cloneThemeBetweenPrefixes(sourcePrefix: String, targetPrefix: String) {
-        context.userPreferencesDataStore.edit { preferences ->
-            copyThemeValues(
-                preferences,
-                sourcePrefix,
-                targetPrefix,
-                clearMissingTargetValues = false,
+            if (preferences[THEME_METADATA_MIGRATION_COMPLETED] == true) return@edit
+            val defaultUserAvatarKey = stringPreferencesKey(
+                "character_card_theme_${'${'}CharacterCardManager.DEFAULT_CHARACTER_CARD_ID}_custom_user_avatar_uri",
             )
-        }
-    }
-
-    private suspend fun deleteThemeByPrefix(prefix: String) {
-        context.userPreferencesDataStore.edit { preferences ->
-            getAllStringThemeKeys().forEach { key ->
-                preferences.remove(stringPreferencesKey("${prefix}${key.name}"))
-            }
-            getAllBooleanThemeKeys().forEach { key ->
-                preferences.remove(booleanPreferencesKey("${prefix}${key.name}"))
-            }
-            getAllIntThemeKeys().forEach { key ->
-                preferences.remove(intPreferencesKey("${prefix}${key.name}"))
-            }
-            getAllFloatThemeKeys().forEach { key ->
-                preferences.remove(floatPreferencesKey("${prefix}${key.name}"))
-            }
-        }
-    }
-
-    private fun hasThemeByPrefix(preferences: Preferences, prefix: String): Boolean {
-        return getAllStringThemeKeys().any { key -> preferences.contains(stringPreferencesKey("${prefix}${key.name}")) } ||
-                getAllBooleanThemeKeys().any { key -> preferences.contains(booleanPreferencesKey("${prefix}${key.name}")) } ||
-                getAllIntThemeKeys().any { key -> preferences.contains(intPreferencesKey("${prefix}${key.name}")) } ||
-                getAllFloatThemeKeys().any { key -> preferences.contains(floatPreferencesKey("${prefix}${key.name}")) }
-    }
-
-    private suspend fun hasThemeByPrefix(prefix: String): Boolean {
-        return hasThemeByPrefix(context.userPreferencesDataStore.data.first(), prefix)
-    }
-
-    private fun hasThemeContentByPrefix(preferences: Preferences, prefix: String): Boolean {
-        return getVisualStringThemeKeys()
-            .any { key -> preferences.contains(stringPreferencesKey("${prefix}${key.name}")) } ||
-                getAllBooleanThemeKeys().any { key ->
-                    preferences.contains(booleanPreferencesKey("${prefix}${key.name}"))
-                } ||
-                getAllIntThemeKeys().any { key ->
-                    preferences.contains(intPreferencesKey("${prefix}${key.name}"))
-                } ||
-                getAllFloatThemeKeys().any { key ->
-                    preferences.contains(floatPreferencesKey("${prefix}${key.name}"))
+            preferences.asMap().keys.toList().forEach { key ->
+                val name = key.name
+                if (!name.startsWith("character_card_theme_") &&
+                    !name.startsWith("character_group_theme_")
+                ) {
+                    return@forEach
                 }
-    }
-
-    private fun hasAnyScopedThemeContent(preferences: Preferences): Boolean {
-        val targetMetadataSuffixes =
-            NativeThemePreferenceSchemaV1.targetMetadataStringFields.map { field -> "_${field.name}" }
-        return preferences.asMap().keys.any { key ->
-            val isScopedThemeKey =
-                key.name.startsWith("character_card_theme_") ||
-                    key.name.startsWith("character_group_theme_")
-            isScopedThemeKey && targetMetadataSuffixes.none(key.name::endsWith)
-        }
-    }
-
-    suspend fun migrateLegacyDefaultCharacterThemeIfEligible(
-        activeCharacterCardId: String?,
-        defaultCharacterWasCreated: Boolean,
-    ) {
-        context.userPreferencesDataStore.edit { preferences ->
-            val defaultPrefix = getCharacterCardThemePrefix(CharacterCardManager.DEFAULT_CHARACTER_CARD_ID)
-            val shouldMigrate = ThemeScopeMigrationPolicy.shouldCopyLegacyThemeToDefaultCharacter(
-                migrationCompleted = preferences[CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED] ?: false,
-                activeCharacterCardId = activeCharacterCardId,
-                defaultCharacterId = CharacterCardManager.DEFAULT_CHARACTER_CARD_ID,
-                hasDefaultCharacterTheme = hasThemeContentByPrefix(preferences, defaultPrefix),
-                hasAnyScopedTheme = hasAnyScopedThemeContent(preferences),
-                defaultCharacterWasCreated = defaultCharacterWasCreated,
-            )
-            if (shouldMigrate) {
-                copyThemeValues(
-                    preferences,
-                    sourcePrefix = null,
-                    targetPrefix = defaultPrefix,
-                    clearMissingTargetValues = false,
-                )
+                if (name.endsWith("_custom_ai_avatar_uri") || name.endsWith("_custom_chat_title")) {
+                    val migratedKey = stringPreferencesKey(name.replace("_theme_", "_metadata_"))
+                    (preferences[key] as? String)?.let { value -> preferences[migratedKey] = value }
+                }
+                if (key == defaultUserAvatarKey) {
+                    (preferences[key] as? String)?.let { value -> pendingGlobalUserAvatar = value }
+                }
+                preferences.remove(key)
             }
-            preferences[CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED] = true
+            preferences[THEME_METADATA_MIGRATION_COMPLETED] = true
         }
-    }
-
-    suspend fun cloneThemeBetweenCharacterCards(sourceCharacterCardId: String, targetCharacterCardId: String) {
-        cloneThemeBetweenPrefixes(
-            getCharacterCardThemePrefix(sourceCharacterCardId),
-            getCharacterCardThemePrefix(targetCharacterCardId)
-        )
-    }
-
-    suspend fun deleteCharacterCardTheme(characterCardId: String) {
-        deleteThemeByPrefix(getCharacterCardThemePrefix(characterCardId))
-    }
-
-    suspend fun hasCharacterCardTheme(characterCardId: String): Boolean {
-        return hasThemeByPrefix(getCharacterCardThemePrefix(characterCardId))
-    }
-
-    suspend fun cloneThemeBetweenCharacterGroups(
-        sourceCharacterGroupId: String,
-        targetCharacterGroupId: String
-    ) {
-        cloneThemeBetweenPrefixes(
-            getCharacterGroupThemePrefix(sourceCharacterGroupId),
-            getCharacterGroupThemePrefix(targetCharacterGroupId)
-        )
-    }
-
-    suspend fun deleteCharacterGroupTheme(characterGroupId: String) {
-        deleteThemeByPrefix(getCharacterGroupThemePrefix(characterGroupId))
-    }
-
-    fun observeThemePreferenceSnapshot(
-        characterCardId: String? = null,
-        characterGroupId: String? = null
-    ): Flow<ThemePreferenceSnapshot> {
-        val normalizedGroupId = characterGroupId?.trim()?.takeIf { it.isNotBlank() }
-        val normalizedCardId = characterCardId?.trim()?.takeIf { it.isNotBlank() }
-
-        val (source, sourceId, prefix) = when {
-            normalizedGroupId != null -> Triple(
-                "character_group",
-                normalizedGroupId,
-                getCharacterGroupThemePrefix(normalizedGroupId),
-            )
-
-            normalizedCardId != null -> Triple(
-                "character_card",
-                normalizedCardId,
-                getCharacterCardThemePrefix(normalizedCardId),
-            )
-
-            else -> error("ThemePreferenceSnapshot requires a character card or group target.")
-        }
-        return context.userPreferencesDataStore.data
-            .map { preferences ->
-                ThemePreferenceSnapshot(
-                    source = source,
-                    sourceId = sourceId,
-                    values = readThemePreferenceValues(preferences, prefix),
-                )
-            }
-            .distinctUntilChanged()
-    }
-
-    suspend fun resolveThemePreferenceSnapshot(
-        characterCardId: String? = null,
-        characterGroupId: String? = null
-    ): ThemePreferenceSnapshot {
-        return observeThemePreferenceSnapshot(
-            characterCardId = characterCardId,
-            characterGroupId = characterGroupId,
-        ).first()
+        return pendingGlobalUserAvatar
     }
 }

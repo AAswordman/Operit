@@ -14,7 +14,6 @@ class ActivePromptManager private constructor(context: Context) {
     private val characterCardManager = CharacterCardManager.getInstance(context)
     private val characterGroupCardManager = CharacterGroupCardManager.getInstance(context)
     private val userPreferencesManager = UserPreferencesManager.getInstance(context)
-    private val themeOperations = ThemeTargetOperationCoordinator()
 
     val activePromptFlow: Flow<ActivePrompt> =
         combine(
@@ -45,85 +44,35 @@ class ActivePromptManager private constructor(context: Context) {
     suspend fun getActivePrompt(): ActivePrompt = activePromptFlow.first()
 
     suspend fun setActivePrompt(prompt: ActivePrompt) {
-        themeOperations.runTransition {
-            when (prompt) {
-                is ActivePrompt.CharacterGroup -> {
-                    characterGroupCardManager.setActiveCharacterGroupCard(prompt.id)
-                    characterCardManager.clearActiveCharacterCard()
-                }
-                is ActivePrompt.CharacterCard -> {
-                    characterCardManager.setActiveCharacterCard(prompt.id)
-                    characterGroupCardManager.setActiveCharacterGroupCard(null)
-                }
+        when (prompt) {
+            is ActivePrompt.CharacterGroup -> {
+                characterGroupCardManager.setActiveCharacterGroupCard(prompt.id)
+                characterCardManager.clearActiveCharacterCard()
             }
-        }
-    }
-
-    internal suspend fun <T> runThemeTransition(action: suspend () -> T): T {
-        return themeOperations.runTransition(action)
-    }
-
-    internal suspend fun <T> runThemeTransitionForExistingTarget(
-        target: ActivePrompt,
-        action: suspend () -> T,
-    ): T {
-        return themeOperations.runTransition {
-            val exists =
-                when (target) {
-                    is ActivePrompt.CharacterCard -> characterCardManager.hasCharacterCard(target.id)
-                    is ActivePrompt.CharacterGroup -> characterGroupCardManager.hasCharacterGroupCard(target.id)
-                }
-            require(exists) { "Theme target no longer exists: $target" }
-            action()
-        }
-    }
-
-    suspend fun mutateActiveThemeForPrompt(
-        target: ActivePrompt,
-        transform: (ThemePreferenceValues) -> ThemePreferenceValues,
-    ) {
-        themeOperations.runTransition {
-            if (getActivePrompt() != target) return@runTransition
-            userPreferencesManager.mutateThemeForPrompt(
-                target = target,
-                transform = transform,
-            )
-        }
-    }
-
-    suspend fun resetThemeDraft(
-        target: ActivePrompt,
-        values: ThemePreferenceValues,
-    ) {
-        themeOperations.runTransition {
-            userPreferencesManager.resetVisualThemeForPrompt(
-                target = target,
-                values = values,
-            )
+            is ActivePrompt.CharacterCard -> {
+                characterCardManager.setActiveCharacterCard(prompt.id)
+                characterGroupCardManager.setActiveCharacterGroupCard(null)
+            }
         }
     }
 
     suspend fun saveAiAvatarForPrompt(target: ActivePrompt, avatarUri: String?) {
-        themeOperations.runTransition {
-            when (target) {
-                is ActivePrompt.CharacterGroup ->
-                    userPreferencesManager.saveAiAvatarForCharacterGroup(target.id, avatarUri)
+        when (target) {
+            is ActivePrompt.CharacterGroup ->
+                userPreferencesManager.saveAiAvatarForCharacterGroup(target.id, avatarUri)
 
-                is ActivePrompt.CharacterCard ->
-                    userPreferencesManager.saveAiAvatarForCharacterCard(target.id, avatarUri)
-            }
+            is ActivePrompt.CharacterCard ->
+                userPreferencesManager.saveAiAvatarForCharacterCard(target.id, avatarUri)
         }
     }
 
     suspend fun saveCustomChatTitleForPrompt(target: ActivePrompt, title: String?) {
-        themeOperations.runTransition {
-            when (target) {
-                is ActivePrompt.CharacterGroup ->
-                    userPreferencesManager.saveCustomChatTitleForCharacterGroup(target.id, title)
+        when (target) {
+            is ActivePrompt.CharacterGroup ->
+                userPreferencesManager.saveCustomChatTitleForCharacterGroup(target.id, title)
 
-                is ActivePrompt.CharacterCard ->
-                    userPreferencesManager.saveCustomChatTitleForCharacterCard(target.id, title)
-            }
+            is ActivePrompt.CharacterCard ->
+                userPreferencesManager.saveCustomChatTitleForCharacterCard(target.id, title)
         }
     }
 

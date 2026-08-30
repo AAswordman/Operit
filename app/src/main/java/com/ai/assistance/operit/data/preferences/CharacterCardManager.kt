@@ -141,12 +141,6 @@ class CharacterCardManager private constructor(private val context: Context) {
             result: CharacterCardSchemaMigrationResult,
         ) {
             val userPreferencesManager = UserPreferencesManager.getInstance(context)
-            userPreferencesManager.migrateLegacyDefaultCharacterThemeIfEligible(
-                activeCharacterCardId = result.activeCharacterCardId,
-                defaultCharacterWasCreated =
-                    result.defaultCharacterWasCreated &&
-                        result.activeCharacterCardId == DEFAULT_CHARACTER_CARD_ID,
-            )
 
             if (result.defaultCharacterWasCreated) {
                 val defaultAvatarUri = userPreferencesManager
@@ -353,17 +347,13 @@ class CharacterCardManager private constructor(private val context: Context) {
     }
 
     /**
-     * 为角色卡创建默认主题配置
+     * 为新角色卡创建默认绑定（Waifu 模式与自定义表情）
      */
-    private suspend fun createDefaultThemeForCharacterCard(
+    private suspend fun createDefaultBindingsForCharacterCard(
         characterCardId: String,
         emojiSourcePrompt: ActivePrompt
     ) {
-        // 新建角色卡使用默认主题，不继承创建时的当前主题。
-        userPreferencesManager.deleteCharacterCardTheme(characterCardId)
-        // 同时也复制当前Waifu模式配置
         waifuPreferences.copyCurrentWaifuSettingsToCharacterCard(characterCardId)
-        // 同时复制创建前活跃目标的自定义表情配置
         customEmojiRepository.cloneEmojiSet(
             emojiSourcePrompt,
             ActivePrompt.CharacterCard(characterCardId)
@@ -373,11 +363,9 @@ class CharacterCardManager private constructor(private val context: Context) {
 
     suspend fun cloneBindingsFromCharacterCard(sourceCharacterCardId: String, targetCharacterCardId: String) {
         val activePromptManager = ActivePromptManager.getInstance(context)
-        activePromptManager.runThemeTransition {
-            cloneBindingsFromCharacterCardLocked(sourceCharacterCardId, targetCharacterCardId)
-            if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterCard(targetCharacterCardId)) {
-                switchToCharacterCardWaifuSettings(targetCharacterCardId)
-            }
+        cloneBindingsFromCharacterCardLocked(sourceCharacterCardId, targetCharacterCardId)
+        if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterCard(targetCharacterCardId)) {
+            switchToCharacterCardWaifuSettings(targetCharacterCardId)
         }
     }
 
@@ -385,12 +373,6 @@ class CharacterCardManager private constructor(private val context: Context) {
         sourceCharacterCardId: String,
         targetCharacterCardId: String,
     ) {
-        try {
-            userPreferencesManager.cloneThemeBetweenCharacterCards(sourceCharacterCardId, targetCharacterCardId)
-        } catch (e: Exception) {
-            AppLogger.e("CharacterCardManager", "克隆角色卡主题配置失败", e)
-        }
-
         try {
             waifuPreferences.cloneWaifuSettingsBetweenCharacterCards(sourceCharacterCardId, targetCharacterCardId)
         } catch (e: Exception) {
@@ -406,30 +388,25 @@ class CharacterCardManager private constructor(private val context: Context) {
 
     // 创建角色卡
     suspend fun createCharacterCard(card: CharacterCard): String {
-        // Target activation must not interleave with a theme snapshot save.
-        return ActivePromptManager.getInstance(context).runThemeTransition {
-            createCharacterCardLocked(card)
-        }
+        return createCharacterCardLocked(card)
     }
 
     suspend fun duplicateCharacterCard(
         sourceCharacterCard: CharacterCard,
     ): String {
         val activePromptManager = ActivePromptManager.getInstance(context)
-        return activePromptManager.runThemeTransition {
-            val duplicatedCard =
-                sourceCharacterCard.copy(
-                    id = "",
-                    isDefault = false,
-                )
-            val newCardId = createCharacterCardLocked(duplicatedCard)
-            cloneBindingsFromCharacterCardLocked(sourceCharacterCard.id, newCardId)
-            userPreferencesManager.saveCustomChatTitleForCharacterCard(
-                newCardId,
-                duplicatedCard.name.ifEmpty { null },
+        val duplicatedCard =
+            sourceCharacterCard.copy(
+                id = "",
+                isDefault = false,
             )
-            newCardId
-        }
+        val newCardId = createCharacterCardLocked(duplicatedCard)
+        cloneBindingsFromCharacterCardLocked(sourceCharacterCard.id, newCardId)
+        userPreferencesManager.saveCustomChatTitleForCharacterCard(
+            newCardId,
+            duplicatedCard.name.ifEmpty { null },
+        )
+        return newCardId
     }
 
     private suspend fun createCharacterCardLocked(card: CharacterCard): String {
@@ -485,9 +462,9 @@ class CharacterCardManager private constructor(private val context: Context) {
             }
         }
 
-        // 为新角色卡创建默认主题配置
+        // 为新角色卡创建默认绑定
         if (!newCard.isDefault) {
-            createDefaultThemeForCharacterCard(id, emojiSourcePrompt)
+            createDefaultBindingsForCharacterCard(id, emojiSourcePrompt)
         }
 
         val activeGroupId = CharacterGroupCardManager.getInstance(context)
@@ -544,10 +521,7 @@ class CharacterCardManager private constructor(private val context: Context) {
     suspend fun deleteCharacterCard(id: String) {
         if (id == DEFAULT_CHARACTER_CARD_ID) return
 
-        // Target activation must not interleave with a theme snapshot save.
-        ActivePromptManager.getInstance(context).runThemeTransition {
-            deleteCharacterCardLocked(id)
-        }
+        deleteCharacterCardLocked(id)
     }
 
     private suspend fun deleteCharacterCardLocked(id: String) {
@@ -599,8 +573,6 @@ class CharacterCardManager private constructor(private val context: Context) {
             }
         }
 
-        // 删除角色卡对应的主题配置
-        userPreferencesManager.deleteCharacterCardTheme(id)
         // 删除角色卡对应的Waifu模式配置
         waifuPreferences.deleteCharacterCardWaifuSettings(id)
         // 删除角色卡对应的自定义表情配置
@@ -692,11 +664,6 @@ class CharacterCardManager private constructor(private val context: Context) {
         }
         val defaultTarget = ActivePrompt.CharacterCard(DEFAULT_CHARACTER_CARD_ID)
         val activePromptManager = ActivePromptManager.getInstance(context)
-        val currentTheme =
-            userPreferencesManager.resolveThemePreferenceSnapshot(
-                characterCardId = DEFAULT_CHARACTER_CARD_ID,
-            ).values
-        activePromptManager.resetThemeDraft(defaultTarget, currentTheme)
         activePromptManager.saveAiAvatarForPrompt(
             defaultTarget,
             "file:///android_asset/operit.png",
@@ -894,9 +861,7 @@ class CharacterCardManager private constructor(private val context: Context) {
     }
 
     private suspend fun upsertCharacterCardWithId(card: CharacterCard) {
-        ActivePromptManager.getInstance(context).runThemeTransition {
-            upsertCharacterCardWithIdLocked(card)
-        }
+        upsertCharacterCardWithIdLocked(card)
     }
 
     private suspend fun upsertCharacterCardWithIdLocked(card: CharacterCard) {
@@ -947,9 +912,7 @@ class CharacterCardManager private constructor(private val context: Context) {
         }
 
         if (card.id != DEFAULT_CHARACTER_CARD_ID) {
-            if (!userPreferencesManager.hasCharacterCardTheme(card.id)) {
-                createDefaultThemeForCharacterCard(card.id, resolveEmojiSourcePrompt())
-            }
+            createDefaultBindingsForCharacterCard(card.id, resolveEmojiSourcePrompt())
         }
 
         val activeGroupId = CharacterGroupCardManager.getInstance(context)

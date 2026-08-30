@@ -110,10 +110,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
         characterGroupCardListFlow.first().contains(id)
 
     suspend fun createCharacterGroupCard(group: CharacterGroupCard): String {
-        // Target activation must not interleave with a theme snapshot save.
-        return ActivePromptManager.getInstance(context).runThemeTransition {
-            createCharacterGroupCardLocked(group)
-        }
+        return createCharacterGroupCardLocked(group)
     }
 
     private suspend fun createCharacterGroupCardLocked(group: CharacterGroupCard): String {
@@ -175,10 +172,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
     suspend fun deleteCharacterGroupCard(groupId: String) {
         if (groupId.isBlank()) return
 
-        // Target activation must not interleave with a theme snapshot save.
-        ActivePromptManager.getInstance(context).runThemeTransition {
-            deleteCharacterGroupCardLocked(groupId)
-        }
+        deleteCharacterGroupCardLocked(groupId)
     }
 
     private suspend fun deleteCharacterGroupCardLocked(groupId: String) {
@@ -196,7 +190,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
             }
         }
 
-        runCatching { userPreferencesManager.deleteCharacterGroupTheme(groupId) }
         runCatching { waifuPreferences.deleteCharacterGroupWaifuSettings(groupId) }
         runCatching { customEmojiRepository.deleteCharacterGroupEmojis(groupId) }
         runCatching { ChatHistoryManager.getInstance(context).clearCharacterGroupBinding(groupId) }
@@ -238,11 +231,9 @@ class CharacterGroupCardManager private constructor(private val context: Context
 
     suspend fun cloneBindingsFromCharacterGroup(sourceGroupId: String, targetGroupId: String) {
         val activePromptManager = ActivePromptManager.getInstance(context)
-        activePromptManager.runThemeTransition {
-            cloneBindingsFromCharacterGroupLocked(sourceGroupId, targetGroupId)
-            if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterGroup(targetGroupId)) {
-                waifuPreferences.switchToCharacterGroupWaifuSettings(targetGroupId)
-            }
+        cloneBindingsFromCharacterGroupLocked(sourceGroupId, targetGroupId)
+        if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterGroup(targetGroupId)) {
+            waifuPreferences.switchToCharacterGroupWaifuSettings(targetGroupId)
         }
     }
 
@@ -250,9 +241,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
         sourceGroupId: String,
         targetGroupId: String,
     ) {
-        runCatching {
-            userPreferencesManager.cloneThemeBetweenCharacterGroups(sourceGroupId, targetGroupId)
-        }
         runCatching {
             waifuPreferences.cloneWaifuSettingsBetweenCharacterGroups(sourceGroupId, targetGroupId)
         }
@@ -265,22 +253,20 @@ class CharacterGroupCardManager private constructor(private val context: Context
         sourceGroupId: String,
         newName: String? = null
     ): String? {
+        val source = getCharacterGroupCard(sourceGroupId) ?: return null
+        val duplicated = source.copy(
+            id = "",
+            name = newName?.takeIf { it.isNotBlank() } ?: source.name,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+        val newId = createCharacterGroupCardLocked(duplicated)
+        cloneBindingsFromCharacterGroupLocked(sourceGroupId, newId)
         val activePromptManager = ActivePromptManager.getInstance(context)
-        return activePromptManager.runThemeTransition {
-            val source = getCharacterGroupCard(sourceGroupId) ?: return@runThemeTransition null
-            val duplicated = source.copy(
-                id = "",
-                name = newName?.takeIf { it.isNotBlank() } ?: source.name,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-            val newId = createCharacterGroupCardLocked(duplicated)
-            cloneBindingsFromCharacterGroupLocked(sourceGroupId, newId)
-            if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterGroup(newId)) {
-                waifuPreferences.switchToCharacterGroupWaifuSettings(newId)
-            }
-            newId
+        if (activePromptManager.getActivePrompt() == ActivePrompt.CharacterGroup(newId)) {
+            waifuPreferences.switchToCharacterGroupWaifuSettings(newId)
         }
+        return newId
     }
 
     private fun decodeGroup(json: String): CharacterGroupCard? {
@@ -316,7 +302,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
         group: CharacterGroupCard,
         emojiSourcePrompt: ActivePrompt
     ) {
-        runCatching { userPreferencesManager.deleteCharacterGroupTheme(group.id) }
         runCatching { waifuPreferences.copyCurrentWaifuSettingsToCharacterGroup(group.id) }
         runCatching { customEmojiRepository.cloneEmojiSet(emojiSourcePrompt, ActivePrompt.CharacterGroup(group.id)) }
         runCatching {

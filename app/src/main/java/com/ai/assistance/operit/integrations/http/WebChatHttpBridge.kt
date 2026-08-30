@@ -35,7 +35,8 @@ import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
-import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
+import com.ai.assistance.operit.data.preferences.GlobalThemeMode
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.integrations.http.bridge.WebChatActionBridge
@@ -49,7 +50,10 @@ import com.ai.assistance.operit.services.core.resolveDisplayPageRanges
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.StructuredAssistantContentParser
-import com.ai.assistance.operit.ui.theme.resolveThemeColorScheme
+import com.ai.assistance.operit.ui.theme.NativeThemeEnvironment
+import com.ai.assistance.operit.ui.theme.NativeThemeHostSurface
+import com.ai.assistance.operit.ui.theme.resolveGlobalThemeV1
+import com.ai.assistance.operit.ui.theme.resolveNativeThemeDetachedBaseColorSchemes
 import fi.iki.elonen.NanoHTTPD
 import java.io.BufferedWriter
 import java.io.ByteArrayInputStream
@@ -972,9 +976,8 @@ class WebChatHttpBridge(
         }
 
         val snapshot = runBlocking {
-            val resolved = resolveThemePreferenceSnapshot(chat)
-            val display = resolveDisplayPreferencesSnapshot(resolved)
-            buildThemeSnapshot(resolved, display)
+            val presentation = globalPresentationManager.snapshotFlow.first()
+            buildThemeSnapshot(presentation, chat)
         }
         return jsonResponse(NanoHTTPD.Response.Status.OK, snapshot)
     }
@@ -2244,71 +2247,60 @@ class WebChatHttpBridge(
     }
 
     private suspend fun resolveStructuredRenderPreferences(chatId: String): StructuredRenderPreferences {
-        val snapshot = resolveThemePreferenceSnapshot(currentChatMeta(chatId))
+        val presentation = globalPresentationManager.snapshotFlow.first()
         return StructuredRenderPreferences(
-            showThinkingProcess = snapshot.showThinkingProcess,
+            showThinkingProcess = presentation.showThinkingProcess,
             toolCollapseMode = displayPreferencesManager.toolCollapseMode.first()
         )
     }
 
-    private suspend fun resolveThemePreferenceSnapshot(chat: ChatHistory?): ThemePreferenceSnapshot {
+    private suspend fun resolveChatAssistantAvatarUri(chat: ChatHistory?): String? {
         val groupId = chat?.characterGroupId?.trim()?.takeIf { it.isNotBlank() }
         if (groupId != null) {
-            return userPreferencesManager.resolveThemePreferenceSnapshot(characterGroupId = groupId)
+            return userPreferencesManager.getAiAvatarForCharacterGroupFlow(groupId).first()
         }
 
         val cardName = chat?.characterCardName?.trim()?.takeIf { it.isNotBlank() }
         if (cardName != null) {
             val matchingCard = characterCardManager.findCharacterCardByName(cardName)
             if (matchingCard != null) {
-                return userPreferencesManager.resolveThemePreferenceSnapshot(
-                    characterCardId = matchingCard.id,
-                )
+                return userPreferencesManager.getAiAvatarForCharacterCardFlow(matchingCard.id).first()
             }
         }
 
-        return userPreferencesManager.resolveThemePreferenceSnapshot(
-            characterCardId = CharacterCardManager.DEFAULT_CHARACTER_CARD_ID,
-        )
-    }
-
-    private suspend fun resolveDisplayPreferencesSnapshot(
-        snapshot: ThemePreferenceSnapshot
-    ): WebDisplayPreferences {
-        return WebDisplayPreferences(
-            showUserName = snapshot.showUserName,
-            showRoleName = snapshot.showRoleName,
-            showModelName = snapshot.showModelName,
-            showModelProvider = snapshot.showModelProvider,
-            showMessageTokenStats = snapshot.showMessageTokenStats,
-            showMessageTimingStats = snapshot.showMessageTimingStats,
-            showMessageTimestamp = snapshot.showMessageTimestamp,
-            toolCollapseMode = displayPreferencesManager.toolCollapseMode.first().value,
-            globalUserName = displayPreferencesManager.globalUserName.first()
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-        )
+        return userPreferencesManager.getAiAvatarForCharacterCardFlow(
+            CharacterCardManager.DEFAULT_CHARACTER_CARD_ID,
+        ).first()
     }
 
     private suspend fun buildThemeSnapshot(
-        snapshot: ThemePreferenceSnapshot,
-        displayPreferences: WebDisplayPreferences
+        presentation: GlobalPresentationSnapshot,
+        chat: ChatHistory?,
     ): WebThemeSnapshot {
-        val backgroundUrl = snapshot.backgroundImageUri
-            ?.takeIf { snapshot.useBackgroundImage }
-            ?.let { registerAsset(it, guessMimeType(it)) }
         val globalUserAvatarUri = displayPreferencesManager.globalUserAvatarUri.first()
             ?.trim()
             ?.takeIf { it.isNotBlank() }
-        val colorScheme = resolveThemeColorScheme(appContext, snapshot)
+        val assistantAvatarUri = resolveChatAssistantAvatarUri(chat)?.takeIf { it.isNotBlank() }
+        val (lightColorScheme, darkColorScheme) = resolveNativeThemeDetachedBaseColorSchemes(appContext)
+        val resolvedTheme = resolveGlobalThemeV1(
+            presentation = presentation,
+            environment = NativeThemeEnvironment(
+                hostSurface = NativeThemeHostSurface.MAIN,
+                systemDarkTheme = appContext.resources.configuration.uiMode and
+                    android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES,
+            ),
+            baseColorScheme = { darkTheme -> if (darkTheme) darkColorScheme else lightColorScheme },
+        )
+        val colorScheme = resolvedTheme.colorScheme
         return WebThemeSnapshot(
-            source = snapshot.source,
-            sourceId = snapshot.sourceId,
-            themeMode = snapshot.themeMode,
-            useSystemTheme = snapshot.useSystemTheme,
-            useCustomColors = snapshot.useCustomColors,
-            primaryColor = colorToCss(snapshot.customPrimaryColor),
-            secondaryColor = colorToCss(snapshot.customSecondaryColor),
+            source = "global",
+            sourceId = null,
+            themeMode = presentation.themeMode.value,
+            useSystemTheme = presentation.themeMode == GlobalThemeMode.SYSTEM,
+            useCustomColors = false,
+            primaryColor = null,
+            secondaryColor = null,
             palette = WebThemePalette(
                 backgroundColor = composeColorToCss(colorScheme.background),
                 surfaceColor = composeColorToCss(colorScheme.surface),
@@ -2325,86 +2317,81 @@ class WebChatHttpBridge(
                 outlineVariantColor = composeColorToCss(colorScheme.outlineVariant)
             ),
             background = WebThemeBackground(
-                type = when {
-                    !snapshot.useBackgroundImage || snapshot.backgroundImageUri.isNullOrBlank() -> "none"
-                    snapshot.backgroundMediaType == UserPreferencesManager.MEDIA_TYPE_VIDEO -> "video"
-                    else -> "image"
-                },
-                assetUrl = backgroundUrl,
-                opacity = snapshot.backgroundImageOpacity
+                type = "none",
+                assetUrl = null,
+                opacity = 1f
             ),
             header = WebHeaderTheme(
-                transparent = snapshot.chatHeaderTransparent,
-                overlay = snapshot.chatHeaderOverlayMode
+                transparent = false,
+                overlay = false
             ),
             input = WebInputTheme(
-                style = snapshot.inputStyle,
-                transparent = snapshot.chatInputTransparent,
-                floating = snapshot.chatInputFloating,
-                liquidGlass = snapshot.chatInputLiquidGlass,
-                waterGlass = snapshot.chatInputWaterGlass
+                style = presentation.inputStyle.value,
+                transparent = false,
+                floating = false,
+                liquidGlass = false,
+                waterGlass = false
             ),
             font = WebFontTheme(
-                type = snapshot.fontType,
-                systemFontName = snapshot.systemFontName,
-                customFontAssetUrl = snapshot.customFontPath?.takeIf { snapshot.useCustomFont }?.let {
-                    registerAsset(it, guessMimeType(it))
-                },
-                scale = snapshot.fontScale
+                type = "system",
+                systemFontName = "default",
+                customFontAssetUrl = null,
+                scale = presentation.fontScale
             ),
-            chatStyle = snapshot.chatStyle,
-            showThinkingProcess = snapshot.showThinkingProcess,
-            showStatusTags = snapshot.showStatusTags,
-            showInputProcessingStatus = snapshot.showInputProcessingStatus,
-            display = displayPreferences,
+            chatStyle = presentation.chatStyle.value,
+            showThinkingProcess = presentation.showThinkingProcess,
+            showStatusTags = presentation.showStatusTags,
+            showInputProcessingStatus = presentation.showInputProcessingStatus,
+            display = WebDisplayPreferences(
+                showUserName = presentation.showUserName,
+                showRoleName = presentation.showRoleName,
+                showModelName = presentation.showModelName,
+                showModelProvider = presentation.showModelProvider,
+                showMessageTokenStats = presentation.showMessageTokenStats,
+                showMessageTimingStats = presentation.showMessageTimingStats,
+                showMessageTimestamp = presentation.showMessageTimestamp,
+                toolCollapseMode = displayPreferencesManager.toolCollapseMode.first().value,
+                globalUserName = displayPreferencesManager.globalUserName.first()
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+            ),
             bubble = WebBubbleTheme(
-                showAvatar = snapshot.bubbleShowAvatar,
-                wideLayout = snapshot.bubbleWideLayoutEnabled,
-                cursorUserFollowTheme = snapshot.cursorUserBubbleFollowTheme,
-                cursorUserColor = colorToCss(snapshot.cursorUserBubbleColor),
-                userBubbleColor = colorToCss(snapshot.bubbleUserBubbleColor),
-                assistantBubbleColor = colorToCss(snapshot.bubbleAiBubbleColor),
-                userTextColor = colorToCss(snapshot.bubbleUserTextColor),
-                assistantTextColor = colorToCss(snapshot.bubbleAiTextColor),
-                cursorUserLiquidGlass =
-                    snapshot.cursorUserBubbleLiquidGlass && !snapshot.cursorUserBubbleWaterGlass,
-                cursorUserWaterGlass = snapshot.cursorUserBubbleWaterGlass,
-                userLiquidGlass =
-                    snapshot.bubbleUserBubbleLiquidGlass && !snapshot.bubbleUserBubbleWaterGlass,
-                userWaterGlass = snapshot.bubbleUserBubbleWaterGlass,
-                assistantLiquidGlass =
-                    snapshot.bubbleAiBubbleLiquidGlass && !snapshot.bubbleAiBubbleWaterGlass,
-                assistantWaterGlass = snapshot.bubbleAiBubbleWaterGlass,
-                userRounded = snapshot.bubbleUserRoundedCornersEnabled,
-                assistantRounded = snapshot.bubbleAiRoundedCornersEnabled,
-                userPaddingLeft = snapshot.bubbleUserContentPaddingLeft,
-                userPaddingRight = snapshot.bubbleUserContentPaddingRight,
-                assistantPaddingLeft = snapshot.bubbleAiContentPaddingLeft,
-                assistantPaddingRight = snapshot.bubbleAiContentPaddingRight,
+                showAvatar = presentation.bubbleShowAvatar,
+                wideLayout = presentation.bubbleWideLayoutEnabled,
+                cursorUserFollowTheme = presentation.cursorUserBubbleFollowTheme,
+                cursorUserColor = null,
+                userBubbleColor = null,
+                assistantBubbleColor = null,
+                userTextColor = null,
+                assistantTextColor = null,
+                cursorUserLiquidGlass = false,
+                cursorUserWaterGlass = false,
+                userLiquidGlass = false,
+                userWaterGlass = false,
+                assistantLiquidGlass = false,
+                assistantWaterGlass = false,
+                userRounded = true,
+                assistantRounded = true,
+                userPaddingLeft = 16f,
+                userPaddingRight = 16f,
+                assistantPaddingLeft = 16f,
+                assistantPaddingRight = 16f,
                 userImage = WebBubbleImageTheme(
-                    enabled = snapshot.bubbleUserUseImage && !snapshot.bubbleUserImageUri.isNullOrBlank(),
-                    assetUrl = snapshot.bubbleUserImageUri?.takeIf { snapshot.bubbleUserUseImage }?.let {
-                        registerAsset(it, guessMimeType(it))
-                    },
-                    renderMode = snapshot.bubbleImageRenderMode
+                    enabled = false,
+                    assetUrl = null,
+                    renderMode = "nine_patch"
                 ),
                 assistantImage = WebBubbleImageTheme(
-                    enabled = snapshot.bubbleAiUseImage && !snapshot.bubbleAiImageUri.isNullOrBlank(),
-                    assetUrl = snapshot.bubbleAiImageUri?.takeIf { snapshot.bubbleAiUseImage }?.let {
-                        registerAsset(it, guessMimeType(it))
-                    },
-                    renderMode = snapshot.bubbleImageRenderMode
+                    enabled = false,
+                    assetUrl = null,
+                    renderMode = "nine_patch"
                 )
             ),
             avatars = WebAvatarTheme(
-                shape = snapshot.avatarShape,
-                cornerRadius = snapshot.avatarCornerRadius,
-                userAvatarUrl = (snapshot.customUserAvatarUri?.takeIf { it.isNotBlank() } ?: globalUserAvatarUri)?.let {
-                    registerAsset(it, guessMimeType(it))
-                },
-                assistantAvatarUrl = snapshot.customAiAvatarUri?.takeIf { it.isNotBlank() }?.let {
-                    registerAsset(it, guessMimeType(it))
-                }
+                shape = "circle",
+                cornerRadius = 0f,
+                userAvatarUrl = globalUserAvatarUri?.let { registerAsset(it, guessMimeType(it)) },
+                assistantAvatarUrl = assistantAvatarUri?.let { registerAsset(it, guessMimeType(it)) }
             )
         )
     }

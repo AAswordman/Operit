@@ -40,6 +40,7 @@ import com.ai.assistance.operit.core.workflow.WorkflowSchedulerInitializer
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupPreferences
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupScheduler
 import com.ai.assistance.operit.data.db.AppDatabase
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -184,6 +185,26 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         val defaultProfileName = applicationContext.getString(R.string.default_profile)
         initUserPreferencesManager(applicationContext, defaultProfileName)
         AppLogger.d(TAG, "【启动计时】用户偏好管理器初始化完成 - ${System.currentTimeMillis() - startTime}ms")
+
+        // 一次性迁移：主题前缀下的 AI 头像/聊天标题搬到 metadata 前缀，
+        // 清除旧目标级视觉主题键；遗留用户头像并入全局用户身份。
+        applicationScope.launch {
+            try {
+                val pendingGlobalUserAvatar =
+                    UserPreferencesManager.getInstance(applicationContext).migrateLegacyThemeStorage()
+                if (pendingGlobalUserAvatar != null) {
+                    val displayPreferences = DisplayPreferencesManager.getInstance(applicationContext)
+                    val globalUserAvatar = displayPreferences.globalUserAvatarUri.first()
+                    if (globalUserAvatar.isNullOrBlank()) {
+                        displayPreferences.saveDisplaySettings(
+                            globalUserAvatarUri = pendingGlobalUserAvatar,
+                        )
+                    }
+                }
+            } catch (error: Throwable) {
+                AppLogger.e(TAG, "Theme storage metadata migration failed", error)
+            }
+        }
 
         applicationScope.launch {
             NativeThemeGlanceWidgetHost.refreshForThemeChanges(
