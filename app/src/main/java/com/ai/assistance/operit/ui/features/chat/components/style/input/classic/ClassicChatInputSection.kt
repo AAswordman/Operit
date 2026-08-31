@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -56,6 +57,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.ui.common.animations.SimpleAnimatedVisibility
 import com.ai.assistance.operit.ui.features.chat.components.AttachmentChip
@@ -67,6 +69,9 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.P
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.PendingQueueMessageItem
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
+import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentStateV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 import com.ai.assistance.operit.util.ChatUtils
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
@@ -222,11 +227,16 @@ fun ClassicChatInputSection(
     }
 
     val containerModifier = modifier
+    var isInputFocused by remember { mutableStateOf(false) }
+    val inputSkin =
+        LocalThemePackageUiRuntimeV2.current.componentSkin(
+            ThemeComponentCatalogV2.INPUT,
+            if (isInputFocused) ThemeComponentStateV2.FOCUSED else ThemeComponentStateV2.NORMAL,
+        )
 
-    Box(
-        modifier =
-            containerModifier
-                .background(MaterialTheme.colorScheme.surface),
+    ThemeComponentSurfaceV2(
+        component = ThemeComponentCatalogV2.COMPOSER,
+        modifier = containerModifier,
     ) {
         Column {
             // Reply preview section
@@ -413,100 +423,95 @@ fun ClassicChatInputSection(
             ) {
                 // Input field (保持原有高度)
 
-                val classicInputShape = RoundedCornerShape(14.dp)
                 val classicInputEnabled = !isProcessing || allowTextInputWhileProcessing
-                val classicInputBorderColor =
-                    if (userMessage.text.isNotBlank()) {
-                        MaterialTheme.colorScheme.outline
-                    } else {
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.72f)
-                    }
-
-                BasicTextField(
-                    value = userMessage,
-                    onValueChange = onUserMessageChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 30.dp)
-                        .onPreviewKeyEvent { keyEvent ->
-                            if (!enableEnterToSend) {
-                                false
-                            } else if (
-                                keyEvent.type == KeyEventType.KeyDown &&
-                                keyEvent.key == Key.Enter &&
-                                !keyEvent.isShiftPressed
-                            ) {
-                                handleEnterSendAction()
-                                true
+                ThemeComponentSurfaceV2(
+                    skin = inputSkin,
+                    modifier = Modifier.weight(1f).heightIn(min = 30.dp),
+                ) {
+                    BasicTextField(
+                        value = userMessage,
+                        onValueChange = onUserMessageChange,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { focusState ->
+                                    isInputFocused = focusState.isFocused
+                                }
+                                .onPreviewKeyEvent { keyEvent ->
+                                    if (!enableEnterToSend) {
+                                        false
+                                    } else if (
+                                        keyEvent.type == KeyEventType.KeyDown &&
+                                            keyEvent.key == Key.Enter &&
+                                            !keyEvent.isShiftPressed
+                                    ) {
+                                        handleEnterSendAction()
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                        textStyle = modernTextStyle.copy(color = inputSkin.content),
+                        cursorBrush = SolidColor(inputSkin.content),
+                        visualTransformation = mentionVisualTransformation,
+                        maxLines = 5,
+                        minLines = 1,
+                        keyboardOptions =
+                            KeyboardOptions(
+                                imeAction = if (enableEnterToSend) ImeAction.Send else ImeAction.Default,
+                            ),
+                        keyboardActions =
+                            if (enableEnterToSend) {
+                                KeyboardActions(onSend = { handleEnterSendAction() })
                             } else {
-                                false
-                            }
-                        },
-                    textStyle = modernTextStyle.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    visualTransformation = mentionVisualTransformation,
-                    maxLines = 5,
-                    minLines = 1,
-                    keyboardOptions =
-                    KeyboardOptions(imeAction = if (enableEnterToSend) ImeAction.Send else ImeAction.Default),
-                    keyboardActions =
-                    if (enableEnterToSend) {
-                        KeyboardActions(onSend = { handleEnterSendAction() })
-                    } else {
-                        KeyboardActions()
-                    },
-                    enabled = classicInputEnabled,
-                    decorationBox = { innerTextField ->
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .border(
-                                        width = 1.dp,
-                                        color = classicInputBorderColor,
-                                        shape = classicInputShape,
-                                    )
-                                    .clip(classicInputShape)
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(start = 14.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
+                                KeyboardActions()
+                            },
+                        enabled = classicInputEnabled,
+                        decorationBox = { innerTextField ->
+                            Row(
                                 modifier =
                                     Modifier
-                                        .weight(1f)
-                                        .padding(end = 6.dp, top = 7.dp, bottom = 7.dp),
-                                contentAlignment = Alignment.CenterStart,
+                                        .fillMaxWidth()
+                                        .padding(start = 14.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                if (userMessage.text.isEmpty()) {
-                                    Text(
-                                        text =
-                                            if (isWorkspaceOpen) {
-                                                context.getString(R.string.input_question_with_workspace)
-                                            } else {
-                                                context.getString(R.string.input_question_hint)
-                                            },
-                                        style = modernTextStyle,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .padding(end = 6.dp, top = 7.dp, bottom = 7.dp),
+                                    contentAlignment = Alignment.CenterStart,
+                                ) {
+                                    if (userMessage.text.isEmpty()) {
+                                        Text(
+                                            text =
+                                                if (isWorkspaceOpen) {
+                                                    context.getString(R.string.input_question_with_workspace)
+                                                } else {
+                                                    context.getString(R.string.input_question_hint)
+                                                },
+                                            style = modernTextStyle,
+                                            color = inputSkin.content.copy(alpha = 0.72f),
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+
+                                IconButton(
+                                    onClick = { showFullscreenInput.value = true },
+                                    modifier = Modifier.size(30.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Fullscreen,
+                                        contentDescription = stringResource(R.string.chat_fullscreen_input),
+                                        tint = inputSkin.content.copy(alpha = 0.72f),
+                                        modifier = Modifier.size(16.dp),
                                     )
                                 }
-                                innerTextField()
                             }
-
-                            IconButton(
-                                onClick = { showFullscreenInput.value = true },
-                                modifier = Modifier.size(30.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Fullscreen,
-                                    contentDescription = stringResource(R.string.chat_fullscreen_input),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
 
                 Spacer(modifier = Modifier.width(8.dp))
 

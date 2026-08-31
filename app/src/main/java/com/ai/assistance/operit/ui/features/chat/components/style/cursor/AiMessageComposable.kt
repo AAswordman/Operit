@@ -26,11 +26,14 @@ import com.ai.assistance.operit.util.markdown.toCharStream
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.onSizeChanged
 import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
+import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
 import com.ai.assistance.operit.ui.theme.ProvideAiMarkdownTextLayoutSettings
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 
 /**
  * A composable function for rendering AI response messages in a Cursor IDE style. Supports text
@@ -61,8 +64,10 @@ fun AiMessageComposable(
     val showModelName = presentation.showModelName
     val showRoleName = presentation.showRoleName
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val backgroundColor = MaterialTheme.colorScheme.surface
+    val messageSkin =
+        LocalThemePackageUiRuntimeV2.current.componentSkin(ThemeComponentCatalogV2.MESSAGE_ASSISTANT)
+    val textColor = messageSkin.content
+    val backgroundColor = messageSkin.container
 
     // 链接预览弹窗状态
     var showLinkDialog by remember { mutableStateOf(false) }
@@ -115,15 +120,18 @@ fun AiMessageComposable(
     }
 
     ProvideAiMarkdownTextLayoutSettings {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp)
-                    .onSizeChanged { size ->
-                        heightMemory?.updateMeasured(message.timestamp, size.height)
-                    }
+        ThemeComponentSurfaceV2(
+            skin = messageSkin,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         ) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { size ->
+                            heightMemory?.updateMeasured(message.timestamp, size.height)
+                        },
+            ) {
         // 构建标题 - 分左右两部分显示
         Row(
             modifier = Modifier
@@ -208,7 +216,8 @@ fun AiMessageComposable(
                 )
             }
         }
-    }
+            }
+        }
 
         // 链接预览弹窗 - 仅在启用弹窗时显示
         if (showLinkDialog && linkToPreview.isNotEmpty() && enableDialogs) {

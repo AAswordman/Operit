@@ -50,6 +50,7 @@ import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 import com.ai.assistance.operit.ui.features.chat.components.attachments.AttachmentViewerDialog
 import com.ai.assistance.operit.ui.features.chat.components.attachments.ChatAttachment
 import com.ai.assistance.operit.ui.features.chat.components.style.common.HiddenUserMessagePlaceholderContent
@@ -58,6 +59,8 @@ import com.ai.assistance.operit.util.ImageBitmapLimiter
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
+import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
@@ -76,13 +79,21 @@ fun BubbleUserMessageComposable(
     val isHiddenPlaceholder =
         message.sender == "user" &&
             message.displayMode == ChatMessageDisplayMode.HIDDEN_PLACEHOLDER
-    val effectiveBackgroundColor =
+    val userSkin =
+        LocalThemePackageUiRuntimeV2.current.componentSkin(ThemeComponentCatalogV2.MESSAGE_USER)
+    val messageSkin =
         if (isHiddenPlaceholder) {
-            Color.Transparent
+            userSkin.copy(
+                container = Color.Transparent,
+                outline = null,
+                outlineWidthDp = 0f,
+                elevationDp = 0f,
+            )
         } else {
-            MaterialTheme.colorScheme.primaryContainer
+            userSkin
         }
-    val effectiveTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+    val effectiveBackgroundColor = messageSkin.container
+    val effectiveTextColor = messageSkin.content
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
@@ -296,7 +307,7 @@ fun BubbleUserMessageComposable(
                                 text = userName,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isProxySender) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                color = effectiveTextColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -324,7 +335,7 @@ fun BubbleUserMessageComposable(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(avatarShape),
-                                tint = if (isProxySender) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                                tint = effectiveTextColor,
                             )
                         }
                     }
@@ -335,7 +346,6 @@ fun BubbleUserMessageComposable(
 
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 val maxBubbleWidth = maxWidth
-                val bubbleShape = RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp)
                 val bubbleModifier =
                     Modifier
                         .widthIn(max = if (isHiddenPlaceholder) minOf(maxBubbleWidth, 320.dp) else maxBubbleWidth)
@@ -345,11 +355,9 @@ fun BubbleUserMessageComposable(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    Surface(
+                    ThemeComponentSurfaceV2(
+                        skin = messageSkin,
                         modifier = bubbleModifier,
-                        shape = bubbleShape,
-                        color = effectiveBackgroundColor,
-                        tonalElevation = if (isHiddenPlaceholder) 0.dp else 2.dp,
                     ) {
                         if (isHiddenPlaceholder) {
                             Box(
@@ -408,7 +416,7 @@ fun BubbleUserMessageComposable(
                             Text(
                                 text = userName,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isProxySender) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = effectiveTextColor.copy(alpha = 0.72f),
                                 modifier = Modifier.padding(bottom = 4.dp, end = 4.dp)
                             )
                         }
@@ -418,17 +426,14 @@ fun BubbleUserMessageComposable(
                 // Message bubble
                 BoxWithConstraints {
                     val maxBubbleWidth = maxWidth * 0.85f
-                    val bubbleShape = RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp)
                     val bubbleModifier =
                         Modifier
                             .widthIn(max = if (isHiddenPlaceholder) minOf(maxBubbleWidth, 320.dp) else maxBubbleWidth)
                             .defaultMinSize(minHeight = 44.dp)
 
-                    Surface(
+                    ThemeComponentSurfaceV2(
+                        skin = messageSkin,
                         modifier = bubbleModifier,
-                        shape = bubbleShape,
-                        color = effectiveBackgroundColor,
-                        tonalElevation = if (isHiddenPlaceholder) 0.dp else 2.dp,
                     ) {
                         if (isHiddenPlaceholder) {
                             Box(
@@ -481,7 +486,7 @@ fun BubbleUserMessageComposable(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(avatarShape),
-                        tint = if (isProxySender) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                                tint = effectiveTextColor
                     )
                 }
             }

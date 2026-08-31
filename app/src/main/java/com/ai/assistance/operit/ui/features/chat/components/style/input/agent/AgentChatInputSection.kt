@@ -70,6 +70,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
@@ -117,6 +118,7 @@ import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 import com.ai.assistance.operit.ui.common.icons.MaterialIconNameResolver
 import com.ai.assistance.operit.ui.common.animations.SimpleAnimatedVisibility
 import com.ai.assistance.operit.ui.features.chat.components.AttachmentChip
@@ -136,6 +138,9 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.r
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
+import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentStateV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 import com.ai.assistance.operit.util.ChatUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -591,7 +596,17 @@ fun AgentChatInputSection(
             Triple(MaterialTheme.colorScheme.primary, "", 0f)
         }
 
-    Surface(color = Color.Transparent, modifier = modifier) {
+    var isInputFocused by remember { mutableStateOf(false) }
+    val inputSkin =
+        LocalThemePackageUiRuntimeV2.current.componentSkin(
+            ThemeComponentCatalogV2.INPUT,
+            if (isInputFocused) ThemeComponentStateV2.FOCUSED else ThemeComponentStateV2.NORMAL,
+        )
+
+    ThemeComponentSurfaceV2(
+        component = ThemeComponentCatalogV2.COMPOSER,
+        modifier = modifier,
+    ) {
         Column {
             replyToMessage?.let { message ->
                 Surface(
@@ -687,14 +702,13 @@ fun AgentChatInputSection(
                 }
             }
 
-            val inputCardShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-            Box(
+            ThemeComponentSurfaceV2(
+                skin = inputSkin,
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .padding(top = 4.dp)
-                        .clip(inputCardShape)
-                        .background(MaterialTheme.colorScheme.surface),
+                        .heightIn(min = 44.dp),
             ) {
                 Column(
                         modifier =
@@ -716,8 +730,15 @@ fun AgentChatInputSection(
                                     style = inputTextStyle,
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
-                            textStyle = inputTextStyle,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 44.dp)
+                                    .onFocusChanged { focusState ->
+                                        isInputFocused = focusState.isFocused
+                                    }
+                                    .onPreviewKeyEvent(onEnterToSendKeyEvent),
+                            textStyle = inputTextStyle.copy(color = inputSkin.content),
                             maxLines = 6,
                             minLines = 1,
                             singleLine = false,
@@ -740,13 +761,13 @@ fun AgentChatInputSection(
                                     unfocusedContainerColor = Color.Transparent,
                                     disabledContainerColor = Color.Transparent,
                                 ),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(inputSkin.cornerRadiusDp.dp),
                             trailingIcon = {
                                 IconButton(onClick = { showFullscreenInput.value = true }) {
                                     Icon(
                                         imageVector = Icons.Default.Fullscreen,
                                         contentDescription = stringResource(R.string.chat_fullscreen_input),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = inputSkin.content.copy(alpha = 0.72f),
                                     )
                                 }
                             },
@@ -2677,4 +2698,3 @@ private fun AgentInfoPopup(
         }
     }
 }
-

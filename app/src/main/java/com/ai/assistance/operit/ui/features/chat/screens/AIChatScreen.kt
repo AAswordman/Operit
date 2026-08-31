@@ -863,17 +863,16 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         }
                     },
                     composer = {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .align(Alignment.BottomCenter)
-                                .onGloballyPositioned {
-                                    bottomBarHeightPx = it.size.height
-                                }
-                                .graphicsLayer { translationY = -inputBarTranslationYPx }
-                    ) {
+                        // The scaffold bottom must use the composer's intrinsic height. A full-size
+                        // host here consumes the weighted transcript region and hides messages.
                         ChatInputBottomBar(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .onGloballyPositioned {
+                                            bottomBarHeightPx = it.size.height
+                                        }
+                                        .graphicsLayer { translationY = -inputBarTranslationYPx },
                                 actualViewModel = actualViewModel,
                                 inputStyle = inputStyle,
                                 currentChatId = currentChatId,
@@ -912,8 +911,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 },
                                 onRequestAutoScrollToBottom = requestAutoScrollToBottom,
                         )
-                    }
-                        }
                     },
                     overlayStack = {
                         Box(modifier = Modifier.fillMaxSize()) {
@@ -1267,6 +1264,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
 
 @Composable
 private fun ChatInputBottomBar(
+    modifier: Modifier,
     actualViewModel: ChatViewModel,
     inputStyle: String,
     currentChatId: String?,
@@ -1646,6 +1644,7 @@ private fun ChatInputBottomBar(
 
     if (inputStyle == GlobalInputStyle.AGENT.value) {
         AgentChatInputSection(
+                modifier = modifier,
                 actualViewModel = actualViewModel,
                 userMessage = userMessage,
                 onUserMessageChange = { value -> handleUserMessageChange(value) },
@@ -1737,6 +1736,7 @@ private fun ChatInputBottomBar(
         )
     } else {
         ClassicChatInputSection(
+                modifier = modifier,
                 actualViewModel = actualViewModel,
                 userMessage = userMessage,
                 onUserMessageChange = { value -> handleUserMessageChange(value) },

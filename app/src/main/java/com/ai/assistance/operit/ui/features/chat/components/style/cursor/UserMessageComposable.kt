@@ -63,6 +63,7 @@ import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 import com.ai.assistance.operit.ui.features.chat.components.attachments.AttachmentViewerDialog
 import com.ai.assistance.operit.ui.features.chat.components.attachments.ChatAttachment
 import com.ai.assistance.operit.ui.features.chat.components.style.common.HiddenUserMessagePlaceholderContent
@@ -70,6 +71,8 @@ import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 import com.ai.assistance.operit.util.ImageBitmapLimiter
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -116,18 +119,21 @@ fun UserMessageComposable(
     val imageLinks = parseResult.imageLinks
     val proxySenderName = if (isHiddenPlaceholder) null else parseResult.proxySenderName
     val isProxySender = !proxySenderName.isNullOrBlank()
-    val effectiveBackgroundColor =
-        when {
-            isHiddenPlaceholder -> Color.Transparent
-            isProxySender -> MaterialTheme.colorScheme.secondaryContainer
-            else -> MaterialTheme.colorScheme.primaryContainer
-        }
-    val effectiveTextColor =
-        if (isProxySender) {
-            MaterialTheme.colorScheme.onSecondaryContainer
+    val userSkin =
+        LocalThemePackageUiRuntimeV2.current.componentSkin(ThemeComponentCatalogV2.MESSAGE_USER)
+    val messageSkin =
+        if (isHiddenPlaceholder) {
+            userSkin.copy(
+                container = Color.Transparent,
+                outline = null,
+                outlineWidthDp = 0f,
+                elevationDp = 0f,
+            )
         } else {
-            MaterialTheme.colorScheme.onPrimaryContainer
+            userSkin
         }
+    val effectiveBackgroundColor = messageSkin.container
+    val effectiveTextColor = messageSkin.content
 
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -226,20 +232,17 @@ fun UserMessageComposable(
         }
 
         // Message bubble
-        Card(
+        ThemeComponentSurfaceV2(
+            skin = messageSkin,
             modifier =
-            Modifier
-                .then(
-                    if (isHiddenPlaceholder) {
-                        Modifier.widthIn(max = 320.dp)
-                    } else {
-                        Modifier.fillMaxWidth()
-                    }
-                ),
-            colors = CardDefaults.cardColors(
-                containerColor = effectiveBackgroundColor,
-            ),
-            shape = RoundedCornerShape(8.dp)
+                Modifier
+                    .then(
+                        if (isHiddenPlaceholder) {
+                            Modifier.widthIn(max = 320.dp)
+                        } else {
+                            Modifier.fillMaxWidth()
+                        }
+                    ),
         ) {
             Column(modifier = Modifier
                 .fillMaxWidth()

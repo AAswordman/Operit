@@ -41,6 +41,7 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 import androidx.compose.foundation.Image
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
@@ -52,7 +53,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
+import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
 import com.ai.assistance.operit.ui.theme.ProvideAiMarkdownTextLayoutSettings
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 
@@ -95,8 +98,10 @@ fun BubbleAiMessageComposable(
     val showModelName = presentation.showModelName
     val showRoleName = presentation.showRoleName
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val backgroundColor = MaterialTheme.colorScheme.surface
+    val messageSkin =
+        LocalThemePackageUiRuntimeV2.current.componentSkin(ThemeComponentCatalogV2.MESSAGE_ASSISTANT)
+    val textColor = messageSkin.content
+    val backgroundColor = messageSkin.container
 
     // 根据角色名获取头像
     val aiAvatarUri by remember(message.roleName) {
@@ -269,7 +274,7 @@ fun BubbleAiMessageComposable(
                                 text = roleNameText,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = textColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -279,7 +284,7 @@ fun BubbleAiMessageComposable(
                             Text(
                                 text = metadataText,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = textColor.copy(alpha = 0.72f),
                             )
                         }
                     }
@@ -301,7 +306,6 @@ fun BubbleAiMessageComposable(
                         contentScale = ContentScale.Fit,
                     )
                 } else {
-                    val bubbleShape = RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
                     val bubbleModifier =
                         Modifier
                             .widthIn(max = maxBubbleWidth)
@@ -352,11 +356,9 @@ fun BubbleAiMessageComposable(
                         }
                     }
 
-                    Surface(
+                    ThemeComponentSurfaceV2(
+                        skin = messageSkin,
                         modifier = bubbleModifier,
-                        shape = bubbleShape,
-                        color = backgroundColor,
-                        tonalElevation = 2.dp,
                     ) {
                         renderContent()
                     }
@@ -442,7 +444,7 @@ fun BubbleAiMessageComposable(
                 Text(
                     text = displayText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = textColor.copy(alpha = 0.72f),
                     modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
                 )
             }
@@ -461,7 +463,6 @@ fun BubbleAiMessageComposable(
                     )
                 } else {
                     // Message bubble
-                    val bubbleShape = RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
                     val bubbleModifier =
                         Modifier
                             .widthIn(max = maxBubbleWidth)
@@ -516,11 +517,9 @@ fun BubbleAiMessageComposable(
                         }
                     }
 
-                    Surface(
+                    ThemeComponentSurfaceV2(
+                        skin = messageSkin,
                         modifier = bubbleModifier,
-                        shape = bubbleShape,
-                        color = backgroundColor,
-                        tonalElevation = 2.dp,
                     ) {
                         renderContent()
                     }
