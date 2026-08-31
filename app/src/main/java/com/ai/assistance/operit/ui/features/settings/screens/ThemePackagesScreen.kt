@@ -253,7 +253,7 @@ fun ThemePackagesScreen(
                                     ?.argb
                                     ?: ((definition.defaultValue
                                             as? com.ai.assistance.operit.data.theme.packages.ThemeParameterDefaultV2.ColorValue)
-                                        ?.argb),,
+                                        ?.argb),
                             onPick = { argb ->
                                 scope.launch {
                                     updateParameter(
