@@ -15,3 +15,11 @@ V2 runtime 可解析 component skin，但聊天代码只读取 Material 色板�
 - 赛博 Agent 与 Classic 输入器均显示 package 指定的背景、轮廓和圆角。
 - 四种消息路径（Cursor/Bubble x user/AI）在星云背景上可读。
 - 主题切换后同一运行时立即驱动组件颜色和几何，不保留固定聊天视觉。
+
+## 进展
+
+[DONE] 新增 `ThemeComponentSurfaceV2`，以激活主题的 resolved skin 绘制 container、content、outline、radius、elevation 和 content padding。
+
+[DONE] Agent/Classic composer 与编辑器消费 `composer` 和 `input` skin；焦点变化会选择 `input.focused`。
+
+[DONE] Cursor/Bubble 的 user/AI 正文消费 `message_user` 和 `message_assistant` skin。Cursor AI 的透明 Markdown 现在位于 package-owned assistant surface 内，不再直接落在主题背景图片上。

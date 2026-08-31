@@ -20,10 +20,10 @@
 
 [DONE] `AppShellSceneHost` 替代 `AppContent` 的原始 Scaffold/TopAppBar；系统栏颜色改为消费 `app_bar` 皮肤容器色（旧 primary 直刷状态栏/顶栏的缺陷已移除，含回归测试）。
 
-[DONE] `chat.main`：`ChatScreenHeader` 迁入真实 `header` 槽位；`transcript` 不再重复绘制角色栏；`configuration_gate` 承载首配屏；composer 由场景 scaffold bottom 区域真实测量，赛博包不再使用百分比绝对定位。
+[DONE] `chat.main`：`ChatScreenHeader` 迁入真实 `header` 槽位；`transcript` 不再重复绘制角色栏；`configuration_gate` 承载首配屏；composer 由场景 scaffold bottom 区域按真实内容高度测量，赛博包不再使用百分比绝对定位。`67fe288d` 移除了曾错误占满该 slot 的 host `fillMaxSize()`，避免 composer 抢占 transcript。
 
 [DONE] 悬浮窗、应用内 overlay、离屏导出与 WebChat 桥统一消费同一激活主题包运行时；Glance 桌面小组件按产品决策保持固定基线。
 
-[TODO] `OperitThemeComponents` 受皮肤驱动的专用组件包装（button/input/dialog/menu/sheet 等当前经 Material 投影着色，专属异形皮肤消费在下一批次接线）。
+[TODO] `OperitThemeComponents` 受皮肤驱动的专用组件包装：聊天 composer/input/message 已由 `ThemeComponentSurfaceV2` 接线；button、dialog、menu、sheet 等其余组件仍需逐批迁移，当前经 Material 投影着色。
 
 [TODO] `app.navigation` 抽屉/平板导航、`chat.floating`、`browser.shell` 等仍为 TEMPLATE/HOST_SHELL 级主题化（颜色排版已随包，专属场景待逐批迁移）。

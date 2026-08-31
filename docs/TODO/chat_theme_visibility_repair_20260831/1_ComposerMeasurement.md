@@ -14,3 +14,9 @@
 
 - 有任意 composer 内容时，transcript 的已测量高度大于零。
 - composer 高度随附件、排队消息和多行输入变化，且不会覆盖 transcript。
+
+## 进展
+
+[DONE] `AIChatScreen` 的 composer slot 已移除满屏 `Box`，改为把 `fillMaxWidth()`、真实高度观察与 IME translation 直接下传到 `ChatInputBottomBar`。输入器根节点因而按内容高度参与 scaffold bottom 测量。
+
+[DONE] 增加 `ThemeSceneScaffoldAndroidTest`，覆盖 intrinsic composer 与非零 transcript 区域的测量不变量。
