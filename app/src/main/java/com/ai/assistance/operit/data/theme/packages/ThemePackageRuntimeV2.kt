@@ -191,8 +191,8 @@ private data class LinkedThemeAccumulatorV2(
             listOfNotNull(skin.normal, skin.disabled, skin.selected, skin.focused, skin.error).forEach { state ->
                 requireColor(tokens, state.containerToken, "Component ${componentId.value}")
                 requireColor(tokens, state.contentToken, "Component ${componentId.value}")
-                state.outlineToken?.let { tokenId ->
-                    requireColor(tokens, tokenId, "Component ${componentId.value}")
+                state.frame.strokes().forEach { stroke ->
+                    requireColor(tokens, stroke.token, "Component ${componentId.value}")
                 }
             }
         }

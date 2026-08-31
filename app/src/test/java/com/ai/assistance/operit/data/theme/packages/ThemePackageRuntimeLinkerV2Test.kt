@@ -127,6 +127,7 @@ class ThemePackageRuntimeLinkerV2Test {
                 ThemeComponentStateSkinV2(
                     containerToken = containerToken,
                     contentToken = "color.background",
+                    frame = ThemeComponentFrameSpecV2.RoundRect(cornerRadiusDp = 0f),
                 ),
         )
 

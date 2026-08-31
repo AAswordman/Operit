@@ -597,10 +597,16 @@ fun AgentChatInputSection(
         }
 
     var isInputFocused by remember { mutableStateOf(false) }
+    val inputSkinState =
+        when {
+            isOverTokenLimit -> ThemeComponentStateV2.ERROR
+            isInputFocused -> ThemeComponentStateV2.FOCUSED
+            else -> ThemeComponentStateV2.NORMAL
+        }
     val inputSkin =
         LocalThemePackageUiRuntimeV2.current.componentSkin(
             ThemeComponentCatalogV2.INPUT,
-            if (isInputFocused) ThemeComponentStateV2.FOCUSED else ThemeComponentStateV2.NORMAL,
+            inputSkinState,
         )
 
     ThemeComponentSurfaceV2(
@@ -761,7 +767,6 @@ fun AgentChatInputSection(
                                     unfocusedContainerColor = Color.Transparent,
                                     disabledContainerColor = Color.Transparent,
                                 ),
-                            shape = RoundedCornerShape(inputSkin.cornerRadiusDp.dp),
                             trailingIcon = {
                                 IconButton(onClick = { showFullscreenInput.value = true }) {
                                     Icon(

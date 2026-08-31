@@ -8,8 +8,8 @@ import kotlinx.coroutines.withContext
 /** Exact V2 release artifact bundled with Operit and used as the required base theme. */
 internal object ThemePackageDefaultV2 {
     const val PACKAGE_ID = "operit.default"
-    const val VERSION = "2.0.0"
-    const val ARCHIVE_SHA256 = "8d5c512555a059a871259071adfd26b3257d57e533d0ba80f03537c58e6b4102"
+    const val VERSION = "2.1.0"
+    const val ARCHIVE_SHA256 = "3ada292d108f11efaaa78e029db307229e2fada18ed15b4bd09a75b8323c8f13"
 
     private const val ASSET_PATH = "theme-packages/operit-default-v2.otheme"
 

@@ -72,6 +72,7 @@ import com.ai.assistance.operit.util.ImageBitmapLimiter
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
+import com.ai.assistance.operit.ui.theme.ResolvedThemeComponentFrameV2
 import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -125,8 +126,7 @@ fun UserMessageComposable(
         if (isHiddenPlaceholder) {
             userSkin.copy(
                 container = Color.Transparent,
-                outline = null,
-                outlineWidthDp = 0f,
+                frame = ResolvedThemeComponentFrameV2.None,
                 elevationDp = 0f,
             )
         } else {

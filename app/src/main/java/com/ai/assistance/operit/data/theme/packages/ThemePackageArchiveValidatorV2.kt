@@ -348,7 +348,10 @@ internal object ThemePackageArchiveValidatorV2 {
         allowsInheritedTokens: Boolean,
     ) {
         listOfNotNull(skin.normal, skin.disabled, skin.selected, skin.focused, skin.error).forEach { state ->
-            listOfNotNull(state.containerToken, state.contentToken, state.outlineToken).forEach { tokenId ->
+            val tokenIds =
+                listOf(state.containerToken, state.contentToken) +
+                    state.frame.strokes().map { stroke -> stroke.token }
+            tokenIds.forEach { tokenId ->
                 val token = tokens[tokenId]
                 if (token == null && allowsInheritedTokens) return@forEach
                 if (token !is com.ai.assistance.operit.ui.theme.scene.ThemeSceneTokenValueV1.ColorToken) {

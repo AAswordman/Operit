@@ -326,21 +326,120 @@ internal data class ThemeComponentInsetsV2(
 }
 
 @Serializable
+internal data class ThemeComponentFrameStrokeV2(
+    val token: String,
+    val widthDp: Float,
+) {
+    init {
+        ThemeSceneTokenIdV1(token)
+        require(widthDp in 0.25f..16f) { "Theme component frame stroke width must be within [0.25, 16] dp." }
+    }
+}
+
+/** Explicit geometry owned by a component skin; no implicit outline or corner treatment remains. */
+@Serializable
+internal sealed interface ThemeComponentFrameSpecV2 {
+    @Serializable
+    @SerialName("none")
+    data object None : ThemeComponentFrameSpecV2
+
+    @Serializable
+    @SerialName("round_rect")
+    data class RoundRect(
+        val cornerRadiusDp: Float,
+        val border: ThemeComponentFrameStrokeV2? = null,
+    ) : ThemeComponentFrameSpecV2 {
+        init {
+            require(cornerRadiusDp in 0f..96f) { "Round-rect frame radius must be within [0, 96] dp." }
+        }
+    }
+
+    @Serializable
+    @SerialName("cut_corners")
+    data class CutCorners(
+        val cutSizeDp: Float,
+        val border: ThemeComponentFrameStrokeV2,
+        val accent: ThemeComponentFrameStrokeV2? = null,
+    ) : ThemeComponentFrameSpecV2 {
+        init {
+            require(cutSizeDp in 0.5f..48f) { "Cut-corner frame size must be within [0.5, 48] dp." }
+        }
+    }
+
+    @Serializable
+    @SerialName("hud_notched")
+    data class HudNotched(
+        val cutSizeDp: Float,
+        val notchWidthFraction: Float,
+        val notchDepthDp: Float,
+        val border: ThemeComponentFrameStrokeV2,
+        val accent: ThemeComponentFrameStrokeV2? = null,
+    ) : ThemeComponentFrameSpecV2 {
+        init {
+            require(cutSizeDp in 0.5f..48f) { "HUD frame cut size must be within [0.5, 48] dp." }
+            require(notchWidthFraction in 0.1f..0.7f) {
+                "HUD frame notch width fraction must be within [0.1, 0.7]."
+            }
+            require(notchDepthDp in 0.5f..48f) { "HUD frame notch depth must be within [0.5, 48] dp." }
+        }
+    }
+
+    @Serializable
+    @SerialName("corner_brackets")
+    data class CornerBrackets(
+        val cornerCutDp: Float,
+        val bracketLengthDp: Float,
+        val border: ThemeComponentFrameStrokeV2,
+        val accent: ThemeComponentFrameStrokeV2? = null,
+    ) : ThemeComponentFrameSpecV2 {
+        init {
+            require(cornerCutDp in 0f..48f) { "Bracket frame corner cut must be within [0, 48] dp." }
+            require(bracketLengthDp in 4f..96f) {
+                "Bracket frame length must be within [4, 96] dp."
+            }
+        }
+    }
+
+    @Serializable
+    @SerialName("segmented_rail")
+    data class SegmentedRail(
+        val cornerCutDp: Float,
+        val railInsetDp: Float,
+        val segmentLengthDp: Float,
+        val border: ThemeComponentFrameStrokeV2,
+        val accent: ThemeComponentFrameStrokeV2,
+    ) : ThemeComponentFrameSpecV2 {
+        init {
+            require(cornerCutDp in 0f..48f) { "Rail frame corner cut must be within [0, 48] dp." }
+            require(railInsetDp in 0f..48f) { "Rail frame inset must be within [0, 48] dp." }
+            require(segmentLengthDp in 4f..160f) {
+                "Rail frame segment length must be within [4, 160] dp."
+            }
+        }
+    }
+}
+
+internal fun ThemeComponentFrameSpecV2.strokes(): List<ThemeComponentFrameStrokeV2> =
+    when (this) {
+        ThemeComponentFrameSpecV2.None -> emptyList()
+        is ThemeComponentFrameSpecV2.RoundRect -> listOfNotNull(border)
+        is ThemeComponentFrameSpecV2.CutCorners -> listOfNotNull(border, accent)
+        is ThemeComponentFrameSpecV2.HudNotched -> listOfNotNull(border, accent)
+        is ThemeComponentFrameSpecV2.CornerBrackets -> listOfNotNull(border, accent)
+        is ThemeComponentFrameSpecV2.SegmentedRail -> listOf(border, accent)
+    }
+
+@Serializable
 internal data class ThemeComponentStateSkinV2(
     val containerToken: String,
     val contentToken: String,
-    val outlineToken: String? = null,
-    val outlineWidthDp: Float = 0f,
-    val cornerRadiusDp: Float = 0f,
+    val frame: ThemeComponentFrameSpecV2,
     val elevationDp: Float = 0f,
     val contentPadding: ThemeComponentInsetsV2 = ThemeComponentInsetsV2(),
 ) {
     init {
         ThemeSceneTokenIdV1(containerToken)
         ThemeSceneTokenIdV1(contentToken)
-        outlineToken?.let(::ThemeSceneTokenIdV1)
-        require(outlineWidthDp in 0f..16f) { "Theme component outline width must be within [0, 16] dp." }
-        require(cornerRadiusDp in 0f..96f) { "Theme component corner radius must be within [0, 96] dp." }
         require(elevationDp in 0f..48f) { "Theme component elevation must be within [0, 48] dp." }
     }
 }

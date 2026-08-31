@@ -44,9 +44,7 @@ internal enum class ThemeComponentStateV2 {
 internal data class ResolvedThemeComponentSkinV2(
     val container: Color,
     val content: Color,
-    val outline: Color?,
-    val outlineWidthDp: Float,
-    val cornerRadiusDp: Float,
+    val frame: ResolvedThemeComponentFrameV2,
     val elevationDp: Float,
     val paddingStartDp: Float,
     val paddingTopDp: Float,
@@ -153,9 +151,7 @@ private fun ThemeComponentStateSkinV2.resolve(
     ResolvedThemeComponentSkinV2(
         container = tokens.color(ThemeSceneTokenIdV1(containerToken), darkTheme),
         content = tokens.color(ThemeSceneTokenIdV1(contentToken), darkTheme),
-        outline = outlineToken?.let { token -> tokens.color(ThemeSceneTokenIdV1(token), darkTheme) },
-        outlineWidthDp = outlineWidthDp,
-        cornerRadiusDp = cornerRadiusDp,
+        frame = frame.resolve(tokens, darkTheme),
         elevationDp = elevationDp,
         paddingStartDp = contentPadding.startDp,
         paddingTopDp = contentPadding.topDp,

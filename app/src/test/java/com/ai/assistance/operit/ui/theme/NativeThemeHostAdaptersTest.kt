@@ -6,6 +6,7 @@ import com.ai.assistance.operit.data.theme.packages.LinkedThemeRuntimeV2
 import com.ai.assistance.operit.data.theme.packages.ResolvedThemeParametersV2
 import com.ai.assistance.operit.data.theme.packages.ThemeArchiveSha256V2
 import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentFrameSpecV2
 import com.ai.assistance.operit.data.theme.packages.ThemeComponentSkinV2
 import com.ai.assistance.operit.data.theme.packages.ThemeComponentStateSkinV2
 import com.ai.assistance.operit.data.theme.packages.ThemeMaterialColorSchemeV2
@@ -101,6 +102,7 @@ class NativeThemeHostAdaptersTest {
                                     ThemeComponentStateSkinV2(
                                         containerToken = "color.bar",
                                         contentToken = "color.background",
+                                        frame = ThemeComponentFrameSpecV2.RoundRect(cornerRadiusDp = 0f),
                                     ),
                             ),
                     ),

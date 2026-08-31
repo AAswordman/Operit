@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.theme
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LocalContentColor
@@ -22,6 +23,8 @@ import com.ai.assistance.operit.data.theme.packages.LinkedThemeRuntimeV2
 import com.ai.assistance.operit.data.theme.packages.ResolvedThemeParametersV2
 import com.ai.assistance.operit.data.theme.packages.ThemeArchiveSha256V2
 import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentFrameSpecV2
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentFrameStrokeV2
 import com.ai.assistance.operit.data.theme.packages.ThemeComponentSkinV2
 import com.ai.assistance.operit.data.theme.packages.ThemeComponentStateSkinV2
 import com.ai.assistance.operit.data.theme.packages.ThemeMaterialColorSchemeV2
@@ -84,6 +87,87 @@ class ThemeComponentSurfaceV2AndroidTest {
         assertEquals(Color(0xFFE5F6FF).toArgb(), contentPixelArgb())
     }
 
+    @Test
+    fun hudNotchedFrameLeavesItsTopCenterOpenAndDrawsThePrimaryRail() {
+        val background = Color(0xFF05070C)
+        val border = Color(0xFF00E5FF)
+        composeTestRule.setContent {
+            Box(
+                Modifier
+                    .size(80.dp)
+                    .background(background)
+                    .testTag("hud-host"),
+            ) {
+                ThemeComponentSurfaceV2(
+                    skin =
+                        ResolvedThemeComponentSkinV2(
+                            container = Color(0xFF101820),
+                            content = Color.White,
+                            frame =
+                                ResolvedThemeComponentFrameV2.HudNotched(
+                                    cutSizeDp = 8f,
+                                    notchWidthFraction = 0.3f,
+                                    notchDepthDp = 6f,
+                                    border = ResolvedThemeComponentFrameStrokeV2(border, 4f),
+                                    accent = ResolvedThemeComponentFrameStrokeV2(Color.Magenta, 4f),
+                                ),
+                            elevationDp = 0f,
+                            paddingStartDp = 0f,
+                            paddingTopDp = 0f,
+                            paddingEndDp = 0f,
+                            paddingBottomDp = 0f,
+                        ),
+                    modifier = Modifier.fillMaxSize(),
+                    applyContentPadding = false,
+                ) {}
+            }
+        }
+
+        val image = composeTestRule.onNodeWithTag("hud-host").captureToImage()
+        assertEquals(background.toArgb(), pixelAtDp(image, 40f, 1f))
+        assertEquals(border.toArgb(), pixelAtDp(image, 14f, 1f))
+    }
+
+    @Test
+    fun cornerBracketFrameSeparatesPrimaryAndAccentCorners() {
+        val primary = Color(0xFFFF3EB5)
+        val accent = Color(0xFF00E5FF)
+        composeTestRule.setContent {
+            Box(
+                Modifier
+                    .size(80.dp)
+                    .background(Color.Black)
+                    .testTag("bracket-host"),
+            ) {
+                ThemeComponentSurfaceV2(
+                    skin =
+                        ResolvedThemeComponentSkinV2(
+                            container = Color(0xFF101820),
+                            content = Color.White,
+                            frame =
+                                ResolvedThemeComponentFrameV2.CornerBrackets(
+                                    cornerCutDp = 6f,
+                                    bracketLengthDp = 20f,
+                                    border = ResolvedThemeComponentFrameStrokeV2(primary, 4f),
+                                    accent = ResolvedThemeComponentFrameStrokeV2(accent, 4f),
+                                ),
+                            elevationDp = 0f,
+                            paddingStartDp = 0f,
+                            paddingTopDp = 0f,
+                            paddingEndDp = 0f,
+                            paddingBottomDp = 0f,
+                        ),
+                    modifier = Modifier.fillMaxSize(),
+                    applyContentPadding = false,
+                ) {}
+            }
+        }
+
+        val image = composeTestRule.onNodeWithTag("bracket-host").captureToImage()
+        assertEquals(primary.toArgb(), pixelAtDp(image, 16f, 1f))
+        assertEquals(accent.toArgb(), pixelAtDp(image, 64f, 1f))
+    }
+
     private fun centerPixelArgb(): Int {
         val image = composeTestRule.onNodeWithTag("input-skin").captureToImage()
         return image.toPixelMap()[image.width / 2, image.height / 2].toArgb()
@@ -92,6 +176,16 @@ class ThemeComponentSurfaceV2AndroidTest {
     private fun contentPixelArgb(): Int {
         val image = composeTestRule.onNodeWithTag("skin-content").captureToImage()
         return image.toPixelMap()[image.width / 2, image.height / 2].toArgb()
+    }
+
+    private fun pixelAtDp(
+        image: androidx.compose.ui.graphics.ImageBitmap,
+        xDp: Float,
+        yDp: Float,
+    ): Int {
+        val x = (xDp * composeTestRule.density.density).toInt().coerceIn(0, image.width - 1)
+        val y = (yDp * composeTestRule.density.density).toInt().coerceIn(0, image.height - 1)
+        return image.toPixelMap()[x, y].toArgb()
     }
 
     private fun runtime(): ThemePackageUiRuntimeV2 {
@@ -129,13 +223,21 @@ class ThemeComponentSurfaceV2AndroidTest {
                                     ThemeComponentStateSkinV2(
                                         containerToken = "color.normal",
                                         contentToken = "color.content",
+                                        frame = ThemeComponentFrameSpecV2.RoundRect(cornerRadiusDp = 0f),
                                     ),
                                 focused =
                                     ThemeComponentStateSkinV2(
                                         containerToken = "color.focused",
                                         contentToken = "color.content",
-                                        outlineToken = "color.outline",
-                                        outlineWidthDp = 1f,
+                                        frame =
+                                            ThemeComponentFrameSpecV2.RoundRect(
+                                                cornerRadiusDp = 0f,
+                                                border =
+                                                    ThemeComponentFrameStrokeV2(
+                                                        token = "color.outline",
+                                                        widthDp = 1f,
+                                                    ),
+                                            ),
                                     ),
                             ),
                     ),
