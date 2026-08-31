@@ -54,15 +54,19 @@ internal object ThemePackageRuntimeLinkerV2 {
         runtime.parameterDefinitions.forEach { (id, definition) ->
             val value = instance.parameterValues[id] ?: definition.defaultValue.toValueOrNull()
             if (value != null) {
-                require(value.matches(definition.type)) {
-                    "Theme parameter $id does not match declared type ${definition.type}."
+                if (!value.matches(definition.type)) {
+                    throw ThemePackageLinkExceptionV2(
+                        "Theme parameter $id does not match declared type ${definition.type}.",
+                    )
                 }
                 values[id] = value
             }
         }
         instance.parameterValues.keys.forEach { id ->
-            require(id in runtime.parameterDefinitions) {
-                "Theme instance declares unknown parameter: $id"
+            if (id !in runtime.parameterDefinitions) {
+                throw ThemePackageLinkExceptionV2(
+                    "Theme instance declares unknown parameter: $id",
+                )
             }
         }
         return ResolvedThemeParametersV2(values)

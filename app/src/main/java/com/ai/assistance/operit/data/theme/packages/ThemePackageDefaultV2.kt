@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 internal object ThemePackageDefaultV2 {
     const val PACKAGE_ID = "operit.default"
     const val VERSION = "2.0.0"
-    const val ARCHIVE_SHA256 = "ee571d8bcb4d814624c62c84f60a55ffdc37eb7296cd561ca2017ba9b2b566ad"
+    const val ARCHIVE_SHA256 = "8d5c512555a059a871259071adfd26b3257d57e533d0ba80f03537c58e6b4102"
 
     private const val ASSET_PATH = "theme-packages/operit-default-v2.otheme"
 

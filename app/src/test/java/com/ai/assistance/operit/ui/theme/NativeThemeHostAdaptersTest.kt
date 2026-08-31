@@ -31,7 +31,7 @@ import org.junit.Test
 class NativeThemeHostAdaptersTest {
     @Test
     fun statusBarUsesAppBarSkinAndNavigationBarUsesThemeBackground() {
-        val barContainer = Color(0xFF101828)
+        val barContainer = Color(0xFFE8F4FF)
         val themeBackground = Color(0xFFF0F0F0)
         val runtime = runtime(barContainer = barContainer, background = themeBackground)
 

@@ -278,7 +278,8 @@ class ThemePackageArchiveAndPublicationV2Test {
 
     @Test
     fun sceneSurfaceWithoutSceneIsRejected() {
-        val manifest =
+        // 构造期即拒绝：SCENE surface 引用的场景必须在同一 manifest 中存在。
+        assertThrows(IllegalArgumentException::class.java) {
             minimalManifest().copy(
                 surfaces =
                     listOf(
@@ -289,10 +290,6 @@ class ThemePackageArchiveAndPublicationV2Test {
                         ),
                     ),
             )
-        val archive = writeArchive(manifest)
-
-        assertThrows(ThemePackageArchiveValidationExceptionV2::class.java) {
-            ThemePackageArchiveValidatorV2.validate(archive)
         }
     }
 
