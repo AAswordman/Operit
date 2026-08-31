@@ -45,6 +45,8 @@ import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.theme.packages.ThemePackageDefaultV2
+import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV2
+import com.ai.assistance.operit.data.theme.packages.ThemePackageSelectionRepositoryV2
 import com.ai.assistance.operit.data.theme.packages.ThemeRuntimeRepositoryV2
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.data.preferences.initAndroidPermissionPreferences
@@ -211,11 +213,23 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         try {
             runBlocking(Dispatchers.IO) {
                 ThemePackageDefaultV2.ensureInstalled(applicationContext)
+                val installer = ThemePackageInstallerV2.getInstance(applicationContext)
+                val installedCoordinates =
+                    installer.catalog().installations.map { installation -> installation.coordinate }.toSet()
+                val repairedCoordinate =
+                    ThemePackageSelectionRepositoryV2.getInstance(applicationContext)
+                        .repairUnavailableSelection(installedCoordinates)
+                if (repairedCoordinate != null) {
+                    AppLogger.w(
+                        TAG,
+                        "Unavailable V2 theme selection repaired: ${repairedCoordinate.packageId.value}",
+                    )
+                }
                 ThemeRuntimeRepositoryV2.refresh(applicationContext)
             }
         } catch (error: Throwable) {
-            AppLogger.e(TAG, "Bundled default V2 theme installation failed", error)
-            throw IllegalStateException("Unable to install the bundled default V2 theme package.", error)
+            AppLogger.e(TAG, "V2 theme initialization failed", error)
+            throw IllegalStateException("Unable to initialize the V2 theme runtime.", error)
         }
 
         applicationScope.launch {

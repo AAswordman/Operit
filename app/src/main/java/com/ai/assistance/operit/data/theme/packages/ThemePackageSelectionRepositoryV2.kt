@@ -52,6 +52,28 @@ internal class ThemePackageSelectionRepositoryV2 private constructor(context: Co
         }
     }
 
+    /**
+     * Repairs a persisted selection whose exact immutable installation no longer exists. The
+     * whole record is replaced so parameters from an unavailable package cannot leak into the
+     * bundled default package.
+     */
+    suspend fun repairUnavailableSelection(
+        installedCoordinates: Set<ThemePackageCoordinateV2>,
+    ): ThemePackageCoordinateV2? {
+        var repairedCoordinate: ThemePackageCoordinateV2? = null
+        dataStore.edit { preferences ->
+            val current = preferences.decodeThemeInstanceV2()
+            if (current.reference.coordinate !in installedCoordinates) {
+                repairedCoordinate = current.reference.coordinate
+                preferences[THEME_INSTANCE_V2_KEY] =
+                    themeSelectionJsonV2.encodeToString(
+                        current.repairUnavailableSelection(installedCoordinates),
+                    )
+            }
+        }
+        return repairedCoordinate
+    }
+
     companion object {
         @Volatile
         private var instance: ThemePackageSelectionRepositoryV2? = null
@@ -62,6 +84,15 @@ internal class ThemePackageSelectionRepositoryV2 private constructor(context: Co
             }
     }
 }
+
+internal fun ThemeInstanceV2.repairUnavailableSelection(
+    installedCoordinates: Set<ThemePackageCoordinateV2>,
+): ThemeInstanceV2 =
+    if (reference.coordinate in installedCoordinates) {
+        this
+    } else {
+        ThemeInstanceV2.defaultBundled()
+    }
 
 private fun Preferences.decodeThemeInstanceV2(): ThemeInstanceV2 {
     val raw =

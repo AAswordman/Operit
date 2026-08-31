@@ -41,3 +41,11 @@
 [DONE] 构建服务已同步 `ad0cb6bf` 并完成 release 编译和签名：`operit-release-feat_plugin-interface-ad0cb6bf.apk`，SHA-256 `6913f01dd8cb1d5ab162f1ff9b2cceef1be4827b9e791dd9b33f6513c8d9390a`。
 
 [TODO] 在真机导入 `operit-cyber-grid-2.1.0.otheme` 后，提供 Agent/Classic、Cursor/Bubble、角色栏、focused/error input 的整页截图，确认异形 frame 在真实设备尺寸和 IME 状态下对齐。
+
+## 启动选择保护
+
+[DONE] 应用启动在刷新 V2 runtime 前，原子检查持久化选择的精确安装坐标；外部主题目录被删除或旧默认坐标失效时，选择记录会完整重置为 APK 内置默认主题，并清除原主题参数。
+
+[DONE] 有效的外部主题选择保持不变；renderer 继续只消费已链接 runtime，不在 Compose 路径隐式替换主题。
+
+[DONE] 新增 JVM 选择决策测试和 Android DataStore 持久化测试，覆盖缺失赛博包、有效赛博包及旧默认坐标。
