@@ -54,8 +54,15 @@ object ToolExecutionManager {
         val displayName: String
     )
 
-    private fun ensureEndsWithNewline(content: String): String {
-        return if (content.endsWith("\n")) content else "$content\n"
+    /**
+     * Tool round markup is injected into the assistant stream right after model text that usually
+     * ends mid-line. The XML block detector only opens a block at a line boundary, so markup glued
+     * onto the previous character is rendered as plain model text, and is re-parsed out of history
+     * as assistant text instead of a tool result. Keep every injected block on its own line.
+     */
+    internal fun ensureOwnLine(content: String): String {
+        val withLeadingBreak = if (content.startsWith("\n")) content else "\n$content"
+        return if (withLeadingBreak.endsWith("\n")) withLeadingBreak else "$withLeadingBreak\n"
     }
 
     private fun resolveToolTarget(tool: AITool): ResolvedToolTarget {
@@ -538,7 +545,7 @@ object ToolExecutionManager {
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
                 val toolResultStatusContent =
                     ConversationMarkupManager.formatToolResultForMessage(deniedResult)
-                collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                collector.emit(ensureOwnLine(toolResultStatusContent))
             }
         }
 
@@ -561,7 +568,7 @@ object ToolExecutionManager {
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
                 val toolResultStatusContent =
                     ConversationMarkupManager.formatToolResultForMessage(deniedResult)
-                collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                collector.emit(ensureOwnLine(toolResultStatusContent))
             }
         }
 
@@ -583,7 +590,7 @@ object ToolExecutionManager {
                             permissionDeniedResults.add(it)
                             val toolResultStatusContent =
                                 ConversationMarkupManager.formatToolResultForMessage(it)
-                            collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                            collector.emit(ensureOwnLine(toolResultStatusContent))
                         }
                     }
                 }
@@ -599,7 +606,7 @@ object ToolExecutionManager {
                     toolHandler.notifyToolExecutionFinished(invocation.tool)
                     val toolResultStatusContent =
                         ConversationMarkupManager.formatToolResultForMessage(interceptedResult)
-                    collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                    collector.emit(ensureOwnLine(toolResultStatusContent))
                 }
             }
         }
@@ -699,7 +706,7 @@ object ToolExecutionManager {
                         buildToolNotAvailableErrorMessage(toolName, packageManager, toolHandler)
                     val notAvailableContent =
                         ConversationMarkupManager.createToolNotAvailableError(toolName, errorMessage)
-                    collector.emit(ensureEndsWithNewline(notAvailableContent))
+                    collector.emit(ensureOwnLine(notAvailableContent))
                     val notAvailableResult =
                         ToolResult(
                             toolName = displayToolName,
@@ -719,7 +726,7 @@ object ToolExecutionManager {
                     // 实时输出每个结果
                     val toolResultStatusContent =
                         ConversationMarkupManager.formatToolResultForMessage(result)
-                    collector.emit(ensureEndsWithNewline(toolResultStatusContent))
+                    collector.emit(ensureOwnLine(toolResultStatusContent))
                 }
 
                 // 为此调用聚合最终结果
