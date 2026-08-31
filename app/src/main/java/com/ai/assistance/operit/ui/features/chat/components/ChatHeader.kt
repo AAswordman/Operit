@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,6 +23,9 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.rememberAsyncImagePainter
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentStateV2
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 
 private const val CHAT_HEADER_CHARACTER_NAME_MAX_LENGTH = 12
 
@@ -44,6 +46,7 @@ fun ChatHeader(
         onCharacterClick: () -> Unit
 ) {
         val displayCharacterName = activeCharacterName.toChatHeaderName()
+        val headerContentColor = LocalContentColor.current
 
         Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -81,17 +84,16 @@ fun ChatHeader(
                                 }
                         }
                 } else {
-                        Box(
-                                modifier =
-                                        Modifier.size(32.dp)
-                                                .background(
-                                                        color =
-                                                                if (showChatHistorySelector)
-                                                                        MaterialTheme.colorScheme.primary
-                                                                                .copy(alpha = 0.15f)
-                                                                else Color.Transparent,
-                                                        shape = CircleShape
-                                                )
+                        ThemeComponentSurfaceV2(
+                                component = ThemeComponentCatalogV2.ICON_BUTTON,
+                                state =
+                                        if (showChatHistorySelector) {
+                                                ThemeComponentStateV2.SELECTED
+                                        } else {
+                                                ThemeComponentStateV2.NORMAL
+                                        },
+                                modifier = Modifier.size(32.dp),
+                                applyContentPadding = false,
                         ) {
                                 IconButton(
                                         onClick = onToggleChatHistorySelector,
@@ -101,29 +103,23 @@ fun ChatHeader(
                                                 imageVector = Icons.Default.History,
                                                 contentDescription =
                                                         if (showChatHistorySelector) stringResource(R.string.hide_history) else stringResource(R.string.show_history),
-                                                tint =
-                                                        if (showChatHistorySelector)
-                                                                MaterialTheme.colorScheme.primary
-                                                        else
-                                                                MaterialTheme.colorScheme.onSurface
-                                                                                .copy(alpha = 0.7f),
+                                                tint = LocalContentColor.current,
                                                 modifier = Modifier.size(20.dp)
                                         )
                                 }
                         }
                 }
 
-                Box(
-                        modifier =
-                                Modifier.size(32.dp)
-                                        .background(
-                                                color =
-                                                        if (isFloatingMode)
-                                                                MaterialTheme.colorScheme.primary
-                                                                        .copy(alpha = 0.15f)
-                                                        else Color.Transparent,
-                                                shape = CircleShape
-                                        )
+                ThemeComponentSurfaceV2(
+                        component = ThemeComponentCatalogV2.ICON_BUTTON,
+                        state =
+                                if (isFloatingMode) {
+                                        ThemeComponentStateV2.SELECTED
+                                } else {
+                                        ThemeComponentStateV2.NORMAL
+                                },
+                        modifier = Modifier.size(32.dp),
+                        applyContentPadding = false,
                 ) {
                         IconButton(
                                 onClick = onLaunchFloatingWindow,
@@ -133,12 +129,7 @@ fun ChatHeader(
                                         imageVector = Icons.Default.PictureInPicture,
                                         contentDescription =
                                                 if (isFloatingMode) stringResource(R.string.close_floating_window) else stringResource(R.string.open_floating_window),
-                                        tint =
-                                                if (isFloatingMode)
-                                                        MaterialTheme.colorScheme.primary
-                                                else
-                                                        MaterialTheme.colorScheme.onSurface
-                                                                .copy(alpha = 0.7f),
+                                        tint = LocalContentColor.current,
                                         modifier = Modifier.size(20.dp)
                                 )
                         }
@@ -183,6 +174,7 @@ fun ChatHeader(
                         Text(
                                 text = displayCharacterName,
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = headerContentColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 116.dp)

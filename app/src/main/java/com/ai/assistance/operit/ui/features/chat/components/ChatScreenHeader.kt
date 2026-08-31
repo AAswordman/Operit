@@ -28,8 +28,10 @@ import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
+import com.ai.assistance.operit.ui.theme.ThemeComponentSurfaceV2
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 
@@ -126,15 +128,16 @@ fun ChatScreenHeader(
 
     val launchFloatingWindow = useFloatingWindowLauncher(actualViewModel, permissionLauncher)
 
-    Row(
-            modifier =
-                    modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ThemeComponentSurfaceV2(
+            component = ThemeComponentCatalogV2.SECTION,
+            modifier = modifier.fillMaxWidth(),
+            applyContentPadding = false,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+        ) {
         ChatHeader(
                 showChatHistorySelector = showChatHistorySelector,
                 onToggleChatHistorySelector = { actualViewModel.toggleChatHistorySelector() },
@@ -244,6 +247,7 @@ fun ChatScreenHeader(
                     
                 }
             }
+        }
         }
     }
 }

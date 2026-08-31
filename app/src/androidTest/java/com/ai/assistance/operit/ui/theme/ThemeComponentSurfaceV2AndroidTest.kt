@@ -1,9 +1,10 @@
 package com.ai.assistance.operit.ui.theme
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,22 +63,34 @@ class ThemeComponentSurfaceV2AndroidTest {
                         modifier = Modifier.size(48.dp).testTag("input-skin"),
                         applyContentPadding = false,
                     ) {
-                        Box(Modifier.fillMaxSize())
+                        Box(
+                            Modifier
+                                .size(16.dp)
+                                .background(LocalContentColor.current)
+                                .testTag("skin-content"),
+                        )
                     }
                 }
             }
         }
 
         assertEquals(normalContainer.toArgb(), centerPixelArgb())
+        assertEquals(Color(0xFFE5F6FF).toArgb(), contentPixelArgb())
 
         composeTestRule.runOnUiThread { focused = true }
         composeTestRule.waitForIdle()
 
         assertEquals(focusedContainer.toArgb(), centerPixelArgb())
+        assertEquals(Color(0xFFE5F6FF).toArgb(), contentPixelArgb())
     }
 
     private fun centerPixelArgb(): Int {
         val image = composeTestRule.onNodeWithTag("input-skin").captureToImage()
+        return image.toPixelMap()[image.width / 2, image.height / 2].toArgb()
+    }
+
+    private fun contentPixelArgb(): Int {
+        val image = composeTestRule.onNodeWithTag("skin-content").captureToImage()
         return image.toPixelMap()[image.width / 2, image.height / 2].toArgb()
     }
 

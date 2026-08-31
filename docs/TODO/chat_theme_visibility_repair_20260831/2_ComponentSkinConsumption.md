@@ -23,3 +23,9 @@ V2 runtime 可解析 component skin，但聊天代码只读取 Material 色板�
 [DONE] Agent/Classic composer 与编辑器消费 `composer` 和 `input` skin；焦点变化会选择 `input.focused`。
 
 [DONE] Cursor/Bubble 的 user/AI 正文消费 `message_user` 和 `message_assistant` skin。Cursor AI 的透明 Markdown 现在位于 package-owned assistant surface 内，不再直接落在主题背景图片上。
+
+## 角色栏追加修复
+
+截图验收发现 `ChatScreenHeader` 仅绘制了半透明 Material 背景，而 `ChatHeader` 的角色名未指定内容色，导致赛博深色栏中的 `Operit` 继承为黑色。修复将使 header 容器消费 `section` skin，历史/悬浮操作消费 `icon_button` skin，角色名消费该容器的 content 色；不改变聊天 scroll viewport 边界，因为顶部部分可见消息是正常滚动裁切。
+
+[DONE] `ChatScreenHeader` 已由 `ThemeComponentSurfaceV2(section)` 承载；角色名显式使用 section content 色，历史与悬浮按钮使用 `icon_button` normal/selected skin，点击和语义保持在原 `IconButton` 上。

@@ -17,6 +17,8 @@
 
 [DONE] 已新增 `ThemeComponentSurfaceV2AndroidTest`，以像素断言确认 `input.normal` 与 `input.focused` 的 package container 分别参与绘制。
 
+[DONE] 该用例同时断言 V2 skin 的 content 色通过 `LocalContentColor` 传给子内容，覆盖角色栏名称读取 section content 色所依赖的 Compose contract。
+
 [DONE] 构建服务已完成 `67fe288d` 的 release 编译和签名：`operit-release-feat_plugin-interface-67fe288d.apk`，SHA-256 `9dbba58925951b98c26bcca73377c9f11e3e3e2ca2874b2546e58a3deb04f600`。
 
 [TODO] 本机未安装 `adb`，新增 Android instrumentation 用例与设备矩阵尚未执行；需要在真机导入赛博 V2 包后验证 Agent/Classic、Cursor/Bubble、流式消息、IME、长文本滚动与 TalkBack，并提供整页截图。
