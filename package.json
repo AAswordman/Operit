@@ -4,7 +4,8 @@
         "java2ts": "java2ts config.json",
         "builder": "node ./build/build.js",
         "build:examples:github": "node ./examples/github/build.js",
-        "build:webchat": "npm --prefix web-chat run build && npm --prefix web-chat run sync:android-assets"
+        "build:webchat": "npm --prefix web-chat run build && npm --prefix web-chat run sync:android-assets",
+        "test:message-insert-logging": "node --test ci/test/message_insert_logging.test.js"
     },
     "dependencies": {},
     "devDependencies": {

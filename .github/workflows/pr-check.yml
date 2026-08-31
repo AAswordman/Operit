@@ -240,6 +240,7 @@ jobs:
           test -s examples/toolpkg_wasm_demo/dist/toolpkg_wasm_demo.toolpkg
           python3 tools/example_packages/sync_example_packages.py --mode test --no-hot-reload
           python3 tools/example_packages/sync_example_packages.py --no-hot-reload
+          npm run test:message-insert-logging
 
       - name: Set up Android SDK
         if: steps.plan.outputs.android_resources == 'true'
