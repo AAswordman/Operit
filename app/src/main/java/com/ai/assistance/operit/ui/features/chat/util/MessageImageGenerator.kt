@@ -303,7 +303,7 @@ object MessageImageGenerator {
                             val backgroundColor =
                                 if (includeBackground) {
                                     AndroidColor.TRANSPARENT
-                                } else if (resolvedTheme.darkTheme) {
+                                } else if (packageRuntime.darkTheme) {
                                     AndroidColor.BLACK
                                 } else {
                                     AndroidColor.WHITE

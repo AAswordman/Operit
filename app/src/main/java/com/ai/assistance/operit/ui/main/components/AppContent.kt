@@ -314,7 +314,8 @@ fun AppContent(
                     }
                 }
             },
-            appBarActions = actions,
+            // actions 携带 RowScope 接收者；包一层 Row 既满足调用点也保持动作行的横向布局。
+            appBarActions = { Row { actions() } },
             routeContent = {
                 Box(
                         modifier =
@@ -682,6 +683,7 @@ fun AppContent(
                             )
                         }
                     }
+                }
                 }
         )
     }
