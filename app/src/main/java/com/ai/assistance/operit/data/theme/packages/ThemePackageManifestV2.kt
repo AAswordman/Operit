@@ -219,7 +219,48 @@ internal data class ThemeMaterialColorSchemeV2(
     val surfaceContainer: String,
     val surfaceContainerHigh: String,
     val surfaceContainerHighest: String,
-) {
++) {
+    /** 单 token 填充全部角色；仅用于测试与工具，真实主题必须给出完整角色表。 */
+    fun uniform(token: String): ThemeMaterialColorSchemeV2 =
+        ThemeMaterialColorSchemeV2(
+            primary = token,
+            onPrimary = token,
+            primaryContainer = token,
+            onPrimaryContainer = token,
+            inversePrimary = token,
+            secondary = token,
+            onSecondary = token,
+            secondaryContainer = token,
+            onSecondaryContainer = token,
+            tertiary = token,
+            onTertiary = token,
+            tertiaryContainer = token,
+            onTertiaryContainer = token,
+            background = token,
+            onBackground = token,
+            surface = token,
+            onSurface = token,
+            surfaceVariant = token,
+            onSurfaceVariant = token,
+            surfaceTint = token,
+            inverseSurface = token,
+            inverseOnSurface = token,
+            error = token,
+            onError = token,
+            errorContainer = token,
+            onErrorContainer = token,
+            outline = token,
+            outlineVariant = token,
+            scrim = token,
+            surfaceBright = token,
+            surfaceDim = token,
+            surfaceContainerLowest = token,
+            surfaceContainerLow = token,
+            surfaceContainer = token,
+            surfaceContainerHigh = token,
+            surfaceContainerHighest = token,
+        )
+
     fun tokenIds(): Set<String> =
         setOf(
             primary,

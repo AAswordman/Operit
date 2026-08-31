@@ -114,52 +114,12 @@ class ThemePackageRuntimeLinkerV2Test {
                 ),
         )
 
-    private fun materialProjection(): ThemeMaterialProjectionV2 {
-        fun token(): String = "color.background"
-        return ThemeMaterialProjectionV2(
-            colors =
-                ThemeMaterialColorSchemeV2(
-                    primary = token(),
-                    onPrimary = token(),
-                    primaryContainer = token(),
-                    onPrimaryContainer = token(),
-                    inversePrimary = token(),
-                    secondary = token(),
-                    onSecondary = token(),
-                    secondaryContainer = token(),
-                    onSecondaryContainer = token(),
-                    tertiary = token(),
-                    onTertiary = token(),
-                    tertiaryContainer = token(),
-                    onTertiaryContainer = token(),
-                    background = token(),
-                    onBackground = token(),
-                    surface = token(),
-                    onSurface = token(),
-                    surfaceVariant = token(),
-                    onSurfaceVariant = token(),
-                    surfaceTint = token(),
-                    inverseSurface = token(),
-                    inverseOnSurface = token(),
-                    error = token(),
-                    onError = token(),
-                    errorContainer = token(),
-                    onErrorContainer = token(),
-                    outline = token(),
-                    outlineVariant = token(),
-                    scrim = token(),
-                    surfaceBright = token(),
-                    surfaceDim = token(),
-                    surfaceContainerLowest = token(),
-                    surfaceContainerLow = token(),
-                    surfaceContainer = token(),
-                    surfaceContainerHigh = token(),
-                    surfaceContainerHighest = token(),
-                ),
+    private fun materialProjection(): ThemeMaterialProjectionV2 =
+        ThemeMaterialProjectionV2(
+            colors = ThemeMaterialColorSchemeV2.uniform("color.background"),
             typography = ThemeTypographyV2(),
             shapes = ThemeShapesV2(2f, 4f, 8f, 16f, 28f),
         )
-    }
 
     private fun componentSkin(containerToken: String): ThemeComponentSkinV2 =
         ThemeComponentSkinV2(
