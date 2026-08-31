@@ -97,7 +97,7 @@ fun ChatHeader(
                         ) {
                                 IconButton(
                                         onClick = onToggleChatHistorySelector,
-                                        modifier = Modifier.matchParentSize()
+                                        modifier = Modifier.fillMaxSize()
                                 ) {
                                         Icon(
                                                 imageVector = Icons.Default.History,
@@ -123,7 +123,7 @@ fun ChatHeader(
                 ) {
                         IconButton(
                                 onClick = onLaunchFloatingWindow,
-                                modifier = Modifier.matchParentSize()
+                                modifier = Modifier.fillMaxSize()
                         ) {
                                 Icon(
                                         imageVector = Icons.Default.PictureInPicture,
