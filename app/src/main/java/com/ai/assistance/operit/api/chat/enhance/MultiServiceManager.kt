@@ -12,6 +12,9 @@ import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getValidModelIndex
+import com.ai.assistance.operit.data.model.supportsDirectAudioProcessing
+import com.ai.assistance.operit.data.model.supportsDirectImageProcessing
+import com.ai.assistance.operit.data.model.supportsDirectVideoProcessing
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import kotlinx.coroutines.flow.first
@@ -29,6 +32,7 @@ class MultiServiceManager(private val context: Context) {
         private val closeAction: suspend () -> Unit,
         val service: AIService,
         val modelConfig: ModelConfigData,
+        val modelIndex: Int,
         val modelParameters: List<ModelParameter<*>>
     ) {
         private val closed = AtomicBoolean(false)
@@ -43,6 +47,7 @@ class MultiServiceManager(private val context: Context) {
     private class ManagedService(
         val service: AIService,
         val modelConfig: ModelConfigData,
+        val modelIndex: Int,
         var activeLeases: Int = 0,
         var retired: Boolean = false,
         var released: Boolean = false
@@ -105,6 +110,7 @@ class MultiServiceManager(private val context: Context) {
             closeAction = { releaseLease(managedService) },
             service = managedService.service,
             modelConfig = managedService.modelConfig,
+            modelIndex = managedService.modelIndex,
             modelParameters = modelParameters
         )
     }
@@ -121,6 +127,7 @@ class MultiServiceManager(private val context: Context) {
             closeAction = { releaseLease(managedService) },
             service = managedService.service,
             modelConfig = managedService.modelConfig,
+            modelIndex = managedService.modelIndex,
             modelParameters = modelParameters
         )
     }
@@ -136,7 +143,8 @@ class MultiServiceManager(private val context: Context) {
         val service = createServiceFromConfig(config, configMapping.modelIndex)
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = config,
+            modelIndex = getValidModelIndex(config.modelName, configMapping.modelIndex)
         )
         serviceInstances[functionType] = managedService
 
@@ -157,7 +165,8 @@ class MultiServiceManager(private val context: Context) {
         val service = createServiceFromConfig(config, normalizedIndex)
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = config,
+            modelIndex = getValidModelIndex(config.modelName, normalizedIndex)
         )
         customServiceInstances[cacheKey] = managedService
 
@@ -377,6 +386,12 @@ class MultiServiceManager(private val context: Context) {
         return modelConfigManager.getModelConfigFlow(configMapping.configId).first()
     }
 
+    /** 获取指定功能类型实际选中的模型索引 */
+    suspend fun getModelIndexForFunction(functionType: FunctionType): Int {
+        ensureInitialized()
+        return functionalConfigManager.getConfigMappingForFunction(functionType).modelIndex
+    }
+
     /** 获取指定配置ID的模型配置 */
     suspend fun getModelConfigForConfig(configId: String): ModelConfigData {
         ensureInitialized()
@@ -400,22 +415,22 @@ class MultiServiceManager(private val context: Context) {
         val configMapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.IMAGE_RECOGNITION)
         val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
         
-        // 检查模型配置是否启用了直接图片处理
-        return config.enableDirectImageProcessing
+        // 检查该功能实际选中的模型是否支持直接图片处理
+        return config.supportsDirectImageProcessing(configMapping.modelIndex)
     }
 
     suspend fun hasAudioRecognitionConfigured(): Boolean {
         ensureInitialized()
         val configMapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.AUDIO_RECOGNITION)
         val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
-        return config.enableDirectAudioProcessing
+        return config.supportsDirectAudioProcessing(configMapping.modelIndex)
     }
 
     suspend fun hasVideoRecognitionConfigured(): Boolean {
         ensureInitialized()
         val configMapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.VIDEO_RECOGNITION)
         val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
-        return config.enableDirectVideoProcessing
+        return config.supportsDirectVideoProcessing(configMapping.modelIndex)
     }
 
 }

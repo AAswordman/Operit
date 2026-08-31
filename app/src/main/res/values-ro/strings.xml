@@ -3841,6 +3841,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="enable_direct_audio_processing_desc">După activare, semnalul audio va fi transmis direct cătreAIPrelucrare, nu transcrierea textului prin intermediul unui instrument/Descriere</string>
     <string name="enable_direct_video_processing">Modelul acceptă analiza videoclipurilor</string>
     <string name="enable_direct_video_processing_desc">După activare, videoclipul va fi trimis direct cătreAIPrelucrare, nu extragerea cadrelor cu ajutorul unor instrumente/Analiză</string>
+    <string name="media_capable_models_title">Modele aplicabile</string>
+    <string name="media_capable_models_desc">Această configurație conține mai multe modele. Bifați-le pe cele care au cu adevărat această capabilitate; celelalte vor folosi modelul funcțional corespunzător.</string>
     <string name="enable_google_search">Activare Google Search</string>
     <string name="enable_google_search_desc">După activare,Gemini Se va utiliza Google Căutare pentru a îmbunătăți răspunsul (pot apărea costuri suplimentare)</string>
     <string name="enable_claude_1h_prompt_cache">Activare Claude 1 Cache pentru alerte orare</string>

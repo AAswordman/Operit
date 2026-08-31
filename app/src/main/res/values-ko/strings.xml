@@ -3467,6 +3467,8 @@
     <string name="enable_direct_audio_processing_desc">활성화되면 도구 기반 전사/설명을 반환하는 대신 처리를 위해 오디오가 AI로 직접 전송됩니다.</string>
     <string name="enable_direct_video_processing">동영상을 지원하는 모델</string>
     <string name="enable_direct_video_processing_desc">활성화되면 도구 기반 프레임 추출/분석 대신 처리를 위해 비디오가 AI로 직접 전송됩니다.</string>
+    <string name="media_capable_models_title">적용 모델</string>
+    <string name="media_capable_models_desc">이 구성에는 여러 모델이 있습니다. 해당 기능을 실제로 지원하는 모델을 선택하세요. 선택하지 않은 모델은 해당 기능 모델을 사용합니다.</string>
     <string name="enable_google_search">Google 검색 활성화</string>
     <string name="enable_google_search_desc">활성화하면 Gemini는 Google 검색을 사용하여 응답을 향상합니다(추가 비용이 발생할 수 있음).</string>
     <string name="enable_claude_1h_prompt_cache">Claude 1시간 프롬프트 캐시 활성화</string>

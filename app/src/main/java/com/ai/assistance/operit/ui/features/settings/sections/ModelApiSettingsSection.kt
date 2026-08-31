@@ -59,6 +59,9 @@ import com.ai.assistance.operit.data.collects.ApiProviderConfigs
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.model.getModelList
+import com.ai.assistance.operit.data.model.normalizeCapableModels
+import com.ai.assistance.operit.data.model.retainCapableModels
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
@@ -205,6 +208,11 @@ fun ModelApiSettingsSection(
     var enableDirectAudioProcessingInput by remember(config.id) { mutableStateOf(config.enableDirectAudioProcessing) }
 
     var enableDirectVideoProcessingInput by remember(config.id) { mutableStateOf(config.enableDirectVideoProcessing) }
+
+    // 多模型配置下，逐模型声明哪些模型真正具备该媒体能力（空串表示配置内所有模型都具备）
+    var directImageModelsInput by remember(config.id) { mutableStateOf(config.directImageModels) }
+    var directAudioModelsInput by remember(config.id) { mutableStateOf(config.directAudioModels) }
+    var directVideoModelsInput by remember(config.id) { mutableStateOf(config.directVideoModels) }
     
     // Google Search Grounding 配置状态 (仅Gemini)
     var enableGoogleSearchInput by remember(config.id) { mutableStateOf(config.enableGoogleSearch) }
@@ -248,6 +256,9 @@ fun ModelApiSettingsSection(
         val enableDirectImageProcessing: Boolean,
         val enableDirectAudioProcessing: Boolean,
         val enableDirectVideoProcessing: Boolean,
+        val directImageModels: String,
+        val directAudioModels: String,
+        val directVideoModels: String,
         val enableGoogleSearch: Boolean,
         val enableDeepSeekWebSearch: Boolean,
         val enableCodexWebSearch: Boolean,
@@ -274,6 +285,9 @@ fun ModelApiSettingsSection(
                     enableDirectImageProcessing = state.enableDirectImageProcessing,
                     enableDirectAudioProcessing = state.enableDirectAudioProcessing,
                     enableDirectVideoProcessing = state.enableDirectVideoProcessing,
+                    directImageModels = state.directImageModels,
+                    directAudioModels = state.directAudioModels,
+                    directVideoModels = state.directVideoModels,
                     enableGoogleSearch = state.enableGoogleSearch,
                     enableDeepSeekWebSearch = state.enableDeepSeekWebSearch,
                     enableCodexWebSearch = state.enableCodexWebSearch,
@@ -303,6 +317,9 @@ fun ModelApiSettingsSection(
             enableDirectImageProcessing = enableDirectImageProcessingInput,
             enableDirectAudioProcessing = enableDirectAudioProcessingInput,
             enableDirectVideoProcessing = enableDirectVideoProcessingInput,
+            directImageModels = directImageModelsInput,
+            directAudioModels = directAudioModelsInput,
+            directVideoModels = directVideoModelsInput,
             enableGoogleSearch = enableGoogleSearchInput,
             enableDeepSeekWebSearch = enableDeepSeekWebSearchInput,
             enableCodexWebSearch = enableCodexWebSearchInput,
@@ -866,6 +883,20 @@ fun ModelApiSettingsSection(
                      checked = enableDirectImageProcessingInput,
                      onCheckedChange = { enableDirectImageProcessingInput = it }
                  )
+                 MediaCapableModelsSelector(
+                     visible = enableDirectImageProcessingInput,
+                     modelName = modelNameInput,
+                     capableModels = directImageModelsInput,
+                     onSelectionChange = { selection ->
+                         if (selection.isEmpty()) {
+                             enableDirectImageProcessingInput = false
+                             directImageModelsInput = ""
+                         } else {
+                             directImageModelsInput =
+                                 normalizeCapableModels(modelNameInput, selection.joinToString(","))
+                         }
+                     }
+                 )
 
                  SettingsSwitchRow(
                      title = stringResource(R.string.enable_direct_audio_processing),
@@ -873,11 +904,39 @@ fun ModelApiSettingsSection(
                      checked = enableDirectAudioProcessingInput,
                      onCheckedChange = { enableDirectAudioProcessingInput = it }
                  )
+                 MediaCapableModelsSelector(
+                     visible = enableDirectAudioProcessingInput,
+                     modelName = modelNameInput,
+                     capableModels = directAudioModelsInput,
+                     onSelectionChange = { selection ->
+                         if (selection.isEmpty()) {
+                             enableDirectAudioProcessingInput = false
+                             directAudioModelsInput = ""
+                         } else {
+                             directAudioModelsInput =
+                                 normalizeCapableModels(modelNameInput, selection.joinToString(","))
+                         }
+                     }
+                 )
                  SettingsSwitchRow(
                      title = stringResource(R.string.enable_direct_video_processing),
                      subtitle = stringResource(R.string.enable_direct_video_processing_desc),
                      checked = enableDirectVideoProcessingInput,
                      onCheckedChange = { enableDirectVideoProcessingInput = it }
+                 )
+                 MediaCapableModelsSelector(
+                     visible = enableDirectVideoProcessingInput,
+                     modelName = modelNameInput,
+                     capableModels = directVideoModelsInput,
+                     onSelectionChange = { selection ->
+                         if (selection.isEmpty()) {
+                             enableDirectVideoProcessingInput = false
+                             directVideoModelsInput = ""
+                         } else {
+                             directVideoModelsInput =
+                                 normalizeCapableModels(modelNameInput, selection.joinToString(","))
+                         }
+                     }
                  )
              }
             
@@ -1743,6 +1802,77 @@ internal fun SettingsSwitchRow(
                 )
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        }
+    }
+}
+
+/**
+ * 多模型配置下，逐模型勾选真正具备某项媒体能力的模型。
+ * 单模型配置或开关关闭时不显示，行为与之前完全一致。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MediaCapableModelsSelector(
+        visible: Boolean,
+        modelName: String,
+        capableModels: String,
+        onSelectionChange: (List<String>) -> Unit
+) {
+    val models = remember(modelName) { getModelList(modelName) }
+    if (!visible || models.size <= 1) {
+        return
+    }
+
+    val selected = remember(modelName, capableModels) {
+        retainCapableModels(modelName, capableModels).toSet()
+    }
+
+    Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+            Text(
+                    text = stringResource(R.string.media_capable_models_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                    text = stringResource(R.string.media_capable_models_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                models.forEach { model ->
+                    val isSelected = model in selected
+                    FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                val next =
+                                        if (isSelected) {
+                                            models.filter { it != model && it in selected }
+                                        } else {
+                                            models.filter { it == model || it in selected }
+                                        }
+                                onSelectionChange(next)
+                            },
+                            label = {
+                                Text(
+                                        text = model,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                    )
+                }
+            }
         }
     }
 }

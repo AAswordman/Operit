@@ -4005,6 +4005,8 @@
     <string name="enable_direct_audio_processing_desc">When enabled, audio will be sent directly to the AI for processing instead of returning tool-based transcription/description</string>
     <string name="enable_direct_video_processing">Model supports video</string>
     <string name="enable_direct_video_processing_desc">When enabled, video will be sent directly to the AI for processing instead of tool-based frame extraction/analysis</string>
+    <string name="media_capable_models_title">Applies to models</string>
+    <string name="media_capable_models_desc">This configuration contains multiple models. Tick the ones that really have this capability; the others fall back to the matching functional model.</string>
     <string name="enable_google_search">Enable Google Search</string>
     <string name="enable_google_search_desc">When enabled, Gemini will use Google Search to enhance responses (may incur additional charges)</string>
     <string name="enable_deepseek_web_search">Enable DeepSeek web search</string>

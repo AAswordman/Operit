@@ -4,6 +4,9 @@ import android.content.Context
 import com.ai.assistance.llama.LlamaSession
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.model.supportsDirectAudioProcessing
+import com.ai.assistance.operit.data.model.supportsDirectImageProcessing
+import com.ai.assistance.operit.data.model.supportsDirectVideoProcessing
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
 import com.ai.assistance.operit.util.AppLogger
@@ -306,11 +309,11 @@ object AIServiceFactory {
             SingleApiKeyProvider(config.apiKey)
         }
 
-        // 图片处理支持标志
-        val supportsVision = config.enableDirectImageProcessing
+        // 图片处理支持标志（config的modelName此时已被收窄为实际选中的模型）
+        val supportsVision = config.supportsDirectImageProcessing()
         // 音频/视频输入支持标志（OpenAI兼容的多模态content数组）
-        val supportsAudio = config.enableDirectAudioProcessing
-        val supportsVideo = config.enableDirectVideoProcessing
+        val supportsAudio = config.supportsDirectAudioProcessing()
+        val supportsVideo = config.supportsDirectVideoProcessing()
         // Tool Call支持标志
         val enableToolCall = config.enableToolCall
 

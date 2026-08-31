@@ -21,6 +21,7 @@ import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.data.model.supportsDirectImageProcessing
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.common.displays.UIOperationOverlay
 import com.ai.assistance.operit.ui.common.displays.UIAutomationProgressOverlay
@@ -420,7 +421,8 @@ open class StandardUITools(protected val context: Context) : ToolImplementations
         }
 
         val uiConfig = EnhancedAIService.getModelConfigForFunction(context, FunctionType.UI_CONTROLLER)
-        if (!uiConfig.enableDirectImageProcessing) {
+        val uiModelIndex = EnhancedAIService.getModelIndexForFunction(context, FunctionType.UI_CONTROLLER)
+        if (!uiConfig.supportsDirectImageProcessing(uiModelIndex)) {
             return ToolResult(
                 toolName = tool.name,
                 success = false,

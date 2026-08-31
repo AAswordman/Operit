@@ -3446,6 +3446,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="enable_direct_audio_processing_desc">Setelah diaktifkan, audio akan dihantar terus kepada AI untuk diproses, bukan melalui alat yang mengembalikan transkripsi/deskripsi teks</string>
     <string name="enable_direct_video_processing">Model menyokong pemprosesan video langsung</string>
     <string name="enable_direct_video_processing_desc">Setelah diaktifkan, video akan dihantar terus kepada AI untuk diproses, bukan melalui alat yang mengekstrak bingkai/menganalisis</string>
+    <string name="media_capable_models_title">Model berkenaan</string>
+    <string name="media_capable_models_desc">Konfigurasi ini mengandungi beberapa model. Tandakan model yang benar-benar mempunyai keupayaan ini; model lain akan menggunakan model fungsi yang berkaitan.</string>
     <string name="enable_google_search">Aktifkan Google Search</string>
     <string name="enable_google_search_desc">Setelah diaktifkan, Gemini akan menggunakan carian Google untuk meningkatkan jawapan (mungkin menyebabkan kos tambahan)</string>
     <string name="enable_claude_1h_prompt_cache">Aktifkan cache prompt Claude 1 jam</string>

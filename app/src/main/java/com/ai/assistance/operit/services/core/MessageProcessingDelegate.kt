@@ -315,14 +315,19 @@ class MessageProcessingDelegate(
         chatId: String? = null
     ): String = withContext(Dispatchers.IO) {
         val totalStartTime = messageTimingNow()
-        val configId = functionalConfigManager.getConfigIdForFunction(FunctionType.CHAT)
+        val chatConfigMapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.CHAT)
+        val configId = chatConfigMapping.configId
         val currentModelConfig = modelConfigManager.getModelConfigFlow(configId).first()
-        val enableDirectImageProcessing = currentModelConfig.enableDirectImageProcessing
+        val modelIndex = chatConfigMapping.modelIndex
+        val enableDirectImageProcessing =
+            currentModelConfig.supportsDirectImageProcessing(modelIndex)
         val enableDirectFileProcessing =
             currentModelConfig.apiProviderType == ApiProviderType.OPENAI_CODEX &&
                 enableDirectImageProcessing
-        val enableDirectAudioProcessing = currentModelConfig.enableDirectAudioProcessing
-        val enableDirectVideoProcessing = currentModelConfig.enableDirectVideoProcessing
+        val enableDirectAudioProcessing =
+            currentModelConfig.supportsDirectAudioProcessing(modelIndex)
+        val enableDirectVideoProcessing =
+            currentModelConfig.supportsDirectVideoProcessing(modelIndex)
 
         val finalMessageContent = AIMessageManager.buildUserMessageContent(
             context = context,
@@ -754,17 +759,31 @@ class MessageProcessingDelegate(
             AppLogger.d(TAG, "开始处理用户消息：附件数量=${attachments.size}")
 
             // 获取当前模型配置以检查是否启用直接图片处理
-            val configId = chatModelConfigIdOverride?.takeIf { it.isNotBlank() }
-                ?: functionalConfigManager.getConfigIdForFunction(FunctionType.CHAT)
+            val overrideConfigId = chatModelConfigIdOverride?.takeIf { it.isNotBlank() }
+            val chatConfigMapping =
+                functionalConfigManager.getConfigMappingForFunction(FunctionType.CHAT)
+            val configId = overrideConfigId ?: chatConfigMapping.configId
+            val modelIndex =
+                if (overrideConfigId != null) {
+                    (chatModelIndexOverride ?: 0).coerceAtLeast(0)
+                } else {
+                    chatConfigMapping.modelIndex
+                }
             val loadModelConfigStartTime = messageTimingNow()
             val currentModelConfig = modelConfigManager.getModelConfigFlow(configId).first()
-            val enableDirectImageProcessing = currentModelConfig.enableDirectImageProcessing
+            val enableDirectImageProcessing =
+                currentModelConfig.supportsDirectImageProcessing(modelIndex)
             val enableDirectFileProcessing =
                 currentModelConfig.apiProviderType == ApiProviderType.OPENAI_CODEX &&
                     enableDirectImageProcessing
-            val enableDirectAudioProcessing = currentModelConfig.enableDirectAudioProcessing
-            val enableDirectVideoProcessing = currentModelConfig.enableDirectVideoProcessing
-            AppLogger.d(TAG, "直接图片处理状态: $enableDirectImageProcessing (配置ID: $configId)")
+            val enableDirectAudioProcessing =
+                currentModelConfig.supportsDirectAudioProcessing(modelIndex)
+            val enableDirectVideoProcessing =
+                currentModelConfig.supportsDirectVideoProcessing(modelIndex)
+            AppLogger.d(
+                TAG,
+                "直接图片处理状态: $enableDirectImageProcessing (配置ID: $configId, 模型索引: $modelIndex)"
+            )
             logMessageTiming(
                 stage = "delegate.loadModelConfig",
                 startTimeMs = loadModelConfigStartTime,

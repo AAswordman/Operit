@@ -3965,6 +3965,8 @@
     <string name="enable_direct_audio_processing_desc">启用后，音频将直接发送给AI处理，而不是通过工具返回文本转写/描述</string>
     <string name="enable_direct_video_processing">模型支持视频解析</string>
     <string name="enable_direct_video_processing_desc">启用后，视频将直接发送给AI处理，而不是通过工具抽帧/分析</string>
+    <string name="media_capable_models_title">适用模型</string>
+    <string name="media_capable_models_desc">该配置包含多个模型，请勾选真正具备该能力的模型；未勾选的模型将改用对应的功能模型</string>
     <string name="enable_google_search">启用 Google Search</string>
     <string name="enable_google_search_desc">启用后，Gemini 将使用 Google 搜索来增强回答（可能产生额外费用）</string>
     <string name="enable_deepseek_web_search">启用 DeepSeek 网络搜索</string>
