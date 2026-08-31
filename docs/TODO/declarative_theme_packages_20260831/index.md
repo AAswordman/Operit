@@ -2,7 +2,7 @@
 title: 声明式全局主题包
 fork: https://github.com/luojiaping/Operit.git
 branch: feat/plugin-interface
-status: implementation_in_progress
+status: superseded_by_v2
 ---
 
 # 声明式全局主题包
@@ -59,3 +59,7 @@ status: implementation_in_progress
 6. 用赛博参考 `.otheme` 验证聊天主场景
 7. 按 UI 目录迁移剩余 Operit 原生页面
 8. 单列批次接入插件市场 `theme` artifact 类型、发布和安装链路
+
+## 接替说明
+
+批次 G 及后续迁移由 [global_theme_ownership_20260831](../global_theme_ownership_20260831/index.md) 接管：V1 场景叠加式实现已删除，V2 以 surface 覆盖与组件皮肤契约重建。

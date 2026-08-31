@@ -2,7 +2,7 @@
 title: 外置主题包仓库与发布
 fork: https://github.com/luojiaping/Operit.git
 branch: feat/plugin-interface
-status: implementation_in_progress
+status: superseded
 ---
 
 # 外置主题包仓库与发布
@@ -34,3 +34,7 @@ status: implementation_in_progress
 2. [默认主题仓库](./2_DefaultThemeRepository.md)
 3. [赛博主题仓库与发布](./3_CyberThemeRepositoryAndRelease.md)
 4. [验证与交付](./4_VerificationAndDelivery.md)
+
+## 取代说明
+
+本计划的 V1 包格式、`operit.default@1.0.2` 与 `operit.cyber_grid@1.0.2` 已被 [global_theme_ownership_20260831](../global_theme_ownership_20260831/index.md) 的 V2 全应用主题所有权方案整体取代；对应 GitHub Release 已删除。仓库拆分与外置分发原则保留并在 V2 下继续生效。

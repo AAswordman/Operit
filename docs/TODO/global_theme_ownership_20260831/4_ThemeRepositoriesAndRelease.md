@@ -11,3 +11,10 @@
 ## 发布
 
 两仓库的 package 脚本必须验证 V2 manifest、全部资源摘要、required coverage、确定性 ZIP metadata 与 `Operit Theme Package` comment。只从 release tag 产出 `.otheme` 与 SHA-256 assets。
+
+## 进展
+
+[DONE] 两仓库已发布 V2 `v2.0.0`（含中途修正 token 命名后重建的 Release）；打包脚本确定性归档与本地/CI 字节一致性已验证。
+
+- 默认主题：`operit.default@2.0.0`，SHA-256 `8d5c512555a059a871259071adfd26b3257d57e533d0ba80f03537c58e6b4102`
+- 赛博主题：`operit.cyber_grid@2.0.0`（basis 指向上述默认坐标）

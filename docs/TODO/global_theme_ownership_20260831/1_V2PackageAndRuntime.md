@@ -27,3 +27,11 @@ V1 manifest 只声明 `chat.main` 和少数 token。`app.shell` 没有宿主，�
 ## Material 投影
 
 V2 manifest 提供完整 `material` palette、typography 和 shapes。Operit 的既有 Material 组件仍作为交互与无障碍底座，但它们的颜色、排版、形状和 content alpha 一律来自 active package projection。新的 Operit theme components 为异形/九宫格/自定义状态提供包级 skin。
+
+## 进展
+
+[DONE] V2 manifest、严格归档校验器、内容寻址发布、安装器、链接器（`ThemePackageRuntimeLinkerV2`）、全局选择（V2 DataStore）与进程内 `ThemeRuntimeRepositoryV2` 已落地；V1 包代码与测试已全部删除。
+
+[DONE] 场景 DSL 新增按内容测量的 `scaffold` 节点与宿主槽位 `rowWeight`；九宫格在有子内容时按子内容包裹。
+
+[TODO] 参数→token/场景联动（当前参数机制已就绪但默认主题未声明参数）。
