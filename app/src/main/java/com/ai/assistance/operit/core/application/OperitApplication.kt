@@ -44,7 +44,8 @@ import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.GlobalPresentationManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.data.theme.packages.ThemePackageDefaultV1
+import com.ai.assistance.operit.data.theme.packages.ThemePackageDefaultV2
+import com.ai.assistance.operit.data.theme.packages.ThemeRuntimeRepositoryV2
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.data.preferences.initAndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.initUserPreferencesManager
@@ -209,11 +210,12 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
         try {
             runBlocking(Dispatchers.IO) {
-                ThemePackageDefaultV1.ensureInstalled(applicationContext)
+                ThemePackageDefaultV2.ensureInstalled(applicationContext)
+                ThemeRuntimeRepositoryV2.refresh(applicationContext)
             }
         } catch (error: Throwable) {
-            AppLogger.e(TAG, "Bundled default theme installation failed", error)
-            throw IllegalStateException("Unable to install the bundled default theme package.", error)
+            AppLogger.e(TAG, "Bundled default V2 theme installation failed", error)
+            throw IllegalStateException("Unable to install the bundled default V2 theme package.", error)
         }
 
         applicationScope.launch {

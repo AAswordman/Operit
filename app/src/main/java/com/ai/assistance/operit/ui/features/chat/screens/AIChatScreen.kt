@@ -106,7 +106,6 @@ import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
 import com.ai.assistance.operit.ui.features.chat.viewmodel.PendingMessageQueueState
 import com.ai.assistance.operit.ui.theme.LocalGlobalPresentation
-import com.ai.assistance.operit.ui.theme.LocalActiveGlobalThemeParameters
 import com.ai.assistance.operit.plugins.chatview.ChatViewEvent
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookParams
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookPluginRegistry
@@ -168,8 +167,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     // Get background image state
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val presentation = LocalGlobalPresentation.current
-    val hasThemeBackgroundImage =
-        LocalActiveGlobalThemeParameters.current.backgroundImageUri != null
+    // V2 scenes own the chat backdrop; transcript surfaces must stay transparent above it.
+    val hasThemeBackgroundImage = true
     val showInputProcessingStatus = presentation.showInputProcessingStatus
     val enableEnterToSend by displayPreferencesManager.enableEnterToSend.collectAsState(initial = false)
     val showChatFloatingDotsAnimation = presentation.showChatFloatingDotsAnimation
@@ -677,42 +676,57 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         ) { paddingValues ->
             // 根据前面的逻辑条件决定是否显示配置界面
             if (showConfig) {
-                ConfigurationScreen(
-                        apiKey = apiKey,
-                        isSaving = isSavingInitialConfiguration,
-                        onSaveApiKey = { normalizedApiKey ->
-                            if (!isSavingInitialConfiguration) {
-                                coroutineScope.launch {
-                                    isSavingInitialConfiguration = true
-                                    initialConfigurationSaveFailed = false
-                                    try {
-                                        actualViewModel.saveDeepSeekConfiguration(
-                                            activeChatConfigId,
-                                            normalizedApiKey
-                                        )
-                                    } catch (e: CancellationException) {
-                                        throw e
-                                    } catch (e: Exception) {
-                                        initialConfigurationSaveFailed = true
-                                        actualViewModel.showErrorMessage(
-                                            e.message ?: context.getString(R.string.save_failed)
-                                        )
-                                    } finally {
-                                        isSavingInitialConfiguration = false
+                ChatMainSceneHost(
+                    configurationGate = {
+                        ConfigurationScreen(
+                                apiKey = apiKey,
+                                isSaving = isSavingInitialConfiguration,
+                                onSaveApiKey = { normalizedApiKey ->
+                                    if (!isSavingInitialConfiguration) {
+                                        coroutineScope.launch {
+                                            isSavingInitialConfiguration = true
+                                            initialConfigurationSaveFailed = false
+                                            try {
+                                                actualViewModel.saveDeepSeekConfiguration(
+                                                    activeChatConfigId,
+                                                    normalizedApiKey
+                                                )
+                                            } catch (e: CancellationException) {
+                                                throw e
+                                            } catch (e: Exception) {
+                                                initialConfigurationSaveFailed = true
+                                                actualViewModel.showErrorMessage(
+                                                    e.message ?: context.getString(R.string.save_failed)
+                                                )
+                                            } finally {
+                                                isSavingInitialConfiguration = false
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                        },
-                        onNavigateToTokenConfig = onNavigateToTokenConfig,
-                        onNavigateToModelConfig = {
-                            initialConfigurationSaveFailed = false
-                            onNavigateToOnboardingModelConfig()
-                        }
+                                },
+                                onNavigateToTokenConfig = onNavigateToTokenConfig,
+                                onNavigateToModelConfig = {
+                                    initialConfigurationSaveFailed = false
+                                    onNavigateToOnboardingModelConfig()
+                                },
+                        )
+                    },
+                    header = {},
+                    transcript = {},
+                    composer = {},
+                    classicSettingsRail = {},
+                    overlayStack = {},
                 )
             } else {
                 ChatMainSceneHost(
                     configurationGate = {},
-                    header = {},
+                    header = {
+                        ChatScreenHeader(
+                            actualViewModel = actualViewModel,
+                            showChatHistorySelector = showChatHistorySelector,
+                            onCharacterSwitcherClick = { showCharacterSelector = true },
+                        )
+                    },
                     transcript = {
                         Box(modifier = Modifier.fillMaxSize()) {
                     Box(
@@ -725,7 +739,9 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 modifier = Modifier.fillMaxSize(),
                                 paddingValues =
                                         PaddingValues(), // Padding is already handled by the parent Box
-                                bottomInset = bottomBarHeightDp,
+                                // V2：composer 由场景 scaffold 的 bottom 区域真实测量，
+                                // transcript 不再需要为输入器预留 bottomInset，否则双重留白。
+                                bottomInset = 0.dp,
                                 actualViewModel = actualViewModel,
                                 enableMessageDialogs = !isFloatingMode,
                                 showChatHistorySelector = showChatHistorySelector,
@@ -752,9 +768,10 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 showCharacterSelector = showCharacterSelector,
                                 onShowCharacterSelectorChange = { showCharacterSelector = it },
                                 onSwitchCharacter = onSwitchCharacter,
-                                onOpenCharacterSettings = onNavigateToModelPrompts,
-                                showChatFloatingDotsAnimation = showChatFloatingDotsAnimation,
-                        )
+                                 onOpenCharacterSettings = onNavigateToModelPrompts,
+                                 showChatFloatingDotsAnimation = showChatFloatingDotsAnimation,
+                                 showHeader = false,
+                         )
                             }
                         }
                     },

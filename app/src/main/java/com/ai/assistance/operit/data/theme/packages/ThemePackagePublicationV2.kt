@@ -4,35 +4,31 @@ import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.util.UUID
 import java.util.zip.ZipFile
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
-internal data class PublishedThemeInstallationV1(
-    val coordinate: ThemePackageCoordinateV1,
-    val manifest: ThemePackageManifestV1,
+internal data class PublishedThemeInstallationV2(
+    val coordinate: ThemePackageCoordinateV2,
+    val manifest: ThemePackageManifestV2,
     val rootDir: File,
 )
 
-internal data class PublishedThemeCatalogV1(
-    val installations: List<PublishedThemeInstallationV1>,
+internal data class PublishedThemeCatalogV2(
+    val installations: List<PublishedThemeInstallationV2>,
     val brokenInstallations: List<String>,
 )
 
-/**
- * Content-addressed publication layout under a caller-provided root:
- * `<packageId>/<version>/<archiveSha256>/`. Publication writes into a hidden staging
- * directory first and renames it into place, so an installation directory only ever
- * exists in a fully extracted state. The same digest is idempotent.
- */
-internal object ThemePackagePublicationV1 {
-    private val MANIFEST_JSON =
-        kotlinx.serialization.json.Json {
-            ignoreUnknownKeys = false
-            encodeDefaults = true
-            explicitNulls = false
-        }
+/** Publishes validated V2 archives by exact content coordinate into an immutable installation. */
+internal object ThemePackagePublicationV2 {
+    private val manifestJson = Json {
+        ignoreUnknownKeys = false
+        encodeDefaults = true
+        explicitNulls = false
+    }
 
     fun installationDir(
         root: File,
-        coordinate: ThemePackageCoordinateV1,
+        coordinate: ThemePackageCoordinateV2,
     ): File =
         File(
             root,
@@ -41,9 +37,9 @@ internal object ThemePackagePublicationV1 {
 
     fun publish(
         validatedArchive: File,
-        validated: ThemePackageValidatedArchiveV1,
+        validated: ThemePackageValidatedArchiveV2,
         root: File,
-    ): ThemePackageCoordinateV1 {
+    ): ThemePackageCoordinateV2 {
         val coordinate = validated.manifest.coordinateFor(validated.archiveSha256)
         val target = installationDir(root, coordinate)
         if (target.exists()) return coordinate
@@ -51,7 +47,7 @@ internal object ThemePackagePublicationV1 {
         root.mkdirs()
         val targetParent = requireNotNull(target.parentFile)
         if (!targetParent.exists() && !targetParent.mkdirs()) {
-            throw ThemePackageInstallException(
+            throw ThemePackageInstallExceptionV2(
                 "Unable to create the theme installation directory: ${targetParent.absolutePath}",
             )
         }
@@ -60,16 +56,16 @@ internal object ThemePackagePublicationV1 {
             publishing.mkdirs()
             ZipFile(validatedArchive).use { zip ->
                 extractEntry(
-                    zip,
-                    THEME_PACKAGE_MANIFEST_ENTRY,
-                    File(publishing, THEME_PACKAGE_MANIFEST_ENTRY),
+                    zip = zip,
+                    entryName = THEME_PACKAGE_MANIFEST_ENTRY_V2,
+                    targetFile = File(publishing, THEME_PACKAGE_MANIFEST_ENTRY_V2),
                 )
                 validated.manifest.assets.forEach { asset ->
                     extractEntry(zip, asset.path, File(publishing, asset.path))
                 }
             }
             if (!publishing.renameTo(target)) {
-                throw ThemePackageInstallException(
+                throw ThemePackageInstallExceptionV2(
                     "Unable to publish theme installation at ${target.absolutePath}",
                 )
             }
@@ -81,49 +77,47 @@ internal object ThemePackagePublicationV1 {
 
     fun uninstall(
         root: File,
-        coordinate: ThemePackageCoordinateV1,
+        coordinate: ThemePackageCoordinateV2,
     ): Boolean {
         val target = installationDir(root, coordinate)
         if (!target.exists()) return false
         target.deleteRecursively()
-        target.parentFile?.takeIf { dir -> dir.list()?.isEmpty() == true }?.delete()
-        target.parentFile?.parentFile
-            ?.takeIf { dir -> dir.list()?.isEmpty() == true }
-            ?.delete()
+        target.parentFile?.takeIf { directory -> directory.list()?.isEmpty() == true }?.delete()
+        target.parentFile?.parentFile?.takeIf { directory -> directory.list()?.isEmpty() == true }?.delete()
         return true
     }
 
-    fun catalog(root: File): PublishedThemeCatalogV1 {
-        if (!root.exists()) return PublishedThemeCatalogV1(emptyList(), emptyList())
-        val installations = mutableListOf<PublishedThemeInstallationV1>()
+    fun catalog(root: File): PublishedThemeCatalogV2 {
+        if (!root.exists()) return PublishedThemeCatalogV2(emptyList(), emptyList())
+
+        val installations = mutableListOf<PublishedThemeInstallationV2>()
         val broken = mutableListOf<String>()
         root.listFiles()
             ?.filter(File::isDirectory)
-            ?.forEach packageDirs@{ packageDir ->
+            ?.forEach { packageDir ->
                 packageDir.listFiles()
                     ?.filter(File::isDirectory)
-                    ?.forEach versionDirs@{ versionDir ->
+                    ?.forEach { versionDir ->
                         versionDir.listFiles()
                             ?.filter(File::isDirectory)
-                            ?.forEach digestDirs@{ digestDir ->
-                                val manifestFile =
-                                    File(digestDir, THEME_PACKAGE_MANIFEST_ENTRY)
+                            ?.forEach { digestDir ->
+                                val manifestFile = File(digestDir, THEME_PACKAGE_MANIFEST_ENTRY_V2)
                                 if (!manifestFile.isFile) {
                                     broken += digestDir.absolutePath
-                                    return@digestDirs
+                                    return@forEach
                                 }
                                 try {
                                     val manifest =
-                                        MANIFEST_JSON.decodeFromString<ThemePackageManifestV1>(
+                                        manifestJson.decodeFromString<ThemePackageManifestV2>(
                                             manifestFile.readText(Charsets.UTF_8),
                                         )
                                     installations +=
-                                        PublishedThemeInstallationV1(
+                                        PublishedThemeInstallationV2(
                                             coordinate =
-                                                ThemePackageCoordinateV1(
-                                                    packageId = ThemePackageIdV1(manifest.packageId),
-                                                    version = ThemePackageVersionV1(manifest.version),
-                                                    archiveSha256 = ThemeArchiveSha256V1(digestDir.name),
+                                                ThemePackageCoordinateV2(
+                                                    packageId = ThemePackageIdV2(manifest.packageId),
+                                                    version = ThemePackageVersionV2(manifest.version),
+                                                    archiveSha256 = ThemeArchiveSha256V2(digestDir.name),
                                                 ),
                                             manifest = manifest,
                                             rootDir = digestDir,
@@ -131,7 +125,7 @@ internal object ThemePackagePublicationV1 {
                                 } catch (error: Throwable) {
                                     AppLogger.e(
                                         TAG,
-                                        "Broken theme installation at ${digestDir.absolutePath}",
+                                        "Broken V2 theme installation at ${digestDir.absolutePath}",
                                         error,
                                     )
                                     broken += digestDir.absolutePath
@@ -145,7 +139,7 @@ internal object ThemePackagePublicationV1 {
                 { installation -> installation.coordinate.version.value },
             ),
         )
-        return PublishedThemeCatalogV1(installations, broken)
+        return PublishedThemeCatalogV2(installations, broken)
     }
 
     private fun extractEntry(
@@ -153,14 +147,13 @@ internal object ThemePackagePublicationV1 {
         entryName: String,
         targetFile: File,
     ) {
-        val entry =
-            requireNotNull(zip.getEntry(entryName)) {
-                "Validated archive entry disappeared: $entryName"
-            }
+        val entry = requireNotNull(zip.getEntry(entryName)) {
+            "Validated archive entry disappeared: $entryName"
+        }
         val outputDir = requireNotNull(targetFile.parentFile)
         outputDir.mkdirs()
         if (!targetFile.canonicalPath.startsWith(outputDir.canonicalPath + File.separator)) {
-            throw ThemePackageInstallException(
+            throw ThemePackageInstallExceptionV2(
                 "Refusing to extract outside the installation root: $entryName",
             )
         }
@@ -169,5 +162,5 @@ internal object ThemePackagePublicationV1 {
         }
     }
 
-    private const val TAG = "ThemePackagePublication"
+    private const val TAG = "ThemePackagePublicationV2"
 }

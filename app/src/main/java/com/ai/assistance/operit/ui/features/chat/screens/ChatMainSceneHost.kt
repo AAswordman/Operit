@@ -5,8 +5,9 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import com.ai.assistance.operit.ui.theme.LocalActiveThemeSceneRuntime
-import com.ai.assistance.operit.ui.theme.LocalResolvedGlobalTheme
+import com.ai.assistance.operit.data.theme.packages.ThemeSurfaceCatalogV2
+import com.ai.assistance.operit.ui.theme.LocalThemePackageUiRuntimeV2
+import com.ai.assistance.operit.ui.theme.sceneFor
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneSlotIdV1
 import com.ai.assistance.operit.ui.theme.scene.render.ThemeSceneV1
 
@@ -21,8 +22,7 @@ internal fun ChatMainSceneHost(
     overlayStack: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val runtime = LocalActiveThemeSceneRuntime.current
-    val darkTheme = LocalResolvedGlobalTheme.current.darkTheme
+    val runtime = LocalThemePackageUiRuntimeV2.current
     val movableConfigurationGate = rememberMovableChatMainSlot(configurationGate)
     val movableHeader = rememberMovableChatMainSlot(header)
     val movableTranscript = rememberMovableChatMainSlot(transcript)
@@ -31,7 +31,7 @@ internal fun ChatMainSceneHost(
     val movableOverlays = rememberMovableChatMainSlot(overlayStack)
 
     ThemeSceneV1(
-        stage = runtime.chatMain,
+        stage = runtime.sceneFor(ThemeSurfaceCatalogV2.CHAT_MAIN),
         tokens = runtime.tokens,
         assets = runtime.assets,
         hostSlots =
@@ -46,7 +46,7 @@ internal fun ChatMainSceneHost(
         textResolver = { key ->
             error("Active chat theme has no text resource for ${key.value}.")
         },
-        darkTheme = darkTheme,
+        darkTheme = runtime.darkTheme,
         modifier = modifier,
     )
 }

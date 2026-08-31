@@ -107,14 +107,11 @@ internal object ThemeSceneCatalogV1 {
             version = SCENE_VERSION_1_0,
             slotContracts =
                 listOf(
+                    // 抽屉/平板导航栏由 app.navigation 表面承载，不再进入 app.shell 场景；
+                    // 否则主题必须为不可见槽位留位，宿主也无法独立测量它们。
                     slot("app_bar.navigation", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.FIXED),
                     slot("app_bar.title", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.FIXED),
                     slot("app_bar.actions", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.FIXED),
-                    slot("navigation.identity_status", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.REORDERABLE),
-                    slot("navigation.quick", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.REORDERABLE),
-                    slot("navigation.primary", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.REORDERABLE),
-                    slot("navigation.plugins", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.REORDERABLE),
-                    slot("navigation.system", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.REORDERABLE),
                     slot("route.content", ThemeSceneSlotCardinalityV1.REQUIRED_SINGLE, ThemeSceneSlotReorderabilityV1.FIXED),
                     slot("announcement", ThemeSceneSlotCardinalityV1.OPTIONAL_SINGLE, ThemeSceneSlotReorderabilityV1.FIXED),
                 ),
@@ -182,6 +179,20 @@ internal data class ThemeSceneColumnNodeV1(
     val children: List<ThemeSceneNodeV1> = emptyList(),
 ) : ThemeSceneNodeV1
 
+/**
+ * A measured application layout. Top and bottom retain their content height while content fills
+ * the remaining viewport; overlay is drawn above all three regions.
+ */
+@Serializable
+@SerialName("scaffold")
+internal data class ThemeSceneScaffoldNodeV1(
+    override val nodeId: ThemeSceneNodeIdV1,
+    val top: ThemeSceneNodeV1? = null,
+    val content: ThemeSceneNodeV1,
+    val bottom: ThemeSceneNodeV1? = null,
+    val overlay: ThemeSceneNodeV1? = null,
+) : ThemeSceneNodeV1
+
 @Serializable
 @SerialName("grid")
 internal data class ThemeSceneGridNodeV1(
@@ -210,6 +221,9 @@ internal data class ThemeSceneHostSlotNodeV1(
     override val nodeId: ThemeSceneNodeIdV1,
     val slotId: ThemeSceneSlotIdV1,
     val contentPadding: ThemeSceneEdgeInsetsV1? = null,
+    // 行布局内的弹性权重；缺失表示按内容包裹。宿主槽位是唯一允许声明权重的节点，
+    // 否则主题无法让标题栏标题占据剩余宽度。
+    val rowWeight: Float? = null,
 ) : ThemeSceneNodeV1
 
 @Serializable

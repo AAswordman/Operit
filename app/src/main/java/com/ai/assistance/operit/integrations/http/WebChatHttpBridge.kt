@@ -50,10 +50,7 @@ import com.ai.assistance.operit.services.core.resolveDisplayPageRanges
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.StructuredAssistantContentParser
-import com.ai.assistance.operit.ui.theme.NativeThemeEnvironment
-import com.ai.assistance.operit.ui.theme.NativeThemeHostSurface
-import com.ai.assistance.operit.ui.theme.resolveGlobalThemeV1
-import com.ai.assistance.operit.ui.theme.resolveNativeThemeDetachedBaseColorSchemes
+import com.ai.assistance.operit.ui.theme.buildActiveThemePackageRuntimeV2
 import fi.iki.elonen.NanoHTTPD
 import java.io.BufferedWriter
 import java.io.ByteArrayInputStream
@@ -2281,18 +2278,16 @@ class WebChatHttpBridge(
             ?.trim()
             ?.takeIf { it.isNotBlank() }
         val assistantAvatarUri = resolveChatAssistantAvatarUri(chat)?.takeIf { it.isNotBlank() }
-        val (lightColorScheme, darkColorScheme) = resolveNativeThemeDetachedBaseColorSchemes(appContext)
-        val resolvedTheme = resolveGlobalThemeV1(
-            presentation = presentation,
-            environment = NativeThemeEnvironment(
-                hostSurface = NativeThemeHostSurface.MAIN,
+        // V2：WebChat 是日常界面，调色板直接来自激活主题包的链接运行时。
+        val packageRuntime =
+            buildActiveThemePackageRuntimeV2(
+                context = appContext,
+                presentation = presentation,
                 systemDarkTheme = appContext.resources.configuration.uiMode and
                     android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                     android.content.res.Configuration.UI_MODE_NIGHT_YES,
-            ),
-            baseColorScheme = { darkTheme -> if (darkTheme) darkColorScheme else lightColorScheme },
-        )
-        val colorScheme = resolvedTheme.colorScheme
+            )
+        val colorScheme = packageRuntime.colorScheme
         return WebThemeSnapshot(
             source = "global",
             sourceId = null,

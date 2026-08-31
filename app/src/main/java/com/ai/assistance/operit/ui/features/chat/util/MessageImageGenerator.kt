@@ -40,7 +40,7 @@ import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleStyleChatMessage
 import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorStyleChatMessage
 import com.ai.assistance.operit.ui.theme.NativeThemeOffscreenHost
-import com.ai.assistance.operit.ui.theme.resolveGlobalThemeOffscreen
+import com.ai.assistance.operit.ui.theme.buildActiveThemePackageRuntimeV2
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -101,13 +101,13 @@ object MessageImageGenerator {
             
             // 在主线程上创建、附加和捕获 Composable 内容
             val bitmap = withContext(Dispatchers.Main) {
-                val resolvedTheme =
-                    resolveGlobalThemeOffscreen(
+                val packageRuntime =
+                    buildActiveThemePackageRuntimeV2(
                         context = context,
                         presentation = presentation,
                         systemDarkTheme = context.isSystemInDarkTheme(),
                     )
-                
+
                 // 创建 ComposeView，包含所有消息内容
                 val composeView = ComposeView(context).apply {
                     setBackgroundColor(AndroidColor.TRANSPARENT)
@@ -123,7 +123,7 @@ object MessageImageGenerator {
                         CompositionLocalProvider(LocalImageLoader provides softwareImageLoader) {
                             NativeThemeOffscreenHost(
                                 presentation = presentation,
-                                resolvedTheme = resolvedTheme,
+                                packageRuntime = packageRuntime,
                             ) {
                             // 不再使用 Capturable，直接渲染内容
                             val density = LocalDensity.current

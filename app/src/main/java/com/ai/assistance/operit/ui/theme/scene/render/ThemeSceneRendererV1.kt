@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import com.ai.assistance.operit.ui.theme.scene.ThemeSceneNineSliceNodeV1
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneNodeV1
 import com.ai.assistance.operit.ui.theme.scene.ThemeScenePathNodeV1
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneRowNodeV1
+import com.ai.assistance.operit.ui.theme.scene.ThemeSceneScaffoldNodeV1
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneSlotIdV1
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneStageNodeV1
 import com.ai.assistance.operit.ui.theme.scene.ThemeSceneSurfaceNodeV1
@@ -115,7 +117,15 @@ private fun ThemeSceneRenderNodeV1(
                 horizontalArrangement = Arrangement.spacedBy(node.spacingDp.dp),
             ) {
                 node.children.forEach { child ->
-                    ThemeSceneRenderNodeV1(child, tokens, assets, hostSlots, textResolver, darkTheme)
+                    val rowWeight = (child as? ThemeSceneHostSlotNodeV1)?.rowWeight
+                    if (rowWeight != null) {
+                        // 仅宿主槽位可声明行内权重：标题等弹性内容占满剩余宽度。
+                        Box(Modifier.weight(rowWeight)) {
+                            ThemeSceneRenderNodeV1(child, tokens, assets, hostSlots, textResolver, darkTheme)
+                        }
+                    } else {
+                        ThemeSceneRenderNodeV1(child, tokens, assets, hostSlots, textResolver, darkTheme)
+                    }
                 }
             }
 
@@ -126,6 +136,45 @@ private fun ThemeSceneRenderNodeV1(
             ) {
                 node.children.forEach { child ->
                     ThemeSceneRenderNodeV1(child, tokens, assets, hostSlots, textResolver, darkTheme)
+                }
+            }
+
+        is ThemeSceneScaffoldNodeV1 ->
+            Box(modifier = modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    node.top?.let { top ->
+                        ThemeSceneRenderNodeV1(top, tokens, assets, hostSlots, textResolver, darkTheme)
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxSize()) {
+                        ThemeSceneRenderNodeV1(
+                            node.content,
+                            tokens,
+                            assets,
+                            hostSlots,
+                            textResolver,
+                            darkTheme,
+                        )
+                    }
+                    node.bottom?.let { bottom ->
+                        ThemeSceneRenderNodeV1(
+                            bottom,
+                            tokens,
+                            assets,
+                            hostSlots,
+                            textResolver,
+                            darkTheme,
+                        )
+                    }
+                }
+                node.overlay?.let { overlay ->
+                    ThemeSceneRenderNodeV1(
+                        overlay,
+                        tokens,
+                        assets,
+                        hostSlots,
+                        textResolver,
+                        darkTheme,
+                    )
                 }
             }
 
@@ -224,7 +273,15 @@ private fun ThemeSceneRenderNodeV1(
 
         is ThemeSceneNineSliceNodeV1 -> {
             val bitmap = assets.bitmap(node.assetId)
-            Box(modifier = modifier.fillMaxSize().clipToBounds()) {
+            // 有子内容时按子内容包裹尺寸（scaffold 的 top/bottom 需要“框体包住真实内容”），
+            // 无子内容时保持填充语义，用于纯装饰性整层边框。
+            val container =
+                if (node.child != null) {
+                    modifier
+                } else {
+                    modifier.fillMaxSize().clipToBounds()
+                }
+            Box(modifier = container) {
                 Box(
                     modifier =
                         Modifier.matchParentSize().drawNineSlice(

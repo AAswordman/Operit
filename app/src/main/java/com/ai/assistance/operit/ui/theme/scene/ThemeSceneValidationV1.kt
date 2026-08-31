@@ -166,6 +166,8 @@ private fun walkNode(
             requireChildren(node.children, path, issues)
         }
 
+        is ThemeSceneScaffoldNodeV1 -> Unit
+
         is ThemeSceneGridNodeV1 -> {
             if (node.columns < 1) {
                 issues +=
@@ -211,6 +213,16 @@ private fun walkNode(
             }
             state.slotUsages[node.slotId] = (state.slotUsages[node.slotId] ?: 0) + 1
             node.contentPadding?.let { validateInsets(it, path, issues) }
+            node.rowWeight?.let { weight ->
+                if (weight <= 0f) {
+                    issues +=
+                        ThemeSceneIssueV1(
+                            code = ThemeSceneIssueCodeV1.INVALID_METRIC,
+                            path = "$path/row_weight",
+                            message = "Host slot row weight must be positive.",
+                        )
+                }
+            }
         }
 
         is ThemeSceneSurfaceNodeV1 -> {
@@ -274,6 +286,8 @@ private fun childrenOf(node: ThemeSceneNodeV1): List<ThemeSceneNodeV1> =
         is ThemeSceneLayerNodeV1 -> node.children
         is ThemeSceneRowNodeV1 -> node.children
         is ThemeSceneColumnNodeV1 -> node.children
+        is ThemeSceneScaffoldNodeV1 ->
+            listOfNotNull(node.top, node.content, node.bottom, node.overlay)
         is ThemeSceneGridNodeV1 -> node.children
         is ThemeSceneFrameNodeV1 -> listOf(node.child)
         is ThemeSceneTransformNodeV1 -> listOf(node.child)

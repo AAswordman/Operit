@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.ai.assistance.operit.data.theme.packages.ThemeComponentCatalogV2
 
 internal data class NativeThemeMainWindowChromeState(
     val statusBarColor: Int,
@@ -19,22 +20,26 @@ internal data class NativeThemeMainWindowChromeState(
     val lightNavigationBarIcons: Boolean,
 )
 
+/**
+ * V2：系统栏颜色来自主题包皮肤，而非 Material primary。
+ * 旧实现把 primary 同时刷进 TopAppBar 与状态栏，是“整条青色顶栏”缺陷的直接来源。
+ */
 internal fun resolveNativeThemeMainWindowChromeState(
-    resolvedTheme: ResolvedGlobalTheme,
+    runtime: ThemePackageUiRuntimeV2,
 ): NativeThemeMainWindowChromeState {
-    val navigationBarColor = resolvedTheme.colorScheme.background.toArgb()
-    val statusBarColor = resolvedTheme.colorScheme.primary.toArgb()
+    val statusBarColor = runtime.componentSkin(ThemeComponentCatalogV2.APP_BAR).container
+    val navigationBarColor = runtime.colorScheme.background
     return NativeThemeMainWindowChromeState(
-        statusBarColor = statusBarColor,
-        lightStatusBarIcons = isNativeThemeColorLight(Color(statusBarColor)),
-        navigationBarColor = navigationBarColor,
+        statusBarColor = statusBarColor.toArgb(),
+        lightStatusBarIcons = isNativeThemeColorLight(statusBarColor),
+        navigationBarColor = navigationBarColor.toArgb(),
         navigationBarContrastEnforced = true,
-        lightNavigationBarIcons = !isNativeThemeColorLight(resolvedTheme.colorScheme.background),
+        lightNavigationBarIcons = !isNativeThemeColorLight(navigationBarColor),
     )
 }
 
 @Composable
-internal fun NativeThemeMainWindowChromeHostAdapter(resolvedTheme: ResolvedGlobalTheme) {
+internal fun NativeThemeMainWindowChromeHostAdapter(runtime: ThemePackageUiRuntimeV2) {
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -42,7 +47,7 @@ internal fun NativeThemeMainWindowChromeHostAdapter(resolvedTheme: ResolvedGloba
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             WindowCompat.setDecorFitsSystemWindows(window, false)
 
-            val state = resolveNativeThemeMainWindowChromeState(resolvedTheme)
+            val state = resolveNativeThemeMainWindowChromeState(runtime)
             insetsController?.show(WindowInsetsCompat.Type.statusBars())
             window.statusBarColor = state.statusBarColor
             insetsController?.isAppearanceLightStatusBars = state.lightStatusBarIcons

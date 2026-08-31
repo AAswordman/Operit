@@ -1,145 +1,81 @@
 package com.ai.assistance.operit.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.rememberAsyncImagePainter
-import com.ai.assistance.operit.data.theme.packages.ActiveGlobalThemeParameterResolverV1
-import com.ai.assistance.operit.data.theme.packages.ActiveGlobalThemeParametersV1
-import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageSelectionRepository
-import com.ai.assistance.operit.ui.theme.scene.ActiveThemeSceneRuntimeFactoryV1
-import com.ai.assistance.operit.ui.theme.scene.ActiveThemeSceneRuntimeV1
+import com.ai.assistance.operit.data.preferences.GlobalThemeMode
+import com.ai.assistance.operit.data.preferences.GlobalPresentationSnapshot
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import io.github.fletchmckee.liquid.liquefiable
 import io.github.fletchmckee.liquid.rememberLiquidState
 
-@Composable
-private fun rememberActiveThemeInstance(): ThemeInstanceV1 {
-    val context = LocalContext.current
-    val instance by remember(context) {
-        ThemePackageSelectionRepository.getInstance(context).selectionFlow
-    }.collectAsState(initial = ThemeInstanceV1.defaultBundled())
-    return instance
-}
-
-@Composable
-private fun rememberActiveThemeRuntime(): ActiveThemeSceneRuntimeV1 {
-    val context = LocalContext.current
-    val instance = rememberActiveThemeInstance()
-    return remember(instance, context) {
-        val installation =
-            ThemePackageInstallerV1.getInstance(context)
-                .find(instance.reference.coordinate)
-                ?: error("Active theme package is unavailable: ${instance.reference.coordinate}")
-        val parameters = ActiveGlobalThemeParameterResolverV1.resolve(instance, installation.manifest)
-        ActiveThemeSceneRuntimeFactoryV1.create(
-            manifest = installation.manifest,
-            installationRoot = installation.rootDir,
-            parameters = parameters,
-        )
-    }
-}
-
+/**
+ * V2 全应用主题入口：颜色、排版、形状、场景与组件皮肤全部来自激活主题包的
+ * 链接运行时。此处不再存在动态配色基线或主色覆盖路径——那会让主题包
+ * 失去对顶栏/系统栏视觉的所有权。
+ */
 @Composable
 fun OperitTheme(content: @Composable () -> Unit) {
-    val context = LocalContext.current
     val presentation = rememberGlobalPresentation()
-    val themeRuntime = rememberActiveThemeRuntime()
-    val themeParameters = themeRuntime.parameters
-    val systemDarkTheme = isSystemInDarkTheme()
+    val packageRuntime = rememberActiveThemePackageRuntimeV2()
     val resolvedTheme =
-        resolveGlobalThemeV1(
-            presentation = presentation,
-            environment =
-                NativeThemeEnvironment(
-                    hostSurface = NativeThemeHostSurface.MAIN,
-                    systemDarkTheme = systemDarkTheme,
-                ),
-            baseColorScheme = { darkTheme ->
-                when {
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                        if (darkTheme) dynamicDarkColorScheme(context)
-                        else dynamicLightColorScheme(context)
-                    }
-                    darkTheme -> NativeThemeV1DarkColorScheme
-                    else -> NativeThemeV1LightColorScheme
-                }
-            },
-            primaryColor = themeParameters.primaryColorArgb?.let { argb -> Color(argb.toInt()) },
-        )
-    val darkTheme = resolvedTheme.darkTheme
-
-    val customTypography =
-        remember(resolvedTheme.fontScale) {
-            createCustomTypography(fontScale = resolvedTheme.fontScale)
+        remember(packageRuntime, presentation) {
+            ResolvedGlobalTheme(
+                environment =
+                    NativeThemeEnvironment(
+                        hostSurface = NativeThemeHostSurface.MAIN,
+                        systemDarkTheme = packageRuntime.darkTheme,
+                    ),
+                darkTheme = packageRuntime.darkTheme,
+                colorScheme = packageRuntime.colorScheme,
+                fontScale = presentation.fontScale,
+            )
         }
 
-    NativeThemeMainWindowChromeHostAdapter(resolvedTheme)
+    NativeThemeMainWindowChromeHostAdapter(packageRuntime)
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        val liquidGlassBackdrop = rememberLayerBackdrop()
-        val waterGlassState = if (isWaterGlassSupported()) rememberLiquidState() else null
-
-        CompositionLocalProvider(
-            LocalGlobalPresentation provides presentation,
-            LocalResolvedGlobalTheme provides resolvedTheme,
-            LocalActiveGlobalThemeParameters provides themeParameters,
-            LocalActiveThemeSceneRuntime provides themeRuntime,
-            LocalLiquidGlassBackdrop provides liquidGlassBackdrop,
-            LocalWaterGlassState provides waterGlassState,
+    val liquidGlassBackdrop = rememberLayerBackdrop()
+    val waterGlassState = if (isWaterGlassSupported()) rememberLiquidState() else null
+    CompositionLocalProvider(
+        LocalGlobalPresentation provides presentation,
+        LocalResolvedGlobalTheme provides resolvedTheme,
+        LocalThemePackageUiRuntimeV2 provides packageRuntime,
+        LocalResolvedThemeParametersV2 provides packageRuntime.parameters,
+        LocalLiquidGlassBackdrop provides liquidGlassBackdrop,
+        LocalWaterGlassState provides waterGlassState,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(liquidGlassBackdrop)
+                    .then(
+                        if (waterGlassState != null) {
+                            Modifier.liquefiable(waterGlassState)
+                        } else {
+                            Modifier
+                        },
+                    ),
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize().layerBackdrop(liquidGlassBackdrop)
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .background(if (darkTheme) Color.Black else Color.White)
-                            .then(
-                                if (waterGlassState != null) {
-                                    Modifier.liquefiable(waterGlassState)
-                                } else {
-                                    Modifier
-                                },
-                            )
-                )
-                themeParameters.backgroundImageUri?.let { backgroundUri ->
-                    Image(
-                        painter =
-                            rememberAsyncImagePainter(
-                                model = android.net.Uri.parse(backgroundUri),
-                            ),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                }
-            }
-
             MaterialTheme(
-                colorScheme = resolvedTheme.colorScheme,
-                typography = customTypography,
+                colorScheme = packageRuntime.colorScheme,
+                typography = packageRuntime.typography,
+                shapes = packageRuntime.shapes,
                 content = content,
             )
         }
     }
 }
+
+/** 供 detached 宿主复用的深浅判定；与主界面一致的主题模式解析。 */
+internal fun resolveThemeDarkMode(
+    presentation: GlobalPresentationSnapshot,
+    systemDarkTheme: Boolean,
+): Boolean =
+    presentation.themeMode == GlobalThemeMode.DARK ||
+        (presentation.themeMode == GlobalThemeMode.SYSTEM && systemDarkTheme)

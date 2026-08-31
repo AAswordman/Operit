@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -52,14 +51,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.theme.packages.PublishedThemeInstallationV1
-import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageDefaultV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageGlobalParameterIdsV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV1
-import com.ai.assistance.operit.data.theme.packages.ThemeParameterValueV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageReferenceV1
-import com.ai.assistance.operit.data.theme.packages.ThemePackageSelectionRepository
+import com.ai.assistance.operit.data.theme.packages.PublishedThemeInstallationV2
+import com.ai.assistance.operit.data.theme.packages.ThemeInstanceV2
+import com.ai.assistance.operit.data.theme.packages.ThemePackageDefaultV2
+import com.ai.assistance.operit.data.theme.packages.ThemePackageInstallerV2
+import com.ai.assistance.operit.data.theme.packages.ThemePackageParameterIdsV2
+import com.ai.assistance.operit.data.theme.packages.ThemePackageReferenceV2
+import com.ai.assistance.operit.data.theme.packages.ThemePackageSelectionRepositoryV2
+import com.ai.assistance.operit.data.theme.packages.ThemeParameterValueV2
+import com.ai.assistance.operit.data.theme.packages.ThemeRuntimeRepositoryV2
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -87,13 +87,13 @@ fun ThemePackagesScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val installer = remember(context) { ThemePackageInstallerV1.getInstance(context) }
+    val installer = remember(context) { ThemePackageInstallerV2.getInstance(context) }
     val selectionRepository =
-        remember(context) { ThemePackageSelectionRepository.getInstance(context) }
+        remember(context) { ThemePackageSelectionRepositoryV2.getInstance(context) }
     val activeInstance by selectionRepository.selectionFlow.collectAsState(
-        initial = ThemeInstanceV1.defaultBundled(),
+        initial = ThemeInstanceV2.defaultBundled(),
     )
-    var installed by remember { mutableStateOf<List<PublishedThemeInstallationV1>>(emptyList()) }
+    var installed by remember { mutableStateOf<List<PublishedThemeInstallationV2>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
 
     fun reload() {
@@ -142,8 +142,8 @@ fun ThemePackagesScreen(
             scope.launch {
                 updateParameter(
                     context,
-                    ThemePackageGlobalParameterIdsV1.BACKGROUND_IMAGE,
-                    ThemeParameterValueV1.StringValue(uri.toString()),
+                    ThemePackageParameterIdsV2.BACKGROUND_IMAGE,
+                    ThemeParameterValueV2.StringValue(uri.toString()),
                 )
             }
         }
@@ -179,7 +179,7 @@ fun ThemePackagesScreen(
 
             installed.forEach { installedPackage ->
                 val coordinate = installedPackage.coordinate
-                val isDefault = ThemePackageDefaultV1.isDefault(coordinate)
+                val isDefault = ThemePackageDefaultV2.isDefault(coordinate)
                 ThemeEntryCard(
                     title = installedPackage.manifest.displayName.resolve(Locale.getDefault().language),
                     subtitle =
@@ -192,8 +192,8 @@ fun ThemePackagesScreen(
                     onActivate = {
                         scope.launch {
                             selectionRepository.replace(
-                                ThemeInstanceV1(
-                                    reference = ThemePackageReferenceV1(coordinate),
+                                ThemeInstanceV2(
+                                    reference = ThemePackageReferenceV2(coordinate),
                                 ),
                             )
                         }
@@ -235,36 +235,61 @@ fun ThemePackagesScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (ThemePackageDefaultV1.isDefault(activeInstance.reference.coordinate)) {
-                PrimaryColorSection(
-                    activeArgb = activeInstance.parameterValues[ThemePackageGlobalParameterIdsV1.PRIMARY_COLOR]
-                        as? ThemeParameterValueV1.IntegerValue,
-                    onPick = { argb ->
-                        scope.launch {
-                            updateParameter(
-                                context,
-                                ThemePackageGlobalParameterIdsV1.PRIMARY_COLOR,
-                                ThemeParameterValueV1.IntegerValue(argb),
+            // 参数编辑区由激活主题包声明的参数驱动，而不是硬编码某个包的参数表。
+            val activeDefinitions =
+                remember(activeInstance.reference.coordinate) {
+                    ThemeRuntimeRepositoryV2
+                        .require(activeInstance.reference.coordinate)
+                        .parameterDefinitions
+                }
+            activeDefinitions.values.forEach { definition ->
+                when (definition.type) {
+                    com.ai.assistance.operit.data.theme.packages.ThemeParameterTypeV2.COLOR -> {
+                        PrimaryColorSection(
+                            title = definition.label.resolve(Locale.getDefault().language),
+                            activeArgb =
+                                (activeInstance.parameterValues[definition.id]
+                                        as? ThemeParameterValueV2.ColorValue)
+                                    ?: ((definition.defaultValue
+                                            as? com.ai.assistance.operit.data.theme.packages.ThemeParameterDefaultV2.ColorValue)
+                                        ?.argb),
+                            onPick = { argb ->
+                                scope.launch {
+                                    updateParameter(
+                                        context,
+                                        definition.id,
+                                        ThemeParameterValueV2.ColorValue(argb),
+                                    )
+                                }
+                            },
+                            onReset = {
+                                scope.launch {
+                                    clearParameter(context, definition.id)
+                                }
+                            },
+                        )
+                    }
+
+                    com.ai.assistance.operit.data.theme.packages.ThemeParameterTypeV2.STRING -> {
+                        if (definition.id == ThemePackageParameterIdsV2.BACKGROUND_IMAGE) {
+                            BackgroundImageSection(
+                                title = definition.label.resolve(Locale.getDefault().language),
+                                currentUri =
+                                    (activeInstance.parameterValues[definition.id]
+                                            as? ThemeParameterValueV2.StringValue)
+                                        ?.value,
+                                onPick = { backgroundPicker.launch(arrayOf("image/*")) },
+                                onClear = {
+                                    scope.launch {
+                                        clearParameter(context, definition.id)
+                                    }
+                                },
                             )
                         }
-                    },
-                    onReset = {
-                        scope.launch {
-                            clearParameter(context, ThemePackageGlobalParameterIdsV1.PRIMARY_COLOR)
-                        }
-                    },
-                )
+                    }
 
-                BackgroundImageSection(
-                    currentUri = activeInstance.parameterValues[ThemePackageGlobalParameterIdsV1.BACKGROUND_IMAGE]
-                        as? ThemeParameterValueV1.StringValue,
-                    onPick = { backgroundPicker.launch(arrayOf("image/*")) },
-                    onClear = {
-                        scope.launch {
-                            clearParameter(context, ThemePackageGlobalParameterIdsV1.BACKGROUND_IMAGE)
-                        }
-                    },
-                )
+                    else -> Unit
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -332,12 +357,13 @@ private fun ThemeEntryCard(
 
 @Composable
 private fun PrimaryColorSection(
-    activeArgb: ThemeParameterValueV1.IntegerValue?,
+    title: String,
+    activeArgb: Long?,
     onPick: (Long) -> Unit,
     onReset: () -> Unit,
 ) {
     Text(
-        text = stringResource(R.string.theme_packages_primary_color),
+        text = title,
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
     )
@@ -346,7 +372,7 @@ private fun PrimaryColorSection(
         modifier = Modifier.fillMaxWidth(),
     ) {
         PRESET_PRIMARY_COLORS.forEach { argb ->
-            val isSelected = activeArgb?.value == argb
+            val isSelected = activeArgb == argb
             Box(
                 modifier =
                     Modifier
@@ -378,12 +404,13 @@ private fun PrimaryColorSection(
 
 @Composable
 private fun BackgroundImageSection(
-    currentUri: ThemeParameterValueV1.StringValue?,
+    title: String,
+    currentUri: String?,
     onPick: () -> Unit,
     onClear: () -> Unit,
 ) {
     Text(
-        text = stringResource(R.string.theme_packages_background_image),
+        text = title,
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
     )
@@ -402,9 +429,9 @@ private fun BackgroundImageSection(
 private suspend fun updateParameter(
     context: android.content.Context,
     parameterId: String,
-    value: ThemeParameterValueV1,
+    value: ThemeParameterValueV2,
 ) {
-    val repository = ThemePackageSelectionRepository.getInstance(context)
+    val repository = ThemePackageSelectionRepositoryV2.getInstance(context)
     val current = repository.selectionFlow.first()
     repository.replace(
         current.copy(
@@ -417,7 +444,7 @@ private suspend fun clearParameter(
     context: android.content.Context,
     parameterId: String,
 ) {
-    val repository = ThemePackageSelectionRepository.getInstance(context)
+    val repository = ThemePackageSelectionRepositoryV2.getInstance(context)
     val current = repository.selectionFlow.first()
     repository.replace(
         current.copy(
@@ -434,7 +461,7 @@ private fun stageImport(
         queryDisplayName(context, uri)
             ?: uri.lastPathSegment
             ?: "theme.otheme"
-    if (!ThemePackageInstallerV1.isThemePackageFileName(name)) {
+    if (!ThemePackageInstallerV2.isThemePackageFileName(name)) {
         error(context.getString(R.string.theme_packages_not_theme_file))
     }
     val staged =
