@@ -21,4 +21,6 @@
 
 [DONE] 构建服务已完成 `67fe288d` 的 release 编译和签名：`operit-release-feat_plugin-interface-67fe288d.apk`，SHA-256 `9dbba58925951b98c26bcca73377c9f11e3e3e2ca2874b2546e58a3deb04f600`。
 
+[DONE] 角色栏修复已在 `64c7ca5a` 完成 release 编译和签名：`operit-release-feat_plugin-interface-64c7ca5a.apk`，SHA-256 `dd1a43c337d94a5335f8c0e8fb8ca5697d9157987cd6d6a7cd334be6a5a12606`。
+
 [TODO] 本机未安装 `adb`，新增 Android instrumentation 用例与设备矩阵尚未执行；需要在真机导入赛博 V2 包后验证 Agent/Classic、Cursor/Bubble、流式消息、IME、长文本滚动与 TalkBack，并提供整页截图。
