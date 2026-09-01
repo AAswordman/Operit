@@ -45,10 +45,12 @@ android {
     }
     sourceSets["main"].manifest.srcFile("src/main/AndroidManifest.xml")
 
-    externalNativeBuild {
-        cmake {
-            path = file("CMakeLists.txt")
-            version = "3.22.1"
+    if (project.findProperty("skipNativeBuild")?.toString()?.toBoolean() != true) {
+        externalNativeBuild {
+            cmake {
+                path = file("CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
 }
