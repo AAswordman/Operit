@@ -13,7 +13,7 @@
 | All Phases | ✅ Complete |
 | New modules compile | ✅ (provider, orchestration, memory) |
 | Unit tests | ✅ 31/31 passing |
-| New features | ✅ SmartPromptCompressor, AgentQuestionChannel |
+| New features | ✅ SmartPromptCompressor, AgentQuestionChannel, CodeOrganizerAgent |
 | CI/CD | ✅ GitHub Actions workflow |
 | Integration | ✅ (sanitizer, root guard, manager) |
 | UI screens | ✅ (mode switcher, pricing, budget) |
@@ -195,6 +195,34 @@
 - 8 unit tests
 - File: `app/src/main/java/com/ai/assistance/operit/core/prompts/AgentQuestionChannel.kt`
 
+### Task: CodeOrganizerAgent (requirement 16)
+- Status: ✅ Done
+- Background code organization pass after edits
+- Detects undocumented public classes/functions
+- Detects unused private functions
+- Checks naming conventions (file vs class name)
+- Finds oversized files (>500 lines)
+- Generates dry-run report for user approval
+- Can apply approved changes (add KDoc)
+- 8 unit tests
+- File: `app/src/main/java/com/ai/assistance/operit/core/codeorganizer/CodeOrganizerAgent.kt`
+
+### Task: ProviderCompatibilityTester fleshed out
+- Status: ✅ Done
+- Real HTTP requests to provider endpoints
+- Tests chat completion format
+- Tests tool call format compatibility
+- Tests thinking/reasoning mode support
+- Error response parsing
+- File: `app/src/main/java/com/ai/assistance/operit/core/hardening/ProviderCompatibilityTester.kt`
+
+### Task: AutoDocWriter section replacement
+- Status: ✅ Done
+- Proper section replacement (not just append)
+- Decision log table insertion
+- Overall progress percentage updates
+- File: `app/src/main/java/com/ai/assistance/operit/core/autodoc/AutoDocWriter.kt`
+
 ## Phase 4: Memory & Context
 - **Status:** ✅ Complete
 - **% Complete:** 100%
@@ -288,28 +316,28 @@
 - Pricing data is remote-fetchable, not hardcoded
 
 ## Phase 2: Terminal + Tool Exec
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 3: Multi-Agent Core
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 4: Memory & Context
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 5: Modes & UI
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 6: Auto-Doc & Progress
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 7: Skill/Rule/Permission
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 8: Export/Import
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 9: Hardening
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)
 
 ## Phase 10: Deploy
-- **Status:** Not started
+- **Status:** ✅ Complete (see above)

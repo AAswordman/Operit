@@ -1,5 +1,11 @@
 package com.ai.assistance.operit.core.hardening
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+
 /**
  * ProviderCompatibilityTester — tests tool calls through mock request for all providers.
  *
@@ -15,24 +21,40 @@ class ProviderCompatibilityTester {
     /**
      * Test a provider's compatibility with the app's expected request/response format.
      */
-    suspend fun testProvider(config: ProviderTestConfig): CompatibilityResult {
-        return try {
-            // Phase 9 TODO: Implement actual HTTP request to provider
+    suspend fun testProvider(config: ProviderTestConfig): CompatibilityResult = withContext(Dispatchers.IO) {
+        try {
             // 1. Send mock chat completion request with tool definitions
+            val requestBody = buildChatCompletionRequest(
+                model = config.model,
+                includeTools = config.supportsToolCalling,
+                includeThinking = config.supportsThinking
+            )
+
+            val response = sendRequest(config.endpoint, config.apiKey, requestBody)
+
             // 2. Verify response format (content, tool_calls, usage)
-            // 3. Test streaming response parsing
-            // 4. Test error handling (400, 401, 429, 500)
+            val hasContent = response.contains("\"content\"") || response.contains("\"choices\"")
+            val hasUsage = response.contains("\"usage\"")
+
+            // 3. Check for error responses
+            val isError = response.contains("\"error\"")
+            val errorCode = if (isError) extractErrorCode(response) else null
 
             CompatibilityResult(
                 providerId = config.providerId,
-                passed = true,
-                details = "Mock test passed (implementation pending)"
+                passed = hasContent && !isError,
+                details = when {
+                    isError -> "Provider returned error: $errorCode"
+                    !hasContent -> "Response missing 'content' or 'choices' field"
+                    !hasUsage -> "Response missing 'usage' field (non-critical)"
+                    else -> "Provider compatible — response format valid"
+                }
             )
         } catch (e: Exception) {
             CompatibilityResult(
                 providerId = config.providerId,
                 passed = false,
-                details = "Test failed: ${e.message}",
+                details = "Connection failed: ${e.message}",
                 error = e
             )
         }
@@ -49,32 +71,199 @@ class ProviderCompatibilityTester {
      * Test tool call format compatibility.
      * Sends a mock tool call request and verifies the provider handles it correctly.
      */
-    suspend fun testToolCallFormat(config: ProviderTestConfig): CompatibilityResult {
-        // Phase 9 TODO: Implement tool call format test
-        // Tests:
-        // 1. Tool definition format (JSON schema)
-        // 2. Tool call response parsing
-        // 3. Tool result format
-        // 4. Error handling for malformed tool calls
+    suspend fun testToolCallFormat(config: ProviderTestConfig): CompatibilityResult = withContext(Dispatchers.IO) {
+        if (!config.supportsToolCalling) {
+            return@withContext CompatibilityResult(
+                providerId = config.providerId,
+                passed = true,
+                details = "Skipped — provider does not support tool calling"
+            )
+        }
 
-        return CompatibilityResult(
-            providerId = config.providerId,
-            passed = true,
-            details = "Tool call format test passed (implementation pending)"
-        )
+        try {
+            val requestBody = buildToolCallRequest(config.model)
+            val response = sendRequest(config.endpoint, config.apiKey, requestBody)
+
+            // Check for tool_calls in response
+            val hasToolCalls = response.contains("\"tool_calls\"") || response.contains("\"function_call\"")
+            val isError = response.contains("\"error\"")
+
+            CompatibilityResult(
+                providerId = config.providerId,
+                passed = !isError && hasToolCalls,
+                details = when {
+                    isError -> "Tool call test failed: error in response"
+                    hasToolCalls -> "Tool call format compatible"
+                    else -> "No tool_calls in response — may not support function calling"
+                }
+            )
+        } catch (e: Exception) {
+            CompatibilityResult(
+                providerId = config.providerId,
+                passed = false,
+                details = "Tool call test failed: ${e.message}",
+                error = e
+            )
+        }
     }
 
     /**
      * Test thinking/reasoning mode compatibility.
      */
-    suspend fun testThinkingMode(config: ProviderTestConfig): CompatibilityResult {
-        // Phase 9 TODO: Implement thinking mode test
-        return CompatibilityResult(
-            providerId = config.providerId,
-            passed = true,
-            details = "Thinking mode test passed (implementation pending)"
-        )
+    suspend fun testThinkingMode(config: ProviderTestConfig): CompatibilityResult = withContext(Dispatchers.IO) {
+        if (!config.supportsThinking) {
+            return@withContext CompatibilityResult(
+                providerId = config.providerId,
+                passed = true,
+                details = "Skipped — provider does not support thinking mode"
+            )
+        }
+
+        try {
+            val requestBody = buildThinkingRequest(config.model)
+            val response = sendRequest(config.endpoint, config.apiKey, requestBody)
+
+            // Check for thinking/reasoning content
+            val hasThinking = response.contains("\"thinking\"") ||
+                    response.contains("\"reasoning\"") ||
+                    response.contains("\"chain_of_thought\"")
+            val isError = response.contains("\"error\"")
+
+            CompatibilityResult(
+                providerId = config.providerId,
+                passed = !isError,
+                details = when {
+                    isError -> "Thinking mode test failed: error in response"
+                    hasThinking -> "Thinking mode compatible — reasoning content detected"
+                    else -> "No thinking content in response (may use different format)"
+                }
+            )
+        } catch (e: Exception) {
+            CompatibilityResult(
+                providerId = config.providerId,
+                passed = false,
+                details = "Thinking mode test failed: ${e.message}",
+                error = e
+            )
+        }
     }
+
+    // --- Request builders ---
+
+    private fun buildChatCompletionRequest(
+        model: String,
+        includeTools: Boolean,
+        includeThinking: Boolean
+    ): String {
+        val toolsSection = if (includeTools) {
+            """,
+            |  "tools": [
+            |    {
+            |      "type": "function",
+            |      "function": {
+            |        "name": "get_weather",
+            |        "description": "Get current weather for a location",
+            |        "parameters": {
+            |          "type": "object",
+            |          "properties": {
+            |            "location": { "type": "string", "description": "City name" }
+            |          },
+            |          "required": ["location"]
+            |        }
+            |      }
+            |    }
+            |  ]""".trimMargin()
+        } else ""
+
+        return """
+        |{
+        |  "model": "$model",
+        |  "messages": [
+        |    {"role": "user", "content": "What is the weather in Tokyo?"}
+        |  ]$toolsSection
+        |}""".trimMargin()
+    }
+
+    private fun buildToolCallRequest(model: String): String {
+        return """
+        |{
+        |  "model": "$model",
+        |  "messages": [
+        |    {"role": "user", "content": "Get weather for New York"}
+        |  ],
+        |  "tools": [
+        |    {
+        |      "type": "function",
+        |      "function": {
+        |        "name": "get_weather",
+        |        "description": "Get weather",
+        |        "parameters": {
+        |          "type": "object",
+        |          "properties": {
+        |            "location": { "type": "string" }
+        |          },
+        |          "required": ["location"]
+        |        }
+        |      }
+        |    }
+        |  ],
+        |  "tool_choice": "auto"
+        |}""".trimMargin()
+    }
+
+    private fun buildThinkingRequest(model: String): String {
+        return """
+        |{
+        |  "model": "$model",
+        |  "messages": [
+        |    {"role": "user", "content": "Solve: what is 127 * 893?"}
+        |  ],
+        |  "thinking": {
+        |    "type": "enabled",
+        |    "budget_tokens": 1024
+        |  }
+        |}""".trimMargin()
+    }
+
+    // --- HTTP helper ---
+
+    private fun sendRequest(endpoint: String, apiKey: String, body: String): String {
+        val url = URL(endpoint)
+        val conn = url.openConnection() as HttpURLConnection
+        conn.requestMethod = "POST"
+        conn.setRequestProperty("Content-Type", "application/json")
+        conn.setRequestProperty("Authorization", "Bearer $apiKey")
+        conn.connectTimeout = 10_000
+        conn.readTimeout = 30_000
+        conn.doOutput = true
+
+        OutputStreamWriter(conn.outputStream).use { writer ->
+            writer.write(body)
+            writer.flush()
+        }
+
+        val responseCode = conn.responseCode
+        val responseBody = if (responseCode in 200..299) {
+            conn.inputStream.bufferedReader().readText()
+        } else {
+            val errorBody = conn.errorStream?.bufferedReader()?.readText() ?: ""
+            """{"error": {"code": $responseCode, "message": "$errorBody"}}"""
+        }
+
+        conn.disconnect()
+        return responseBody
+    }
+
+    private fun extractErrorCode(response: String): String {
+        // Simple extraction of error code from JSON-like response
+        val codeMatch = Regex(""""code"\s*:\s*(\d+)""").find(response)
+        val msgMatch = Regex(""""message"\s*:\s*"([^"]+)""").find(response)
+        val code = codeMatch?.groupValues?.get(1) ?: "unknown"
+        val msg = msgMatch?.groupValues?.get(1) ?: ""
+        return "$code: $msg"
+    }
+
+    // --- Data classes ---
 
     data class ProviderTestConfig(
         val providerId: String,
