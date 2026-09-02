@@ -152,9 +152,9 @@ jobs:
               print(f'Created stub: {path}')
           "
 
-      - name: Create stub ffmpeg-kit AAR
+      - name: Create stub ffmpeg-kit AAR with Java classes
         run: |
-          mkdir -p /tmp/ffmpegkit-aar/jni/arm64-v8a /tmp/ffmpegkit-aar/classes
+          mkdir -p /tmp/ffmpegkit-aar/jni/arm64-v8a /tmp/ffmpegkit-aar/classes/com/arthenica/ffmpegkit
           echo "Manifest-Version: 1.0" > /tmp/ffmpegkit-aar/classes/MANIFEST.MF
           cat > /tmp/ffmpegkit-aar/AndroidManifest.xml << 'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
@@ -166,7 +166,33 @@ jobs:
           for lib in libffmpegkit.so libffmpegkit_abidetect.so libavcodec.so libavdevice.so libavfilter.so libavformat.so libavutil.so libc++_shared.so libswresample.so libswscale.so; do
             cp $GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so jni/arm64-v8a/$lib
           done
-          zip -r $GITHUB_WORKSPACE/app/libs/ffmpeg-kit-local.aar AndroidManifest.xml classes/ jni/
+          # Create stub Java classes for FFmpegUtil
+          cat > classes/com/arthenica/ffmpegkit/ReturnCode.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class ReturnCode { public int getValue() { return 0; } public static boolean isSuccess(ReturnCode rc) { return rc != null && rc.getValue() == 0; } }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/FFmpegKit.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class FFmpegKit { public static FFmpegSession execute(String cmd) { return new FFmpegSession(); } }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/FFmpegSession.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class FFmpegSession { public ReturnCode getReturnCode() { return new ReturnCode(); } public String getOutput() { return ""; } }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/FFprobeKit.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class FFprobeKit { public static MediaInformationSession getMediaInformation(String path) { return new MediaInformationSession(); } }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/MediaInformationSession.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class MediaInformationSession { public MediaInformation getMediaInformation() { return new MediaInformation(); } }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/MediaInformation.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class MediaInformation { public String getFilename() { return ""; } public long getDuration() { return 0; } }
+          JAVA
+          cd classes && jar cf ../classes.jar com/ && cd ..
+          zip -r $GITHUB_WORKSPACE/app/libs/ffmpeg-kit-local.aar AndroidManifest.xml classes.jar classes/ jni/
 
       - name: Build debug APK
         run: |

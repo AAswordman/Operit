@@ -6,8 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.core.integration.NonOIntegrationManager
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.nonoassistance.memory.ContextBudgetManager
-import com.ai.nonoassistance.provider.ModelPricingService
-import com.ai.nonoassistance.provider.PricingConfig
+import com.ai.nonoassistance.provider.ModelPricing
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,7 +49,7 @@ class NonOXViewModel(application: Application) : AndroidViewModel(application) {
 
     data class PricingState(
         val isLoading: Boolean = true,
-        val pricingData: Map<String, PricingConfig.ModelPricing> = emptyMap(),
+        val pricingData: Map<String, ModelPricing> = emptyMap(),
         val selectedProvider: String? = null,
         val error: String? = null
     )
@@ -91,15 +90,15 @@ class NonOXViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val pricingService = NonOIntegrationManager.pricingService
-                val data = pricingService.getPricing()
+                val providerPricing = pricingService.getProviderPricing("deepseek")
                 _pricingState.update {
                     it.copy(
                         isLoading = false,
-                        pricingData = data,
+                        pricingData = providerPricing,
                         error = null
                     )
                 }
-                AppLogger.d(TAG, "Loaded pricing data: ${data.size} models")
+                AppLogger.d(TAG, "Loaded pricing data: ${providerPricing.size} models")
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to load pricing data", e)
                 _pricingState.update {
@@ -117,12 +116,12 @@ class NonOXViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val pricingService = NonOIntegrationManager.pricingService
-                pricingService.refreshPricing()
-                val data = pricingService.getPricing()
+                pricingService.clearCache()
+                val providerPricing = pricingService.getProviderPricing("deepseek")
                 _pricingState.update {
                     it.copy(
                         isLoading = false,
-                        pricingData = data,
+                        pricingData = providerPricing,
                         error = null
                     )
                 }
@@ -143,8 +142,7 @@ class NonOXViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadBudgetStats() {
         viewModelScope.launch {
             try {
-                val budgetManager = NonOIntegrationManager.contextBudgetManager
-                val stats = budgetManager.getBudgetStats()
+                val stats = NonOIntegrationManager.getBudgetStats()
                 _budgetStatsState.update {
                     it.copy(
                         isLoading = false,

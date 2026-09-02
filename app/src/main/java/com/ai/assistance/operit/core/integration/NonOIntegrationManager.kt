@@ -3,6 +3,7 @@ package com.ai.assistance.operit.core.integration
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.nonoassistance.memory.ContextBudgetManager
+import com.ai.nonoassistance.memory.BudgetConfig
 import com.ai.nonoassistance.memory.GlobalMemoryStore
 import com.ai.nonoassistance.orchestration.OrchestrationEngine
 import com.ai.nonoassistance.orchestration.RoleAssignmentConfig
@@ -61,7 +62,7 @@ object NonOIntegrationManager {
         try {
             // 1. Provider system
             providerRegistry = ProviderRegistry()
-            pricingService = ModelPricingService(context)
+            pricingService = ModelPricingService()
 
             // Register existing Operit providers via adapter
             OperitProviderAdapter.registerExistingProviders(providerRegistry)
@@ -81,19 +82,14 @@ object NonOIntegrationManager {
             memoryStore = GlobalMemoryStore(memoryDir)
 
             contextBudgetManager = ContextBudgetManager(
-                maxTokens = 256_000,
-                autoSummarizeThreshold = 0.8
+                BudgetConfig(
+                    maxTokens = 256_000,
+                    autoSummarizeThreshold = 0.8
+                )
             )
 
-            // 4. Initialize pricing service (fetch remote pricing in background)
-            scope.launch {
-                try {
-                    pricingService.initialize()
-                    AppLogger.i(TAG, "Model pricing loaded successfully")
-                } catch (e: Exception) {
-                    AppLogger.w(TAG, "Failed to load remote pricing, using defaults: ${e.message}")
-                }
-            }
+            // 4. Pricing service is ready (lazy-loaded on first getPricing call)
+            AppLogger.i(TAG, "Model pricing service ready")
 
             initialized = true
             AppLogger.i(TAG, "NonOIntegrationManager initialized successfully")
@@ -116,7 +112,7 @@ object NonOIntegrationManager {
      */
     fun getBudgetStats(): ContextBudgetManager.BudgetStats {
         check(initialized) { "NonOIntegrationManager not initialized" }
-        return contextBudgetManager.getBudgetStats()
+        return contextBudgetManager.getStats()
     }
 
     /**
