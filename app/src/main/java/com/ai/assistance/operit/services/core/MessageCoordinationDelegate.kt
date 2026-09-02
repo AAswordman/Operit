@@ -21,7 +21,6 @@ import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.ui.features.chat.viewmodel.UiStateDelegate
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
@@ -1639,7 +1638,6 @@ class MessageCoordinationDelegate(
         }.onFailure { throwable ->
             AppLogger.w(TAG, "取消 SUMMARY 流失败: ${throwable.message}")
         }
-        ToolProgressBus.clear()
     }
 
     /**

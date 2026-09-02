@@ -19,7 +19,6 @@ internal class RenderBatchCoordinator(
     private var requestedRevision = 0L
     private var appliedRevision = 0L
     private var updateJob: Job? = null
-
     fun requestUpdate() {
         requestedRevision++
         if (updateJob?.isActive == true) {
@@ -40,4 +39,17 @@ internal class RenderBatchCoordinator(
                 }
             }
     }
+
+    /** Applies all pending mutations before a stream is replaced or released. */
+    fun flushNow() {
+        updateJob?.cancel()
+        updateJob = null
+
+        while (appliedRevision != requestedRevision) {
+            val revisionToApply = requestedRevision
+            onFlush()
+            appliedRevision = revisionToApply
+        }
+    }
+
 }

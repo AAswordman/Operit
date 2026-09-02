@@ -128,6 +128,7 @@ class ConversationService(
             customRules: String? = null,
             recordTokenUsage: Boolean = true,
     ): String {
+        val progressScopeId = ToolProgressBus.newScopeId()
         try {
             val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
             val activePromptMetadata = buildActivePromptHookMetadata(context)
@@ -215,9 +216,10 @@ class ConversationService(
             val contentBuilder = StringBuilder()
 
             ToolProgressBus.update(
-                ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
-                0.05f,
-                context.getString(R.string.conversation_summary_preparing)
+                toolName = ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
+                progress = 0.05f,
+                message = context.getString(R.string.conversation_summary_preparing),
+                scopeId = progressScopeId,
             )
 
             data class Stage(
@@ -269,9 +271,10 @@ class ConversationService(
                     if (!matched) break
                     lastStageIndex += 1
                     ToolProgressBus.update(
-                        ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
-                        next.progress,
-                        next.message
+                        toolName = ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
+                        progress = next.progress,
+                        message = next.message,
+                        scopeId = progressScopeId,
                     )
                 }
             }
@@ -292,9 +295,10 @@ class ConversationService(
             }
 
             ToolProgressBus.update(
-                ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
-                1f,
-                context.getString(R.string.conversation_summary_completed)
+                toolName = ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
+                progress = 1f,
+                message = context.getString(R.string.conversation_summary_completed),
+                scopeId = progressScopeId,
             )
 
             // 获取完整的总结内容
@@ -340,6 +344,8 @@ class ConversationService(
             AppLogger.e(TAG, "生成总结时出错", e)
             // return "对话摘要：生成摘要时出错，但对话仍在继续。"
             throw e
+        } finally {
+            ToolProgressBus.clear(scopeId = progressScopeId)
         }
     }
 

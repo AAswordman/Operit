@@ -1333,8 +1333,10 @@
     <string name="accessibility_wizard_success_message">Tahniah! Perkhidmatan aksesibiliti berjaya dikonfigurasi, kini AI boleh menganalisis dan mengendalikan kandungan skrin.</string>
     <string name="copy_message">Salin Mesej</string>
     <string name="markdown_source">Sumber Markdown</string>
+    <string name="xml_source">Sumber XML</string>
     <string name="copy_plain_text">Salin teks biasa</string>
     <string name="copy_markdown_source">Salin sumber Markdown</string>
+    <string name="copy_xml_source">Salin sumber XML</string>
     <string name="info">Maklumat</string>
     <string name="read_message">Bacakan Mesej</string>
     <string name="auto_read_message">Bacaan Automatik</string>
@@ -4562,6 +4564,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="camera_permission_denied_toast">Kebenaran kamera ditolak</string>
     <string name="microphone_permission_denied_toast">Kebenaran mikrofon ditolak</string>
     <string name="executing_tool">Sedang melaksanakan alat: %1$s</string>
+    <string name="waiting_tool_result">Menunggu hasil alat: %1$s</string>
     <string name="processing_tool_result">Sedang memproses hasil alat: %1$s</string>
     <string name="input_question_hint">Sila masukkan soalan anda...</string>
     <string name="input_question_with_workspace">Masukkan soalan, gunakan @ untuk merujuk fail</string>
@@ -5312,10 +5315,22 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="mcp_server_not_installed_cannot_configure">Plugin ini belum dipasang, tidak boleh dikonfigurasikan</string>
     <string name="pkg_manage_env_vars">Urus Pembolehubah Persekitaran</string>
     <string name="pkg_config_env_vars">Konfigurasi Pembolehubah Persekitaran</string>
+    <string name="pkg_env_vars_subtitle">Urus konfigurasi yang diperlukan oleh pakej dan skrip</string>
     <string name="pkg_no_env_vars">Pakej yang telah diimport semasa tidak mengisytiharkan pembolehubah persekitaran yang diperlukan.</string>
     <string name="pkg_default">Lalai: %1$s</string>
     <string name="pkg_input_required">Masukkan nilai (diperlukan)</string>
     <string name="pkg_input_optional">Masukkan nilai (pilihan)</string>
+    <string name="pkg_env_vars_status">Status konfigurasi</string>
+    <string name="pkg_env_vars_configured_count">%1$d / %2$d telah dikonfigurasi</string>
+    <string name="pkg_env_vars_complete">Dikonfigurasi</string>
+    <string name="pkg_env_vars_required_complete">Item wajib telah dikonfigurasi</string>
+    <string name="pkg_env_vars_missing_required">%1$d wajib masih diperlukan</string>
+    <string name="pkg_env_vars_required">Wajib</string>
+    <string name="pkg_env_vars_optional">Pilihan</string>
+    <string name="pkg_env_vars_configured">Dikonfigurasi</string>
+    <string name="pkg_env_vars_missing_description">Pemboleh ubah ini tiada penerangan penggunaan.</string>
+    <string name="pkg_env_vars_show_value">Tunjukkan nilai</string>
+    <string name="pkg_env_vars_hide_value">Sembunyikan nilai</string>
     <string name="pkg_save">Simpan</string>
     <string name="pkg_cancel">Batal</string>
     <string name="pkg_confirm_delete">Sahkan Padam</string>
@@ -7560,8 +7575,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="chat_message_rendering_title">Pemaparan mesej</string>
     <string name="chat_message_rendering_ai_markdown_latex">Paparkan Markdown, LaTeX dan XML dalam mesej AI</string>
     <string name="chat_message_rendering_ai_markdown_latex_desc">Paparkan Markdown, ungkapan LaTeX dan kandungan XML berstruktur seperti pemikiran, panggilan alat dan hasil dalam mesej AI sebagai kandungan berformat.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Paparkan Markdown, LaTeX dan XML dalam mesej pengguna</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Paparkan Markdown, ungkapan LaTeX dan kandungan XML berstruktur dalam mesej pengguna sebagai kandungan berformat.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Paparkan Markdown dan LaTeX dalam mesej pengguna</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Paparkan Markdown dan ungkapan LaTeX dalam mesej pengguna sebagai kandungan berformat.</string>
 
     <string name="chat_style_bubble_user_opacity">Kelegapan gelembung pengguna: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Kelegapan gelembung AI: %1$d%%</string>

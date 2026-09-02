@@ -212,7 +212,7 @@ Tool-error recoverability currently follows `InputProcessingState.ToolError` def
 | 字段 / Field | 中文说明 | English description |
 |---|---|---|
 | `message` | 面向公开接口的脱敏错误摘要，最长 300 字符 | Sanitized public error summary, limited to 300 characters |
-| `appCode` | Operit 本地错误码；网络错误当前使用 `5000` 至 `5006` | Operit-local error code; network failures currently use `5000` through `5006` |
+| `appCode` | Operit 本地错误码；网络错误当前使用 `5000` 至 `5007` | Operit-local error code; network failures currently use `5000` through `5007` |
 | `providerCode` | Provider 原始 `error.code` / `error.type`，无法提取时为 `null` | Original provider `error.code` / `error.type`, or `null` when unavailable |
 | `httpStatusCode` | HTTP 状态码，无法识别时为 `null` | HTTP status code, or `null` when unavailable |
 

@@ -1441,8 +1441,10 @@
     <string name="accessibility_wizard_success_message">접근성 서비스가 올바르게 구성되었으며 사용할 준비가 되었습니다!</string>
     <string name="copy_message">메시지 복사</string>
     <string name="markdown_source">Markdown 원문</string>
+    <string name="xml_source">XML 원문</string>
     <string name="copy_plain_text">일반 텍스트 복사</string>
     <string name="copy_markdown_source">Markdown 원문 복사</string>
+    <string name="copy_xml_source">XML 원문 복사</string>
     <string name="chat_hidden_user_message_placeholder">자동으로 트리거된 사용자 메시지(콘텐츠 숨김)</string>
     <string name="chat_hidden_user_message_badge">자동</string>
     <string name="info">정보</string>
@@ -4628,6 +4630,7 @@
     <string name="camera_permission_denied_toast">카메라 권한이 거부되었습니다.</string>
     <string name="microphone_permission_denied_toast">마이크 권한이 거부되었습니다.</string>
     <string name="executing_tool">도구 실행 중: %1$s</string>
+    <string name="waiting_tool_result">도구 결과 대기 중: %1$s</string>
     <string name="processing_tool_result">도구 결과 처리 중: %1$s</string>
     <string name="input_question_hint">질문을 입력하세요...</string>
     <string name="input_question_with_workspace">질문을 입력하고 @를 사용하여 파일을 참조하세요.</string>
@@ -5484,10 +5487,22 @@
     <string name="mcp_server_not_installed_cannot_configure">이 플러그인은 설치되지 않았으며 구성할 수 없습니다.</string>
     <string name="pkg_manage_env_vars">환경 변수 관리</string>
     <string name="pkg_config_env_vars">환경 변수 구성</string>
+    <string name="pkg_env_vars_subtitle">패키지와 스크립트에 필요한 구성을 관리합니다</string>
     <string name="pkg_no_env_vars">현재 가져온 도구 패키지에는 필수 환경 변수가 선언되지 않았습니다.</string>
     <string name="pkg_default">기본값: %1$s</string>
     <string name="pkg_input_required">입력값(필수)</string>
     <string name="pkg_input_optional">입력값(선택사항)</string>
+    <string name="pkg_env_vars_status">구성 상태</string>
+    <string name="pkg_env_vars_configured_count">%1$d / %2$d 구성됨</string>
+    <string name="pkg_env_vars_complete">구성 완료</string>
+    <string name="pkg_env_vars_required_complete">필수 항목 구성 완료</string>
+    <string name="pkg_env_vars_missing_required">필수 항목 %1$d개 남음</string>
+    <string name="pkg_env_vars_required">필수</string>
+    <string name="pkg_env_vars_optional">선택</string>
+    <string name="pkg_env_vars_configured">구성됨</string>
+    <string name="pkg_env_vars_missing_description">이 변수에는 사용 설명이 없습니다.</string>
+    <string name="pkg_env_vars_show_value">값 표시</string>
+    <string name="pkg_env_vars_hide_value">값 숨기기</string>
     <string name="pkg_save">저장</string>
     <string name="pkg_cancel">취소</string>
     <string name="pkg_confirm_delete">삭제 확인</string>
@@ -7410,8 +7425,8 @@
     <string name="chat_message_rendering_title">메시지 렌더링</string>
     <string name="chat_message_rendering_ai_markdown_latex">AI 메시지의 Markdown, LaTeX 및 XML 렌더링</string>
     <string name="chat_message_rendering_ai_markdown_latex_desc">AI 메시지의 Markdown, LaTeX 수식 및 사고, 도구 호출, 결과 등의 구조화된 XML 콘텐츠를 서식 있는 콘텐츠로 표시합니다.</string>
-    <string name="chat_message_rendering_user_markdown_latex">사용자 메시지의 Markdown, LaTeX 및 XML 렌더링</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">사용자 메시지의 Markdown, LaTeX 수식 및 구조화된 XML 콘텐츠를 서식 있는 콘텐츠로 표시합니다.</string>
+    <string name="chat_message_rendering_user_markdown_latex">사용자 메시지의 Markdown 및 LaTeX 렌더링</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">사용자 메시지의 Markdown 및 LaTeX 수식을 서식 있는 콘텐츠로 표시합니다.</string>
 
     <string name="chat_style_bubble_user_opacity">사용자 말풍선 투명도: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI 말풍선 투명도: %1$d%%</string>

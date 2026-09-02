@@ -8,6 +8,7 @@ import com.ai.assistance.operit.core.tools.AIToolHookDecision
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolExecutionLimits
 import com.ai.assistance.operit.core.tools.ToolExecutor
+import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.data.model.ToolInvocation
@@ -46,8 +47,8 @@ object ToolExecutionManager {
     private const val PACKAGE_CALLER_NAME_PARAM = "__operit_package_caller_name"
     private const val PACKAGE_CHAT_ID_PARAM = "__operit_package_chat_id"
     private const val PACKAGE_CALLER_CARD_ID_PARAM = "__operit_package_caller_card_id"
-    private const val MAX_TOOL_RESULT_DISPLAY_CHARS_PER_TURN = 256 * 1024
-    private const val MAX_TOOL_RESULT_DISPLAY_CHARS_PER_INVOCATION = 16 * 1024
+    internal const val MAX_TOOL_RESULT_DISPLAY_CHARS_PER_TURN = 16 * 1024 * 1024
+    internal const val MAX_TOOL_RESULT_DISPLAY_CHARS_PER_INVOCATION = 64 * 1024
     private const val MIN_TOOL_RESULT_DISPLAY_CHARS = 1_024
     private const val COMPACT_RESULT_MESSAGE =
         "[工具结果已从聊天显示中省略，以避免长任务占用过多内存。]"
@@ -155,10 +156,11 @@ object ToolExecutionManager {
             retainedMarkupChars = 0
         }
     }
-    class ToolResultDisplayBudget {
-
+    class ToolResultDisplayBudget(
+        initialChars: Int = MAX_TOOL_RESULT_DISPLAY_CHARS_PER_TURN,
+    ) {
         private val mutex = Mutex()
-        private var remainingChars = MAX_TOOL_RESULT_DISPLAY_CHARS_PER_TURN
+        private var remainingChars = initialChars.coerceAtLeast(0)
         internal suspend fun select(markup: ToolResultDisplayMarkup): String = mutex.withLock {
 
             val selected =
@@ -172,7 +174,7 @@ object ToolExecutionManager {
         }
     }
 
-    /** Emits completed invocation buffers in original invocation order without blocking execution. */
+    /** Emits each completed invocation in the order in which it finishes. */
     internal class OrderedToolResultEmitter(
         private val collector: StreamCollector<String>,
         private val onDisplayMarkupEmitted: suspend (String) -> Unit,
@@ -180,21 +182,15 @@ object ToolExecutionManager {
     ) {
         private val mutex = Mutex()
 
-        private val completedBuffers = mutableMapOf<Int, ToolResultMarkupBuffer>()
-        private var nextInvocationIndex = 0
-
         suspend fun complete(index: Int, buffer: ToolResultMarkupBuffer) {
+            // The index still identifies the invocation for callers, but display order follows
+            // completion order to match the release runtime's parallel tool behavior.
             mutex.withLock {
-                completedBuffers[index] = buffer
-                while (true) {
-                    val nextBuffer = completedBuffers.remove(nextInvocationIndex) ?: break
-                    nextBuffer.flushTo(
-                        collector = collector,
-                        onDisplayMarkupEmitted = onDisplayMarkupEmitted,
-                        displayBudget = displayBudget,
-                    )
-                    nextInvocationIndex++
-                }
+                buffer.flushTo(
+                    collector = collector,
+                    onDisplayMarkupEmitted = onDisplayMarkupEmitted,
+                    displayBudget = displayBudget,
+                )
             }
         }
     }
@@ -234,8 +230,9 @@ object ToolExecutionManager {
         }
     }
 
-    private fun ensureEndsWithNewline(content: String): String {
-        return if (content.endsWith("\n")) content else "$content\n"
+    private fun ensureXmlBlockBoundaries(content: String): String {
+        // StreamXmlPlugin recognizes a new XML block reliably only at a line boundary.
+        return "\n${content.trim('\r', '\n')}\n"
     }
 
     internal suspend fun emitToolResultMarkup(
@@ -244,7 +241,7 @@ object ToolExecutionManager {
         onDisplayMarkupEmitted: suspend (String) -> Unit,
         emissionMutex: Mutex? = null,
     ) {
-        val displayContent = ensureEndsWithNewline(content)
+        val displayContent = ensureXmlBlockBoundaries(content)
         suspend fun emitAtomically() {
             onDisplayMarkupEmitted(displayContent)
             collector.emit(displayContent)
@@ -950,79 +947,83 @@ object ToolExecutionManager {
         val toolName = invocation.tool.name
         val displayToolName = resolveDisplayToolName(invocation.tool)
 
-        return withContext(toolRuntimeContextThreadLocal.asContextElement(runtimeContext)) {
-            try {
-                val executor = toolHandler.getToolExecutorOrActivate(toolName)
-                if (executor == null) {
-                    // 如果仍然为 null，则构建错误消息
-                    val errorMessage =
-                        buildToolNotAvailableErrorMessage(toolName, packageManager, toolHandler)
-                    val notAvailableResult =
+        val progressScopeId = ToolProgressBus.newScopeId()
+        return ToolProgressBus.withScope(progressScopeId) {
+            withContext(toolRuntimeContextThreadLocal.asContextElement(runtimeContext)) {
+                try {
+                    val executor = toolHandler.getToolExecutorOrActivate(toolName)
+                    if (executor == null) {
+                        // 如果仍然为 null，则构建错误消息
+                        val errorMessage =
+                            buildToolNotAvailableErrorMessage(toolName, packageManager, toolHandler)
+                        val notAvailableResult =
+                            ToolResult(
+                                toolName = displayToolName,
+                                success = false,
+                                result = StringResultData(""),
+                                error = errorMessage,
+                            )
+                        resultBuffer.record(notAvailableResult)
+                        toolHandler.notifyToolExecutionResult(invocation.tool, notAvailableResult)
+                        return@withContext notAvailableResult
+                    }
+
+                    onToolExecutionStarted?.invoke(displayToolName)
+                    toolHandler.notifyToolExecutionStarted(invocation.tool)
+
+                    var lastResult: ToolResult? = null
+                    val combinedResultBuilder = StringBuilder()
+                    executeToolSafely(invocation, executor, toolHandler).collect { result ->
+                        lastResult = result
+                        appendBoundedToolResult(combinedResultBuilder, result)
+                        resultBuffer.record(result)
+                    }
+
+                    // 为此调用聚合最终结果
+                    if (lastResult == null) {
+                        val emptyResult =
+                            ToolResult(
+                                toolName = displayToolName,
+                                success = false,
+                                result = StringResultData(""),
+                                error = "The tool execution returned no results."
+                            )
+                        resultBuffer.record(emptyResult)
+                        toolHandler.notifyToolExecutionResult(invocation.tool, emptyResult)
+                        return@withContext emptyResult
+                    }
+
+                    val finalStepResult = checkNotNull(lastResult)
+                    val finalResult =
+                        ToolResult(
+                            toolName = displayToolName,
+                            success = finalStepResult.success,
+                            result = StringResultData(combinedResultBuilder.toString()),
+                            error = finalStepResult.error,
+                            errorCode = finalStepResult.errorCode,
+                        )
+                    toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
+                    return@withContext finalResult
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    AppLogger.e(TAG, "Tool execution setup error: ${invocation.tool.name}", error)
+                    val unexpectedFailure =
                         ToolResult(
                             toolName = displayToolName,
                             success = false,
                             result = StringResultData(""),
-                            error = errorMessage,
+                            error = "Tool execution error: ${error.message ?: error.javaClass.simpleName}",
+                            errorCode = "tool_execution_failed",
                         )
-                    resultBuffer.record(notAvailableResult)
-                    toolHandler.notifyToolExecutionResult(invocation.tool, notAvailableResult)
-                    return@withContext notAvailableResult
+                    resultBuffer.record(unexpectedFailure)
+                    toolHandler.notifyToolExecutionError(invocation.tool, error)
+                    toolHandler.notifyToolExecutionResult(invocation.tool, unexpectedFailure)
+                    return@withContext unexpectedFailure
+                } finally {
+                    toolHandler.notifyToolExecutionFinished(invocation.tool)
+                    ToolProgressBus.clear()
                 }
-
-                onToolExecutionStarted?.invoke(displayToolName)
-                toolHandler.notifyToolExecutionStarted(invocation.tool)
-
-                var lastResult: ToolResult? = null
-                val combinedResultBuilder = StringBuilder()
-                executeToolSafely(invocation, executor, toolHandler).collect { result ->
-                    lastResult = result
-                    appendBoundedToolResult(combinedResultBuilder, result)
-                    resultBuffer.record(result)
-                }
-
-                // 为此调用聚合最终结果
-                if (lastResult == null) {
-                    val emptyResult =
-                        ToolResult(
-                            toolName = displayToolName,
-                            success = false,
-                            result = StringResultData(""),
-                            error = "The tool execution returned no results."
-                        )
-                    resultBuffer.record(emptyResult)
-                    toolHandler.notifyToolExecutionResult(invocation.tool, emptyResult)
-                    return@withContext emptyResult
-                }
-
-                val finalStepResult = checkNotNull(lastResult)
-                val finalResult =
-                    ToolResult(
-                        toolName = displayToolName,
-                        success = finalStepResult.success,
-                        result = StringResultData(combinedResultBuilder.toString()),
-                        error = finalStepResult.error,
-                        errorCode = finalStepResult.errorCode,
-                    )
-                toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
-                return@withContext finalResult
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                AppLogger.e(TAG, "Tool execution setup error: ${invocation.tool.name}", error)
-                val unexpectedFailure =
-                    ToolResult(
-                        toolName = displayToolName,
-                        success = false,
-                        result = StringResultData(""),
-                        error = "Tool execution error: ${error.message ?: error.javaClass.simpleName}",
-                        errorCode = "tool_execution_failed",
-                    )
-                resultBuffer.record(unexpectedFailure)
-                toolHandler.notifyToolExecutionError(invocation.tool, error)
-                toolHandler.notifyToolExecutionResult(invocation.tool, unexpectedFailure)
-                return@withContext unexpectedFailure
-            } finally {
-                toolHandler.notifyToolExecutionFinished(invocation.tool)
             }
         }
     }

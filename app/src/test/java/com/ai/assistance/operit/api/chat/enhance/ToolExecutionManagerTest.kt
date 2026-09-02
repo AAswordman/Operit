@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.enhance
 
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.util.stream.StreamCollector
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -59,7 +60,7 @@ class ToolExecutionManagerTest {
             onDisplayMarkupEmitted = { persisted += it },
         )
 
-        assertEquals(listOf("$markup\n"), persisted)
+        assertEquals(listOf("\n$markup\n"), persisted)
         assertEquals(persisted, live)
     }
 
@@ -97,7 +98,7 @@ class ToolExecutionManagerTest {
     }
 
     @Test
-    fun orderedEmitterDelaysLaterCompletionUntilEarlierInvocationFinishes() = runTest {
+    fun emitterPublishesEachCompletedInvocationImmediately() = runTest {
         val persisted = mutableListOf<String>()
         val live = mutableListOf<String>()
         val emitter =
@@ -128,14 +129,33 @@ class ToolExecutionManagerTest {
         )
 
         emitter.complete(index = 1, buffer = secondBuffer)
-        assertTrue(live.isEmpty())
+        assertEquals(1, live.size)
+        assertTrue(live.single().contains("second result"))
 
         emitter.complete(index = 0, buffer = firstBuffer)
 
         assertEquals(persisted, live)
         assertEquals(2, live.size)
-        assertTrue(live[0].contains("first result"))
-        assertTrue(live[1].contains("second result"))
+        assertTrue(live[1].contains("first result"))
+    }
+
+    @Test
+    fun progressScopesPreventAnOlderToolFromClearingTheCurrentTool() = runTest {
+        ToolProgressBus.resetForTest()
+        val firstScope = ToolProgressBus.newScopeId()
+        val secondScope = ToolProgressBus.newScopeId()
+
+        ToolProgressBus.withScope(firstScope) {
+            ToolProgressBus.update("read_file", 0.4f, "first")
+        }
+        ToolProgressBus.withScope(secondScope) {
+            ToolProgressBus.update("grep_code", 0.5f, "second", priority = 10)
+        }
+        ToolProgressBus.clear(scopeId = firstScope)
+        assertEquals("grep_code", ToolProgressBus.progress.value?.toolName)
+
+        ToolProgressBus.clear(scopeId = secondScope)
+        assertEquals(null, ToolProgressBus.progress.value)
     }
 
     @Test
@@ -162,15 +182,22 @@ class ToolExecutionManagerTest {
         )
 
         assertEquals(1, live.size)
-        assertTrue(live.single().length <= 16 * 1024 + 1)
+        assertTrue(live.single().length <= 64 * 1024 + 2)
         assertTrue(live.single().contains("[工具结果过长，已截断]"))
     }
     @Test
+    fun productionDisplayBudgetSupportsLongAgentTurns() {
+        assertTrue(
+            ToolExecutionManager.MAX_TOOL_RESULT_DISPLAY_CHARS_PER_TURN >=
+                ToolExecutionManager.MAX_TOOL_RESULT_DISPLAY_CHARS_PER_INVOCATION * 256,
+        )
+    }
+
+    @Test
     fun sharedDisplayBudgetCompactsResultsAfterTheConversationLimit() = runTest {
         val live = mutableListOf<String>()
-        val sharedBudget = ToolExecutionManager.ToolResultDisplayBudget()
-
-        repeat(17) { index ->
+        val sharedBudget = ToolExecutionManager.ToolResultDisplayBudget(initialChars = 32 * 1024)
+        repeat(3) { index ->
             val buffer = ToolExecutionManager.ToolResultMarkupBuffer()
             buffer.record(
                 ToolResult(
@@ -190,8 +217,8 @@ class ToolExecutionManagerTest {
                 displayBudget = sharedBudget,
             ).complete(index = 0, buffer = buffer)
         }
-
-        assertEquals(17, live.size)
+        assertEquals(3, live.size)
+        assertTrue(live.take(2).none { it.contains("工具结果已从聊天显示中省略") })
         assertTrue(live.last().contains("[工具结果已从聊天显示中省略，以避免长任务占用过多内存。]"))
     }
 

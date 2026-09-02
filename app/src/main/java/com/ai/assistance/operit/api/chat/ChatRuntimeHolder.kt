@@ -120,7 +120,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
                 mainCore.currentTurnToolInvocationCountByChatId,
                 floatingCore.currentTurnToolInvocationCountByChatId,
             ) { mainCounts, floatingCounts ->
-                mainCounts.values.sum() + floatingCounts.values.sum()
+                countCurrentTurnTools(mainCounts) + countCurrentTurnTools(floatingCounts)
             }.collect { count ->
                 _currentSessionToolCount.value = count
             }
@@ -234,6 +234,10 @@ class ChatRuntimeHolder private constructor(context: Context) {
 
         @Volatile
         private var instance: ChatRuntimeHolder? = null
+
+        internal fun countCurrentTurnTools(countMap: Map<String, Int>): Int {
+            return countMap.values.sumOf { it.coerceAtLeast(0) }
+        }
 
         fun getInstance(context: Context): ChatRuntimeHolder {
             return instance ?: synchronized(this) {

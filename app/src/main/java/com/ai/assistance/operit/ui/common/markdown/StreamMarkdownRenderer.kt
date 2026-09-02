@@ -394,7 +394,7 @@ class StreamMarkdownRendererState {
     // 节点动画状态映射表
     val nodeAnimationStates = mutableStateMapOf<String, Boolean>()
     // 缓存转换后的稳定节点，避免不必要的对象创建
-    val conversionCache = mutableStateMapOf<Int, StableNodeConversionCacheEntry>()
+    internal val conversionCache = mutableStateMapOf<Int, StableNodeConversionCacheEntry>()
     // 保存流式渲染收集的完整内容，用于切换时判断是否需要重新解析
     val collectedContent = SmartString()
     // XML 节点对应的子流（仅流式渲染有效）
@@ -688,11 +688,12 @@ fun StreamMarkdownRenderer(
                         }
                     } finally {
                         if (tempBlockType == MarkdownProcessorType.XML_BLOCK) {
-                            // A closed XML block is fully represented by newNode.content. Keeping its
-                            // replay buffer after this point only duplicates completed tool output.
+                            // Publish the complete node before releasing the replay stream. Otherwise a
+                            // following block can trigger recomposition while this node is still stale.
+                            batchUpdater.flushNow()
                             releaseXmlNodeStream(xmlNodeStreams, nodeIndex)
-                            batchUpdater.requestUpdate()
                         }
+
                     }
                 }
 
@@ -1228,6 +1229,8 @@ internal class BatchNodeUpdater(
         )
 
     fun requestUpdate() = coordinator.requestUpdate()
+
+    fun flushNow() = coordinator.flushNow()
 
     fun requestStructuralUpdate(nodeIndex: Int) {
         // Type and child-list mutations can preserve the parent content length.

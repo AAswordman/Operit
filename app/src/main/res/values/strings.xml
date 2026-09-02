@@ -1637,8 +1637,10 @@
     <!-- Context Menu -->
     <string name="copy_message">复制消息</string>
     <string name="markdown_source">Markdown 源码</string>
+    <string name="xml_source">XML 源码</string>
     <string name="copy_plain_text">复制纯文本</string>
     <string name="copy_markdown_source">复制 Markdown 源码</string>
+    <string name="copy_xml_source">复制 XML 源码</string>
     <string name="chat_hidden_user_message_placeholder">自动触发用户消息（内容已隐藏）</string>
     <string name="chat_hidden_user_message_badge">自动触发</string>
     <string name="info">信息</string>
@@ -5572,6 +5574,7 @@
     <string name="camera_permission_denied_toast">相机权限被拒绝</string>
     <string name="microphone_permission_denied_toast">麦克风权限被拒绝</string>
     <string name="executing_tool">正在执行工具: %1$s</string>
+    <string name="waiting_tool_result">正在等待工具返回: %1$s</string>
     <string name="processing_tool_result">正在处理工具结果: %1$s</string>
     <string name="input_question_hint">请输入您的问题...</string>
     <string name="input_question_with_workspace">输入问题，使用@来引用文件</string>
@@ -6507,10 +6510,22 @@
     <!-- Package Manager Module -->
     <string name="pkg_manage_env_vars">管理环境变量</string>
     <string name="pkg_config_env_vars">配置环境变量</string>
+    <string name="pkg_env_vars_subtitle">管理插件和脚本运行所需的配置</string>
     <string name="pkg_no_env_vars">当前已导入的工具包没有声明需要的环境变量。</string>
     <string name="pkg_default">默认: %1$s</string>
     <string name="pkg_input_required">输入值（必需）</string>
     <string name="pkg_input_optional">输入值（可选）</string>
+    <string name="pkg_env_vars_status">配置状态</string>
+    <string name="pkg_env_vars_configured_count">已配置 %1$d / %2$d</string>
+    <string name="pkg_env_vars_complete">配置完成</string>
+    <string name="pkg_env_vars_required_complete">必填项已配置</string>
+    <string name="pkg_env_vars_missing_required">还缺 %1$d 项必填</string>
+    <string name="pkg_env_vars_required">必填</string>
+    <string name="pkg_env_vars_optional">可选</string>
+    <string name="pkg_env_vars_configured">已配置</string>
+    <string name="pkg_env_vars_missing_description">此变量未提供用途说明</string>
+    <string name="pkg_env_vars_show_value">显示值</string>
+    <string name="pkg_env_vars_hide_value">隐藏值</string>
     <string name="pkg_save">保存</string>
     <string name="pkg_cancel">取消</string>
 
@@ -8420,8 +8435,8 @@
     <string name="chat_message_rendering_title">消息渲染</string>
     <string name="chat_message_rendering_ai_markdown_latex">AI 消息 Markdown、LaTeX 和 XML 渲染</string>
     <string name="chat_message_rendering_ai_markdown_latex_desc">将 AI 消息中的 Markdown、LaTeX 表达式和 XML 结构化内容（如思考、工具调用及结果）以富文本显示</string>
-    <string name="chat_message_rendering_user_markdown_latex">用户消息 Markdown、LaTeX 和 XML 渲染</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">将用户消息中的 Markdown、LaTeX 表达式和 XML 结构化内容以富文本显示</string>
+    <string name="chat_message_rendering_user_markdown_latex">用户消息 Markdown 和 LaTeX 渲染</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">将用户消息中的 Markdown 和 LaTeX 表达式以富文本显示</string>
 
     <string name="chat_style_bubble_user_opacity">用户气泡透明度：%1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI 气泡透明度：%1$d%%</string>

@@ -103,7 +103,7 @@ class ApiErrorClassifierTest {
     }
 
     @Test
-    fun classifiesSevenLocalNetworkFailuresWithOperitCodes() {
+    fun classifiesEightLocalNetworkFailuresWithOperitCodes() {
         val cases = listOf(
             UnknownHostException("api.example.com") to OperitNetworkError.DNS_RESOLUTION_FAILED,
             ConnectException("Connection refused") to OperitNetworkError.CONNECTION_REFUSED,
@@ -112,6 +112,7 @@ class ApiErrorClassifierTest {
             EOFException("unexpected end of stream") to OperitNetworkError.CONNECTION_CLOSED,
             SSLHandshakeException("certificate verify failed") to OperitNetworkError.TLS_HANDSHAKE_FAILED,
             SocketTimeoutException("read timed out") to OperitNetworkError.CONNECTION_TIMEOUT,
+            SocketException("Software caused connection abort") to OperitNetworkError.CONNECTION_ABORTED,
         )
 
         cases.forEach { (throwable, expected) ->

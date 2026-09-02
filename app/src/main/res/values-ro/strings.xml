@@ -1605,8 +1605,10 @@
     <!-- Context Menu -->
     <string name="copy_message">Copiere mesaj</string>
     <string name="markdown_source">Markdown Codul sursă</string>
+    <string name="xml_source">XML Codul sursă</string>
     <string name="copy_plain_text">Copiere text simplu</string>
     <string name="copy_markdown_source">Copiere Markdown Codul sursă</string>
+    <string name="copy_xml_source">Copiere XML Codul sursă</string>
     <string name="chat_hidden_user_message_placeholder">Mesaj automat către utilizator (conținutul a fost ascuns)</string>
     <string name="chat_hidden_user_message_badge">Declanșare automată</string>
     <string name="info">Informații</string>
@@ -5315,6 +5317,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="camera_permission_denied_toast">Accesul la cameră a fost refuzat</string>
     <string name="microphone_permission_denied_toast">Accesul la microfon a fost refuzat</string>
     <string name="executing_tool">Instrumentul este în curs de execuție: %1$s</string>
+    <string name="waiting_tool_result">Se așteaptă rezultatul instrumentului: %1$s</string>
     <string name="processing_tool_result">Se procesează rezultatele instrumentului: %1$s</string>
     <string name="input_question_hint">Vă rugăm să introduceți întrebarea dumneavoastră...</string>
     <string name="input_question_with_workspace">Introduceți problema, folosind@Fișier de referință</string>
@@ -6248,10 +6251,22 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <!-- Package Manager Module -->
     <string name="pkg_manage_env_vars">Gestionarea variabilelor de mediu</string>
     <string name="pkg_config_env_vars">Configurarea variabilelor de mediu</string>
+    <string name="pkg_env_vars_subtitle">Gestionează configurația necesară pachetelor și scripturilor</string>
     <string name="pkg_no_env_vars">Pachetul importat în prezent nu conține declarațiile privind variabilele de mediu necesare.</string>
     <string name="pkg_default">Implicit: %1$s</string>
     <string name="pkg_input_required">Valoare introdusă (obligatorie)</string>
     <string name="pkg_input_optional">Valoare introdusă (opțional)</string>
+    <string name="pkg_env_vars_status">Stare configurare</string>
+    <string name="pkg_env_vars_configured_count">%1$d / %2$d configurate</string>
+    <string name="pkg_env_vars_complete">Configurat</string>
+    <string name="pkg_env_vars_required_complete">Elementele obligatorii sunt configurate</string>
+    <string name="pkg_env_vars_missing_required">Mai lipsesc %1$d obligatorii</string>
+    <string name="pkg_env_vars_required">Obligatoriu</string>
+    <string name="pkg_env_vars_optional">Opțional</string>
+    <string name="pkg_env_vars_configured">Configurat</string>
+    <string name="pkg_env_vars_missing_description">Această variabilă nu are o descriere de utilizare.</string>
+    <string name="pkg_env_vars_show_value">Arată valoarea</string>
+    <string name="pkg_env_vars_hide_value">Ascunde valoarea</string>
     <string name="pkg_save">Salvare</string>
     <string name="pkg_cancel">Anulare</string>
 
@@ -8158,8 +8173,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_message_rendering_title">Redarea mesajelor</string>
     <string name="chat_message_rendering_ai_markdown_latex">Redă Markdown, LaTeX și XML în mesajele AI</string>
     <string name="chat_message_rendering_ai_markdown_latex_desc">Afișează Markdown, expresiile LaTeX și conținut XML structurat, precum raționamente, apeluri de instrumente și rezultate, în mesajele AI ca conținut formatat.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Redă Markdown, LaTeX și XML în mesajele utilizatorului</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Afișează Markdown, expresiile LaTeX și conținut XML structurat în mesajele utilizatorului ca conținut formatat.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Redă Markdown și LaTeX în mesajele utilizatorului</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Afișează Markdown și expresiile LaTeX în mesajele utilizatorului ca conținut formatat.</string>
 
     <string name="chat_style_bubble_user_opacity">Opacitatea balonului utilizatorului: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opacitatea balonului AI: %1$d%%</string>

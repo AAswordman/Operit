@@ -727,8 +727,10 @@
     <!-- Context Menu -->
     <string name="copy_message">Copy Message</string>
     <string name="markdown_source">Markdown source</string>
+    <string name="xml_source">XML source</string>
     <string name="copy_plain_text">Copy plain text</string>
     <string name="copy_markdown_source">Copy Markdown source</string>
+    <string name="copy_xml_source">Copy XML source</string>
     <string name="chat_hidden_user_message_placeholder">Auto-triggered user message (content hidden)</string>
     <string name="chat_hidden_user_message_badge">AUTO</string>
     <string name="info">Info</string>
@@ -5043,6 +5045,7 @@
     <string name="camera_permission_denied_toast">Camera permission denied</string>
     <string name="microphone_permission_denied_toast">Microphone permission denied</string>
     <string name="executing_tool">Executing tool: %1$s</string>
+    <string name="waiting_tool_result">Waiting for tool result: %1$s</string>
     <string name="processing_tool_result">Processing tool result: %1$s</string>
     <string name="input_question_hint">Enter your question...</string>
     <string name="input_question_with_workspace">Enter question, use @ to reference files</string>
@@ -6081,10 +6084,22 @@
     <!-- Package Manager Module -->
     <string name="pkg_manage_env_vars">Manage Environment Variables</string>
     <string name="pkg_config_env_vars">Configure Environment Variables</string>
+    <string name="pkg_env_vars_subtitle">Manage the configuration required by packages and scripts</string>
     <string name="pkg_no_env_vars">The currently imported tool packages have not declared any required environment variables.</string>
     <string name="pkg_default">Default: %1$s</string>
     <string name="pkg_input_required">Input value (required)</string>
     <string name="pkg_input_optional">Input value (optional)</string>
+    <string name="pkg_env_vars_status">Configuration status</string>
+    <string name="pkg_env_vars_configured_count">%1$d / %2$d configured</string>
+    <string name="pkg_env_vars_complete">Configured</string>
+    <string name="pkg_env_vars_required_complete">Required items configured</string>
+    <string name="pkg_env_vars_missing_required">%1$d required remaining</string>
+    <string name="pkg_env_vars_required">Required</string>
+    <string name="pkg_env_vars_optional">Optional</string>
+    <string name="pkg_env_vars_configured">Configured</string>
+    <string name="pkg_env_vars_missing_description">This variable has no usage description.</string>
+    <string name="pkg_env_vars_show_value">Show value</string>
+    <string name="pkg_env_vars_hide_value">Hide value</string>
     <string name="pkg_save">Save</string>
     <string name="pkg_cancel">Cancel</string>
 
@@ -8425,8 +8440,8 @@
     <string name="chat_message_rendering_title">Message rendering</string>
     <string name="chat_message_rendering_ai_markdown_latex">Render Markdown, LaTeX, and XML in AI messages</string>
     <string name="chat_message_rendering_ai_markdown_latex_desc">Display Markdown, LaTeX expressions, and structured XML content such as thinking, tool calls, and results in AI messages as rich content.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Render Markdown, LaTeX, and XML in user messages</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Display Markdown, LaTeX expressions, and structured XML content in user messages as rich content.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Render Markdown and LaTeX in user messages</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Display Markdown and LaTeX expressions in user messages as rich content.</string>
 
     <string name="chat_style_bubble_user_opacity">User bubble opacity: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI bubble opacity: %1$d%%</string>

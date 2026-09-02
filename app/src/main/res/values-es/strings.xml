@@ -1288,8 +1288,10 @@
     <!-- Context Menu -->
     <string name="copy_message">Copiar Mensaje</string>
     <string name="markdown_source">Código fuente Markdown</string>
+    <string name="xml_source">Código fuente XML</string>
     <string name="copy_plain_text">Copiar texto sin formato</string>
     <string name="copy_markdown_source">Copiar código fuente Markdown</string>
+    <string name="copy_xml_source">Copiar código fuente XML</string>
     <string name="read_message">Leer Mensaje</string>
     <string name="pause_reading">Pausar Lectura</string>
     <string name="resume_reading">Continuar Lectura</string>
@@ -4329,6 +4331,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="camera_permission_denied_toast">Permiso de cámara denegado</string>
     <string name="microphone_permission_denied_toast">Permiso de micrófono denegado</string>
     <string name="executing_tool">Ejecutando herramienta: %1$s</string>
+    <string name="waiting_tool_result">Esperando el resultado de la herramienta: %1$s</string>
     <string name="processing_tool_result">Procesando resultado de herramienta: %1$s</string>
     <string name="input_question_hint">Ingrese su pregunta...</string>
     <string name="input_question_with_workspace">Ingrese una pregunta, use @ para referenciar archivos</string>
@@ -5381,10 +5384,22 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="mcp_server_not_installed_cannot_configure">Este plugin no está instalado, no se puede configurar</string>
     <string name="pkg_manage_env_vars">Gestionar variables de entorno</string>
     <string name="pkg_config_env_vars">Configurar variables de entorno</string>
+    <string name="pkg_env_vars_subtitle">Gestiona la configuración necesaria para paquetes y scripts</string>
     <string name="pkg_no_env_vars">El paquete de herramientas importado actualmente no declara variables de entorno necesarias.</string>
     <string name="pkg_default">Predeterminado: %1$s</string>
     <string name="pkg_input_required">Introduce un valor (obligatorio)</string>
     <string name="pkg_input_optional">Introduce un valor (opcional)</string>
+    <string name="pkg_env_vars_status">Estado de configuración</string>
+    <string name="pkg_env_vars_configured_count">%1$d / %2$d configuradas</string>
+    <string name="pkg_env_vars_complete">Configurado</string>
+    <string name="pkg_env_vars_required_complete">Obligatorias configuradas</string>
+    <string name="pkg_env_vars_missing_required">Falta %1$d obligatoria</string>
+    <string name="pkg_env_vars_required">Obligatoria</string>
+    <string name="pkg_env_vars_optional">Opcional</string>
+    <string name="pkg_env_vars_configured">Configurada</string>
+    <string name="pkg_env_vars_missing_description">Esta variable no tiene descripción de uso.</string>
+    <string name="pkg_env_vars_show_value">Mostrar valor</string>
+    <string name="pkg_env_vars_hide_value">Ocultar valor</string>
     <string name="pkg_save">Guardar</string>
     <string name="pkg_cancel">Cancelar</string>
     <string name="pkg_confirm_delete">Confirmar eliminación</string>
@@ -7630,8 +7645,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="chat_message_rendering_title">Renderizado de mensajes</string>
     <string name="chat_message_rendering_ai_markdown_latex">Renderizar Markdown, LaTeX y XML en los mensajes de IA</string>
     <string name="chat_message_rendering_ai_markdown_latex_desc">Muestra Markdown, expresiones LaTeX y contenido XML estructurado, como razonamientos, llamadas a herramientas y resultados, en los mensajes de IA como contenido enriquecido.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Renderizar Markdown, LaTeX y XML en los mensajes del usuario</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Muestra Markdown, expresiones LaTeX y contenido XML estructurado en los mensajes del usuario como contenido enriquecido.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Renderizar Markdown y LaTeX en los mensajes del usuario</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Muestra Markdown y expresiones LaTeX en los mensajes del usuario como contenido enriquecido.</string>
 
     <string name="chat_style_bubble_user_opacity">Opacidad de la burbuja del usuario: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opacidad de la burbuja de IA: %1$d%%</string>

@@ -49,6 +49,32 @@ class MessageCopyTextTest {
         assertEquals("answer", cleanMessageContentForCopy(content))
     }
 
+    @Test fun cleanMessageContentForXmlCopy_preservesStructuredTagsAndRemovesProtocolMetadata() {
+        val content =
+            """
+            <meta provider="openai:responses_reasoning">internal reasoning</meta>
+            <think>visible reasoning</think>
+            <tool name="run"><param name="command">pwd</param></tool>
+            <tool_result name="run" status="success"><content>done</content></tool_result>
+            <meta provider="gemini:thought_signature">internal signature</meta>
+            """.trimIndent()
+
+        val expected =
+            """
+            <think>visible reasoning</think>
+            <tool name="run"><param name="command">pwd</param></tool>
+            <tool_result name="run" status="success"><content>done</content></tool_result>
+            """.trimIndent()
+
+        assertEquals(expected, cleanMessageContentForXmlCopy(content))
+    }
+
+    @Test fun cleanMessageContentForXmlCopy_preservesNonProtocolMetadata() {
+        val content = "<meta provider=\"other\">visible</meta><tool name=\"run\">body</tool>"
+
+        assertEquals(content, cleanMessageContentForXmlCopy(content))
+    }
+
     @Test fun buildSelectedMessagesPlainText_usesMessageOrderAndPlainTextConversion() = runTest {
         val chatHistory =
             listOf(
