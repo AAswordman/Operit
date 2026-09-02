@@ -388,7 +388,7 @@ fun ClassicChatInputSection(
                     ) to context.getString(R.string.processing_tool_result, inputState.toolName)
                     is InputProcessingState.Retrying ->
                         MaterialTheme.colorScheme.tertiary to
-                            inputState.message.ifBlank { context.getString(R.string.message_processing) }
+                            context.getString(R.string.message_processing)
                     is InputProcessingState.Summarizing -> MaterialTheme.colorScheme.tertiary to inputState.message
                     is InputProcessingState.Receiving -> MaterialTheme.colorScheme.secondary to inputState.message
                     else -> MaterialTheme.colorScheme.primary to ""

@@ -8,6 +8,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassifier
+import com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata
 import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.logMessageTiming
@@ -192,6 +193,9 @@ class MessageProcessingDelegate(
 
     private val _nonFatalErrorEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val nonFatalErrorEvent = _nonFatalErrorEvent.asSharedFlow()
+
+    private val _retryStateEvent = MutableSharedFlow<RuntimeRetryMetadata>(extraBufferCapacity = 1)
+    val retryStateEvent = _retryStateEvent.asSharedFlow()
 
     /**
      * Publish host-side hook notices through the same stream used by AI retry messages.
@@ -1135,6 +1139,9 @@ class MessageProcessingDelegate(
                     onNonFatalError = { error ->
                         _nonFatalErrorEvent.emit(error)
                     },
+                    onRetryState = { retry ->
+                        _retryStateEvent.emit(retry)
+                    },
                     onTokenLimitExceeded = effectiveOnTokenLimitExceeded,
                     characterName = characterName,
                     avatarUri = avatarUri,
@@ -1537,19 +1544,18 @@ class MessageProcessingDelegate(
                     AppLogger.e(TAG, "发送消息时出错", e)
                     shouldFinalizeInterruptedMessage = true
                     val classification = ApiErrorClassifier.classify(e)
-                    setChatInputProcessingState(
-                        chatId,
-                        EnhancedInputProcessingState.Error(
-                            message = context.getString(R.string.message_send_failed, e.message),
-                            code = classification.code,
-                            errorSource = InputProcessingErrorSource.API,
-                            recoverable = classification.recoverable,
-                            appCode = classification.appCode,
-                            providerCode = classification.providerCode,
-                            httpStatusCode = classification.httpStatusCode,
-                            retryAfterMs = classification.retryAfterMs
-                        )
+                    val terminalErrorState = EnhancedInputProcessingState.Error(
+                        message = context.getString(R.string.message_send_failed, e.message),
+                        code = classification.code,
+                        errorSource = InputProcessingErrorSource.API,
+                        recoverable = classification.recoverable,
+                        appCode = classification.appCode,
+                        providerCode = classification.providerCode,
+                        httpStatusCode = classification.httpStatusCode,
+                        retryAfterMs = classification.retryAfterMs
                     )
+                    finalInputStateAfterSend = terminalErrorState
+                    setChatInputProcessingState(chatId, terminalErrorState)
                     val terminalErrorMessage =
                         context.getString(R.string.message_send_failed, e.message)
                     withContext(Dispatchers.Main) {
@@ -1753,6 +1759,7 @@ class MessageProcessingDelegate(
                     maxTokens = maxTokens,
                     tokenUsageThreshold = tokenUsageThreshold,
                     onNonFatalError = { error -> _nonFatalErrorEvent.emit(error) },
+                    onRetryState = { retry -> _retryStateEvent.emit(retry) },
                     characterName = currentRoleName,
                     roleCardId = roleCardId,
                     currentRoleName = currentRoleName,
@@ -1872,19 +1879,19 @@ class MessageProcessingDelegate(
             } else {
                 AppLogger.e(TAG, "单条重新生成失败", e)
                 val classification = ApiErrorClassifier.classify(e)
-                setChatInputProcessingState(
-                    chatId,
-                    EnhancedInputProcessingState.Error(
-                        message = context.getString(R.string.chat_regenerate_single_failed, e.message ?: ""),
-                        code = classification.code,
-                        errorSource = InputProcessingErrorSource.API,
-                        recoverable = classification.recoverable,
-                        appCode = classification.appCode,
-                        providerCode = classification.providerCode,
-                        httpStatusCode = classification.httpStatusCode,
-                        retryAfterMs = classification.retryAfterMs
-                    )
+                val terminalErrorState = EnhancedInputProcessingState.Error(
+                    message = context.getString(R.string.chat_regenerate_single_failed, e.message ?: ""),
+                    code = classification.code,
+                    errorSource = InputProcessingErrorSource.API,
+                    recoverable = classification.recoverable,
+                    appCode = classification.appCode,
+                    providerCode = classification.providerCode,
+                    httpStatusCode = classification.httpStatusCode,
+                    retryAfterMs = classification.retryAfterMs
                 )
+                terminalState = terminalErrorState
+                setChatInputProcessingState(chatId, terminalErrorState)
+
             }
             exceptionToPropagate = e
         } finally {

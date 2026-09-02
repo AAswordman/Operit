@@ -29,10 +29,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
+import com.ai.assistance.operit.api.chat.llmprovider.LlmRetryPolicy
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
 import com.ai.assistance.operit.data.preferences.AndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
+import com.ai.assistance.operit.data.preferences.LlmRetryMode
+import com.ai.assistance.operit.data.preferences.LlmRetrySettings
 import com.ai.assistance.operit.data.preferences.RootCommandExecutionMode
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -57,6 +60,7 @@ fun GlobalDisplaySettingsScreen(
     val scrollState = rememberScrollState()
 
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
+    val llmRetrySettings by displayPreferencesManager.llmRetrySettings.collectAsState(initial = LlmRetrySettings())
     val showFpsCounter by displayPreferencesManager.showFpsCounter.collectAsState(initial = false)
     val enableReplyNotification by displayPreferencesManager.enableReplyNotification.collectAsState(initial = true)
     val enableReplyNotificationSound by displayPreferencesManager.enableReplyNotificationSound.collectAsState(initial = false)
@@ -92,6 +96,9 @@ fun GlobalDisplaySettingsScreen(
     val collapseModeOptions = remember {
         listOf(ToolCollapseMode.READ_ONLY, ToolCollapseMode.ALL, ToolCollapseMode.FULL)
     }
+    val retryModeOptions = remember {
+        listOf(LlmRetryMode.FAST, LlmRetryMode.STANDARD, LlmRetryMode.STABLE, LlmRetryMode.CUSTOM)
+    }
     var collapseModeSliderValue by remember(toolCollapseMode) {
         mutableFloatStateOf(collapseModeOptions.indexOf(toolCollapseMode).coerceAtLeast(0).toFloat())
     }
@@ -113,6 +120,19 @@ fun GlobalDisplaySettingsScreen(
             ToolCollapseMode.ALL -> R.string.tool_collapse_mode_all
             ToolCollapseMode.FULL -> R.string.tool_collapse_mode_full
         }
+    }
+    val retryModeLabelRes: (LlmRetryMode) -> Int = { mode ->
+        when (mode) {
+            LlmRetryMode.FAST -> R.string.llm_retry_mode_fast
+            LlmRetryMode.STANDARD -> R.string.llm_retry_mode_standard
+            LlmRetryMode.STABLE -> R.string.llm_retry_mode_stable
+            LlmRetryMode.CUSTOM -> R.string.llm_retry_mode_custom
+        }
+    }
+    val retryScheduleText = remember(llmRetrySettings) {
+        LlmRetryPolicy.fromSettings(llmRetrySettings)
+            .delayScheduleMs()
+            .joinToString(" -> ") { delayMs -> "${delayMs / 1_000L}s" }
     }
 
     // 自动化状态指示样式（使用与 FloatingChatService 相同的 SharedPreferences）
@@ -246,6 +266,107 @@ fun GlobalDisplaySettingsScreen(
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SectionTitle(
+                text = stringResource(R.string.llm_retry_settings_title),
+                icon = Icons.Default.Refresh
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(componentBackgroundColor)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.llm_retry_settings_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    retryModeOptions.forEach { mode ->
+                        FilterChip(
+                            selected = llmRetrySettings.mode == mode,
+                            onClick = {
+                                scope.launch {
+                                    displayPreferencesManager.saveDisplaySettings(llmRetryMode = mode)
+                                }
+                            },
+                            label = { Text(stringResource(retryModeLabelRes(mode))) }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (retryScheduleText.isBlank()) {
+                        stringResource(R.string.llm_retry_schedule_disabled)
+                    } else {
+                        stringResource(R.string.llm_retry_schedule_value, retryScheduleText)
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            EditableNumberSetting(
+                title = stringResource(R.string.llm_retry_max_attempts),
+                subtitle = stringResource(R.string.llm_retry_max_attempts_description),
+                value = llmRetrySettings.maxAttempts.toFloat(),
+                onValueChange = { value ->
+                    scope.launch {
+                        displayPreferencesManager.saveDisplaySettings(
+                            llmRetryMaxAttempts = value.roundToInt()
+                        )
+                    }
+                },
+                valueRange = DisplayPreferencesManager.MIN_LLM_RETRY_ATTEMPTS.toFloat()..
+                    DisplayPreferencesManager.MAX_LLM_RETRY_ATTEMPTS.toFloat(),
+                unitText = stringResource(R.string.llm_retry_attempts_unit),
+                backgroundColor = componentBackgroundColor
+            )
+
+            if (llmRetrySettings.mode == LlmRetryMode.CUSTOM) {
+                EditableNumberSetting(
+                    title = stringResource(R.string.llm_retry_initial_delay),
+                    subtitle = stringResource(R.string.llm_retry_initial_delay_description),
+                    value = llmRetrySettings.customInitialDelaySeconds.toFloat(),
+                    onValueChange = { value ->
+                        scope.launch {
+                            displayPreferencesManager.saveDisplaySettings(
+                                llmRetryInitialDelaySeconds = value.roundToInt()
+                            )
+                        }
+                    },
+                    valueRange = DisplayPreferencesManager.MIN_LLM_RETRY_DELAY_SECONDS.toFloat()..
+                        DisplayPreferencesManager.MAX_LLM_RETRY_INITIAL_DELAY_SECONDS.toFloat(),
+                    unitText = stringResource(R.string.llm_retry_seconds_unit),
+                    backgroundColor = componentBackgroundColor
+                )
+                EditableNumberSetting(
+                    title = stringResource(R.string.llm_retry_max_delay),
+                    subtitle = stringResource(R.string.llm_retry_max_delay_description),
+                    value = llmRetrySettings.customMaxDelaySeconds.toFloat(),
+                    onValueChange = { value ->
+                        scope.launch {
+                            displayPreferencesManager.saveDisplaySettings(
+                                llmRetryMaxDelaySeconds = value.roundToInt()
+                            )
+                        }
+                    },
+                    valueRange = DisplayPreferencesManager.MIN_LLM_RETRY_DELAY_SECONDS.toFloat()..
+                        DisplayPreferencesManager.MAX_LLM_RETRY_DELAY_SECONDS.toFloat(),
+                    unitText = stringResource(R.string.llm_retry_seconds_unit),
+                    backgroundColor = componentBackgroundColor
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1013,7 +1134,14 @@ private fun EditableNumberSetting(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BasicTextField(
                     value = textValue,
-                    onValueChange = { newText -> textValue = newText },
+                    onValueChange = { newText ->
+                        textValue = newText
+                        newText.toFloatOrNull()?.let { enteredValue ->
+                            if (enteredValue in valueRange) {
+                                onValueChange(enteredValue)
+                            }
+                        }
+                    },
                     modifier = Modifier
                         .width(64.dp)
                         .background(

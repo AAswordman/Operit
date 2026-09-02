@@ -6057,7 +6057,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="gemini_connection_test_failed">Tes koneksi gagal: %1$s</string>
     <string name="provider_error_response_empty">Respons API kosong</string>
     <string name="provider_error_parsing_failed">Gagal mem-parsing respons</string>
-    <string name="provider_error_retry_message">%1$s, sedang melakukan percobaan ulang ke-%2$d...</string>
+    <string name="provider_error_retry_message">%1, sedang melakukan percobaan ulang ke-%2; menunggu %3 dtk...</string>
     <string name="provider_error_timeout">Koneksi timeout</string>
     <string name="provider_error_network_interrupted">Jaringan terputus</string>
     <string name="operit_network_error_format">Gagal: Permintaan jaringan gagal, kode status: %1$d, informasi kesalahan: %2$s</string>
@@ -7583,4 +7583,20 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
 
     <string name="chat_style_bubble_user_opacity">Opasitas gelembung pengguna: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opasitas gelembung AI: %1$d%%</string>
+    <string name="llm_retry_settings_title">Percobaan ulang permintaan</string>
+    <string name="llm_retry_settings_description">Atur percobaan ulang otomatis dan waktu tunggu setelah permintaan model gagal.</string>
+    <string name="llm_retry_mode_fast">Cepat</string>
+    <string name="llm_retry_mode_standard">Standar</string>
+    <string name="llm_retry_mode_stable">Stabil</string>
+    <string name="llm_retry_mode_custom">Kustom</string>
+    <string name="llm_retry_max_attempts">Maksimum percobaan ulang</string>
+    <string name="llm_retry_max_attempts_description">Atur 0 untuk menonaktifkan. Maksimum: 10.</string>
+    <string name="llm_retry_attempts_unit">kali</string>
+    <string name="llm_retry_initial_delay">Tunggu awal</string>
+    <string name="llm_retry_initial_delay_description">Detik sebelum percobaan pertama; waktu berikutnya berlipat dua.</string>
+    <string name="llm_retry_max_delay">Tunggu maksimum</string>
+    <string name="llm_retry_max_delay_description">Waktu tunggu tidak akan melebihi nilai ini.</string>
+    <string name="llm_retry_seconds_unit">dtk</string>
+    <string name="llm_retry_schedule_value">Urutan tunggu: %1$s</string>
+    <string name="llm_retry_schedule_disabled">Percobaan ulang otomatis dinonaktifkan</string>
 </resources>

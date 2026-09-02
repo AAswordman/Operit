@@ -2125,10 +2125,6 @@ class EnhancedAIService private constructor(private val context: Context) {
     ) {
         val startTime = messageTimingNow()
 
-        toolInvocations.forEach { invocation ->
-            onToolInvocation?.invoke(invocation.tool.name)
-        }
-
         if (!isSubTask && toolInvocations.isNotEmpty()) {
             withContext(Dispatchers.Main) {
                 val toolNames = toolInvocations.joinToString(", ") { resolveToolDisplayName(it.tool) }
@@ -2155,6 +2151,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 callerChatId = chatId,
                 callerCardId = roleCardId,
                 onToolExecutionStarted = { toolName ->
+                    onToolInvocation?.invoke(toolName)
                     if (!isSubTask) {
                         withContext(Dispatchers.Main) {
                             _inputProcessingState.value = InputProcessingState.WaitingToolResult(toolName)

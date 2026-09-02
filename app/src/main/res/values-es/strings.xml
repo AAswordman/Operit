@@ -6467,7 +6467,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="gemini_connection_test_failed">Prueba de conexión fallida: %1$s</string>
     <string name="provider_error_response_empty">La respuesta de la API está vacía.</string>
     <string name="provider_error_parsing_failed">Error al analizar la respuesta.</string>
-    <string name="provider_error_retry_message">%1$s, reintento %2$d en curso...</string>
+    <string name="provider_error_retry_message">%1, reintento %2 en curso; esperando %3 s...</string>
     <string name="provider_error_timeout">Tiempo de espera agotado.</string>
     <string name="provider_error_network_interrupted">Conexión de red interrumpida.</string>
     <string name="operit_network_error_format">Error: La solicitud de red falló, código de estado: %1$d, información del error: %2$s</string>
@@ -7650,4 +7650,20 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
 
     <string name="chat_style_bubble_user_opacity">Opacidad de la burbuja del usuario: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opacidad de la burbuja de IA: %1$d%%</string>
+    <string name="llm_retry_settings_title">Reintentos de solicitud</string>
+    <string name="llm_retry_settings_description">Configura los reintentos automáticos y la espera tras un fallo del modelo.</string>
+    <string name="llm_retry_mode_fast">Rápido</string>
+    <string name="llm_retry_mode_standard">Estándar</string>
+    <string name="llm_retry_mode_stable">Estable</string>
+    <string name="llm_retry_mode_custom">Personalizado</string>
+    <string name="llm_retry_max_attempts">Máximo de reintentos</string>
+    <string name="llm_retry_max_attempts_description">Usa 0 para desactivar los reintentos. Máximo: 10.</string>
+    <string name="llm_retry_attempts_unit">veces</string>
+    <string name="llm_retry_initial_delay">Espera inicial</string>
+    <string name="llm_retry_initial_delay_description">Segundos antes del primer reintento; después se duplica.</string>
+    <string name="llm_retry_max_delay">Espera máxima</string>
+    <string name="llm_retry_max_delay_description">Ninguna espera superará este valor.</string>
+    <string name="llm_retry_seconds_unit">s</string>
+    <string name="llm_retry_schedule_value">Secuencia de espera: %1$s</string>
+    <string name="llm_retry_schedule_disabled">Reintentos automáticos desactivados</string>
 </resources>

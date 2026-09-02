@@ -6986,7 +6986,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
 
     <string name="provider_error_response_empty">APIRăspunsul este gol</string>
     <string name="provider_error_parsing_failed">Eșecul analizării răspunsului</string>
-    <string name="provider_error_retry_message">%1$s, se află la a %2$d A doua încercare...</string>
+    <string name="provider_error_retry_message">%1, reîncercarea %2; se așteaptă %3 s...</string>
     <string name="provider_error_timeout">Timpul de așteptare pentru conectare a expirat</string>
     <string name="provider_error_network_interrupted">Întrerupere a conexiunii la internet</string>
     <string name="operit_network_error_format">Eșec: Solicitarea de rețea a eșuat, cod de stare: %1$d, informații despre eroare: %2$s</string>
@@ -8178,4 +8178,20 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
 
     <string name="chat_style_bubble_user_opacity">Opacitatea balonului utilizatorului: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opacitatea balonului AI: %1$d%%</string>
+    <string name="llm_retry_settings_title">Reîncercări solicitare</string>
+    <string name="llm_retry_settings_description">Configurează reîncercările automate și timpul de așteptare după eșecul modelului.</string>
+    <string name="llm_retry_mode_fast">Rapid</string>
+    <string name="llm_retry_mode_standard">Standard</string>
+    <string name="llm_retry_mode_stable">Stabil</string>
+    <string name="llm_retry_mode_custom">Personalizat</string>
+    <string name="llm_retry_max_attempts">Număr maxim de reîncercări</string>
+    <string name="llm_retry_max_attempts_description">Setează 0 pentru dezactivare. Maxim: 10.</string>
+    <string name="llm_retry_attempts_unit">ori</string>
+    <string name="llm_retry_initial_delay">Așteptare inițială</string>
+    <string name="llm_retry_initial_delay_description">Secunde înainte de prima reîncercare; apoi timpul se dublează.</string>
+    <string name="llm_retry_max_delay">Așteptare maximă</string>
+    <string name="llm_retry_max_delay_description">Așteptarea nu va depăși această valoare.</string>
+    <string name="llm_retry_seconds_unit">s</string>
+    <string name="llm_retry_schedule_value">Secvență de așteptare: %1$s</string>
+    <string name="llm_retry_schedule_disabled">Reîncercările automate sunt dezactivate</string>
 </resources>

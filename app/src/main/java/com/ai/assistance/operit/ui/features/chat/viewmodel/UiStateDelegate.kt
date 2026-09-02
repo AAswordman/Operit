@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class ChatToastEvent(
     val id: Long,
     val message: String,
+    val durationMs: Long? = null,
 )
 
 /** 委托类，负责管理UI状态相关功能 */
@@ -65,6 +66,21 @@ class UiStateDelegate {
             } else {
                 toastQueue.addLast(event)
             }
+        }
+    }
+
+    /** 显示可替换的重试提示；下一次重试状态到来时立即覆盖当前提示。 */
+    fun showRetryToast(message: String, durationMs: Long) {
+        if (message.isBlank()) {
+            return
+        }
+        synchronized(toastLock) {
+            _toastEvent.value =
+                ChatToastEvent(
+                    id = ++nextToastEventId,
+                    message = message,
+                    durationMs = durationMs.coerceAtLeast(1L)
+                )
         }
     }
 

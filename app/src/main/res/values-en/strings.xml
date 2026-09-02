@@ -6664,7 +6664,7 @@
 
     <string name="provider_error_response_empty">API response is empty</string>
     <string name="provider_error_parsing_failed">Failed to parse response</string>
-    <string name="provider_error_retry_message">%1$s, retrying (%2$d)...</string>
+    <string name="provider_error_retry_message">%1, retrying (%2), waiting %3 sec...</string>
     <string name="provider_error_timeout">Connection timeout</string>
     <string name="provider_error_network_interrupted">Network interrupted</string>
     <string name="operit_network_error_format">Failed: Network request failed, status code: %1$d, error: %2$s</string>
@@ -8445,4 +8445,20 @@
 
     <string name="chat_style_bubble_user_opacity">User bubble opacity: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI bubble opacity: %1$d%%</string>
+    <string name="llm_retry_settings_title">Request retries</string>
+    <string name="llm_retry_settings_description">Configure automatic retries and wait timing after a model request fails.</string>
+    <string name="llm_retry_mode_fast">Fast</string>
+    <string name="llm_retry_mode_standard">Standard</string>
+    <string name="llm_retry_mode_stable">Stable</string>
+    <string name="llm_retry_mode_custom">Custom</string>
+    <string name="llm_retry_max_attempts">Maximum retry attempts</string>
+    <string name="llm_retry_max_attempts_description">Set to 0 to disable automatic retries. Maximum: 10.</string>
+    <string name="llm_retry_attempts_unit">times</string>
+    <string name="llm_retry_initial_delay">Initial wait</string>
+    <string name="llm_retry_initial_delay_description">Seconds before the first retry; later waits double.</string>
+    <string name="llm_retry_max_delay">Maximum single wait</string>
+    <string name="llm_retry_max_delay_description">A retry wait will never exceed this value.</string>
+    <string name="llm_retry_seconds_unit">sec</string>
+    <string name="llm_retry_schedule_value">Wait sequence: %1$s</string>
+    <string name="llm_retry_schedule_disabled">Automatic retries disabled</string>
 </resources>

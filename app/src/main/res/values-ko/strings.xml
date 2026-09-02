@@ -6138,7 +6138,7 @@
     <string name="gemini_connection_test_failed">연결 테스트 실패: %1$s</string>
     <string name="provider_error_response_empty">API 응답이 비어 있습니다.</string>
     <string name="provider_error_parsing_failed">응답을 구문 분석하지 못했습니다.</string>
-    <string name="provider_error_retry_message">%1$s, 재시도 중(%2$d)...</string>
+    <string name="provider_error_retry_message">%1, 재시도 중(%2), %3초 대기...</string>
     <string name="provider_error_timeout">연결 시간 초과</string>
     <string name="provider_error_network_interrupted">네트워크 중단됨</string>
     <string name="operit_network_error_format">실패: 네트워크 요청 실패, 상태 코드: %1$d, 오류 정보: %2$s</string>
@@ -7430,4 +7430,20 @@
 
     <string name="chat_style_bubble_user_opacity">사용자 말풍선 투명도: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI 말풍선 투명도: %1$d%%</string>
+    <string name="llm_retry_settings_title">요청 재시도</string>
+    <string name="llm_retry_settings_description">모델 요청 실패 후 자동 재시도 횟수와 대기 시간을 설정합니다.</string>
+    <string name="llm_retry_mode_fast">빠르게</string>
+    <string name="llm_retry_mode_standard">표준</string>
+    <string name="llm_retry_mode_stable">안정적</string>
+    <string name="llm_retry_mode_custom">사용자 지정</string>
+    <string name="llm_retry_max_attempts">최대 재시도 횟수</string>
+    <string name="llm_retry_max_attempts_description">0으로 설정하면 자동 재시도를 끕니다. 최대 10회입니다.</string>
+    <string name="llm_retry_attempts_unit">회</string>
+    <string name="llm_retry_initial_delay">첫 대기 시간</string>
+    <string name="llm_retry_initial_delay_description">첫 재시도 전 대기 시간이며 이후에는 2배씩 늘어납니다.</string>
+    <string name="llm_retry_max_delay">최대 단일 대기</string>
+    <string name="llm_retry_max_delay_description">재시도 대기 시간은 이 값을 넘지 않습니다.</string>
+    <string name="llm_retry_seconds_unit">초</string>
+    <string name="llm_retry_schedule_value">대기 순서: %1$s</string>
+    <string name="llm_retry_schedule_disabled">자동 재시도 꺼짐</string>
 </resources>

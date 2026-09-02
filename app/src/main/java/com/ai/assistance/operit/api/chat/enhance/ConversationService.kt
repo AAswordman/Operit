@@ -1151,7 +1151,8 @@ class ConversationService(
 
         val modelParameters =
             multiServiceManager.getModelParametersForFunction(FunctionType.TRANSLATION)
-        val maxRetryAttempts = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+        val retryPolicy = LlmRetryPolicy.snapshot(context)
+        val maxRetryAttempts = retryPolicy.maxRetryAttempts
         var reportedRetryCount = 0
 
         try {

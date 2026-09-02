@@ -22,6 +22,7 @@ import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.ui.features.chat.viewmodel.UiStateDelegate
+import com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
@@ -100,6 +101,7 @@ class MessageCoordinationDelegate(
     private var currentMemorySpaceIdOverride: String? = null
 
     private var nonFatalErrorCollectorJob: Job? = null
+    private var retryStateCollectorJob: Job? = null
     private val characterCardManager = CharacterCardManager.getInstance(context)
     private val characterGroupCardManager = CharacterGroupCardManager.getInstance(context)
     private val activePromptManager = ActivePromptManager.getInstance(context)
@@ -125,10 +127,31 @@ class MessageCoordinationDelegate(
     }
 
     private fun ensureNonFatalErrorCollectorStarted() {
-        if (nonFatalErrorCollectorJob?.isActive == true) return
-        nonFatalErrorCollectorJob = coroutineScope.launch {
-            messageProcessingDelegate.nonFatalErrorEvent.collect { errorMessage ->
-                uiStateDelegate.showToast(errorMessage)
+        if (nonFatalErrorCollectorJob?.isActive != true) {
+            nonFatalErrorCollectorJob = coroutineScope.launch {
+                messageProcessingDelegate.nonFatalErrorEvent.collect { errorMessage ->
+                    uiStateDelegate.showToast(errorMessage)
+                }
+            }
+        }
+        if (retryStateCollectorJob?.isActive != true) {
+            retryStateCollectorJob = coroutineScope.launch {
+                messageProcessingDelegate.retryStateEvent.collect { retry ->
+                    val errorMessage = retry.errorMessage
+                        ?.takeIf { it.isNotBlank() }
+                        ?: context.getString(R.string.provider_error_network_interrupted)
+                    val waitSeconds =
+                        ((retry.retryAfterMs + 999L) / 1_000L).coerceAtLeast(1L)
+                    uiStateDelegate.showRetryToast(
+                        context.getString(
+                            R.string.provider_error_retry_message,
+                            errorMessage,
+                            retry.retryAttempt,
+                            waitSeconds
+                        ),
+                        retry.retryAfterMs
+                    )
+                }
             }
         }
     }

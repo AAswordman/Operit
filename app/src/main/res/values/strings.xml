@@ -7253,7 +7253,7 @@
 
     <string name="provider_error_response_empty">API响应为空</string>
     <string name="provider_error_parsing_failed">解析响应失败</string>
-    <string name="provider_error_retry_message">%1$s，正在进行第 %2$d 次重试...</string>
+    <string name="provider_error_retry_message">%1，正在进行第 %2 次重试，等待 %3 秒...</string>
     <string name="provider_error_timeout">连接超时</string>
     <string name="provider_error_network_interrupted">网络中断</string>
     <string name="operit_network_error_format">失败：网络请求失败，状态码：%1$d，错误信息：%2$s</string>
@@ -8440,4 +8440,20 @@
 
     <string name="chat_style_bubble_user_opacity">用户气泡透明度：%1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI 气泡透明度：%1$d%%</string>
+    <string name="llm_retry_settings_title">请求重试</string>
+    <string name="llm_retry_settings_description">配置模型请求失败后的自动重试次数和等待节奏。</string>
+    <string name="llm_retry_mode_fast">快速</string>
+    <string name="llm_retry_mode_standard">标准</string>
+    <string name="llm_retry_mode_stable">稳健</string>
+    <string name="llm_retry_mode_custom">自定义</string>
+    <string name="llm_retry_max_attempts">最大重试次数</string>
+    <string name="llm_retry_max_attempts_description">设为 0 可关闭自动重试，最多 10 次。</string>
+    <string name="llm_retry_attempts_unit">次</string>
+    <string name="llm_retry_initial_delay">首次等待</string>
+    <string name="llm_retry_initial_delay_description">第一次重试前等待的秒数，后续按 2 倍增长。</string>
+    <string name="llm_retry_max_delay">最长单次等待</string>
+    <string name="llm_retry_max_delay_description">每次重试等待时间不会超过此值。</string>
+    <string name="llm_retry_seconds_unit">秒</string>
+    <string name="llm_retry_schedule_value">等待序列：%1$s</string>
+    <string name="llm_retry_schedule_disabled">自动重试已关闭</string>
 </resources>

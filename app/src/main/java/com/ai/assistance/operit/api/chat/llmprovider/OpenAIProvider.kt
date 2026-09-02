@@ -1677,13 +1677,14 @@ open class OpenAIProvider(
         context: Context,
         exception: Exception,
         retryCount: Int,
-        maxRetries: Int,
+        retryPolicy: LlmRetryPolicySnapshot,
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
         onRetryState: suspend (RuntimeRetryMetadata) -> Unit = {},
-        onRetryAccepted: suspend () -> Unit,
-        buildRetryMessage: (String, Int) -> String
+        onRetryAccepted: suspend () -> Unit
+
     ): Int {
+        val maxRetries = retryPolicy.maxRetryAttempts
         if (exception is UserCancellationException || exception is CancellationException) {
             throw exception
         }
@@ -1704,6 +1705,10 @@ open class OpenAIProvider(
 
         val newRetryCount = retryCount + 1
         if (newRetryCount > maxRetries) {
+            if (maxRetries == 0) {
+                onNonFatalError(errorText)
+                throw IOException(errorText, exception)
+            }
             AppLogger.e("AIService", "【发送消息】$errorText 且达到最大重试次数($maxRetries)", exception)
             throw IOException(
                 context.getString(R.string.openai_error_connection_timeout, maxRetries, errorText),
@@ -1713,7 +1718,7 @@ open class OpenAIProvider(
 
         // A terminal failure must retain its streamed text; only a replacement request discards it.
         onRetryAccepted()
-        val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
+        val retryDelayMs = retryPolicy.nextDelayMs(newRetryCount)
         val classification = ApiErrorClassifier.classify(exception)
         onRetryState(
             RuntimeRetryMetadata(
@@ -1727,9 +1732,6 @@ open class OpenAIProvider(
             )
         )
         AppLogger.w("AIService", "【发送消息】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
-            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
-        }
         delay(retryDelayMs)
 
         return newRetryCount
@@ -3234,7 +3236,8 @@ open class OpenAIProvider(
                 "【发送消息】开始处理sendMessage请求，历史记录数量: ${chatHistory.size}，最后一条长度: ${chatHistory.lastOrNull()?.content?.length ?: 0}"
             )
 
-            val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+            val retryPolicy = LlmRetryPolicy.snapshot(context)
+            val maxRetries = retryPolicy.maxRetryAttempts
             var retryCount = 0
             var lastException: Exception? = null
 
@@ -3478,14 +3481,11 @@ open class OpenAIProvider(
                     context = context,
                     exception = e,
                     retryCount = retryCount,
-                    maxRetries = maxRetries,
+                    retryPolicy = retryPolicy,
                     enableRetry = enableRetry,
                     onNonFatalError = onNonFatalError,
                     onRetryState = onRetryState,
                     onRetryAccepted = { emitter.emitRollback(requestSavepointId) },
-                    buildRetryMessage = { errorText, retryNumber ->
-                        "【${context.getString(R.string.openai_retry_with_count, errorText, retryNumber)}】"
-                    },
                 )
             }
             }
