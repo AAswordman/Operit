@@ -201,6 +201,15 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: /tmp/gradle-output.log
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Upload build outputs
         uses: actions/upload-artifact@v4
         if: always()
