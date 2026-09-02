@@ -71,6 +71,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install SDK platform and build tools
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
       - name: Install NDK
         run: sdkmanager "ndk;27.0.12077973"
 
@@ -167,7 +170,7 @@ jobs:
 
       - name: Build debug APK
         run: |
-          ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true
+          ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true --info 2>&1 | tail -200
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
