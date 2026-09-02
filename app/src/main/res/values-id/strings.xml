@@ -4746,6 +4746,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="html_content_block">Konten HTML</string>
     <string name="mood_tag_block">Tag Emosi</string>
     <string name="thinking_tools_group_title_with_count">Berpikir &amp; Pemanggilan Alat (%1$d)</string>
+    <string name="thinking_tools_group_title_with_counts">Berpikir &amp; Pemanggilan Alat (%1$d + %2$d)</string>
+
     <string name="tools_group_title_with_count">Pemanggilan Alat (%1$d)</string>
     <string name="backup_data_overview">Ikhtisar Data</string>
     <string name="backup_current_profile">Konfigurasi saat ini: %1$s</string>
@@ -7559,10 +7561,11 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="thinking_config_preset_add_selected">Tambahkan %1$d preset</string>
     <string name="thinking_config_preset_added_count">%1$d preset bawaan telah ditambahkan</string>
     <string name="chat_message_rendering_title">Perenderan pesan</string>
-    <string name="chat_message_rendering_ai_markdown_latex">Render Markdown dan LaTeX dalam pesan AI</string>
-    <string name="chat_message_rendering_ai_markdown_latex_desc">Tampilkan Markdown dan ekspresi LaTeX dalam pesan AI sebagai konten kaya.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Render Markdown dan LaTeX dalam pesan pengguna</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Tampilkan Markdown dan ekspresi LaTeX dalam pesan pengguna sebagai konten kaya.</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Render Markdown, LaTeX, dan XML dalam pesan AI</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Tampilkan Markdown, ekspresi LaTeX, dan konten XML terstruktur seperti pemikiran, pemanggilan alat, dan hasil dalam pesan AI sebagai konten kaya.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Render Markdown, LaTeX, dan XML dalam pesan pengguna</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Tampilkan Markdown, ekspresi LaTeX, dan konten XML terstruktur dalam pesan pengguna sebagai konten kaya.</string>
+
     <string name="chat_style_bubble_user_opacity">Opasitas gelembung pengguna: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opasitas gelembung AI: %1$d%%</string>
 </resources>

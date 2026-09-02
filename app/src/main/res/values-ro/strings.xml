@@ -5582,6 +5582,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="html_content_block">HTMLConținut</string>
     <string name="mood_tag_block">Etichete emoționale</string>
     <string name="thinking_tools_group_title_with_count">Reflecție și utilizarea instrumentelor (%1$d)</string>
+    <string name="thinking_tools_group_title_with_counts">Reflecție și utilizarea instrumentelor (%1$d + %2$d)</string>
+
     <string name="tools_group_title_with_count">Apelarea instrumentelor (%1$d)</string>
 
     <!-- 备份设置界面 -->
@@ -8154,10 +8156,11 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="thinking_config_preset_add_selected">Adaugă %1$d presetări</string>
     <string name="thinking_config_preset_added_count">Au fost adăugate %1$d presetări integrate</string>
     <string name="chat_message_rendering_title">Redarea mesajelor</string>
-    <string name="chat_message_rendering_ai_markdown_latex">Redă Markdown și LaTeX în mesajele AI</string>
-    <string name="chat_message_rendering_ai_markdown_latex_desc">Afișează Markdown și expresiile LaTeX din mesajele AI ca conținut formatat.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Redă Markdown și LaTeX în mesajele utilizatorului</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Afișează Markdown și expresiile LaTeX din mesajele utilizatorului ca conținut formatat.</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Redă Markdown, LaTeX și XML în mesajele AI</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Afișează Markdown, expresiile LaTeX și conținut XML structurat, precum raționamente, apeluri de instrumente și rezultate, în mesajele AI ca conținut formatat.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Redă Markdown, LaTeX și XML în mesajele utilizatorului</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Afișează Markdown, expresiile LaTeX și conținut XML structurat în mesajele utilizatorului ca conținut formatat.</string>
+
     <string name="chat_style_bubble_user_opacity">Opacitatea balonului utilizatorului: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opacitatea balonului AI: %1$d%%</string>
 </resources>

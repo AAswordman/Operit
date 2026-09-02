@@ -433,7 +433,10 @@ class EnhancedAIService private constructor(private val context: Context) {
         val isConversationActive: AtomicBoolean = AtomicBoolean(true),
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
+        val toolResultDisplayBudget: ToolExecutionManager.ToolResultDisplayBudget =
+            ToolExecutionManager.ToolResultDisplayBudget(),
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null
+
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -2161,6 +2164,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 onDisplayMarkupEmitted = { markup ->
                     context.roundManager.appendContent(markup)
                 },
+                displayBudget = context.toolResultDisplayBudget,
             )
 
             if (allToolResults.isNotEmpty()) {

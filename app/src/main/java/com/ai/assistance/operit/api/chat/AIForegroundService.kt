@@ -1860,9 +1860,10 @@ class AIForegroundService : Service() {
         val wakeListeningEnabledSnapshot = wakeListeningEnabled
         val wakeListeningSuspendedSnapshot = wakeListeningSuspendedForIme || wakeListeningSuspendedForExternalRecording || wakeListeningSuspendedForFloatingFullscreen
         val externalHttpSnapshot = externalHttpStateFlow.value
+        val applicationLabel = applicationInfo.loadLabel(packageManager).toString()
         val title =
             if (isAiBusy) {
-                characterName ?: getString(R.string.service_operit_running)
+                characterName ?: applicationLabel
             } else {
                 if (wakeListeningEnabledSnapshot) {
                     if (wakeListeningSuspendedSnapshot) {

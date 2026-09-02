@@ -232,6 +232,10 @@ class ThinkToolsXmlNodeGrouper(
         val toolCount = slice.count {
             it.type == MarkdownProcessorType.XML_BLOCK && extractXmlTagName(it.content) == "tool"
         }
+        val thinkingCount = slice.count {
+            it.type == MarkdownProcessorType.XML_BLOCK &&
+                extractXmlTagName(it.content) in setOf("think", "thinking")
+        }
         val searchCount = slice.count {
             it.type == MarkdownProcessorType.XML_BLOCK && extractXmlTagName(it.content) == "search"
         }
@@ -246,7 +250,11 @@ class ThinkToolsXmlNodeGrouper(
                 searchCount > 0 ->
                     stringResource(R.string.thinking_search_group_title)
                 else ->
-                    stringResource(R.string.thinking_tools_group_title_with_count, toolCount)
+                    stringResource(
+                        R.string.thinking_tools_group_title_with_counts,
+                        thinkingCount,
+                        toolCount,
+                    )
             }
 
         val hasLiveXmlStream = slice.indices.any { idx ->

@@ -4489,6 +4489,8 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="html_content_block">Conteúdo HTML</string>
     <string name="mood_tag_block">Tags de emoção</string>
     <string name="thinking_tools_group_title_with_count">Pensamento e chamada de ferramentas (%1$d)</string>
+    <string name="thinking_tools_group_title_with_counts">Pensamento e chamada de ferramentas (%1$d + %2$d)</string>
+
     <string name="tools_group_title_with_count">Chamada de ferramenta (%1$d)</string>
     <string name="backup_data_overview">Visão geral dos dados</string>
     <string name="backup_current_profile">Configuração atual: %1$s</string>
@@ -7397,10 +7399,11 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="thinking_config_preset_add_selected">Adicionar %1$d predefinições</string>
     <string name="thinking_config_preset_added_count">%1$d predefinições integradas foram adicionadas</string>
     <string name="chat_message_rendering_title">Renderização de mensagens</string>
-    <string name="chat_message_rendering_ai_markdown_latex">Renderizar Markdown e LaTeX em mensagens de IA</string>
-    <string name="chat_message_rendering_ai_markdown_latex_desc">Exibe Markdown e expressões LaTeX em mensagens de IA como conteúdo rico.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Renderizar Markdown e LaTeX em mensagens do usuário</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Exibe Markdown e expressões LaTeX em mensagens do usuário como conteúdo rico.</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Renderizar Markdown, LaTeX e XML em mensagens de IA</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Exibe Markdown, expressões LaTeX e conteúdo XML estruturado, como raciocínio, chamadas de ferramenta e resultados, em mensagens de IA como conteúdo rico.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Renderizar Markdown, LaTeX e XML em mensagens do usuário</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Exibe Markdown, expressões LaTeX e conteúdo XML estruturado em mensagens do usuário como conteúdo rico.</string>
+
     <string name="chat_style_bubble_user_opacity">Opacidade do balão do usuário: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">Opacidade do balão da IA: %1$d%%</string>
 </resources>

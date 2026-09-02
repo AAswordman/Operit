@@ -4875,6 +4875,8 @@
     <string name="html_content_block">HTML 콘텐츠</string>
     <string name="mood_tag_block">감정 태그</string>
     <string name="thinking_tools_group_title_with_count">사고 및 도구 호출(%1$d)</string>
+    <string name="thinking_tools_group_title_with_counts">사고 및 도구 호출(%1$d + %2$d)</string>
+
     <string name="tools_group_title_with_count">도구 호출(%1$d)</string>
     <string name="backup_data_overview">데이터 개요</string>
     <string name="backup_current_profile">현재 프로필: %1$s</string>
@@ -7406,10 +7408,11 @@
     <string name="thinking_config_preset_add_selected">프리셋 %1$d개 추가</string>
     <string name="thinking_config_preset_added_count">내장 프리셋 %1$d개를 추가했습니다</string>
     <string name="chat_message_rendering_title">메시지 렌더링</string>
-    <string name="chat_message_rendering_ai_markdown_latex">AI 메시지의 Markdown 및 LaTeX 렌더링</string>
-    <string name="chat_message_rendering_ai_markdown_latex_desc">AI 메시지의 Markdown 및 LaTeX 수식을 서식 있는 콘텐츠로 표시합니다.</string>
-    <string name="chat_message_rendering_user_markdown_latex">사용자 메시지의 Markdown 및 LaTeX 렌더링</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">사용자 메시지의 Markdown 및 LaTeX 수식을 서식 있는 콘텐츠로 표시합니다.</string>
+    <string name="chat_message_rendering_ai_markdown_latex">AI 메시지의 Markdown, LaTeX 및 XML 렌더링</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">AI 메시지의 Markdown, LaTeX 수식 및 사고, 도구 호출, 결과 등의 구조화된 XML 콘텐츠를 서식 있는 콘텐츠로 표시합니다.</string>
+    <string name="chat_message_rendering_user_markdown_latex">사용자 메시지의 Markdown, LaTeX 및 XML 렌더링</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">사용자 메시지의 Markdown, LaTeX 수식 및 구조화된 XML 콘텐츠를 서식 있는 콘텐츠로 표시합니다.</string>
+
     <string name="chat_style_bubble_user_opacity">사용자 말풍선 투명도: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI 말풍선 투명도: %1$d%%</string>
 </resources>

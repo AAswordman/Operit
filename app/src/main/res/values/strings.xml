@@ -5839,6 +5839,7 @@
     <string name="html_content_block">HTML内容</string>
     <string name="mood_tag_block">情绪标签</string>
     <string name="thinking_tools_group_title_with_count">思考与工具调用（%1$d）</string>
+    <string name="thinking_tools_group_title_with_counts">思考与工具调用（%1$d + %2$d）</string>
     <string name="tools_group_title_with_count">工具调用（%1$d）</string>
     <string name="search_group_title">搜索</string>
     <string name="thinking_search_group_title">思考并搜索</string>
@@ -8417,10 +8418,11 @@
     <string name="thinking_config_preset_add_selected">添加 %1$d 个预设</string>
     <string name="thinking_config_preset_added_count">已添加 %1$d 个内置预设</string>
     <string name="chat_message_rendering_title">消息渲染</string>
-    <string name="chat_message_rendering_ai_markdown_latex">AI 消息 Markdown 和 LaTeX 渲染</string>
-    <string name="chat_message_rendering_ai_markdown_latex_desc">将 AI 消息中的 Markdown 和 LaTeX 表达式以富文本显示</string>
-    <string name="chat_message_rendering_user_markdown_latex">用户消息 Markdown 和 LaTeX 渲染</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">将用户消息中的 Markdown 和 LaTeX 表达式以富文本显示</string>
+    <string name="chat_message_rendering_ai_markdown_latex">AI 消息 Markdown、LaTeX 和 XML 渲染</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">将 AI 消息中的 Markdown、LaTeX 表达式和 XML 结构化内容（如思考、工具调用及结果）以富文本显示</string>
+    <string name="chat_message_rendering_user_markdown_latex">用户消息 Markdown、LaTeX 和 XML 渲染</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">将用户消息中的 Markdown、LaTeX 表达式和 XML 结构化内容以富文本显示</string>
+
     <string name="chat_style_bubble_user_opacity">用户气泡透明度：%1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI 气泡透明度：%1$d%%</string>
 </resources>

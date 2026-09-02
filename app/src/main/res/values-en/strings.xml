@@ -5284,6 +5284,8 @@
     <string name="html_content_block">HTML Content</string>
     <string name="mood_tag_block">Mood Tag</string>
     <string name="thinking_tools_group_title_with_count">Thinking &amp; Tool Calls (%1$d)</string>
+    <string name="thinking_tools_group_title_with_counts">Thinking &amp; Tool Calls (%1$d + %2$d)</string>
+
     <string name="tools_group_title_with_count">Tool Calls (%1$d)</string>
     <string name="search_group_title">Search</string>
     <string name="thinking_search_group_title">Thinking and searching</string>
@@ -8421,10 +8423,11 @@
     <string name="thinking_config_preset_add_selected">Add %1$d presets</string>
     <string name="thinking_config_preset_added_count">Added %1$d built-in presets</string>
     <string name="chat_message_rendering_title">Message rendering</string>
-    <string name="chat_message_rendering_ai_markdown_latex">Render Markdown and LaTeX in AI messages</string>
-    <string name="chat_message_rendering_ai_markdown_latex_desc">Display Markdown and LaTeX expressions in AI messages as rich content.</string>
-    <string name="chat_message_rendering_user_markdown_latex">Render Markdown and LaTeX in user messages</string>
-    <string name="chat_message_rendering_user_markdown_latex_desc">Display Markdown and LaTeX expressions in user messages as rich content.</string>
+    <string name="chat_message_rendering_ai_markdown_latex">Render Markdown, LaTeX, and XML in AI messages</string>
+    <string name="chat_message_rendering_ai_markdown_latex_desc">Display Markdown, LaTeX expressions, and structured XML content such as thinking, tool calls, and results in AI messages as rich content.</string>
+    <string name="chat_message_rendering_user_markdown_latex">Render Markdown, LaTeX, and XML in user messages</string>
+    <string name="chat_message_rendering_user_markdown_latex_desc">Display Markdown, LaTeX expressions, and structured XML content in user messages as rich content.</string>
+
     <string name="chat_style_bubble_user_opacity">User bubble opacity: %1$d%%</string>
     <string name="chat_style_bubble_ai_opacity">AI bubble opacity: %1$d%%</string>
 </resources>

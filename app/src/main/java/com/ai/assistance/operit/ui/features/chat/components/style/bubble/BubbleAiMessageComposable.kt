@@ -109,6 +109,8 @@ fun BubbleAiMessageComposable(
         } else {
             message.content
         }
+    val shouldRenderStructuredMarkup = renderAiMarkdownAndLatex
+
     val bubbleShowAvatar = themeSnapshot.bubbleShowAvatar
     val bubbleWideLayoutEnabled = themeSnapshot.bubbleWideLayoutEnabled
     val showThinkingProcess = themeSnapshot.showThinkingProcess
@@ -231,8 +233,9 @@ fun BubbleAiMessageComposable(
         }
     }
     val shouldUseExpandedBubbleLayout =
-        renderAiMarkdownAndLatex &&
+        shouldRenderStructuredMarkup &&
             rendererState.renderNodes.any { node -> node.type in ExpandedBubbleLayoutNodeTypes }
+
     val sizeTrackingModifier =
         if (isHidden) {
             Modifier
@@ -379,8 +382,8 @@ fun BubbleAiMessageComposable(
                             .widthIn(max = maxBubbleWidth)
                             .defaultMinSize(minHeight = 44.dp)
                     val renderContent: @Composable () -> Unit = {
-                        key(message.timestamp, renderAiMarkdownAndLatex) {
-                            if (renderAiMarkdownAndLatex) {
+                        key(message.timestamp, shouldRenderStructuredMarkup) {
+                            if (shouldRenderStructuredMarkup) {
                                 val stream = rememberRevisableTextStream(message.contentStream)
                                 if (stream != null) {
                                     val charStream = remember(stream) { stream.toCharStream() }
@@ -599,8 +602,8 @@ fun BubbleAiMessageComposable(
                             .widthIn(max = maxBubbleWidth)
                             .defaultMinSize(minHeight = 44.dp)
                     val renderContent: @Composable () -> Unit = {
-                        key(message.timestamp, renderAiMarkdownAndLatex) {
-                            if (renderAiMarkdownAndLatex) {
+                        key(message.timestamp, shouldRenderStructuredMarkup) {
+                            if (shouldRenderStructuredMarkup) {
                                 val stream = rememberRevisableTextStream(message.contentStream)
                                 if (stream != null) {
                                     val charStream = remember(stream) { stream.toCharStream() }
