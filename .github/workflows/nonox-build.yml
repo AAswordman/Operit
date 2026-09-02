@@ -169,15 +169,18 @@ jobs:
           zip -r $GITHUB_WORKSPACE/app/libs/ffmpeg-kit-local.aar AndroidManifest.xml classes/ jni/
 
       - name: Build debug APK
-        continue-on-error: true
         run: |
-          ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true --stacktrace 2>&1 | tee /tmp/gradle-output.log | tail -100
+          ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true --stacktrace 2>&1 | tee /tmp/gradle-output.log | tail -200
+
+      - name: Show build log on failure
+        if: failure()
+        run: |
+          echo "=== LAST 200 LINES OF BUILD LOG ==="
+          tail -200 /tmp/gradle-output.log 2>/dev/null || echo "No log"
 
       - name: Check build outputs
         if: always()
         run: |
-          echo "=== Build result ==="
-          tail -50 /tmp/gradle-output.log 2>/dev/null || echo "No log"
           echo "=== APK outputs ==="
           find app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "No APK found"
           echo "=== Build intermediates ==="
