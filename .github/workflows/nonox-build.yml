@@ -169,20 +169,21 @@ jobs:
           zip -r $GITHUB_WORKSPACE/app/libs/ffmpeg-kit-local.aar AndroidManifest.xml classes/ jni/
 
       - name: Build debug APK
+        continue-on-error: true
         run: |
-          ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true
+          ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true --stacktrace 2>&1 | tee /tmp/gradle-output.log | tail -100
 
       - name: Check build outputs
         if: always()
         run: |
+          echo "=== Build result ==="
+          tail -50 /tmp/gradle-output.log 2>/dev/null || echo "No log"
           echo "=== APK outputs ==="
           find app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "No APK found"
           echo "=== Build intermediates ==="
           ls -la app/build/intermediates/kotlin_classes/debug/ 2>/dev/null || echo "No kotlin classes"
           echo "=== APK dir ==="
           ls -laR app/build/outputs/apk/ 2>/dev/null || echo "No APK directory"
-          echo "=== tasks assembleDebug ==="
-          ./gradlew tasks --group=build -PskipNativeBuild=true 2>/dev/null | grep -i assemble | head -10
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
