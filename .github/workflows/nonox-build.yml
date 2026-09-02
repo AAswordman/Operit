@@ -170,13 +170,16 @@ jobs:
 
       - name: Build debug APK
         run: |
+          set -o pipefail
           ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true --stacktrace 2>&1 | tee /tmp/gradle-output.log | tail -200
 
       - name: Show build log on failure
         if: failure()
         run: |
-          echo "=== LAST 200 LINES OF BUILD LOG ==="
-          tail -200 /tmp/gradle-output.log 2>/dev/null || echo "No log"
+          echo "=== LAST 300 LINES OF BUILD LOG ==="
+          tail -300 /tmp/gradle-output.log 2>/dev/null || echo "No log"
+          echo "=== GREP FOR ERRORS ==="
+          grep -i 'error\|FAILED\|failure\|exception' /tmp/gradle-output.log 2>/dev/null | tail -30 || echo "No errors found"
 
       - name: Check build outputs
         if: always()
