@@ -1,4 +1,4 @@
-package com.ai.nonoassistance.tools.permission
+package com.ai.assistance.operit.core.tools.permission
 
 import com.ai.assistance.operit.util.AppLogger
 

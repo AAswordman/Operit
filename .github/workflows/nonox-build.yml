@@ -154,42 +154,92 @@ jobs:
 
       - name: Create stub ffmpeg-kit AAR with Java classes
         run: |
-          mkdir -p /tmp/ffmpegkit-aar/jni/arm64-v8a /tmp/ffmpegkit-aar/classes/com/arthenica/ffmpegkit
-          echo "Manifest-Version: 1.0" > /tmp/ffmpegkit-aar/classes/MANIFEST.MF
-          cat > /tmp/ffmpegkit-aar/AndroidManifest.xml << 'MANIFEST'
+          WORK_DIR=/tmp/ffmpegkit-aar
+          rm -rf $WORK_DIR
+          mkdir -p $WORK_DIR/jni/arm64-v8a $WORK_DIR/classes/com/arthenica/ffmpegkit
+          echo "Manifest-Version: 1.0" > $WORK_DIR/classes/MANIFEST.MF
+          cat > $WORK_DIR/AndroidManifest.xml << 'MANIFEST'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
               package="com.arthenica.ffmpegkit">
           </manifest>
           MANIFEST
-          cd /tmp/ffmpegkit-aar
+          cd $WORK_DIR
           for lib in libffmpegkit.so libffmpegkit_abidetect.so libavcodec.so libavdevice.so libavfilter.so libavformat.so libavutil.so libc++_shared.so libswresample.so libswscale.so; do
             cp $GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so jni/arm64-v8a/$lib
           done
-          # Create stub Java classes for FFmpegUtil
+          # Create comprehensive stub Java classes
           cat > classes/com/arthenica/ffmpegkit/ReturnCode.java << 'JAVA'
           package com.arthenica.ffmpegkit;
-          public class ReturnCode { public int getValue() { return 0; } public static boolean isSuccess(ReturnCode rc) { return rc != null && rc.getValue() == 0; } }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/FFmpegKit.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class FFmpegKit { public static FFmpegSession execute(String cmd) { return new FFmpegSession(); } }
+          public class ReturnCode {
+            private int value;
+            public ReturnCode() { this.value = 0; }
+            public ReturnCode(int v) { this.value = v; }
+            public int getValue() { return value; }
+            public static boolean isSuccess(ReturnCode rc) { return rc != null && rc.getValue() == 0; }
+            public static boolean isCancel(ReturnCode rc) { return rc != null && rc.getValue() == 1; }
+            public static boolean isError(ReturnCode rc) { return rc != null && rc.getValue() != 0 && rc.getValue() != 1; }
+          }
           JAVA
           cat > classes/com/arthenica/ffmpegkit/FFmpegSession.java << 'JAVA'
           package com.arthenica.ffmpegkit;
-          public class FFmpegSession { public ReturnCode getReturnCode() { return new ReturnCode(); } public String getOutput() { return ""; } }
+          public class FFmpegSession {
+            public ReturnCode getReturnCode() { return new ReturnCode(); }
+            public String getOutput() { return ""; }
+            public long getDuration() { return 0; }
+          }
           JAVA
-          cat > classes/com/arthenica/ffmpegkit/FFprobeKit.java << 'JAVA'
+          cat > classes/com/arthenica/ffmpegkit/FFmpegKit.java << 'JAVA'
           package com.arthenica.ffmpegkit;
-          public class FFprobeKit { public static MediaInformationSession getMediaInformation(String path) { return new MediaInformationSession(); } }
+          public class FFmpegKit {
+            public static FFmpegSession execute(String command) { return new FFmpegSession(); }
+            public static FFmpegSession execute(String[] command) { return new FFmpegSession(); }
+          }
           JAVA
-          cat > classes/com/arthenica/ffmpegkit/MediaInformationSession.java << 'JAVA'
+          cat > classes/com/arthenica/ffmpegkit/FFmpegKitConfig.java << 'JAVA'
           package com.arthenica.ffmpegkit;
-          public class MediaInformationSession { public MediaInformation getMediaInformation() { return new MediaInformation(); } }
+          public class FFmpegKitConfig {
+            public static String getVersion() { return "stub"; }
+            public static String getBuildDate() { return "stub"; }
+            public static void init(android.content.Context ctx) {}
+          }
           JAVA
           cat > classes/com/arthenica/ffmpegkit/MediaInformation.java << 'JAVA'
           package com.arthenica.ffmpegkit;
-          public class MediaInformation { public String getFilename() { return ""; } public long getDuration() { return 0; } }
+          import java.util.ArrayList;
+          import java.util.List;
+          public class MediaInformation {
+            public String getFilename() { return ""; }
+            public String getFormat() { return ""; }
+            public String getDuration() { return "0"; }
+            public String getBitrate() { return "0"; }
+            public List<MediaInformationStream> getStreams() { return new ArrayList<>(); }
+          }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/MediaInformationStream.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class MediaInformationStream {
+            public int getIndex() { return 0; }
+            public String getType() { return ""; }
+            public String getCodec() { return ""; }
+            public String getWidth() { return "0"; }
+            public String getHeight() { return "0"; }
+            public String getSampleRate() { return "0"; }
+            public String getChannelCount() { return "0"; }
+          }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/MediaInformationSession.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class MediaInformationSession {
+            public MediaInformation getMediaInformation() { return new MediaInformation(); }
+            public ReturnCode getReturnCode() { return new ReturnCode(); }
+          }
+          JAVA
+          cat > classes/com/arthenica/ffmpegkit/FFprobeKit.java << 'JAVA'
+          package com.arthenica.ffmpegkit;
+          public class FFprobeKit {
+            public static MediaInformationSession getMediaInformation(String path) { return new MediaInformationSession(); }
+          }
           JAVA
           cd classes && jar cf ../classes.jar com/ && cd ..
           zip -r $GITHUB_WORKSPACE/app/libs/ffmpeg-kit-local.aar AndroidManifest.xml classes.jar classes/ jni/

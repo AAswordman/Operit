@@ -7,7 +7,9 @@ import com.ai.nonoassistance.memory.BudgetConfig
 import com.ai.nonoassistance.memory.GlobalMemoryStore
 import com.ai.nonoassistance.orchestration.OrchestrationEngine
 import com.ai.nonoassistance.orchestration.RoleAssignmentConfig
-import com.ai.nonoassistance.provider.OperitProviderAdapter
+import com.ai.nonoassistance.orchestration.RoleConfig
+import com.ai.nonoassistance.orchestration.Responsibility
+import com.ai.nonoassistance.orchestration.PermissionLevel
 import com.ai.nonoassistance.provider.ProviderRegistry
 import com.ai.nonoassistance.provider.ModelPricingService
 import java.io.File
@@ -64,15 +66,18 @@ object NonOIntegrationManager {
             providerRegistry = ProviderRegistry()
             pricingService = ModelPricingService()
 
-            // Register existing Operit providers via adapter
-            OperitProviderAdapter.registerExistingProviders(providerRegistry)
-
             // 2. Orchestration engine
             val defaultRoleConfig = RoleAssignmentConfig(
-                leaderModelId = "deepseek-chat",
-                workerModelIds = listOf("deepseek-chat", "gemini-2.0-flash"),
-                maxWorkers = 3,
-                maxRetries = 3
+                leader = RoleConfig(
+                    model = "deepseek-chat",
+                    responsibilities = listOf(Responsibility.DECOMPOSE_TASK, Responsibility.REVIEW_OUTPUT, Responsibility.DISPATCH_FIX),
+                    permission = PermissionLevel.FULL
+                ),
+                workers = listOf(
+                    RoleConfig(model = "deepseek-chat", responsibilities = listOf(Responsibility.EXECUTE_SUBTASK, Responsibility.REPORT_RESULT), permission = PermissionLevel.RESTRICTED),
+                    RoleConfig(model = "gemini-2.0-flash", responsibilities = listOf(Responsibility.EXECUTE_SUBTASK, Responsibility.REPORT_RESULT), permission = PermissionLevel.RESTRICTED)
+                ),
+                maxWorkersPerSession = 3
             )
             orchestrationEngine = OrchestrationEngine(defaultRoleConfig)
 
@@ -102,9 +107,9 @@ object NonOIntegrationManager {
     /**
      * Get the provider adapter for use with existing chat services.
      */
-    fun getProviderAdapter(): OperitProviderAdapter {
+    fun getProviderRegistry(): ProviderRegistry {
         check(initialized) { "NonOIntegrationManager not initialized" }
-        return OperitProviderAdapter(providerRegistry)
+        return providerRegistry
     }
 
     /**

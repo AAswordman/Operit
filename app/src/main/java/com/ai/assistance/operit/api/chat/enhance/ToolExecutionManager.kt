@@ -23,7 +23,7 @@ import kotlinx.coroutines.coroutineScope
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.core.tools.sanitizer.ToolCallSanitizer
-import com.ai.nonoassistance.tools.permission.RootExecutionGuard
+import com.ai.assistance.operit.core.tools.permission.RootExecutionGuard
 import com.ai.assistance.operit.ui.common.displays.MessageContentParser
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
