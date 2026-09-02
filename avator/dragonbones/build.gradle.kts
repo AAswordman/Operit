@@ -13,16 +13,18 @@ android {
     defaultConfig {
         minSdk = 26
 
-        ndk {
-            abiFilters.addAll(listOf("arm64-v8a"))
-        }
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
 
-        externalNativeBuild {
-            cmake {
-                arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+        if (project.findProperty("skipNativeBuild")?.toString()?.toBoolean() != true) {
+            ndk {
+                abiFilters.addAll(listOf("arm64-v8a"))
+            }
+
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+                }
             }
         }
     }

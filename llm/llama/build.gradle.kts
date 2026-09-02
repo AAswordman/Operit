@@ -16,19 +16,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
 
-        ndk {
-            abiFilters.addAll(listOf("arm64-v8a"))
-        }
+        if (project.findProperty("skipNativeBuild")?.toString()?.toBoolean() != true) {
+            ndk {
+                abiFilters.addAll(listOf("arm64-v8a"))
+            }
 
-        externalNativeBuild {
-            cmake {
-                cppFlags += listOf("-std=c++17", "-fno-emulated-tls")
-                arguments += listOf(
-                    "-DANDROID_STL=c++_static",
-                    "-DANDROID_PLATFORM=android-26",
-                    "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
-                    "-DLLAMA_BUILD_COMMON=ON"
-                )
+            externalNativeBuild {
+                cmake {
+                    cppFlags += listOf("-std=c++17", "-fno-emulated-tls")
+                    arguments += listOf(
+                        "-DANDROID_STL=c++_static",
+                        "-DANDROID_PLATFORM=android-26",
+                        "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
+                        "-DLLAMA_BUILD_COMMON=ON"
+                    )
+                }
             }
         }
     }

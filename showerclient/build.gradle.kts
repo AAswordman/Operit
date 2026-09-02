@@ -20,7 +20,7 @@ android {
 
     buildFeatures {
         compose = false
-        aidl = true
+        aidl = false
         buildConfig = false
     }
 }
