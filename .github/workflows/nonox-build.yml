@@ -7,6 +7,15 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  JAVA_VERSION: '21'
+  NODE_VERSION: '22'
+  ANDROID_NDK_VERSION: '25.1.8937393'
+  ANDROID_CMAKE_VERSION: '3.22.1'
+  ANDROID_API_LEVEL: '26'
+  RUST_VERSION: '1.88.0'
+  MANUAL_DEPS_DIR: manual-deps
+
 jobs:
   build-new-modules:
     name: Build & Test New Modules
@@ -19,10 +28,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up JDK 21
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
 
       - name: Setup Android SDK
@@ -52,7 +61,7 @@ jobs:
 
   build-apk:
     name: Build Debug APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     needs: build-new-modules
 
@@ -60,239 +69,134 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
-      - name: Set up JDK 21
+      - name: Initialize terminal submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync -- terminal
+          git submodule update --init --recursive --depth 1 terminal
+
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install SDK platform and build tools
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-
-      - name: Install NDK
-        run: sdkmanager "ndk;27.0.12077973"
-
-      - name: Install CMake
-        run: sdkmanager "cmake;3.22.1"
-
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
-
-      - name: Enable skipNativeBuild in gradle.properties
+      - name: Install Android SDK, NDK and CMake
+        shell: bash
         run: |
-          echo "skipNativeBuild=true" >> gradle.properties
+          set -euo pipefail
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "platforms;android-36" \
+            "build-tools;34.0.0" \
+            "build-tools;35.0.0" \
+            "ndk;$ANDROID_NDK_VERSION" \
+            "cmake;$ANDROID_CMAKE_VERSION"
 
-      - name: Create stub .so files for native modules
+      - name: Restore Android dependency cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.MANUAL_DEPS_DIR }}
+          key: android-full-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
+
+      - name: Download Android dependencies
+        if: steps.cache-manual-deps.outputs.cache-hit != 'true'
+        run: bash ci/script/download_android_dependencies.sh full "$MANUAL_DEPS_DIR"
+
+      - name: Prepare Android dependencies
         run: |
-          # Create stub shared libraries so APK packaging succeeds
-          # These are empty .so files — native features won't work but the APK will install
-          mkdir -p app/src/main/jniLibs/arm64-v8a
-          mkdir -p llm/llama/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a
-          mkdir -p llm/mnn/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a
-          mkdir -p quickjs/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a
-          mkdir -p avator/dragonbones/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a
-          mkdir -p avator/mmd/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a
-          mkdir -p avator/fbx/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a
-          mkdir -p terminal/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a
+          python3 ci/script/prepare_android_dependencies.py \
+            --profile full \
+            --archives "$MANUAL_DEPS_DIR" \
+            --repository "$GITHUB_WORKSPACE"
 
-          # Create minimal valid .so files (ELF header only)
-          # This is a minimal ELF shared object for aarch64
-          python3 -c "
-          import struct
-          # Minimal ELF64 header for aarch64 shared object
-          elf = bytearray()
-          # ELF magic + class + data + version
-          elf += b'\x7fELF'  # magic
-          elf += bytes([2, 1, 1, 0])  # 64-bit, little-endian, version 1
-          elf += bytes(8)  # padding
-          elf += struct.pack('<H', 3)  # ET_DYN (shared object)
-          elf += struct.pack('<H', 183)  # EM_AARCH64
-          elf += struct.pack('<I', 1)  # EV_CURRENT
-          elf += struct.pack('<Q', 0)  # entry
-          elf += struct.pack('<Q', 64)  # phoff
-          elf += struct.pack('<Q', 0)  # shoff
-          elf += struct.pack('<I', 0)  # flags
-          elf += struct.pack('<H', 64)  # ehsize
-          elf += struct.pack('<H', 56)  # phentsize
-          elf += struct.pack('<H', 1)  # phnum
-          elf += struct.pack('<H', 64)  # shentsize
-          elf += struct.pack('<H', 0)  # shnum
-          elf += struct.pack('<H', 0)  # shstrndx
-          # Program header (PT_LOAD)
-          elf += struct.pack('<I', 1)  # p_type = PT_LOAD
-          elf += struct.pack('<I', 5)  # p_flags = PF_R | PF_X
-          elf += struct.pack('<Q', 0)  # p_offset
-          elf += struct.pack('<Q', 0)  # p_vaddr
-          elf += struct.pack('<Q', 0)  # p_paddr
-          elf += struct.pack('<Q', 120)  # p_filesz
-          elf += struct.pack('<Q', 120)  # p_memsz
-          elf += struct.pack('<Q', 0x1000)  # p_align
+      - name: Restore native ripgrep cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tools/native_ripgrep/target
+          key: native-ripgrep-arm64-${{ runner.os }}-${{ runner.arch }}-ndk-${{ env.ANDROID_NDK_VERSION }}-api-${{ env.ANDROID_API_LEVEL }}-rust-${{ env.RUST_VERSION }}-${{ hashFiles('tools/native_ripgrep/Cargo.toml', 'tools/native_ripgrep/Cargo.lock', 'tools/native_ripgrep/**/*.rs') }}
 
-          for name in [
-              'libsherpa-ncnn-jni.so',
-              'libsherpa-mnn-jni.so',
-              'libllama.so',
-              'libmnn.so',
-              'libtoolpkgwasm.so',
-              'libstreamnative.so',
-              'libdragonbones.so',
-              'libmmd.so',
-              'libfbx.so',
-              'libquickjs.so',
-              'liboperit_ripgrep.so',
-          ]:
-              path = f'app/src/main/jniLibs/arm64-v8a/{name}'
-              with open(path, 'wb') as f:
-                  f.write(elf)
-              print(f'Created stub: {path}')
-          "
-
-      - name: Create stub ffmpeg-kit AAR with Java classes
+      - name: Build native ripgrep
+        shell: bash
         run: |
-          WORK_DIR=/tmp/ffmpegkit-aar
-          rm -rf $WORK_DIR
-          mkdir -p $WORK_DIR/jni/arm64-v8a $WORK_DIR/classes/com/arthenica/ffmpegkit
-          echo "Manifest-Version: 1.0" > $WORK_DIR/classes/MANIFEST.MF
-          cat > $WORK_DIR/AndroidManifest.xml << 'MANIFEST'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.arthenica.ffmpegkit">
-          </manifest>
-          MANIFEST
-          cd $WORK_DIR
-          for lib in libffmpegkit.so libffmpegkit_abidetect.so libavcodec.so libavdevice.so libavfilter.so libavformat.so libavutil.so libc++_shared.so libswresample.so libswscale.so; do
-            cp $GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so jni/arm64-v8a/$lib
-          done
-          # Create comprehensive stub Java classes
-          cat > classes/com/arthenica/ffmpegkit/ReturnCode.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class ReturnCode {
-            private int value;
-            public ReturnCode() { this.value = 0; }
-            public ReturnCode(int v) { this.value = v; }
-            public int getValue() { return value; }
-            public static boolean isSuccess(ReturnCode rc) { return rc != null && rc.getValue() == 0; }
-            public static boolean isCancel(ReturnCode rc) { return rc != null && rc.getValue() == 1; }
-            public static boolean isError(ReturnCode rc) { return rc != null && rc.getValue() != 0 && rc.getValue() != 1; }
-          }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/FFmpegSession.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class FFmpegSession {
-            public ReturnCode getReturnCode() { return new ReturnCode(); }
-            public String getOutput() { return ""; }
-            public long getDuration() { return 0; }
-          }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/FFmpegKit.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class FFmpegKit {
-            public static FFmpegSession execute(String command) { return new FFmpegSession(); }
-            public static FFmpegSession execute(String[] command) { return new FFmpegSession(); }
-          }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/FFmpegKitConfig.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class FFmpegKitConfig {
-            public static String getVersion() { return "stub"; }
-            public static String getBuildDate() { return "stub"; }
-            public static void init(android.content.Context ctx) {}
-          }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/MediaInformation.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          import java.util.ArrayList;
-          import java.util.List;
-          public class MediaInformation {
-            public String getFilename() { return ""; }
-            public String getFormat() { return ""; }
-            public String getDuration() { return "0"; }
-            public String getBitrate() { return "0"; }
-            public List<MediaInformationStream> getStreams() { return new ArrayList<>(); }
-          }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/MediaInformationStream.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class MediaInformationStream {
-            public int getIndex() { return 0; }
-            public String getType() { return ""; }
-            public String getCodec() { return ""; }
-            public String getWidth() { return "0"; }
-            public String getHeight() { return "0"; }
-            public String getSampleRate() { return "0"; }
-            public String getChannelCount() { return "0"; }
-          }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/MediaInformationSession.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class MediaInformationSession {
-            public MediaInformation getMediaInformation() { return new MediaInformation(); }
-            public ReturnCode getReturnCode() { return new ReturnCode(); }
-          }
-          JAVA
-          cat > classes/com/arthenica/ffmpegkit/FFprobeKit.java << 'JAVA'
-          package com.arthenica.ffmpegkit;
-          public class FFprobeKit {
-            public static MediaInformationSession getMediaInformation(String path) { return new MediaInformationSession(); }
-          }
-          JAVA
-          cd classes && jar cf ../classes.jar com/ && cd ..
-          zip -r $GITHUB_WORKSPACE/app/libs/ffmpeg-kit-local.aar AndroidManifest.xml classes.jar classes/ jni/
+          set -euo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup target add --toolchain "$RUST_VERSION" aarch64-linux-android
+          cargo "+$RUST_VERSION" build \
+            --manifest-path tools/native_ripgrep/Cargo.toml \
+            --release \
+            --target aarch64-linux-android \
+            --locked
+          install -Dm755 \
+            tools/native_ripgrep/target/aarch64-linux-android/release/liboperit_ripgrep.so \
+            app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+          test -s app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
 
-      - name: Build debug APK
+      - name: Install JavaScript dependencies
+        shell: bash
         run: |
-          set -o pipefail
-          ./gradlew assembleDebug --no-daemon -PskipNativeBuild=true --stacktrace 2>&1 | tee /tmp/gradle-output.log | tail -200
+          set -euo pipefail
+          npm install -g pnpm@10.34.5
+          npm ci --no-audit --no-fund
+          npm --prefix web-chat ci --no-audit --no-fund
 
-      - name: Show build log on failure
-        if: failure()
+      - name: Build WebChat assets
         run: |
-          echo "=== LAST 300 LINES OF BUILD LOG ==="
-          tail -300 /tmp/gradle-output.log 2>/dev/null || echo "No log"
-          echo "=== GREP FOR ERRORS ==="
-          grep -i 'error\|FAILED\|failure\|exception' /tmp/gradle-output.log 2>/dev/null | tail -30 || echo "No errors found"
+          npm run build:webchat
 
-      - name: Check build outputs
-        if: always()
+      - name: Build bundled ToolPkg packages
         run: |
-          echo "=== APK outputs ==="
-          find app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "No APK found"
-          echo "=== Build intermediates ==="
-          ls -la app/build/intermediates/kotlin_classes/debug/ 2>/dev/null || echo "No kotlin classes"
-          echo "=== APK dir ==="
-          ls -laR app/build/outputs/apk/ 2>/dev/null || echo "No APK directory"
+          npm run build:examples:github
+          python3 tools/example_packages/sync_example_packages.py --no-hot-reload
+
+      - name: Configure Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Run Gradle build
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: nonox-debug-apk
+          name: operitx-debug-apk
           path: |
-            app/build/outputs/apk/debug/*.apk
-          retention-days: 14
+            app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
-
-      - name: Upload build log
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: build-log
-          path: /tmp/gradle-output.log
           retention-days: 14
-          if-no-files-found: warn
 
-      - name: Upload build outputs
-        uses: actions/upload-artifact@v4
+      - name: Upload build reports
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: nonox-build-output
+          name: operitx-reports
           path: |
-            app/build/intermediates/kotlin_classes/debug/
-            app/build/intermediates/javac/debug/
-          retention-days: 7
+            app/build/reports/**/*
+            build/reports/**/*
           if-no-files-found: warn
+          retention-days: 14
