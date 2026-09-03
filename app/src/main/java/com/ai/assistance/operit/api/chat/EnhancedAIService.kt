@@ -12,6 +12,7 @@ import com.ai.assistance.operit.api.chat.enhance.FileBindingService
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
+import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassifier
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
@@ -31,6 +32,7 @@ import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.model.InputProcessingErrorSource
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.ToolInvocation
@@ -335,6 +337,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         var enableThinking: Boolean = false,
         var enableMemoryAutoUpdate: Boolean = true,
         var onNonFatalError: suspend (error: String) -> Unit = {},
+        var onRetryState: suspend (retry: com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata) -> Unit = {},
         var onTokenLimitExceeded: (suspend () -> Unit)? = null,
         var customSystemPromptTemplate: String? = null,
         var isSubTask: Boolean = false,
@@ -908,6 +911,21 @@ class EnhancedAIService private constructor(private val context: Context) {
             options.onNonFatalError(error)
             callbacks?.onNonFatalError(error)
         }
+        val onRetryState: suspend (com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata) -> Unit = { retry ->
+            withContext(Dispatchers.Main) {
+                _inputProcessingState.value = InputProcessingState.Retrying(
+                    message = retry.errorMessage.orEmpty(),
+                    retryAttempt = retry.retryAttempt,
+                    maxRetryAttempts = retry.maxRetryAttempts,
+                    retryAfterMs = retry.retryAfterMs,
+                    errorCode = retry.errorCode,
+                    providerCode = retry.providerCode,
+                    httpStatusCode = retry.httpStatusCode,
+                    recoverable = true
+                )
+            }
+            options.onRetryState(retry)
+        }
         val onTokenLimitExceeded: (suspend () -> Unit)? =
             if (options.onTokenLimitExceeded != null || callbacks != null) {
                 suspend {
@@ -945,7 +963,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                 )
             registerExecutionContext(execContext)
             var hadFatalError = false
-            var providerStreamCollectionStarted = false
             try {
                 // 确保所有操作都在IO线程上执行
                 withContext(Dispatchers.IO) {
@@ -1112,6 +1129,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                         _perRequestTokenCounts.value = Pair(input, output)
                                     },
                                      onNonFatalError = onNonFatalError,
+                                    onRetryState = onRetryState,
                             )
                     val revisableStream = responseStream as? TextStreamEventCarrier
 
@@ -1128,7 +1146,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                     var totalChars = 0
                     var lastLogTime = messageTimingNow()
 
-                    providerStreamCollectionStarted = true
                     coroutineScope {
                         val revisionJob =
                             revisableStream?.let { carrier ->
@@ -1201,8 +1218,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                             revisionJob?.cancelAndJoin()
                         }
                     }
-                    providerStreamCollectionStarted = false
-
                     // Update accumulated token counts and persist them
                     val inputTokens = serviceForFunction.inputTokenCount
                     val cachedInputTokens = serviceForFunction.cachedInputTokenCount
@@ -1242,20 +1257,31 @@ class EnhancedAIService private constructor(private val context: Context) {
                     hadFatalError = true
                     // Handle any exceptions
                     AppLogger.e(TAG, "发送消息时发生错误: ${e.message}", e)
-                    if (!providerStreamCollectionStarted) {
-                        withContext(Dispatchers.Main) {
-                            _inputProcessingState.value =
-                                    InputProcessingState.Error(message = context.getString(R.string.enhanced_error_with_message, e.message ?: ""))
-                        }
+                    // Provider streams are cold, so API failures usually surface only after
+                    // collection starts. Publish every terminal provider failure before rethrowing it.
+                    val classification = ApiErrorClassifier.classify(e)
+                    withContext(Dispatchers.Main) {
+                        _inputProcessingState.value =
+                            InputProcessingState.Error(
+                                message = context.getString(
+                                    R.string.enhanced_error_with_message,
+                                    e.message ?: ""
+                                ),
+                                code = classification.code,
+                                errorSource = InputProcessingErrorSource.API,
+                                recoverable = classification.recoverable,
+                                appCode = classification.appCode,
+                                providerCode = classification.providerCode,
+                                httpStatusCode = classification.httpStatusCode,
+                                retryAfterMs = classification.retryAfterMs
+                            )
                     }
                 }
 
                 // 发生无法处理的错误时，也应停止服务，但用户取消除外
                 if (!isSocketClosed) {
                     if (!isSubTask) stopAiService()
-                    if (!providerStreamCollectionStarted) {
-                        throw e
-                    }
+                    throw e
                 }
             } finally {
                 try {
@@ -1271,6 +1297,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                 enableThinking,
                                 enableMemoryAutoUpdate,
                                 onNonFatalError,
+                                onRetryState,
                                 onTokenLimitExceeded,
                                 maxTokens,
                                 tokenUsageThreshold,
@@ -1696,6 +1723,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             enableThinking: Boolean = false,
             enableMemoryAutoUpdate: Boolean = true,
             onNonFatalError: suspend (error: String) -> Unit,
+            onRetryState: suspend (retry: com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata) -> Unit,
             onTokenLimitExceeded: (suspend () -> Unit)? = null,
             maxTokens: Int,
             tokenUsageThreshold: Double,
@@ -1748,6 +1776,15 @@ class EnhancedAIService private constructor(private val context: Context) {
             // 禁止“纯思考输出”：移除 thinking 后正文为空时，发出专用告警并回传给 AI 继续生成
             val contentWithoutThinking = ChatUtils.removeThinkingContent(content)
             if (contentWithoutThinking.isEmpty()) {
+                if (!isSubTask) {
+                    withContext(Dispatchers.Main) {
+                        _inputProcessingState.value = InputProcessingState.AiError(
+                            code = "pure_thinking_only",
+                            message = "AI output contained thinking content without a response",
+                            recoverable = !disableWarning
+                        )
+                    }
+                }
                 if (disableWarning) {
                     AppLogger.w(TAG, "检测到纯思考输出，disableWarning=true，直接结束本轮而不注入警告")
                     finalizeAssistantResponse(
@@ -1781,6 +1818,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                     return
                 }
                 AppLogger.w(TAG, "检测到纯思考输出（removeThinking后正文为空），已回传告警给AI继续生成")
+                if (!isSubTask) {
+                    withContext(Dispatchers.Main) {
+                        _inputProcessingState.value = InputProcessingState.Retrying("pure_thinking_only")
+                    }
+                }
                 handleToolInvocation(
                         toolInvocations = emptyList(),
                         context = context,
@@ -1790,6 +1832,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                         enableThinking = enableThinking,
                         enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                         onNonFatalError = onNonFatalError,
+                        onRetryState = onRetryState,
                         onTokenLimitExceeded = onTokenLimitExceeded,
                         maxTokens = maxTokens,
                         tokenUsageThreshold = tokenUsageThreshold,
@@ -1903,6 +1946,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                         enableThinking = enableThinking,
                         enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                         onNonFatalError = onNonFatalError,
+                        onRetryState = onRetryState,
                         onTokenLimitExceeded = onTokenLimitExceeded,
                         maxTokens = maxTokens,
                         tokenUsageThreshold = tokenUsageThreshold,
@@ -1940,6 +1984,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                         enableThinking,
                         enableMemoryAutoUpdate,
                         onNonFatalError,
+                        onRetryState,
                         onTokenLimitExceeded,
                         maxTokens,
                         tokenUsageThreshold,
@@ -2056,6 +2101,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         enableThinking: Boolean = false,
         enableMemoryAutoUpdate: Boolean = true,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata) -> Unit,
         onTokenLimitExceeded: (suspend () -> Unit)? = null,
         maxTokens: Int,
         tokenUsageThreshold: Double,
@@ -2104,14 +2150,34 @@ class EnhancedAIService private constructor(private val context: Context) {
                 toolExposureMode = ToolExposureMode.resolve(config.apiProviderType),
                 callerName = characterName,
                 callerChatId = chatId,
-                callerCardId = roleCardId
+                callerCardId = roleCardId,
+                onToolExecutionStarted = { toolName ->
+                    if (!isSubTask) {
+                        withContext(Dispatchers.Main) {
+                            _inputProcessingState.value = InputProcessingState.WaitingToolResult(toolName)
+                        }
+                    }
+                },
+                onDisplayMarkupEmitted = { markup ->
+                    context.roundManager.appendContent(markup)
+                },
             )
 
             if (allToolResults.isNotEmpty()) {
                 AppLogger.d(TAG, "所有工具结果收集完毕，准备最终处理。")
+                val failedTool = allToolResults.firstOrNull { !it.success }
+                if (failedTool != null && !isSubTask) {
+                    withContext(Dispatchers.Main) {
+                        _inputProcessingState.value = InputProcessingState.ToolError(
+                            toolName = failedTool.toolName,
+                            code = ToolExecutionManager.resolveRuntimeErrorCode(failedTool),
+                            message = failedTool.error.orEmpty()
+                        )
+                    }
+                }
                 processToolResults(
                     allToolResults, context, functionType, promptFunctionType, collector, enableThinking,
-                    enableMemoryAutoUpdate, onNonFatalError, onTokenLimitExceeded, maxTokens, tokenUsageThreshold, isSubTask,
+                    enableMemoryAutoUpdate, onNonFatalError, onRetryState, onTokenLimitExceeded, maxTokens, tokenUsageThreshold, isSubTask,
                     characterName, avatarUri, roleCardId, chatId, onToolInvocation, notifyReplyOverride,
                     chatModelConfigIdOverride, chatModelIndexOverride, memorySpaceIdOverride, stream, enableGroupOrchestrationHint,
                     disableWarning = disableWarning
@@ -2127,6 +2193,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     enableThinking = enableThinking,
                     enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                     onNonFatalError = onNonFatalError,
+                    onRetryState = onRetryState,
                     onTokenLimitExceeded = onTokenLimitExceeded,
                     maxTokens = maxTokens,
                     tokenUsageThreshold = tokenUsageThreshold,
@@ -2175,6 +2242,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             enableThinking: Boolean = false,
             enableMemoryAutoUpdate: Boolean = true,
             onNonFatalError: suspend (error: String) -> Unit,
+            onRetryState: suspend (retry: com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata) -> Unit,
             onTokenLimitExceeded: (suspend () -> Unit)? = null,
             maxTokens: Int,
             tokenUsageThreshold: Double,
@@ -2336,6 +2404,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     _perRequestTokenCounts.value = Pair(input, output)
                                 },
                                  onNonFatalError = onNonFatalError,
+                                 onRetryState = onRetryState,
                         )
 
                 // 更新状态为接收中
@@ -2451,6 +2520,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     enableThinking,
                     enableMemoryAutoUpdate,
                     onNonFatalError,
+                    onRetryState,
                     onTokenLimitExceeded,
                     maxTokens,
                     tokenUsageThreshold,
@@ -2473,11 +2543,23 @@ class EnhancedAIService private constructor(private val context: Context) {
                 throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "处理工具执行结果时出错", e)
+                val classification = ApiErrorClassifier.classify(e)
                 withContext(Dispatchers.Main) {
                     _inputProcessingState.value =
-                            InputProcessingState.Error(this@EnhancedAIService.context.getString(R.string.enhanced_process_tool_result_failed, e.message ?: ""))
+                        InputProcessingState.Error(
+                            message = this@EnhancedAIService.context.getString(
+                                R.string.enhanced_process_tool_result_failed,
+                                e.message ?: ""
+                            ),
+                            code = classification.code,
+                            errorSource = InputProcessingErrorSource.API,
+                            recoverable = classification.recoverable,
+                            appCode = classification.appCode,
+                            providerCode = classification.providerCode,
+                            httpStatusCode = classification.httpStatusCode,
+                            retryAfterMs = classification.retryAfterMs
+                        )
                 }
-            } finally {
                 logMessageTiming(
                     stage = "enhanced.processToolResults.complete",
                     startTimeMs = startTime,
@@ -3130,8 +3212,34 @@ class EnhancedAIService private constructor(private val context: Context) {
      * @param text 要翻译的文本
      * @return 翻译后的文本
      */
-    suspend fun translateText(text: String, recordTokenUsage: Boolean = true): String {
-        return conversationService.translateText(text, multiServiceManager, recordTokenUsage)
+    suspend fun translateText(
+        text: String,
+        recordTokenUsage: Boolean = true,
+        onUpdate: suspend (String) -> Unit = {},
+        onRetryError: suspend (attempt: Int, maxAttempts: Int, error: String) -> Unit = { _, _, _ -> },
+    ): String {
+        return conversationService.translateText(
+            text = text,
+            multiServiceManager = multiServiceManager,
+            recordTokenUsage = recordTokenUsage,
+            onUpdate = onUpdate,
+            onRetryError = onRetryError,
+        )
+    }
+
+    suspend fun translateText(
+        text: String,
+        targetLanguage: String,
+        onUpdate: suspend (String) -> Unit = {},
+        onRetryError: suspend (attempt: Int, maxAttempts: Int, error: String) -> Unit = { _, _, _ -> },
+    ): String {
+        return conversationService.translateText(
+            text = text,
+            targetLanguage = targetLanguage,
+            multiServiceManager = multiServiceManager,
+            onUpdate = onUpdate,
+            onRetryError = onRetryError,
+        )
     }
 
     /**

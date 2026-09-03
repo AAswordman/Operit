@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -828,6 +829,44 @@ internal fun ThemeSettingsChatStyleSection(
                         onClick = { onShowColorPicker("bubbleAiBubble") },
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                ThemeSettingsOpacitySlider(
+                    title =
+                        stringResource(
+                            id = R.string.chat_style_bubble_user_opacity,
+                            (Color(bubbleUserBubbleColorInput).alpha * 100).roundToInt(),
+                        ),
+                    opacity = Color(bubbleUserBubbleColorInput).alpha,
+                    onOpacityChange = { opacity ->
+                        editorSession.setInt(
+                            "bubble_user_bubble_color",
+                            Color(bubbleUserBubbleColorInput)
+                                .copy(alpha = opacity)
+                                .toArgb(),
+                        )
+                    },
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ThemeSettingsOpacitySlider(
+                    title =
+                        stringResource(
+                            id = R.string.chat_style_bubble_ai_opacity,
+                            (Color(bubbleAiBubbleColorInput).alpha * 100).roundToInt(),
+                        ),
+                    opacity = Color(bubbleAiBubbleColorInput).alpha,
+                    onOpacityChange = { opacity ->
+                        editorSession.setInt(
+                            "bubble_ai_bubble_color",
+                            Color(bubbleAiBubbleColorInput)
+                                .copy(alpha = opacity)
+                                .toArgb(),
+                        )
+                    },
+                )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -2129,6 +2168,8 @@ internal fun ThemeSettingsDisplayOptionsSection(
     showMessageTimestampInput: Boolean,
     showInputProcessingStatusInput: Boolean,
     showChatFloatingDotsAnimationInput: Boolean,
+    aiMessageMarkdownLatexEnabledInput: Boolean,
+    userMessageMarkdownLatexEnabledInput: Boolean,
 ) {
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.display_options_title),
@@ -2137,6 +2178,70 @@ internal fun ThemeSettingsDisplayOptionsSection(
 
     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(id = R.string.chat_message_rendering_title),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(id = R.string.chat_message_rendering_ai_markdown_latex),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text =
+                            stringResource(
+                                id = R.string.chat_message_rendering_ai_markdown_latex_desc,
+                            ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = aiMessageMarkdownLatexEnabledInput,
+                    onCheckedChange = {
+                        editorSession.setBoolean("ai_message_markdown_latex_enabled", it)
+                    },
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(id = R.string.chat_message_rendering_user_markdown_latex),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text =
+                            stringResource(
+                                id = R.string.chat_message_rendering_user_markdown_latex_desc,
+                            ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = userMessageMarkdownLatexEnabledInput,
+                    onCheckedChange = {
+                        editorSession.setBoolean("user_message_markdown_latex_enabled", it)
+                    },
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,

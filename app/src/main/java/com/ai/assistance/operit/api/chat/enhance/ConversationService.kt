@@ -36,14 +36,24 @@ import com.ai.assistance.operit.data.repository.AvatarRepository
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.core.tools.ToolProgressBus
+import com.ai.assistance.operit.api.chat.llmprovider.LlmRetryPolicy
+import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
+import com.ai.assistance.operit.util.stream.TextStreamEventType
+import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
 import com.ai.assistance.operit.util.streamnative.NativeXmlSplitter
 import com.github.difflib.DiffUtils
 import com.github.difflib.UnifiedDiffUtils
+
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -64,6 +74,7 @@ class ConversationService(
     companion object {
         private const val TAG = "ConversationService"
         private const val APPLY_FILE_TOOL_NAME = "apply_file"
+        private const val TRANSLATION_STREAM_UPDATE_INTERVAL_MS = 500L
         private val fileRequestContentRegex = Regex(
             """<file-request-content\b[^>]*><!\[CDATA\[(.*?)\]\]></file-request-content>""",
             setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
@@ -1079,10 +1090,12 @@ class ConversationService(
         text: String,
         multiServiceManager: MultiServiceManager,
         recordTokenUsage: Boolean = true,
+        onUpdate: suspend (String) -> Unit = {},
+        onRetryError: suspend (attempt: Int, maxAttempts: Int, error: String) -> Unit = { _, _, _ -> },
     ): String {
         val currentLanguage = LocaleUtils.getCurrentLanguage(context)
-        
-        // 根据当前语言确定目标语言
+
+        // 保留旧调用方的行为：默认翻译为当前应用语言。
         val targetLanguage = when (currentLanguage) {
             LocaleUtils.LanguageCodes.CHINESE -> context.getString(R.string.conversation_language_chinese)
             LocaleUtils.LanguageCodes.ENGLISH -> "English"
@@ -1094,40 +1107,167 @@ class ConversationService(
             LocaleUtils.LanguageCodes.ROMANIAN -> "Romanian"
             else -> context.getString(R.string.conversation_language_chinese) // 默认翻译为中文
         }
-        
-        val translationPrompt = """
-${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
-        """.trim()
-        
-        val chatHistory = listOf(
-            PromptTurn(
-                kind = PromptTurnKind.SYSTEM,
-                content = FunctionalPrompts.translationSystemPrompt()
-            )
+        return translateText(
+            text = text,
+            targetLanguage = targetLanguage,
+            multiServiceManager = multiServiceManager,
+            recordTokenUsage = recordTokenUsage,
+            onUpdate = onUpdate,
+            onRetryError = onRetryError,
         )
-        
-        val contentBuilder = StringBuilder()
-        
-        try {
-            // 获取翻译功能的AIService实例
-            val translationService = multiServiceManager.getServiceForFunction(FunctionType.TRANSLATION)
-            
-            // 获取模型参数
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.TRANSLATION)
-            
-            val stream = translationService.sendMessage(
-                context = context,
-                chatHistory = chatHistory + PromptTurn(kind = PromptTurnKind.USER, content = translationPrompt),
-                modelParameters = modelParameters,
-                recordTokenUsage = recordTokenUsage,
+    }
+
+    suspend fun translateText(
+        text: String,
+        targetLanguage: String,
+        multiServiceManager: MultiServiceManager,
+        recordTokenUsage: Boolean = true,
+        onUpdate: suspend (String) -> Unit = {},
+        onRetryError: suspend (attempt: Int, maxAttempts: Int, error: String) -> Unit = { _, _, _ -> },
+    ): String {
+        val translationConfig =
+            multiServiceManager.getModelConfigForFunction(FunctionType.TRANSLATION)
+        if (translationConfig.modelName.split(",").none { it.isNotBlank() }) {
+            throw TranslationModelNotConfiguredException()
+        }
+
+        val translationPrompt =
+            FunctionalPrompts.translationUserPrompt(targetLanguage, text)
+        val chatHistory =
+            listOf(
+                PromptTurn(
+                    kind = PromptTurnKind.SYSTEM,
+                    content = FunctionalPrompts.translationSystemPrompt()
+                )
             )
-            
-            stream.collect { content ->
-                contentBuilder.append(content)
-            }
-            
-            return contentBuilder.toString().trim()
+        val translationService =
+            multiServiceManager.getServiceForFunction(FunctionType.TRANSLATION)
+
+        val modelParameters =
+            multiServiceManager.getModelParametersForFunction(FunctionType.TRANSLATION)
+        val maxRetryAttempts = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+        var reportedRetryCount = 0
+
+        try {
+            val stream =
+                translationService.sendMessage(
+                    context = context,
+                    chatHistory =
+                        chatHistory +
+                            PromptTurn(kind = PromptTurnKind.USER, content = translationPrompt),
+                    modelParameters = modelParameters,
+                    enableRetry = true,
+                    recordTokenUsage = recordTokenUsage,
+                    onNonFatalError = { error ->
+                        reportedRetryCount =
+                            (reportedRetryCount + 1).coerceAtMost(maxRetryAttempts)
+                        onRetryError(reportedRetryCount, maxRetryAttempts, error)
+                    },
+                )
+
+            val revisableStream = stream as? TextStreamEventCarrier
+            val translatedContent =
+                if (revisableStream == null) {
+                    val contentBuilder = StringBuilder()
+                    var lastPublishedAt = 0L
+                    var lastPublishedContent = ""
+
+                    suspend fun publishCurrentContent(force: Boolean = false) {
+                        val now = System.currentTimeMillis()
+                        val snapshot = contentBuilder.toString()
+                        if (snapshot == lastPublishedContent) return
+                        if (!force &&
+                            lastPublishedAt != 0L &&
+                            now - lastPublishedAt < TRANSLATION_STREAM_UPDATE_INTERVAL_MS
+                        ) {
+                            return
+                        }
+                        lastPublishedAt = now
+                        lastPublishedContent = snapshot
+                        onUpdate(snapshot)
+                    }
+
+                    stream.collect { content ->
+                        contentBuilder.append(content)
+                        publishCurrentContent()
+                    }
+                    publishCurrentContent(force = true)
+                    contentBuilder.toString()
+                } else {
+                    val revisionTracker = TextStreamRevisionTracker()
+                    val revisionMutex = Mutex()
+                    var lastPublishedAt = 0L
+                    var lastPublishedContent = ""
+
+                    suspend fun publishCurrentContent(force: Boolean = false) {
+                        val snapshot = revisionMutex.withLock {
+                            val now = System.currentTimeMillis()
+                            val content = revisionTracker.currentContent().toString()
+                            if (content == lastPublishedContent) {
+                                null
+                            } else if (!force &&
+                                lastPublishedAt != 0L &&
+                                now - lastPublishedAt < TRANSLATION_STREAM_UPDATE_INTERVAL_MS
+                            ) {
+                                null
+                            } else {
+                                lastPublishedAt = now
+                                lastPublishedContent = content
+                                content
+                            }
+                        }
+                        snapshot?.let { onUpdate(it) }
+                    }
+
+                    coroutineScope {
+                        val revisionJob = launch {
+                            revisableStream.eventChannel.collect { event ->
+                                val shouldPublish = revisionMutex.withLock {
+                                    when (event.eventType) {
+                                        TextStreamEventType.SAVEPOINT -> {
+                                            revisionTracker.savepoint(event.id)
+                                            false
+                                        }
+                                        TextStreamEventType.ROLLBACK -> {
+                                            revisionTracker.rollback(event.id)
+                                            true
+                                        }
+                                    }
+                                }
+                                if (shouldPublish) {
+                                    // A rollback must immediately remove the failed attempt from the UI.
+                                    publishCurrentContent(force = true)
+                                }
+                            }
+                        }
+                        try {
+                            stream.collect { content ->
+                                revisionMutex.withLock {
+                                    revisionTracker.append(content)
+                                }
+                                publishCurrentContent()
+                            }
+                        } finally {
+                            revisionJob.cancelAndJoin()
+                        }
+                    }
+                    publishCurrentContent(force = true)
+                    revisionTracker.currentContent().toString()
+                }
+            return translatedContent.trim()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
+            // The provider reports accepted retries through onNonFatalError. The final attempt
+            // reaches this catch block, so surface its error as well.
+            if (reportedRetryCount > 0) {
+                onRetryError(
+                    reportedRetryCount,
+                    maxRetryAttempts,
+                    e.message?.takeIf { it.isNotBlank() }
+                        ?: context.getString(R.string.translation_failed_unknown)
+                )
+            }
             throw e
         }
     }

@@ -114,12 +114,18 @@ data class ThemePreferenceValues(
                     "show_message_timestamp" to false,
                     "show_input_processing_status" to true,
                     "show_chat_floating_dots_animation" to true,
+                    "ai_message_markdown_latex_enabled" to true,
+                    "user_message_markdown_latex_enabled" to false,
                     "use_custom_font" to false,
                     "bubble_user_use_custom_font" to false,
                     "bubble_ai_use_custom_font" to false,
                 ),
                 floats = mapOf(
                     "background_image_opacity" to 0.3f,
+                    "toolbar_opacity" to 1f,
+                    "status_bar_opacity" to 1f,
+                    "chat_header_opacity" to 1f,
+                    "chat_input_opacity" to 1f,
                     "background_blur_radius" to 10f,
                     "avatar_corner_radius" to 8f,
                     "font_scale" to 1f,
@@ -168,6 +174,7 @@ data class ThemePreferenceSnapshot(
     val videoBackgroundMuted: Boolean get() = values.requiredBoolean("video_background_muted")
     val videoBackgroundLoop: Boolean get() = values.requiredBoolean("video_background_loop")
     val toolbarTransparent: Boolean get() = values.requiredBoolean("toolbar_transparent")
+    val toolbarOpacity: Float get() = values.requiredFloat("toolbar_opacity")
     val navigationDrawerWaterGlass: Boolean
         get() = values.requiredBoolean("navigation_drawer_water_glass")
     val navigationDrawerButtonLiquidGlass: Boolean
@@ -186,12 +193,15 @@ data class ThemePreferenceSnapshot(
         get() = values.requiredBoolean("use_custom_status_bar_color")
     val customStatusBarColor: Int? get() = values.int("custom_status_bar_color")
     val statusBarTransparent: Boolean get() = values.requiredBoolean("status_bar_transparent")
+    val statusBarOpacity: Float get() = values.requiredFloat("status_bar_opacity")
     val statusBarHidden: Boolean get() = values.requiredBoolean("status_bar_hidden")
     val chatHeaderTransparent: Boolean get() = values.requiredBoolean("chat_header_transparent")
+    val chatHeaderOpacity: Float get() = values.requiredFloat("chat_header_opacity")
     val chatHeaderOverlayMode: Boolean get() = values.requiredBoolean("chat_header_overlay_mode")
     val chatHeaderHistoryIconColor: Int? get() = values.int("chat_header_history_icon_color")
     val chatHeaderPipIconColor: Int? get() = values.int("chat_header_pip_icon_color")
     val chatInputTransparent: Boolean get() = values.requiredBoolean("chat_input_transparent")
+    val chatInputOpacity: Float get() = values.requiredFloat("chat_input_opacity")
     val chatInputFloating: Boolean get() = values.requiredBoolean("chat_input_floating")
     val chatInputLiquidGlass: Boolean get() = values.requiredBoolean("chat_input_liquid_glass")
     val chatInputWaterGlass: Boolean get() = values.requiredBoolean("chat_input_water_glass")
@@ -297,4 +307,8 @@ data class ThemePreferenceSnapshot(
     val customChatTitle: String? get() = values.string("custom_chat_title")
     val showChatFloatingDotsAnimation: Boolean
         get() = values.requiredBoolean("show_chat_floating_dots_animation")
+    val aiMessageMarkdownLatexEnabled: Boolean
+        get() = values.requiredBoolean("ai_message_markdown_latex_enabled")
+    val userMessageMarkdownLatexEnabled: Boolean
+        get() = values.requiredBoolean("user_message_markdown_latex_enabled")
 }

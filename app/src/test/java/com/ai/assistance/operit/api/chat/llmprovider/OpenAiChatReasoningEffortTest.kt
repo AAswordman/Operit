@@ -106,7 +106,7 @@ class OpenAiChatReasoningEffortTest {
     fun openAiReasoningModelsKeepReasoningEffortWhenThinkingIsOn() {
         for (model in listOf("o3", "o4-mini", "gpt-5-mini", "gpt-5.6-luna", "gpt-oss-120b", "codex-mini-latest")) {
             assertEquals(model, ThinkingQualityControl.LEVELS, mapping(ApiProviderType.OPENAI, model).control)
-            assertEquals(model, "low", requestBody(ApiProviderType.OPENAI, model, enableThinking = true).getString("reasoning_effort"))
+            assertEquals(model, "minimal", requestBody(ApiProviderType.OPENAI, model, enableThinking = true).getString("reasoning_effort"))
         }
     }
 
@@ -194,7 +194,7 @@ class OpenAiChatReasoningEffortTest {
         )
         val migratedRules = JSONArray(migrated.thinkingConfigurations)
 
-        assertEquals("openai-chat-reasoning-effort", migratedRules.getJSONObject(0).getString("id"))
+        assertEquals("openai-gpt5-chat-reasoning-effort", migratedRules.getJSONObject(0).getString("id"))
         assertTrue(migratedRules.getJSONObject(0).has("match"))
         assertEquals("openai-chat-non-reasoning-models", migratedRules.getJSONObject(1).getString("id"))
         assertEquals("openai-compatible-chat-reasoning-effort", migratedRules.getJSONObject(2).getString("id"))

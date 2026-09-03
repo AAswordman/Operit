@@ -73,6 +73,7 @@ class ColdStreamCancellationTest {
             onTokensUpdated = { _, _, _ -> },
             onUsageReported = null,
             onNonFatalError = {},
+            onRetryState = {},
             enableRetry = false,
             recordTokenUsage = recordTokenUsage,
         )
@@ -111,6 +112,7 @@ class ColdStreamCancellationTest {
             onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
             onUsageReported: (suspend (ProviderUsageSnapshot, attempt: Int) -> Unit)?,
             onNonFatalError: suspend (error: String) -> Unit,
+            onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
             enableRetry: Boolean,
             recordTokenUsage: Boolean,
             onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,

@@ -67,7 +67,6 @@ class QwenAIProvider(
         val jsonObject = JSONObject(baseRequestBodyJson)
 
         applyQwenReasoningSettings(
-            context = context,
             requestJson = jsonObject,
             enableThinking = enableThinking
         )
@@ -89,16 +88,17 @@ class QwenAIProvider(
         return createJsonRequestBody(jsonObject.toString())
     }
 
-    private fun applyQwenReasoningSettings(
-        context: Context,
+    internal fun applyQwenReasoningSettings(
         requestJson: JSONObject,
         enableThinking: Boolean
     ) {
-        if (qwenProviderType != ApiProviderType.SILICONFLOW) {
+        if (
+            qwenProviderType != ApiProviderType.ALIYUN &&
+                qwenProviderType != ApiProviderType.SILICONFLOW
+        ) {
             return
         }
         ThinkingConfigurationApplier.apply(
-            context = context,
             requestJson = requestJson,
             providerTypeId = qwenProviderType.name,
             modelName = modelName,
@@ -120,11 +120,27 @@ class QwenAIProvider(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
         enableRetry: Boolean,
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
         // 直接调用父类的sendMessage实现，它已经包含了续写逻辑和stream参数处理
-        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
+        return super.sendMessage(
+            context = context,
+            chatHistory = chatHistory,
+            modelParameters = modelParameters,
+            enableThinking = enableThinking,
+            stream = stream,
+            availableTools = availableTools,
+            preserveThinkInHistory = preserveThinkInHistory,
+            onTokensUpdated = onTokensUpdated,
+            onUsageReported = onUsageReported,
+            onNonFatalError = onNonFatalError,
+            onRetryState = onRetryState,
+            enableRetry = enableRetry,
+            recordTokenUsage = recordTokenUsage,
+            onUsageFinalized = onUsageFinalized
+        )
     }
 }

@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.LocaleList
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,22 @@ object LocaleUtils {
     /** 获取支持的语言列表 */
     fun getSupportedLanguages(): List<Language> {
         return supportedLanguages
+    }
+
+    fun getLocalizedLanguageName(context: Context, languageCode: String): String {
+        return when (languageCode) {
+            LanguageCodes.AUTO -> context.getString(R.string.language_follow_system)
+            LanguageCodes.CHINESE -> context.getString(R.string.conversation_language_chinese)
+            LanguageCodes.ENGLISH -> context.getString(R.string.translation_language_english)
+            "ko" -> context.getString(R.string.translation_language_korean)
+            LanguageCodes.SPANISH -> context.getString(R.string.translation_language_spanish)
+            LanguageCodes.MALAY -> context.getString(R.string.translation_language_malay)
+            LanguageCodes.INDONESIAN -> context.getString(R.string.translation_language_indonesian)
+            LanguageCodes.PORTUGUESE_BRAZIL -> context.getString(R.string.translation_language_portuguese)
+            "ro" -> context.getString(R.string.translation_language_romanian)
+            "ja" -> context.getString(R.string.translation_language_japanese)
+            else -> languageCode
+        }
     }
 
     fun getLocaleForLanguageCode(languageCode: String, context: Context? = null): Locale {

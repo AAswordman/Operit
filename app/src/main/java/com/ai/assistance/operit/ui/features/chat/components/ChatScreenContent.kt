@@ -84,11 +84,17 @@ import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.markdown.markdownToPlainTextForCopy
 import com.ai.assistance.operit.ui.features.chat.components.MessageEditor
+import com.ai.assistance.operit.ui.features.chat.components.MessageTranslationDialog
 import com.ai.assistance.operit.ui.main.screens.GestureStateHolder
 import com.ai.assistance.operit.util.LatexMathMlConverter
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+private data class MessageTranslationTarget(
+    val messageTimestamp: Long,
+    val text: String,
+)
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,7 +132,7 @@ fun ChatScreenContent(
         coroutineScope: CoroutineScope,
         chatHistories: List<ChatHistory>,
         currentChatId: String,
-        chatHeaderTransparent: Boolean,
+        chatHeaderOpacity: Float,
         chatHeaderHistoryIconColor: Int?,
           chatHeaderPipIconColor: Int?,
           chatHeaderOverlayMode: Boolean,
@@ -204,6 +210,8 @@ fun ChatScreenContent(
     var exportErrorMessage by remember { mutableStateOf<String?>(null) }
     var webContentDir by remember { mutableStateOf<File?>(null) }
     var editingMessageType by remember { mutableStateOf<String?>(null) }
+    var translationTarget by remember { mutableStateOf<MessageTranslationTarget?>(null) }
+    val translationState by actualViewModel.translationState.collectAsState()
     var pendingRollbackIndex by remember { mutableStateOf<Int?>(null) }
     var pendingRewindIndex by remember { mutableStateOf<Int?>(null) }
     var pendingRewindContent by remember { mutableStateOf<String?>(null) }
@@ -249,8 +257,19 @@ fun ChatScreenContent(
         }
     }
 
+    val onTranslateMessageCallback = remember(actualViewModel) {
+        { messageTimestamp: Long, text: String ->
+            translationTarget =
+                MessageTranslationTarget(
+                    messageTimestamp = messageTimestamp,
+                    text = text,
+                )
+            actualViewModel.clearTranslationState()
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
-        if (chatHeaderOverlayMode && chatHeaderTransparent) {
+        if (chatHeaderOverlayMode && chatHeaderOpacity < 1f) {
             // 覆盖模式：Header浮动在ChatArea之上
             Box(modifier = Modifier.fillMaxSize()) {
                 ChatArea(
@@ -286,9 +305,10 @@ fun ChatScreenContent(
                         onToggleFavoriteMessage = { timestamp, isFavorite ->
                             actualViewModel.setMessageFavorite(timestamp, isFavorite)
                         },
-                        onCreateBranch = { timestamp -> actualViewModel.createBranch(timestamp) },
-                        onInsertSummary = { message -> actualViewModel.insertSummary(message) },
-                        onMentionRoleFromAvatar = { roleName -> actualViewModel.insertRoleMention(roleName) },
+                         onCreateBranch = { timestamp -> actualViewModel.createBranch(timestamp) },
+                         onInsertSummary = { message -> actualViewModel.insertSummary(message) },
+                         onTranslateMessage = onTranslateMessageCallback,
+                         onMentionRoleFromAvatar = { roleName -> actualViewModel.insertRoleMention(roleName) },
                         autoScrollToBottom = autoScrollToBottom,
                         onAutoScrollToBottomChange = onAutoScrollToBottomChange,
                         hasOlderDisplayHistory = hasOlderDisplayHistory,
@@ -358,7 +378,7 @@ fun ChatScreenContent(
                                 },
                         actualViewModel = actualViewModel,
                         showChatHistorySelector = showChatHistorySelector,
-                        chatHeaderTransparent = chatHeaderTransparent,
+                        chatHeaderOpacity = chatHeaderOpacity,
                         chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
                         chatHeaderPipIconColor = chatHeaderPipIconColor,
                         onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
@@ -369,7 +389,7 @@ fun ChatScreenContent(
                 ChatScreenHeader(
                         actualViewModel = actualViewModel,
                         showChatHistorySelector = showChatHistorySelector,
-                        chatHeaderTransparent = chatHeaderTransparent,
+                        chatHeaderOpacity = chatHeaderOpacity,
                         chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
                         chatHeaderPipIconColor = chatHeaderPipIconColor,
                         onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
@@ -406,10 +426,11 @@ fun ChatScreenContent(
                         onToggleFavoriteMessage = { timestamp, isFavorite ->
                             actualViewModel.setMessageFavorite(timestamp, isFavorite)
                         },
-                        onCreateBranch = { timestamp -> actualViewModel.createBranch(timestamp) },
-                        onInsertSummary = { message -> actualViewModel.insertSummary(message) },
-                        onAutoReadMessage = { content -> actualViewModel.enableAutoReadAndSpeak(content) },
-                        onMentionRoleFromAvatar = { roleName -> actualViewModel.insertRoleMention(roleName) },
+                         onCreateBranch = { timestamp -> actualViewModel.createBranch(timestamp) },
+                         onInsertSummary = { message -> actualViewModel.insertSummary(message) },
+                         onTranslateMessage = onTranslateMessageCallback,
+                         onAutoReadMessage = { content -> actualViewModel.enableAutoReadAndSpeak(content) },
+                         onMentionRoleFromAvatar = { roleName -> actualViewModel.insertRoleMention(roleName) },
                         autoScrollToBottom = autoScrollToBottom,
                         onAutoScrollToBottomChange = onAutoScrollToBottomChange,
                         hasOlderDisplayHistory = hasOlderDisplayHistory,
@@ -1104,6 +1125,34 @@ fun ChatScreenContent(
                             AppLogger.e("ChatScreenContent", "文件操作错误: ${e.message}", e)
                         }
                     }
+            )
+        }
+
+        translationTarget?.let { target ->
+            MessageTranslationDialog(
+                originalText = target.text,
+                translationState = translationState,
+                onTargetLanguageChanged = { targetLanguageCode ->
+                    actualViewModel.loadCachedTranslation(
+                        chatId = currentChatId,
+                        messageTimestamp = target.messageTimestamp,
+                        text = target.text,
+                        targetLanguageCode = targetLanguageCode,
+                    )
+                },
+                onTranslate = { targetLanguageCode, targetLanguagePromptName ->
+                    actualViewModel.translateMessage(
+                        chatId = currentChatId,
+                        messageTimestamp = target.messageTimestamp,
+                        text = target.text,
+                        targetLanguageCode = targetLanguageCode,
+                        targetLanguagePromptName = targetLanguagePromptName,
+                    )
+                },
+                onDismiss = {
+                    translationTarget = null
+                    actualViewModel.clearTranslationState()
+                },
             )
         }
 

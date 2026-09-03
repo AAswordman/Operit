@@ -442,10 +442,29 @@ object OpenAIResponsesPayloadAdapter {
                     continue
                 }
             }
-
             if (role == "assistant") {
                 appendReasoningItemsFromAssistantMessage(message, input)
                 appendOutputItemsFromAssistantMessage(message, input)
+                val convertedContent = convertMessageContentForResponses(message.opt("content"))
+                val hasContent =
+                    when (convertedContent) {
+                        is String -> convertedContent.isNotBlank()
+                        is JSONArray -> convertedContent.length() > 0
+                        else -> false
+                    }
+
+                // Keep visible assistant content before function_call items so each call can be
+                // followed immediately by its function_call_output in replayed history.
+                if (hasContent) {
+                    input.put(
+                        JSONObject().apply {
+                            put("type", "message")
+                            put("role", "assistant")
+                            put("content", convertedContent)
+                        }
+                    )
+                }
+
                 val toolCalls = message.optJSONArray("tool_calls")
                 if (toolCalls != null && toolCalls.length() > 0) {
                     for (j in 0 until toolCalls.length()) {
@@ -468,6 +487,7 @@ object OpenAIResponsesPayloadAdapter {
                         input.put(callItem)
                     }
                 }
+                continue
             }
 
             val convertedContent = convertMessageContentForResponses(message.opt("content"))
@@ -493,6 +513,7 @@ object OpenAIResponsesPayloadAdapter {
                     }
                 )
             }
+
         }
 
         return input

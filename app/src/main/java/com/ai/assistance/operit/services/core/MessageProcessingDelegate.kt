@@ -6,6 +6,9 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
+import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassifier
+import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
@@ -54,6 +57,7 @@ import kotlin.coroutines.coroutineContext
 class MessageProcessingDelegate(
         private val context: Context,
         private val coroutineScope: CoroutineScope,
+        private val runtimeSlot: ChatRuntimeSlot,
         private val getEnhancedAiService: () -> EnhancedAIService?,
         private val getFullChatHistory: suspend (String) -> List<ChatMessage>,
         private val getRuntimeChatHistory: suspend (String) -> List<ChatMessage>,
@@ -80,6 +84,9 @@ class MessageProcessingDelegate(
         private const val STREAM_SCROLL_THROTTLE_MS = 200L
         private const val STREAM_PERSIST_INTERVAL_MS = 1000L
         private const val AUTO_READ_PREVIEW_MAX = 48
+
+        internal fun shouldPersistInterruptedMessage(finalContent: String): Boolean =
+            finalContent.isNotBlank()
 
         internal fun completeInterruptedMessage(
             streamingMessage: ChatMessage,
@@ -160,11 +167,15 @@ class MessageProcessingDelegate(
 
     private val _activeStreamingChatIds = MutableStateFlow<Set<String>>(emptySet())
     val activeStreamingChatIds: StateFlow<Set<String>> = _activeStreamingChatIds.asStateFlow()
-
     private val _inputProcessingStateByChatId =
         MutableStateFlow<Map<String, EnhancedInputProcessingState>>(emptyMap())
     val inputProcessingStateByChatId: StateFlow<Map<String, EnhancedInputProcessingState>> =
         _inputProcessingStateByChatId.asStateFlow()
+
+    private val _userDraftStateByChatId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val userDraftStateByChatId: StateFlow<Map<String, Boolean>> =
+        _userDraftStateByChatId.asStateFlow()
+
 
     private val _scrollToBottomEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val scrollToBottomEvent = _scrollToBottomEvent.asSharedFlow()
@@ -471,11 +482,15 @@ class MessageProcessingDelegate(
                     )
                 }
             }
+            if (!shouldPersistInterruptedMessage(finalContent)) {
+                return@withContext
+            }
+
             val segmentedMessages = activeTurn.segmentedMessages
             if (segmentedMessages == null) {
                 addMessageToChat(chatId, finalMessage)
             } else {
-                segmentedMessages.forEach { segmentMessage ->
+                segmentedMessages.filter { it.content.isNotBlank() }.forEach { segmentMessage ->
                     addMessageToChat(
                         chatId,
                         segmentMessage.copy(
@@ -497,6 +512,7 @@ class MessageProcessingDelegate(
         chatId: String,
         keepPartialResponse: Boolean,
         expectedTurnId: Long? = null,
+        publishCancelled: Boolean = true,
     ) {
         val chatRuntime = runtimeFor(chatId)
         chatRuntime.cancellationMutex.withLock {
@@ -556,6 +572,9 @@ class MessageProcessingDelegate(
                     chatRuntime.isLoading.value = false
                     updateGlobalLoadingState()
                     setChatInputProcessingState(chatId, EnhancedInputProcessingState.Idle)
+                    if (publishCancelled) {
+                        markChatCancelled(chatId)
+                    }
                 }
             }
         }
@@ -573,7 +592,11 @@ class MessageProcessingDelegate(
     }
 
     suspend fun cancelMessageForDestructiveMutation(chatId: String) {
-        cancelMessageInternal(chatId, keepPartialResponse = false)
+        cancelMessageInternal(
+            chatId = chatId,
+            keepPartialResponse = false,
+            publishCancelled = false
+        )
     }
 
     init {
@@ -631,14 +654,23 @@ class MessageProcessingDelegate(
     private fun saveUserMessageDraft(chatId: String, value: TextFieldValue) {
         if (value.text.isEmpty()) {
             userMessageDraftsByChatId.remove(chatId)
+            updateUserDraftState(chatId, hasDraft = false)
             return
         }
 
         userMessageDraftsByChatId[chatId] = value
+        updateUserDraftState(chatId, hasDraft = true)
+    }
+
+    private fun updateUserDraftState(chatId: String, hasDraft: Boolean) {
+        val updated = _userDraftStateByChatId.value.toMutableMap()
+        updated[chatId] = hasDraft
+        _userDraftStateByChatId.value = updated
     }
 
     private fun clearUserMessageDraft(chatId: String) {
         userMessageDraftsByChatId.remove(chatId)
+        updateUserDraftState(chatId, hasDraft = false)
         if (activeDraftChatId == chatId) {
             _userMessage.value = TextFieldValue("")
         }
@@ -654,6 +686,10 @@ class MessageProcessingDelegate(
 
     fun isChatLoading(chatId: String): Boolean {
         return runtimeFor(chatId).isLoading.value
+    }
+
+    fun markChatCancelled(chatId: String) {
+        ChatRuntimeStateStore.markCancelled(runtimeSlot, chatId)
     }
 
     fun setSpeakMessageHandler(handler: (String, Boolean) -> Unit) {
@@ -1459,9 +1495,12 @@ class MessageProcessingDelegate(
                     syncWaifuMessageMetricsHandler?.invoke(aiMessage)
                 }
 
-                val stateAfterStream =
-                    _inputProcessingStateByChatId.value[chatKey(chatId)]
-                if (stateAfterStream !is EnhancedInputProcessingState.Error) {
+                // Read the service StateFlow directly because the per-chat collector can lag behind
+                // terminal stream completion.
+                val stateAfterStream = service.inputProcessingState.value
+                if (stateAfterStream is EnhancedInputProcessingState.Error) {
+                    setChatInputProcessingState(activeChatId, stateAfterStream)
+                } else {
                     shouldNotifyTurnComplete = true
                     finalInputStateAfterSend = EnhancedInputProcessingState.Completed
                 }
@@ -1488,11 +1527,25 @@ class MessageProcessingDelegate(
                 } else {
                     AppLogger.e(TAG, "发送消息时出错", e)
                     shouldFinalizeInterruptedMessage = true
+                    val classification = ApiErrorClassifier.classify(e)
                     setChatInputProcessingState(
                         chatId,
-                        EnhancedInputProcessingState.Error(context.getString(R.string.message_send_failed, e.message))
+                        EnhancedInputProcessingState.Error(
+                            message = context.getString(R.string.message_send_failed, e.message),
+                            code = classification.code,
+                            errorSource = InputProcessingErrorSource.API,
+                            recoverable = classification.recoverable,
+                            appCode = classification.appCode,
+                            providerCode = classification.providerCode,
+                            httpStatusCode = classification.httpStatusCode,
+                            retryAfterMs = classification.retryAfterMs
+                        )
                     )
-                    withContext(Dispatchers.Main) { showErrorMessage(context.getString(R.string.message_send_failed, e.message)) }
+                    val terminalErrorMessage =
+                        context.getString(R.string.message_send_failed, e.message)
+                    withContext(Dispatchers.Main) {
+                        showErrorMessage(terminalErrorMessage)
+                    }
                 }
             } finally {
                 val finalizeMessageStartTime = messageTimingNow()
@@ -1809,11 +1862,19 @@ class MessageProcessingDelegate(
                 terminalState = EnhancedInputProcessingState.Idle
             } else {
                 AppLogger.e(TAG, "单条重新生成失败", e)
+                val classification = ApiErrorClassifier.classify(e)
                 setChatInputProcessingState(
                     chatId,
                     EnhancedInputProcessingState.Error(
-                        context.getString(R.string.chat_regenerate_single_failed, e.message ?: "")
-                    ),
+                        message = context.getString(R.string.chat_regenerate_single_failed, e.message ?: ""),
+                        code = classification.code,
+                        errorSource = InputProcessingErrorSource.API,
+                        recoverable = classification.recoverable,
+                        appCode = classification.appCode,
+                        providerCode = classification.providerCode,
+                        httpStatusCode = classification.httpStatusCode,
+                        retryAfterMs = classification.retryAfterMs
+                    )
                 )
             }
             exceptionToPropagate = e

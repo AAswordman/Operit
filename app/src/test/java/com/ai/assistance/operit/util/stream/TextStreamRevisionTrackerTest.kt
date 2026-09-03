@@ -38,9 +38,20 @@ class TextStreamRevisionTrackerTest {
         tracker.append("b")
         tracker.savepoint("inner")
         tracker.append("c")
-
         tracker.rollback("outer")
-
         assertNull(tracker.rollback("inner"))
+    }
+
+    @Test
+    fun repeatedRollbacksKeepOnlyTheLatestAttemptOutput() {
+        val tracker = TextStreamRevisionTracker()
+        tracker.savepoint("request")
+
+        tracker.append("first attempt")
+        tracker.rollback("request")
+        tracker.append("second attempt")
+        tracker.rollback("request")
+        tracker.append("successful attempt")
+        assertEquals("successful attempt", tracker.currentContent().toString())
     }
 }

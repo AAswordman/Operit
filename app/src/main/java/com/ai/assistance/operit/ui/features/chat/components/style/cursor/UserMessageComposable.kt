@@ -66,9 +66,11 @@ import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.ui.features.chat.components.attachments.AttachmentViewerDialog
 import com.ai.assistance.operit.ui.features.chat.components.attachments.ChatAttachment
 import com.ai.assistance.operit.ui.features.chat.components.style.common.HiddenUserMessagePlaceholderContent
+import com.ai.assistance.operit.ui.features.chat.components.style.common.MessageTextContent
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
 import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.liquidGlass
 import com.ai.assistance.operit.ui.theme.waterGlass
 import com.ai.assistance.operit.util.ImageBitmapLimiter
@@ -94,6 +96,8 @@ fun UserMessageComposable(
     enableDialogs: Boolean = true,
 ) {
     val context = LocalContext.current
+    val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val renderUserMarkdownAndLatex = themeSnapshot.userMessageMarkdownLatexEnabled
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -302,10 +306,11 @@ fun UserMessageComposable(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
-                    Text(
+                    MessageTextContent(
                         text = textContent,
-                        color = effectiveTextColor,
-                        style = MaterialTheme.typography.bodyMedium
+                        textColor = effectiveTextColor,
+                        renderMarkdownAndLatex = renderUserMarkdownAndLatex,
+                        enableDialogs = enableDialogs,
                     )
                 }
             }

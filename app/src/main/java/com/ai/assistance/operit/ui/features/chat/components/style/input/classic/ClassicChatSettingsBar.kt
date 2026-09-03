@@ -244,10 +244,11 @@ fun ClassicChatSettingsBar(
         )
     }
     LaunchedEffect(thinkingQualityMapping, thinkingOptionId) {
-        val firstOption = thinkingQualityMapping?.options?.firstOrNull()
-        if (firstOption != null && thinkingQualityMapping?.optionFor(thinkingOptionId) == null) {
-            onThinkingOptionIdChange(firstOption.id)
+        val defaultOption = thinkingQualityMapping?.defaultOption()
+        if (defaultOption != null && thinkingQualityMapping?.optionFor(thinkingOptionId) == null) {
+            onThinkingOptionIdChange(defaultOption.id)
         }
+
     }
     val toolPermissionText =
         when (if (enableTools) permissionLevel else PermissionLevel.FORBID) {

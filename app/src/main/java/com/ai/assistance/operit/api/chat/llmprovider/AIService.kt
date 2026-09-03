@@ -68,6 +68,7 @@ interface AIService {
             onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit = { _, _, _ -> },
             onUsageReported: (suspend (ProviderUsageSnapshot, attempt: Int) -> Unit)? = null,
             onNonFatalError: suspend (error: String) -> Unit = {},
+            onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit = {},
             enableRetry: Boolean = true,
             recordTokenUsage: Boolean = true,
             onUsageFinalized: (suspend (attempt: Int?) -> Unit)? = null,

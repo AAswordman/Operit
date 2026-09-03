@@ -47,6 +47,7 @@ class DeepseekProvider(
         thinkingConfigurations = thinkingConfigurations,
         thinkingOptionId = thinkingOptionId
     ) {
+    private val configuredApiEndpoint = apiEndpoint
 
     companion object {
         fun create(
@@ -114,7 +115,7 @@ class DeepseekProvider(
                 requestJson = jsonObject,
                 providerTypeId = ApiProviderType.DEEPSEEK.name,
                 modelName = modelName,
-                apiEndpoint = "",
+                apiEndpoint = configuredApiEndpoint,
                 thinkingConfigurations = thinkingConfigurations,
                 enableThinking = enableThinking,
                 optionId = thinkingOptionId,
@@ -533,12 +534,13 @@ class DeepseekProvider(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
         enableRetry: Boolean,
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
         // 直接调用父类的sendMessage实现
-        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
+        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, onRetryState, enableRetry, recordTokenUsage, onUsageFinalized)
     }
 }
 
@@ -633,7 +635,12 @@ private class DeepseekResponsesProvider(
             enableThinking = enableThinking,
             optionId = thinkingOptionId,
         )
+        DeepseekResponsesPayloadAdapter.normalizeRequest(
+            requestJson = requestJson,
+            fallbackInput = fallbackInputForEmptyRequest(requestChatHistory)
+        )
         return createJsonRequestBody(requestJson.toString())
+
     }
 
     override fun customizeFinalRequestObject(
@@ -676,7 +683,6 @@ private class DeepseekResponsesProvider(
             sources = sources,
         )
     }
-
     private fun appendWebSearchTool(requestObject: JSONObject) {
         val tools = requestObject.optJSONArray("tools") ?: JSONArray().also {
             requestObject.put("tools", it)
@@ -692,7 +698,21 @@ private class DeepseekResponsesProvider(
         requestObject.put("tool_choice", "auto")
     }
 
+    private fun fallbackInputForEmptyRequest(chatHistory: List<PromptTurn>): String? {
+        for (turn in chatHistory.asReversed()) {
+            if (turn.kind != PromptTurnKind.USER && turn.kind != PromptTurnKind.SUMMARY) {
+                continue
+            }
+            val content = ChatUtils.stripOpenAiResponsesProtocolMarkup(turn.content).trim()
+            if (content.isNotEmpty()) {
+                return content
+            }
+        }
+        return null
+    }
+
     private fun buildDeepseekSearchXml(
+
         actionType: String,
         queries: List<String>,
         status: String,
@@ -744,5 +764,142 @@ private class DeepseekResponsesProvider(
             .replace("<", "&lt;")
             .replace(">", "&gt;")
     }
+}
 
+internal object DeepseekResponsesPayloadAdapter {
+    private const val DEFAULT_FALLBACK_INPUT = "Continue the conversation."
+    fun normalizeRequest(requestJson: JSONObject, fallbackInput: String?) {
+        requestJson.remove("stream_options")
+        normalizeThinking(requestJson)
+        normalizeTools(requestJson)
+
+        val existingInput = requestJson.opt("input")
+
+        if (existingInput is String && existingInput.isNotBlank()) {
+            return
+        }
+
+        val input = existingInput as? JSONArray ?: JSONArray().also {
+            requestJson.put("input", it)
+        }
+        normalizeFunctionCallPairs(input)
+
+        if (input.length() == 0) {
+            input.put(
+                JSONObject().apply {
+                    put("type", "message")
+                    put("role", "user")
+                    put(
+                        "content",
+                        fallbackInput?.takeIf { it.isNotBlank() } ?: DEFAULT_FALLBACK_INPUT
+                    )
+                }
+            )
+        }
+    }
+    private fun normalizeThinking(requestJson: JSONObject) {
+        // DeepSeek Responses accepts reasoning.effort; remove Chat-style thinking fields
+        // that can survive in imported or stale model configurations.
+        requestJson.remove("thinking")
+        val legacyEffort = requestJson.optString("reasoning_effort", "").trim()
+        requestJson.remove("reasoning_effort")
+        if (legacyEffort.isEmpty()) {
+            return
+        }
+
+        val reasoning = requestJson.optJSONObject("reasoning") ?: JSONObject()
+        if (reasoning.optString("effort", "").trim().isEmpty()) {
+            reasoning.put("effort", legacyEffort)
+        }
+        requestJson.put("reasoning", reasoning)
+    }
+
+    private fun normalizeTools(requestJson: JSONObject) {
+
+        val tools = requestJson.optJSONArray("tools") ?: return
+        val normalizedTools = JSONArray()
+
+        for (index in 0 until tools.length()) {
+            val tool = tools.optJSONObject(index) ?: continue
+            if (tool.optString("type") != "function") {
+                normalizedTools.put(tool)
+                continue
+            }
+
+            val nestedFunction = tool.optJSONObject("function")
+            if (nestedFunction == null) {
+                if (tool.optString("name").isNotBlank()) {
+                    normalizedTools.put(tool)
+                }
+                continue
+            }
+
+            val name = tool.optString("name").trim()
+                .ifEmpty { nestedFunction.optString("name").trim() }
+            if (name.isEmpty()) {
+                continue
+            }
+
+            normalizedTools.put(
+                JSONObject().apply {
+                    put("type", "function")
+                    put("name", name)
+                    for (field in listOf("description", "parameters", "strict")) {
+                        when {
+                            tool.has(field) -> put(field, tool.get(field))
+                            nestedFunction.has(field) -> put(field, nestedFunction.get(field))
+                        }
+                    }
+                }
+            )
+        }
+
+        if (normalizedTools.length() == 0) {
+            requestJson.remove("tools")
+            requestJson.remove("tool_choice")
+        } else {
+            requestJson.put("tools", normalizedTools)
+        }
+    }
+
+    private fun normalizeFunctionCallPairs(input: JSONArray) {
+        val functionCallIds = linkedSetOf<String>()
+        val outputCallIds = mutableSetOf<String>()
+        var generatedCallIdOrdinal = 0
+
+        for (index in 0 until input.length()) {
+            val item = input.optJSONObject(index) ?: continue
+            when (item.optString("type")) {
+                "function_call" -> {
+                    var callId = item.optString("call_id").trim()
+                    if (callId.isEmpty()) {
+                        do {
+                            generatedCallIdOrdinal += 1
+                            callId = "deepseek_history_call_$generatedCallIdOrdinal"
+                        } while (functionCallIds.contains(callId) || outputCallIds.contains(callId))
+                        item.put("call_id", callId)
+                    }
+                    functionCallIds.add(callId)
+                }
+
+                "function_call_output" -> {
+                    val callId = item.optString("call_id").trim()
+                    if (callId.isNotEmpty()) {
+                        outputCallIds.add(callId)
+                    }
+                }
+            }
+        }
+        for (callId in functionCallIds) {
+            if (!outputCallIds.contains(callId)) {
+                input.put(
+                    JSONObject().apply {
+                        put("type", "function_call_output")
+                        put("call_id", callId)
+                        put("output", "User cancelled")
+                    }
+                )
+            }
+        }
+    }
 }

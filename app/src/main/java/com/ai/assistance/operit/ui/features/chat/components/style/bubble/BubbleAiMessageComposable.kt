@@ -33,6 +33,7 @@ import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.ui.common.markdown.StreamMarkdownRenderer
 import com.ai.assistance.operit.ui.common.markdown.StreamMarkdownRendererState
 import com.ai.assistance.operit.ui.features.chat.components.ChatMessageHeightMemory
+import com.ai.assistance.operit.ui.features.chat.components.style.common.PlainTextStreamingMessageContent
 import com.ai.assistance.operit.ui.features.chat.components.rememberRevisableTextStream
 import com.ai.assistance.operit.ui.features.chat.components.part.CustomXmlRenderer
 import com.ai.assistance.operit.ui.features.chat.components.part.ThinkToolsXmlNodeGrouper
@@ -62,6 +63,7 @@ import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
 import com.ai.assistance.operit.ui.theme.waterGlass
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import com.ai.assistance.operit.util.ChatMarkupRegex
 
 private val ExpandedBubbleLayoutNodeTypes =
     setOf(
@@ -100,6 +102,13 @@ fun BubbleAiMessageComposable(
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
     val themeSnapshot = LocalThemePreferenceSnapshot.current
+    val renderAiMarkdownAndLatex = themeSnapshot.aiMessageMarkdownLatexEnabled
+    val displayContent =
+        if (message.contentStream == null) {
+            ChatMarkupRegex.removeOpenAiResponsesProtocolMeta(message.content)
+        } else {
+            message.content
+        }
     val bubbleShowAvatar = themeSnapshot.bubbleShowAvatar
     val bubbleWideLayoutEnabled = themeSnapshot.bubbleWideLayoutEnabled
     val showThinkingProcess = themeSnapshot.showThinkingProcess
@@ -213,16 +222,17 @@ fun BubbleAiMessageComposable(
         animationSpec = tween(durationMillis = 300)
     )
 
-    val imageUrl = remember(message.content, message.contentStream) {
-        if (message.contentStream == null) {
+    val imageUrl = remember(displayContent, message.contentStream, renderAiMarkdownAndLatex) {
+        if (renderAiMarkdownAndLatex && message.contentStream == null) {
             val regex = """^\s*!\[[^\]]*\]\(([^)]+)\)\s*$""".toRegex()
-            regex.find(message.content)?.groups?.get(1)?.value
+            regex.find(displayContent)?.groups?.get(1)?.value
         } else {
             null
         }
     }
     val shouldUseExpandedBubbleLayout =
-        rendererState.renderNodes.any { node -> node.type in ExpandedBubbleLayoutNodeTypes }
+        renderAiMarkdownAndLatex &&
+            rendererState.renderNodes.any { node -> node.type in ExpandedBubbleLayoutNodeTypes }
     val sizeTrackingModifier =
         if (isHidden) {
             Modifier
@@ -369,46 +379,61 @@ fun BubbleAiMessageComposable(
                             .widthIn(max = maxBubbleWidth)
                             .defaultMinSize(minHeight = 44.dp)
                     val renderContent: @Composable () -> Unit = {
-                        key(message.timestamp) {
-                            val stream = rememberRevisableTextStream(message.contentStream)
-                            if (stream != null) {
-                                val charStream = remember(stream) { stream.toCharStream() }
-                                StreamMarkdownRenderer(
-                                    markdownStream = charStream,
-                                    textColor = textColor,
-                                    backgroundColor = backgroundColor,
-                                    onLinkClick = rememberedOnLinkClick,
-                                    xmlRenderer = xmlRenderer,
-                                    nodeGrouper = nodeGrouper,
-                                    enableDialogs = enableDialogs,
-                                    modifier =
-                                        Modifier.padding(
-                                            start = bubbleContentPaddingLeft.dp,
-                                            top = 12.dp,
-                                            end = bubbleContentPaddingRight.dp,
-                                            bottom = 12.dp,
-                                    ),
-                                    state = rendererState,
-                                    fillMaxWidth = shouldUseExpandedBubbleLayout,
-                                )
+                        key(message.timestamp, renderAiMarkdownAndLatex) {
+                            if (renderAiMarkdownAndLatex) {
+                                val stream = rememberRevisableTextStream(message.contentStream)
+                                if (stream != null) {
+                                    val charStream = remember(stream) { stream.toCharStream() }
+                                    StreamMarkdownRenderer(
+                                        markdownStream = charStream,
+                                        textColor = textColor,
+                                        backgroundColor = backgroundColor,
+                                        onLinkClick = rememberedOnLinkClick,
+                                        xmlRenderer = xmlRenderer,
+                                        nodeGrouper = nodeGrouper,
+                                        enableDialogs = enableDialogs,
+                                        modifier =
+                                            Modifier.padding(
+                                                start = bubbleContentPaddingLeft.dp,
+                                                top = 12.dp,
+                                                end = bubbleContentPaddingRight.dp,
+                                                bottom = 12.dp,
+                                            ),
+                                        state = rendererState,
+                                        fillMaxWidth = shouldUseExpandedBubbleLayout,
+                                    )
+                                } else {
+                                    StreamMarkdownRenderer(
+                                        content = displayContent,
+                                        textColor = textColor,
+                                        backgroundColor = backgroundColor,
+                                        onLinkClick = rememberedOnLinkClick,
+                                        xmlRenderer = xmlRenderer,
+                                        nodeGrouper = nodeGrouper,
+                                        enableDialogs = enableDialogs,
+                                        modifier =
+                                            Modifier.padding(
+                                                start = bubbleContentPaddingLeft.dp,
+                                                top = 12.dp,
+                                                end = bubbleContentPaddingRight.dp,
+                                                bottom = 12.dp,
+                                            ),
+                                        state = rendererState,
+                                        fillMaxWidth = shouldUseExpandedBubbleLayout,
+                                    )
+                                }
                             } else {
-                                StreamMarkdownRenderer(
-                                    content = message.content,
+                                PlainTextStreamingMessageContent(
+                                    content = displayContent,
+                                    contentStream = message.contentStream,
                                     textColor = textColor,
-                                    backgroundColor = backgroundColor,
-                                    onLinkClick = rememberedOnLinkClick,
-                                    xmlRenderer = xmlRenderer,
-                                    nodeGrouper = nodeGrouper,
-                                    enableDialogs = enableDialogs,
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
                                             top = 12.dp,
                                             end = bubbleContentPaddingRight.dp,
                                             bottom = 12.dp,
-                                    ),
-                                    state = rendererState,
-                                    fillMaxWidth = shouldUseExpandedBubbleLayout,
+                                        ),
                                 )
                             }
                         }
@@ -574,50 +599,61 @@ fun BubbleAiMessageComposable(
                             .widthIn(max = maxBubbleWidth)
                             .defaultMinSize(minHeight = 44.dp)
                     val renderContent: @Composable () -> Unit = {
-                        // 使用 message.timestamp 作为 key，确保在重组期间，
-                        // 只要是同一条消息，StreamMarkdownRenderer就不会被销毁和重建。
-                        key(message.timestamp) {
-                            val stream = rememberRevisableTextStream(message.contentStream)
-                            if (stream != null) {
-                                val charStream = remember(stream) { stream.toCharStream() }
-                                StreamMarkdownRenderer(
-                                    markdownStream = charStream,
-                                    textColor = textColor,
-                                    backgroundColor = backgroundColor,
-                                    onLinkClick = rememberedOnLinkClick,
-                                    xmlRenderer = xmlRenderer,
-                                    nodeGrouper = nodeGrouper,
-                                    enableDialogs = enableDialogs,
-                                    modifier =
-                                        Modifier.padding(
-                                            start = bubbleContentPaddingLeft.dp,
-                                            top = 12.dp,
-                                            end = bubbleContentPaddingRight.dp,
-                                            bottom = 12.dp,
-                                    ),
-                                    state = rendererState,
-                                    fillMaxWidth = shouldUseExpandedBubbleLayout,
-                                )
+                        key(message.timestamp, renderAiMarkdownAndLatex) {
+                            if (renderAiMarkdownAndLatex) {
+                                val stream = rememberRevisableTextStream(message.contentStream)
+                                if (stream != null) {
+                                    val charStream = remember(stream) { stream.toCharStream() }
+                                    StreamMarkdownRenderer(
+                                        markdownStream = charStream,
+                                        textColor = textColor,
+                                        backgroundColor = backgroundColor,
+                                        onLinkClick = rememberedOnLinkClick,
+                                        xmlRenderer = xmlRenderer,
+                                        nodeGrouper = nodeGrouper,
+                                        enableDialogs = enableDialogs,
+                                        modifier =
+                                            Modifier.padding(
+                                                start = bubbleContentPaddingLeft.dp,
+                                                top = 12.dp,
+                                                end = bubbleContentPaddingRight.dp,
+                                                bottom = 12.dp,
+                                            ),
+                                        state = rendererState,
+                                        fillMaxWidth = shouldUseExpandedBubbleLayout,
+                                    )
+                                } else {
+                                    StreamMarkdownRenderer(
+                                        content = displayContent,
+                                        textColor = textColor,
+                                        backgroundColor = backgroundColor,
+                                        onLinkClick = rememberedOnLinkClick,
+                                        xmlRenderer = xmlRenderer,
+                                        nodeGrouper = nodeGrouper,
+                                        enableDialogs = enableDialogs,
+                                        modifier =
+                                            Modifier.padding(
+                                                start = bubbleContentPaddingLeft.dp,
+                                                top = 12.dp,
+                                                end = bubbleContentPaddingRight.dp,
+                                                bottom = 12.dp,
+                                            ),
+                                        state = rendererState,
+                                        fillMaxWidth = shouldUseExpandedBubbleLayout,
+                                    )
+                                }
                             } else {
-                                // 对于已完成的静态消息，使用 content 参数的渲染器以支持Markdown
-                                // 共享相同的state，避免重新计算nodes等状态
-                                StreamMarkdownRenderer(
-                                    content = message.content,
+                                PlainTextStreamingMessageContent(
+                                    content = displayContent,
+                                    contentStream = message.contentStream,
                                     textColor = textColor,
-                                    backgroundColor = backgroundColor,
-                                    onLinkClick = rememberedOnLinkClick,
-                                    xmlRenderer = xmlRenderer,
-                                    nodeGrouper = nodeGrouper,
-                                    enableDialogs = enableDialogs,
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
                                             top = 12.dp,
                                             end = bubbleContentPaddingRight.dp,
                                             bottom = 12.dp,
-                                    ),
-                                    state = rendererState,
-                                    fillMaxWidth = shouldUseExpandedBubbleLayout,
+                                        ),
                                 )
                             }
                         }

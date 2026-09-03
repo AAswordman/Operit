@@ -548,6 +548,10 @@ internal fun ThemeSettingsChatTab(
     val showInputProcessingStatusInput = values.requiredBoolean("show_input_processing_status")
     val showChatFloatingDotsAnimationInput =
         values.requiredBoolean("show_chat_floating_dots_animation")
+    val aiMessageMarkdownLatexEnabledInput =
+        values.requiredBoolean("ai_message_markdown_latex_enabled")
+    val userMessageMarkdownLatexEnabledInput =
+        values.requiredBoolean("user_message_markdown_latex_enabled")
     val recentColors by editorSession.recentColorsFlow.collectAsState(initial = emptyList())
     var showColorPicker by remember { mutableStateOf(false) }
     var currentColorPickerMode by remember { mutableStateOf("bubbleUserBubble") }
@@ -664,6 +668,8 @@ internal fun ThemeSettingsChatTab(
         showMessageTimestampInput = showMessageTimestampInput,
         showInputProcessingStatusInput = showInputProcessingStatusInput,
         showChatFloatingDotsAnimationInput = showChatFloatingDotsAnimationInput,
+        aiMessageMarkdownLatexEnabledInput = aiMessageMarkdownLatexEnabledInput,
+        userMessageMarkdownLatexEnabledInput = userMessageMarkdownLatexEnabledInput,
     )
 
     if (showColorPicker) {

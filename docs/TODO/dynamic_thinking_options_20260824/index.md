@@ -12,3 +12,5 @@ Provider、协议和模型返回的真实选项决定，Android、WebChat 和请
 
 Provider 映射与模型目录能力边界记录在 [03-provider-capability-mapping.md](03-provider-capability-mapping.md)。
 
+自定义规则 JSON、匹配优先级、档位排序、默认回退和 DeepSeek Responses 兼容说明见 [04-custom-thinking-configuration.md](04-custom-thinking-configuration.md)。
+

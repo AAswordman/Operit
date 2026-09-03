@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.settings.components.ChatStyleOption
+import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsOpacitySlider
+import kotlin.math.roundToInt
 
 @Composable
 internal fun ThemeSettingsInputTab(
@@ -30,7 +32,7 @@ internal fun ThemeSettingsInputTab(
     val editorSession = shared.editorSession
     val values by editorSession.values.collectAsState()
     val inputStyle = values.requiredString("input_style")
-    val chatInputTransparent = values.requiredBoolean("chat_input_transparent")
+    val chatInputOpacity = values.requiredFloat("chat_input_opacity")
     val chatInputFloating = values.requiredBoolean("chat_input_floating")
     val chatInputLiquidGlass = values.requiredBoolean("chat_input_liquid_glass")
     val chatInputWaterGlass = values.requiredBoolean("chat_input_water_glass")
@@ -85,11 +87,20 @@ internal fun ThemeSettingsInputTab(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
-            ThemeSettingsInputSwitch(
-                title = stringResource(id = R.string.theme_chat_input_transparent),
-                description = stringResource(id = R.string.theme_chat_input_transparent_desc),
-                checked = chatInputTransparent,
-                onCheckedChange = { editorSession.setBoolean("chat_input_transparent", it) },
+            ThemeSettingsOpacitySlider(
+                title =
+                    stringResource(
+                        id = R.string.theme_chat_input_opacity,
+                        (chatInputOpacity.coerceIn(0f, 1f) * 100).roundToInt(),
+                    ),
+                opacity = chatInputOpacity,
+                onOpacityChange = {
+                    editorSession.setVisualOpacity(
+                        opacityKey = "chat_input_opacity",
+                        legacyTransparentKey = "chat_input_transparent",
+                        value = it,
+                    )
+                },
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ThemeSettingsInputSwitch(
@@ -99,7 +110,7 @@ internal fun ThemeSettingsInputTab(
                 onCheckedChange = { editorSession.setBoolean("chat_input_floating", it) },
             )
 
-            if (chatInputTransparent) {
+            if (chatInputOpacity < 1f) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 ThemeSettingsInputSwitch(
                     title = stringResource(id = R.string.theme_chat_input_liquid_glass),

@@ -32,8 +32,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -46,8 +44,76 @@ import org.json.JSONArray
 import org.json.JSONObject
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
 
+internal data class OpenAiCompatibleContentParts(
+    val reasoningContent: String,
+    val regularContent: String,
+)
+
+/** Splits OpenAI-compatible structured content, including Mistral thinking chunks. */
+internal fun splitOpenAiCompatibleContent(content: Any?): OpenAiCompatibleContentParts {
+    if (content is String) {
+        return OpenAiCompatibleContentParts(reasoningContent = "", regularContent = content)
+    }
+    if (content !is JSONArray) {
+        return OpenAiCompatibleContentParts(reasoningContent = "", regularContent = "")
+    }
+
+    val reasoning = StringBuilder()
+    val regular = StringBuilder()
+    for (index in 0 until content.length()) {
+        val part = content.optJSONObject(index)
+        if (part == null) {
+            appendOpenAiCompatibleText(content.opt(index), regular)
+            continue
+        }
+
+        when (part.optString("type", "")) {
+            "thinking", "reasoning" -> {
+                val initialLength = reasoning.length
+                appendOpenAiCompatibleText(part.opt("thinking"), reasoning)
+                if (reasoning.length == initialLength) {
+                    appendOpenAiCompatibleText(part.opt("reasoning"), reasoning)
+                }
+                if (reasoning.length == initialLength) {
+                    appendOpenAiCompatibleText(part.opt("text"), reasoning)
+                }
+            }
+
+            "text", "output_text" -> appendOpenAiCompatibleText(part.opt("text"), regular)
+            else -> appendOpenAiCompatibleText(part.opt("text"), regular)
+        }
+    }
+
+    return OpenAiCompatibleContentParts(
+        reasoningContent = reasoning.toString(),
+        regularContent = regular.toString(),
+    )
+}
+
+private fun appendOpenAiCompatibleText(value: Any?, target: StringBuilder) {
+    when (value) {
+        null, JSONObject.NULL -> Unit
+        is String -> target.append(value)
+        is JSONArray -> {
+            for (index in 0 until value.length()) {
+                appendOpenAiCompatibleText(value.opt(index), target)
+            }
+        }
+
+        is JSONObject -> {
+            val text = value.opt("text")
+            if (text != null && text != JSONObject.NULL) {
+                appendOpenAiCompatibleText(text, target)
+            } else {
+                appendOpenAiCompatibleText(value.opt("content"), target)
+            }
+        }
+    }
+}
+
 /**
  * OpenAI API格式的实现，支持标准OpenAI接口和兼容此格式的其他提供商
+
  *
  * ## enableToolCall 参数说明
  *
@@ -259,6 +325,7 @@ open class OpenAIProvider(
                      onTokensUpdated = { _, _, _ -> },
                       onUsageReported = null,
                       onNonFatalError = {},
+                      onRetryState = {},
                       enableRetry = false,
                       recordTokenUsage = false,
                  )
@@ -1535,8 +1602,10 @@ open class OpenAIProvider(
         }
 
         /**
-         * Provider protocol metadata must occupy its own line so the XML splitter does not
-         * interpret it as ordinary response text when it follows content or tool arguments.
+         * Provider protocol metadata must sit on its own line: the native XML block
+         * splitter only starts a new XML region at line start, after a closing tag, or after
+         * punctuation. Without this separator the meta tag degrades into plain text when it
+         * directly follows regular content or mid-JSON tool arguments.
          */
         suspend fun emitMetadataTag(tag: String) {
             emitTag("\n")
@@ -1598,14 +1667,8 @@ open class OpenAIProvider(
         }
     }
 
-    private fun resolveRetryErrorText(context: Context, exception: Exception): String {
-        return when (exception) {
-            is SocketTimeoutException -> context.getString(R.string.openai_error_timeout)
-            is UnknownHostException -> context.getString(R.string.openai_error_cannot_resolve_host)
-            else -> exception.message?.takeIf { it.isNotBlank() }
-                ?: context.getString(R.string.openai_error_network_interrupted)
-        }
-    }
+    private fun resolveRetryErrorText(context: Context, exception: Exception): String =
+        ApiErrorClassifier.retryErrorText(context, exception)
 
     /**
      * 处理可重试错误的统一逻辑
@@ -1617,10 +1680,18 @@ open class OpenAIProvider(
         maxRetries: Int,
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
+        onRetryState: suspend (RuntimeRetryMetadata) -> Unit = {},
         onRetryAccepted: suspend () -> Unit,
         buildRetryMessage: (String, Int) -> String
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
+            throw exception
+        }
+        if (
+            exception is NonRetriableException &&
+                !LlmRetryPolicy.isRetryableClientStatus(exception.statusCode)
+        ) {
+            onNonFatalError(exception.message.orEmpty())
             throw exception
         }
         checkCancellation(context, exception)
@@ -1643,6 +1714,18 @@ open class OpenAIProvider(
         // A terminal failure must retain its streamed text; only a replacement request discards it.
         onRetryAccepted()
         val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
+        val classification = ApiErrorClassifier.classify(exception)
+        onRetryState(
+            RuntimeRetryMetadata(
+                retryAttempt = newRetryCount,
+                maxRetryAttempts = maxRetries,
+                retryAfterMs = retryDelayMs,
+                errorCode = classification.code,
+                providerCode = classification.providerCode,
+                httpStatusCode = classification.httpStatusCode,
+                errorMessage = errorText
+            )
+        )
         AppLogger.w("AIService", "【发送消息】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
         if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
             onNonFatalError(buildRetryMessage(errorText, newRetryCount))
@@ -2984,20 +3067,22 @@ open class OpenAIProvider(
             }
 
             // 处理内容
+            val contentParts = splitOpenAiCompatibleContent(delta.opt("content"))
             val reasoningContent = delta.optString("reasoning_content", "").ifBlank {
-                delta.optString("reasoning", "")
+                delta.optString("reasoning", "").ifBlank { contentParts.reasoningContent }
             }
-            val regularContent = delta.optString("content", "")
+            val regularContent = contentParts.regularContent
             processContentDelta(reasoningContent, regularContent, state, emitter)
         }
         // 处理message格式（非流式响应）
         else {
             val message = choice.optJSONObject("message")
             if (message != null) {
+                val contentParts = splitOpenAiCompatibleContent(message.opt("content"))
                 val reasoningContent = message.optString("reasoning_content", "").ifBlank {
-                    message.optString("reasoning", "")
+                    message.optString("reasoning", "").ifBlank { contentParts.reasoningContent }
                 }
-                val regularContent = message.optString("content", "")
+                val regularContent = contentParts.regularContent
 
                 // 先处理思考内容（如果有）
                 if (reasoningContent.isNotNullOrEmpty() && !state.hasEmittedRegularContent) {
@@ -3128,6 +3213,7 @@ open class OpenAIProvider(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
         enableRetry: Boolean,
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
@@ -3331,9 +3417,14 @@ open class OpenAIProvider(
                                                 }
                                             }
 
+                                            val contentParts = splitOpenAiCompatibleContent(messageObj.opt("content"))
                                             val reasoningContent =
-                                                messageObj.optString("reasoning_content", "")
-                                            val regularContent = messageObj.optString("content", "")
+                                                messageObj.optString("reasoning_content", "").ifBlank {
+                                                    messageObj.optString("reasoning", "").ifBlank {
+                                                        contentParts.reasoningContent
+                                                    }
+                                                }
+                                            val regularContent = contentParts.regularContent
 
                                             // 处理思考内容（如果有）
                                             if (reasoningContent.isNotNullOrEmpty() && !hasEmittedRegularContent) {
@@ -3390,6 +3481,7 @@ open class OpenAIProvider(
                     maxRetries = maxRetries,
                     enableRetry = enableRetry,
                     onNonFatalError = onNonFatalError,
+                    onRetryState = onRetryState,
                     onRetryAccepted = { emitter.emitRollback(requestSavepointId) },
                     buildRetryMessage = { errorText, retryNumber ->
                         "【${context.getString(R.string.openai_retry_with_count, errorText, retryNumber)}】"

@@ -68,8 +68,8 @@ open class OpenRouterProvider(
             availableTools,
             preserveThinkInHistory
         )
-        val jsonObject = JSONObject(baseRequestBodyJson)
 
+        val jsonObject = JSONObject(baseRequestBodyJson)
         applyOpenRouterReasoning(
             context = context,
             requestJson = jsonObject,

@@ -183,6 +183,7 @@ fun AgentChatInputSection(
     onTakePhoto: (Uri) -> Unit,
     hasBackgroundImage: Boolean = false,
     chatInputTransparent: Boolean = false,
+    chatInputOpacity: Float = if (chatInputTransparent) 0f else 1f,
     chatInputFloating: Boolean = false,
     chatInputLiquidGlass: Boolean = false,
     chatInputWaterGlass: Boolean = false,
@@ -502,14 +503,16 @@ fun AgentChatInputSection(
             0.08f,
         )
 
-    val inputContainerColor =
+    val inputOpacity = chatInputOpacity.coerceIn(0f, 1f)
+    val inputContainerBaseColor =
         when {
-            chatInputTransparent -> Color.Transparent
             isDarkTheme && hasBackgroundImage -> darkModeInputColor.copy(alpha = 0.82f)
             isDarkTheme -> darkModeInputColor
             hasBackgroundImage -> MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
             else -> MaterialTheme.colorScheme.surface
         }
+    val inputContainerColor =
+        inputContainerBaseColor.copy(alpha = inputContainerBaseColor.alpha * inputOpacity)
     val popupContainerColor =
         when {
             isDarkTheme && chatInputTransparent -> darkModeInputColor
@@ -1541,10 +1544,11 @@ private fun AgentModelSelectorPopup(
         )
     }
     LaunchedEffect(thinkingQualityMapping, thinkingOptionId) {
-        val firstOption = thinkingQualityMapping?.options?.firstOrNull()
-        if (firstOption != null && thinkingQualityMapping?.optionFor(thinkingOptionId) == null) {
-            onThinkingOptionIdChange(firstOption.id)
+        val defaultOption = thinkingQualityMapping?.defaultOption()
+        if (defaultOption != null && thinkingQualityMapping?.optionFor(thinkingOptionId) == null) {
+            onThinkingOptionIdChange(defaultOption.id)
         }
+
     }
 
     Popup(
@@ -1772,20 +1776,27 @@ private fun AgentThinkingSettingsItem(
                     .background(popupContainerColor)
                     .padding(horizontal = 12.dp),
         ) {
+            val effectiveThinkingEnabled =
+                enableThinkingMode || thinkingQualityMapping?.reasoningRequired == true
             AgentThinkingSubSettingItem(
                 title = stringResource(R.string.thinking_mode),
-                icon = if (enableThinkingMode) Icons.Rounded.Psychology else Icons.Outlined.Psychology,
+                icon = if (effectiveThinkingEnabled) Icons.Rounded.Psychology else Icons.Outlined.Psychology,
                 iconTint =
-                    if (enableThinkingMode) {
+                    if (effectiveThinkingEnabled) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     },
-                isChecked = enableThinkingMode,
-                onToggle = onToggleThinkingMode,
+                isChecked = effectiveThinkingEnabled,
+                onToggle =
+                    if (thinkingQualityMapping?.reasoningRequired == true) {
+                        {}
+                    } else {
+                        onToggleThinkingMode
+                    },
                 onInfoClick = onThinkingModeInfoClick,
             )
-            if (enableThinkingMode) {
+            if (effectiveThinkingEnabled) {
                 thinkingQualityMapping
                     ?.takeIf { it.control == ThinkingQualityControl.LEVELS }
                     ?.let { mapping ->

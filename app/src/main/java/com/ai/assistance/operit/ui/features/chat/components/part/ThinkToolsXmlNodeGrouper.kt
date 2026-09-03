@@ -95,7 +95,7 @@ class ThinkToolsXmlNodeGrouper(
                         MarkdownGroupedItem.Group(
                             startIndex = i,
                             endIndexInclusive = j - 1,
-                            stableKey = "think-tools-$i"
+                            stableKey = groupStableKey("think-tools", node, i)
                         )
                     )
                     i = j
@@ -148,7 +148,7 @@ class ThinkToolsXmlNodeGrouper(
                         MarkdownGroupedItem.Group(
                             startIndex = i,
                             endIndexInclusive = j - 1,
-                            stableKey = "tools-only-$i"
+                            stableKey = groupStableKey("tools-only", node, i)
                         )
                     )
                     i = j
@@ -184,7 +184,7 @@ class ThinkToolsXmlNodeGrouper(
                     MarkdownGroupedItem.Group(
                         startIndex = i,
                         endIndexInclusive = j - 1,
-                        stableKey = "search-only-$i"
+                        stableKey = groupStableKey("search-only", node, i)
                     )
                 )
                 i = j
@@ -348,7 +348,8 @@ class ThinkToolsXmlNodeGrouper(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         slice.forEachIndexed { idx, node ->
                             val absoluteIndex = group.startIndex + idx
-                            val innerKey = "think-tools-$rendererId-${group.stableKey}-$absoluteIndex"
+                            val innerKey =
+                                "think-tools-$rendererId-${group.stableKey}-${nodeIdentitySuffix(node, absoluteIndex)}"
                             androidx.compose.runtime.key(innerKey) {
                                 if (node.type == MarkdownProcessorType.XML_BLOCK) {
                                     if (forceExpandGroups) {
@@ -394,6 +395,14 @@ class ThinkToolsXmlNodeGrouper(
             }
         }
     }
+}
+
+private fun groupStableKey(prefix: String, node: MarkdownNodeStable, fallbackIndex: Int): String {
+    return "$prefix-${nodeIdentitySuffix(node, fallbackIndex)}"
+}
+
+private fun nodeIdentitySuffix(node: MarkdownNodeStable, fallbackIndex: Int): String {
+    return if (node.nodeId != 0L) "node-${node.nodeId}" else "index-$fallbackIndex"
 }
 
 private fun extractXmlTagName(xml: String): String? {
@@ -459,7 +468,7 @@ private fun shouldCollapseToolSequence(
     toolCount: Int,
     xmlToolRelatedCount: Int
 ): Boolean {
-    if (xmlToolRelatedCount <= 0) return false
+    if (toolCount <= 0 || xmlToolRelatedCount <= 0) return false
     return when (toolCollapseMode) {
         ToolCollapseMode.FULL -> true
         ToolCollapseMode.READ_ONLY, ToolCollapseMode.ALL -> toolCount >= 2 && xmlToolRelatedCount >= 2
@@ -472,7 +481,7 @@ private fun shouldCollapseThinkSequence(
     searchCount: Int,
     xmlToolRelatedCount: Int
 ): Boolean {
-    if (xmlToolRelatedCount <= 0) return false
+    if (xmlToolRelatedCount <= 0 || (toolCount <= 0 && searchCount <= 0)) return false
     return when (toolCollapseMode) {
         ToolCollapseMode.FULL -> true
         ToolCollapseMode.READ_ONLY, ToolCollapseMode.ALL ->

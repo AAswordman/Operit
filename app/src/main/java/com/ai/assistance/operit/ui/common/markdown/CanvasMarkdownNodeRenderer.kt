@@ -1284,7 +1284,12 @@ private fun calculateLayout(
                 val modifiedChildren = node.children.toMutableList()
                 val firstChild = modifiedChildren[0]
                 val newContent = firstChild.content.trimStart('#', ' ')
-                val newFirstChild = MarkdownNodeStable(firstChild.type, content = newContent, children = firstChild.children)
+                val newFirstChild = MarkdownNodeStable(
+                    firstChild.type,
+                    content = newContent,
+                    children = firstChild.children,
+                    nodeId = firstChild.nodeId,
+                )
                 modifiedChildren[0] = newFirstChild
 
                 createSafeInlineStaticLayout(
@@ -1367,7 +1372,12 @@ private fun calculateLayout(
                 val startIndex = (it.range.last + 1).coerceAtMost(firstChild.content.length)
                 firstChild.content.substring(startIndex)
             } ?: firstChild.content
-                val newFirstChild = MarkdownNodeStable(firstChild.type, content = newContent, children = firstChild.children)
+                val newFirstChild = MarkdownNodeStable(
+                    firstChild.type,
+                    content = newContent,
+                    children = firstChild.children,
+                    nodeId = firstChild.nodeId,
+                )
                 modifiedChildren[0] = newFirstChild
 
                 createSafeInlineStaticLayout(
@@ -1444,7 +1454,12 @@ private fun calculateLayout(
                 val startIndex = (it.range.last + 1).coerceAtMost(firstChild.content.length)
                 firstChild.content.substring(startIndex)
             } ?: firstChild.content
-                val newFirstChild = MarkdownNodeStable(firstChild.type, content = newContent, children = firstChild.children)
+                val newFirstChild = MarkdownNodeStable(
+                    firstChild.type,
+                    content = newContent,
+                    children = firstChild.children,
+                    nodeId = firstChild.nodeId,
+                )
                 modifiedChildren[0] = newFirstChild
 
                 createSafeInlineStaticLayout(

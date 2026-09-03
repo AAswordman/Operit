@@ -77,6 +77,7 @@ class RenderBatchCoordinatorTest {
         updater.appendBlockChunk(toolNode, prefix)
         advanceUntilIdle()
         assertEquals(prefix, renderNodes.single().content)
+        assertEquals(toolNode.nodeId, renderNodes.single().nodeId)
 
         val tail = "tial</param></tool>"
         updater.appendBlockChunk(toolNode, tail)

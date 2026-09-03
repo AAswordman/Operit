@@ -1,5 +1,12 @@
 package com.ai.assistance.operit.data.model
 
+enum class InputProcessingErrorSource(val wireName: String) {
+    AI("ai"),
+    TOOL("tool"),
+    API("api"),
+    SYSTEM("system")
+}
+
 /** UI状态，用于显示AI服务在做什么 */
 sealed class InputProcessingState {
     /** 空闲状态 */
@@ -35,6 +42,49 @@ sealed class InputProcessingState {
     /** 处理完成 */
     object Completed : InputProcessingState()
 
-    /** 发生错误 */
-    data class Error(val message: String) : InputProcessingState()
-} 
+    /** 工具执行器已经开始执行，等待工具返回结果 */
+    data class WaitingToolResult(val toolName: String) : InputProcessingState()
+
+    data class Retrying(
+        val message: String = "",
+        val retryAttempt: Int? = null,
+        val maxRetryAttempts: Int? = null,
+        val retryAfterMs: Long? = null,
+        val errorCode: String? = null,
+        val errorSource: InputProcessingErrorSource = InputProcessingErrorSource.API,
+        val providerCode: String? = null,
+        val httpStatusCode: Int? = null,
+        val recoverable: Boolean = true
+    ) : InputProcessingState()
+
+    /** AI 输出异常，通常会进入重试流程 */
+    data class AiError(
+        val code: String,
+        val message: String = "",
+        val recoverable: Boolean = true,
+        val retryAttempt: Int? = null
+    ) : InputProcessingState()
+
+    /** 工具参数或执行失败 */
+    data class ToolError(
+        val toolName: String,
+        val code: String,
+        val message: String = "",
+        val recoverable: Boolean = true,
+        val retryAttempt: Int? = null
+    ) : InputProcessingState()
+
+    /** 发生了未被更具体错误类型覆盖的错误 */
+    data class Error(
+        val message: String,
+        val code: String = "unknown",
+        val errorSource: InputProcessingErrorSource = InputProcessingErrorSource.SYSTEM,
+        val recoverable: Boolean = false,
+        val retryAttempt: Int? = null,
+        val maxRetryAttempts: Int? = null,
+        val appCode: Int? = null,
+        val providerCode: String? = null,
+        val httpStatusCode: Int? = null,
+        val retryAfterMs: Long? = null
+    ) : InputProcessingState()
+}

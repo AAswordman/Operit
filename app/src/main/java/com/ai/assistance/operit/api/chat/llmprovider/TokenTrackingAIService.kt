@@ -69,6 +69,7 @@ class TokenTrackingAIService(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
         enableRetry: Boolean,
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
@@ -103,6 +104,7 @@ class TokenTrackingAIService(
                     onTokensUpdated = onTokensUpdated,
                     onUsageReported = onUsageReported,
                     onNonFatalError = onNonFatalError,
+                    onRetryState = onRetryState,
                     enableRetry = enableRetry,
                     recordTokenUsage = false,
                     onUsageFinalized = onUsageFinalized,
@@ -122,6 +124,7 @@ class TokenTrackingAIService(
                         forwardUsageObserver(onUsageReported, usage, attempt)
                     },
                     onNonFatalError = onNonFatalError,
+                    onRetryState = onRetryState,
                     enableRetry = enableRetry,
                     recordTokenUsage = true,
                     onUsageFinalized = { attempt ->

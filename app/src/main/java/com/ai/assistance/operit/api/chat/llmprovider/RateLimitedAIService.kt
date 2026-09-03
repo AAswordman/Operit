@@ -39,6 +39,7 @@ class RateLimitedAIService(
         onTokensUpdated: suspend (input: Long, cachedInput: Long, output: Long) -> Unit,
         onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit,
         enableRetry: Boolean,
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
@@ -100,6 +101,7 @@ class RateLimitedAIService(
                     onTokensUpdated = onTokensUpdated,
                     onUsageReported = onUsageReported,
                     onNonFatalError = onNonFatalError,
+                    onRetryState = onRetryState,
                     enableRetry = enableRetry,
                     recordTokenUsage = recordTokenUsage,
                     onUsageFinalized = { attempt ->
