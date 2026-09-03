@@ -18,7 +18,7 @@ import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ParameterCategory
 import com.ai.assistance.operit.data.model.ParameterValueType
 import com.ai.assistance.operit.data.model.StandardModelParameters
-import com.ai.assistance.operit.data.model.SummarySectionConfig
+import com.ai.assistance.operit.data.model.SummarySectionOverride
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ApiKeyInfo
 import java.util.Locale
@@ -942,7 +942,7 @@ class ModelConfigManager(
             enableSummaryByMessageCount: Boolean,
             summaryMessageCountThreshold: Int,
             summaryCustomRules: String? = null,
-            summarySections: List<SummarySectionConfig>? = null
+            summarySectionOverrides: List<SummarySectionOverride>? = null
     ): ModelConfigData {
         return updateConfigInternal(configId) { current ->
             current.copy(
@@ -951,7 +951,8 @@ class ModelConfigManager(
                     enableSummaryByMessageCount = enableSummaryByMessageCount,
                     summaryMessageCountThreshold = summaryMessageCountThreshold,
                     summaryCustomRules = summaryCustomRules ?: current.summaryCustomRules,
-                    summarySections = summarySections ?: current.summarySections
+                    summarySectionOverrides =
+                        summarySectionOverrides ?: current.summarySectionOverrides
             )
         }
     }

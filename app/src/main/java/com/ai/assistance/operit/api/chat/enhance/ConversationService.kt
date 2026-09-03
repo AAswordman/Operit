@@ -122,7 +122,7 @@ class ConversationService(
             val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
             val activePromptMetadata = buildActivePromptHookMetadata(context)
             val resolvedSummarySections =
-                FunctionalPrompts.resolveSummarySections(summaryConfig.sections, useEnglish)
+                FunctionalPrompts.resolveSummarySections(summaryConfig.sectionOverrides, useEnglish)
             var systemPrompt = FunctionalPrompts.buildSummarySystemPrompt(
                 previousSummary = previousSummary,
                 useEnglish = useEnglish,

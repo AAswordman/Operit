@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,18 +24,26 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,9 +68,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.data.model.FunctionType
@@ -155,6 +169,9 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
         mutableStateOf(emptyList<SummarySectionConfig>())
     }
     var summaryError by remember { mutableStateOf<String?>(null) }
+    var fullscreenTextEditor by remember(currentConfig?.id) {
+        mutableStateOf<FullscreenTextEditorRequest?>(null)
+    }
 
     LaunchedEffect(currentConfig?.id, currentConfig?.contextLength) {
         contextLengthInput = formatFloatValue(currentConfig?.contextLength)
@@ -178,9 +195,9 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     LaunchedEffect(currentConfig?.id, currentConfig?.summaryCustomRules) {
         summaryCustomRulesInput = currentConfig?.summaryCustomRules.orEmpty()
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.summarySections, useEnglish) {
+    LaunchedEffect(currentConfig?.id, currentConfig?.summarySectionOverrides, useEnglish) {
         summarySectionsInput = FunctionalPrompts.resolveSummarySections(
-            configuredSections = currentConfig?.summarySections.orEmpty(),
+            overrides = currentConfig?.summarySectionOverrides.orEmpty(),
             useEnglish = useEnglish
         )
     }
@@ -266,6 +283,7 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                 ContextSummarySectionsAutoSaveEffect(
                     currentConfig = currentConfig,
                     summarySectionsInputProvider = { summarySectionsInput },
+                    useEnglish = useEnglish,
                     modelConfigManager = modelConfigManager,
                     errorSaveFailed = errorSaveFailed,
                     onSummaryErrorChange = { summaryError = it }
@@ -305,6 +323,13 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                     onSummarySectionsInputChange = {
                         summarySectionsInput = it
                     },
+                    onOpenFullscreenEditor = { editorTitle, editorValue, onEditorValueChange ->
+                        fullscreenTextEditor = FullscreenTextEditorRequest(
+                            title = editorTitle,
+                            value = editorValue,
+                            onValueChange = onEditorValueChange
+                        )
+                    },
                     summaryError = summaryError
                 )
 
@@ -336,6 +361,12 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                 showSaveSuccessMessage = showSaveSuccessMessage,
                 onDismissSaveSuccess = { showSaveSuccessMessage = false }
             )
+            fullscreenTextEditor?.let { request ->
+                FullscreenSettingsTextEditor(
+                    request = request,
+                    onDismiss = { fullscreenTextEditor = null }
+                )
+            }
         }
     }
 }
@@ -547,6 +578,7 @@ private fun ContextSummaryCustomRulesAutoSaveEffect(
 private fun ContextSummarySectionsAutoSaveEffect(
     currentConfig: ModelConfigData?,
     summarySectionsInputProvider: () -> List<SummarySectionConfig>,
+    useEnglish: Boolean,
     modelConfigManager: ModelConfigManager,
     errorSaveFailed: String,
     onSummaryErrorChange: (String?) -> Unit
@@ -561,7 +593,10 @@ private fun ContextSummarySectionsAutoSaveEffect(
             .distinctUntilChanged()
             .collectLatest { sections ->
                 val current = latestConfig ?: return@collectLatest
-                if (current.id != configId || current.summarySections == sections) return@collectLatest
+                if (current.id != configId) return@collectLatest
+                val overrides =
+                    FunctionalPrompts.buildSummarySectionOverrides(sections, useEnglish)
+                if (current.summarySectionOverrides == overrides) return@collectLatest
                 try {
                     modelConfigManager.updateSummarySettings(
                         configId = current.id,
@@ -569,7 +604,7 @@ private fun ContextSummarySectionsAutoSaveEffect(
                         summaryTokenThreshold = current.summaryTokenThreshold,
                         enableSummaryByMessageCount = current.enableSummaryByMessageCount,
                         summaryMessageCountThreshold = current.summaryMessageCountThreshold,
-                        summarySections = sections
+                        summarySectionOverrides = overrides
                     )
                     onSummaryErrorChange(null)
                 } catch (e: Exception) {
@@ -599,6 +634,7 @@ private fun RenderContextSummaryConfigSections(
     onSummaryCustomRulesInputChange: (String) -> Unit,
     summarySectionsInput: List<SummarySectionConfig>,
     onSummarySectionsInputChange: (List<SummarySectionConfig>) -> Unit,
+    onOpenFullscreenEditor: (String, String, (String) -> Unit) -> Unit,
     summaryError: String?
 ) {
     SectionTitle(
@@ -690,13 +726,21 @@ private fun RenderContextSummaryConfigSections(
     }
 
     Spacer(modifier = Modifier.size(8.dp))
+    val globalRulesTitle = stringResource(id = R.string.settings_summary_custom_rules)
     SettingsMultilineTextField(
-        title = stringResource(id = R.string.settings_summary_custom_rules),
+        title = globalRulesTitle,
         subtitle = stringResource(id = R.string.settings_summary_custom_rules_desc),
         value = summaryCustomRulesInput,
         onValueChange = onSummaryCustomRulesInputChange,
         backgroundColor = componentBackgroundColor,
-        enabled = enableSummary
+        enabled = enableSummary,
+        onOpenFullscreen = {
+            onOpenFullscreenEditor(
+                globalRulesTitle,
+                summaryCustomRulesInput,
+                onSummaryCustomRulesInputChange
+            )
+        }
     )
     Spacer(modifier = Modifier.size(12.dp))
     SectionTitle(
@@ -714,7 +758,8 @@ private fun RenderContextSummaryConfigSections(
                 )
             },
             backgroundColor = componentBackgroundColor,
-            enabled = enableSummary
+            enabled = enableSummary,
+            onOpenFullscreenEditor = onOpenFullscreenEditor
         )
     }
 }
@@ -724,7 +769,8 @@ private fun SummarySectionEditor(
     section: SummarySectionConfig,
     onSectionChange: (SummarySectionConfig) -> Unit,
     backgroundColor: Color,
-    enabled: Boolean
+    enabled: Boolean,
+    onOpenFullscreenEditor: (String, String, (String) -> Unit) -> Unit
 ) {
     SettingsSwitchRow(
         title = section.title,
@@ -750,7 +796,12 @@ private fun SummarySectionEditor(
         value = section.instruction,
         onValueChange = { onSectionChange(section.copy(instruction = it)) },
         backgroundColor = backgroundColor,
-        enabled = enabled && section.enabled
+        enabled = enabled && section.enabled,
+        onOpenFullscreen = {
+            onOpenFullscreenEditor(section.title, section.instruction) { newValue ->
+                onSectionChange(section.copy(instruction = newValue))
+            }
+        }
     )
     Spacer(modifier = Modifier.size(8.dp))
 }
@@ -1047,7 +1098,8 @@ private fun SettingsMultilineTextField(
     backgroundColor: Color,
     enabled: Boolean = true,
     singleLine: Boolean = false,
-    minHeight: Dp = 80.dp
+    minHeight: Dp = 80.dp,
+    onOpenFullscreen: (() -> Unit)? = null
 ) {
     val contentAlpha = if (enabled) 1f else 0.38f
     Column(
@@ -1080,7 +1132,7 @@ private fun SettingsMultilineTextField(
             enabled = enabled,
             modifier =
                 Modifier.fillMaxWidth()
-                    .heightIn(min = minHeight)
+                    .let { if (singleLine) it.heightIn(min = minHeight) else it.height(120.dp) }
                     .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp),
             textStyle =
@@ -1090,16 +1142,120 @@ private fun SettingsMultilineTextField(
                 ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             singleLine = singleLine,
+            minLines = if (singleLine) 1 else 5,
+            maxLines = if (singleLine) 1 else 5,
             decorationBox = { innerTextField ->
-                if (value.isEmpty()) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxSize(),
+                        contentAlignment =
+                            if (singleLine) Alignment.CenterStart else Alignment.TopStart
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                        innerTextField()
+                    }
+                    if (!singleLine && onOpenFullscreen != null) {
+                        IconButton(
+                            onClick = { if (enabled) onOpenFullscreen() },
+                            enabled = enabled,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fullscreen,
+                                contentDescription =
+                                    stringResource(id = R.string.chat_fullscreen_input),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
-                innerTextField()
             }
         )
+    }
+}
+
+private data class FullscreenTextEditorRequest(
+    val title: String,
+    val value: String,
+    val onValueChange: (String) -> Unit
+)
+
+@Composable
+private fun FullscreenSettingsTextEditor(
+    request: FullscreenTextEditorRequest,
+    onDismiss: () -> Unit
+) {
+    var editorValue by remember(request.title, request.value) { mutableStateOf(request.value) }
+
+    fun finishEditing() {
+        request.onValueChange(editorValue)
+        onDismiss()
+    }
+
+    Dialog(
+        onDismissRequest = { finishEditing() },
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier =
+                    Modifier.fillMaxSize()
+                        .systemBarsPadding()
+                        .imePadding()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { finishEditing() }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(id = R.string.common_close)
+                        )
+                    }
+                    Text(
+                        text = request.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    IconButton(onClick = { finishEditing() }) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = stringResource(id = R.string.save)
+                        )
+                    }
+                }
+                HorizontalDivider()
+                TextField(
+                    value = editorValue,
+                    onValueChange = { editorValue = it },
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    colors =
+                        TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                    textStyle = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
     }
 }
