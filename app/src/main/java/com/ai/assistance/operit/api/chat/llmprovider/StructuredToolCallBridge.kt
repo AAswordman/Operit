@@ -4,6 +4,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.data.model.ToolParameterSchema
 import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ChatUtils
 import kotlin.math.abs
@@ -21,6 +22,56 @@ internal object StructuredToolCallBridge {
         val name: String?,
         val content: String
     )
+
+    /** A tool call that has been sent to the model but has no `tool` message answering it yet. */
+    data class OpenToolCall(val id: String, val name: String)
+
+    data class MatchedToolCall(val resultIndex: Int, val call: OpenToolCall)
+
+    /**
+     * The callable tool name behind a queued tool call, unwrapping the `package_proxy` envelope so
+     * that a `pkg:tool` result can still be matched back to the call that produced it.
+     */
+    fun toolCallName(toolCall: JSONObject): String {
+        val function = toolCall.optJSONObject("function") ?: return ""
+        val name = function.optString("name", "").trim()
+        if (name != "package_proxy") {
+            return name
+        }
+
+        return try {
+            JSONObject(function.optString("arguments", "{}"))
+                .optString("tool_name", "")
+                .trim()
+        } catch (e: Exception) {
+            AppLogger.w("StructuredToolCallBridge", "package_proxy arguments are not valid JSON", e)
+            ""
+        }
+    }
+
+    /**
+     * Consumes only the open tool call whose name exactly matches each result. Tool results are not
+     * guaranteed to come back in call order (denied invocations are hoisted to the front of the
+     * result list), so pairing by position alone can attach a result to the wrong call ID.
+     *
+     * @return matched calls with their source result indexes; unmatched results remain unconsumed.
+     */
+    fun consumeMatchingToolCalls(
+        openToolCalls: MutableList<OpenToolCall>,
+        resultToolNames: List<String?>
+    ): List<MatchedToolCall> {
+        val matched = ArrayList<MatchedToolCall>(minOf(openToolCalls.size, resultToolNames.size))
+        resultToolNames.forEachIndexed { resultIndex, resultName ->
+            val normalizedResultName = resultName?.trim().orEmpty()
+            if (normalizedResultName.isEmpty()) return@forEachIndexed
+
+            val callIndex = openToolCalls.indexOfFirst { it.name == normalizedResultName }
+            if (callIndex >= 0) {
+                matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callIndex)))
+            }
+        }
+        return matched
+    }
 
     fun buildToolsJson(toolPrompts: List<ToolPrompt>?): String? {
         if (toolPrompts.isNullOrEmpty()) {
@@ -166,8 +217,8 @@ internal object StructuredToolCallBridge {
         val messagesArray = JSONArray()
         var queuedAssistantToolText: String? = null
         var queuedToolCalls = JSONArray()
-        val queuedToolCallIds = mutableListOf<String>()
-        val openToolCallIds = mutableListOf<String>()
+        val queuedOpenToolCalls = mutableListOf<OpenToolCall>()
+        val openToolCalls = mutableListOf<OpenToolCall>()
         var nextToolCallOrdinal = 0
 
         fun appendQueuedAssistantToolText(text: String) {
@@ -188,7 +239,7 @@ internal object StructuredToolCallBridge {
                 val callId = generatedToolCallId(nextToolCallOrdinal++)
                 toolCall.put("id", callId)
                 queuedToolCalls.put(toolCall)
-                queuedToolCallIds.add(callId)
+                queuedOpenToolCalls.add(OpenToolCall(callId, toolCallName(toolCall)))
             }
         }
 
@@ -198,38 +249,33 @@ internal object StructuredToolCallBridge {
             messagesArray.put(
                 JSONObject().apply {
                     put("role", "assistant")
-                    put(
-                        "content",
-                        if (!queuedAssistantToolText.isNullOrBlank()) {
-                            queuedAssistantToolText
-                        } else {
-                            JSONObject.NULL
-                        }
-                    )
+                    if (!queuedAssistantToolText.isNullOrBlank()) {
+                        put("content", queuedAssistantToolText)
+                    }
                     put("tool_calls", queuedToolCalls)
                 }
             )
 
-            openToolCallIds.addAll(queuedToolCallIds)
+            openToolCalls.addAll(queuedOpenToolCalls)
             queuedAssistantToolText = null
             queuedToolCalls = JSONArray()
-            queuedToolCallIds.clear()
+            queuedOpenToolCalls.clear()
         }
 
         fun flushOpenToolCallsAsCancelled() {
             emitQueuedToolCallsIfNeeded()
-            if (openToolCallIds.isEmpty()) return
+            if (openToolCalls.isEmpty()) return
 
-            for (toolCallId in openToolCallIds) {
+            for (openToolCall in openToolCalls) {
                 messagesArray.put(
                     JSONObject().apply {
                         put("role", "tool")
-                        put("tool_call_id", toolCallId)
+                        put("tool_call_id", openToolCall.id)
                         put("content", "User cancelled")
                     }
                 )
             }
-            openToolCallIds.clear()
+            openToolCalls.clear()
         }
 
         for (turn in mergedHistory) {
@@ -313,13 +359,14 @@ internal object StructuredToolCallBridge {
                     val (textContent, toolResults) = parseXmlToolResults(content)
                     val resultsList = toolResults ?: emptyList()
 
-                    if (resultsList.isNotEmpty() && openToolCallIds.isNotEmpty()) {
-                        val validCount = minOf(resultsList.size, openToolCallIds.size)
-                        repeat(validCount) { index ->
-                            val result = resultsList[index]
+                    if (resultsList.isNotEmpty() && openToolCalls.isNotEmpty()) {
+                        val matchedCalls =
+                            consumeMatchingToolCalls(openToolCalls, resultsList.map { it.name })
+                        matchedCalls.forEach { matchedCall ->
+                            val result = resultsList[matchedCall.resultIndex]
                             val toolMessage = JSONObject().apply {
                                 put("role", "tool")
-                                put("tool_call_id", openToolCallIds[index])
+                                put("tool_call_id", matchedCall.call.id)
                                 if (!result.name.isNullOrBlank()) {
                                     put("name", result.name)
                                 }
@@ -327,9 +374,15 @@ internal object StructuredToolCallBridge {
                             }
                             messagesArray.put(toolMessage)
                         }
-                        repeat(validCount) {
-                            openToolCallIds.removeAt(0)
+                        if (matchedCalls.size < resultsList.size) {
+                            // Keep diagnostics on the module logger; logDebug is not a project API.
+                            AppLogger.d(
+                                "StructuredToolCallBridge",
+                                "发现未匹配的tool_result: ${resultsList.size - matchedCalls.size}"
+                            )
                         }
+
+                        flushOpenToolCallsAsCancelled()
                         if (textContent.isNotBlank()) {
                             messagesArray.put(
                                 JSONObject().apply {
@@ -340,18 +393,14 @@ internal object StructuredToolCallBridge {
                         }
                     } else {
                         flushOpenToolCallsAsCancelled()
-                        messagesArray.put(
-                            JSONObject().apply {
-                                put("role", "user")
-                                put(
-                                    "content",
-                                    when {
-                                        textContent.isNotBlank() -> textContent
-                                        else -> nonEmptyContent(content)
-                                    }
-                                )
-                            }
-                        )
+                        if (textContent.isNotBlank()) {
+                            messagesArray.put(
+                                JSONObject().apply {
+                                    put("role", "user")
+                                    put("content", textContent)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -695,7 +744,8 @@ internal object StructuredToolCallBridge {
             } else {
                 fullContent
             }
-            val resultName = ChatMarkupRegex.nameAttr.find(match.value)?.groupValues?.getOrNull(1)
+            val openingTag = match.value.substringBefore('>')
+            val resultName = ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1)
             results.add(ToolResultRecord(resultName, resultContent))
             textContent = textContent.replace(match.value, "").trim()
         }

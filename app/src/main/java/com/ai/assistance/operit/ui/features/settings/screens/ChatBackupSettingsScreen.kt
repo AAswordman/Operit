@@ -294,7 +294,8 @@ fun ChatBackupSettingsScreen() {
 
                 chatBackupFileCount = chatFiles.count { file ->
                     file.name.startsWith("chat_backup_") && file.extension == "json" ||
-                        file.name.startsWith("chat_export_") && file.extension in listOf("json", "md", "html", "txt")
+                        file.name.startsWith("chat_backup_") && file.extension in listOf("zip", "csv", "html", "txt") ||
+                        file.name.startsWith("chat_export_") && file.extension in listOf("json", "md", "html", "txt", "csv", "zip")
                 }
 
                 characterCardBackupFileCount = characterCardFiles.count { file ->
@@ -520,7 +521,8 @@ fun ChatBackupSettingsScreen() {
 
                             chatBackupFileCount = chatFiles.count { file ->
                                 file.name.startsWith("chat_backup_") && file.extension == "json" ||
-                                    file.name.startsWith("chat_export_") && file.extension in listOf("json", "md", "html", "txt")
+                                    file.name.startsWith("chat_backup_") && file.extension in listOf("zip", "csv", "html", "txt") ||
+                                    file.name.startsWith("chat_export_") && file.extension in listOf("json", "md", "html", "txt", "csv", "zip")
                             }
 
                             characterCardBackupFileCount = characterCardFiles.count { file ->
@@ -1281,7 +1283,7 @@ fun ChatBackupSettingsScreen() {
                                 ExportFormat.MARKDOWN -> context.getString(R.string.backup_format_markdown)
                                 ExportFormat.HTML -> context.getString(R.string.backup_format_html)
                                 ExportFormat.TXT -> context.getString(R.string.backup_format_txt)
-                                ExportFormat.CSV -> "CSV"
+                                ExportFormat.CSV -> context.getString(R.string.backup_format_csv)
                             }
                             operationMessage = context.getString(
                                 R.string.backup_chat_export_result_success,
@@ -1326,9 +1328,8 @@ fun ChatBackupSettingsScreen() {
                                 operationState = ChatHistoryOperation.IMPORTED
                                 val formatName = when (selectedImportFormat) {
                                     ChatFormat.OPERIT -> context.getString(R.string.backup_format_operit)
-                                    ChatFormat.CHATGPT -> context.getString(R.string.backup_format_chatgpt)
-                                    ChatFormat.CHATBOX -> context.getString(R.string.backup_format_chatbox)
                                     ChatFormat.MARKDOWN -> context.getString(R.string.backup_format_markdown)
+                                    ChatFormat.CSV -> context.getString(R.string.backup_format_csv)
                                     ChatFormat.GENERIC_JSON -> context.getString(R.string.backup_format_generic_json)
                                     ChatFormat.CLAUDE -> context.getString(R.string.backup_format_claude)
                                     else -> context.getString(R.string.backup_format_unknown)

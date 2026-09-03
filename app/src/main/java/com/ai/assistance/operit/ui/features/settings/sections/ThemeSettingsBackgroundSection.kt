@@ -73,7 +73,7 @@ internal fun ThemeSettingsBackgroundSection(
     editorSession: ThemeEditorSession,
     exoPlayer: ExoPlayer,
     launchImageCrop: (Uri) -> Unit,
-    mediaPickerLauncher: ManagedActivityResultLauncher<String, Uri?>,
+    mediaPickerLauncher: ManagedActivityResultLauncher<Array<String>, Uri?>,
     scrollState: ScrollState,
     useBackgroundImageInput: Boolean,
     onUseBackgroundImageInputChange: (Boolean) -> Unit,
@@ -390,9 +390,9 @@ internal fun ThemeSettingsBackgroundSection(
                 Button(
                     onClick = {
                         if (backgroundMediaTypeInput == UserPreferencesManager.MEDIA_TYPE_VIDEO) {
-                            mediaPickerLauncher.launch("video/*")
+                            mediaPickerLauncher.launch(arrayOf("video/*"))
                         } else {
-                            mediaPickerLauncher.launch("image/*")
+                            mediaPickerLauncher.launch(arrayOf("image/*"))
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),

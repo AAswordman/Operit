@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from collections import Counter
 from pathlib import Path
 
 
@@ -14,6 +15,7 @@ from check_localizations import (  # noqa: E402
     locale_from_path,
     parse_locale_config,
     placeholder_mismatch,
+    placeholder_tokens,
     select_blocking_issues,
 )
 
@@ -25,6 +27,8 @@ def entry(name: str, text: str) -> ResourceEntry:
 def strings_path(locale: str) -> str:
     if locale == "zh":
         return "app/src/main/res/values/strings.xml"
+    if locale == "id":
+        return "app/src/main/res/values-in/strings.xml"
     parts = locale.split("-")
     if len(parts) == 1:
         qualifier = locale
@@ -55,6 +59,20 @@ def snapshot(entries: dict[str, dict[str, ResourceEntry]]) -> Snapshot:
         config_error=None,
         blobs=blobs,
     )
+
+
+class PlaceholderTokenTest(unittest.TestCase):
+    def test_escaped_percent_is_not_reparsed_as_placeholder(self) -> None:
+        self.assertEqual(
+            placeholder_tokens("%1$d%% remaining"),
+            Counter({"%1$d": 1}),
+        )
+
+    def test_malformed_percent_marker_remains_visible(self) -> None:
+        self.assertEqual(
+            placeholder_tokens("retry %1，"),
+            Counter({"%": 1}),
+        )
 
 
 class LocalizationAttributionTest(unittest.TestCase):
@@ -190,6 +208,14 @@ class LocalizationAttributionTest(unittest.TestCase):
         self.assertEqual(
             locale_from_path("app/src/main/res/values-b+sr+Latn-night/strings.xml"),
             "sr-Latn",
+        )
+        self.assertEqual(
+            locale_from_path("app/src/main/res/values-in/strings.xml"),
+            "id",
+        )
+        self.assertEqual(
+            locale_from_path("app/src/main/res/values-in-rID/strings.xml"),
+            "id-ID",
         )
 
 

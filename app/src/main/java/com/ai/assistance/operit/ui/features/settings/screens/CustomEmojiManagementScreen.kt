@@ -57,8 +57,11 @@ fun CustomEmojiManagementScreen(
     var showResetDialog by remember { mutableStateOf(false) }
 
     // 图片选择器
+    // ACTION_OPEN_DOCUMENT with EXTRA_ALLOW_MULTIPLE keeps the per-URI grant of
+    // ACTION_GET_CONTENT while routing to the system document picker, whose browse view lists
+    // user-created album folders that some OEM photo pickers hide. See issue #1054.
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             viewModel.addEmojis(selectedCategory, uris)
@@ -76,7 +79,7 @@ fun CustomEmojiManagementScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { imagePickerLauncher.launch("image/*") }
+                onClick = { imagePickerLauncher.launch(arrayOf("image/*")) }
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_emoji))
             }

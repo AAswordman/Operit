@@ -444,6 +444,16 @@ fun ExportFormatDialog(
                         onClick = { onFormatSelected(ExportFormat.TXT) }
                     )
                 }
+
+                item {
+                    FormatOption(
+                        format = ExportFormat.CSV,
+                        title = stringResource(R.string.backup_format_csv),
+                        description = stringResource(R.string.backup_format_csv_desc),
+                        selected = selectedFormat == ExportFormat.CSV,
+                        onClick = { onFormatSelected(ExportFormat.CSV) }
+                    )
+                }
             }
         },
         confirmButton = {
@@ -495,31 +505,21 @@ fun ImportFormatDialog(
 
                 item {
                     ImportFormatOption(
-                        format = ChatFormat.CHATGPT,
-                        title = stringResource(R.string.backup_format_chatgpt),
-                        description = stringResource(R.string.backup_format_chatgpt_desc),
-                        selected = selectedFormat == ChatFormat.CHATGPT,
-                        onClick = { onFormatSelected(ChatFormat.CHATGPT) }
-                    )
-                }
-
-                item {
-                    ImportFormatOption(
-                        format = ChatFormat.CHATBOX,
-                        title = stringResource(R.string.backup_format_chatbox),
-                        description = stringResource(R.string.backup_format_chatbox_desc),
-                        selected = selectedFormat == ChatFormat.CHATBOX,
-                        onClick = { onFormatSelected(ChatFormat.CHATBOX) }
-                    )
-                }
-
-                item {
-                    ImportFormatOption(
                         format = ChatFormat.MARKDOWN,
                         title = stringResource(R.string.backup_format_markdown),
                         description = stringResource(R.string.backup_format_markdown_desc),
                         selected = selectedFormat == ChatFormat.MARKDOWN,
                         onClick = { onFormatSelected(ChatFormat.MARKDOWN) }
+                    )
+                }
+
+                item {
+                    ImportFormatOption(
+                        format = ChatFormat.CSV,
+                        title = stringResource(R.string.backup_format_csv),
+                        description = stringResource(R.string.backup_format_csv_desc),
+                        selected = selectedFormat == ChatFormat.CSV,
+                        onClick = { onFormatSelected(ChatFormat.CSV) }
                     )
                 }
 

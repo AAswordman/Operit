@@ -405,8 +405,6 @@ open class ClaudeProvider(
         
         val results = mutableListOf<Pair<String, String>>()
         var textContent = content
-        var resultIndex = 0
-        
         matches.forEach { match ->
             val fullContent = match.groupValues[2].trim()
             val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
@@ -416,11 +414,13 @@ open class ClaudeProvider(
                 fullContent
             }
             
-            results.add(Pair("toolu_result_${resultIndex}", resultContent))
+            val openingTag = match.value.substringBefore('>')
+            val resultName =
+                ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1).orEmpty()
+            results.add(Pair(resultName, resultContent))
             textContent = textContent.replace(match.value, "").trim()
             
-            AppLogger.d("AIService", "解析Claude tool_result #$resultIndex, content length=${resultContent.length}")
-            resultIndex++
+            AppLogger.d("AIService", "解析Claude tool_result $resultName, content length=${resultContent.length}")
         }
         
         return Pair(textContent.trim(), results)
@@ -736,8 +736,8 @@ open class ClaudeProvider(
         val historyWithoutSystem = effectiveHistory.filter { it.kind != PromptTurnKind.SYSTEM }
         var queuedAssistantToolText: String? = null
         var queuedToolUses = JSONArray()
-        val queuedToolUseIds = mutableListOf<String>()
-        val openToolUseIds = mutableListOf<String>()
+        val queuedOpenToolUses = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
+        val openToolUses = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
         var nextToolUseOrdinal = 0
 
         fun generatedToolUseId(ordinal: Int): String {
@@ -770,7 +770,12 @@ open class ClaudeProvider(
                 val toolUseId = generatedToolUseId(nextToolUseOrdinal++)
                 toolUse.put("id", toolUseId)
                 queuedToolUses.put(toolUse)
-                queuedToolUseIds.add(toolUseId)
+                queuedOpenToolUses.add(
+                    StructuredToolCallBridge.OpenToolCall(
+                        toolUseId,
+                        sourceToolUse.optString("name", "").trim()
+                    )
+                )
             }
         }
 
@@ -792,30 +797,30 @@ open class ClaudeProvider(
                 }
             )
 
-            openToolUseIds.addAll(queuedToolUseIds)
+            openToolUses.addAll(queuedOpenToolUses)
             queuedAssistantToolText = null
             queuedToolUses = JSONArray()
-            queuedToolUseIds.clear()
+            queuedOpenToolUses.clear()
         }
 
         fun appendCancelledOpenToolUses(target: JSONArray, reason: String): Boolean {
             emitQueuedToolUsesIfNeeded()
-            if (openToolUseIds.isEmpty()) return false
+            if (openToolUses.isEmpty()) return false
 
             AppLogger.w(
                 "AIService",
-                "发现未完成的tool_use，按取消处理: count=${openToolUseIds.size}, reason=$reason"
+                "发现未完成的tool_use，按取消处理: count=${openToolUses.size}, reason=$reason"
             )
-            for (toolUseId in openToolUseIds) {
+            for (openToolUse in openToolUses) {
                 target.put(
                     JSONObject().apply {
                         put("type", "tool_result")
-                        put("tool_use_id", toolUseId)
+                        put("tool_use_id", openToolUse.id)
                         put("content", "User cancelled")
                     }
                 )
             }
-            openToolUseIds.clear()
+            openToolUses.clear()
             return true
         }
 
@@ -845,7 +850,7 @@ open class ClaudeProvider(
                     PromptTurnKind.ASSISTANT -> {
                         val (textContent, toolUses) = parseXmlToolCalls(content)
                         if (toolUses != null && toolUses.length() > 0) {
-                            if (openToolUseIds.isNotEmpty()) {
+                            if (openToolUses.isNotEmpty()) {
                                 flushOpenToolUsesAsCancelled("assistant_tool_use_before_result")
                             }
                             queueToolUses(textContent, toolUses)
@@ -863,7 +868,7 @@ open class ClaudeProvider(
                     PromptTurnKind.TOOL_CALL -> {
                         val (textContent, toolUses) = parseXmlToolCalls(content)
                         if (toolUses != null && toolUses.length() > 0) {
-                            if (openToolUseIds.isNotEmpty()) {
+                            if (openToolUses.isNotEmpty()) {
                                 flushOpenToolUsesAsCancelled("typed_tool_use_before_result")
                             }
                             queueToolUses(textContent, toolUses)
@@ -902,39 +907,40 @@ open class ClaudeProvider(
                         val (textContent, toolResults) = parseXmlToolResults(content)
                         val resultsList = toolResults ?: emptyList()
 
-                        if (resultsList.isNotEmpty() && openToolUseIds.isNotEmpty()) {
-                            val contentArray = JSONArray()
-                            val validCount = minOf(resultsList.size, openToolUseIds.size)
+                            if (resultsList.isNotEmpty() && openToolUses.isNotEmpty()) {
+                                val contentArray = JSONArray()
+                                val matchedCalls =
+                                    StructuredToolCallBridge.consumeMatchingToolCalls(
+                                        openToolUses,
+                                        resultsList.map { it.first }
+                                    )
+                                matchedCalls.forEach { matchedCall ->
+                                    val resultContent = resultsList[matchedCall.resultIndex].second
+                                    contentArray.put(
+                                        JSONObject().apply {
+                                            put("type", "tool_result")
+                                            put("tool_use_id", matchedCall.call.id)
+                                            put("content", nonEmptyContentText(resultContent))
+                                        }
+                                    )
+                                    AppLogger.d(
+                                        "AIService",
+                                        "历史XML→ClaudeToolResult: ID=${matchedCall.call.id}, content length=${resultContent.length}"
+                                    )
+                                }
 
-                            for (index in 0 until validCount) {
-                                val (_, resultContent) = resultsList[index]
-                                contentArray.put(
-                                    JSONObject().apply {
-                                        put("type", "tool_result")
-                                        put("tool_use_id", openToolUseIds[index])
-                                        put("content", nonEmptyContentText(resultContent))
-                                    }
-                                )
-                                AppLogger.d(
-                                    "AIService",
-                                    "历史XML→ClaudeToolResult: ID=${openToolUseIds[index]}, content length=${resultContent.length}"
-                                )
-                            }
+                                if (matchedCalls.size < resultsList.size) {
+                                    AppLogger.w(
+                                        "AIService",
+                                        "发现未匹配的tool_result: ${resultsList.size - matchedCalls.size}"
+                                    )
+                                }
 
-                            repeat(validCount) {
-                                openToolUseIds.removeAt(0)
-                            }
+                                appendCancelledOpenToolUses(contentArray, "tool_result_partial_batch")
 
-                            if (resultsList.size > validCount) {
-                                AppLogger.w(
-                                    "AIService",
-                                    "发现多余的tool_result: ${resultsList.size} results vs ${validCount} pending tool_uses"
-                                )
-                            }
-
-                            if (textContent.isNotEmpty()) {
-                                appendContentBlocks(contentArray, buildContentArray(textContent))
-                            }
+                                if (textContent.isNotEmpty()) {
+                                    appendContentBlocks(contentArray, buildContentArray(textContent))
+                                }
 
                             messagesArray.put(
                                 JSONObject().apply {
@@ -945,22 +951,17 @@ open class ClaudeProvider(
                         } else {
                             val contentArray = JSONArray()
                             appendCancelledOpenToolUses(contentArray, "tool_result_without_structured_match")
-                            appendContentBlocks(
-                                contentArray,
-                                buildContentArray(
-                                    when {
-                                        textContent.isNotEmpty() -> textContent
-                                        else -> content
-                                    },
-                                    allowEmptyArray = contentArray.length() > 0
+                            if (textContent.isNotEmpty()) {
+                                appendContentBlocks(contentArray, buildContentArray(textContent))
+                            }
+                            if (contentArray.length() > 0) {
+                                messagesArray.put(
+                                    JSONObject().apply {
+                                        put("role", "user")
+                                        put("content", contentArray)
+                                    }
                                 )
-                            )
-                            messagesArray.put(
-                                JSONObject().apply {
-                                    put("role", "user")
-                                    put("content", contentArray)
-                                }
-                            )
+                            }
                         }
                     }
                 }

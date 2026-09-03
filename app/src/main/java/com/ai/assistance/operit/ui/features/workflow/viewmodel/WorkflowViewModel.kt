@@ -73,6 +73,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
 
     private var workflowsLoadRequestId = 0L
     private var workflowLoadRequestId = 0L
+    private var activeVisibleLoadCount = 0
     
     init {
         viewModelScope.launch {
@@ -129,29 +130,53 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
         return workflowLoadRequestId
     }
 
-    private suspend fun loadWorkflowsInternal(showLoading: Boolean, requestId: Long) {
-        if (requestId == workflowsLoadRequestId) {
-            if (showLoading) {
-                isLoading = true
-            }
-            error = null
+    private fun beginVisibleLoading(showLoading: Boolean, requestIsCurrent: Boolean): Boolean {
+        if (!showLoading || !requestIsCurrent) {
+            return false
         }
 
-        repository.getAllWorkflows().fold(
-            onSuccess = {
-                if (requestId == workflowsLoadRequestId) {
-                    workflows = it
-                }
-            },
-            onFailure = {
-                if (requestId == workflowsLoadRequestId) {
-                    error = it.message ?: app.getString(R.string.workflow_load_failed)
-                }
-            }
-        )
+        activeVisibleLoadCount += 1
+        isLoading = true
+        return true
+    }
 
-        if (showLoading && requestId == workflowsLoadRequestId) {
+    private fun finishVisibleLoading(started: Boolean) {
+        if (!started) {
+            return
+        }
+
+        if (activeVisibleLoadCount > 0) {
+            activeVisibleLoadCount -= 1
+        }
+
+        if (activeVisibleLoadCount == 0) {
             isLoading = false
+        }
+    }
+
+    private suspend fun loadWorkflowsInternal(showLoading: Boolean, requestId: Long) {
+        val requestIsCurrent = requestId == workflowsLoadRequestId
+        val visibleLoadingStarted = beginVisibleLoading(showLoading, requestIsCurrent)
+
+        try {
+            if (requestIsCurrent) {
+                error = null
+            }
+
+            repository.getAllWorkflows().fold(
+                onSuccess = {
+                    if (requestId == workflowsLoadRequestId) {
+                        workflows = it
+                    }
+                },
+                onFailure = {
+                    if (requestId == workflowsLoadRequestId) {
+                        error = it.message ?: app.getString(R.string.workflow_load_failed)
+                    }
+                }
+            )
+        } finally {
+            finishVisibleLoading(visibleLoadingStarted)
         }
     }
 

@@ -1078,8 +1078,8 @@ open class OpenAIProvider(
 
         var queuedAssistantToolText: String? = null
         var queuedToolCalls = JSONArray()
-        val queuedToolCallIds = mutableListOf<String>()
-        val openToolCallIds = mutableListOf<String>()
+        val queuedOpenToolCalls = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
+        val openToolCalls = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
         var nextToolCallOrdinal = 0
 
         fun appendQueuedAssistantToolText(text: String) {
@@ -1100,7 +1100,12 @@ open class OpenAIProvider(
                 val callId = generatedToolCallId(nextToolCallOrdinal++)
                 toolCall.put("id", callId)
                 queuedToolCalls.put(toolCall)
-                queuedToolCallIds.add(callId)
+                queuedOpenToolCalls.add(
+                    StructuredToolCallBridge.OpenToolCall(
+                        callId,
+                        StructuredToolCallBridge.toolCallName(toolCall)
+                    )
+                )
             }
         }
 
@@ -1115,36 +1120,34 @@ open class OpenAIProvider(
             }
             if (effectiveContent != null) {
                 historyMessage.put("content", buildContentField(context, effectiveContent, role = "assistant"))
-            } else {
-                historyMessage.put("content", null)
             }
             historyMessage.put("tool_calls", queuedToolCalls)
             messagesArray.put(historyMessage)
 
-            openToolCallIds.addAll(queuedToolCallIds)
+            openToolCalls.addAll(queuedOpenToolCalls)
             queuedAssistantToolText = null
             queuedToolCalls = JSONArray()
-            queuedToolCallIds.clear()
+            queuedOpenToolCalls.clear()
         }
 
         fun flushOpenToolCallsAsCancelled(reason: String) {
             emitQueuedToolCallsIfNeeded()
-            if (openToolCallIds.isEmpty()) return
+            if (openToolCalls.isEmpty()) return
 
             AppLogger.w(
                 "AIService",
-                "发现未完成的tool_calls，按取消处理: count=${openToolCallIds.size}, reason=$reason"
+                "发现未完成的tool_calls，按取消处理: count=${openToolCalls.size}, reason=$reason"
             )
-            for (toolCallId in openToolCallIds) {
+            for (openToolCall in openToolCalls) {
                 messagesArray.put(
                     JSONObject().apply {
                         put("role", "tool")
-                        put("tool_call_id", toolCallId)
+                        put("tool_call_id", openToolCall.id)
                         put("content", "User cancelled")
                     }
                 )
             }
-            openToolCallIds.clear()
+            openToolCalls.clear()
         }
 
         // 添加聊天历史
@@ -1185,7 +1188,7 @@ open class OpenAIProvider(
                                 }
 
                             if (toolCalls != null && toolCalls.length() > 0) {
-                                if (openToolCallIds.isNotEmpty()) {
+                                if (openToolCalls.isNotEmpty()) {
                                     flushOpenToolCallsAsCancelled("assistant_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls)
@@ -1221,7 +1224,7 @@ open class OpenAIProvider(
                                 }
 
                             if (toolCalls != null && toolCalls.length() > 0) {
-                                if (openToolCallIds.isNotEmpty()) {
+                                if (openToolCalls.isNotEmpty()) {
                                     flushOpenToolCallsAsCancelled("typed_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls)
@@ -1247,30 +1250,33 @@ open class OpenAIProvider(
                             val (textContent, toolResults) = parseXmlToolResults(content)
                             val resultsList = toolResults ?: emptyList()
 
-                            if (resultsList.isNotEmpty() && openToolCallIds.isNotEmpty()) {
-                                val validCount = minOf(resultsList.size, openToolCallIds.size)
+                            if (resultsList.isNotEmpty() && openToolCalls.isNotEmpty()) {
                                 val readableImageSources = mutableListOf<String>()
-                                repeat(validCount) { index ->
-                                    val (_, resultContent) = resultsList[index]
+                                val matchedCalls =
+                                    StructuredToolCallBridge.consumeMatchingToolCalls(
+                                        openToolCalls,
+                                        resultsList.map { it.first }
+                                    )
+                                matchedCalls.forEach { matchedCall ->
+                                    val resultContent = resultsList[matchedCall.resultIndex].second
                                     readableImageSources.add(resultContent)
                                     messagesArray.put(
                                         JSONObject().apply {
                                             put("role", "tool")
-                                            put("tool_call_id", openToolCallIds[index])
+                                            put("tool_call_id", matchedCall.call.id)
                                             put("content", buildContentField(context, resultContent, role = "tool"))
                                         }
                                     )
                                 }
-                                repeat(validCount) {
-                                    openToolCallIds.removeAt(0)
-                                }
 
-                                if (resultsList.size > validCount) {
+                                if (matchedCalls.size < resultsList.size) {
                                     AppLogger.w(
                                         "AIService",
-                                        "发现多余的tool_result: ${resultsList.size} results vs ${validCount} pending tool_calls"
+                                        "发现未匹配的tool_result: ${resultsList.size - matchedCalls.size}"
                                     )
                                 }
+
+                                flushOpenToolCallsAsCancelled("tool_result_partial_batch")
 
                                 if (!useResponsesApi) {
                                     appendReadableImageMessageIfNeeded(
@@ -1290,18 +1296,14 @@ open class OpenAIProvider(
                                 }
                             } else {
                                 flushOpenToolCallsAsCancelled("tool_result_without_structured_match")
-                                val fallbackContent =
-                                    when {
-                                        textContent.isNotEmpty() -> textContent
-                                        content.isNotBlank() -> content
-                                        else -> "[Empty]"
-                                    }
-                                messagesArray.put(
-                                    JSONObject().apply {
-                                        put("role", "user")
-                                        put("content", buildContentField(context, fallbackContent))
-                                    }
-                                )
+                                if (textContent.isNotEmpty()) {
+                                    messagesArray.put(
+                                        JSONObject().apply {
+                                            put("role", "user")
+                                            put("content", buildContentField(context, textContent))
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -1831,7 +1833,7 @@ open class OpenAIProvider(
 
     /**
      * 解析XML格式的tool_result，转换为OpenAI Tool消息格式
-     * @return List<Pair<tool_call_id, result_content>>
+     * @return List<Pair<tool_name, result_content>>，tool_name 用于把结果配回发起它的 tool_call
      */
     fun parseXmlToolResults(content: String): Pair<String, List<Pair<String, String>>?> {
         // 匹配带属性的tool_result标签，例如: <tool_result name="..." status="...">...</tool_result>
@@ -1843,7 +1845,6 @@ open class OpenAIProvider(
 
         val results = mutableListOf<Pair<String, String>>()
         var textContent = content
-        var resultIndex = 0
 
         matches.forEach { match ->
             // 提取<content>标签内的内容，如果有的话
@@ -1855,12 +1856,14 @@ open class OpenAIProvider(
                 fullContent
             }
 
-            // 生成一个tool_call_id（这里需要与之前的call对应，但因为历史记录可能不完整，我们使用索引）
-            results.add(Pair("call_result_${resultIndex}", resultContent))
+            // 保留 name 属性，让结果能配回同名的 tool_call 而不是只按位置对齐
+            val openingTag = match.value.substringBefore('>')
+            val resultName =
+                ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1).orEmpty()
+            results.add(Pair(resultName, resultContent))
 
             // 从文本内容中移除tool_result标签（包括前后的空白符）
             textContent = textContent.replace(match.value, "").trim()
-            resultIndex++
         }
 
         // trim 确保移除所有空白字符

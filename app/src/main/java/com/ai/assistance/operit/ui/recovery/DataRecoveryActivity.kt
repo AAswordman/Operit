@@ -65,12 +65,19 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.OperitUtilityTheme
+import com.ai.assistance.operit.util.LocaleUtils
 
 class DataRecoveryActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtils.getLocalizedContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -100,7 +107,7 @@ private fun DataRecoveryScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("数据救援") },
+                title = { Text(stringResource(R.string.title_activity_data_recovery)) },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -129,9 +136,9 @@ private fun DataRecoveryScreen() {
             }
 
             item {
-                RecoverySection(title = "原始快照") {
+                RecoverySection(title = stringResource(R.string.data_recovery_raw_snapshot_section)) {
                     Text(
-                        text = "导出会打包内部 files、shared_prefs、datastore、databases 和 Android/data 包目录；导入会覆盖当前数据。",
+                        text = stringResource(R.string.data_recovery_raw_snapshot_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -143,7 +150,7 @@ private fun DataRecoveryScreen() {
                         ) {
                             Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("导出快照")
+                            Text(stringResource(R.string.data_recovery_export_snapshot))
                         }
                         OutlinedButton(
                             onClick = { snapshotPicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) },
@@ -151,7 +158,7 @@ private fun DataRecoveryScreen() {
                         ) {
                             Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("导入快照")
+                            Text(stringResource(R.string.data_recovery_import_snapshot))
                         }
                     }
                     state.lastSnapshotPath?.let { path ->
@@ -168,17 +175,20 @@ private fun DataRecoveryScreen() {
                         FilledTonalButton(onClick = { restartMainApp(context) }) {
                             Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("启动主应用")
+                            Text(stringResource(R.string.data_recovery_start_main_app))
                         }
                     }
                 }
             }
 
             item {
-                RecoverySection(title = "文件管理") {
+                RecoverySection(title = stringResource(R.string.data_recovery_file_management)) {
                     val authority = "${context.packageName}.documents.data"
                     Text(
-                        text = "此页不直接打开文件管理器。需要手动查看或导出内部文件时，可以打开 MT 管理器，添加「本地存储仓库」，选择 Operit 的数据仓库后再管理。provider: $authority",
+                        text = stringResource(
+                            R.string.data_recovery_file_management_description,
+                            authority
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -186,28 +196,28 @@ private fun DataRecoveryScreen() {
             }
 
             item {
-                RecoverySection(title = "SQL 执行器") {
+                RecoverySection(title = stringResource(R.string.data_recovery_sql_executor)) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         AssistChip(
                             onClick = { viewModel.setSqlText(DataRecoveryViewModel.SAFE_MESSAGES_QUERY) },
-                            label = { Text("messages 大小") },
+                            label = { Text(stringResource(R.string.data_recovery_messages_size)) },
                             leadingIcon = {
                                 Icon(Icons.Default.Storage, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
                         )
                         AssistChip(
                             onClick = { viewModel.setSqlText(DataRecoveryViewModel.SAFE_VARIANTS_QUERY) },
-                            label = { Text("variants 大小") },
+                            label = { Text(stringResource(R.string.data_recovery_variants_size)) },
                             leadingIcon = {
                                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
                         )
                         AssistChip(
                             onClick = { viewModel.setSqlText(DataRecoveryViewModel.SAFE_CHATS_QUERY) },
-                            label = { Text("chats 字段") },
+                            label = { Text(stringResource(R.string.data_recovery_chats_fields)) },
                             leadingIcon = {
                                 Icon(Icons.Default.Storage, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
@@ -219,7 +229,7 @@ private fun DataRecoveryScreen() {
                         onValueChange = viewModel::setSqlText,
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        label = { Text("SQL") },
+                        label = { Text(stringResource(R.string.data_recovery_sql_label)) },
                         minLines = 4,
                         maxLines = 8
                     )
@@ -230,7 +240,7 @@ private fun DataRecoveryScreen() {
                     ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("执行")
+                        Text(stringResource(R.string.data_recovery_execute))
                     }
                 }
             }
@@ -248,8 +258,8 @@ private fun DataRecoveryScreen() {
     pendingRestoreUri?.let { uri ->
         AlertDialog(
             onDismissRequest = { pendingRestoreUri = null },
-            title = { Text("导入原始快照") },
-            text = { Text("导入会覆盖当前应用数据。确认导入这个快照？") },
+            title = { Text(stringResource(R.string.data_recovery_import_snapshot_title)) },
+            text = { Text(stringResource(R.string.data_recovery_import_snapshot_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -257,12 +267,12 @@ private fun DataRecoveryScreen() {
                         viewModel.restoreRawSnapshot(uri)
                     }
                 ) {
-                    Text("导入")
+                    Text(stringResource(R.string.data_recovery_import_action))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingRestoreUri = null }) {
-                    Text("取消")
+                    Text(stringResource(R.string.data_recovery_cancel_action))
                 }
             }
         )
@@ -291,7 +301,7 @@ private fun StatusPanel(
             }
             Column {
                 Text(
-                    text = error ?: status ?: "救援进程已启动",
+                    text = error ?: status ?: stringResource(R.string.data_recovery_started),
                     style = MaterialTheme.typography.bodyMedium,
                     color =
                         if (error != null) {
@@ -302,7 +312,7 @@ private fun StatusPanel(
                 )
                 affectedRows?.let {
                     Text(
-                        text = "受影响行数：$it",
+                        text = stringResource(R.string.data_recovery_affected_rows, it),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -335,7 +345,7 @@ private fun RecoverySection(
 
 @Composable
 private fun QueryResultPanel(result: DataRecoveryViewModel.QueryResult) {
-    RecoverySection(title = "查询结果 ${result.rows.size} 行") {
+    RecoverySection(title = stringResource(R.string.data_recovery_query_result, result.rows.size)) {
         val horizontalScrollState = rememberScrollState()
         Box(
             modifier =
@@ -390,7 +400,7 @@ private fun ResultRow(values: List<String>, header: Boolean) {
 private fun restartMainApp(context: Context) {
     val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
     if (intent == null) {
-        Toast.makeText(context, "无法启动主应用", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, context.getString(R.string.data_recovery_launch_failed), Toast.LENGTH_LONG).show()
         return
     }
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)

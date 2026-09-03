@@ -270,6 +270,22 @@ abstract class ChatContentDao {
     )
     abstract suspend fun getSelectedContentCharacterCountsByChat(): List<ChatContentCharacterCount>
 
+    @Query(
+        """
+        SELECT
+            chats.id AS chatId,
+            COALESCE(
+                (SELECT SUM(LENGTH(content)) FROM messages WHERE messages.chatId = chats.id),
+                0
+            ) + COALESCE(
+                (SELECT SUM(LENGTH(content)) FROM message_variants WHERE message_variants.chatId = chats.id),
+                0
+            ) AS contentCharacterCount
+        FROM chats
+        """
+    )
+    abstract suspend fun getArchiveContentCharacterCountsByChat(): List<ChatContentCharacterCount>
+
     @Transaction
     open suspend fun getMessagesForChat(chatId: String): List<MessageEntity> =
         materializeMessages(queryMessagesForChat(chatId))
