@@ -378,20 +378,27 @@ fun ClassicChatInputSection(
                 val (progressColor, baseMessage) = when (inputState) {
                     is InputProcessingState.Connecting -> MaterialTheme.colorScheme.tertiary to inputState.message
                     is InputProcessingState.ExecutingTool -> MaterialTheme.colorScheme.secondary to context.getString(R.string.executing_tool, inputState.toolName)
+                    is InputProcessingState.WaitingToolResult ->
+                        MaterialTheme.colorScheme.secondary to
+                            context.getString(R.string.waiting_tool_result, inputState.toolName)
                     is InputProcessingState.ToolProgress -> MaterialTheme.colorScheme.secondary to inputState.message
                     is InputProcessingState.Processing -> MaterialTheme.colorScheme.primary to inputState.message
                     is InputProcessingState.ProcessingToolResult -> MaterialTheme.colorScheme.tertiary.copy(
                         alpha = 0.8f
                     ) to context.getString(R.string.processing_tool_result, inputState.toolName)
+                    is InputProcessingState.Retrying ->
+                        MaterialTheme.colorScheme.tertiary to
+                            context.getString(R.string.message_processing)
                     is InputProcessingState.Summarizing -> MaterialTheme.colorScheme.tertiary to inputState.message
                     is InputProcessingState.Receiving -> MaterialTheme.colorScheme.secondary to inputState.message
                     else -> MaterialTheme.colorScheme.primary to ""
                 }
-
                 var message = baseMessage
                 var progressValue = when (inputState) {
                     is InputProcessingState.Processing -> 0.3f
                     is InputProcessingState.Connecting -> 0.6f
+                    is InputProcessingState.Retrying -> 0.6f
+                    is InputProcessingState.WaitingToolResult -> 0.8f
                     is InputProcessingState.Summarizing -> 0.05f
                     is InputProcessingState.ToolProgress -> inputState.progress
                     else -> 1f

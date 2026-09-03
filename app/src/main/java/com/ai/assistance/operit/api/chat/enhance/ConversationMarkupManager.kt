@@ -51,23 +51,28 @@ class ConversationMarkupManager {
          * @param result The tool execution result
          * @return The formatted tool result message
          */
-        fun formatToolResultForMessage(result: ToolResult): String {
+        fun formatToolResultForMessage(
+            result: ToolResult,
+            maxMessageChars: Int = ToolExecutionLimits.MAX_FINAL_TOOL_RESULT_MESSAGE_CHARS,
+        ): String {
+            val safeMaxMessageChars = maxMessageChars.coerceAtLeast(0)
             return if (result.success) {
                 val (toolPayload, imageLinkPayload) = splitImageLinksForModel(result.result.toString())
                 val toolResultXml =
                     createBoundedToolResultXml(
                         toolName = result.toolName,
                         status = "success",
-                        rawPayload = toolPayload
+                        rawPayload = toolPayload,
+                        maxMessageChars = safeMaxMessageChars,
                     ) { payload ->
                         "<content>$payload</content>"
                     }
 
-                if (imageLinkPayload.isBlank()) {
-                    toolResultXml
-                } else {
-                    "$toolResultXml\n$imageLinkPayload"
-                }
+                appendImageLinksWithinLimit(
+                    toolResultXml = toolResultXml,
+                    imageLinkPayload = imageLinkPayload,
+                    maxMessageChars = safeMaxMessageChars,
+                )
             } else {
                 val errorPayload = buildString {
                     val message = result.error.orEmpty().trim()
@@ -83,7 +88,8 @@ class ConversationMarkupManager {
                 createBoundedToolResultXml(
                     toolName = result.toolName,
                     status = "error",
-                    rawPayload = errorPayload
+                    rawPayload = errorPayload,
+                    maxMessageChars = safeMaxMessageChars,
                 ) { payload ->
                     "<content><error>$payload</error></content>"
                 }
@@ -105,6 +111,29 @@ class ConversationMarkupManager {
                     .joinToString("\n")
 
             return toolPayload to imageLinkPayload
+        }
+
+        private fun appendImageLinksWithinLimit(
+            toolResultXml: String,
+            imageLinkPayload: String,
+            maxMessageChars: Int,
+        ): String {
+            if (imageLinkPayload.isBlank() || toolResultXml.length >= maxMessageChars) {
+                return toolResultXml
+            }
+
+            val bounded = StringBuilder(toolResultXml)
+            for (link in imageLinkPayload.lineSequence()) {
+                if (link.isBlank()) {
+                    continue
+                }
+                val additionalChars = 1 + link.length
+                if (bounded.length + additionalChars > maxMessageChars) {
+                    break
+                }
+                bounded.append('\n').append(link)
+            }
+            return bounded.toString()
         }
 
         fun buildBoundedToolResultMessage(results: List<ToolResult>): String {
@@ -167,6 +196,7 @@ class ConversationMarkupManager {
             toolName: String,
             status: String,
             rawPayload: String,
+            maxMessageChars: Int,
             bodyBuilder: (String) -> String
         ): String {
             val emptyXml =
@@ -176,8 +206,7 @@ class ConversationMarkupManager {
                     content = bodyBuilder("")
                 )
             val maxPayloadChars =
-                (ToolExecutionLimits.MAX_FINAL_TOOL_RESULT_MESSAGE_CHARS - emptyXml.length)
-                    .coerceAtLeast(0)
+                (maxMessageChars - emptyXml.length).coerceAtLeast(0)
             val boundedPayload = truncatePayload(rawPayload, maxPayloadChars)
             return createToolResultXml(
                 toolName = toolName,

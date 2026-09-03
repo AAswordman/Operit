@@ -32,9 +32,26 @@ class RenderBatchCoordinatorTest {
 
         assertEquals(1, flushCount)
     }
+    @Test
+    fun flushNow_appliesPendingUpdateWithoutWaiting() = runTest {
+        var flushCount = 0
+        val coordinator =
+            RenderBatchCoordinator(
+                scope = this,
+                intervalMs = 200,
+                onFlush = { flushCount++ },
+            )
+
+        coordinator.requestUpdate()
+        coordinator.flushNow()
+        advanceUntilIdle()
+
+        assertEquals(1, flushCount)
+    }
 
     @Test
     fun requestDuringFlush_isDrainedBeforeCoordinatorBecomesIdle() = runTest {
+
         var flushCount = 0
         lateinit var coordinator: RenderBatchCoordinator
         coordinator =

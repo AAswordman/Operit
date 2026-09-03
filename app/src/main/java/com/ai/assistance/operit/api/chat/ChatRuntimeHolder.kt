@@ -117,24 +117,14 @@ class ChatRuntimeHolder private constructor(context: Context) {
 
         runtimeScope.launch {
             combine(
-                mainCore.activeStreamingChatIds,
                 mainCore.currentTurnToolInvocationCountByChatId,
-                floatingCore.activeStreamingChatIds,
-                floatingCore.currentTurnToolInvocationCountByChatId
-            ) { mainActiveChatIds, mainCounts, floatingActiveChatIds, floatingCounts ->
-                countCurrentTurnToolsForActiveChats(mainActiveChatIds, mainCounts) +
-                    countCurrentTurnToolsForActiveChats(floatingActiveChatIds, floatingCounts)
+                floatingCore.currentTurnToolInvocationCountByChatId,
+            ) { mainCounts, floatingCounts ->
+                countCurrentTurnTools(mainCounts) + countCurrentTurnTools(floatingCounts)
             }.collect { count ->
                 _currentSessionToolCount.value = count
             }
         }
-    }
-
-    private fun countCurrentTurnToolsForActiveChats(
-        activeChatIds: Set<String>,
-        countMap: Map<String, Int>
-    ): Int {
-        return activeChatIds.sumOf { chatId -> countMap[chatId] ?: 0 }
     }
 
     private fun setupCrossSessionSync() {
@@ -244,6 +234,10 @@ class ChatRuntimeHolder private constructor(context: Context) {
 
         @Volatile
         private var instance: ChatRuntimeHolder? = null
+
+        internal fun countCurrentTurnTools(countMap: Map<String, Int>): Int {
+            return countMap.values.sumOf { it.coerceAtLeast(0) }
+        }
 
         fun getInstance(context: Context): ChatRuntimeHolder {
             return instance ?: synchronized(this) {

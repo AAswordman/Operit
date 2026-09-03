@@ -18,6 +18,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -147,6 +149,19 @@ internal fun cleanMessageContentForCopy(content: String): String {
         .let(MediaLinkParser::removeMediaLinks)
         .trim()
 }
+
+/** Preserves structured markup for copying while removing provider protocol metadata. */
+internal fun cleanMessageContentForXmlCopy(content: String): String {
+    return content
+        .let(ChatMarkupRegex::removeGeminiThoughtSignatureMeta)
+        .let(ChatMarkupRegex::removeOpenAiResponsesProtocolMeta)
+        .trim()
+}
+
+internal data class MessageCopyContent(
+    val markdownSource: String,
+    val xmlSource: String,
+)
 
 internal suspend fun buildSelectedMessagesPlainText(
     messages: List<ChatMessage>,
@@ -643,7 +658,7 @@ private fun MessageItem(
     var showMessageInfoDialog by remember { mutableStateOf(false) }
     var showHiddenUserMessageDialog by remember { mutableStateOf(false) }
     var showDeleteMessageConfirmDialog by remember { mutableStateOf(false) }
-    var copyPreviewText by remember { mutableStateOf<String?>(null) }
+    var copyPreviewContent by remember { mutableStateOf<MessageCopyContent?>(null) }
     val context = LocalContext.current
     val messageInteractionSource = remember { MutableInteractionSource() }
 
@@ -782,8 +797,10 @@ private fun MessageItem(
                         )
                     },
                     onClick = {
-                        val cleanContent = cleanMessageContentForCopy(message.content)
-                        copyPreviewText = cleanContent
+                        copyPreviewContent = MessageCopyContent(
+                            markdownSource = cleanMessageContentForCopy(message.content),
+                            xmlSource = cleanMessageContentForXmlCopy(message.content),
+                        )
                         onCopyMessage?.invoke(message)
                         showContextMenu = false
                     },
@@ -1169,19 +1186,25 @@ private fun MessageItem(
             )
         }
 
-        copyPreviewText?.let { previewText ->
+        copyPreviewContent?.let { previewContent ->
             MessageCopyPreviewBottomSheet(
-                text = previewText,
-                onDismiss = { copyPreviewText = null }
+                content = previewContent,
+                onDismiss = { copyPreviewContent = null }
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class MessageCopyMode {
+    PLAIN_TEXT,
+    MARKDOWN_SOURCE,
+    XML_SOURCE,
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun MessageCopyPreviewBottomSheet(
-    text: String,
+    content: MessageCopyContent,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -1219,23 +1242,26 @@ private fun MessageCopyPreviewBottomSheet(
                 }
             }
         }
-    var showPlainText by remember(text) { mutableStateOf(true) }
-    var plainText by remember(text) { mutableStateOf<String?>(null) }
-    LaunchedEffect(text, context) {
+    var copyMode by remember(content) { mutableStateOf(MessageCopyMode.PLAIN_TEXT) }
+    var plainText by remember(content.markdownSource) { mutableStateOf<String?>(null) }
+    LaunchedEffect(content.markdownSource, context) {
         plainText =
             withContext(Dispatchers.Default) {
-                markdownToPlainTextForCopy(text) { formulas ->
+                markdownToPlainTextForCopy(content.markdownSource) { formulas ->
                     LatexMathMlConverter.convertAll(context, formulas)
                 }
             }
     }
-    val displayedText = if (showPlainText) plainText.orEmpty() else text
-    val copyButtonText =
-        if (showPlainText) {
-            stringResource(R.string.copy_plain_text)
-        } else {
-            stringResource(R.string.copy_markdown_source)
-        }
+    val displayedText = when (copyMode) {
+        MessageCopyMode.PLAIN_TEXT -> plainText.orEmpty()
+        MessageCopyMode.MARKDOWN_SOURCE -> content.markdownSource
+        MessageCopyMode.XML_SOURCE -> content.xmlSource
+    }
+    val copyButtonText = when (copyMode) {
+        MessageCopyMode.PLAIN_TEXT -> stringResource(R.string.copy_plain_text)
+        MessageCopyMode.MARKDOWN_SOURCE -> stringResource(R.string.copy_markdown_source)
+        MessageCopyMode.XML_SOURCE -> stringResource(R.string.copy_xml_source)
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1252,22 +1278,28 @@ private fun MessageCopyPreviewBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            Row(
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
                 FilterChip(
-                    selected = showPlainText,
-                    onClick = { showPlainText = true },
+                    selected = copyMode == MessageCopyMode.PLAIN_TEXT,
+                    onClick = { copyMode = MessageCopyMode.PLAIN_TEXT },
                     label = { Text(stringResource(R.string.plain_text)) }
                 )
                 FilterChip(
-                    selected = !showPlainText,
-                    onClick = { showPlainText = false },
+                    selected = copyMode == MessageCopyMode.MARKDOWN_SOURCE,
+                    onClick = { copyMode = MessageCopyMode.MARKDOWN_SOURCE },
                     label = { Text(stringResource(R.string.markdown_source)) }
                 )
+                FilterChip(
+                    selected = copyMode == MessageCopyMode.XML_SOURCE,
+                    onClick = { copyMode = MessageCopyMode.XML_SOURCE },
+                    label = { Text(stringResource(R.string.xml_source)) }
+                )
             }
-            if (showPlainText && plainText == null) {
+            if (copyMode == MessageCopyMode.PLAIN_TEXT && plainText == null) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -1300,7 +1332,7 @@ private fun MessageCopyPreviewBottomSheet(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(
-                    enabled = !showPlainText || plainText != null,
+                    enabled = copyMode != MessageCopyMode.PLAIN_TEXT || plainText != null,
                     onClick = {
                         clipboardManager.setText(AnnotatedString(displayedText))
                         Toast.makeText(

@@ -18,6 +18,26 @@ private val Context.displayPreferencesDataStore: DataStore<Preferences> by prefe
     name = "display_preferences"
 )
 
+enum class LlmRetryMode(val value: String) {
+    FAST("fast"),
+    STANDARD("standard"),
+    STABLE("stable"),
+    CUSTOM("custom");
+
+    companion object {
+        fun fromValue(value: String?): LlmRetryMode {
+            return values().firstOrNull { it.value == value } ?: STANDARD
+        }
+    }
+}
+
+data class LlmRetrySettings(
+    val maxAttempts: Int = 5,
+    val mode: LlmRetryMode = LlmRetryMode.STANDARD,
+    val customInitialDelaySeconds: Int = 1,
+    val customMaxDelaySeconds: Int = 16
+)
+
 /**
  * DisplayPreferencesManager
  * 管理系统显示与行为相关的偏好设置
@@ -26,6 +46,13 @@ private val Context.displayPreferencesDataStore: DataStore<Preferences> by prefe
 class DisplayPreferencesManager private constructor(private val context: Context) {
 
     companion object {
+        const val MIN_LLM_RETRY_ATTEMPTS = 0
+        const val MAX_LLM_RETRY_ATTEMPTS = 10
+        const val DEFAULT_LLM_RETRY_ATTEMPTS = 5
+        const val MIN_LLM_RETRY_DELAY_SECONDS = 1
+        const val MAX_LLM_RETRY_INITIAL_DELAY_SECONDS = 60
+        const val MAX_LLM_RETRY_DELAY_SECONDS = 300
+
         @Volatile
         private var INSTANCE: DisplayPreferencesManager? = null
 
@@ -73,6 +100,12 @@ class DisplayPreferencesManager private constructor(private val context: Context
 
         // 工具折叠设置（多个只读工具 / 多个任意工具 / 全部工具）
         private val KEY_TOOL_COLLAPSE_MODE = stringPreferencesKey("tool_collapse_mode")
+        private val KEY_LLM_RETRY_MAX_ATTEMPTS = intPreferencesKey("llm_retry_max_attempts")
+        private val KEY_LLM_RETRY_MODE = stringPreferencesKey("llm_retry_mode")
+        private val KEY_LLM_RETRY_INITIAL_DELAY_SECONDS =
+            intPreferencesKey("llm_retry_initial_delay_seconds")
+        private val KEY_LLM_RETRY_MAX_DELAY_SECONDS =
+            intPreferencesKey("llm_retry_max_delay_seconds")
     }
 
     /**
@@ -204,6 +237,28 @@ class DisplayPreferencesManager private constructor(private val context: Context
             ToolCollapseMode.fromValue(preferences[KEY_TOOL_COLLAPSE_MODE])
         }
 
+    val llmRetrySettings: Flow<LlmRetrySettings> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            LlmRetrySettings(
+                maxAttempts =
+                    (preferences[KEY_LLM_RETRY_MAX_ATTEMPTS] ?: DEFAULT_LLM_RETRY_ATTEMPTS)
+                        .coerceIn(MIN_LLM_RETRY_ATTEMPTS, MAX_LLM_RETRY_ATTEMPTS),
+                mode = LlmRetryMode.fromValue(preferences[KEY_LLM_RETRY_MODE]),
+                customInitialDelaySeconds =
+                    (preferences[KEY_LLM_RETRY_INITIAL_DELAY_SECONDS] ?: 1)
+                        .coerceIn(
+                            MIN_LLM_RETRY_DELAY_SECONDS,
+                            MAX_LLM_RETRY_INITIAL_DELAY_SECONDS
+                        ),
+                customMaxDelaySeconds =
+                    (preferences[KEY_LLM_RETRY_MAX_DELAY_SECONDS] ?: 16)
+                        .coerceIn(
+                            MIN_LLM_RETRY_DELAY_SECONDS,
+                            MAX_LLM_RETRY_DELAY_SECONDS
+                        )
+            )
+        }
+
     /**
      * 保存显示设置
      */
@@ -226,7 +281,11 @@ class DisplayPreferencesManager private constructor(private val context: Context
         visitWebWaitSeconds: Int? = null,
         toolPkgHookTimeoutSeconds: Int? = null,
         virtualDisplayBitrateKbps: Int? = null,
-        toolCollapseMode: ToolCollapseMode? = null
+        toolCollapseMode: ToolCollapseMode? = null,
+        llmRetryMaxAttempts: Int? = null,
+        llmRetryMode: LlmRetryMode? = null,
+        llmRetryInitialDelaySeconds: Int? = null,
+        llmRetryMaxDelaySeconds: Int? = null
     ) {
         context.displayPreferencesDataStore.edit { preferences ->
             showFpsCounter?.let { preferences[KEY_SHOW_FPS_COUNTER] = it }
@@ -264,6 +323,22 @@ class DisplayPreferencesManager private constructor(private val context: Context
             }
             virtualDisplayBitrateKbps?.let { preferences[KEY_VIRTUAL_DISPLAY_BITRATE_KBPS] = it }
             toolCollapseMode?.let { preferences[KEY_TOOL_COLLAPSE_MODE] = it.value }
+            llmRetryMaxAttempts?.let {
+                preferences[KEY_LLM_RETRY_MAX_ATTEMPTS] =
+                    it.coerceIn(MIN_LLM_RETRY_ATTEMPTS, MAX_LLM_RETRY_ATTEMPTS)
+            }
+            llmRetryMode?.let { preferences[KEY_LLM_RETRY_MODE] = it.value }
+            llmRetryInitialDelaySeconds?.let {
+                preferences[KEY_LLM_RETRY_INITIAL_DELAY_SECONDS] =
+                    it.coerceIn(
+                        MIN_LLM_RETRY_DELAY_SECONDS,
+                        MAX_LLM_RETRY_INITIAL_DELAY_SECONDS
+                    )
+            }
+            llmRetryMaxDelaySeconds?.let {
+                preferences[KEY_LLM_RETRY_MAX_DELAY_SECONDS] =
+                    it.coerceIn(MIN_LLM_RETRY_DELAY_SECONDS, MAX_LLM_RETRY_DELAY_SECONDS)
+            }
         }
     }
 
@@ -329,9 +404,13 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences.remove(KEY_SCREENSHOT_FORMAT)
             preferences.remove(KEY_SCREENSHOT_QUALITY)
             preferences.remove(KEY_SCREENSHOT_SCALE_PERCENT)
+            preferences.remove(KEY_VIRTUAL_DISPLAY_BITRATE_KBPS)
             preferences.remove(KEY_VISIT_WEB_WAIT_SECONDS)
             preferences.remove(KEY_TOOLPKG_HOOK_TIMEOUT_SECONDS)
-            preferences.remove(KEY_VIRTUAL_DISPLAY_BITRATE_KBPS)
+            preferences.remove(KEY_LLM_RETRY_MAX_ATTEMPTS)
+            preferences.remove(KEY_LLM_RETRY_MODE)
+            preferences.remove(KEY_LLM_RETRY_INITIAL_DELAY_SECONDS)
+            preferences.remove(KEY_LLM_RETRY_MAX_DELAY_SECONDS)
             preferences.remove(KEY_TOOL_COLLAPSE_MODE)
         }
     }

@@ -1237,13 +1237,14 @@ open class ClaudeProvider(
         context: Context,
         exception: Exception,
         retryCount: Int,
-        maxRetries: Int,
+        retryPolicy: LlmRetryPolicySnapshot,
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
         onRetryState: suspend (RuntimeRetryMetadata) -> Unit = {},
-        onRetryAccepted: suspend () -> Unit,
-        buildRetryMessage: (String, Int) -> String
+        onRetryAccepted: suspend () -> Unit
+
     ): Int {
+        val maxRetries = retryPolicy.maxRetryAttempts
         if (exception is UserCancellationException || exception is CancellationException) {
             throw exception
         }
@@ -1267,6 +1268,10 @@ open class ClaudeProvider(
 
         val newRetryCount = retryCount + 1
         if (newRetryCount > maxRetries) {
+            if (maxRetries == 0) {
+                onNonFatalError(errorText)
+                throw IOException(errorText, exception)
+            }
             AppLogger.e("AIService", "【Claude】$errorText 且达到最大重试次数($maxRetries)", exception)
             throw IOException(
                 context.getString(R.string.openai_error_connection_timeout, maxRetries, errorText),
@@ -1276,7 +1281,7 @@ open class ClaudeProvider(
 
         // A terminal failure must retain its streamed text; only a replacement request discards it.
         onRetryAccepted()
-        val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
+        val retryDelayMs = retryPolicy.nextDelayMs(newRetryCount)
         val classification = ApiErrorClassifier.classify(exception)
         onRetryState(
             RuntimeRetryMetadata(
@@ -1290,9 +1295,6 @@ open class ClaudeProvider(
             )
         )
         AppLogger.w("AIService", "【Claude】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
-            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
-        }
         delay(retryDelayMs)
         return newRetryCount
     }
@@ -1318,7 +1320,8 @@ open class ClaudeProvider(
         isManuallyCancelled = false
         tokenCacheManager.setOutputTokens(0)
 
-        val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+        val retryPolicy = LlmRetryPolicy.snapshot(context)
+        val maxRetries = retryPolicy.maxRetryAttempts
         var retryCount = 0
         var lastException: Exception? = null
         val receivedContent = StringBuilder()
@@ -2001,14 +2004,11 @@ open class ClaudeProvider(
                         context = context,
                         exception = e,
                         retryCount = retryCount,
-                        maxRetries = maxRetries,
+                        retryPolicy = retryPolicy,
                         enableRetry = enableRetry,
                         onNonFatalError = onNonFatalError,
                         onRetryState = onRetryState,
                         onRetryAccepted = { emitRollback(requestSavepointId) },
-                        buildRetryMessage = { errorText, retryNumber ->
-                            context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
-                        },
                     )
             } finally {
                 activeCall = null

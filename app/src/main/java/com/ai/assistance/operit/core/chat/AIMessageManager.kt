@@ -8,6 +8,7 @@ import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.enhance.InputProcessor
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
+import com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkBuilder
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
@@ -347,6 +348,7 @@ object AIMessageManager {
         maxTokens: Int,
         tokenUsageThreshold: Double,
         onNonFatalError: suspend (error: String) -> Unit,
+        onRetryState: suspend (retry: RuntimeRetryMetadata) -> Unit = {},
         onTokenLimitExceeded: (suspend () -> Unit)? = null,
         characterName: String? = null,
         avatarUri: String? = null,
@@ -484,8 +486,9 @@ object AIMessageManager {
                     enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                     maxTokens = maxTokens,
                     tokenUsageThreshold = tokenUsageThreshold,
-                    onNonFatalError = onNonFatalError,
-                    onTokenLimitExceeded = onTokenLimitExceeded,
+                     onNonFatalError = onNonFatalError,
+                     onRetryState = onRetryState,
+                     onTokenLimitExceeded = onTokenLimitExceeded,
                     characterName = characterName,
                     avatarUri = avatarUri,
                     roleCardId = roleCardId,

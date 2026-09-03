@@ -433,7 +433,10 @@ class EnhancedAIService private constructor(private val context: Context) {
         val isConversationActive: AtomicBoolean = AtomicBoolean(true),
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
+        val toolResultDisplayBudget: ToolExecutionManager.ToolResultDisplayBudget =
+            ToolExecutionManager.ToolResultDisplayBudget(),
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null
+
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -2122,10 +2125,6 @@ class EnhancedAIService private constructor(private val context: Context) {
     ) {
         val startTime = messageTimingNow()
 
-        toolInvocations.forEach { invocation ->
-            onToolInvocation?.invoke(invocation.tool.name)
-        }
-
         if (!isSubTask && toolInvocations.isNotEmpty()) {
             withContext(Dispatchers.Main) {
                 val toolNames = toolInvocations.joinToString(", ") { resolveToolDisplayName(it.tool) }
@@ -2152,6 +2151,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 callerChatId = chatId,
                 callerCardId = roleCardId,
                 onToolExecutionStarted = { toolName ->
+                    onToolInvocation?.invoke(toolName)
                     if (!isSubTask) {
                         withContext(Dispatchers.Main) {
                             _inputProcessingState.value = InputProcessingState.WaitingToolResult(toolName)
@@ -2161,6 +2161,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 onDisplayMarkupEmitted = { markup ->
                     context.roundManager.appendContent(markup)
                 },
+                displayBudget = context.toolResultDisplayBudget,
             )
 
             if (allToolResults.isNotEmpty()) {

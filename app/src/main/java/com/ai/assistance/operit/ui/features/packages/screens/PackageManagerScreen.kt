@@ -213,7 +213,7 @@ fun PackageManagerScreen(
     var quickPluginSetupRunning by remember { mutableStateOf(false) }
     var quickPluginSetupResult by remember { mutableStateOf<ToolResult?>(null) }
 
-    val requiredEnvByPackage by remember {
+    val environmentPackages by remember {
         derivedStateOf {
             val packagesMap = allAvailablePackages.value
             val imported = importedPackages.value.toSet()
@@ -222,18 +222,15 @@ fun PackageManagerScreen(
                 .mapNotNull { packageName ->
                     packagesMap[packageName]
                 }
+                .filter { toolPackage -> toolPackage.env.isNotEmpty() }
                 .sortedBy { it.name }
-                .associate { toolPackage ->
-                    toolPackage.name to toolPackage.env
-                }
-                .filterValues { envVars -> envVars.isNotEmpty() }
         }
     }
 
     val requiredEnvKeys by remember {
         derivedStateOf {
-            requiredEnvByPackage.values
-                .flatten()
+            environmentPackages
+                .flatMap { it.env }
                 .map { it.name }
                 .toSet()
                 .toList()
@@ -1021,7 +1018,7 @@ fun PackageManagerScreen(
             // Environment Variables Dialog for packages
             if (showEnvDialog) {
                 PackageEnvironmentVariablesDialog(
-                    requiredEnvByPackage = requiredEnvByPackage,
+                    toolPackages = environmentPackages,
                     currentValues = envVariables,
                     onDismiss = { showEnvDialog = false },
                     onConfirm = { updated ->

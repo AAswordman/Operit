@@ -2,6 +2,9 @@ package com.ai.assistance.operit.services.core
 
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.util.stream.emptyStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -53,5 +56,32 @@ class MessageProcessingDelegateTest {
         assertFalse(MessageProcessingDelegate.shouldPersistInterruptedMessage(""))
         assertFalse(MessageProcessingDelegate.shouldPersistInterruptedMessage("   \n"))
         assertTrue(MessageProcessingDelegate.shouldPersistInterruptedMessage("partial response"))
+    }
+
+    @Test
+    fun updateChatStateMap_preservesConcurrentUpdatesForDifferentChats() {
+        val state = MutableStateFlow<Map<String, Int>>(emptyMap())
+        val start = CountDownLatch(1)
+        val done = CountDownLatch(2)
+        val executor = Executors.newFixedThreadPool(2)
+        try {
+            listOf("chat-a", "chat-b").forEach { chatId ->
+                executor.execute {
+                    start.await()
+                    repeat(1_000) {
+                        MessageProcessingDelegate.updateChatStateMap(state, chatId) { current ->
+                            (current ?: 0) + 1
+                        }
+                    }
+                    done.countDown()
+                }
+            }
+            start.countDown()
+            assertTrue(done.await(10, java.util.concurrent.TimeUnit.SECONDS))
+            assertEquals(1_000, state.value["chat-a"])
+            assertEquals(1_000, state.value["chat-b"])
+        } finally {
+            executor.shutdownNow()
+        }
     }
 }

@@ -8,6 +8,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.api.chat.llmprovider.ApiErrorClassifier
+import com.ai.assistance.operit.api.chat.llmprovider.RuntimeRetryMetadata
 import com.ai.assistance.operit.api.chat.ChatRuntimeStateStore
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.logMessageTiming
@@ -42,13 +43,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import com.ai.assistance.operit.core.tools.ToolProgressBus
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.coroutineContext
@@ -111,9 +112,19 @@ class MessageProcessingDelegate(
                 completedAt = completedAt,
             )
         }
+
+        /** Applies a per-chat update without dropping concurrent updates for other chats. */
+        internal fun <T> updateChatStateMap(
+            state: MutableStateFlow<Map<String, T>>,
+            key: String,
+            transform: (T?) -> T?,
+        ) {
+            state.update { current ->
+                val next = transform(current[key])
+                if (next == null) current - key else current + (key to next)
+            }
+        }
     }
-
-
 
     private fun fallbackConversationTitle(userText: String, attachments: List<AttachmentInfo>): String {
         return attachments.firstOrNull()?.fileName?.trim()?.takeIf { it.isNotBlank() }
@@ -182,6 +193,9 @@ class MessageProcessingDelegate(
 
     private val _nonFatalErrorEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val nonFatalErrorEvent = _nonFatalErrorEvent.asSharedFlow()
+
+    private val _retryStateEvent = MutableSharedFlow<RuntimeRetryMetadata>(extraBufferCapacity = 1)
+    val retryStateEvent = _retryStateEvent.asSharedFlow()
 
     /**
      * Publish host-side hook notices through the same stream used by AI retry messages.
@@ -254,7 +268,7 @@ class MessageProcessingDelegate(
 
     private fun runtimeFor(chatId: String?): ChatRuntime {
         val key = chatKey(chatId)
-        return chatRuntimes[key] ?: ChatRuntime().also { chatRuntimes[key] = it }
+        return chatRuntimes.computeIfAbsent(key) { ChatRuntime() }
     }
 
     private fun updateGlobalLoadingState() {
@@ -286,15 +300,10 @@ class MessageProcessingDelegate(
                 return
             }
         }
-        if (state !is EnhancedInputProcessingState.ExecutingTool &&
-            state !is EnhancedInputProcessingState.Summarizing
-        ) {
-            ToolProgressBus.clear()
-        }
-        val key = chatKey(chatId)
-        val map = _inputProcessingStateByChatId.value.toMutableMap()
-        map[key] = state
-        _inputProcessingStateByChatId.value = map
+        updateChatStateMap(
+            state = _inputProcessingStateByChatId,
+            key = chatKey(chatId),
+        ) { state }
     }
 
     fun setSuppressIdleCompletedStateForChat(chatId: String, suppress: Boolean) {
@@ -663,9 +672,10 @@ class MessageProcessingDelegate(
     }
 
     private fun updateUserDraftState(chatId: String, hasDraft: Boolean) {
-        val updated = _userDraftStateByChatId.value.toMutableMap()
-        updated[chatId] = hasDraft
-        _userDraftStateByChatId.value = updated
+        updateChatStateMap(
+            state = _userDraftStateByChatId,
+            key = chatId,
+        ) { hasDraft }
     }
 
     private fun clearUserMessageDraft(chatId: String) {
@@ -697,21 +707,24 @@ class MessageProcessingDelegate(
     }
 
     private fun resetCurrentTurnToolInvocationCount(chatId: String) {
-        val updated = _currentTurnToolInvocationCountByChatId.value.toMutableMap()
-        updated[chatId] = 0
-        _currentTurnToolInvocationCountByChatId.value = updated
+        updateChatStateMap(
+            state = _currentTurnToolInvocationCountByChatId,
+            key = chatId,
+        ) { 0 }
     }
 
     private fun incrementCurrentTurnToolInvocationCount(chatId: String) {
-        val updated = _currentTurnToolInvocationCountByChatId.value.toMutableMap()
-        updated[chatId] = (updated[chatId] ?: 0) + 1
-        _currentTurnToolInvocationCountByChatId.value = updated
+        updateChatStateMap(
+            state = _currentTurnToolInvocationCountByChatId,
+            key = chatId,
+        ) { current -> (current ?: 0) + 1 }
     }
 
     private fun clearCurrentTurnToolInvocationCount(chatId: String) {
-        val updated = _currentTurnToolInvocationCountByChatId.value.toMutableMap()
-        updated.remove(chatId)
-        _currentTurnToolInvocationCountByChatId.value = updated
+        updateChatStateMap(
+            state = _currentTurnToolInvocationCountByChatId,
+            key = chatId,
+        ) { null }
     }
 
     fun sendUserMessage(
@@ -1126,6 +1139,9 @@ class MessageProcessingDelegate(
                     onNonFatalError = { error ->
                         _nonFatalErrorEvent.emit(error)
                     },
+                    onRetryState = { retry ->
+                        _retryStateEvent.emit(retry)
+                    },
                     onTokenLimitExceeded = effectiveOnTokenLimitExceeded,
                     characterName = characterName,
                     avatarUri = avatarUri,
@@ -1528,19 +1544,18 @@ class MessageProcessingDelegate(
                     AppLogger.e(TAG, "发送消息时出错", e)
                     shouldFinalizeInterruptedMessage = true
                     val classification = ApiErrorClassifier.classify(e)
-                    setChatInputProcessingState(
-                        chatId,
-                        EnhancedInputProcessingState.Error(
-                            message = context.getString(R.string.message_send_failed, e.message),
-                            code = classification.code,
-                            errorSource = InputProcessingErrorSource.API,
-                            recoverable = classification.recoverable,
-                            appCode = classification.appCode,
-                            providerCode = classification.providerCode,
-                            httpStatusCode = classification.httpStatusCode,
-                            retryAfterMs = classification.retryAfterMs
-                        )
+                    val terminalErrorState = EnhancedInputProcessingState.Error(
+                        message = context.getString(R.string.message_send_failed, e.message),
+                        code = classification.code,
+                        errorSource = InputProcessingErrorSource.API,
+                        recoverable = classification.recoverable,
+                        appCode = classification.appCode,
+                        providerCode = classification.providerCode,
+                        httpStatusCode = classification.httpStatusCode,
+                        retryAfterMs = classification.retryAfterMs
                     )
+                    finalInputStateAfterSend = terminalErrorState
+                    setChatInputProcessingState(chatId, terminalErrorState)
                     val terminalErrorMessage =
                         context.getString(R.string.message_send_failed, e.message)
                     withContext(Dispatchers.Main) {
@@ -1744,6 +1759,7 @@ class MessageProcessingDelegate(
                     maxTokens = maxTokens,
                     tokenUsageThreshold = tokenUsageThreshold,
                     onNonFatalError = { error -> _nonFatalErrorEvent.emit(error) },
+                    onRetryState = { retry -> _retryStateEvent.emit(retry) },
                     characterName = currentRoleName,
                     roleCardId = roleCardId,
                     currentRoleName = currentRoleName,
@@ -1863,19 +1879,19 @@ class MessageProcessingDelegate(
             } else {
                 AppLogger.e(TAG, "单条重新生成失败", e)
                 val classification = ApiErrorClassifier.classify(e)
-                setChatInputProcessingState(
-                    chatId,
-                    EnhancedInputProcessingState.Error(
-                        message = context.getString(R.string.chat_regenerate_single_failed, e.message ?: ""),
-                        code = classification.code,
-                        errorSource = InputProcessingErrorSource.API,
-                        recoverable = classification.recoverable,
-                        appCode = classification.appCode,
-                        providerCode = classification.providerCode,
-                        httpStatusCode = classification.httpStatusCode,
-                        retryAfterMs = classification.retryAfterMs
-                    )
+                val terminalErrorState = EnhancedInputProcessingState.Error(
+                    message = context.getString(R.string.chat_regenerate_single_failed, e.message ?: ""),
+                    code = classification.code,
+                    errorSource = InputProcessingErrorSource.API,
+                    recoverable = classification.recoverable,
+                    appCode = classification.appCode,
+                    providerCode = classification.providerCode,
+                    httpStatusCode = classification.httpStatusCode,
+                    retryAfterMs = classification.retryAfterMs
                 )
+                terminalState = terminalErrorState
+                setChatInputProcessingState(chatId, terminalErrorState)
+
             }
             exceptionToPropagate = e
         } finally {
@@ -1912,9 +1928,10 @@ class MessageProcessingDelegate(
         turnOptions: ChatTurnOptions = ChatTurnOptions()
     ) {
         if (!chatId.isNullOrBlank()) {
-            val updated = _turnCompleteCounterByChatId.value.toMutableMap()
-            updated[chatId] = (updated[chatId] ?: 0L) + 1L
-            _turnCompleteCounterByChatId.value = updated
+            updateChatStateMap(
+                state = _turnCompleteCounterByChatId,
+                key = chatId,
+            ) { current -> (current ?: 0L) + 1L }
         }
         val nextWindowSize = calculateNextWindowSize?.invoke()
         AppLogger.d(

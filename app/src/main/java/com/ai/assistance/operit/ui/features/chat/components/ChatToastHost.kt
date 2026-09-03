@@ -53,7 +53,10 @@ fun ChatToastHost(
     LaunchedEffect(event?.id) {
         val activeEvent = event ?: return@LaunchedEffect
         scrollState.scrollTo(0)
-        kotlinx.coroutines.delay(estimateToastDurationMs(activeEvent.message))
+        kotlinx.coroutines.delay(
+            activeEvent.durationMs?.coerceAtLeast(1L)
+                ?: estimateToastDurationMs(activeEvent.message)
+        )
         onDismiss(activeEvent.id)
     }
 

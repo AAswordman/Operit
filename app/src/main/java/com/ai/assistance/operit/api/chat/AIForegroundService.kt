@@ -31,7 +31,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.graphics.drawable.IconCompat
+import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.R
+
 import com.ai.assistance.operit.api.speech.PersonalWakeListener
 import com.ai.assistance.operit.api.speech.SpeechPrerollStore
 import com.ai.assistance.operit.api.speech.SpeechService
@@ -1860,9 +1862,12 @@ class AIForegroundService : Service() {
         val wakeListeningEnabledSnapshot = wakeListeningEnabled
         val wakeListeningSuspendedSnapshot = wakeListeningSuspendedForIme || wakeListeningSuspendedForExternalRecording || wakeListeningSuspendedForFloatingFullscreen
         val externalHttpSnapshot = externalHttpStateFlow.value
+        val applicationLabel = applicationInfo.loadLabel(packageManager).toString()
         val title =
-            if (isAiBusy) {
-                characterName ?: getString(R.string.service_operit_running)
+            if (BuildConfig.DEBUG) {
+                applicationLabel
+            } else if (isAiBusy) {
+                characterName ?: applicationLabel
             } else {
                 if (wakeListeningEnabledSnapshot) {
                     if (wakeListeningSuspendedSnapshot) {

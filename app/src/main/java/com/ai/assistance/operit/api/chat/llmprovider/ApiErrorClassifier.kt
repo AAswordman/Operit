@@ -24,7 +24,8 @@ internal enum class OperitNetworkError(
     CONNECTION_RESET(5003, "connection_reset", "Connection reset"),
     CONNECTION_CLOSED(5004, "connection_closed", "Connection closed"),
     TLS_HANDSHAKE_FAILED(5005, "tls_handshake_failed", "TLS handshake failed"),
-    CONNECTION_TIMEOUT(5006, "connection_timeout", "Connection timed out");
+    CONNECTION_TIMEOUT(5006, "connection_timeout", "Connection timed out"),
+    CONNECTION_ABORTED(5007, "connection_aborted", "Connection aborted");
 
     fun toErrorJson(): String =
         org.json.JSONObject()
@@ -197,6 +198,13 @@ internal object ApiErrorClassifier {
                 chain.any { it is SocketException && containsAny(it.message.orEmpty().lowercase(Locale.ROOT), "reset") } ->
                 OperitNetworkError.CONNECTION_RESET
 
+            containsAny(
+                text,
+                "software caused connection abort",
+                "connection aborted",
+                "econnaborted"
+            ) -> OperitNetworkError.CONNECTION_ABORTED
+
             chain.any { it is EOFException } ||
                 containsAny(text, "unexpected end of stream", "unexpected eof", "premature eof", "connection closed", "socket closed") ->
                 OperitNetworkError.CONNECTION_CLOSED
@@ -261,7 +269,8 @@ internal object ApiErrorClassifier {
             "connection_reset",
             "connection_closed",
             "tls_handshake_failed",
-            "connection_timeout"
+            "connection_timeout",
+            "connection_aborted"
         )
     }
 }

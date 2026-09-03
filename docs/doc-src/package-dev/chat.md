@@ -93,7 +93,7 @@ getCurrentChatRuntimeState(chatId?: string): Promise<CurrentChatRuntimeStateResu
 - `cancelled`（用户取消当前操作；下一次非终止状态会替换它）
 - `error`
 
-返回值还包含用户交互状态、应用前后台状态、工具名称，以及可选的 `error` 和 `retry` 对象。`error.source` 为 `ai`、`tool`、`api` 或 `system`，`error.code` 是可扩展的归一化字符串；Operit 本地网络错误通过 `error.appCode` 暴露 `5000` 至 `5006` 的应用码，服务商原始 code 和 HTTP 状态位于 `error.providerCode`、`error.httpStatusCode`。`retry` 包含 `attempt`、`maxAttempts` 和 `retryAfterMs`。这个接口不暴露 `main`/`floating` runtime 选择器。
+返回值还包含用户交互状态、应用前后台状态、工具名称，以及可选的 `error` 和 `retry` 对象。`error.source` 为 `ai`、`tool`、`api` 或 `system`，`error.code` 是可扩展的归一化字符串；Operit 本地网络错误通过 `error.appCode` 暴露 `5000` 至 `5007` 的应用码，服务商原始 code 和 HTTP 状态位于 `error.providerCode`、`error.httpStatusCode`。`retry` 包含 `attempt`、`maxAttempts` 和 `retryAfterMs`。这个接口不暴露 `main`/`floating` runtime 选择器。
 
 ### `getGlobalChatRuntimeState()`
 
