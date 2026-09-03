@@ -948,8 +948,14 @@
     <string name="settings_enable_summary_by_message_count_desc">Trigger summary when new message count reaches threshold</string>
     <string name="settings_summary_message_count_threshold">Message Count Threshold</string>
     <string name="settings_summary_message_count_threshold_subtitle">Number of new messages to trigger summary (1-20)</string>
-    <string name="settings_summary_custom_rules">Custom Summary Rules</string>
-    <string name="settings_summary_custom_rules_desc">Extra rules sent when summarizing the conversation. Leave blank for none</string>
+    <string name="settings_summary_custom_rules">Global Summary Rules</string>
+    <string name="settings_summary_custom_rules_desc">Shared rules for all enabled summary sections. They take priority over default section instructions; leave blank to use section instructions only</string>
+    <string name="settings_summary_structure">Summary Structure</string>
+    <string name="settings_summary_section_enabled_desc">Turn this off to omit this section from generated summaries</string>
+    <string name="settings_summary_section_title">Section Title</string>
+    <string name="settings_summary_section_title_desc">The heading shown in the summary</string>
+    <string name="settings_summary_section_instruction">Section Instructions</string>
+    <string name="settings_summary_section_instruction_desc">Describe what this section should record</string>
     
     <string name="settings_section_display">Display and Behavior</string>
 

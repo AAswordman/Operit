@@ -899,8 +899,14 @@
     <string name="settings_enable_summary_by_message_count_desc">当新消息数量达到阈值时触发总结</string>
     <string name="settings_summary_message_count_threshold">消息条数阈值</string>
     <string name="settings_summary_message_count_threshold_subtitle">触发总结的新消息数量(1-20条)</string>
-    <string name="settings_summary_custom_rules">自定义总结规则</string>
-    <string name="settings_summary_custom_rules_desc">总结对话时发送的额外规则，留空为不添加</string>
+    <string name="settings_summary_custom_rules">全局总结规则</string>
+    <string name="settings_summary_custom_rules_desc">适用于所有启用总结板块的共同规则，优先于默认板块说明；留空则只使用板块说明</string>
+    <string name="settings_summary_structure">总结结构</string>
+    <string name="settings_summary_section_enabled_desc">关闭后生成摘要时不输出该板块</string>
+    <string name="settings_summary_section_title">板块标题</string>
+    <string name="settings_summary_section_title_desc">摘要中显示的标题</string>
+    <string name="settings_summary_section_instruction">板块说明</string>
+    <string name="settings_summary_section_instruction_desc">说明此板块应记录什么内容</string>
 
     <string name="settings_section_display">显示与行为</string>
 

@@ -57,17 +57,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.model.SummarySectionConfig
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.util.LocaleUtils
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -146,6 +150,10 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     var summaryCustomRulesInput by remember(currentConfig?.id) {
         mutableStateOf(currentConfig?.summaryCustomRules.orEmpty())
     }
+    val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
+    var summarySectionsInput by remember(currentConfig?.id) {
+        mutableStateOf(emptyList<SummarySectionConfig>())
+    }
     var summaryError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentConfig?.id, currentConfig?.contextLength) {
@@ -170,7 +178,12 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     LaunchedEffect(currentConfig?.id, currentConfig?.summaryCustomRules) {
         summaryCustomRulesInput = currentConfig?.summaryCustomRules.orEmpty()
     }
-
+    LaunchedEffect(currentConfig?.id, currentConfig?.summarySections, useEnglish) {
+        summarySectionsInput = FunctionalPrompts.resolveSummarySections(
+            configuredSections = currentConfig?.summarySections.orEmpty(),
+            useEnglish = useEnglish
+        )
+    }
     val errorValidContextLength = stringResource(id = R.string.model_config_error_valid_context_length)
     val errorValidMaxContextLength =
         stringResource(id = R.string.model_config_error_valid_max_context_length)
@@ -250,7 +263,13 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                     errorSaveFailed = errorSaveFailed,
                     onSummaryErrorChange = { summaryError = it }
                 )
-
+                ContextSummarySectionsAutoSaveEffect(
+                    currentConfig = currentConfig,
+                    summarySectionsInputProvider = { summarySectionsInput },
+                    modelConfigManager = modelConfigManager,
+                    errorSaveFailed = errorSaveFailed,
+                    onSummaryErrorChange = { summaryError = it }
+                )
                 RenderContextSummaryConfigSections(
                     componentBackgroundColor = componentBackgroundColor,
                     contextLengthInput = contextLengthInput,
@@ -281,6 +300,10 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                     summaryCustomRulesInput = summaryCustomRulesInput,
                     onSummaryCustomRulesInputChange = {
                         summaryCustomRulesInput = it
+                    },
+                    summarySectionsInput = summarySectionsInput,
+                    onSummarySectionsInputChange = {
+                        summarySectionsInput = it
                     },
                     summaryError = summaryError
                 )
@@ -521,6 +544,42 @@ private fun ContextSummaryCustomRulesAutoSaveEffect(
 }
 
 @Composable
+private fun ContextSummarySectionsAutoSaveEffect(
+    currentConfig: ModelConfigData?,
+    summarySectionsInputProvider: () -> List<SummarySectionConfig>,
+    modelConfigManager: ModelConfigManager,
+    errorSaveFailed: String,
+    onSummaryErrorChange: (String?) -> Unit
+) {
+    val latestConfig by rememberUpdatedState(currentConfig)
+
+    LaunchedEffect(currentConfig?.id) {
+        val configId = currentConfig?.id ?: return@LaunchedEffect
+        snapshotFlow { summarySectionsInputProvider() }
+            .drop(1)
+            .debounce(700)
+            .distinctUntilChanged()
+            .collectLatest { sections ->
+                val current = latestConfig ?: return@collectLatest
+                if (current.id != configId || current.summarySections == sections) return@collectLatest
+                try {
+                    modelConfigManager.updateSummarySettings(
+                        configId = current.id,
+                        enableSummary = current.enableSummary,
+                        summaryTokenThreshold = current.summaryTokenThreshold,
+                        enableSummaryByMessageCount = current.enableSummaryByMessageCount,
+                        summaryMessageCountThreshold = current.summaryMessageCountThreshold,
+                        summarySections = sections
+                    )
+                    onSummaryErrorChange(null)
+                } catch (e: Exception) {
+                    onSummaryErrorChange(e.message ?: errorSaveFailed)
+                }
+            }
+    }
+}
+
+@Composable
 private fun RenderContextSummaryConfigSections(
     componentBackgroundColor: Color,
     contextLengthInput: String,
@@ -538,6 +597,8 @@ private fun RenderContextSummaryConfigSections(
     onSummaryMessageCountThresholdInputChange: (String) -> Unit,
     summaryCustomRulesInput: String,
     onSummaryCustomRulesInputChange: (String) -> Unit,
+    summarySectionsInput: List<SummarySectionConfig>,
+    onSummarySectionsInputChange: (List<SummarySectionConfig>) -> Unit,
     summaryError: String?
 ) {
     SectionTitle(
@@ -637,6 +698,61 @@ private fun RenderContextSummaryConfigSections(
         backgroundColor = componentBackgroundColor,
         enabled = enableSummary
     )
+    Spacer(modifier = Modifier.size(12.dp))
+    SectionTitle(
+        text = stringResource(id = R.string.settings_summary_structure),
+        icon = Icons.Default.Summarize
+    )
+    summarySectionsInput.forEachIndexed { index, section ->
+        SummarySectionEditor(
+            section = section,
+            onSectionChange = { updatedSection ->
+                onSummarySectionsInputChange(
+                    summarySectionsInput.mapIndexed { currentIndex, currentSection ->
+                        if (currentIndex == index) updatedSection else currentSection
+                    }
+                )
+            },
+            backgroundColor = componentBackgroundColor,
+            enabled = enableSummary
+        )
+    }
+}
+
+@Composable
+private fun SummarySectionEditor(
+    section: SummarySectionConfig,
+    onSectionChange: (SummarySectionConfig) -> Unit,
+    backgroundColor: Color,
+    enabled: Boolean
+) {
+    SettingsSwitchRow(
+        title = section.title,
+        subtitle = stringResource(id = R.string.settings_summary_section_enabled_desc),
+        checked = section.enabled,
+        onCheckedChange = { onSectionChange(section.copy(enabled = it)) },
+        backgroundColor = backgroundColor,
+        enabled = enabled
+    )
+    SettingsMultilineTextField(
+        title = stringResource(id = R.string.settings_summary_section_title),
+        subtitle = stringResource(id = R.string.settings_summary_section_title_desc),
+        value = section.title,
+        onValueChange = { onSectionChange(section.copy(title = it)) },
+        backgroundColor = backgroundColor,
+        enabled = enabled && section.enabled,
+        singleLine = true,
+        minHeight = 40.dp
+    )
+    SettingsMultilineTextField(
+        title = stringResource(id = R.string.settings_summary_section_instruction),
+        subtitle = stringResource(id = R.string.settings_summary_section_instruction_desc),
+        value = section.instruction,
+        onValueChange = { onSectionChange(section.copy(instruction = it)) },
+        backgroundColor = backgroundColor,
+        enabled = enabled && section.enabled
+    )
+    Spacer(modifier = Modifier.size(8.dp))
 }
 
 @Composable
@@ -929,7 +1045,9 @@ private fun SettingsMultilineTextField(
     value: String,
     onValueChange: (String) -> Unit,
     backgroundColor: Color,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    singleLine: Boolean = false,
+    minHeight: Dp = 80.dp
 ) {
     val contentAlpha = if (enabled) 1f else 0.38f
     Column(
@@ -962,7 +1080,7 @@ private fun SettingsMultilineTextField(
             enabled = enabled,
             modifier =
                 Modifier.fillMaxWidth()
-                    .heightIn(min = 80.dp)
+                    .heightIn(min = minHeight)
                     .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp),
             textStyle =
@@ -971,10 +1089,11 @@ private fun SettingsMultilineTextField(
                     fontSize = 13.sp
                 ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            singleLine = singleLine,
             decorationBox = { innerTextField ->
                 if (value.isEmpty()) {
                     Text(
-                        text = stringResource(id = R.string.settings_summary_custom_rules_desc),
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )

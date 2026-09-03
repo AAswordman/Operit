@@ -7335,8 +7335,14 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="notification_kind_review_changes">Perlu pengubahsuaian</string>
     <string name="notification_kind_entry_curated">Dipilih sebagai pilihan</string>
 
-    <string name="settings_summary_custom_rules">Peraturan Ringkasan Tersuai</string>
-    <string name="settings_summary_custom_rules_desc">Peraturan tambahan yang dihantar semasa meringkaskan perbualan, biarkan kosong untuk tidak menambah</string>
+    <string name="settings_summary_custom_rules">Peraturan Ringkasan Global</string>
+    <string name="settings_summary_custom_rules_desc">Peraturan bersama untuk semua bahagian ringkasan yang diaktifkan. Ia diutamakan berbanding arahan bahagian lalai; biarkan kosong untuk menggunakan arahan bahagian sahaja.</string>
+    <string name="settings_summary_structure">Struktur Ringkasan</string>
+    <string name="settings_summary_section_enabled_desc">Matikan untuk mengecualikan bahagian ini daripada ringkasan yang dijana</string>
+    <string name="settings_summary_section_title">Tajuk Bahagian</string>
+    <string name="settings_summary_section_title_desc">Tajuk yang dipaparkan dalam ringkasan</string>
+    <string name="settings_summary_section_instruction">Arahan Bahagian</string>
+    <string name="settings_summary_section_instruction_desc">Terangkan kandungan yang perlu direkodkan oleh bahagian ini</string>
     <string name="title_activity_data_recovery">Pemulihan Data</string>
     <string name="shortcut_data_recovery">Pemulihan Data</string>
     <string name="memory_space_select">Pilih Ruang Memori</string>

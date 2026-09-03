@@ -7185,8 +7185,14 @@
     <string name="notification_kind_review_changes">수정 필요</string>
     <string name="notification_kind_entry_curated">추천 선정</string>
 
-    <string name="settings_summary_custom_rules">사용자 정의 요약 규칙</string>
-    <string name="settings_summary_custom_rules_desc">대화 요약 시 전송할 추가 규칙, 비워두면 추가하지 않음</string>
+    <string name="settings_summary_custom_rules">전역 요약 규칙</string>
+    <string name="settings_summary_custom_rules_desc">활성화된 모든 요약 섹션에 적용되는 공통 규칙입니다. 기본 섹션 지침보다 우선하며, 비워 두면 섹션 지침만 사용합니다.</string>
+    <string name="settings_summary_structure">요약 구조</string>
+    <string name="settings_summary_section_enabled_desc">생성된 요약에서 이 섹션을 제외하려면 끄세요</string>
+    <string name="settings_summary_section_title">섹션 제목</string>
+    <string name="settings_summary_section_title_desc">요약에 표시되는 제목</string>
+    <string name="settings_summary_section_instruction">섹션 지침</string>
+    <string name="settings_summary_section_instruction_desc">이 섹션에 기록할 내용을 설명하세요</string>
     <string name="title_activity_data_recovery">데이터 복구</string>
     <string name="shortcut_data_recovery">데이터 복구</string>
     <string name="memory_space_select">메모리 공간 선택</string>

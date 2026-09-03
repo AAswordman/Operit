@@ -16,6 +16,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.data.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolParameter
@@ -114,17 +115,19 @@ class ConversationService(
             messages: List<PromptTurn>,
             previousSummary: String?,
             multiServiceManager: MultiServiceManager,
-            customRules: String? = null,
+            summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
     ): String {
         try {
             val useEnglish = LocaleUtils.getCurrentLanguage(context).lowercase().startsWith("en")
             val activePromptMetadata = buildActivePromptHookMetadata(context)
-            var systemPrompt = FunctionalPrompts.buildSummarySystemPrompt(previousSummary, useEnglish)
-            // 注入自定义总结规则
-            if (!customRules.isNullOrBlank()) {
-                systemPrompt += "\n\n${customRules.trim()}"
-            }
+            val resolvedSummarySections =
+                FunctionalPrompts.resolveSummarySections(summaryConfig.sections, useEnglish)
+            var systemPrompt = FunctionalPrompts.buildSummarySystemPrompt(
+                previousSummary = previousSummary,
+                useEnglish = useEnglish,
+                summaryConfig = summaryConfig
+            )
             val sanitizedMessages =
                 ChatUtils.stripOpenAiResponsesProtocolMarkupTurns(
                     ChatUtils.stripGeminiThoughtSignatureMetaTurns(messages)
@@ -215,37 +218,27 @@ class ConversationService(
                 val message: String
             )
 
-            val stages = listOf(
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_MARKER_EN) || it.contains(FunctionalPrompts.SUMMARY_MARKER_CN) }),
-                    progress = 0.20f,
-                    message = context.getString(R.string.conversation_summary_writing_title)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_CORE_TASK_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_CORE_TASK_CN) }),
-                    progress = 0.40f,
-                    message = context.getString(R.string.conversation_summary_core_task)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_INTERACTION_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_INTERACTION_CN) }),
-                    progress = 0.55f,
-                    message = context.getString(R.string.conversation_summary_interaction)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_PROGRESS_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_PROGRESS_CN) }),
-                    progress = 0.70f,
-                    message = context.getString(R.string.conversation_summary_progress)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_KEY_INFO_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_KEY_INFO_CN) }),
-                    progress = 0.85f,
-                    message = context.getString(R.string.conversation_summary_key_info)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains("=======================================") || it.contains("============================") }),
-                    progress = 0.95f,
-                    message = context.getString(R.string.conversation_summary_finishing)
+            val enabledSummarySections = resolvedSummarySections.filter { it.enabled }
+            val stages = mutableListOf<Stage>()
+            stages += Stage(
+                matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_MARKER_EN) || it.contains(FunctionalPrompts.SUMMARY_MARKER_CN) }),
+                progress = 0.20f,
+                message = context.getString(R.string.conversation_summary_writing_title)
+            )
+            val sectionProgressStep = 0.65f / (enabledSummarySections.size + 1).toFloat()
+            enabledSummarySections.forEachIndexed { index, section ->
+                stages += Stage(
+                    matchers = listOf({ output ->
+                        output.contains(FunctionalPrompts.summarySectionHeader(section.title, useEnglish))
+                    }),
+                    progress = 0.20f + sectionProgressStep * (index + 1),
+                    message = section.title
                 )
+            }
+            stages += Stage(
+                matchers = listOf({ it.contains("=======================================") || it.contains("============================") }),
+                progress = 0.95f,
+                message = context.getString(R.string.conversation_summary_finishing)
             )
 
             var lastStageIndex = -1
