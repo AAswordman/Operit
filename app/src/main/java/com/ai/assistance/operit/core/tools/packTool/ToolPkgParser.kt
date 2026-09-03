@@ -1548,10 +1548,10 @@ internal object ToolPkgArchiveParser {
                         val depth = normalizedName.count { it == '/' }
                         if (rank < bestRank || (rank == bestRank && depth < bestDepth)) {
                             bestEntryName = normalizedName
+                            // Read the entry without closing the shared ZipInputStream:
+                            // closing a reader over it would close the whole archive stream.
                             bestManifestText =
-                                zipInput.bufferedReader(StandardCharsets.UTF_8).use { reader ->
-                                    reader.readText()
-                                }
+                                String(zipInput.readBytes(), StandardCharsets.UTF_8)
                             bestRank = rank
                             bestDepth = depth
                         }
