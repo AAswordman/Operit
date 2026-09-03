@@ -21,6 +21,7 @@ import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.common.displays.UIOperationOverlay
 import com.ai.assistance.operit.ui.common.displays.UIAutomationProgressOverlay
@@ -438,7 +439,12 @@ open class StandardUITools(protected val context: Context) : ToolImplementations
             val screenWidth = metrics.widthPixels
             val screenHeight = metrics.heightPixels
 
-            val agentConfig = AgentConfig(maxSteps = maxSteps)
+            val displayPrefs = DisplayPreferencesManager.getInstance(context)
+            val agentConfig = AgentConfig(
+                maxSteps = maxSteps,
+                postLaunchDelayMs = displayPrefs.getAgentPostLaunchDelayMs().toLong(),
+                postActionDelayMs = displayPrefs.getAgentPostActionDelayMs().toLong()
+            )
             val actionHandler = ActionHandler(
                 context = context,
                 screenWidth = screenWidth,

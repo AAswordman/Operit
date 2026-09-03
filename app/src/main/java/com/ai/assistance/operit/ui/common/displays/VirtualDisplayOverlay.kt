@@ -80,6 +80,17 @@ import com.ai.assistance.operit.R
 import java.util.concurrent.ConcurrentHashMap
 import androidx.compose.ui.res.stringResource
 
+private data class AutomationActionFeedback(
+    val type: Type,
+    val startX: Int,
+    val startY: Int,
+    val endX: Int = startX,
+    val endY: Int = startY,
+    val id: Long = System.nanoTime()
+) {
+    enum class Type { TAP, SWIPE }
+}
+
 class VirtualDisplayOverlay private constructor(private val context: Context, private val agentId: String) {
 
     companion object {
@@ -144,6 +155,8 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
     private var automationStatusText by mutableStateOf<String?>(null)
     private var automationIsPaused by mutableStateOf(false)
     private var automationVisible by mutableStateOf(false)
+    private var actionFeedback by mutableStateOf<AutomationActionFeedback?>(null)
+    private val clearActionFeedback = Runnable { actionFeedback = null }
     private var automationOnTogglePauseResume: ((Boolean) -> Unit)? = null
     private var automationOnExit: (() -> Unit)? = null
     // Fixed left control panel width (in px) added on top of the original video width.
@@ -252,6 +265,46 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
         }
     }
 
+    /** Show the exact remote coordinate used by an automated tap. */
+    fun showTapFeedback(x: Int, y: Int, durationMs: Long = 1200L) {
+        showActionFeedback(
+            AutomationActionFeedback(
+                type = AutomationActionFeedback.Type.TAP,
+                startX = x,
+                startY = y
+            ),
+            durationMs
+        )
+    }
+
+    /** Show the exact remote path used by an automated swipe. */
+    fun showSwipeFeedback(
+        startX: Int,
+        startY: Int,
+        endX: Int,
+        endY: Int,
+        durationMs: Long = 1400L
+    ) {
+        showActionFeedback(
+            AutomationActionFeedback(
+                type = AutomationActionFeedback.Type.SWIPE,
+                startX = startX,
+                startY = startY,
+                endX = endX,
+                endY = endY
+            ),
+            durationMs
+        )
+    }
+
+    private fun showActionFeedback(feedback: AutomationActionFeedback, durationMs: Long) {
+        runOnMainThread {
+            handler.removeCallbacks(clearActionFeedback)
+            actionFeedback = feedback
+            handler.postDelayed(clearActionFeedback, durationMs.coerceAtLeast(300L))
+        }
+    }
+
     suspend fun captureCurrentFramePng(): ByteArray? = surfaceView?.captureCurrentFramePng()
 
     fun showAutomationControls(
@@ -281,6 +334,8 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
 
     fun hideAutomationControls() {
         runOnMainThread {
+            handler.removeCallbacks(clearActionFeedback)
+            actionFeedback = null
             automationVisible = false
             automationOnTogglePauseResume = null
             automationOnExit = null
@@ -295,6 +350,8 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
         Companion.instances.remove(agentId, this)
         runOnMainThread {
             try {
+                handler.removeCallbacks(clearActionFeedback)
+                actionFeedback = null
                 if (cancelAutomation) {
                     PhoneAgentJobRegistry.cancelAgent(agentId, cancelReason)
                 }
@@ -618,6 +675,7 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
                 }
                 if (hasShowerDisplay) {
                     val density = LocalDensity.current
+                    val remoteVideoSize = ShowerController.getVideoSize(agentId)
 
                     // Always keep a single ShowerSurfaceView attached; only adjust its layout
                     val videoModifierBase = when {
@@ -755,6 +813,15 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
                                 }
                             }
                         )
+                        val feedback = actionFeedback
+                        if (feedback != null && remoteVideoSize != null && !snapped) {
+                            AutomationActionFeedbackIndicator(
+                                feedback = feedback,
+                                remoteWidth = remoteVideoSize.first,
+                                remoteHeight = remoteVideoSize.second,
+                                density = density
+                            )
+                        }
                         if (rainbowBorderVisible && !snapped) {
                             RainbowStatusBorderOverlay()
                         }
@@ -1287,6 +1354,108 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
 private fun getStatusBarHeight(): Int {
         val resourceId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
         return if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
+    }
+}
+
+@Composable
+private fun AutomationActionFeedbackIndicator(
+    feedback: AutomationActionFeedback,
+    remoteWidth: Int,
+    remoteHeight: Int,
+    density: androidx.compose.ui.unit.Density
+) {
+    val progress = remember(feedback.id) { Animatable(0f) }
+
+    LaunchedEffect(feedback.id) {
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 1100, easing = FastOutSlowInEasing)
+        )
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val maxRemoteX = (remoteWidth - 1).coerceAtLeast(1).toFloat()
+        val maxRemoteY = (remoteHeight - 1).coerceAtLeast(1).toFloat()
+
+        fun mapPoint(x: Int, y: Int): Offset {
+            return Offset(
+                x = size.width * x.coerceIn(0, maxRemoteX.toInt()) / maxRemoteX,
+                y = size.height * y.coerceIn(0, maxRemoteY.toInt()) / maxRemoteY
+            )
+        }
+
+        val start = mapPoint(feedback.startX, feedback.startY)
+        val end = mapPoint(feedback.endX, feedback.endY)
+        val p = progress.value
+        val alpha = (1f - p).coerceIn(0f, 1f)
+
+        when (feedback.type) {
+            AutomationActionFeedback.Type.TAP -> {
+                drawCircle(
+                    color = Color(0xFF00E5FF),
+                    center = start,
+                    radius = with(density) { (14.dp + 44.dp * p).toPx() },
+                    style = Stroke(width = with(density) { (5.dp * alpha).toPx() }),
+                    alpha = alpha
+                )
+                drawCircle(
+                    color = Color.White,
+                    center = start,
+                    radius = with(density) { 7.dp.toPx() },
+                    alpha = alpha.coerceAtLeast(0.25f)
+                )
+            }
+
+            AutomationActionFeedback.Type.SWIPE -> {
+                val current = Offset(
+                    x = start.x + (end.x - start.x) * (p / 0.72f).coerceIn(0f, 1f),
+                    y = start.y + (end.y - start.y) * (p / 0.72f).coerceIn(0f, 1f)
+                )
+                val strokeWidth = with(density) { 7.dp.toPx() }
+                drawLine(
+                    color = Color(0xFFFF9800),
+                    start = start,
+                    end = current,
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round,
+                    alpha = alpha
+                )
+                drawCircle(
+                    color = Color(0xFFFFE0B2),
+                    center = current,
+                    radius = with(density) { 12.dp.toPx() },
+                    alpha = alpha
+                )
+                val angle = atan2(end.y - start.y, end.x - start.x)
+                val arrowLength = with(density) { 22.dp.toPx() }
+                val arrowAngle = 0.55f
+                val left = Offset(
+                    current.x - arrowLength * cos(angle - arrowAngle),
+                    current.y - arrowLength * sin(angle - arrowAngle)
+                )
+                val right = Offset(
+                    current.x - arrowLength * cos(angle + arrowAngle),
+                    current.y - arrowLength * sin(angle + arrowAngle)
+                )
+                drawLine(
+                    color = Color(0xFFFF9800),
+                    start = current,
+                    end = left,
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round,
+                    alpha = alpha
+                )
+                drawLine(
+                    color = Color(0xFFFF9800),
+                    start = current,
+                    end = right,
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round,
+                    alpha = alpha
+                )
+            }
+        }
     }
 }
 

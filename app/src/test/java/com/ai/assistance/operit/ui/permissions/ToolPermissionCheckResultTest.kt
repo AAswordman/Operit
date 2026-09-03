@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.permissions
 
+import com.ai.assistance.operit.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -12,25 +13,23 @@ class ToolPermissionCheckResultTest {
         val result = ToolPermissionCheckResult.GRANTED
 
         assertTrue(result.isGranted)
-        assertNull(result.errorCode)
-        assertNull(result.errorMessage)
+        assertNull(result.errorMessageResId)
     }
 
     @Test
-    fun permissionFailuresExposeStableErrorMetadata() {
+    fun permissionFailuresExposeLocalizedErrorMessages() {
         val expected =
             mapOf(
-                ToolPermissionCheckResult.DENIED to "permission_denied",
+                ToolPermissionCheckResult.DENIED to R.string.tool_permission_execution_denied,
                 ToolPermissionCheckResult.OVERLAY_PERMISSION_REQUIRED to
-                    "overlay_permission_required",
+                    R.string.tool_permission_overlay_required_for_confirmation,
                 ToolPermissionCheckResult.CONFIRMATION_TIMEOUT to
-                    "permission_confirmation_timeout"
+                    R.string.tool_permission_confirmation_timeout
             )
 
-        expected.forEach { (result, errorCode) ->
+        expected.forEach { (result, messageResId) ->
             assertFalse(result.isGranted)
-            assertEquals(errorCode, result.errorCode)
-            assertTrue(result.errorMessage?.isNotBlank() == true)
+            assertEquals(messageResId, result.errorMessageResId)
         }
     }
 }

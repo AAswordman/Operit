@@ -78,6 +78,15 @@ fun GlobalDisplaySettingsScreen(
     val visitWebWaitSeconds by displayPreferencesManager.visitWebWaitSeconds.collectAsState(initial = 0)
     val toolPkgHookTimeoutSeconds by displayPreferencesManager.toolPkgHookTimeoutSeconds.collectAsState(initial = 10)
     val virtualDisplayBitrateKbps by displayPreferencesManager.virtualDisplayBitrateKbps.collectAsState(initial = 3000)
+    val agentPostLaunchDelayMs by displayPreferencesManager.agentPostLaunchDelayMs.collectAsState(
+        initial = DisplayPreferencesManager.DEFAULT_AGENT_POST_LAUNCH_DELAY_MS
+    )
+    val agentPostActionDelayMs by displayPreferencesManager.agentPostActionDelayMs.collectAsState(
+        initial = DisplayPreferencesManager.DEFAULT_AGENT_POST_ACTION_DELAY_MS
+    )
+    val agentMaxSteps by displayPreferencesManager.agentMaxSteps.collectAsState(
+        initial = DisplayPreferencesManager.DEFAULT_AGENT_MAX_STEPS
+    )
     val keepScreenOn by apiPreferences.keepScreenOnFlow.collectAsState(initial = true)
     val convertLongPastedTextToFile by userPreferences.convertLongPastedTextToFile.collectAsState(initial = true)
     val longPastedTextFileThreshold by userPreferences.longPastedTextFileThreshold.collectAsState(
@@ -795,6 +804,93 @@ fun GlobalDisplaySettingsScreen(
                     )
                 }
             }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(componentBackgroundColor)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.global_display_agent_post_launch_delay),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = stringResource(id = R.string.global_display_agent_post_launch_delay_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(0, 300, 500, 1000, 2000).forEach { delayMs ->
+                        FilterChip(
+                            selected = agentPostLaunchDelayMs == delayMs,
+                            onClick = {
+                                scope.launch {
+                                    displayPreferencesManager.saveDisplaySettings(
+                                        agentPostLaunchDelayMs = delayMs
+                                    )
+                                }
+                            },
+                            label = { Text("$delayMs ms") }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(id = R.string.global_display_agent_post_action_delay),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = stringResource(id = R.string.global_display_agent_post_action_delay_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(0, 150, 300, 500, 1000).forEach { delayMs ->
+                        FilterChip(
+                            selected = agentPostActionDelayMs == delayMs,
+                            onClick = {
+                                scope.launch {
+                                    displayPreferencesManager.saveDisplaySettings(
+                                        agentPostActionDelayMs = delayMs
+                                    )
+                                }
+                            },
+                            label = { Text("$delayMs ms") }
+                        )
+                    }
+                }
+            }
+
+            EditableNumberSetting(
+                title = stringResource(R.string.global_display_agent_max_steps),
+                subtitle = stringResource(R.string.global_display_agent_max_steps_desc),
+                value = agentMaxSteps.toFloat(),
+                onValueChange = { value ->
+                    scope.launch {
+                        displayPreferencesManager.saveDisplaySettings(
+                            agentMaxSteps = value.roundToInt()
+                        )
+                    }
+                },
+                valueRange = DisplayPreferencesManager.MIN_AGENT_MAX_STEPS.toFloat()..
+                    DisplayPreferencesManager.MAX_AGENT_MAX_STEPS.toFloat(),
+                unitText = stringResource(R.string.global_display_agent_max_steps_unit),
+                backgroundColor = componentBackgroundColor
+            )
 
             Column(
                 modifier = Modifier

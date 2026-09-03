@@ -395,8 +395,7 @@ class AIToolHandler private constructor(private val context: Context) {
                             toolName = tool.name,
                             success = false,
                             result = StringResultData(""),
-                            error = validationResult.errorMessage,
-                            errorCode = "invalid_arguments"
+                            error = validationResult.errorMessage
                     )
             notifyToolExecutionResult(tool, validationFailedResult)
             notifyToolExecutionFinished(tool)
@@ -453,8 +452,7 @@ class AIToolHandler private constructor(private val context: Context) {
                     toolName = tool.name,
                     success = false,
                     result = StringResultData(""),
-                    error = validationResult.errorMessage,
-                    errorCode = "invalid_arguments"
+                    error = validationResult.errorMessage
                 )
             notifyToolExecutionResult(tool, validationFailedResult)
             notifyToolExecutionFinished(tool)

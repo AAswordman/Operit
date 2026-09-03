@@ -97,6 +97,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
 
         // 虚拟屏幕相关设置的 Key
         private val KEY_VIRTUAL_DISPLAY_BITRATE_KBPS = intPreferencesKey("virtual_display_bitrate_kbps")
+        private val KEY_AGENT_POST_LAUNCH_DELAY_MS = intPreferencesKey("agent_post_launch_delay_ms")
+        private val KEY_AGENT_POST_ACTION_DELAY_MS = intPreferencesKey("agent_post_action_delay_ms")
+        private val KEY_AGENT_MAX_STEPS = intPreferencesKey("agent_max_steps")
 
         // 工具折叠设置（多个只读工具 / 多个任意工具 / 全部工具）
         private val KEY_TOOL_COLLAPSE_MODE = stringPreferencesKey("tool_collapse_mode")
@@ -106,6 +109,16 @@ class DisplayPreferencesManager private constructor(private val context: Context
             intPreferencesKey("llm_retry_initial_delay_seconds")
         private val KEY_LLM_RETRY_MAX_DELAY_SECONDS =
             intPreferencesKey("llm_retry_max_delay_seconds")
+
+        /** UI 自动化：启动 App 后的硬性等待（毫秒） */
+        const val DEFAULT_AGENT_POST_LAUNCH_DELAY_MS = 1000
+        /** UI 自动化：点击/输入/滑动等动作后的硬性等待（毫秒） */
+        const val DEFAULT_AGENT_POST_ACTION_DELAY_MS = 500
+        const val MIN_AGENT_DELAY_MS = 0
+        const val MAX_AGENT_DELAY_MS = 5000
+        const val DEFAULT_AGENT_MAX_STEPS = 25
+        const val MIN_AGENT_MAX_STEPS = 1
+        const val MAX_AGENT_MAX_STEPS = 100
     }
 
     /**
@@ -232,6 +245,22 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences[KEY_VIRTUAL_DISPLAY_BITRATE_KBPS] ?: 3000
         }
 
+    val agentPostLaunchDelayMs: Flow<Int> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            preferences[KEY_AGENT_POST_LAUNCH_DELAY_MS] ?: DEFAULT_AGENT_POST_LAUNCH_DELAY_MS
+        }
+
+    val agentPostActionDelayMs: Flow<Int> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            preferences[KEY_AGENT_POST_ACTION_DELAY_MS] ?: DEFAULT_AGENT_POST_ACTION_DELAY_MS
+        }
+
+    val agentMaxSteps: Flow<Int> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            (preferences[KEY_AGENT_MAX_STEPS] ?: DEFAULT_AGENT_MAX_STEPS)
+                .coerceIn(MIN_AGENT_MAX_STEPS, MAX_AGENT_MAX_STEPS)
+        }
+
     val toolCollapseMode: Flow<ToolCollapseMode> =
         context.displayPreferencesDataStore.data.map { preferences ->
             ToolCollapseMode.fromValue(preferences[KEY_TOOL_COLLAPSE_MODE])
@@ -281,6 +310,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
         visitWebWaitSeconds: Int? = null,
         toolPkgHookTimeoutSeconds: Int? = null,
         virtualDisplayBitrateKbps: Int? = null,
+        agentPostLaunchDelayMs: Int? = null,
+        agentPostActionDelayMs: Int? = null,
+        agentMaxSteps: Int? = null,
         toolCollapseMode: ToolCollapseMode? = null,
         llmRetryMaxAttempts: Int? = null,
         llmRetryMode: LlmRetryMode? = null,
@@ -322,6 +354,18 @@ class DisplayPreferencesManager private constructor(private val context: Context
                 preferences[KEY_TOOLPKG_HOOK_TIMEOUT_SECONDS] = it.coerceIn(1, 60)
             }
             virtualDisplayBitrateKbps?.let { preferences[KEY_VIRTUAL_DISPLAY_BITRATE_KBPS] = it }
+            agentPostLaunchDelayMs?.let {
+                preferences[KEY_AGENT_POST_LAUNCH_DELAY_MS] =
+                    it.coerceIn(MIN_AGENT_DELAY_MS, MAX_AGENT_DELAY_MS)
+            }
+            agentPostActionDelayMs?.let {
+                preferences[KEY_AGENT_POST_ACTION_DELAY_MS] =
+                    it.coerceIn(MIN_AGENT_DELAY_MS, MAX_AGENT_DELAY_MS)
+            }
+            agentMaxSteps?.let {
+                preferences[KEY_AGENT_MAX_STEPS] =
+                    it.coerceIn(MIN_AGENT_MAX_STEPS, MAX_AGENT_MAX_STEPS)
+            }
             toolCollapseMode?.let { preferences[KEY_TOOL_COLLAPSE_MODE] = it.value }
             llmRetryMaxAttempts?.let {
                 preferences[KEY_LLM_RETRY_MAX_ATTEMPTS] =
@@ -384,6 +428,21 @@ class DisplayPreferencesManager private constructor(private val context: Context
         }
     }
 
+    /** UI 自动化：启动 App 后的硬性等待（毫秒），同步读取。 */
+    fun getAgentPostLaunchDelayMs(): Int {
+        return runBlocking { agentPostLaunchDelayMs.first() }
+    }
+
+    /** UI 自动化：动作后的硬性等待（毫秒），同步读取。 */
+    fun getAgentPostActionDelayMs(): Int {
+        return runBlocking { agentPostActionDelayMs.first() }
+    }
+
+    /** UI 自动化：AutoGLM 最大模型轮次。 */
+    fun getAgentMaxSteps(): Int {
+        return runBlocking { agentMaxSteps.first() }
+    }
+
     /**
      * 重置所有显示设置为默认值
      */
@@ -405,6 +464,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences.remove(KEY_SCREENSHOT_QUALITY)
             preferences.remove(KEY_SCREENSHOT_SCALE_PERCENT)
             preferences.remove(KEY_VIRTUAL_DISPLAY_BITRATE_KBPS)
+            preferences.remove(KEY_AGENT_POST_LAUNCH_DELAY_MS)
+            preferences.remove(KEY_AGENT_POST_ACTION_DELAY_MS)
+            preferences.remove(KEY_AGENT_MAX_STEPS)
             preferences.remove(KEY_VISIT_WEB_WAIT_SECONDS)
             preferences.remove(KEY_TOOLPKG_HOOK_TIMEOUT_SECONDS)
             preferences.remove(KEY_LLM_RETRY_MAX_ATTEMPTS)

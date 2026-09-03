@@ -20,9 +20,40 @@ object ShowerServerManager {
     private const val TAG = "ShowerServerManager"
     private const val ASSET_JAR_NAME = "shower-server.jar"
     private const val LOCAL_JAR_NAME = "shower-server.jar"
-
     @Volatile
     var additionalTargetPackages: Set<String> = emptySet()
+
+    @Volatile
+    private var lastStartError: String? = null
+
+    /** Returns the most recent start failure for host UI diagnostics. */
+    fun getLastStartError(): String? = lastStartError
+
+    private fun failStart(message: String): Boolean {
+        lastStartError = message
+        ShowerLog.e(TAG, message)
+        return false
+    }
+
+    private fun commandFailure(prefix: String, result: ShellCommandResult): String {
+        val details = listOf(result.stderr.trim(), result.stdout.trim())
+            .filter { it.isNotEmpty() }
+            .joinToString(" | ")
+        return "$prefix (exitCode=${result.exitCode})${if (details.isNotEmpty()) ": $details" else ""}"
+    }
+
+    /**
+     * Read the server log without making startup depend on the diagnostic command.
+     */
+    private suspend fun readServerLog(runner: ShellRunner, path: String): String? {
+        return try {
+            val result = runner.run("tail -n 80 $path", ShellIdentity.DEFAULT)
+            if (result.success) result.stdout.trim().takeLast(8_000).ifEmpty { null } else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
 
     /**
      * Ensure the Shower server is started in the background.
@@ -30,6 +61,8 @@ object ShowerServerManager {
      * was received within the timeout window.
      */
     suspend fun ensureServerStarted(context: Context): Boolean {
+        lastStartError = null
+
         // 0) If we already have an alive Binder from the handoff broadcast, just reuse it.
         if (ShowerBinderRegistry.hasAliveService()) {
             ShowerLog.d(TAG, "Shower Binder already cached and alive, skipping start")
@@ -38,16 +71,14 @@ object ShowerServerManager {
 
         val runner = ShowerEnvironment.shellRunner
         if (runner == null) {
-            ShowerLog.e(TAG, "No ShellRunner configured in ShowerEnvironment; cannot start server")
-            return false
+            return failStart("No ShellRunner configured in ShowerEnvironment; cannot start server")
         }
 
         val appContext = context.applicationContext
         val jarFile = try {
             copyJarToExternalDir(appContext)
         } catch (e: Exception) {
-            ShowerLog.e(TAG, "Failed to copy shower-server.jar from assets", e)
-            return false
+            return failStart("Failed to copy shower-server.jar from assets: ${e.message}")
         }
 
         // 1) Kill existing server (ignore errors about missing process).
@@ -74,24 +105,22 @@ object ShowerServerManager {
         ShowerLog.d(TAG, "Copying Shower jar with shell identity using command: $copyCmd")
         val copyResult = runner.run(copyCmd, ShellIdentity.SHELL)
         if (!copyResult.success) {
-            ShowerLog.e(
-                TAG,
-                "Failed to copy Shower jar to $remoteJarPath (exitCode=${copyResult.exitCode}). stdout='${copyResult.stdout}', stderr='${copyResult.stderr}'"
+            return failStart(
+                commandFailure("Failed to copy Shower jar to $remoteJarPath", copyResult)
             )
-            return false
         }
 
-        // 4) Start app_process with CLASSPATH pointing to /data/local/tmp/shower-server.jar, in background.
+        // 4) Detach all stdio from the caller. Some shell runners close their pipes immediately
+        // for background commands; inheriting those pipes can terminate app_process or hide its
+        // startup error before the Binder handoff is delivered.
         val targetPackagesArg = appContext.packageName
-        val startCmd = "CLASSPATH=$remoteJarPath app_process / com.ai.assistance.shower.Main $targetPackagesArg &"
+        val startCmd =
+            "CLASSPATH=$remoteJarPath /system/bin/app_process / com.ai.assistance.shower.Main " +
+                "$targetPackagesArg </dev/null >>$remoteLogPath 2>&1 &"
         ShowerLog.d(TAG, "Starting Shower server with command: $startCmd")
         val startResult = runner.run(startCmd, ShellIdentity.SHELL)
         if (!startResult.success) {
-            ShowerLog.e(
-                TAG,
-                "Failed to start Shower server (exitCode=${startResult.exitCode}). stdout='${startResult.stdout}', stderr='${startResult.stderr}'"
-            )
-            return false
+            return failStart(commandFailure("Failed to start Shower server", startResult))
         }
 
         // 5) Poll for up to 10 seconds for the Binder handoff broadcast to be received and cached.
@@ -106,8 +135,11 @@ object ShowerServerManager {
             }
         }
 
-        ShowerLog.e(TAG, "Shower Binder was not received within the expected time")
-        return false
+        val serverLog = readServerLog(runner, remoteLogPath)
+        val diagnostic = serverLog?.let { "\nShower log:\n${it.takeLast(8_000)}" } ?: ""
+        return failStart(
+            "Shower Binder was not received within 10 seconds.$diagnostic"
+        )
     }
 
     /**

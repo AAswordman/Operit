@@ -31,8 +31,7 @@ data class ToolResult(
         val success: Boolean,
         val result: ToolResultData,
         val error: String? = null,
-        val toolCallId: String? = null,
-        val errorCode: String? = null
+        val toolCallId: String? = null
 )
 
 /** Represents the validation result for tool parameters */

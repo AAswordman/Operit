@@ -1,25 +1,24 @@
 package com.ai.assistance.operit.ui.permissions
 
+import androidx.annotation.StringRes
+import com.ai.assistance.operit.R
+
 /** Result of the permission gate before a tool starts executing. */
 enum class ToolPermissionCheckResult(
     val isGranted: Boolean,
-    val errorCode: String? = null,
-    val errorMessage: String? = null
+    @StringRes val errorMessageResId: Int? = null,
 ) {
     GRANTED(isGranted = true),
     DENIED(
         isGranted = false,
-        errorCode = "permission_denied",
-        errorMessage = "Tool execution permission was denied."
+        errorMessageResId = R.string.tool_permission_execution_denied,
     ),
     OVERLAY_PERMISSION_REQUIRED(
         isGranted = false,
-        errorCode = "overlay_permission_required",
-        errorMessage = "Display over other apps permission is required to confirm tool execution."
+        errorMessageResId = R.string.tool_permission_overlay_required_for_confirmation,
     ),
     CONFIRMATION_TIMEOUT(
         isGranted = false,
-        errorCode = "permission_confirmation_timeout",
-        errorMessage = "Timed out waiting for tool execution confirmation."
-    )
+        errorMessageResId = R.string.tool_permission_confirmation_timeout,
+    ),
 }

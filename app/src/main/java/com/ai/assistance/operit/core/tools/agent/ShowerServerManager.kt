@@ -12,6 +12,9 @@ import com.ai.assistance.showerclient.ShowerServerManager as CoreShowerServerMan
  */
 object ShowerServerManager {
 
+    /** Details from the most recent start attempt, for the AutoGLM diagnostics panel. */
+    fun getLastStartError(): String? = CoreShowerServerManager.getLastStartError()
+
     /**
      * Ensure the Shower server is started in the background.
      * Returns true if the start command was issued successfully.

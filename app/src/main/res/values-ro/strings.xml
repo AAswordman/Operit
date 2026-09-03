@@ -891,8 +891,14 @@
     <string name="settings_enable_summary_by_message_count_desc">Se declanșează rezumatul atunci când numărul de mesaje noi atinge pragul stabilit</string>
     <string name="settings_summary_message_count_threshold">Pragul numărului de mesaje</string>
     <string name="settings_summary_message_count_threshold_subtitle">Numărul de mesaje noi care declanșează generarea unui rezumat(1-20articol)</string>
-    <string name="settings_summary_custom_rules">Reguli personalizate de rezumare</string>
-    <string name="settings_summary_custom_rules_desc">Rezumați regulile suplimentare trimise în timpul conversației; dacă lăsați câmpul gol, nu se adaugă nimic</string>
+    <string name="settings_summary_custom_rules">Reguli globale de rezumare</string>
+    <string name="settings_summary_custom_rules_desc">Reguli comune pentru toate secțiunile de rezumat activate. Acestea au prioritate față de instrucțiunile implicite; lăsați câmpul gol pentru a folosi doar instrucțiunile secțiunii.</string>
+    <string name="settings_summary_structure">Structura rezumatului</string>
+    <string name="settings_summary_section_enabled_desc">Dezactivați pentru a omite această secțiune din rezumatele generate</string>
+    <string name="settings_summary_section_title">Titlul secțiunii</string>
+    <string name="settings_summary_section_title_desc">Antetul afișat în rezumat</string>
+    <string name="settings_summary_section_instruction">Instrucțiunile secțiunii</string>
+    <string name="settings_summary_section_instruction_desc">Descrieți ce trebuie să înregistreze această secțiune</string>
 
     <string name="settings_section_display">Afișare și comportament</string>
 
@@ -8344,6 +8350,9 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="thinking_config_subtitle">Potrivește parametrii de raționament în ordinea regulilor; se aplică prima regulă potrivită</string>
     <string name="thinking_config_title">Configurarea raționamentului</string>
     <string name="translation_retry_error_status">Solicitarea de traducere a eșuat (reîncercare %1$d/%2$d): %3$s</string>
+    <string name="tool_permission_execution_denied">Permisiunea de executare a instrumentului a fost refuzată.</string>
+    <string name="tool_permission_overlay_required_for_confirmation">Este necesară permisiunea de afișare peste alte aplicații pentru confirmarea executării instrumentului.</string>
+    <string name="tool_permission_confirmation_timeout">Timpul de confirmare a executării instrumentului a expirat.</string>
     <string name="llm_retry_settings_title">Reîncercări solicitare</string>
     <string name="llm_retry_settings_description">Configurează reîncercările automate și timpul de așteptare după eșecul modelului.</string>
     <string name="llm_retry_mode_fast">Rapid</string>

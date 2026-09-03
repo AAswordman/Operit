@@ -7404,8 +7404,14 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="notification_kind_review_changes">Requiere cambios</string>
     <string name="notification_kind_entry_curated">Seleccionado como destacado</string>
 
-    <string name="settings_summary_custom_rules">Reglas personalizadas de resumen</string>
-    <string name="settings_summary_custom_rules_desc">Reglas adicionales enviadas al resumir la conversación. Déjelo en blanco para no agregar ninguna.</string>
+    <string name="settings_summary_custom_rules">Reglas globales de resumen</string>
+    <string name="settings_summary_custom_rules_desc">Reglas compartidas para todas las secciones de resumen activadas. Tienen prioridad sobre las instrucciones predeterminadas; déjelo en blanco para usar solo las instrucciones de sección.</string>
+    <string name="settings_summary_structure">Estructura del resumen</string>
+    <string name="settings_summary_section_enabled_desc">Desactívelo para omitir esta sección de los resúmenes generados</string>
+    <string name="settings_summary_section_title">Título de la sección</string>
+    <string name="settings_summary_section_title_desc">El encabezado que se muestra en el resumen</string>
+    <string name="settings_summary_section_instruction">Instrucciones de la sección</string>
+    <string name="settings_summary_section_instruction_desc">Describa qué debe registrar esta sección</string>
     <string name="title_activity_data_recovery">Recuperación de datos</string>
     <string name="shortcut_data_recovery">Recuperación de datos</string>
     <string name="memory_space_select">Seleccionar espacio de memoria</string>
@@ -7817,6 +7823,9 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="thinking_config_rule_order_hint">Las reglas se comprueban de arriba abajo. Se aplica la primera regla activada que coincide con el modelo. Usa las flechas de cada regla para cambiar su orden.</string>
     <string name="thinking_config_subtitle">Aplica los parámetros de razonamiento según el orden de las reglas; se usa la primera coincidencia</string>
     <string name="thinking_config_title">Configuración del razonamiento</string>
+    <string name="tool_permission_execution_denied">Se denegó el permiso para ejecutar la herramienta.</string>
+    <string name="tool_permission_overlay_required_for_confirmation">Se requiere permiso para mostrarse sobre otras apps para confirmar la ejecución de la herramienta.</string>
+    <string name="tool_permission_confirmation_timeout">Se agotó el tiempo de confirmación de ejecución de la herramienta.</string>
     <string name="llm_retry_settings_title">Reintentos de solicitud</string>
     <string name="llm_retry_settings_description">Configura los reintentos automáticos y la espera tras un fallo del modelo.</string>
     <string name="llm_retry_mode_fast">Rápido</string>

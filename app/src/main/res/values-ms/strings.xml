@@ -7333,8 +7333,14 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="notification_kind_review_changes">Perlu pengubahsuaian</string>
     <string name="notification_kind_entry_curated">Dipilih sebagai pilihan</string>
 
-    <string name="settings_summary_custom_rules">Peraturan Ringkasan Tersuai</string>
-    <string name="settings_summary_custom_rules_desc">Peraturan tambahan yang dihantar semasa meringkaskan perbualan, biarkan kosong untuk tidak menambah</string>
+    <string name="settings_summary_custom_rules">Peraturan Ringkasan Global</string>
+    <string name="settings_summary_custom_rules_desc">Peraturan bersama untuk semua bahagian ringkasan yang diaktifkan. Ia diutamakan berbanding arahan bahagian lalai; biarkan kosong untuk menggunakan arahan bahagian sahaja.</string>
+    <string name="settings_summary_structure">Struktur Ringkasan</string>
+    <string name="settings_summary_section_enabled_desc">Matikan untuk mengecualikan bahagian ini daripada ringkasan yang dijana</string>
+    <string name="settings_summary_section_title">Tajuk Bahagian</string>
+    <string name="settings_summary_section_title_desc">Tajuk yang dipaparkan dalam ringkasan</string>
+    <string name="settings_summary_section_instruction">Arahan Bahagian</string>
+    <string name="settings_summary_section_instruction_desc">Terangkan kandungan yang perlu direkodkan oleh bahagian ini</string>
     <string name="title_activity_data_recovery">Pemulihan Data</string>
     <string name="shortcut_data_recovery">Pemulihan Data</string>
     <string name="memory_space_select">Pilih Ruang Memori</string>
@@ -7746,6 +7752,9 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="thinking_config_rule_order_hint">Peraturan disemak dari atas ke bawah. Peraturan aktif pertama yang sepadan dengan model akan digunakan. Gunakan anak panah pada setiap peraturan untuk mengubah susunannya.</string>
     <string name="thinking_config_subtitle">Padankan parameter pemikiran mengikut susunan peraturan; peraturan pertama yang sepadan akan digunakan</string>
     <string name="thinking_config_title">Konfigurasi pemikiran</string>
+    <string name="tool_permission_execution_denied">Kebenaran pelaksanaan alat ditolak.</string>
+    <string name="tool_permission_overlay_required_for_confirmation">Kebenaran papar di atas aplikasi lain diperlukan untuk mengesahkan pelaksanaan alat.</string>
+    <string name="tool_permission_confirmation_timeout">Pengesahan pelaksanaan alat telah tamat masa.</string>
     <string name="llm_retry_settings_title">Cuba semula permintaan</string>
     <string name="llm_retry_settings_description">Tetapkan percubaan semula automatik dan masa menunggu selepas permintaan model gagal.</string>
     <string name="llm_retry_mode_fast">Pantas</string>

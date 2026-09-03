@@ -68,6 +68,29 @@ object ModelConfigDefaults {
         const val DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD = 16
 }
 
+/** Resolved values displayed for one conversation-summary section. */
+data class SummarySectionConfig(
+        val id: String,
+        val enabled: Boolean = true,
+        val title: String = "",
+        val instruction: String = ""
+)
+
+/** User overrides for one summary section. Null means keep the built-in value. */
+@Serializable
+data class SummarySectionOverride(
+        val id: String,
+        val enabled: Boolean? = null,
+        val title: String? = null,
+        val instruction: String? = null
+)
+
+/** Runtime settings passed through the summary generation pipeline. */
+data class ConversationSummaryConfig(
+        val globalRules: String? = null,
+        val sectionOverrides: List<SummarySectionOverride> = emptyList()
+)
+
 /** 表示完整的模型配置，包括API设置和模型参数 */
 @Serializable
 data class ModelConfigData(
@@ -130,9 +153,10 @@ data class ModelConfigData(
                 ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT,
         val summaryMessageCountThreshold: Int =
                 ModelConfigDefaults.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD,
-        // 自定义总结规则
+        // 适用于所有总结板块的全局规则
         val summaryCustomRules: String = "",
-
+        // 用户对内置总结板块的字段级覆盖；为空时完全使用旧版内置提示词
+        val summarySectionOverrides: List<SummarySectionOverride> = emptyList(),
         // MNN特定配置
         // 注意：MNN模型路径会根据modelName自动构建，不需要单独存储
         val mnnForwardType: Int = 0, // 前向计算类型 (CPU/GPU等)

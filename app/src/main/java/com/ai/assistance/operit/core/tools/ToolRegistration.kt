@@ -241,8 +241,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             handler.getToolPermissionSystem().checkToolPermission(proxiedTool)
         }
         if (!permissionResult.isGranted) {
-            val errorMessage = requireNotNull(permissionResult.errorMessage)
-            val errorCode = requireNotNull(permissionResult.errorCode)
+            val errorMessage = context.getString(requireNotNull(permissionResult.errorMessageResId))
             handler.notifyToolPermissionChecked(
                 proxiedTool,
                 granted = false,
@@ -252,8 +251,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 toolName = targetToolName,
                 success = false,
                 result = StringResultData(""),
-                error = errorMessage,
-                errorCode = errorCode
+                error = errorMessage
             )
         }
 
@@ -263,8 +261,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             toolName = targetToolName,
             success = proxiedResult.success,
             result = proxiedResult.result,
-            error = proxiedResult.error,
-            errorCode = proxiedResult.errorCode
+            error = proxiedResult.error
         )
     }
 

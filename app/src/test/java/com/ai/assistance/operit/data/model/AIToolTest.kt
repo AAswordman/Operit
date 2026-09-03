@@ -57,13 +57,11 @@ class AIToolTest {
             toolName = "search",
             success = false,
             result = resultData,
-            error = "Not found",
-            errorCode = "tool_execution_failed"
+            error = "Not found"
         )
         assertEquals("search", result.toolName)
         assertFalse(result.success)
         assertEquals("Not found", result.error)
-        assertEquals("tool_execution_failed", result.errorCode)
     }
 
     @Test fun `create tool validation result valid`() {

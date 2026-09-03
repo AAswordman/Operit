@@ -946,8 +946,14 @@
     <string name="settings_enable_summary_by_message_count_desc">Trigger summary when new message count reaches threshold</string>
     <string name="settings_summary_message_count_threshold">Message Count Threshold</string>
     <string name="settings_summary_message_count_threshold_subtitle">Number of new messages to trigger summary (1-20)</string>
-    <string name="settings_summary_custom_rules">Custom Summary Rules</string>
-    <string name="settings_summary_custom_rules_desc">Extra rules sent when summarizing the conversation. Leave blank for none</string>
+    <string name="settings_summary_custom_rules">Global Summary Rules</string>
+    <string name="settings_summary_custom_rules_desc">Shared rules for all enabled summary sections. They take priority over default section instructions; leave blank to use section instructions only</string>
+    <string name="settings_summary_structure">Summary Structure</string>
+    <string name="settings_summary_section_enabled_desc">Turn this off to omit this section from generated summaries</string>
+    <string name="settings_summary_section_title">Section Title</string>
+    <string name="settings_summary_section_title_desc">The heading shown in the summary</string>
+    <string name="settings_summary_section_instruction">Section Instructions</string>
+    <string name="settings_summary_section_instruction_desc">Describe what this section should record</string>
     
     <string name="settings_section_display">Display and Behavior</string>
 
@@ -6744,6 +6750,13 @@
     <string name="root_custom_su_command">Custom su command (KernelSU mode)</string>
     <string name="root_custom_su_command_description">Applies only in KernelSU mode. You can enter commands like su or su --mount-master.</string>
     <string name="global_display_virtual_screen_bitrate">Virtual Screen Bitrate</string>
+    <string name="global_display_agent_post_launch_delay">UI automation: delay after app launch</string>
+    <string name="global_display_agent_post_launch_delay_desc">Fixed wait after a successful app launch, letting the window settle. Lower is faster but may capture transition animations.</string>
+    <string name="global_display_agent_post_action_delay">UI automation: delay after action</string>
+    <string name="global_display_agent_post_action_delay_desc">Fixed wait after a successful tap, type, swipe or key action, letting the UI react. 0 is fastest.</string>
+    <string name="global_display_agent_max_steps">AutoGLM maximum steps</string>
+    <string name="global_display_agent_max_steps_desc">Limits how many model rounds one automation task may execute. The default is 25 steps.</string>
+    <string name="global_display_agent_max_steps_unit">steps</string>
     <string name="global_display_status_indicator_style">Status Indicator Style</string>
     <string name="global_display_screenshot_settings">Screenshot Settings</string>
     <string name="global_display_image_format">Image Format</string>
@@ -8363,6 +8376,9 @@
     <string name="thinking_config_subtitle">Match thinking parameters in rule order; the first matching rule applies</string>
     <string name="thinking_config_title">Thinking configuration</string>
     <string name="toolreg_global_chat_runtime_state_desc">Check global chat runtime state</string>
+    <string name="tool_permission_execution_denied">Tool execution permission was denied.</string>
+    <string name="tool_permission_overlay_required_for_confirmation">Display over other apps permission is required to confirm tool execution.</string>
+    <string name="tool_permission_confirmation_timeout">Timed out waiting for tool execution confirmation.</string>
     <string name="llm_retry_settings_title">Request retries</string>
     <string name="llm_retry_settings_description">Configure automatic retries and wait timing after a model request fails.</string>
     <string name="llm_retry_mode_fast">Fast</string>

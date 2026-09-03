@@ -899,8 +899,14 @@
     <string name="settings_enable_summary_by_message_count_desc">当新消息数量达到阈值时触发总结</string>
     <string name="settings_summary_message_count_threshold">消息条数阈值</string>
     <string name="settings_summary_message_count_threshold_subtitle">触发总结的新消息数量(1-20条)</string>
-    <string name="settings_summary_custom_rules">自定义总结规则</string>
-    <string name="settings_summary_custom_rules_desc">总结对话时发送的额外规则，留空为不添加</string>
+    <string name="settings_summary_custom_rules">全局总结规则</string>
+    <string name="settings_summary_custom_rules_desc">适用于所有启用总结板块的共同规则，优先于默认板块说明；留空则只使用板块说明</string>
+    <string name="settings_summary_structure">总结结构</string>
+    <string name="settings_summary_section_enabled_desc">关闭后生成摘要时不输出该板块</string>
+    <string name="settings_summary_section_title">板块标题</string>
+    <string name="settings_summary_section_title_desc">摘要中显示的标题</string>
+    <string name="settings_summary_section_instruction">板块说明</string>
+    <string name="settings_summary_section_instruction_desc">说明此板块应记录什么内容</string>
 
     <string name="settings_section_display">显示与行为</string>
 
@@ -7256,6 +7262,13 @@
     <string name="root_custom_su_command">自定义 su 命令（KernelSU 模式）</string>
     <string name="root_custom_su_command_description">仅在 KernelSU 模式生效，可填写 su 或 su --mount-master 等命令。</string>
     <string name="global_display_virtual_screen_bitrate">虚拟屏幕码率</string>
+    <string name="global_display_agent_post_launch_delay">UI 自动化：启动应用后等待</string>
+    <string name="global_display_agent_post_launch_delay_desc">启动 App 成功后固定等待的时间，等待窗口稳定。设小可以更快，但可能截到过渡动画。</string>
+    <string name="global_display_agent_post_action_delay">UI 自动化：动作后等待</string>
+    <string name="global_display_agent_post_action_delay_desc">点击、输入、滑动、返回等动作成功后固定等待的时间，等待界面响应。设为 0 最快。</string>
+    <string name="global_display_agent_max_steps">AutoGLM 最大执行步数</string>
+    <string name="global_display_agent_max_steps_desc">限制一次自动化任务最多请求模型并执行多少轮，默认 25 步。</string>
+    <string name="global_display_agent_max_steps_unit">步</string>
     <string name="global_display_status_indicator_style">自动化状态指示样式</string>
     <string name="global_display_screenshot_settings">自动化截图设置</string>
     <string name="global_display_image_format">图片格式</string>
@@ -8344,6 +8357,9 @@
     <string name="theme_toolbar_opacity">工具栏不透明度: %1$d%%</string>
     <string name="toolreg_global_chat_runtime_state_desc">查询全局聊天运行状态</string>
     <string name="translation_retry_error_status">翻译请求失败（当前重试 %1$d/%2$d）：%3$s</string>
+    <string name="tool_permission_execution_denied">工具执行权限被拒绝。</string>
+    <string name="tool_permission_overlay_required_for_confirmation">需要悬浮窗权限才能确认工具执行。</string>
+    <string name="tool_permission_confirmation_timeout">工具执行确认超时。</string>
     <string name="llm_retry_settings_title">请求重试</string>
     <string name="llm_retry_settings_description">配置模型请求失败后的自动重试次数和等待节奏。</string>
     <string name="llm_retry_mode_fast">快速</string>

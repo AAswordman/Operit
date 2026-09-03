@@ -78,14 +78,6 @@ object ToolExecutionManager {
         }
     }
 
-    internal fun resolveRuntimeErrorCode(result: ToolResult): String =
-        result.errorCode
-            ?: if (result.error?.contains("Invalid parameter", ignoreCase = true) == true) {
-                "invalid_arguments"
-            } else {
-                "tool_execution_failed"
-            }
-
     private fun resolveToolTarget(tool: AITool): ResolvedToolTarget {
         if (tool.name != PACKAGE_PROXY_TOOL_NAME &&
             tool.name != CliToolModeSupport.PROXY_TOOL_NAME
@@ -221,8 +213,7 @@ object ToolExecutionManager {
             toolName = resolveDisplayToolName(invocation.tool),
             success = false,
             result = StringResultData(""),
-            error = context.getString(R.string.character_card_tool_access_denied_runtime),
-            errorCode = "permission_denied"
+            error = context.getString(R.string.character_card_tool_access_denied_runtime)
         )
     }
 
@@ -268,8 +259,7 @@ object ToolExecutionManager {
             toolName = resultToolName,
             success = false,
             result = StringResultData(""),
-            error = errorMessage,
-            errorCode = "permission_denied"
+            error = errorMessage
         )
     }
 
@@ -422,8 +412,7 @@ object ToolExecutionManager {
                         toolName = invocation.tool.name,
                         success = false,
                         result = StringResultData(""),
-                        error = "Invalid parameters: ${validationResult.errorMessage}",
-                        errorCode = "invalid_arguments"
+                        error = "Invalid parameters: ${validationResult.errorMessage}"
                     )
                 )
             }
@@ -437,8 +426,7 @@ object ToolExecutionManager {
                     toolName = invocation.tool.name,
                     success = false,
                     result = StringResultData(""),
-                    error = "Tool execution error: ${e.message}",
-                    errorCode = "tool_execution_failed"
+                    error = "Tool execution error: ${e.message}"
                 )
             )
         }
@@ -491,15 +479,13 @@ object ToolExecutionManager {
             )
 
             if (!permissionResult.isGranted) {
-                val errorMessage = requireNotNull(permissionResult.errorMessage)
-                val errorCode = requireNotNull(permissionResult.errorCode)
+                val errorMessage = context.getString(requireNotNull(permissionResult.errorMessageResId))
                 val errorResult =
                     ToolResult(
                         toolName = resolvedTarget.displayName,
                         success = false,
                         result = StringResultData(""),
-                        error = errorMessage,
-                        errorCode = errorCode
+                        error = errorMessage
                     )
                 toolHandler.notifyToolPermissionChecked(
                     permissionTool,
@@ -837,8 +823,7 @@ object ToolExecutionManager {
                         toolName = displayToolName,
                         success = lastResult.success,
                         result = StringResultData(combinedResultString),
-                        error = lastResult.error,
-                        errorCode = lastResult.errorCode
+                        error = lastResult.error
                     )
                 toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
                 return@withContext finalResult

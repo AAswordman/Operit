@@ -17,6 +17,7 @@ import com.ai.assistance.operit.core.tools.defaultTool.ToolGetter
 import com.ai.assistance.operit.core.tools.defaultTool.standard.StandardUITools
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils
@@ -61,11 +62,23 @@ class AutoGlmViewModel(private val context: Context) : ViewModel() {
                     val okServer = try {
                         ShowerServerManager.ensureServerStarted(context)
                     } catch (e: Exception) {
+                        AppLogger.e("AutoGlmViewModel", "Failed to start Shower server", e)
+                        appendWithTimestamp(
+                            logBuilder,
+                            "[VirtualScreen] Shower start exception: ${e.message ?: e.javaClass.simpleName}"
+                        )
                         false
                     }
 
                     if (!okServer) {
+                        val detail = ShowerServerManager.getLastStartError()
+                            ?.trim()
+                            ?.takeIf { it.isNotEmpty() }
+                            ?: "No diagnostic details were returned. Check the selected shell permission."
                         appendWithTimestamp(logBuilder, "[VirtualScreen] Failed to start Shower server.")
+                        detail.lines().takeLast(12).forEach { line ->
+                            if (line.isNotBlank()) appendWithTimestamp(logBuilder, "[VirtualScreen] $line")
+                        }
                         _uiState.value = AutoGlmUiState(
                             isLoading = false,
                             log = logBuilder.toString().trimEnd()
@@ -106,7 +119,12 @@ class AutoGlmViewModel(private val context: Context) : ViewModel() {
                 val uiService = EnhancedAIService.getAIServiceForFunction(context, com.ai.assistance.operit.data.model.FunctionType.UI_CONTROLLER)
                 val systemPrompt = buildUiAutomationSystemPrompt()
 
-                val agentConfig = AgentConfig(maxSteps = 25)
+                val displayPrefs = DisplayPreferencesManager.getInstance(context)
+                val agentConfig = AgentConfig(
+                    maxSteps = displayPrefs.getAgentMaxSteps(),
+                    postLaunchDelayMs = displayPrefs.getAgentPostLaunchDelayMs().toLong(),
+                    postActionDelayMs = displayPrefs.getAgentPostActionDelayMs().toLong()
+                )
                 // Get the real UI tools implementation based on the user's preferred permission level.
                 val uiTools = ToolGetter.getUITools(context)
                 val actionHandler = ActionHandler(

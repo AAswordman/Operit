@@ -7183,8 +7183,14 @@
     <string name="notification_kind_review_changes">수정 필요</string>
     <string name="notification_kind_entry_curated">추천 선정</string>
 
-    <string name="settings_summary_custom_rules">사용자 정의 요약 규칙</string>
-    <string name="settings_summary_custom_rules_desc">대화 요약 시 전송할 추가 규칙, 비워두면 추가하지 않음</string>
+    <string name="settings_summary_custom_rules">전역 요약 규칙</string>
+    <string name="settings_summary_custom_rules_desc">활성화된 모든 요약 섹션에 적용되는 공통 규칙입니다. 기본 섹션 지침보다 우선하며, 비워 두면 섹션 지침만 사용합니다.</string>
+    <string name="settings_summary_structure">요약 구조</string>
+    <string name="settings_summary_section_enabled_desc">생성된 요약에서 이 섹션을 제외하려면 끄세요</string>
+    <string name="settings_summary_section_title">섹션 제목</string>
+    <string name="settings_summary_section_title_desc">요약에 표시되는 제목</string>
+    <string name="settings_summary_section_instruction">섹션 지침</string>
+    <string name="settings_summary_section_instruction_desc">이 섹션에 기록할 내용을 설명하세요</string>
     <string name="title_activity_data_recovery">데이터 복구</string>
     <string name="shortcut_data_recovery">데이터 복구</string>
     <string name="memory_space_select">메모리 공간 선택</string>
@@ -7596,6 +7602,9 @@
     <string name="thinking_config_subtitle">규칙 순서에 따라 사고 매개변수를 일치시키며, 처음 일치한 규칙을 적용합니다</string>
     <string name="thinking_config_title">사고 설정</string>
     <string name="translation_retry_error_status">번역 요청 실패(재시도 %1$d/%2$d): %3$s</string>
+    <string name="tool_permission_execution_denied">도구 실행 권한이 거부되었습니다.</string>
+    <string name="tool_permission_overlay_required_for_confirmation">도구 실행을 확인하려면 다른 앱 위에 표시 권한이 필요합니다.</string>
+    <string name="tool_permission_confirmation_timeout">도구 실행 확인 시간이 초과되었습니다.</string>
     <string name="llm_retry_settings_title">요청 재시도</string>
     <string name="llm_retry_settings_description">모델 요청 실패 후 자동 재시도 횟수와 대기 시간을 설정합니다.</string>
     <string name="llm_retry_mode_fast">빠르게</string>
