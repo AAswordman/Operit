@@ -6898,8 +6898,11 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="show_message_token_stats_description">Paparkan maklumat ringkas token naik/turun dan cache di bahagian bawah mesej AI</string>
     <string name="show_message_timing_stats">Tunjukkan ringkasan masa mesej</string>
     <string name="show_message_timing_stats_description">Paparkan masa paket pertama dan penjanaan di bahagian bawah mesej AI</string>
+    <string name="show_message_token_speed">Tunjukkan kadar penjanaan token mesej</string>
+    <string name="show_message_token_speed_description">Paparkan kadar penjanaan token output di bawah mesej AI (t/s)</string>
     <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
     <string name="chat_message_timing_stats_compact">masa: %1$s (pertama %2$s jana %3$s)</string>
+    <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="software_identity_title">Identiti Perisian</string>
     <string name="software_identity_description">Tukar identiti perisian yang dipaparkan di bahagian atas bar sisi.</string>
     <string name="software_identity_option_operit">Operit AI</string>

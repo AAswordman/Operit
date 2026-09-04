@@ -5173,10 +5173,13 @@
     <string name="show_message_token_stats_description">Show compact token upload, output, and cache info below AI messages</string>
     <string name="show_message_timing_stats">Show Message Timing Summary</string>
     <string name="show_message_timing_stats_description">Show first-token and generation timing below AI messages</string>
+    <string name="show_message_token_speed">Show Message Token Generation Rate</string>
+    <string name="show_message_token_speed_description">Show output token generation rate below AI messages (t/s)</string>
     <string name="show_message_timestamp">Show Message Time</string>
     <string name="show_message_timestamp_description">Show the time of that AI message below it</string>
     <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (first %2$s out %3$s)</string>
+    <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">Global User Name</string>
     <string name="system_display_settings">System Display Settings</string>
