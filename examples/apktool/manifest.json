@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "toolpkg_id": "com.operit.apk_reverse_toolkit",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "main": "dist/main.js",
   "display_name": {
     "zh": "APK 逆向工具包",
     "en": "APK Reverse Toolkit"
   },
   "description": {
-    "zh": "基于内置 dex-jar 运行时的 APK 逆向工具包，提供 inspect/decode/jadx/build/sign/search 等直调能力。",
-    "en": "APK reverse toolkit backed by bundled dex-jar runtimes, providing direct inspect/decode/jadx/build/sign/search capabilities."
+    "zh": "基于内置 dex-jar 运行时的 APK 逆向工具包，提供 inspect/decode/jadx/build/sign/search 等直调能力。JADX 支持独立进程隔离、逐类流式写盘、内存耗尽时保留部分结果并可从断点续跑。",
+    "en": "APK reverse toolkit backed by bundled dex-jar runtimes, providing direct inspect/decode/jadx/build/sign/search capabilities. JADX runs in an isolated process, streams classes to disk one by one, keeps partial results when memory runs out, and can resume from the truncation point."
   },
   "enabled_by_default": false,
   "subpackages": [

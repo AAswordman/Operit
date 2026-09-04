@@ -124,6 +124,32 @@ public final class ApkReverseHelperFacade {
         return JadxBridgeSupport.decompileApk(inputApkPath, outputDir, jobs, deobf, showInconsistentCode);
     }
 
+    /**
+     * Step 5: same contract as {@link #decompileJadx}, but the actual work happens in a separate
+     * Android process so JADX gets its own heap and a child OOM cannot kill the host app.
+     */
+    public static String decompileJadxIsolated(
+            String inputApkPath,
+            String outputDir,
+            Integer jobs,
+            boolean deobf,
+            boolean showInconsistentCode,
+            String helperRuntimeJarPath,
+            String jadxRuntimeJarPath,
+            String workingDirPath
+    ) throws Exception {
+        return IsolatedJadxRunner.decompileInSeparateProcess(
+                inputApkPath,
+                outputDir,
+                jobs,
+                deobf,
+                showInconsistentCode,
+                helperRuntimeJarPath,
+                jadxRuntimeJarPath,
+                workingDirPath
+        );
+    }
+
     public static String searchAddress(
             String rootPath,
             String query,

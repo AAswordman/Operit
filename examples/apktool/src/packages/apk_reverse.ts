@@ -7,8 +7,8 @@
         "en": "APK Reverse Toolkit"
     },
     "description": {
-        "zh": "基于内置 dex-jar 运行时的 APK 逆向工具包，提供 inspect/decode/jadx/build/sign/search 能力。",
-        "en": "APK reverse toolkit backed by bundled dex-jar runtimes, providing inspect/decode/jadx/build/sign/search capabilities."
+        "zh": "基于内置 dex-jar 运行时的 APK 逆向工具包，提供 inspect/decode/jadx/build/sign/search 等直调能力。JADX 支持独立进程隔离、内存耗尽时保留部分结果并可从断点续跑。",
+        "en": "APK reverse toolkit backed by bundled dex-jar runtimes, providing direct inspect/decode/jadx/build/sign/search capabilities. JADX runs in an isolated process, keeps partial results when memory runs out, and can resume from the truncation point."
     },
     "enabledByDefault": true,
     "category": "System",
@@ -21,6 +21,16 @@
             },
             "parameters": [],
             "advice": true
+        },
+        {
+            "name": "apk_reverse_selftest",
+            "description": {
+                "zh": "逐阶段自检：分开测试资源读取、dex-jar 加载、Java.type 解析和 helper 调用，并返回每一步的具体错误。",
+                "en": "Stage-by-stage self test: probes resource read, dex-jar load, Java.type resolution and a helper call, returning the concrete error for each step."
+            },
+            "parameters": [
+                { "name": "input_apk_path", "description": { "zh": "可选，用于测试 helper 实际调用的 APK 路径。", "en": "Optional APK path used to exercise a real helper call." }, "type": "string", "required": false }
+            ]
         },
         {
             "name": "apk_reverse_inspect",
@@ -43,7 +53,8 @@
                 { "name": "output_dir", "description": { "zh": "输出目录。", "en": "Output directory." }, "type": "string", "required": true },
                 { "name": "force", "description": { "zh": "是否覆盖输出目录。", "en": "Whether to overwrite the output directory." }, "type": "string", "required": false },
                 { "name": "frame_path", "description": { "zh": "自定义 framework 目录。", "en": "Custom framework directory." }, "type": "string", "required": false },
-                { "name": "frame_tag", "description": { "zh": "自定义 framework tag。", "en": "Custom framework tag." }, "type": "string", "required": false }
+                { "name": "frame_tag", "description": { "zh": "自定义 framework tag。", "en": "Custom framework tag." }, "type": "string", "required": false },
+                { "name": "jobs", "description": { "zh": "并发线程数，1-16，默认 1。大型 APK 建议保持 1。", "en": "Concurrency thread count, 1-16, default 1. Keep 1 for large APKs." }, "type": "string", "required": false }
             ]
         },
         {
@@ -55,8 +66,10 @@
             "parameters": [
                 { "name": "input_apk_path", "description": { "zh": "APK 文件路径。", "en": "Path to the APK file." }, "type": "string", "required": true },
                 { "name": "output_dir", "description": { "zh": "输出目录。", "en": "Output directory." }, "type": "string", "required": true },
+                { "name": "jobs", "description": { "zh": "并发线程数，1-16，默认 1。大型 APK 建议保持 1。", "en": "Concurrency thread count, 1-16, default 1. Keep 1 for large APKs." }, "type": "string", "required": false },
                 { "name": "deobf", "description": { "zh": "是否开启 deobfuscation。", "en": "Whether to enable deobfuscation." }, "type": "string", "required": false },
-                { "name": "show_inconsistent_code", "description": { "zh": "是否显示不一致代码。", "en": "Whether to show inconsistent code." }, "type": "string", "required": false }
+                { "name": "show_inconsistent_code", "description": { "zh": "是否显示不一致代码。", "en": "Whether to show inconsistent code." }, "type": "string", "required": false },
+                { "name": "isolated", "description": { "zh": "是否在独立进程中运行 JADX，默认 true。开启后 JADX 获得自己的堆，子进程 OOM 不会让宿主应用闪退。", "en": "Run JADX in a separate process, default TRUE. The child gets its own heap so a child OOM cannot crash the host app. Do not set false for large APKs: in-process JADX has been measured to crash the host." }, "type": "string", "required": false }
             ]
         },
         {
@@ -138,7 +151,7 @@
 }
 */
 
-const PACKAGE_VERSION = "1.0.3";
+const PACKAGE_VERSION = "1.1.0";
 const APKTOOL_VERSION = "3.0.1";
 const JADX_VERSION = "1.5.2";
 const APKTOOL_RUNTIME_RESOURCE_KEY = "apktool_runtime_android_jar";
@@ -153,6 +166,8 @@ const APKTOOL_RUNTIME_SOURCE_ARTIFACT = "org.apktool:apktool-cli:3.0.1";
 const JADX_RUNTIME_SOURCE_ARTIFACT = "io.github.skylot:jadx-core:1.5.2";
 const TEMP_ROOT_DIR_NAME = "apk_reverse_runtime";
 const DEFAULT_MAX_RESULTS = 100;
+const MIN_MAX_RESULTS = 1;
+const HARD_MAX_RESULTS = 500;
 const INLINE_RESULT_CHAR_LIMIT = 24000;
 const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_BINARY_WINDOW_BYTES = 96;
@@ -183,6 +198,76 @@ const JVM_COMPAT_OS_NAME = "Linux";
 const JVM_COMPAT_OS_ARCH = "aarch64";
 const JVM_COMPAT_ARCH_DATA_MODEL = "64";
 let helperRuntimeLoadSequence = 0;
+const MIN_JOBS = 1;
+const MAX_JOBS = 16;
+const DEFAULT_JOBS = 1;
+let apktoolRuntimePromise = null;
+let jadxRuntimePromise = null;
+let helperRuntimePromise = null;
+let helperRuntimeSignature = "";
+let frameworkJarPromise = null;
+const loadedRuntimeChain = [];
+
+function recordRuntimeInChain(name) {
+    if (loadedRuntimeChain.indexOf(name) < 0) {
+        loadedRuntimeChain.push(name);
+    }
+}
+
+function currentRuntimeChainSignature() {
+    return loadedRuntimeChain.join(">");
+}
+let heavyOperationChain = Promise.resolve();
+let heavyOperationActive = null;
+
+function clampMaxResults(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return DEFAULT_MAX_RESULTS;
+    }
+    const rounded = Math.floor(numeric);
+    if (rounded < MIN_MAX_RESULTS) {
+        return MIN_MAX_RESULTS;
+    }
+    if (rounded > HARD_MAX_RESULTS) {
+        return HARD_MAX_RESULTS;
+    }
+    return rounded;
+}
+
+function normalizeJobs(params, key) {
+    const raw = optionalInteger(params, key || "jobs", DEFAULT_JOBS);
+    const value = Number(raw);
+    if (!Number.isFinite(value)) {
+        return DEFAULT_JOBS;
+    }
+    const rounded = Math.floor(value);
+    if (rounded < MIN_JOBS) {
+        return MIN_JOBS;
+    }
+    if (rounded > MAX_JOBS) {
+        return MAX_JOBS;
+    }
+    return rounded;
+}
+
+function runExclusiveHeavyOperation(label, action) {
+    const run = heavyOperationChain.then(async () => {
+        heavyOperationActive = label;
+        try {
+            return await action();
+        } finally {
+            heavyOperationActive = null;
+        }
+    });
+    heavyOperationChain = run.then(function () {
+        return undefined;
+    }, function () {
+        return undefined;
+    });
+    return run;
+}
+
 
 function asText(value) {
     if (value === undefined || value === null) {
@@ -209,10 +294,144 @@ function isProvided(value) {
 }
 
 function toErrorText(error) {
-    if (error instanceof Error) {
-        return error.message || String(error);
+    const detail = describeError(error);
+    return detail.message || "unknown error";
+}
+
+function describeError(error) {
+    const detail = {
+        errorType: "",
+        message: "",
+        stack: "",
+        cause: "",
+        raw: ""
+    };
+    if (error === undefined || error === null) {
+        detail.errorType = "NullError";
+        detail.message = "unknown error (no error object was thrown)";
+        return detail;
     }
-    return asText(error) || "unknown error";
+
+    detail.raw = safeStringify(error);
+
+    if (error instanceof Error) {
+        detail.errorType = asText(error.name) || "Error";
+        detail.message = asText(error.message) || detail.raw;
+        detail.stack = asText(error.stack);
+        if (error.cause !== undefined && error.cause !== null) {
+            detail.cause = safeStringify(error.cause);
+        }
+        return detail;
+    }
+
+    // Rhino/Java interop: a thrown Java exception often surfaces as a host object
+    // that only reveals itself through getClass()/getMessage()/javaException.
+    const javaDetail = describeJavaThrowable(error);
+    if (javaDetail) {
+        return javaDetail;
+    }
+
+    if (typeof error === "object") {
+        detail.errorType = asText(error.name) || asText(error.errorType) || "ObjectError";
+        detail.message = asText(error.message) || asText(error.error) || detail.raw;
+        detail.stack = asText(error.stack);
+        return detail;
+    }
+
+    detail.errorType = typeof error;
+    detail.message = detail.raw;
+    return detail;
+}
+
+function describeJavaThrowable(candidate) {
+    const throwable = extractJavaThrowable(candidate);
+    if (!throwable) {
+        return null;
+    }
+    const detail = {
+        errorType: "",
+        message: "",
+        stack: "",
+        cause: "",
+        raw: ""
+    };
+    try {
+        detail.errorType = asText(throwable.getClass().getName());
+    } catch (_ignored) {
+        detail.errorType = "JavaThrowable";
+    }
+    try {
+        detail.message = asText(throwable.getMessage());
+    } catch (_ignored) {
+        detail.message = "";
+    }
+    try {
+        detail.raw = asText(throwable.toString());
+    } catch (_ignored) {
+        detail.raw = detail.errorType;
+    }
+    if (!detail.message) {
+        detail.message = detail.raw || detail.errorType;
+    }
+    try {
+        const frames = throwable.getStackTrace();
+        if (frames && frames.length) {
+            const lines = [];
+            const limit = Math.min(frames.length, 12);
+            for (let index = 0; index < limit; index += 1) {
+                lines.push("    at " + asText(frames[index]));
+            }
+            detail.stack = lines.join("\n");
+        }
+    } catch (_ignored) {
+        detail.stack = "";
+    }
+    try {
+        const cause = throwable.getCause();
+        if (cause) {
+            detail.cause = asText(cause.toString());
+        }
+    } catch (_ignored) {
+        detail.cause = "";
+    }
+    return detail;
+}
+
+function extractJavaThrowable(candidate) {
+    if (!candidate) {
+        return null;
+    }
+    const probes = [candidate, candidate.javaException, candidate.rhinoException];
+    for (let index = 0; index < probes.length; index += 1) {
+        const probe = probes[index];
+        if (!probe) {
+            continue;
+        }
+        try {
+            if (typeof probe.getClass === "function" && typeof probe.getMessage === "function") {
+                return probe;
+            }
+        } catch (_ignored) {
+            // not a Java object, keep probing
+        }
+    }
+    return null;
+}
+
+function safeStringify(value) {
+    try {
+        const text = asText(value);
+        if (text && text !== "[object Object]") {
+            return text;
+        }
+    } catch (_ignored) {
+        // fall through to JSON
+    }
+    try {
+        return JSON.stringify(value);
+    } catch (_ignored) {
+        return "[unserializable error object]";
+    }
 }
 
 function requireText(params, key) {
@@ -368,11 +587,26 @@ async function loadDexJarRuntime(resourceKey, outputFileName, childFirstPrefixes
     try {
         runtimeJarPath = await ToolPkg.readResource(resourceKey, outputFileName, true);
     } catch (error) {
-        throw new Error(`${missingMessage}: ${toErrorText(error)}`);
+        const detail = describeError(error);
+        throw new Error(`${missingMessage} [stage=readResource resourceKey=${resourceKey} outputFileName=${outputFileName}]: `
+            + `${detail.errorType}: ${detail.message}`);
     }
-    const loadInfo = Java.loadJar(runtimeJarPath, {
-        childFirstPrefixes
-    });
+    if (!isProvided(runtimeJarPath)) {
+        throw new Error(`${missingMessage} [stage=readResource resourceKey=${resourceKey}]: `
+            + `ToolPkg.readResource returned an empty path`);
+    }
+    let loadInfo;
+    try {
+        loadInfo = Java.loadJar(runtimeJarPath, {
+            childFirstPrefixes
+        });
+    } catch (error) {
+        const detail = describeError(error);
+        throw new Error(`Failed to load dex-jar runtime [stage=Java.loadJar resourceKey=${resourceKey} `
+            + `jarPath=${runtimeJarPath} childFirstPrefixes=${childFirstPrefixes.join(",")}]: `
+            + `${detail.errorType}: ${detail.message}`
+            + (detail.stack ? ` | stack:\n${detail.stack}` : ""));
+    }
     return {
         runtimeJarPath,
         loadInfo
@@ -380,6 +614,17 @@ async function loadDexJarRuntime(resourceKey, outputFileName, childFirstPrefixes
 }
 
 async function ensureApktoolRuntimeLoaded() {
+    if (!apktoolRuntimePromise) {
+        apktoolRuntimePromise = loadApktoolRuntime().catch((error) => {
+            apktoolRuntimePromise = null;
+            throw error;
+        });
+    }
+    return apktoolRuntimePromise;
+}
+
+async function loadApktoolRuntime() {
+    recordRuntimeInChain("apktool");
     const runtime = await loadDexJarRuntime(
         APKTOOL_RUNTIME_RESOURCE_KEY,
         APKTOOL_RUNTIME_OUTPUT_FILE_NAME,
@@ -393,6 +638,17 @@ async function ensureApktoolRuntimeLoaded() {
 }
 
 async function ensureJadxRuntimeLoaded() {
+    if (!jadxRuntimePromise) {
+        jadxRuntimePromise = loadJadxRuntime().catch((error) => {
+            jadxRuntimePromise = null;
+            throw error;
+        });
+    }
+    return jadxRuntimePromise;
+}
+
+async function loadJadxRuntime() {
+    recordRuntimeInChain("jadx");
     const runtime = await loadDexJarRuntime(
         JADX_RUNTIME_RESOURCE_KEY,
         JADX_RUNTIME_OUTPUT_FILE_NAME,
@@ -406,6 +662,23 @@ async function ensureJadxRuntimeLoaded() {
 }
 
 async function ensureHelperRuntimeLoaded(tag) {
+    // The helper must always sit at the tail of the host ClassLoader chain, otherwise
+    // Java.type() inside the helper cannot resolve classes from runtimes that joined
+    // the chain later (brut.androlib.Config, jadx.api.*, ...).
+    const signature = currentRuntimeChainSignature();
+    if (helperRuntimePromise && helperRuntimeSignature === signature) {
+        return helperRuntimePromise;
+    }
+    helperRuntimeSignature = signature;
+    helperRuntimePromise = loadHelperRuntime(tag).catch((error) => {
+        helperRuntimePromise = null;
+        helperRuntimeSignature = "";
+        throw error;
+    });
+    return helperRuntimePromise;
+}
+
+async function loadHelperRuntime(tag) {
     const outputFileName = nextHelperRuntimeOutputFileName(tag);
     const runtime = await loadDexJarRuntime(
         HELPER_RUNTIME_RESOURCE_KEY,
@@ -444,17 +717,42 @@ function getHelperBridgeClasses() {
 
 async function callHelperFacade(methodName, invoke, helperLoadTag) {
     const runtime = await ensureHelperRuntimeLoaded(helperLoadTag || methodName);
-    const classes = getHelperBridgeClasses();
-    const raw = invoke(classes.ApkReverseHelperFacade);
+    let classes;
+    try {
+        classes = getHelperBridgeClasses();
+    } catch (error) {
+        const detail = describeError(error);
+        throw new Error(`Failed to resolve helper bridge class `
+            + `[stage=Java.type className=com.operit.apkreverse.runtime.ApkReverseHelperFacade `
+            + `method=${methodName} helperJar=${runtime.runtimeJarPath}]: `
+            + `${detail.errorType}: ${detail.message}`);
+    }
+
+    let raw;
+    try {
+        raw = invoke(classes.ApkReverseHelperFacade);
+    } catch (error) {
+        const detail = describeError(error);
+        throw new Error(`Helper runtime call failed `
+            + `[stage=invoke method=${methodName} helperJar=${runtime.runtimeJarPath}]: `
+            + `${detail.errorType}: ${detail.message}`
+            + (detail.cause ? ` | caused by: ${detail.cause}` : "")
+            + (detail.stack ? ` | stack:\n${detail.stack}` : ""));
+    }
+
     const text = asText(raw).trim();
     if (!text) {
-        throw new Error(`Helper runtime returned empty payload for ${methodName}`);
+        throw new Error(`Helper runtime returned empty payload `
+            + `[stage=invoke method=${methodName} helperJar=${runtime.runtimeJarPath}]`);
     }
     let parsed;
     try {
         parsed = JSON.parse(text);
     } catch (error) {
-        throw new Error(`Failed to parse helper runtime payload for ${methodName}: ${toErrorText(error)}`);
+        const detail = describeError(error);
+        throw new Error(`Failed to parse helper runtime payload `
+            + `[stage=JSON.parse method=${methodName} payloadLength=${text.length}]: `
+            + `${detail.errorType}: ${detail.message} | payloadHead=${text.slice(0, 400)}`);
     }
     return {
         runtime,
@@ -463,6 +761,16 @@ async function callHelperFacade(methodName, invoke, helperLoadTag) {
 }
 
 async function ensureFrameworkJarPath() {
+    if (!frameworkJarPromise) {
+        frameworkJarPromise = loadFrameworkJarPath().catch((error) => {
+            frameworkJarPromise = null;
+            throw error;
+        });
+    }
+    return frameworkJarPromise;
+}
+
+async function loadFrameworkJarPath() {
     return ToolPkg.readResource(
         APKTOOL_ANDROID_FRAMEWORK_RESOURCE_KEY,
         APKTOOL_ANDROID_FRAMEWORK_OUTPUT_FILE_NAME,
@@ -600,14 +908,17 @@ function defaultDecodeOutputDir(inputApkPath) {
 }
 
 async function decodeApkInternal(inputApkPath, outputDir, params) {
+    // Order matters: apktool joins the ClassLoader chain first, then the helper is
+    // (re)loaded on top of it so brut.androlib.* becomes resolvable from the helper.
     const runtime = await ensureApktoolRuntimeLoaded();
     const frameworkJarPath = await ensureFrameworkJarPath();
+    await ensureHelperRuntimeLoaded("apktool");
     const helper = await callHelperFacade("decodeApk", (Facade) => Facade.decodeApk(
         inputApkPath,
         outputDir,
         frameworkJarPath,
         APKTOOL_VERSION,
-        optionalInteger(params, "jobs", undefined),
+        normalizeJobs(params, "jobs"),
         optionalText(params, "frame_path") || "",
         optionalText(params, "frame_tag") || "",
         optionalBoolean(params, "force", false),
@@ -630,12 +941,13 @@ async function decodeApkInternal(inputApkPath, outputDir, params) {
 async function buildApkInternal(decodedDir, outputApkPath, params) {
     const runtime = await ensureApktoolRuntimeLoaded();
     const frameworkJarPath = await ensureFrameworkJarPath();
+    await ensureHelperRuntimeLoaded("apktool_build");
     const helper = await callHelperFacade("buildApk", (Facade) => Facade.buildApk(
         decodedDir,
         outputApkPath,
         frameworkJarPath,
         APKTOOL_VERSION,
-        optionalInteger(params, "jobs", undefined),
+        normalizeJobs(params, "jobs"),
         optionalText(params, "frame_path") || "",
         optionalText(params, "frame_tag") || "",
         optionalBoolean(params, "force", false),
@@ -664,7 +976,29 @@ function baseSuccessPayload(runtimeExtras) {
     };
 }
 
-function baseFailurePayload(operation, error) {
+function baseFailurePayload(operation, error, context) {
+    const detail = describeError(error);
+    const parts = [];
+    parts.push("[" + operation + "] " + (detail.errorType || "Error") + ": "
+        + (detail.message || "unknown error"));
+    if (detail.cause) {
+        parts.push("caused by: " + detail.cause);
+    }
+    if (context) {
+        const contextText = safeStringify(context);
+        if (contextText) {
+            parts.push("context: " + contextText);
+        }
+    }
+    if (heavyOperationActive) {
+        parts.push("activeHeavyOperation: " + heavyOperationActive);
+    }
+    parts.push("runtimeChain: " + (currentRuntimeChainSignature() || "(empty)"));
+    if (detail.stack) {
+        parts.push("stack:\n" + detail.stack);
+    }
+    const combined = parts.join(" | ");
+
     return {
         success: false,
         operation,
@@ -672,47 +1006,61 @@ function baseFailurePayload(operation, error) {
         packageVersion: PACKAGE_VERSION,
         apktoolVersion: APKTOOL_VERSION,
         jadxVersion: JADX_VERSION,
-        error: toErrorText(error)
+        // `message` is the field the host reads for its own error surface.
+        message: combined,
+        error: combined,
+        errorType: detail.errorType,
+        errorMessage: detail.message,
+        errorCause: detail.cause,
+        errorStack: detail.stack,
+        errorRaw: detail.raw,
+        activeHeavyOperation: heavyOperationActive,
+        context: context || null
     };
 }
 
 async function usage_advice() {
-    const hasApktoolRuntime = await isBundledResourceAvailable(
-        APKTOOL_RUNTIME_RESOURCE_KEY,
-        APKTOOL_RUNTIME_OUTPUT_FILE_NAME
-    );
-    const hasJadxRuntime = await isBundledResourceAvailable(
-        JADX_RUNTIME_RESOURCE_KEY,
-        JADX_RUNTIME_OUTPUT_FILE_NAME
-    );
-    const hasHelperRuntime = await isBundledResourceAvailable(
-        HELPER_RUNTIME_RESOURCE_KEY,
-        HELPER_RUNTIME_OUTPUT_FILE_NAME
-    );
+    try {
+        return buildUsageAdvice();
+    } catch (error) {
+        return baseFailurePayload("usage_advice", error);
+    }
+}
+
+function buildUsageAdvice() {
+    const apktoolRuntimeLoaded = apktoolRuntimePromise !== null;
+    const jadxRuntimeLoaded = jadxRuntimePromise !== null;
+    const helperRuntimeLoaded = helperRuntimePromise !== null;
     return {
         success: true,
         packageName: "apk_reverse",
         packageVersion: PACKAGE_VERSION,
         apktoolVersion: APKTOOL_VERSION,
         jadxVersion: JADX_VERSION,
-        runtimeLoadMode: "ToolPkg.readResource + Java.loadJar(childFirstPrefixes=...)",
+        runtimeLoadMode: "ToolPkg.readResource + Java.loadJar(childFirstPrefixes=...) with chain-aware helper reload",
+        loadedRuntimeChain: loadedRuntimeChain.slice(),
+        helperRuntimeSignature,
+        activeHeavyOperation: heavyOperationActive,
+        jobsRange: { min: MIN_JOBS, max: MAX_JOBS, default: DEFAULT_JOBS },
+        maxResultsRange: { min: MIN_MAX_RESULTS, max: HARD_MAX_RESULTS, default: DEFAULT_MAX_RESULTS },
         runtimeResources: {
             apktool: {
                 resourceKey: APKTOOL_RUNTIME_RESOURCE_KEY,
                 sourceArtifact: APKTOOL_RUNTIME_SOURCE_ARTIFACT,
-                bundled: hasApktoolRuntime
+                loaded: apktoolRuntimeLoaded
             },
             jadx: {
                 resourceKey: JADX_RUNTIME_RESOURCE_KEY,
                 sourceArtifact: JADX_RUNTIME_SOURCE_ARTIFACT,
-                bundled: hasJadxRuntime
+                loaded: jadxRuntimeLoaded
             },
             helper: {
                 resourceKey: HELPER_RUNTIME_RESOURCE_KEY,
-                bundled: hasHelperRuntime
+                loaded: helperRuntimeLoaded
             }
         },
         supportedCommands: [
+            "apk_reverse_selftest",
             "apk_reverse_inspect",
             "apk_reverse_decode",
             "apk_reverse_jadx",
@@ -727,7 +1075,13 @@ async function usage_advice() {
             "JADX decompilation now runs through the helper runtime so Android-specific compatibility stays in Java.",
             "Helper-backed bridge calls reload the helper jar per invocation so apktool and JADX classloader chains stay valid within a shared JS session.",
             "JADX runtime and helper runtime are expected to be produced by build_runtime_android_resources.ps1 before packaging.",
-            "Search results larger than the inline limit are persisted into a temp JSON file and returned by path."
+            "Search results larger than the inline limit are persisted into a temp JSON file and returned by path.",
+            "decode, build and jadx are serialized through a single exclusive queue so their heap peaks never overlap in one process.",
+            "JADX runs with jadx.api.impl.NoOpCodeCache, saves resources first, then streams sources one class at a time and unloads each class right after writing it.",
+            "jobs is clamped to 1-16 and defaults to 1; raise it only for small or medium APKs.",
+            "apk_reverse_jadx runs isolated by default (isolated=true): JADX executes in a separate app_process with its own heap, so a child OOM returns a structured failure instead of crashing the host app.",
+            "Read-only dex copies for the isolated child are staged in private app storage, never in the output directory, because shared storage is FUSE-backed and cannot hold read-only dex files.",
+            "If the isolated run fails, do not retry with isolated=false on a large APK: in-process JADX shares the host heap and has been measured to make the host drop frames and crash."
         ]
     };
 }
@@ -736,7 +1090,10 @@ async function apk_reverse_decode(params) {
     try {
         const inputApkPath = requireText(params, "input_apk_path");
         const outputDir = requireText(params, "output_dir");
-        const result = await decodeApkInternal(inputApkPath, outputDir, params || {});
+        const result = await runExclusiveHeavyOperation(
+            "decode",
+            () => decodeApkInternal(inputApkPath, outputDir, params || {})
+        );
         return {
             ...baseSuccessPayload({
                 runtimeJarPath: result.runtime.runtimeJarPath,
@@ -749,7 +1106,7 @@ async function apk_reverse_decode(params) {
             appliedConfig: result.appliedConfig
         };
     } catch (error) {
-        return baseFailurePayload("decode", error);
+        return baseFailurePayload("decode", error, { input_apk_path: asText(params && params.input_apk_path), output_dir: asText(params && params.output_dir) });
     }
 }
 
@@ -757,7 +1114,10 @@ async function apk_reverse_build(params) {
     try {
         const decodedDir = requireText(params, "decoded_dir");
         const outputApkPath = requireText(params, "output_apk_path");
-        const result = await buildApkInternal(decodedDir, outputApkPath, params || {});
+        const result = await runExclusiveHeavyOperation(
+            "build",
+            () => buildApkInternal(decodedDir, outputApkPath, params || {})
+        );
         return {
             ...baseSuccessPayload({
                 runtimeJarPath: result.runtime.runtimeJarPath,
@@ -770,8 +1130,124 @@ async function apk_reverse_build(params) {
             appliedConfig: result.appliedConfig
         };
     } catch (error) {
-        return baseFailurePayload("build", error);
+        return baseFailurePayload("build", error, { decoded_dir: asText(params && params.decoded_dir), output_apk_path: asText(params && params.output_apk_path) });
     }
+}
+
+async function apk_reverse_selftest(params) {
+    const stages = [];
+
+    async function probe(name, action) {
+        const startedAt = Date.now();
+        try {
+            const value = await action();
+            stages.push({
+                stage: name,
+                ok: true,
+                elapsedMs: Date.now() - startedAt,
+                detail: value === undefined ? "" : safeStringify(value).slice(0, 600)
+            });
+            return { ok: true, value };
+        } catch (error) {
+            const detail = describeError(error);
+            stages.push({
+                stage: name,
+                ok: false,
+                elapsedMs: Date.now() - startedAt,
+                errorType: detail.errorType,
+                errorMessage: detail.message,
+                errorCause: detail.cause,
+                errorStack: detail.stack ? detail.stack.slice(0, 1200) : "",
+                errorRaw: detail.raw ? detail.raw.slice(0, 600) : ""
+            });
+            return { ok: false, error: error };
+        }
+    }
+
+    await probe("jvm_compat_properties", () => {
+        ensureJvmCompatibilitySystemProperties();
+        return collectJvmCompatibilitySystemProperties();
+    });
+
+    const helperResource = await probe("read_resource_helper", () => ToolPkg.readResource(
+        HELPER_RUNTIME_RESOURCE_KEY,
+        HELPER_RUNTIME_OUTPUT_FILE_NAME,
+        true
+    ));
+    const apktoolResource = await probe("read_resource_apktool", () => ToolPkg.readResource(
+        APKTOOL_RUNTIME_RESOURCE_KEY,
+        APKTOOL_RUNTIME_OUTPUT_FILE_NAME,
+        true
+    ));
+    const jadxResource = await probe("read_resource_jadx", () => ToolPkg.readResource(
+        JADX_RUNTIME_RESOURCE_KEY,
+        JADX_RUNTIME_OUTPUT_FILE_NAME,
+        true
+    ));
+    await probe("read_resource_framework", () => ToolPkg.readResource(
+        APKTOOL_ANDROID_FRAMEWORK_RESOURCE_KEY,
+        APKTOOL_ANDROID_FRAMEWORK_OUTPUT_FILE_NAME,
+        true
+    ));
+
+    if (helperResource.ok) {
+        await probe("load_jar_helper", async () => {
+            const runtime = await ensureHelperRuntimeLoaded("selftest");
+            return { runtimeJarPath: runtime.runtimeJarPath, loadInfo: runtime.loadInfo };
+        });
+        await probe("java_type_helper_facade", () => {
+            const classes = getHelperBridgeClasses();
+            return asText(classes.ApkReverseHelperFacade);
+        });
+    }
+    if (apktoolResource.ok) {
+        await probe("load_jar_apktool", async () => {
+            const runtime = await ensureApktoolRuntimeLoaded();
+            return { runtimeJarPath: runtime.runtimeJarPath, loadInfo: runtime.loadInfo };
+        });
+    }
+    if (jadxResource.ok) {
+        await probe("load_jar_jadx", async () => {
+            const runtime = await ensureJadxRuntimeLoaded();
+            return { runtimeJarPath: runtime.runtimeJarPath, loadInfo: runtime.loadInfo };
+        });
+        await probe("java_type_jadx_args", () => asText(Java.type("jadx.api.JadxArgs")));
+        await probe("java_type_jadx_noop_cache", () => asText(Java.type("jadx.api.impl.NoOpCodeCache")));
+    }
+
+    const probeApkPath = optionalText(params, "input_apk_path");
+    if (probeApkPath) {
+        await probe("helper_call_inspect", async () => {
+            const helper = await callHelperFacade(
+                "inspectApk",
+                (Facade) => Facade.inspectApk(probeApkPath),
+                "selftest_inspect"
+            );
+            return {
+                helperRuntimeJarPath: helper.runtime.runtimeJarPath,
+                payloadKeys: Object.keys(helper.payload || {})
+            };
+        });
+    }
+
+    const failed = stages.filter((entry) => !entry.ok);
+    const summary = failed.length === 0
+        ? "all stages passed"
+        : `first failing stage: ${failed[0].stage} -> ${failed[0].errorType}: ${failed[0].errorMessage}`;
+
+    return {
+        success: failed.length === 0,
+        operation: "selftest",
+        packageName: "apk_reverse",
+        packageVersion: PACKAGE_VERSION,
+        message: summary,
+        error: failed.length === 0 ? "" : summary,
+        stageCount: stages.length,
+        failedStageCount: failed.length,
+        firstFailedStage: failed.length === 0 ? "" : failed[0].stage,
+        stages,
+        probedApkPath: probeApkPath || ""
+    };
 }
 
 async function apk_reverse_inspect(params) {
@@ -787,7 +1263,7 @@ async function apk_reverse_inspect(params) {
             ...helper.payload
         };
     } catch (error) {
-        return baseFailurePayload("inspect", error);
+        return baseFailurePayload("inspect", error, { input_apk_path: asText(params && params.input_apk_path) });
     }
 }
 
@@ -795,14 +1271,36 @@ async function apk_reverse_jadx(params) {
     try {
         const inputApkPath = requireText(params, "input_apk_path");
         const outputDir = requireText(params, "output_dir");
+        const jadxJobs = normalizeJobs(params, "jobs");
+        const useIsolatedProcess = optionalBoolean(params, "isolated", true);
         const jadxRuntime = await ensureJadxRuntimeLoaded();
-        const helper = await callHelperFacade("decompileJadx", (Facade) => Facade.decompileJadx(
-            inputApkPath,
-            outputDir,
-            optionalInteger(params, "jobs", 1),
-            optionalBoolean(params, "deobf", false),
-            optionalBoolean(params, "show_inconsistent_code", false)
-        ), "jadx");
+        const deobfEnabled = optionalBoolean(params, "deobf", false);
+        const showInconsistent = optionalBoolean(params, "show_inconsistent_code", false);
+        const helper = await runExclusiveHeavyOperation(
+            useIsolatedProcess ? "jadx_isolated" : "jadx",
+            async () => {
+                if (!useIsolatedProcess) {
+                    return callHelperFacade("decompileJadx", (Facade) => Facade.decompileJadx(
+                        inputApkPath,
+                        outputDir,
+                        jadxJobs,
+                        deobfEnabled,
+                        showInconsistent
+                    ), "jadx");
+                }
+                const helperRuntime = await ensureHelperRuntimeLoaded("jadx_isolated");
+                return callHelperFacade("decompileJadxIsolated", (Facade) => Facade.decompileJadxIsolated(
+                    inputApkPath,
+                    outputDir,
+                    jadxJobs,
+                    deobfEnabled,
+                    showInconsistent,
+                    helperRuntime.runtimeJarPath,
+                    jadxRuntime.runtimeJarPath,
+                    outputDir
+                ), "jadx_isolated");
+            }
+        );
         return {
             ...baseSuccessPayload({
                 jadxRuntimeJarPath: jadxRuntime.runtimeJarPath,
@@ -811,10 +1309,29 @@ async function apk_reverse_jadx(params) {
                 helperLoadInfo: helper.runtime.loadInfo
             }),
             operation: "jadx",
+            jobs: jadxJobs,
+            isolated: useIsolatedProcess,
             ...helper.payload
         };
     } catch (error) {
-        return baseFailurePayload("jadx", error);
+        const isolatedRequested = optionalBoolean(params, "isolated", true);
+        const payload = baseFailurePayload("jadx", error, {
+            input_apk_path: asText(params && params.input_apk_path),
+            output_dir: asText(params && params.output_dir),
+            jobs: asText(params && params.jobs),
+            isolated: isolatedRequested
+        });
+        if (isolatedRequested) {
+            payload.isolatedFailed = true;
+            payload.doNotFallBackInProcess = true;
+            payload.recoveryAdvice = "Isolated JADX failed. Do NOT retry with isolated=false on a "
+                + "large APK: in-process JADX shares the host heap and has been measured to make "
+                + "the host app drop frames and crash. Fix the isolated failure reported above, or "
+                + "retry isolated after restarting the app.";
+            payload.message = payload.message + " | " + payload.recoveryAdvice;
+            payload.error = payload.message;
+        }
+        return payload;
     }
 }
 
@@ -829,7 +1346,7 @@ async function apk_reverse_search_text(params) {
         );
         const regexEnabled = optionalBoolean(params, "regex", false);
         const caseInsensitive = optionalBoolean(params, "case_insensitive", true);
-        const maxResults = optionalInteger(params, "max_results", DEFAULT_MAX_RESULTS);
+        const maxResults = clampMaxResults(optionalInteger(params, "max_results", DEFAULT_MAX_RESULTS));
         const helper = await callHelperFacade("searchText", (Facade) => Facade.searchText(
             inputPath,
             query,
@@ -855,7 +1372,7 @@ async function apk_reverse_search_text(params) {
         };
         return maybePersistLargeField(payload, "matches", "search_text_matches");
     } catch (error) {
-        return baseFailurePayload("search_text", error);
+        return baseFailurePayload("search_text", error, { input_path: asText(params && params.input_path) });
     }
 }
 
@@ -868,7 +1385,7 @@ async function apk_reverse_search_address(params) {
             ["resource_id", "smali_ref", "jadx_ref", "native_symbol", "native_offset", "hex_bytes", "all"],
             "all"
         );
-        const maxResults = optionalInteger(params, "max_results", DEFAULT_MAX_RESULTS);
+        const maxResults = clampMaxResults(optionalInteger(params, "max_results", DEFAULT_MAX_RESULTS));
         const helper = await callHelperFacade("searchAddress", (Facade) => Facade.searchAddress(
             inputPath,
             query,
@@ -889,7 +1406,7 @@ async function apk_reverse_search_address(params) {
         };
         return maybePersistLargeField(payload, "matches", "search_address_matches");
     } catch (error) {
-        return baseFailurePayload("search_address", error);
+        return baseFailurePayload("search_address", error, { input_path: asText(params && params.input_path) });
     }
 }
 
@@ -927,7 +1444,7 @@ async function apk_reverse_sign(params) {
             ...result
         };
     } catch (error) {
-        return baseFailurePayload("sign", error);
+        return baseFailurePayload("sign", error, { input_apk_path: asText(params && params.input_apk_path), sign_mode: asText(params && params.sign_mode) });
     }
 }
 
@@ -957,7 +1474,7 @@ async function apk_reverse_build_and_sign(params) {
             appliedConfig: buildResult.appliedConfig
         };
     } catch (error) {
-        return baseFailurePayload("build_and_sign", error);
+        return baseFailurePayload("build_and_sign", error, { decoded_dir: asText(params && params.decoded_dir), output_apk_path: asText(params && params.output_apk_path) });
     } finally {
         if (unsignedFile) {
             const parent = unsignedFile.getParentFile();
@@ -968,6 +1485,7 @@ async function apk_reverse_build_and_sign(params) {
 
 export {
     usage_advice,
+    apk_reverse_selftest,
     apk_reverse_inspect,
     apk_reverse_decode,
     apk_reverse_jadx,
