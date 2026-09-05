@@ -7423,7 +7423,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="market_tab_categories">Categorías</string>
     <string name="market_category_type_all">Todo</string>
     <string name="market_category_type_script">Script</string>
-    <string name="market_category_type_package">Plugin</string>
+    <string name="market_category_type_package">Complemento</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Búsqueda e investigación</string>
