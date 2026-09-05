@@ -1026,6 +1026,7 @@
     <!-- Package Manager Screen -->
     <string name="packages">沙盒包</string>
     <string name="skills">技能</string>
+    <string name="package_tab_skills">Skill</string>
     <string name="quick_plugin_creator_title">快速创作你的插件</string>
     <string name="quick_plugin_creator_desc">内置和市场都找不到想要的插件？创作你自己想要的！</string>
     <string name="quick_plugin_creator_step1_title">1. 更新或者下载包创作 Skill</string>
