@@ -1462,6 +1462,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">Cache</string>
+    <string name="message_info_token_hit_rate_short">Hit rate</string>
     <string name="message_info_unavailable">Tidak tercatat</string>
 
     <string name="script_code">Kode Skrip</string>
@@ -6900,7 +6901,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="show_message_token_stats_description">Tampilkan informasi ringkas token naik/turun dan cache di bagian bawah pesan AI</string>
     <string name="show_message_timing_stats">Tampilkan statistik waktu pesan</string>
     <string name="show_message_timing_stats_description">Tampilkan waktu paket pertama dan waktu generasi di bagian bawah pesan AI</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">waktu: %1$s (pertama %2$s generasi %3$s)</string>
     <string name="software_identity_title">Identitas Perangkat Lunak</string>
     <string name="software_identity_description">Ubah identitas perangkat lunak yang ditampilkan di bagian atas sidebar.</string>

@@ -1502,6 +1502,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">Cache</string>
+    <string name="message_info_token_hit_rate_short">Kadar hit</string>
     <string name="message_info_unavailable">Tidak Direkodkan</string>
     <string name="selected_content_copied">Kandungan Terpilih Disalin</string>
     <string name="requesting_root_permission">Meminta kebenaran Root...</string>
@@ -6898,7 +6899,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="show_message_token_stats_description">Paparkan maklumat ringkas token naik/turun dan cache di bahagian bawah mesej AI</string>
     <string name="show_message_timing_stats">Tunjukkan ringkasan masa mesej</string>
     <string name="show_message_timing_stats_description">Paparkan masa paket pertama dan penjanaan di bahagian bawah mesej AI</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">masa: %1$s (pertama %2$s jana %3$s)</string>
     <string name="software_identity_title">Identiti Perisian</string>
     <string name="software_identity_description">Tukar identiti perisian yang dipaparkan di bahagian atas bar sisi.</string>
