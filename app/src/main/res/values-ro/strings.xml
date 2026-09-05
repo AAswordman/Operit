@@ -1003,7 +1003,7 @@
     <string name="tag_count_locked_status">A fost selectat %1$d / Limita maximă %2$d</string>
 
     <!-- Package Manager Screen -->
-    <string name="packages">Gestionarea pachetelor</string>
+    <string name="packages">Scripturi</string>
     <string name="skills">Abilități</string>
     <string name="quick_plugin_creator_title">Creează-ți rapid pluginul</string>
     <string name="quick_plugin_creator_desc">Nu găsești pluginul dorit nici în cele preinstalate, nici în magazin? Creează-l tu însuți!</string>
@@ -4287,7 +4287,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="market_tab_mine">Al meu</string>
     <string name="market_category_type_all">Toate</string>
     <string name="market_category_type_script">Scenariu</string>
-    <string name="market_category_type_package">Set de instrumente</string>
+    <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Căutare și cercetare</string>

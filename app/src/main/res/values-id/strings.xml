@@ -714,7 +714,7 @@
     <string name="preferences_guide_title">Untuk layanan yang lebih baik, harap lengkapi pengaturan berikut</string>
     <string name="preference_lock">Kunci preferensi pengguna</string>
     <string name="preference_lock_desc">Setelah dikunci, informasi preferensi pengguna tidak dapat diubah</string>
-    <string name="packages">Manajemen paket</string>
+    <string name="packages">Skrip</string>
     <string name="skills">Keterampilan</string>
     <string name="show_to_ai_short">AI</string>
     <string name="package_manager">Manajer paket</string>
@@ -7355,7 +7355,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="market_tab_categories">Kategori</string>
     <string name="market_category_type_all">Semua</string>
     <string name="market_category_type_script">Skrip</string>
-    <string name="market_category_type_package">Paket Alat</string>
+    <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Pencarian &amp; Riset</string>

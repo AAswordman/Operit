@@ -704,7 +704,7 @@
     <string name="preferences_guide_title">Untuk memberikan perkhidmatan yang lebih baik, sila lengkapkan tetapan berikut</string>
     <string name="preference_lock">Kunci keutamaan pengguna</string>
     <string name="preference_lock_desc">Keutamaan pengguna tidak boleh diubah selepas dikunci</string>
-    <string name="packages">Pengurusan pakej</string>
+    <string name="packages">Skrip</string>
     <string name="skills">Kemahiran</string>
     <string name="show_to_ai_short">AI</string>
     <string name="package_manager">Pengurus pakej</string>
@@ -7352,7 +7352,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="market_tab_categories">Kategori</string>
     <string name="market_category_type_all">Semua</string>
     <string name="market_category_type_script">Skrip</string>
-    <string name="market_category_type_package">Kit Alat</string>
+    <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Kemahiran</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Carian &amp; Penyelidikan</string>

@@ -1071,7 +1071,7 @@
     <string name="tag_count_locked_status">Selected %1$d / Limit %2$d</string>
     
     <!-- Package Manager Screen -->
-    <string name="packages">Packages</string>
+    <string name="packages">Scripts</string>
     <string name="skills">Skills</string>
     <string name="show_to_ai_short">AI</string>
     <string name="package_manager">Package Manager</string>
@@ -7759,7 +7759,7 @@
     <string name="market_tab_mine">Mine</string>
     <string name="market_category_type_all">All</string>
     <string name="market_category_type_script">Script</string>
-    <string name="market_category_type_package">Package</string>
+    <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Search &amp; Research</string>

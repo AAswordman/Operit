@@ -910,7 +910,7 @@
     <string name="tag_count_lock">잠금 횟수</string>
     <string name="tag_count_limit">최대 선택 가능</string>
     <string name="tag_count_locked_status">%1$d 선택 / %2$d 제한</string>
-    <string name="packages">패키지</string>
+    <string name="packages">스크립트</string>
     <string name="skills">스킬</string>
     <string name="quick_plugin_creator_title">신속하게 플러그인 만들기</string>
     <string name="quick_plugin_creator_desc">내장 목록이나 마켓에서 원하는 플러그인을 찾을 수 없나요? 직접 만들어 보세요.</string>
@@ -7202,7 +7202,7 @@
     <string name="market_tab_categories">카테고리</string>
     <string name="market_category_type_all">전체</string>
     <string name="market_category_type_script">스크립트</string>
-    <string name="market_category_type_package">도구 패키지</string>
+    <string name="market_category_type_package">플러그인</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">검색 및 연구</string>
