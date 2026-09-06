@@ -2486,7 +2486,7 @@ description: one-line summary of what this skill does
     const TOOLPKG_ID_PATTERN = /^\s*["']?toolpkg_id["']?\s*:\s*["']([^"']+)["']/m;
     const TOOLPKG_MAIN_PATTERN = /^\s*["']?main["']?\s*:\s*["']([^"']+)["']/m;
     const TOOLPKG_SUBPACKAGE_ID_PATTERN = /^\s*["']?id["']?\s*:\s*["']([^"']+)["']/gm;
-    const TOOLPKG_SKIP_DIR_NAMES = new Set([".git", "__pycache__"]);
+    const TOOLPKG_SKIP_DIR_NAMES = new Set([".git", "__pycache__", ".backup", "backup", ".operit"]);
     const TOOLPKG_SKIP_FILE_NAMES = new Set([".DS_Store", "Thumbs.db"]);
     function collect_related_package_load_errors(payload, packageName, ...relatedPaths) {
         const normalizedPackageName = normalize_package_key(packageName);
@@ -2833,17 +2833,57 @@ description: one-line summary of what this skill does
             temporaryPaths
         };
     }
+    async function copy_toolpkg_sources_filtered(sourceDir, targetDir, relativePath = "", stats = { copiedFiles: 0, skippedEntries: [] }) {
+        await ensure_android_directory(targetDir);
+        const listing = await Tools.Files.list(sourceDir, "android");
+        for (const entry of listing?.entries ?? []) {
+            const entryName = String(entry?.name ?? "").trim();
+            if (!entryName || entryName === "." || entryName === "..") {
+                continue;
+            }
+            const entryRelativePath = relativePath ? `${relativePath}/${entryName}` : entryName;
+            const sourceEntryPath = path_join(sourceDir, entryName);
+            if (entry?.isDirectory) {
+                if (TOOLPKG_SKIP_DIR_NAMES.has(entryName)) {
+                    stats.skippedEntries.push(`${entryRelativePath}/`);
+                    continue;
+                }
+                await copy_toolpkg_sources_filtered(sourceEntryPath, path_join(targetDir, entryName), entryRelativePath, stats);
+                continue;
+            }
+            if (TOOLPKG_SKIP_FILE_NAMES.has(entryName)) {
+                stats.skippedEntries.push(entryRelativePath);
+                continue;
+            }
+            await Tools.Files.copy(sourceEntryPath, path_join(targetDir, entryName), false, "android", "android");
+            stats.copiedFiles += 1;
+        }
+        return stats;
+    }
     async function build_toolpkg_archive_from_folder(source) {
         const tempBuildDir = path_join(OPERIT_CLEAN_ON_EXIT_DIR, `operit_editor_toolpkg_build_${safe_debug_file_stem(source.packageId, "toolpkg")}_${Date.now()}`);
         await ensure_android_directory(tempBuildDir);
         const archivePath = path_join(tempBuildDir, `${safe_debug_file_stem(source.packageId, "toolpkg")}.toolpkg`);
-        await Tools.Files.zip(source.folderPath, archivePath, "android", false);
+        // 工作区绑定对话后会生成 .backup/（含聊天记录与快照），且在工作区文件树中不可见。
+        // 直接 zip 整个目录会把它打进 toolpkg，因此先按排除名单拷贝出一份干净的打包源。
+        const stageDir = path_join(tempBuildDir, "stage");
+        const stats = await copy_toolpkg_sources_filtered(source.folderPath, stageDir);
+        if (stats.copiedFiles === 0) {
+            throw new Error(`No packable files found in source folder: ${source.folderPath}`);
+        }
+        const stagedManifestExists = (await android_path_exists(path_join(stageDir, "manifest.json")))
+            || (await android_path_exists(path_join(stageDir, "manifest.hjson")));
+        if (!stagedManifestExists) {
+            throw new Error(`Root manifest is missing after filtering source folder: ${source.folderPath}`);
+        }
+        await Tools.Files.zip(stageDir, archivePath, "android", false);
         if (!(await android_path_exists(archivePath))) {
             throw new Error(`Failed to create ToolPkg archive: ${archivePath}`);
         }
         return {
             archivePath,
-            temporaryPaths: [tempBuildDir]
+            temporaryPaths: [tempBuildDir],
+            skippedEntries: stats.skippedEntries
         };
     }
     function parse_requested_package_ids(raw) {
