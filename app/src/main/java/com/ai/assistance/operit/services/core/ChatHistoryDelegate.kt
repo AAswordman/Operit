@@ -1186,10 +1186,12 @@ class ChatHistoryDelegate(
     ): Int {
         val chatId = chatIdOverride ?: _currentChatId.value ?: throw IllegalStateException("No active chat")
         val isCurrentChat = chatId == _currentChatId.value
-        val selectedVariantIndex = historyUpdateMutex.withLock {
+        val (selectedVariantIndex, persistedMessage) = historyUpdateMutex.withLock {
             val selectedVariantIndex =
                 chatHistoryManager.addMessageVariant(chatId, timestamp, message)
-            selectedVariantIndex
+            val persistedMessage = message.copy(selectedVariantIndex = selectedVariantIndex)
+            ToolPkgChatMessageHookBridge.dispatchMessagePersisted(chatId, persistedMessage)
+            selectedVariantIndex to persistedMessage
         }
         if (isCurrentChat && chatId == _currentChatId.value) {
             reloadCurrentChatDisplayHistory(chatId)
