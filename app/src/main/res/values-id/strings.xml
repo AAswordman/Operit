@@ -7638,4 +7638,10 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_activity_chart_tap_hint">Ketuk grafik untuk melihat data detail</string>
     <string name="token_activity_total_tokens">Total Token</string>
     <string name="token_activity_peak_tokens">Token puncak</string>
+    <string name="stream_scroll_max_speed_title">Batas Kecepatan Gulir Output Streaming</string>
+    <string name="stream_scroll_max_speed_description">Batasi kecepatan gulir otomatis maksimum saat AI menghasilkan teks dengan cepat. Ini adalah batas atas, bukan kecepatan tetap, sehingga model yang lambat tidak terpengaruh. Langkah terakhir menghapus batas dan gulir mengikuti throughput model.</string>
+    <string name="stream_scroll_max_speed_value">%1$d dp/s</string>
+    <string name="stream_scroll_max_speed_unlimited">Tanpa batas</string>
+    <string name="enable_non_streaming_scroll_to_top">Tampilkan Awal Pesan untuk Output Non-streaming</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">Posisikan halaman di awal respons lengkap AI alih-alih langsung melompat ke bagian bawah</string>
 </resources>

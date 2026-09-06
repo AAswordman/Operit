@@ -7485,4 +7485,10 @@
     <string name="token_activity_chart_tap_hint">차트를 탭하여 자세한 데이터 보기</string>
     <string name="token_activity_total_tokens">누적 토큰</string>
     <string name="token_activity_peak_tokens">최대 토큰</string>
+    <string name="stream_scroll_max_speed_title">스트리밍 출력 스크롤 속도 상한</string>
+    <string name="stream_scroll_max_speed_description">AI가 빠르게 생성할 때 자동 스크롤의 최대 속도를 제한합니다. 고정 속도가 아닌 상한이므로 느린 모델에는 영향이 없습니다. 마지막 단계에서는 상한을 해제하여 스크롤이 모델 처리량을 그대로 따릅니다.</string>
+    <string name="stream_scroll_max_speed_value">%1$d dp/초</string>
+    <string name="stream_scroll_max_speed_unlimited">제한 없음</string>
+    <string name="enable_non_streaming_scroll_to_top">비스트리밍 출력 시 메시지 상단으로 이동</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">AI 전체 응답이 한 번에 반환될 때 맨 아래로 이동하지 않고 응답 시작 부분에 페이지를 맞춥니다</string>
 </resources>

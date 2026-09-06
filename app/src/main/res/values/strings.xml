@@ -8348,4 +8348,10 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <string name="stream_scroll_max_speed_title">流式输出滚动速度上限</string>
+    <string name="stream_scroll_max_speed_description">限制 AI 快速生成时页面的最大自动滚动速度上限；这是上限而非固定速度，模型输出较慢时不会介入。拉到最后一档为不设上限，屏幕滚动完全跟随模型吞吐量。</string>
+    <string name="stream_scroll_max_speed_value">%1$d dp/秒</string>
+    <string name="stream_scroll_max_speed_unlimited">不设上限</string>
+    <string name="enable_non_streaming_scroll_to_top">非流式输出定位到消息开头</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">AI 单次完整回复时，页面自动定位在回复内容开头，避免直接滚动到底部</string>
 </resources>
