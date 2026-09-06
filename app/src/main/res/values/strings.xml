@@ -8343,7 +8343,8 @@
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
     <string name="model_fetch_error_timeout">获取模型列表超时，请检查网络连接或代理是否通畅</string>
-    <string name="model_fetch_error_network">网络访问失败，无法连接到服务器，请检查网络、端点地址或是否需要开启代理(梯子)</string>
+    <string name="model_fetch_error_dns">域名解析失败，请检查API端点地址拼写（如域名后缀是否完整），或检查网络设置</string>
+    <string name="model_fetch_error_network">无法连接到服务器，请检查网络连接、服务端口或代理设置</string>
     <string name="model_fetch_error_ssl">SSL安全连接失败，请检查网络环境或代理设置</string>
     <string name="model_fetch_error_unauthorized">API密钥无效或未授权 (HTTP 401)</string>
     <string name="model_fetch_error_forbidden">访问被拒绝 (HTTP 403)，可能受到区域限制或需要代理(梯子)</string>

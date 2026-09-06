@@ -7481,7 +7481,8 @@
     <string name="token_activity_total_tokens">누적 토큰</string>
     <string name="token_activity_peak_tokens">최대 토큰</string>
     <string name="model_fetch_error_timeout">모델 목록 가져오기 시간 초과. 네트워크 또는 프록시 연결을 확인하세요.</string>
-    <string name="model_fetch_error_network">네트워크 오류. 서버에 연결할 수 없습니다. 네트워크, 엔드포인트 또는 프록시를 확인하세요.</string>
+    <string name="model_fetch_error_dns">도메인 이름을 확인할 수 없습니다. API 주소 철자(도메인 접미사 등)나 네트워크를 확인하세요.</string>
+    <string name="model_fetch_error_network">서버에 연결할 수 없습니다. 네트워크 연결, 포트 또는 프록시 설정을 확인하세요.</string>
     <string name="model_fetch_error_ssl">SSL 보안 연결 실패. 네트워크 환경 또는 프록시 설정을 확인하세요.</string>
     <string name="model_fetch_error_unauthorized">유효하지 않거나 권한이 없는 API 키 (HTTP 401)</string>
     <string name="model_fetch_error_forbidden">접근 거부됨 (HTTP 403). 지역 제한이 있거나 프록시가 필요할 수 있습니다.</string>

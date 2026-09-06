@@ -8310,7 +8310,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
     <string name="model_fetch_error_timeout">Timpul de așteptare a expirat la preluarea modelelor. Verificați rețeaua sau proxy-ul.</string>
-    <string name="model_fetch_error_network">Eroare de rețea. Nu se poate conecta la server. Verificați rețeaua, endpoint-ul sau proxy-ul.</string>
+    <string name="model_fetch_error_dns">Eșec la rezolvarea numelui de domeniu. Verificați adresa API (de ex. sufixul domeniului) sau rețeaua.</string>
+    <string name="model_fetch_error_network">Nu se poate conecta la server. Verificați rețeaua, portul sau setările proxy.</string>
     <string name="model_fetch_error_ssl">Conexiunea de securitate SSL a eșuat. Verificați rețeaua sau setările proxy.</string>
     <string name="model_fetch_error_unauthorized">Cheie API nevalidă sau neautorizată (HTTP 401)</string>
     <string name="model_fetch_error_forbidden">Acces interzis (HTTP 403). Posibilă restricție regională sau este necesar un proxy.</string>

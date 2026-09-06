@@ -51,11 +51,18 @@ class ModelFetchErrorHelperTest {
     }
 
     @Test
+    fun detectsDnsResolutionExceptions() {
+        assertTrue(ModelFetchErrorHelper.isDnsResolutionException(UnknownHostException("api.deepseek")))
+        assertTrue(ModelFetchErrorHelper.isDnsResolutionException(IOException("Unable to resolve host \"api.deepseek\": No address associated with hostname")))
+        assertFalse(ModelFetchErrorHelper.isDnsResolutionException(ConnectException("Connection refused")))
+        assertFalse(ModelFetchErrorHelper.isDnsResolutionException(SocketTimeoutException("timeout")))
+    }
+
+    @Test
     fun detectsNetworkConnectionExceptions() {
-        assertTrue(ModelFetchErrorHelper.isNetworkConnectionException(UnknownHostException("api.openai.com")))
         assertTrue(ModelFetchErrorHelper.isNetworkConnectionException(ConnectException("Connection refused")))
         assertTrue(ModelFetchErrorHelper.isNetworkConnectionException(NoRouteToHostException("No route to host")))
-        assertTrue(ModelFetchErrorHelper.isNetworkConnectionException(IOException("Unable to resolve host \"api.example.com\": No address associated with hostname")))
+        assertTrue(ModelFetchErrorHelper.isNetworkConnectionException(IOException("failed to connect to /192.168.1.1 (port 80)")))
         assertFalse(ModelFetchErrorHelper.isNetworkConnectionException(SocketTimeoutException("timeout")))
     }
 

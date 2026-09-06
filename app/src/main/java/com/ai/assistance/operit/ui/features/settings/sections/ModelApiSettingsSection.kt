@@ -72,8 +72,10 @@ import com.ai.assistance.operit.ui.common.icons.rememberProviderLogoPainter
 import com.ai.assistance.operit.ui.features.settings.RegisterModelConfigSaveAction
 import com.ai.assistance.operit.ui.features.codex.CodexLoginDialog
 import com.ai.assistance.operit.util.LocationUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -434,6 +436,22 @@ fun ModelApiSettingsSection(
     var modelsList by remember { mutableStateOf<List<ModelOption>>(emptyList()) }
     var modelLoadError by remember { mutableStateOf<String?>(null) }
     var showEndpointDialog by remember(config.id) { mutableStateOf(false) }
+    var fetchModelsJob by remember { mutableStateOf<Job?>(null) }
+
+    // 当配置ID或API提供商发生变化时，立即取消正在进行的模型获取任务并重置加载状态
+    LaunchedEffect(config.id, selectedProviderTypeId) {
+        fetchModelsJob?.cancel()
+        fetchModelsJob = null
+        isLoadingModels = false
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            fetchModelsJob?.cancel()
+            fetchModelsJob = null
+            isLoadingModels = false
+        }
+    }
 
     // 检查是否未填写API密钥（仅用于UI显示）
     val isUsingDefaultApiKey = apiKeyInput.isBlank()
@@ -787,8 +805,9 @@ fun ModelApiSettingsSection(
                                 return@IconButton
                             }
 
+                            fetchModelsJob?.cancel()
                             Toast.makeText(context, gettingModelsText, Toast.LENGTH_SHORT).show()
-                            scope.launch {
+                            fetchModelsJob = scope.launch {
                                 isLoadingModels = true
                                 modelLoadError = null
                                 AppLogger.d(
@@ -810,6 +829,8 @@ fun ModelApiSettingsSection(
                                         modelLoadError = errorMsg
                                         Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                                     }
+                                } catch (e: CancellationException) {
+                                    AppLogger.d(TAG, "获取模型列表任务被取消")
                                 } catch (e: Exception) {
                                     AppLogger.e(TAG, "获取模型列表发生异常", e)
                                     val errorMsg = ModelFetchErrorHelper.formatError(context, e)
@@ -980,8 +1001,9 @@ fun ModelApiSettingsSection(
                                     if (isLoadingModels) return@FilledIconButton
                                     val gettingModelsText = context.getString(R.string.getting_models_list)
                                     val modelsListSuccessText = context.getString(R.string.models_list_success)
+                                    fetchModelsJob?.cancel()
                                     Toast.makeText(context, gettingModelsText, Toast.LENGTH_SHORT).show()
-                                    scope.launch {
+                                    fetchModelsJob = scope.launch {
                                         if (canRequestModelList) {
                                             isLoadingModels = true
                                             try {
@@ -995,6 +1017,8 @@ fun ModelApiSettingsSection(
                                                     modelLoadError = errorMsg
                                                     Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                                                 }
+                                            } catch (e: CancellationException) {
+                                                AppLogger.d(TAG, "刷新模型列表任务被取消")
                                             } catch (e: Exception) {
                                                 val errorMsg = ModelFetchErrorHelper.formatError(context, e)
                                                 modelLoadError = errorMsg

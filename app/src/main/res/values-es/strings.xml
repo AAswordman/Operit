@@ -7783,7 +7783,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_settings">Configuración de estadísticas</string>
     <string name="token_stats_custom_range_confirm">Aceptar</string>
     <string name="model_fetch_error_timeout">Tiempo de espera agotado al obtener modelos. Verifique la conexión o proxy.</string>
-    <string name="model_fetch_error_network">Error de red. No se puede conectar al servidor. Verifique red, punto final o proxy.</string>
+    <string name="model_fetch_error_dns">Error de resolución de dominio. Verifique la ortografía de la dirección API o la red.</string>
+    <string name="model_fetch_error_network">No se puede conectar al servidor. Verifique la red, el puerto o el proxy.</string>
     <string name="model_fetch_error_ssl">Error de conexión SSL. Verifique el entorno de red o configuración de proxy.</string>
     <string name="model_fetch_error_unauthorized">Clave de API no válida o no autorizada (HTTP 401)</string>
     <string name="model_fetch_error_forbidden">Acceso denegado (HTTP 403). Posible restricción regional o proxy requerido.</string>

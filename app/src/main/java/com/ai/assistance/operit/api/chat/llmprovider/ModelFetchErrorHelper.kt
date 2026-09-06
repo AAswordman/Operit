@@ -58,19 +58,32 @@ object ModelFetchErrorHelper {
         return false
     }
 
+    fun isDnsResolutionException(throwable: Throwable?): Boolean {
+        var current: Throwable? = throwable
+        while (current != null) {
+            if (current is UnknownHostException) return true
+            val msg = current.message?.lowercase() ?: ""
+            if (msg.contains("unable to resolve host") ||
+                msg.contains("no address associated with hostname")
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
     fun isNetworkConnectionException(throwable: Throwable?): Boolean {
         var current: Throwable? = throwable
         while (current != null) {
-            if (current is UnknownHostException ||
-                current is ConnectException ||
+            if (current is ConnectException ||
                 current is NoRouteToHostException ||
                 current is PortUnreachableException
             ) {
                 return true
             }
             val msg = current.message?.lowercase() ?: ""
-            if (msg.contains("unable to resolve host") ||
-                msg.contains("failed to connect") ||
+            if (msg.contains("failed to connect") ||
                 msg.contains("network is unreachable") ||
                 msg.contains("connection refused")
             ) {
@@ -119,12 +132,17 @@ object ModelFetchErrorHelper {
             return context.getString(R.string.model_fetch_error_timeout)
         }
 
-        // 2. 网络无法连接 / 域名无法解析（可能需要梯子）
+        // 2. 域名解析失败（如把 .com 删除了或拼错了域名）
+        if (isDnsResolutionException(throwable)) {
+            return context.getString(R.string.model_fetch_error_dns)
+        }
+
+        // 3. 网络无法连接 / 端口拒绝连接
         if (isNetworkConnectionException(throwable)) {
             return context.getString(R.string.model_fetch_error_network)
         }
 
-        // 3. SSL 握手/证书错误
+        // 4. SSL 握手/证书错误
         if (isSslException(throwable)) {
             return context.getString(R.string.model_fetch_error_ssl)
         }
