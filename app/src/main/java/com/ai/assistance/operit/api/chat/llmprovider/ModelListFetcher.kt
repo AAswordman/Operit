@@ -391,9 +391,6 @@ object ModelListFetcher {
             }
         }
     }
-        }
-    }
-
     /** 解析OpenAI格式的模型响应 格式: {"data": [{"id": "model-id", "object": "model", ...}, ...]} */
     private fun parseOpenAIModelResponse(context: Context, jsonResponse: String): List<ModelOption> {
         val modelList = mutableListOf<ModelOption>()
