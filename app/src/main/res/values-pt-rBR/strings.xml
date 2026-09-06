@@ -897,7 +897,7 @@
     <string name="preferences_guide_title">Para melhor atendê-lo, preencha as seguintes configurações</string>
     <string name="preference_lock">Bloquear preferências do usuário</string>
     <string name="preference_lock_desc">Uma vez bloqueadas, as informações de preferência do usuário não podem ser modificadas.</string>
-    <string name="packages">Gerenciamento de pacotes</string>
+    <string name="packages">Scripts</string>
     <string name="skills">Habilidade</string>
     <string name="show_to_ai_short">IA</string>
     <string name="package_manager">Gerenciador de pacotes</string>
@@ -7193,7 +7193,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="market_tab_categories">Categorias</string>
     <string name="market_category_type_all">Todos</string>
     <string name="market_category_type_script">Script</string>
-    <string name="market_category_type_package">Pacote de ferramentas</string>
+    <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Pesquisa e estudo</string>

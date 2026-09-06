@@ -1024,8 +1024,9 @@
     <string name="tag_count_locked_status">已选择 %1$d / 上限 %2$d</string>
     
     <!-- Package Manager Screen -->
-    <string name="packages">包管理</string>
+    <string name="packages">沙盒包</string>
     <string name="skills">技能</string>
+    <string name="package_tab_skills">Skill</string>
     <string name="quick_plugin_creator_title">快速创作你的插件</string>
     <string name="quick_plugin_creator_desc">内置和市场都找不到想要的插件？创作你自己想要的！</string>
     <string name="quick_plugin_creator_step1_title">1. 更新或者下载包创作 Skill</string>
@@ -4410,8 +4411,8 @@
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">我的</string>
     <string name="market_category_type_all">全部</string>
-    <string name="market_category_type_script">脚本</string>
-    <string name="market_category_type_package">工具包</string>
+    <string name="market_category_type_script">沙盒包</string>
+    <string name="market_category_type_package">插件</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">搜索与研究</string>
