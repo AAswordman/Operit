@@ -1,38 +1,44 @@
 package com.ai.assistance.operit.ui.features.settings.screens
-
 import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Terminal
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.TagType
 import java.util.Locale
-
 /**
  * Bilingual data model for PresetTag
  */
 data class PresetTagBilingual(
-    val nameZh: String,
-    val nameEn: String,
-    val descriptionZh: String,
-    val descriptionEn: String,
-    val promptContentZh: String,
-    val promptContentEn: String,
+    val nameZh: String = "",
+    val nameEn: String = "",
+    val descriptionZh: String = "",
+    val descriptionEn: String = "",
+    val promptContentZh: String = "",
+    val promptContentEn: String = "",
     val tagType: TagType,
-    val categoryZh: String,
-    val categoryEn: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val categoryZh: String = "",
+    val categoryEn: String = "",
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val nameResId: Int? = null,
+    val descriptionResId: Int? = null,
+    val promptContentResId: Int? = null,
+    val categoryResId: Int? = null,
 ) {
     /**
      * Get localized name based on current locale
      */
     fun getLocalizedName(context: Context): String {
+        if (nameResId != null) return context.getString(nameResId)
         return if (isChineseLocale(context)) nameZh else nameEn
     }
 
@@ -40,6 +46,7 @@ data class PresetTagBilingual(
      * Get localized description based on current locale
      */
     fun getLocalizedDescription(context: Context): String {
+        if (descriptionResId != null) return context.getString(descriptionResId)
         return if (isChineseLocale(context)) descriptionZh else descriptionEn
     }
 
@@ -47,6 +54,7 @@ data class PresetTagBilingual(
      * Get localized prompt content based on current locale
      */
     fun getLocalizedPromptContent(context: Context): String {
+        if (promptContentResId != null) return context.getString(promptContentResId)
         return if (isChineseLocale(context)) promptContentZh else promptContentEn
     }
 
@@ -54,6 +62,7 @@ data class PresetTagBilingual(
      * Get localized category based on current locale
      */
     fun getLocalizedCategory(context: Context): String {
+        if (categoryResId != null) return context.getString(categoryResId)
         return if (isChineseLocale(context)) categoryZh else categoryEn
     }
 
@@ -419,5 +428,38 @@ He found himself in a cyberpunk metropolis ruled by neon lights and flying vehic
         categoryZh = "创意写作",
         categoryEn = "Creative Writing",
         icon = Icons.Default.Book
+    ),
+    // Engineering Preset Tags
+    PresetTagBilingual(
+        nameZh = "ClaudeCode预设提示词",
+        nameEn = "ClaudeCode Preset Prompt",
+        descriptionZh = "极简、自律与诚实的代码行动规范，严禁过度设计与测试造假",
+        descriptionEn = "Minimalist, disciplined, and honest coding guidelines against overengineering and fake verification",
+        promptContentZh = "",
+        promptContentEn = "",
+        tagType = TagType.FUNCTION,
+        categoryZh = "工程开发",
+        categoryEn = "Engineering",
+        icon = Icons.Default.Code,
+        nameResId = R.string.tag_claudecode_name,
+        descriptionResId = R.string.tag_claudecode_desc,
+        promptContentResId = R.string.tag_claudecode_content,
+        categoryResId = R.string.tag_category_engineering
+    ),
+    PresetTagBilingual(
+        nameZh = "CodeX预设提示词",
+        nameEn = "CodeX Preset Prompt",
+        descriptionZh = "环境探查优先、工作区保护与决策闭环交付规范",
+        descriptionEn = "Environment grounding, worktree preservation, and decision-complete delivery guidelines",
+        promptContentZh = "",
+        promptContentEn = "",
+        tagType = TagType.FUNCTION,
+        categoryZh = "工程开发",
+        categoryEn = "Engineering",
+        icon = Icons.Default.Terminal,
+        nameResId = R.string.tag_codex_name,
+        descriptionResId = R.string.tag_codex_desc,
+        promptContentResId = R.string.tag_codex_content,
+        categoryResId = R.string.tag_category_engineering
     )
 )
