@@ -5484,10 +5484,13 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="show_message_token_stats_description">în AI În partea de jos a știrii se afișează un mesaj concis token Informații privind traficul de intrare și ieșire și memoria cache</string>
     <string name="show_message_timing_stats">Raport privind durata de afișare a mesajelor</string>
     <string name="show_message_timing_stats_description">în AI În partea de jos a mesajului se afișează primul pachet și timpul necesar pentru generare</string>
+    <string name="show_message_token_speed">Afișează viteza de generare a tokenilor mesajului</string>
+    <string name="show_message_token_speed_description">Afișează viteza de generare a tokenilor de ieșire sub mesajele AI (t/s)</string>
     <string name="show_message_timestamp">Afișează ora mesajului</string>
     <string name="show_message_timestamp_description">în AI În partea de jos a mesajului este afișată ora la care a fost postat mesajul respectiv</string>
     <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (Primul %2$s Generare %3$s)</string>
+    <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">Numele de utilizator global</string>
     <string name="system_display_settings">Setări de afișare ale sistemului</string>

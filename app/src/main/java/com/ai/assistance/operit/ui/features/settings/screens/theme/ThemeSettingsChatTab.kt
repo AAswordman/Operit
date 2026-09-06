@@ -544,6 +544,7 @@ internal fun ThemeSettingsChatTab(
     val showUserNameInput = values.requiredBoolean("show_user_name")
     val showMessageTokenStatsInput = values.requiredBoolean("show_message_token_stats")
     val showMessageTimingStatsInput = values.requiredBoolean("show_message_timing_stats")
+    val showMessageTokenSpeedInput = values.requiredBoolean("show_message_token_speed")
     val showMessageTimestampInput = values.requiredBoolean("show_message_timestamp")
     val showInputProcessingStatusInput = values.requiredBoolean("show_input_processing_status")
     val showChatFloatingDotsAnimationInput =
@@ -661,6 +662,7 @@ internal fun ThemeSettingsChatTab(
         showUserNameInput = showUserNameInput,
         showMessageTokenStatsInput = showMessageTokenStatsInput,
         showMessageTimingStatsInput = showMessageTimingStatsInput,
+        showMessageTokenSpeedInput = showMessageTokenSpeedInput,
         showMessageTimestampInput = showMessageTimestampInput,
         showInputProcessingStatusInput = showInputProcessingStatusInput,
         showChatFloatingDotsAnimationInput = showChatFloatingDotsAnimationInput,

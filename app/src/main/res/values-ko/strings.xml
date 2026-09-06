@@ -4779,10 +4779,13 @@
     <string name="show_message_token_stats_description">AI 메시지 아래에 간략한 token 업로드, 출력 및 캐시 정보를 표시합니다</string>
     <string name="show_message_timing_stats">메시지 타이밍 요약 표시</string>
     <string name="show_message_timing_stats_description">AI 메시지 아래에 첫 토큰 및 생성 소요 시간을 표시합니다</string>
+    <string name="show_message_token_speed">메시지 토큰 생성 속도 표시</string>
+    <string name="show_message_token_speed_description">AI 메시지 아래에 출력 토큰 생성 속도를 표시합니다 (t/s)</string>
     <string name="show_message_timestamp">메시지 시간 표시</string>
     <string name="show_message_timestamp_description">해당 AI 메시지 아래에 시간을 표시합니다.</string>
     <string name="chat_message_token_stats_compact">토큰: %1$d ↑ %3$d (캐시: %2$d) ↓ %4$d</string>
     <string name="chat_message_timing_stats_compact">소요 시간: %1$s(대기 %2$s, 출력 %3$s)</string>
+    <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="chat_message_timestamp_compact">시간: %1$s</string>
     <string name="global_user_name">전역 사용자 이름</string>
     <string name="system_display_settings">시스템 디스플레이 설정</string>

@@ -287,6 +287,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val KEY_SHOW_USER_NAME = booleanPreferencesKey("show_user_name")
         private val KEY_SHOW_MESSAGE_TOKEN_STATS = booleanPreferencesKey("show_message_token_stats")
         private val KEY_SHOW_MESSAGE_TIMING_STATS = booleanPreferencesKey("show_message_timing_stats")
+        private val KEY_SHOW_MESSAGE_TOKEN_SPEED = booleanPreferencesKey("show_message_token_speed")
         private val KEY_SHOW_MESSAGE_TIMESTAMP = booleanPreferencesKey("show_message_timestamp")
         private val KEY_CUSTOM_USER_AVATAR_URI = stringPreferencesKey("custom_user_avatar_uri")
         private val KEY_CUSTOM_AI_AVATAR_URI = stringPreferencesKey("custom_ai_avatar_uri")
@@ -830,7 +831,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
             KEY_SHOW_INPUT_PROCESSING_STATUS, KEY_SHOW_CHAT_FLOATING_DOTS_ANIMATION, USE_CUSTOM_FONT,
             BUBBLE_USER_USE_CUSTOM_FONT, BUBBLE_AI_USE_CUSTOM_FONT, KEY_SHOW_MODEL_PROVIDER,
             KEY_SHOW_MODEL_NAME, KEY_SHOW_ROLE_NAME, KEY_SHOW_USER_NAME,
-            KEY_SHOW_MESSAGE_TOKEN_STATS, KEY_SHOW_MESSAGE_TIMING_STATS,
+            KEY_SHOW_MESSAGE_TOKEN_STATS, KEY_SHOW_MESSAGE_TIMING_STATS, KEY_SHOW_MESSAGE_TOKEN_SPEED,
             KEY_SHOW_MESSAGE_TIMESTAMP
         )
     }

@@ -267,6 +267,7 @@ fun ChatArea(
     val themeSnapshot = LocalThemePreferenceSnapshot.current
     val showMessageTokenStats = themeSnapshot.showMessageTokenStats
     val showMessageTimingStats = themeSnapshot.showMessageTimingStats
+    val showMessageTokenSpeed = themeSnapshot.showMessageTokenSpeed
     val showMessageTimestamp = themeSnapshot.showMessageTimestamp
     var viewportHeightPx by remember { mutableStateOf(0) }
     val messageAnchors = remember(currentChatId) { mutableStateMapOf<Long, ChatScrollMessageAnchor>() }
@@ -467,6 +468,7 @@ fun ChatArea(
                             chatStyle = chatStyle,
                             showMessageTokenStats = showMessageTokenStats,
                             showMessageTimingStats = showMessageTimingStats,
+                            showMessageTokenSpeed = showMessageTokenSpeed,
                             showMessageTimestamp = showMessageTimestamp,
                             cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
                             cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
@@ -637,6 +639,7 @@ private fun MessageItem(
     chatStyle: ChatStyle, // 新增参数
     showMessageTokenStats: Boolean = false,
     showMessageTimingStats: Boolean = false,
+    showMessageTokenSpeed: Boolean = false,
     showMessageTimestamp: Boolean = false,
     cursorUserBubbleLiquidGlass: Boolean = false,
     cursorUserBubbleWaterGlass: Boolean = false,
@@ -787,6 +790,7 @@ private fun MessageItem(
                     message.variantCount > 1 ||
                         (showMessageTokenStats && hasDisplayableTokenStats(message)) ||
                         (showMessageTimingStats && hasDisplayableTimingStats(message)) ||
+                        (showMessageTokenSpeed && hasDisplayableTokenSpeedStats(message)) ||
                         (showMessageTimestamp && hasDisplayableMessageTimestamp(message))
                 )
             ) {
@@ -794,6 +798,7 @@ private fun MessageItem(
                     message = message,
                     showMessageTokenStats = showMessageTokenStats,
                     showMessageTimingStats = showMessageTimingStats,
+                    showMessageTokenSpeed = showMessageTokenSpeed,
                     showMessageTimestamp = showMessageTimestamp,
                     onSelectVariant = { targetVariantIndex ->
                         onSwitchMessageVariant?.invoke(index, targetVariantIndex)
@@ -1413,6 +1418,15 @@ private fun hasDisplayableTokenStats(message: ChatMessage): Boolean {
     return message.inputTokens > 0 || message.cachedInputTokens > 0 || message.outputTokens > 0
 }
 
+internal fun calculateMessageTokenSpeed(outputTokens: Long, outputDurationMs: Long): Double? {
+    if (outputTokens <= 0L || outputDurationMs <= 0L) return null
+    return outputTokens.toDouble() * 1000.0 / outputDurationMs.toDouble()
+}
+
+private fun hasDisplayableTokenSpeedStats(message: ChatMessage): Boolean {
+    return calculateMessageTokenSpeed(message.outputTokens, message.outputDurationMs) != null
+}
+
 private fun hasDisplayableTimingStats(message: ChatMessage): Boolean {
     return message.waitDurationMs > 0L || message.outputDurationMs > 0L
 }
@@ -1434,6 +1448,10 @@ private fun formatCompactDuration(durationMs: Long): String {
     }
 }
 
+private fun formatCompactTokenSpeed(tokenSpeed: Double): String {
+    return String.format(Locale.getDefault(), "%.1f", tokenSpeed)
+}
+
 private fun formatCompactTimestamp(completedAt: Long): String {
     if (completedAt <= 0L) return ""
     return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(completedAt))
@@ -1444,6 +1462,7 @@ private fun MessageFooterBar(
     message: ChatMessage,
     showMessageTokenStats: Boolean,
     showMessageTimingStats: Boolean,
+    showMessageTokenSpeed: Boolean,
     showMessageTimestamp: Boolean,
     onSelectVariant: (Int) -> Unit,
 ) {
@@ -1470,6 +1489,18 @@ private fun MessageFooterBar(
                 formatCompactDuration(message.waitDurationMs),
                 formatCompactDuration(message.outputDurationMs),
             )
+        }
+    val tokenSpeedSummary =
+        remember(message.outputTokens, message.outputDurationMs) {
+            calculateMessageTokenSpeed(
+                message.outputTokens,
+                message.outputDurationMs,
+            )?.let { tokenSpeed ->
+                context.getString(
+                    R.string.chat_message_token_speed_compact,
+                    formatCompactTokenSpeed(tokenSpeed),
+                )
+            }
         }
     val messageTimeSummary =
         remember(message.completedAt) {
@@ -1545,6 +1576,14 @@ private fun MessageFooterBar(
         if (showMessageTimingStats && hasDisplayableTimingStats(message)) {
             Text(
                 text = timeSummary,
+                style = MaterialTheme.typography.labelSmall,
+                color = statsTextColor,
+            )
+        }
+
+        if (showMessageTokenSpeed && tokenSpeedSummary != null) {
+            Text(
+                text = tokenSpeedSummary,
                 style = MaterialTheme.typography.labelSmall,
                 color = statsTextColor,
             )
