@@ -646,11 +646,19 @@ class CharacterCardManager private constructor(private val context: Context) {
                 append("\n\n")
             }
             
-            attachedTags.forEach { tag ->
-                if (tag.promptContent.isNotBlank()) {
-                    append(tag.promptContent)
-                    append("\n\n")
+            val activeTagsWithContent = attachedTags.filter { it.promptContent.isNotBlank() }
+            if (activeTagsWithContent.isNotEmpty()) {
+                append("<tag_prompts priority=\"P1\">\n")
+                activeTagsWithContent.forEach { tag ->
+                    val resolvedContent =
+                        EngineeringPromptDefaults.resolvePromptContent(context, tag)
+                    if (resolvedContent.isNotBlank()) {
+                        append("  <tag_prompt name=\"${tag.name}\">\n")
+                        append(resolvedContent.trim().prependIndent("    "))
+                        append("\n  </tag_prompt>\n")
+                    }
                 }
+                append("</tag_prompts>\n\n")
             }
             
             if (characterCard.advancedCustomPrompt.isNotBlank()) {
