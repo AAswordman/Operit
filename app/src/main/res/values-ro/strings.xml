@@ -8309,4 +8309,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_trends">Analiza tendințelor</string>
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="enable_stream_scroll_speed_limit">Limitează viteza de derulare în flux</string>
+    <string name="enable_stream_scroll_speed_limit_desc">Limitează viteza maximă de derulare automată în timpul generării rapide AI pentru a menține o lectură confortabilă</string>
+    <string name="enable_non_streaming_scroll_to_top">Afișează începutul pentru răspunsurile non-streaming</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">Poziționează pagina la începutul răspunsului complet al AI-ului, în loc să deruleze direct la sfârșit</string>
 </resources>

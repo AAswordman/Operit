@@ -7711,4 +7711,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_trends">Analisis trend</string>
     <string name="token_stats_settings">Tetapan statistik</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="enable_stream_scroll_speed_limit">Hadkan Kelajuan Tatalan Output Penstriman</string>
+    <string name="enable_stream_scroll_speed_limit_desc">Hadkan kelajuan tatalan automatik maksimum semasa AI menjana teks pantas agar mudah dibaca</string>
+    <string name="enable_non_streaming_scroll_to_top">Papar Bahagian Atas Mesej untuk Output Bukan Penstriman</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">Letakkan halaman pada permulaan respons lengkap AI dan bukannya melompat terus ke bahagian bawah</string>
 </resources>

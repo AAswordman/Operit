@@ -1,5 +1,5 @@
 package com.ai.assistance.operit.ui.features.chat.components
-
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
@@ -261,8 +261,12 @@ fun ChatArea(
     val showMessageTokenStats = themeSnapshot.showMessageTokenStats
     val showMessageTimingStats = themeSnapshot.showMessageTimingStats
     val showMessageTimestamp = themeSnapshot.showMessageTimestamp
+    val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
+    val enableStreamScrollSpeedLimit by displayPreferencesManager.enableStreamScrollSpeedLimit.collectAsState(initial = true)
+    val enableNonStreamingScrollToTop by displayPreferencesManager.enableNonStreamingScrollToTop.collectAsState(initial = true)
     var viewportHeightPx by remember { mutableStateOf(0) }
     val messageAnchors = remember(currentChatId) { mutableStateMapOf<Long, ChatScrollMessageAnchor>() }
+    val streamedAiMessageTimestamps = remember(currentChatId) { mutableSetOf<Long>() }
     var pendingJumpToMessageTimestamp by remember(currentChatId) { mutableStateOf<Long?>(null) }
     val lastMessage = chatHistory.lastOrNull()
     val pendingTargetAnchor =
@@ -270,14 +274,13 @@ fun ChatArea(
     var hasLastAiMessageStartedStreaming by remember(lastMessage?.timestamp) {
         mutableStateOf(lastMessage?.run { sender == "ai" && content.isNotBlank() } == true)
     }
-
     val messagesCount = chatHistory.size
     LaunchedEffect(currentChatId, chatHistory.isEmpty()) {
         if (chatHistory.isEmpty()) {
             pendingJumpToMessageTimestamp = null
+            streamedAiMessageTimestamps.clear()
         }
     }
-
     val lastMessageContentLength = lastMessage?.content?.length
     LaunchedEffect(
         autoScrollToBottom,
@@ -297,7 +300,6 @@ fun ChatArea(
             pendingJumpToMessageTimestamp = lastMessage?.timestamp
         }
     }
-
     LaunchedEffect(
         pendingJumpToMessageTimestamp,
         messagesCount,
@@ -315,9 +317,25 @@ fun ChatArea(
         val targetAnchor = pendingTargetAnchor ?: return@LaunchedEffect
         val isActualLatestMessage = targetIndex == messagesCount - 1 && !hasNewerDisplayHistory
         onAutoScrollToBottomChange?.invoke(isActualLatestMessage)
-
         if (targetIndex == messagesCount - 1) {
-            scrollState.animateScrollTo(scrollState.maxValue)
+            val targetMessage = chatHistory.getOrNull(targetIndex)
+            val isTargetAi = targetMessage?.sender == "ai"
+            val isNonStreamingAi = isTargetAi &&
+                targetMessage?.contentStream == null &&
+                targetMessage?.timestamp !in streamedAiMessageTimestamps
+
+            if (isNonStreamingAi && enableNonStreamingScrollToTop) {
+                val targetOffset =
+                    targetAnchor.absoluteTopPx.roundToInt().coerceIn(0, scrollState.maxValue)
+                scrollState.animateScrollTo(targetOffset)
+            } else {
+                val isStreaming = isTargetAi && (targetMessage?.contentStream != null || targetMessage?.timestamp in streamedAiMessageTimestamps)
+                scrollState.animateScrollToWithSpeedLimit(
+                    targetValue = scrollState.maxValue,
+                    density = density,
+                    enableLimit = enableStreamScrollSpeedLimit && isStreaming
+                )
+            }
         } else {
             val targetOffset =
                 targetAnchor.absoluteTopPx.roundToInt().coerceIn(0, scrollState.maxValue)
@@ -325,27 +343,29 @@ fun ChatArea(
         }
         pendingJumpToMessageTimestamp = null
     }
-
     LaunchedEffect(lastMessage?.timestamp, lastMessage?.contentStream) {
         val lastAiMessageHasStaticContent =
             lastMessage?.let { it.sender == "ai" && it.content.isNotBlank() } == true
         hasLastAiMessageStartedStreaming = lastAiMessageHasStaticContent
-
         val shouldAwaitFirstChunk =
             lastMessage?.let {
                 it.sender == "ai" && it.content.isBlank() && it.contentStream != null
             } == true
         val stream = lastMessage?.contentStream
 
+        if (lastMessage?.sender == "ai" && stream != null) {
+            lastMessage.timestamp.let { streamedAiMessageTimestamps.add(it) }
+        }
+
         if (!lastAiMessageHasStaticContent && shouldAwaitFirstChunk && stream != null) {
             stream.collect { chunk ->
                 if (!hasLastAiMessageStartedStreaming && chunk.isNotEmpty()) {
                     hasLastAiMessageStartedStreaming = true
+                    lastMessage?.timestamp?.let { streamedAiMessageTimestamps.add(it) }
                 }
             }
         }
     }
-
     LaunchedEffect(
         messagesCount,
         chatHistory.firstOrNull()?.timestamp,
@@ -356,8 +376,8 @@ fun ChatArea(
             .toList()
             .filterNot { it in visibleTimestamps }
             .forEach(messageAnchors::remove)
+        streamedAiMessageTimestamps.retainAll(visibleTimestamps)
     }
-
     val isLatestMessageVisible = messagesCount > 0 && !hasNewerDisplayHistory
     val showLoadingIndicator =
         isLatestMessageVisible &&

@@ -73,6 +73,11 @@ class DisplayPreferencesManager private constructor(private val context: Context
 
         // 工具折叠设置（多个只读工具 / 多个任意工具 / 全部工具）
         private val KEY_TOOL_COLLAPSE_MODE = stringPreferencesKey("tool_collapse_mode")
+        // 滚动行为相关设置的 Key
+        private val KEY_ENABLE_STREAM_SCROLL_SPEED_LIMIT =
+            booleanPreferencesKey("enable_stream_scroll_speed_limit")
+        private val KEY_ENABLE_NON_STREAMING_SCROLL_TO_TOP =
+            booleanPreferencesKey("enable_non_streaming_scroll_to_top")
     }
 
     /**
@@ -205,6 +210,24 @@ class DisplayPreferencesManager private constructor(private val context: Context
         }
 
     /**
+     * 是否启用流式输出滚动速度限制
+     * 默认值：true
+     */
+    val enableStreamScrollSpeedLimit: Flow<Boolean> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            preferences[KEY_ENABLE_STREAM_SCROLL_SPEED_LIMIT] ?: true
+        }
+
+    /**
+     * 是否在非流式输出时将页面定位到消息开头
+     * 默认值：true
+     */
+    val enableNonStreamingScrollToTop: Flow<Boolean> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            preferences[KEY_ENABLE_NON_STREAMING_SCROLL_TO_TOP] ?: true
+        }
+
+    /**
      * 保存显示设置
      */
     suspend fun saveDisplaySettings(
@@ -226,7 +249,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
         visitWebWaitSeconds: Int? = null,
         toolPkgHookTimeoutSeconds: Int? = null,
         virtualDisplayBitrateKbps: Int? = null,
-        toolCollapseMode: ToolCollapseMode? = null
+        toolCollapseMode: ToolCollapseMode? = null,
+        enableStreamScrollSpeedLimit: Boolean? = null,
+        enableNonStreamingScrollToTop: Boolean? = null
     ) {
         context.displayPreferencesDataStore.edit { preferences ->
             showFpsCounter?.let { preferences[KEY_SHOW_FPS_COUNTER] = it }
@@ -264,6 +289,12 @@ class DisplayPreferencesManager private constructor(private val context: Context
             }
             virtualDisplayBitrateKbps?.let { preferences[KEY_VIRTUAL_DISPLAY_BITRATE_KBPS] = it }
             toolCollapseMode?.let { preferences[KEY_TOOL_COLLAPSE_MODE] = it.value }
+            enableStreamScrollSpeedLimit?.let {
+                preferences[KEY_ENABLE_STREAM_SCROLL_SPEED_LIMIT] = it
+            }
+            enableNonStreamingScrollToTop?.let {
+                preferences[KEY_ENABLE_NON_STREAMING_SCROLL_TO_TOP] = it
+            }
         }
     }
 

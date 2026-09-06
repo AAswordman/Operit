@@ -8325,4 +8325,8 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <string name="enable_stream_scroll_speed_limit">Limit Streaming Scroll Speed</string>
+    <string name="enable_stream_scroll_speed_limit_desc">Cap the maximum auto-scroll speed during rapid AI output to keep reading smooth</string>
+    <string name="enable_non_streaming_scroll_to_top">Show Top for Non-streaming Output</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">Position the page at the top of complete single-turn AI responses instead of jumping to the bottom</string>
 </resources>

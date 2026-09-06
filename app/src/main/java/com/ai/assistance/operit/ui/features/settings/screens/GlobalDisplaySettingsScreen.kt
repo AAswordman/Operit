@@ -73,6 +73,8 @@ fun GlobalDisplaySettingsScreen(
     val screenshotScalePercent by displayPreferencesManager.screenshotScalePercent.collectAsState(initial = 75)
     val visitWebWaitSeconds by displayPreferencesManager.visitWebWaitSeconds.collectAsState(initial = 0)
     val toolPkgHookTimeoutSeconds by displayPreferencesManager.toolPkgHookTimeoutSeconds.collectAsState(initial = 10)
+    val enableStreamScrollSpeedLimit by displayPreferencesManager.enableStreamScrollSpeedLimit.collectAsState(initial = true)
+    val enableNonStreamingScrollToTop by displayPreferencesManager.enableNonStreamingScrollToTop.collectAsState(initial = true)
     val virtualDisplayBitrateKbps by displayPreferencesManager.virtualDisplayBitrateKbps.collectAsState(initial = 3000)
     val keepScreenOn by apiPreferences.keepScreenOnFlow.collectAsState(initial = true)
     val convertLongPastedTextToFile by userPreferences.convertLongPastedTextToFile.collectAsState(initial = true)
@@ -281,7 +283,28 @@ fun GlobalDisplaySettingsScreen(
                     }
                 },
             )
-
+            DisplayToggleItem(
+                title = stringResource(R.string.enable_stream_scroll_speed_limit),
+                subtitle = stringResource(R.string.enable_stream_scroll_speed_limit_desc),
+                checked = enableStreamScrollSpeedLimit,
+                onCheckedChange = {
+                    scope.launch {
+                        displayPreferencesManager.saveDisplaySettings(enableStreamScrollSpeedLimit = it)
+                    }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+            DisplayToggleItem(
+                title = stringResource(R.string.enable_non_streaming_scroll_to_top),
+                subtitle = stringResource(R.string.enable_non_streaming_scroll_to_top_desc),
+                checked = enableNonStreamingScrollToTop,
+                onCheckedChange = {
+                    scope.launch {
+                        displayPreferencesManager.saveDisplaySettings(enableNonStreamingScrollToTop = it)
+                    }
+                },
+                backgroundColor = componentBackgroundColor
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             // ======= 系统显示设置 =======

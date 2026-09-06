@@ -186,6 +186,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val chatHeaderOverlayMode = themeSnapshot.chatHeaderOverlayMode
     val showInputProcessingStatus = themeSnapshot.showInputProcessingStatus
     val enableEnterToSend by displayPreferencesManager.enableEnterToSend.collectAsState(initial = false)
+    val enableStreamScrollSpeedLimit by displayPreferencesManager.enableStreamScrollSpeedLimit.collectAsState(initial = true)
+    val enableNonStreamingScrollToTop by displayPreferencesManager.enableNonStreamingScrollToTop.collectAsState(initial = true)
     val showChatFloatingDotsAnimation = themeSnapshot.showChatFloatingDotsAnimation
     val hasBackgroundImageFromPrefs = useBackgroundImage && backgroundImageUri != null
     val effectiveHasBackgroundImage = hasBackgroundImage || hasBackgroundImageFromPrefs
@@ -676,8 +678,18 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                     !latestIsLoadingDisplayWindow
             ) {
                 try {
+                    val lastMsg = latestChatHistory.lastOrNull()
+                    val isNonStreamingAi = lastMsg?.sender == "ai" && lastMsg.contentStream == null
+                    if (isNonStreamingAi && enableNonStreamingScrollToTop) {
+                        return@collect
+                    }
                     if (latestChatHistory.isNotEmpty()) {
-                        scrollState.animateScrollTo(scrollState.maxValue)
+                        val isStreaming = lastMsg?.sender == "ai" && lastMsg.contentStream != null
+                        scrollState.animateScrollToWithSpeedLimit(
+                            targetValue = scrollState.maxValue,
+                            density = density,
+                            enableLimit = enableStreamScrollSpeedLimit && isStreaming
+                        )
                     }
                 } catch (e: Exception) {
                     // AppLogger.e("AIChatScreen", "自动滚动失败", e)

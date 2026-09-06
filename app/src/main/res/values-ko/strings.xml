@@ -7480,4 +7480,8 @@
     <string name="token_activity_chart_tap_hint">차트를 탭하여 자세한 데이터 보기</string>
     <string name="token_activity_total_tokens">누적 토큰</string>
     <string name="token_activity_peak_tokens">최대 토큰</string>
+    <string name="enable_stream_scroll_speed_limit">스트리밍 출력 스크롤 속도 제한</string>
+    <string name="enable_stream_scroll_speed_limit_desc">빠른 AI 생성 중 자동 스크롤 최대 속도를 제한하여 편안한 읽기를 유지합니다</string>
+    <string name="enable_non_streaming_scroll_to_top">비스트리밍 출력 시 메시지 상단으로 이동</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">AI 전체 응답이 한 번에 반환될 때 맨 아래로 이동하지 않고 응답 시작 부분에 페이지를 맞춥니다</string>
 </resources>
