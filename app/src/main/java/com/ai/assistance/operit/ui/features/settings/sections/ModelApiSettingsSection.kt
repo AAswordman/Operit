@@ -867,6 +867,15 @@ fun ModelApiSettingsSection(
                      onCheckedChange = { enableDirectImageProcessingInput = it }
                  )
 
+                 if (selectedApiProvider == ApiProviderType.DEEPSEEK) {
+                     Text(
+                         text = stringResource(R.string.deepseek_files_api_hint),
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                     )
+                 }
+
                  SettingsSwitchRow(
                      title = stringResource(R.string.enable_direct_audio_processing),
                      subtitle = stringResource(R.string.enable_direct_audio_processing_desc),

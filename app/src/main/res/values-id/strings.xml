@@ -7524,6 +7524,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, total %4$s</string>
     <string name="enable_deepseek_web_search">Aktifkan pencarian web DeepSeek</string>
     <string name="enable_deepseek_web_search_desc">Saat menggunakan endpoint DeepSeek Responses, izinkan model menggunakan pencarian web sisi server.</string>
+    <string name="deepseek_files_api_hint">Gambar otomatis diunggah ke DeepSeek Files API dan direferensikan dengan file_id; jika gagal, kembali ke Base64 inline.</string>
     <string name="enable_codex_web_search">Aktifkan pencarian web Codex</string>
     <string name="enable_codex_web_search_desc">Setelah masuk ke Codex, izinkan model menggunakan pencarian web sisi server.</string>
     <string name="search_query_label">Kueri</string>

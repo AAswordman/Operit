@@ -963,12 +963,7 @@ open class OpenAIProvider(
 
         if ((allowUserRichContent || allowResponsesToolImages) && supportsVision) {
             imageLinks.forEach { link ->
-                contentArray.put(JSONObject().apply {
-                    put("type", "image_url")
-                    put("image_url", JSONObject().apply {
-                        put("url", "data:${link.mimeType};base64,${link.base64Data}")
-                    })
-                })
+                contentArray.put(buildImageContentPart(link))
             }
         }
 
@@ -978,10 +973,36 @@ open class OpenAIProvider(
                 put("text", textWithoutLinks)
             })
         }
-
         return contentArray
     }
 
+    /**
+     * 构建单张图片的内容块（OpenAI兼容格式：image_url + base64 data URL）。
+     * 子类可覆写以改用其他传输方式（例如 DeepSeek Files API 的 file_id 引用）。
+     * @param link 图片链接
+     * @return 图片内容块 JSONObject
+     */
+    protected open fun buildImageContentPart(link: ImageLink): JSONObject {
+        return JSONObject().apply {
+            put("type", "image_url")
+            put("image_url", JSONObject().apply {
+                put("url", "data:${link.mimeType};base64,${link.base64Data}")
+            })
+        }
+    }
+
+    /**
+     * 在构建请求体之前预处理消息中的媒体内容（基类为空实现）。
+     * 子类可覆写以执行媒体上传等前置操作（例如 DeepSeek 将图片上传至 Files API）。
+     * 此方法在 sendMessage 的重试循环之前调用一次，位于挂起上下文中。
+     * @param context Android上下文
+     * @param chatHistory 聊天历史
+     */
+    protected open suspend fun prepareMediaForRequest(
+        context: Context,
+        chatHistory: List<PromptTurn>
+    ) {
+    }
     /**
      * 构建消息列表并计算token（核心逻辑）
      * @param message 用户消息
@@ -3150,7 +3171,8 @@ open class OpenAIProvider(
                 "AIService",
                 "【发送消息】开始处理sendMessage请求，历史记录数量: ${chatHistory.size}，最后一条长度: ${chatHistory.lastOrNull()?.content?.length ?: 0}"
             )
-
+            // 预处理媒体内容（例如 DeepSeek 将图片上传至 Files API 换取 file_id）
+            prepareMediaForRequest(context, chatHistory)
             val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
             var retryCount = 0
             var lastException: Exception? = null

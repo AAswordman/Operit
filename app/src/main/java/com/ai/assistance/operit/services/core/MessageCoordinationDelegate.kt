@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.services.core
 
 import android.content.Context
+import android.widget.Toast
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
@@ -546,7 +547,7 @@ class MessageCoordinationDelegate(
         // 获取当前聊天ID和工作区路径
         val chatId = chatIdOverride ?: chatHistoryDelegate.currentChatId.value
         if (chatId == null) {
-            uiStateDelegate.showErrorMessage(context.getString(R.string.chat_no_active_conversation))
+            Toast.makeText(context, context.getString(R.string.chat_please_create_new_chat), Toast.LENGTH_SHORT).show()
             return
         }
         if (!isAutoContinuation) {

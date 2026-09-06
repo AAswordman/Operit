@@ -7521,6 +7521,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, jumlah %4$s</string>
     <string name="enable_deepseek_web_search">Dayakan carian web DeepSeek</string>
     <string name="enable_deepseek_web_search_desc">Apabila menggunakan titik akhir DeepSeek Responses, benarkan model menggunakan carian web pelayan.</string>
+    <string name="deepseek_files_api_hint">Imej dimuat naik secara automatik ke API Files DeepSeek dan dirujuk dengan file_id; jika gagal, kembali ke Base64 sebaris.</string>
     <string name="enable_codex_web_search">Dayakan carian web Codex</string>
     <string name="enable_codex_web_search_desc">Selepas log masuk ke Codex, benarkan model menggunakan carian web pelayan.</string>
     <string name="search_query_label">Pertanyaan</string>

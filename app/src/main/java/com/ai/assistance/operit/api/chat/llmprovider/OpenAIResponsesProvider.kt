@@ -549,6 +549,18 @@ object OpenAIResponsesPayloadAdapter {
                                 )
                             }
                         }
+                        "file" -> {
+                            // DeepSeek Files API 文件块（file_id 引用），转换为 Responses 的 input_image part
+                            val fileId = part.optString("file_id", "")
+                            if (fileId.isNotEmpty()) {
+                                convertedParts.put(
+                                    JSONObject().apply {
+                                        put("type", "input_image")
+                                        put("file_id", fileId)
+                                    }
+                                )
+                            }
+                        }
 
                         "input_file" -> {
                             val fileData = part.optString("file_data", "")

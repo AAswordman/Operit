@@ -7362,6 +7362,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, total %4$s</string>
     <string name="enable_deepseek_web_search">Ativar pesquisa na web DeepSeek</string>
     <string name="enable_deepseek_web_search_desc">Ao usar o endpoint DeepSeek Responses, permite que o modelo use a pesquisa na web do servidor.</string>
+    <string name="deepseek_files_api_hint">As imagens são enviadas automaticamente para a API de arquivos do DeepSeek e referenciadas por file_id; em caso de falha, volta para Base64 embutido.</string>
     <string name="enable_codex_web_search">Ativar pesquisa na web Codex</string>
     <string name="enable_codex_web_search_desc">Após fazer login no Codex, permite que o modelo use a pesquisa na web do servidor.</string>
     <string name="search_query_label">Consulta</string>

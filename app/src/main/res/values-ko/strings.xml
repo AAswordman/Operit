@@ -7371,6 +7371,7 @@
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, 합계 %4$s</string>
     <string name="enable_deepseek_web_search">DeepSeek 웹 검색 활성화</string>
     <string name="enable_deepseek_web_search_desc">DeepSeek Responses 엔드포인트 사용 시 모델이 서버 측 웹 검색을 사용할 수 있습니다.</string>
+    <string name="deepseek_files_api_hint">이미지는 DeepSeek Files API에 자동 업로드되고 file_id로 참조됩니다. 실패 시 인라인 Base64로 대체됩니다.</string>
     <string name="enable_codex_web_search">Codex 웹 검색 활성화</string>
     <string name="enable_codex_web_search_desc">Codex에 로그인하면 모델이 서버 측 웹 검색을 사용할 수 있습니다.</string>
     <string name="search_query_label">쿼리</string>

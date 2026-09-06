@@ -4007,6 +4007,7 @@
     <string name="enable_google_search_desc">启用后，Gemini 将使用 Google 搜索来增强回答（可能产生额外费用）</string>
     <string name="enable_deepseek_web_search">启用 DeepSeek 网络搜索</string>
     <string name="enable_deepseek_web_search_desc">使用 DeepSeek Responses 端点时，允许模型使用服务端网络搜索。</string>
+    <string name="deepseek_files_api_hint">发送图片时将自动上传至 DeepSeek Files API 并以 file_id 引用；上传失败自动回退为内嵌 Base64。</string>
     <string name="enable_codex_web_search">启用 Codex 网络搜索</string>
     <string name="enable_codex_web_search_desc">登录 Codex 后，允许模型使用服务端网络搜索。</string>
     <string name="enable_claude_1h_prompt_cache">启用 Claude 1 小时提示缓存</string>

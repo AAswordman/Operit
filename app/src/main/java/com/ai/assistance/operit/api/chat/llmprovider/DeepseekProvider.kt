@@ -48,7 +48,25 @@ class DeepseekProvider(
         thinkingOptionId = thinkingOptionId
     ) {
     private val configuredApiEndpoint = apiEndpoint
+    /** DeepSeek Files API 图片上传器（与 Responses 协议线共用的抽取实现） */
+    private val fileUploader = DeepseekFileUploader(apiEndpoint, apiKeyProvider, client, customHeaders)
 
+    /** 发送前把消息中的图片上传至 DeepSeek Files API 换取 file_id，失败回退 base64 */
+    override suspend fun prepareMediaForRequest(context: Context, chatHistory: List<PromptTurn>) {
+        fileUploader.prepareMedia(supportsVision, chatHistory, "DeepseekProvider")
+    }
+
+    /** 已有 file_id 时用 DeepSeek 文件块引用，否则回退基类的 base64 内嵌 */
+    override fun buildImageContentPart(link: ImageLink): JSONObject {
+        val fileId = fileUploader.fileIdFor(link.id)
+        if (fileId != null) {
+            return JSONObject().apply {
+                put("type", "file")
+                put("file_id", fileId)
+            }
+        }
+        return super.buildImageContentPart(link)
+    }
     companion object {
         fun create(
             config: ModelConfigData,
@@ -598,6 +616,30 @@ private class DeepseekResponsesProvider(
 ) {
     override val useResponsesApi: Boolean = true
     override val bufferResponsesOutputTextUntilItemDone: Boolean = true
+    /** DeepSeek Files API 图片上传器（与 Chat Completions 协议线共用的抽取实现） */
+    private val fileUploader =
+        DeepseekFileUploader(responsesApiEndpoint, apiKeyProvider, client, customHeaders)
+
+    /** 发送前把消息中的图片上传至 DeepSeek Files API 换取 file_id，失败回退 base64 */
+    override suspend fun prepareMediaForRequest(context: Context, chatHistory: List<PromptTurn>) {
+        fileUploader.prepareMedia(supportsVision, chatHistory, "DeepseekResponsesProvider")
+    }
+
+    /**
+     * Responses 线同样先输出 DeepSeek 文件块，随后由
+     * OpenAIResponsesPayloadAdapter.convertMessageContentForResponses 转换为
+     * Responses 协议的 input_image + file_id 引用；未上传成功则回退 base64。
+     */
+    override fun buildImageContentPart(link: ImageLink): JSONObject {
+        val fileId = fileUploader.fileIdFor(link.id)
+        if (fileId != null) {
+            return JSONObject().apply {
+                put("type", "file")
+                put("file_id", fileId)
+            }
+        }
+        return super.buildImageContentPart(link)
+    }
 
     override fun isResponsesCommentaryMessage(item: JSONObject): Boolean {
         return item.optString("phase", "").trim().equals("commentary", ignoreCase = true)

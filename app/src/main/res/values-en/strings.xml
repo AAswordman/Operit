@@ -4015,6 +4015,7 @@
     <string name="enable_google_search_desc">When enabled, Gemini will use Google Search to enhance responses (may incur additional charges)</string>
     <string name="enable_deepseek_web_search">Enable DeepSeek web search</string>
     <string name="enable_deepseek_web_search_desc">When using a DeepSeek Responses endpoint, allow the model to use server-side web search.</string>
+    <string name="deepseek_files_api_hint">Images are automatically uploaded to the DeepSeek Files API and referenced by file_id; on failure, falls back to inline Base64.</string>
     <string name="enable_codex_web_search">Enable Codex web search</string>
     <string name="enable_codex_web_search_desc">When signed in to Codex, allow the model to use server-side web search.</string>
     <string name="enable_claude_1h_prompt_cache">Enable Claude 1-hour prompt cache</string>
