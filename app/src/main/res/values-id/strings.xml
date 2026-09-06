@@ -7343,8 +7343,14 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="notification_kind_review_changes">Perlu perubahan</string>
     <string name="notification_kind_entry_curated">Terpilih sebagai pilihan</string>
 
-    <string name="settings_summary_custom_rules">Aturan Ringkasan Kustom</string>
-    <string name="settings_summary_custom_rules_desc">Aturan tambahan yang dikirim saat meringkas percakapan, biarkan kosong jika tidak ingin menambahkan</string>
+    <string name="settings_summary_custom_rules">Aturan Ringkasan Global</string>
+    <string name="settings_summary_custom_rules_desc">Aturan bersama untuk semua bagian ringkasan yang diaktifkan. Aturan ini diprioritaskan daripada instruksi bagian bawaan; kosongkan untuk hanya memakai instruksi bagian.</string>
+    <string name="settings_summary_structure">Struktur Ringkasan</string>
+    <string name="settings_summary_section_enabled_desc">Nonaktifkan untuk menghilangkan bagian ini dari ringkasan yang dihasilkan</string>
+    <string name="settings_summary_section_title">Judul Bagian</string>
+    <string name="settings_summary_section_title_desc">Judul yang ditampilkan dalam ringkasan</string>
+    <string name="settings_summary_section_instruction">Instruksi Bagian</string>
+    <string name="settings_summary_section_instruction_desc">Jelaskan informasi yang harus dicatat bagian ini</string>
     <string name="title_activity_data_recovery">Pemulihan Data</string>
     <string name="shortcut_data_recovery">Pemulihan Data</string>
     <string name="memory_space_select">Pilih Ruang Memori</string>

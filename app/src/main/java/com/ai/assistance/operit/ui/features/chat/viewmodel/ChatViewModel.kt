@@ -899,14 +899,13 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 // 检查是否是群聊
                 val currentChat = chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == currentChatId }
                 val isGroupChat = currentChat?.characterGroupId != null
-                val summaryCustomRules = messageCoordinationDelegate.readSummaryCustomRules()
-
+                val summaryConfig = messageCoordinationDelegate.readSummaryConfig()
                 val summaryMessage = AIMessageManager.summarizeMemory(
-                    enhancedAiService!!,
-                    messagesToSummarize,
+                    enhancedAiService = enhancedAiService!!,
+                    messages = messagesToSummarize,
                     autoContinue = false,
                     isGroupChat = isGroupChat,
-                    summaryCustomRules = summaryCustomRules
+                    summaryConfig = summaryConfig
                 )
 
                 if (summaryMessage != null) {

@@ -7181,8 +7181,14 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="notification_kind_review_changes">Alterações necessárias</string>
     <string name="notification_kind_entry_curated">Selecionado como destaque</string>
 
-    <string name="settings_summary_custom_rules">Regras personalizadas de resumo</string>
-    <string name="settings_summary_custom_rules_desc">Regras extras enviadas ao resumir conversas. Deixe em branco para não adicionar.</string>
+    <string name="settings_summary_custom_rules">Regras globais de resumo</string>
+    <string name="settings_summary_custom_rules_desc">Regras compartilhadas para todas as seções de resumo ativadas. Elas têm prioridade sobre as instruções padrão; deixe em branco para usar apenas as instruções da seção.</string>
+    <string name="settings_summary_structure">Estrutura do resumo</string>
+    <string name="settings_summary_section_enabled_desc">Desative para omitir esta seção dos resumos gerados</string>
+    <string name="settings_summary_section_title">Título da seção</string>
+    <string name="settings_summary_section_title_desc">O cabeçalho exibido no resumo</string>
+    <string name="settings_summary_section_instruction">Instruções da seção</string>
+    <string name="settings_summary_section_instruction_desc">Descreva o que esta seção deve registrar</string>
     <string name="title_activity_data_recovery">Recuperação de dados</string>
     <string name="shortcut_data_recovery">Recuperação de dados</string>
     <string name="memory_space_select">Selecionar espaço de memória</string>
