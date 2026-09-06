@@ -7471,8 +7471,10 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_activity_chart_tap_hint">Toque no gráfico para ver dados detalhados</string>
     <string name="token_activity_total_tokens">Tokens acumulados</string>
     <string name="token_activity_peak_tokens">Pico de tokens</string>
-    <string name="enable_stream_scroll_speed_limit">Limitar velocidade de rolagem no fluxo</string>
-    <string name="enable_stream_scroll_speed_limit_desc">Limita a velocidade máxima de rolagem automática durante a geração rápida da IA para manter a leitura confortável</string>
+    <string name="stream_scroll_max_speed_title">Limite de velocidade de rolagem no fluxo</string>
+    <string name="stream_scroll_max_speed_description">Limita a velocidade máxima de rolagem automática durante a geração rápida da IA. É um limite superior, não uma velocidade fixa, então modelos mais lentos não são afetados. A última etapa remove o limite e a rolagem acompanha a taxa do modelo.</string>
+    <string name="stream_scroll_max_speed_value">%1$d dp/s</string>
+    <string name="stream_scroll_max_speed_unlimited">Sem limite</string>
     <string name="enable_non_streaming_scroll_to_top">Mostrar topo em saída não transmitida</string>
     <string name="enable_non_streaming_scroll_to_top_desc">Posiciona a página no início de respostas completas da IA em vez de rolar diretamente para o final</string>
 </resources>

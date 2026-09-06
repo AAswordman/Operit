@@ -74,10 +74,38 @@ class DisplayPreferencesManager private constructor(private val context: Context
         // 工具折叠设置（多个只读工具 / 多个任意工具 / 全部工具）
         private val KEY_TOOL_COLLAPSE_MODE = stringPreferencesKey("tool_collapse_mode")
         // 滚动行为相关设置的 Key
-        private val KEY_ENABLE_STREAM_SCROLL_SPEED_LIMIT =
-            booleanPreferencesKey("enable_stream_scroll_speed_limit")
+        private val KEY_STREAM_SCROLL_MAX_SPEED_DP =
+            intPreferencesKey("stream_scroll_max_speed_dp")
         private val KEY_ENABLE_NON_STREAMING_SCROLL_TO_TOP =
             booleanPreferencesKey("enable_non_streaming_scroll_to_top")
+
+        /** 流式输出滚动速度上限的起步档（dp/s） */
+        const val STREAM_SCROLL_SPEED_MIN_DP = 50
+
+        /** 流式输出滚动速度上限的档位步进（dp/s） */
+        const val STREAM_SCROLL_SPEED_STEP_DP = 50
+
+        /**
+         * 流式输出滚动速度上限的最高有效限速档（dp/s）。
+         * 即倒数第二档；再往上一档为 [STREAM_SCROLL_SPEED_UNLIMITED]。
+         */
+        const val STREAM_SCROLL_SPEED_MAX_LIMITED_DP = 1000
+
+        /**
+         * 最后一档：不设上限。
+         * 此时滚动速度完全跟随模型吞吐量，模型输出多快屏幕就滚多快。
+         */
+        const val STREAM_SCROLL_SPEED_UNLIMITED = Int.MAX_VALUE
+
+        /** 流式输出滚动速度上限的默认值（dp/s），默认即启用限速 */
+        const val STREAM_SCROLL_SPEED_DEFAULT_DP = 600
+
+        /**
+         * 全部可选档位：50..1000（步进 50，共 20 档）+ 不限速（第 21 档）。
+         */
+        val STREAM_SCROLL_SPEED_OPTIONS: List<Int> =
+            (STREAM_SCROLL_SPEED_MIN_DP..STREAM_SCROLL_SPEED_MAX_LIMITED_DP step STREAM_SCROLL_SPEED_STEP_DP)
+                .toList() + STREAM_SCROLL_SPEED_UNLIMITED
     }
 
     /**
@@ -210,12 +238,13 @@ class DisplayPreferencesManager private constructor(private val context: Context
         }
 
     /**
-     * 是否启用流式输出滚动速度限制
-     * 默认值：true
+     * 流式输出时页面自动滚动的速度上限（dp/s）。
+     * 取 [STREAM_SCROLL_SPEED_UNLIMITED] 时表示最后一档“不设上限”，滚动速度跟随模型吞吐量。
+     * 默认值：[STREAM_SCROLL_SPEED_DEFAULT_DP]
      */
-    val enableStreamScrollSpeedLimit: Flow<Boolean> =
+    val streamScrollMaxSpeedDp: Flow<Int> =
         context.displayPreferencesDataStore.data.map { preferences ->
-            preferences[KEY_ENABLE_STREAM_SCROLL_SPEED_LIMIT] ?: true
+            preferences[KEY_STREAM_SCROLL_MAX_SPEED_DP] ?: STREAM_SCROLL_SPEED_DEFAULT_DP
         }
 
     /**
@@ -250,7 +279,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         toolPkgHookTimeoutSeconds: Int? = null,
         virtualDisplayBitrateKbps: Int? = null,
         toolCollapseMode: ToolCollapseMode? = null,
-        enableStreamScrollSpeedLimit: Boolean? = null,
+        streamScrollMaxSpeedDp: Int? = null,
         enableNonStreamingScrollToTop: Boolean? = null
     ) {
         context.displayPreferencesDataStore.edit { preferences ->
@@ -289,8 +318,13 @@ class DisplayPreferencesManager private constructor(private val context: Context
             }
             virtualDisplayBitrateKbps?.let { preferences[KEY_VIRTUAL_DISPLAY_BITRATE_KBPS] = it }
             toolCollapseMode?.let { preferences[KEY_TOOL_COLLAPSE_MODE] = it.value }
-            enableStreamScrollSpeedLimit?.let {
-                preferences[KEY_ENABLE_STREAM_SCROLL_SPEED_LIMIT] = it
+            streamScrollMaxSpeedDp?.let {
+                preferences[KEY_STREAM_SCROLL_MAX_SPEED_DP] =
+                    if (it == STREAM_SCROLL_SPEED_UNLIMITED) {
+                        STREAM_SCROLL_SPEED_UNLIMITED
+                    } else {
+                        it.coerceIn(STREAM_SCROLL_SPEED_MIN_DP, STREAM_SCROLL_SPEED_MAX_LIMITED_DP)
+                    }
             }
             enableNonStreamingScrollToTop?.let {
                 preferences[KEY_ENABLE_NON_STREAMING_SCROLL_TO_TOP] = it

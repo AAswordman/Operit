@@ -4,8 +4,12 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.ui.unit.Density
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 
-const val DEFAULT_MAX_SCROLL_SPEED_DP_PER_SECOND = 800f
+/**
+ * 表示“不限速”的速度值：滚动速度完全跟随模型吞吐量。
+ */
+const val UNLIMITED_SCROLL_SPEED = DisplayPreferencesManager.STREAM_SCROLL_SPEED_UNLIMITED
 
 /**
  * 根据位移像素与屏幕密度，计算限速滚动所需的动画持续时间（毫秒）。
@@ -14,7 +18,7 @@ const val DEFAULT_MAX_SCROLL_SPEED_DP_PER_SECOND = 800f
 internal fun calculateScrollDurationMs(
     deltaPx: Int,
     densityDpiRatio: Float,
-    maxSpeedDpPerSecond: Float = DEFAULT_MAX_SCROLL_SPEED_DP_PER_SECOND,
+    maxSpeedDpPerSecond: Float,
     minDurationMs: Long = 100L,
     maxDurationMs: Long = 1000L
 ): Int {
@@ -28,18 +32,19 @@ internal fun calculateScrollDurationMs(
 
 /**
  * 带有最大速度限制的平滑滚动。
- * 如果 [enableLimit] 为 true 且目标位置在当前位置下方，
- * 则限制单位时间内的位移速度，避免流式大段输出或突发 chunk 导致页面猛烈滑移。
+ *
+ * [maxSpeedDpPerSecond] 是速度上限而非固定速度：模型输出较慢时不会介入，
+ * 只有在单次位移会导致滚动超速时才拉长动画时长削峰。
+ * 传入 [UNLIMITED_SCROLL_SPEED] 时不做任何限制，滚动速度完全跟随模型吞吐量。
  */
 suspend fun ScrollState.animateScrollToWithSpeedLimit(
     targetValue: Int,
     density: Density,
-    enableLimit: Boolean = true,
-    maxSpeedDpPerSecond: Float = DEFAULT_MAX_SCROLL_SPEED_DP_PER_SECOND
+    maxSpeedDpPerSecond: Int
 ) {
     val clampedTarget = targetValue.coerceIn(0, maxValue)
     val delta = clampedTarget - value
-    if (!enableLimit || delta <= 0) {
+    if (maxSpeedDpPerSecond == UNLIMITED_SCROLL_SPEED || delta <= 0) {
         animateScrollTo(clampedTarget)
         return
     }
@@ -47,7 +52,7 @@ suspend fun ScrollState.animateScrollToWithSpeedLimit(
     val duration = calculateScrollDurationMs(
         deltaPx = delta,
         densityDpiRatio = density.density,
-        maxSpeedDpPerSecond = maxSpeedDpPerSecond
+        maxSpeedDpPerSecond = maxSpeedDpPerSecond.toFloat()
     )
     animateScrollTo(
         clampedTarget,

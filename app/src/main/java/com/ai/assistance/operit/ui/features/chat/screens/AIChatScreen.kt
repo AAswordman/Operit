@@ -186,7 +186,9 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val chatHeaderOverlayMode = themeSnapshot.chatHeaderOverlayMode
     val showInputProcessingStatus = themeSnapshot.showInputProcessingStatus
     val enableEnterToSend by displayPreferencesManager.enableEnterToSend.collectAsState(initial = false)
-    val enableStreamScrollSpeedLimit by displayPreferencesManager.enableStreamScrollSpeedLimit.collectAsState(initial = true)
+    val streamScrollMaxSpeedDp by displayPreferencesManager.streamScrollMaxSpeedDp.collectAsState(
+        initial = DisplayPreferencesManager.STREAM_SCROLL_SPEED_DEFAULT_DP
+    )
     val enableNonStreamingScrollToTop by displayPreferencesManager.enableNonStreamingScrollToTop.collectAsState(initial = true)
     val showChatFloatingDotsAnimation = themeSnapshot.showChatFloatingDotsAnimation
     val hasBackgroundImageFromPrefs = useBackgroundImage && backgroundImageUri != null
@@ -688,7 +690,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         scrollState.animateScrollToWithSpeedLimit(
                             targetValue = scrollState.maxValue,
                             density = density,
-                            enableLimit = enableStreamScrollSpeedLimit && isStreaming
+                            maxSpeedDpPerSecond =
+                                if (isStreaming) streamScrollMaxSpeedDp else UNLIMITED_SCROLL_SPEED
                         )
                     }
                 } catch (e: Exception) {

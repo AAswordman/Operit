@@ -73,7 +73,10 @@ fun GlobalDisplaySettingsScreen(
     val screenshotScalePercent by displayPreferencesManager.screenshotScalePercent.collectAsState(initial = 75)
     val visitWebWaitSeconds by displayPreferencesManager.visitWebWaitSeconds.collectAsState(initial = 0)
     val toolPkgHookTimeoutSeconds by displayPreferencesManager.toolPkgHookTimeoutSeconds.collectAsState(initial = 10)
-    val enableStreamScrollSpeedLimit by displayPreferencesManager.enableStreamScrollSpeedLimit.collectAsState(initial = true)
+    val streamScrollMaxSpeedDp by displayPreferencesManager.streamScrollMaxSpeedDp.collectAsState(
+        initial = DisplayPreferencesManager.STREAM_SCROLL_SPEED_DEFAULT_DP
+    )
+    val streamScrollSpeedOptions = DisplayPreferencesManager.STREAM_SCROLL_SPEED_OPTIONS
     val enableNonStreamingScrollToTop by displayPreferencesManager.enableNonStreamingScrollToTop.collectAsState(initial = true)
     val virtualDisplayBitrateKbps by displayPreferencesManager.virtualDisplayBitrateKbps.collectAsState(initial = 3000)
     val keepScreenOn by apiPreferences.keepScreenOnFlow.collectAsState(initial = true)
@@ -105,6 +108,17 @@ fun GlobalDisplaySettingsScreen(
     var toolPkgHookTimeoutSliderValue by remember(toolPkgHookTimeoutSeconds) {
         mutableFloatStateOf(toolPkgHookTimeoutSeconds.toFloat())
     }
+    var streamScrollSpeedSliderValue by remember(streamScrollMaxSpeedDp) {
+        mutableFloatStateOf(
+            streamScrollSpeedOptions.indexOf(streamScrollMaxSpeedDp)
+                .let { if (it < 0) streamScrollSpeedOptions.indexOf(DisplayPreferencesManager.STREAM_SCROLL_SPEED_DEFAULT_DP) else it }
+                .toFloat()
+        )
+    }
+    val selectedStreamScrollSpeed =
+        streamScrollSpeedOptions[
+            streamScrollSpeedSliderValue.roundToInt().coerceIn(0, streamScrollSpeedOptions.lastIndex)
+        ]
     var qualitySliderValue by remember(screenshotQuality) {
         mutableFloatStateOf(screenshotQuality.toFloat())
     }
@@ -149,6 +163,7 @@ fun GlobalDisplaySettingsScreen(
         collapseModeSliderValue,
         visitWebWaitSliderValue,
         toolPkgHookTimeoutSliderValue,
+        streamScrollSpeedSliderValue,
         qualitySliderValue,
         scaleSliderValue
     ) {
@@ -156,6 +171,7 @@ fun GlobalDisplaySettingsScreen(
             collapseModeOptions[collapseModeSliderValue.roundToInt().coerceIn(0, collapseModeOptions.lastIndex)]
         val localVisitWebWaitSeconds = visitWebWaitSliderValue.roundToInt().coerceIn(0, 10)
         val localToolPkgHookTimeoutSeconds = toolPkgHookTimeoutSliderValue.roundToInt().coerceIn(1, 60)
+        val localStreamScrollMaxSpeedDp = selectedStreamScrollSpeed
         val localScreenshotQuality = qualitySliderValue.roundToInt().coerceIn(50, 100)
         val localScreenshotScalePercent = scaleSliderValue.roundToInt().coerceIn(50, 100)
 
@@ -163,6 +179,7 @@ fun GlobalDisplaySettingsScreen(
             localCollapseMode != toolCollapseMode ||
                 localVisitWebWaitSeconds != visitWebWaitSeconds ||
                 localToolPkgHookTimeoutSeconds != toolPkgHookTimeoutSeconds ||
+                localStreamScrollMaxSpeedDp != streamScrollMaxSpeedDp ||
                 localScreenshotQuality != screenshotQuality ||
                 localScreenshotScalePercent != screenshotScalePercent
 
@@ -174,6 +191,7 @@ fun GlobalDisplaySettingsScreen(
             toolCollapseMode = if (localCollapseMode != toolCollapseMode) localCollapseMode else null,
             visitWebWaitSeconds = if (localVisitWebWaitSeconds != visitWebWaitSeconds) localVisitWebWaitSeconds else null,
             toolPkgHookTimeoutSeconds = if (localToolPkgHookTimeoutSeconds != toolPkgHookTimeoutSeconds) localToolPkgHookTimeoutSeconds else null,
+            streamScrollMaxSpeedDp = if (localStreamScrollMaxSpeedDp != streamScrollMaxSpeedDp) localStreamScrollMaxSpeedDp else null,
             screenshotQuality = if (localScreenshotQuality != screenshotQuality) localScreenshotQuality else null,
             screenshotScalePercent = if (localScreenshotScalePercent != screenshotScalePercent) localScreenshotScalePercent else null
         )
@@ -283,17 +301,51 @@ fun GlobalDisplaySettingsScreen(
                     }
                 },
             )
-            DisplayToggleItem(
-                title = stringResource(R.string.enable_stream_scroll_speed_limit),
-                subtitle = stringResource(R.string.enable_stream_scroll_speed_limit_desc),
-                checked = enableStreamScrollSpeedLimit,
-                onCheckedChange = {
-                    scope.launch {
-                        displayPreferencesManager.saveDisplaySettings(enableStreamScrollSpeedLimit = it)
-                    }
-                },
-                backgroundColor = componentBackgroundColor
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(componentBackgroundColor)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.stream_scroll_max_speed_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.stream_scroll_max_speed_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Slider(
+                        value = streamScrollSpeedSliderValue,
+                        onValueChange = { streamScrollSpeedSliderValue = it.roundToInt().toFloat() },
+                        valueRange = 0f..streamScrollSpeedOptions.lastIndex.toFloat(),
+                        steps = (streamScrollSpeedOptions.size - 2).coerceAtLeast(0),
+                        modifier = Modifier.weight(1f).padding(vertical = 8.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (selectedStreamScrollSpeed == DisplayPreferencesManager.STREAM_SCROLL_SPEED_UNLIMITED) {
+                            stringResource(R.string.stream_scroll_max_speed_unlimited)
+                        } else {
+                            stringResource(
+                                R.string.stream_scroll_max_speed_value,
+                                selectedStreamScrollSpeed
+                            )
+                        },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
             DisplayToggleItem(
                 title = stringResource(R.string.enable_non_streaming_scroll_to_top),
                 subtitle = stringResource(R.string.enable_non_streaming_scroll_to_top_desc),

@@ -262,7 +262,9 @@ fun ChatArea(
     val showMessageTimingStats = themeSnapshot.showMessageTimingStats
     val showMessageTimestamp = themeSnapshot.showMessageTimestamp
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
-    val enableStreamScrollSpeedLimit by displayPreferencesManager.enableStreamScrollSpeedLimit.collectAsState(initial = true)
+    val streamScrollMaxSpeedDp by displayPreferencesManager.streamScrollMaxSpeedDp.collectAsState(
+        initial = DisplayPreferencesManager.STREAM_SCROLL_SPEED_DEFAULT_DP
+    )
     val enableNonStreamingScrollToTop by displayPreferencesManager.enableNonStreamingScrollToTop.collectAsState(initial = true)
     var viewportHeightPx by remember { mutableStateOf(0) }
     val messageAnchors = remember(currentChatId) { mutableStateMapOf<Long, ChatScrollMessageAnchor>() }
@@ -333,7 +335,8 @@ fun ChatArea(
                 scrollState.animateScrollToWithSpeedLimit(
                     targetValue = scrollState.maxValue,
                     density = density,
-                    enableLimit = enableStreamScrollSpeedLimit && isStreaming
+                    maxSpeedDpPerSecond =
+                        if (isStreaming) streamScrollMaxSpeedDp else UNLIMITED_SCROLL_SPEED
                 )
             }
         } else {
