@@ -8263,7 +8263,10 @@
     <string name="permission_review_circuit_what_to_do_body">Review the audit record and check which operation was denied and why. If it is still needed, return to the main chat and clearly state the exact operation, target, and scope before asking the AI to try again. Do not authorize an operation you do not understand.</string>
     <string name="token_activity_daily">Daily</string>
     <string name="token_activity_weekly">Weekly</string>
+    <string name="token_activity_monthly">Monthly</string>
+    <string name="token_activity_yearly">Yearly</string>
     <string name="token_activity_cumulative">Cumulative</string>
+    <string name="token_activity_calendar">Activity calendar</string>
     <string name="token_activity_title">Activity</string>
     <string name="token_activity_current_streak_badge">%1$d-day streak</string>
     <string name="token_activity_longest_streak_badge">Longest %1$d days</string>
@@ -8274,7 +8277,10 @@
     <string name="token_activity_longest_streak">Longest streak</string>
     <string name="token_activity_days">%1$d days</string>
     <string name="token_activity_day_detail">%1$s used %2$s tokens</string>
+    <string name="token_activity_hour_detail">%1$s %2$d:00 used %3$s tokens</string>
     <string name="token_activity_week_detail">%1$s - %2$s used %3$s tokens</string>
+    <string name="token_activity_month_detail">%1$s - %2$s used %3$s tokens</string>
+    <string name="token_activity_year_detail">%1$s - %2$s used %3$s tokens</string>
     <string name="token_activity_cumulative_detail">%2$s tokens through %1$s</string>
     <string name="token_activity_tap_hint">Tap a cell to view details</string>
     <string name="token_activity_less">Less</string>

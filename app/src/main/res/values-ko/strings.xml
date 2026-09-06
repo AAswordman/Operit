@@ -7302,7 +7302,10 @@
     <string name="token_activity_longest_streak">최장 연속</string>
     <string name="token_activity_days">%1$d일</string>
     <string name="token_activity_day_detail">%1$s님이 %2$s Token을 사용했습니다</string>
+    <string name="token_activity_hour_detail">%1$s %2$d:00에 %3$s Token을 사용했습니다</string>
     <string name="token_activity_week_detail">%1$s - %2$s님이 %3$s Token을 사용했습니다</string>
+    <string name="token_activity_month_detail">%1$s - %2$s님이 %3$s Token을 사용했습니다</string>
+    <string name="token_activity_year_detail">%1$s - %2$s님이 %3$s Token을 사용했습니다</string>
     <string name="token_activity_cumulative_detail">%1$s까지 누적 %2$s Token 사용</string>
     <string name="token_activity_tap_hint">셀을 탭하여 상세 데이터 보기</string>
     <string name="token_activity_less">적음</string>
@@ -7478,7 +7481,10 @@
     <string name="permission_review_circuit_what_to_do_body">먼저 검토 기록을 확인하여 거부된 작업과 이유를 확인하세요. 여전히 실행해야 한다면 기본 대화로 돌아가 구체적인 작업, 목표 및 범위를 명확히 설명한 후 AI가 다시 시도하도록 하세요. 이해하지 못하는 작업은 승인하지 마세요.</string>
     <string name="token_activity_daily">일일</string>
     <string name="token_activity_weekly">주간</string>
+    <string name="token_activity_monthly">월간</string>
+    <string name="token_activity_yearly">연간</string>
     <string name="token_activity_cumulative">누적</string>
+    <string name="token_activity_calendar">활동 캘린더</string>
     <string name="token_activity_title">활동 기록</string>
     <string name="token_activity_current_streak_badge">현재 연속 %1$d일</string>
     <string name="token_activity_longest_streak_badge">최장 연속 %1$d일</string>

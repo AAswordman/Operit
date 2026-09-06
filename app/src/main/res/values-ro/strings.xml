@@ -8050,7 +8050,10 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_activity_longest_streak">Cea mai lungă serie</string>
     <string name="token_activity_days">%1$d zile</string>
     <string name="token_activity_day_detail">%1$s a folosit %2$s Token</string>
+    <string name="token_activity_hour_detail">%1$s %2$d:00 a folosit %3$s Token</string>
     <string name="token_activity_week_detail">%1$s - %2$s a folosit %3$s Token</string>
+    <string name="token_activity_month_detail">%1$s - %2$s a folosit %3$s Token</string>
+    <string name="token_activity_year_detail">%1$s - %2$s a folosit %3$s Token</string>
     <string name="token_activity_cumulative_detail">Până la %1$s, total utilizat %2$s Token</string>
     <string name="token_activity_tap_hint">Atingeți un pătrat pentru a vedea datele detaliate</string>
     <string name="token_activity_less">Mai puțin</string>
@@ -8226,7 +8229,10 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="permission_review_circuit_what_to_do_body">Verificați mai întâi înregistrările de revizuire pentru a confirma operațiunile refuzate și motivele. Dacă tot trebuie să le executați, reveniți la dialogul principal, specificați clar operațiunea, scopul și domeniul, apoi lăsați AI-ul să reîncerce; nu autorizați operațiuni pe care nu le înțelegeți.</string>
     <string name="token_activity_daily">Zilnic</string>
     <string name="token_activity_weekly">Săptămânal</string>
+    <string name="token_activity_monthly">Lunar</string>
+    <string name="token_activity_yearly">Anual</string>
     <string name="token_activity_cumulative">Cumulativ</string>
+    <string name="token_activity_calendar">Calendar de activitate</string>
     <string name="token_activity_title">Înregistrări de activitate</string>
     <string name="token_activity_current_streak_badge">Curent: %1$d zile consecutive</string>
     <string name="token_activity_longest_streak_badge">Cel mai lung: %1$d zile consecutive</string>

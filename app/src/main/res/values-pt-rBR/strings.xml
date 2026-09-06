@@ -7293,7 +7293,10 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_activity_longest_streak">Maior sequência</string>
     <string name="token_activity_days">%1$d dias</string>
     <string name="token_activity_day_detail">%1$s usou %2$s Token</string>
+    <string name="token_activity_hour_detail">%1$s %2$d:00 usou %3$s Token</string>
     <string name="token_activity_week_detail">%1$s - %2$s usou %3$s Token</string>
+    <string name="token_activity_month_detail">%1$s - %2$s usou %3$s Token</string>
+    <string name="token_activity_year_detail">%1$s - %2$s usou %3$s Token</string>
     <string name="token_activity_cumulative_detail">Até %1$s, uso acumulado de %2$s Token</string>
     <string name="token_activity_tap_hint">Toque no quadrado para ver dados detalhados</string>
     <string name="token_activity_less">Menos</string>
@@ -7469,7 +7472,10 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="permission_review_circuit_what_to_do_body">Primeiro, revise os registros de auditoria para confirmar as operações recusadas e os motivos. Se ainda precisar executar, volte ao chat principal, descreva claramente a operação específica, o objetivo e o escopo e peça ao IA para tentar novamente; não autorize operações que você não entende.</string>
     <string name="token_activity_daily">Diário</string>
     <string name="token_activity_weekly">Semanal</string>
+    <string name="token_activity_monthly">Mensal</string>
+    <string name="token_activity_yearly">Anual</string>
     <string name="token_activity_cumulative">Acumulado</string>
+    <string name="token_activity_calendar">Calendário de atividade</string>
     <string name="token_activity_title">Registro de atividade</string>
     <string name="token_activity_current_streak_badge">Sequência atual: %1$d dias</string>
     <string name="token_activity_longest_streak_badge">Maior sequência: %1$d dias</string>

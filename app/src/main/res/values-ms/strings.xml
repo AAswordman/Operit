@@ -7452,7 +7452,10 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_activity_longest_streak">Rentetan terpanjang</string>
     <string name="token_activity_days">%1$d hari</string>
     <string name="token_activity_day_detail">%1$s menggunakan %2$s Token</string>
+    <string name="token_activity_hour_detail">%1$s %2$d:00 menggunakan %3$s Token</string>
     <string name="token_activity_week_detail">%1$s - %2$s menggunakan %3$s Token</string>
+    <string name="token_activity_month_detail">%1$s - %2$s menggunakan %3$s Token</string>
+    <string name="token_activity_year_detail">%1$s - %2$s menggunakan %3$s Token</string>
     <string name="token_activity_cumulative_detail">Sehingga %1$s, jumlah penggunaan %2$s Token</string>
     <string name="token_activity_tap_hint">Klik petak untuk melihat data terperinci</string>
     <string name="token_activity_less">Kurang</string>
@@ -7628,7 +7631,10 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="permission_review_circuit_what_to_do_body">Semak dahulu rekod semakan untuk mengesahkan operasi yang ditolak dan sebabnya. Jika masih perlu dilaksanakan, kembali ke perbualan utama, nyatakan dengan jelas operasi, matlamat dan skop, kemudian minta AI mencuba semula; jangan benarkan operasi yang anda tidak faham.</string>
     <string name="token_activity_daily">Harian</string>
     <string name="token_activity_weekly">Mingguan</string>
+    <string name="token_activity_monthly">Bulanan</string>
+    <string name="token_activity_yearly">Tahunan</string>
     <string name="token_activity_cumulative">Kumulatif</string>
+    <string name="token_activity_calendar">Kalendar aktiviti</string>
     <string name="token_activity_title">Rekod Aktiviti</string>
     <string name="token_activity_current_streak_badge">Rentetan semasa %1$d hari</string>
     <string name="token_activity_longest_streak_badge">Rentetan terpanjang %1$d hari</string>

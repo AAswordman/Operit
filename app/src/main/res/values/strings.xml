@@ -8300,7 +8300,10 @@
     <string name="permission_review_circuit_what_to_do_body">先查看审核记录，确认被拒绝的操作和原因。若仍需执行，请回到主对话，明确说明具体操作、目标和范围后再让 AI 重试；不要授权你不理解的操作。</string>
     <string name="token_activity_daily">每日</string>
     <string name="token_activity_weekly">每周</string>
+    <string name="token_activity_monthly">每月</string>
+    <string name="token_activity_yearly">每年</string>
     <string name="token_activity_cumulative">累计</string>
+    <string name="token_activity_calendar">活跃日历</string>
     <string name="token_activity_title">活跃记录</string>
     <string name="token_activity_current_streak_badge">当前连续 %1$d 天</string>
     <string name="token_activity_longest_streak_badge">最长连续 %1$d 天</string>
@@ -8311,7 +8314,10 @@
     <string name="token_activity_longest_streak">最长连续</string>
     <string name="token_activity_days">%1$d 天</string>
     <string name="token_activity_day_detail">%1$s使用了 %2$s Token</string>
+    <string name="token_activity_hour_detail">%1$s %2$d:00 使用了 %3$s Token</string>
     <string name="token_activity_week_detail">%1$s - %2$s 使用了 %3$s Token</string>
+    <string name="token_activity_month_detail">%1$s - %2$s 使用了 %3$s Token</string>
+    <string name="token_activity_year_detail">%1$s - %2$s 使用了 %3$s Token</string>
     <string name="token_activity_cumulative_detail">截至 %1$s 累计使用 %2$s Token</string>
     <string name="token_activity_tap_hint">点击方格查看详细数据</string>
     <string name="token_activity_less">少</string>
