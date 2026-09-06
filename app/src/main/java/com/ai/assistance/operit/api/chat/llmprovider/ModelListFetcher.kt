@@ -319,15 +319,22 @@ object ModelListFetcher {
                                 )
                                 fallbackResponse.close()
                                 return@withContext Result.failure(
-                                        IOException(
-                                                context.getString(R.string.model_fetch_api_failed, fallbackResponse.code, fallbackErrorBody)
+                                        ModelFetchHttpException(
+                                                statusCode = fallbackResponse.code,
+                                                errorBody = fallbackErrorBody,
+                                                message = context.getString(R.string.model_fetch_api_failed, fallbackResponse.code, fallbackErrorBody)
                                         )
                                 )
                             }
                         }
-
                         AppLogger.e(TAG, "API请求失败: 状态码=$responseCode, 错误=$errorBody")
-                        return@withContext Result.failure(IOException(context.getString(R.string.model_fetch_api_failed, responseCode, errorBody)))
+                        return@withContext Result.failure(
+                                ModelFetchHttpException(
+                                        statusCode = responseCode,
+                                        errorBody = errorBody,
+                                        message = context.getString(R.string.model_fetch_api_failed, responseCode, errorBody)
+                                )
+                        )
                     }
 
                     val responseBody = response.body?.string()

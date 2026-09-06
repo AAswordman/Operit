@@ -7711,4 +7711,14 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_trends">Analisis trend</string>
     <string name="token_stats_settings">Tetapan statistik</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="model_fetch_error_timeout">Masa tamat semasa mendapatkan senarai model. Sila periksa sambungan rangkaian atau proksi.</string>
+    <string name="model_fetch_error_network">Akses rangkaian gagal. Tidak dapat menyambung ke pelayan. Sila periksa rangkaian, endpoint atau proksi.</string>
+    <string name="model_fetch_error_ssl">Sambungan keselamatan SSL gagal. Sila periksa persekitaran rangkaian atau tetapan proksi.</string>
+    <string name="model_fetch_error_unauthorized">Kunci API tidak sah atau tidak dibenarkan (HTTP 401)</string>
+    <string name="model_fetch_error_forbidden">Akses ditolak (HTTP 403). Mungkin dihadkan kawasan atau memerlukan proksi.</string>
+    <string name="model_fetch_error_not_found">Endpoint tidak ditemui (HTTP 404). Sila periksa alamat API.</string>
+    <string name="model_fetch_error_rate_limit">Had permintaan dicapai atau kuota habis (HTTP 429)</string>
+    <string name="model_fetch_error_server">Ralat pelayan penyedia model (HTTP %d). Sila cuba lagi kemudian.</string>
+    <string name="model_fetch_error_format">Gagal menghuraikan model: format respons tidak dijangka dari endpoint.</string>
+    <string name="model_fetch_error_http">Gagal mendapatkan model (HTTP %1$d): %2$s</string>
 </resources>
