@@ -1516,6 +1516,7 @@
     <string name="message_info_token_input_short" />
     <string name="message_info_token_output_short" />
     <string name="message_info_token_cached_short">esconderijo</string>
+    <string name="message_info_token_hit_rate_short">Taxa de acerto</string>
     <string name="message_info_unavailable">Não registrado</string>
     <string name="selected_content_copied">Conteúdo selecionado copiado</string>
     <string name="requesting_root_permission">Solicitando permissão de root...</string>
@@ -6734,7 +6735,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="show_message_token_stats_description">Exibe informações concisas de tokens de subida/descida e cache na parte inferior das mensagens da IA.</string>
     <string name="show_message_timing_stats">Mostrar resumo de tempo da mensagem</string>
     <string name="show_message_timing_stats_description">Exibe o tempo do primeiro pacote e o tempo de geração na parte inferior das mensagens da IA.</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">tempo: %1$s (primeiro %2$s geração %3$s)</string>
     <string name="software_identity_title">Identidade do software</string>
     <string name="software_identity_description">Altera a identidade do software exibida no topo da barra lateral.</string>

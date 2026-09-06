@@ -1817,6 +1817,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">缓存</string>
+    <string name="message_info_token_hit_rate_short">命中率</string>
     <string name="message_info_unavailable">未记录</string>
     <string name="selected_content_copied">已复制选中内容</string>
     <string name="requesting_root_permission">正在请求Root权限...</string>
@@ -5670,7 +5671,7 @@
     <string name="show_message_timing_stats_description">在 AI 消息底部显示首包与生成耗时</string>
     <string name="show_message_timestamp">显示消息时间</string>
     <string name="show_message_timestamp_description">在 AI 消息底部显示该条消息的时间</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (首 %2$s 生成 %3$s)</string>
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">全局用户名字</string>

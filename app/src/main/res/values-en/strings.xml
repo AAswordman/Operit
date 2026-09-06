@@ -1660,6 +1660,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">Cached</string>
+    <string name="message_info_token_hit_rate_short">Hit rate</string>
     <string name="message_info_unavailable">Not recorded</string>
     <string name="selected_content_copied">Selected content copied</string>
     <string name="requesting_root_permission">Requesting Root permission...</string>
@@ -5179,7 +5180,7 @@
     <string name="show_message_timing_stats_description">Show first-token and generation timing below AI messages</string>
     <string name="show_message_timestamp">Show Message Time</string>
     <string name="show_message_timestamp_description">Show the time of that AI message below it</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (first %2$s out %3$s)</string>
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">Global User Name</string>

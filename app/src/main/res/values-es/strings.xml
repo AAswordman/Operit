@@ -2064,6 +2064,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">Caché</string>
+    <string name="message_info_token_hit_rate_short">Tasa de aciertos</string>
     <string name="message_info_unavailable">No registrado</string>
     <string name="webview_ssl_cert_error">Error de certificado SSL</string>
     <string name="webview_ssl_error_untrusted">La entidad emisora del certificado no es de confianza</string>
@@ -4846,7 +4847,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
 
     <string name="show_message_timing_stats">Mostrar estadísticas de tiempo de mensajes</string>
     <string name="show_message_timing_stats_description">Mostrar el tiempo del primer paquete y el tiempo de generación en la parte inferior de los mensajes de IA</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (caché: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (caché: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">tiempo: %1$s (primer %2$s generar %3$s)</string>
     <string name="global_user_name">Nombre de usuario global</string>
     <string name="system_display_settings">Configuración de pantalla del sistema</string>

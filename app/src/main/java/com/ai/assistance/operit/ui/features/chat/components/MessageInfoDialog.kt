@@ -204,6 +204,10 @@ private fun MessageInfoTokenRow(
                     append(stringResource(R.string.message_info_token_cached_short))
                     append(" ")
                     append(cachedInputTokens)
+                    append("  ")
+                    append(stringResource(R.string.message_info_token_hit_rate_short))
+                    append(" ")
+                    append(formatCacheHitRate(cachedInputTokens, inputTokens))
                 },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface

@@ -1753,6 +1753,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">Cache</string>
+    <string name="message_info_token_hit_rate_short">Rată de hit</string>
     <string name="message_info_unavailable">Nu a fost înregistrat</string>
     <string name="selected_content_copied">Conținutul selectat a fost copiat</string>
     <string name="requesting_root_permission">Se solicităRootDrepturi...</string>
@@ -5486,7 +5487,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="show_message_timing_stats_description">în AI În partea de jos a mesajului se afișează primul pachet și timpul necesar pentru generare</string>
     <string name="show_message_timestamp">Afișează ora mesajului</string>
     <string name="show_message_timestamp_description">în AI În partea de jos a mesajului este afișată ora la care a fost postat mesajul respectiv</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (Primul %2$s Generare %3$s)</string>
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">Numele de utilizator global</string>
