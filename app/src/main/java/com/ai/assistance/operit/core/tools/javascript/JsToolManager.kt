@@ -173,13 +173,26 @@ class JsToolManager private constructor(
 
         val converted = linkedMapOf<String, Any?>()
         tool.parameters.forEach { parameter ->
-            val type = parameterDefinitions[parameter.name]?.type?.lowercase() ?: "string"
-            converted[parameter.name] = convertToolParameterValue(
-                toolName = tool.name,
-                parameterName = parameter.name,
-                rawValue = parameter.value,
-                type = type
-            )
+            val definition = parameterDefinitions[parameter.name]
+            val isRequired = definition?.required ?: true
+            val type = definition?.type?.lowercase() ?: "string"
+            val rawValue = parameter.value
+
+            val isBlankOrNull = rawValue.isBlank() ||
+                rawValue.equals("null", ignoreCase = true) ||
+                rawValue.equals("undefined", ignoreCase = true)
+
+            if (!isRequired && isBlankOrNull) {
+                // 非必填参数且传入空值/空白时，置为 null，避免数值/布尔/JSON解析异常
+                converted[parameter.name] = null
+            } else {
+                converted[parameter.name] = convertToolParameterValue(
+                    toolName = tool.name,
+                    parameterName = parameter.name,
+                    rawValue = rawValue,
+                    type = type
+                )
+            }
         }
 
         return buildRuntimeParams(packageName, converted)

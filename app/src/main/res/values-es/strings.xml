@@ -7787,4 +7787,10 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_trends">Análisis de tendencias</string>
     <string name="token_stats_settings">Configuración de estadísticas</string>
     <string name="token_stats_custom_range_confirm">Aceptar</string>
+    <string name="stream_scroll_max_speed_title">Límite de velocidad de desplazamiento en flujo</string>
+    <string name="stream_scroll_max_speed_description">Limita la velocidad máxima de desplazamiento automático durante la generación rápida de la IA. Es un límite superior, no una velocidad fija, por lo que los modelos lentos no se ven afectados. El último paso elimina el límite y el desplazamiento sigue el rendimiento del modelo.</string>
+    <string name="stream_scroll_max_speed_value">%1$d dp/s</string>
+    <string name="stream_scroll_max_speed_unlimited">Sin límite</string>
+    <string name="enable_non_streaming_scroll_to_top">Mostrar inicio en salidas no continuas</string>
+    <string name="enable_non_streaming_scroll_to_top_desc">Posiciona la página al principio de las respuestas completas de la IA en lugar de ir directamente al final</string>
 </resources>

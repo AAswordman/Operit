@@ -186,6 +186,10 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val chatHeaderOverlayMode = themeSnapshot.chatHeaderOverlayMode
     val showInputProcessingStatus = themeSnapshot.showInputProcessingStatus
     val enableEnterToSend by displayPreferencesManager.enableEnterToSend.collectAsState(initial = false)
+    val streamScrollMaxSpeedDp by displayPreferencesManager.streamScrollMaxSpeedDp.collectAsState(
+        initial = DisplayPreferencesManager.STREAM_SCROLL_SPEED_DEFAULT_DP
+    )
+    val enableNonStreamingScrollToTop by displayPreferencesManager.enableNonStreamingScrollToTop.collectAsState(initial = true)
     val showChatFloatingDotsAnimation = themeSnapshot.showChatFloatingDotsAnimation
     val hasBackgroundImageFromPrefs = useBackgroundImage && backgroundImageUri != null
     val effectiveHasBackgroundImage = hasBackgroundImage || hasBackgroundImageFromPrefs
@@ -676,8 +680,19 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                     !latestIsLoadingDisplayWindow
             ) {
                 try {
+                    val lastMsg = latestChatHistory.lastOrNull()
+                    val isNonStreamingAi = lastMsg?.sender == "ai" && lastMsg.contentStream == null
+                    if (isNonStreamingAi && enableNonStreamingScrollToTop) {
+                        return@collect
+                    }
                     if (latestChatHistory.isNotEmpty()) {
-                        scrollState.animateScrollTo(scrollState.maxValue)
+                        val isStreaming = lastMsg?.sender == "ai" && lastMsg.contentStream != null
+                        scrollState.animateScrollToWithSpeedLimit(
+                            targetValue = scrollState.maxValue,
+                            density = density,
+                            maxSpeedDpPerSecond =
+                                if (isStreaming) streamScrollMaxSpeedDp else UNLIMITED_SCROLL_SPEED
+                        )
                     }
                 } catch (e: Exception) {
                     // AppLogger.e("AIChatScreen", "自动滚动失败", e)
@@ -1604,10 +1619,15 @@ private fun ChatInputBottomBar(
     }
 
     fun handleUserMessageChange(value: TextFieldValue) {
-        val clipboardText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+        val pastedLength = value.text.length - userMessage.text.length
         val pastedText =
-            if (convertLongPastedTextToFile && clipboardText != null) {
-                extractClipboardPastedText(userMessage, value, clipboardText)
+            if (convertLongPastedTextToFile && pastedLength > longPastedTextFileThreshold) {
+                val clipboardText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+                if (clipboardText != null) {
+                    extractClipboardPastedText(userMessage, value, clipboardText)
+                } else {
+                    null
+                }
             } else {
                 null
             }
