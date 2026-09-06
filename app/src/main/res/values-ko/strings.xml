@@ -5495,6 +5495,14 @@
     <string name="pkg_delete_warning">정말로 "%1$s" 패키지를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.</string>
     <string name="pkg_delete">삭제</string>
     <string name="pkg_close">닫기</string>
+    <string name="pkg_check_update">업데이트 확인</string>
+    <string name="pkg_check_update_up_to_date">최신 버전입니다</string>
+    <string name="pkg_check_update_available">새 버전 %1$s이(가) 있습니다. 플러그인 마켓에서 업데이트하세요.</string>
+    <string name="pkg_check_update_go">업데이트하러 가기</string>
+    <string name="pkg_check_update_not_market">이 플러그인은 마켓에서 설치되지 않아 업데이트를 확인할 수 없습니다.</string>
+    <string name="pkg_check_update_entry_missing">마켓에서 이 플러그인을 찾을 수 없습니다. 삭제되었을 수 있습니다.</string>
+    <string name="pkg_check_update_failed">업데이트 확인 실패. 네트워크를 확인한 후 다시 시도하세요.</string>
+    <string name="pkg_ok">확인</string>
     <string name="pkg_tool_list">도구 목록</string>
     <string name="pkg_no_tools">사용 가능한 도구 없음</string>
     <string name="mcp_market_search_hint">플러그인 또는 작성자 검색</string>

@@ -66,6 +66,47 @@ fun findInstalledMarketMarkerRoot(
     return findInstalledMarketMarkerRoots(context, packageManager, entryId).firstOrNull()
 }
 
+fun readMarketInstallMarkerForPackage(
+    packageManager: PackageManager,
+    packageName: String
+): MarketInstallMarker? {
+    return try {
+        readMarketInstallMarker(artifactMarketMarkerRoot(packageManager, packageName))
+    } catch (error: Exception) {
+        AppLogger.w(TAG, "Failed to read market install marker for package: $packageName", error)
+        null
+    }
+}
+
+/** 读取技能安装目录下的市场安装标记（无则返回 null） */
+fun readMarketInstallMarkerForSkill(skillDirectory: File): MarketInstallMarker? {
+    return try {
+        readMarketInstallMarker(skillDirectory)
+    } catch (error: Exception) {
+        AppLogger.w(TAG, "Failed to read market install marker for skill: ${skillDirectory.absolutePath}", error)
+        null
+    }
+}
+
+/**
+ * 读取 MCP 的市场安装标记。MCP 有两种安装形态：
+ * 1) 纯配置安装：标记写在 market_install_markers/mcp_config/{serverId}；
+ * 2) 物理安装：标记写在插件安装目录（installedPath）。
+ * 任一位置读到即返回。
+ */
+fun readMarketInstallMarkerForMcp(context: Context, serverId: String, installedPath: String?): MarketInstallMarker? {
+    try {
+        readMarketInstallMarker(mcpConfigMarketMarkerRoot(context, serverId))?.let { return it }
+        installedPath
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { path -> readMarketInstallMarker(File(path))?.let { return it } }
+    } catch (error: Exception) {
+        AppLogger.w(TAG, "Failed to read market install marker for MCP: $serverId", error)
+    }
+    return null
+}
+
 fun findInstalledMarketMarkerRoots(
     context: Context,
     packageManager: PackageManager,

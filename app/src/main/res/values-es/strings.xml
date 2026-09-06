@@ -5363,6 +5363,14 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="pkg_delete_warning">¿Estás seguro de que deseas eliminar el paquete "%1$s"? Esta acción no se puede deshacer.</string>
     <string name="pkg_delete">Eliminar</string>
     <string name="pkg_close">Cerrar</string>
+    <string name="pkg_check_update">Buscar actualizaciones</string>
+    <string name="pkg_check_update_up_to_date">Ya tienes la última versión</string>
+    <string name="pkg_check_update_available">Nueva versión %1$s disponible. Ve al mercado de plugins para actualizar.</string>
+    <string name="pkg_check_update_go">Ir a actualizar</string>
+    <string name="pkg_check_update_not_market">Este plugin no se instaló desde el mercado, no se pueden buscar actualizaciones.</string>
+    <string name="pkg_check_update_entry_missing">No se encontró este plugin en el mercado. Es posible que se haya retirado.</string>
+    <string name="pkg_check_update_failed">No se pudo buscar actualizaciones. Comprueba tu red e inténtalo de nuevo.</string>
+    <string name="pkg_ok">Aceptar</string>
     <string name="pkg_tool_list">Lista de herramientas</string>
     <string name="pkg_no_tools">No hay herramientas disponibles</string>
     <string name="mcp_market_search_hint">Buscar plugin o autor</string>

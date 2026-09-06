@@ -5066,6 +5066,14 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="pkg_delete_warning">Tem certeza de que deseja excluir o pacote "%1$s"? Esta ação não pode ser desfeita.</string>
     <string name="pkg_delete">excluir</string>
     <string name="pkg_close">encerramento</string>
+    <string name="pkg_check_update">Verificar atualizações</string>
+    <string name="pkg_check_update_up_to_date">Você já está na versão mais recente</string>
+    <string name="pkg_check_update_available">Nova versão %1$s disponível. Acesse o mercado de plugins para atualizar.</string>
+    <string name="pkg_check_update_go">Ir para atualização</string>
+    <string name="pkg_check_update_not_market">Este plugin não foi instalado pelo mercado, não é possível verificar atualizações.</string>
+    <string name="pkg_check_update_entry_missing">Este plugin não foi encontrado no mercado. Ele pode ter sido removido.</string>
+    <string name="pkg_check_update_failed">Falha ao verificar atualizações. Verifique sua rede e tente novamente.</string>
+    <string name="pkg_ok">OK</string>
     <string name="pkg_tool_list">Lista de ferramentas</string>
     <string name="pkg_no_tools">Nenhuma ferramenta disponível ainda</string>
     <string name="mcp_market_search_hint">Pesquise o nome do plugin, descrição, autor...</string>

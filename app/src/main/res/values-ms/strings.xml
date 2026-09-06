@@ -5295,6 +5295,14 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="pkg_delete_warning">Adakah anda pasti mahu memadam pakej "%1$s"? Tindakan ini tidak boleh dibatalkan.</string>
     <string name="pkg_delete">Padam</string>
     <string name="pkg_close">Tutup</string>
+    <string name="pkg_check_update">Semak kemas kini</string>
+    <string name="pkg_check_update_up_to_date">Anda sudah menggunakan versi terkini</string>
+    <string name="pkg_check_update_available">Versi baharu %1$s tersedia. Pergi ke pasaran plugin untuk mengemas kini.</string>
+    <string name="pkg_check_update_go">Pergi kemas kini</string>
+    <string name="pkg_check_update_not_market">Plugin ini tidak dipasang dari pasaran, tidak dapat menyemak kemas kini.</string>
+    <string name="pkg_check_update_entry_missing">Plugin tidak ditemui di pasaran. Ia mungkin telah dialih keluar.</string>
+    <string name="pkg_check_update_failed">Gagal menyemak kemas kini. Sila semak rangkaian anda dan cuba lagi.</string>
+    <string name="pkg_ok">OK</string>
 
     <string name="memory_embedding_rebuild_failed">Pelengkap dan pembinaan semula vektor gagal: %1$s</string>
     <string name="memory_embedding_rebuild_requires_config">Sila konfigurasi dan simpan perkhidmatan vektor yang tersedia terlebih dahulu</string>

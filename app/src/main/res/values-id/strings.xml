@@ -5297,6 +5297,14 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="pkg_delete_warning">Yakin ingin menghapus paket "%1$s"? Tindakan ini tidak dapat dibatalkan.</string>
     <string name="pkg_delete">Hapus</string>
     <string name="pkg_close">Tutup</string>
+    <string name="pkg_check_update">Periksa pembaruan</string>
+    <string name="pkg_check_update_up_to_date">Anda sudah menggunakan versi terbaru</string>
+    <string name="pkg_check_update_available">Tersedia versi baru %1$s. Buka pasar plugin untuk memperbarui.</string>
+    <string name="pkg_check_update_go">Pergi ke pembaruan</string>
+    <string name="pkg_check_update_not_market">Plugin ini tidak diinstal dari pasar, tidak dapat memeriksa pembaruan.</string>
+    <string name="pkg_check_update_entry_missing">Plugin tidak ditemukan di pasar. Mungkin sudah dihapus.</string>
+    <string name="pkg_check_update_failed">Gagal memeriksa pembaruan. Periksa jaringan Anda dan coba lagi.</string>
+    <string name="pkg_ok">Oke</string>
     <string name="pkg_tool_list">Daftar alat</string>
     <string name="pkg_no_tools">Belum ada alat yang tersedia</string>
     <string name="mcp_market_search_hint">Cari nama plugin, deskripsi, penulis...</string>

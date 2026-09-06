@@ -74,9 +74,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.skill.SkillPackage
+import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.preferences.SkillVisibilityPreferences
 import com.ai.assistance.operit.data.skill.SkillRepository
 import com.ai.assistance.operit.ui.common.displays.MarkdownTextComposable
+import com.ai.assistance.operit.ui.features.packages.market.MarketUpdateCheckButton
+import com.ai.assistance.operit.ui.features.packages.market.readMarketInstallMarkerForSkill
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,6 +93,7 @@ fun SkillConfigScreen(
     skillRepository: SkillRepository,
     snackbarHostState: SnackbarHostState,
     onNavigateToSkillMarket: () -> Unit = {},
+    onOpenSkillMarketDetail: (MarketV2Entry) -> Unit = {},
     searchQuery: String = "",
     skillOrder: List<String> = emptyList(),
     onSaveSkillOrder: (List<String>) -> Unit = {},
@@ -748,6 +752,12 @@ fun SkillConfigScreen(
             skill = skill,
             detail = selectedSkillDetail,
             isLoading = isSkillDetailLoading,
+            onOpenMarketDetail = { entry ->
+                selectedSkill = null
+                selectedSkillDetail = null
+                isSkillDetailLoading = false
+                onOpenSkillMarketDetail(entry)
+            },
             onDismiss = {
                 selectedSkill = null
                 selectedSkillDetail = null
@@ -876,7 +886,8 @@ private fun SkillDetailDialog(
     detail: SkillDetailDialogData?,
     isLoading: Boolean,
     onDismiss: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onOpenMarketDetail: (MarketV2Entry) -> Unit
 ) {
     var showSkillMarkdown by remember(skill.directory.absolutePath) { mutableStateOf(false) }
 
@@ -993,8 +1004,16 @@ private fun SkillDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDelete) {
-                Text(text = stringResource(R.string.skillmgr_delete))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+            ) {
+                MarketUpdateCheckButton(
+                    markerProvider = { readMarketInstallMarkerForSkill(skill.directory) },
+                    onOpenMarketDetail = onOpenMarketDetail
+                )
+                TextButton(onClick = onDelete) {
+                    Text(text = stringResource(R.string.skillmgr_delete))
+                }
             }
         },
         dismissButton = {

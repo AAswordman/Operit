@@ -3061,6 +3061,14 @@
     <string name="pkg_automation_func_removed">Kotlin UI automation function execution (route/config) has been removed.</string>
     <string name="pkg_automation_feature">Automation Feature</string>
     <string name="pkg_close">Close</string>
+    <string name="pkg_check_update">Check for updates</string>
+    <string name="pkg_check_update_up_to_date">You are on the latest version</string>
+    <string name="pkg_check_update_available">New version %1$s available. Go to the plugin market to update.</string>
+    <string name="pkg_check_update_go">Go to update</string>
+    <string name="pkg_check_update_not_market">This plugin was not installed from the market, so updates cannot be checked.</string>
+    <string name="pkg_check_update_entry_missing">This plugin was not found in the market. It may have been removed.</string>
+    <string name="pkg_check_update_failed">Failed to check for updates. Please check your network and try again.</string>
+    <string name="pkg_ok">OK</string>
     <string name="dialog_command_result">Command Result</string>
     <string name="dialog_copied_to_clipboard">Copied to clipboard</string>
     <string name="dialog_copy_failed">Copy failed: %1$s</string>

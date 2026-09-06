@@ -201,6 +201,9 @@ sealed class Screen(
                 onNavigateToMCPMarket = { navigateTo(Market(MarketHomeTab.ALL)) },
                 onNavigateToSkillMarket = { navigateTo(Market(MarketHomeTab.ALL)) },
                 onNavigateToArtifactMarket = { navigateTo(Market(MarketHomeTab.ALL)) },
+                onOpenMarketDetail = { entry ->
+                    navigateTo(MarketEntryDetail(entry = entry))
+                },
                 onStartPluginCreation = { intent ->
                     PendingChatDraftHandler.setPendingDraft(intent.toPrompt(context))
                     navigateTo(AiChat)

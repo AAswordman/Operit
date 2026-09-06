@@ -6265,6 +6265,14 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="pkg_delete_warning">Sunteți sigur că doriți să ștergeți pachetul „%1$s" ? Această operațiune nu poate fi anulată.</string>
     <string name="pkg_delete">Ștergere</string>
     <string name="pkg_close">Închide</string>
+    <string name="pkg_check_update">Verifică actualizări</string>
+    <string name="pkg_check_update_up_to_date">Aveți deja cea mai recentă versiune</string>
+    <string name="pkg_check_update_available">Este disponibilă versiunea nouă %1$s. Accesați piața de pluginuri pentru actualizare.</string>
+    <string name="pkg_check_update_go">Mergi la actualizare</string>
+    <string name="pkg_check_update_not_market">Acest plugin nu a fost instalat din piață, nu se pot verifica actualizările.</string>
+    <string name="pkg_check_update_entry_missing">Pluginul nu a fost găsit în piață. Este posibil să fi fost retras.</string>
+    <string name="pkg_check_update_failed">Verificarea actualizărilor a eșuat. Verificați rețeaua și încercați din nou.</string>
+    <string name="pkg_ok">OK</string>
     <string name="pkg_tool_list">Lista de instrumente</string>
     <string name="pkg_no_tools">Nu există instrumente disponibile în acest moment</string>
 

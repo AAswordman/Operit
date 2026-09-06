@@ -6453,6 +6453,14 @@
     <string name="pkg_delete_warning">确定要删除包 "%1$s" 吗？此操作无法撤销。</string>
     <string name="pkg_delete">删除</string>
     <string name="pkg_close">关闭</string>
+    <string name="pkg_check_update">检查更新</string>
+    <string name="pkg_check_update_up_to_date">当前已是最新版本</string>
+    <string name="pkg_check_update_available">发现新版本 %1$s，可前往插件市场更新</string>
+    <string name="pkg_check_update_go">前往更新</string>
+    <string name="pkg_check_update_not_market">该插件不是从市场安装的，无法检查更新</string>
+    <string name="pkg_check_update_entry_missing">未在市场中找到该插件，可能已被下架</string>
+    <string name="pkg_check_update_failed">检查更新失败，请检查网络后重试</string>
+    <string name="pkg_ok">确定</string>
     <string name="pkg_tool_list">工具列表</string>
     <string name="pkg_no_tools">暂无可用工具</string>
 
