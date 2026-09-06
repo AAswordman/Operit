@@ -5316,6 +5316,8 @@
     <string name="backup_raw_snapshot_title">File Snapshot Backup (Experimental)</string>
     <string name="backup_raw_snapshot_subtitle">Archive/restore app data by file &amp; directory</string>
     <string name="backup_raw_snapshot_desc">This archives app data that is removed by Clear data: internal files/shared_prefs/datastore/databases and Android/data/package/files (the terminal Linux environment can be very large, so it is excluded by default). Restoring overwrites current data and requires an app restart. Some encrypted data may not work after device migration or reinstall.</string>
+    <string name="backup_raw_snapshot_include_logs">Include logs in snapshot</string>
+    <string name="backup_raw_snapshot_include_logs_desc">Logs help diagnose failures but may contain sensitive information. This only changes the export and does not delete device logs.</string>
     <string name="backup_raw_snapshot_backup_now">Backup now</string>
     <string name="backup_raw_snapshot_restore_from_file">Restore from file</string>
     <string name="backup_raw_snapshot_backing_up">Creating file snapshot backup...</string>
@@ -8331,4 +8333,6 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <string name="data_recovery_include_logs">Include logs in snapshot</string>
+    <string name="data_recovery_include_logs_description">Logs help diagnose failures but may contain sensitive information. This only changes the export and does not delete device logs.</string>
 </resources>

@@ -1467,6 +1467,8 @@
     <string name="shortcut_data_recovery">数据救援</string>
     <string name="data_recovery_raw_snapshot_section">原始快照</string>
     <string name="data_recovery_raw_snapshot_description">导出会打包内部 files、shared_prefs、datastore、databases 和 Android/data 包目录；导入会覆盖当前数据。</string>
+    <string name="data_recovery_include_logs">在快照中包含日志</string>
+    <string name="data_recovery_include_logs_description">日志有助于故障排查，但可能包含敏感信息；关闭后只影响导出，不删除设备上的日志。</string>
     <string name="data_recovery_export_snapshot">导出快照</string>
     <string name="data_recovery_import_snapshot">导入快照</string>
     <string name="data_recovery_start_main_app">启动主应用</string>
@@ -5823,6 +5825,8 @@
     <string name="backup_raw_snapshot_title">文件快照备份（实验）</string>
     <string name="backup_raw_snapshot_subtitle">以文件/目录为单位的整体压缩备份与恢复</string>
     <string name="backup_raw_snapshot_desc">将打包会随“清除数据”一起删除的应用数据：内部 files/shared_prefs/datastore/databases，以及 Android/data/包名/files（终端 Linux 环境体积很大，默认不备份）。恢复会覆盖当前数据，并且需要重启应用生效。部分加密数据在换机/重装后可能无法使用。</string>
+    <string name="backup_raw_snapshot_include_logs">在快照中包含日志</string>
+    <string name="backup_raw_snapshot_include_logs_desc">日志有助于故障排查，但可能包含敏感信息；关闭后只影响导出，不删除设备上的日志。</string>
     <string name="backup_raw_snapshot_backup_now">立即备份</string>
     <string name="backup_raw_snapshot_restore_from_file">从文件恢复</string>
     <string name="backup_raw_snapshot_backing_up">正在生成文件快照备份...</string>

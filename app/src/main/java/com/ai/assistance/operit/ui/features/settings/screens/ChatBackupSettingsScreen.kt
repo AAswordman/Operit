@@ -176,6 +176,7 @@ fun ChatBackupSettingsScreen() {
     var roomDbRestoreOperationMessage by remember { mutableStateOf("") }
     var rawSnapshotOperationState by remember { mutableStateOf(RawSnapshotOperation.IDLE) }
     var rawSnapshotOperationMessage by remember { mutableStateOf("") }
+    var includeRawSnapshotLogs by remember { mutableStateOf(true) }
     var pendingRawSnapshotRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var showRawSnapshotRestoreConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -973,6 +974,30 @@ fun ChatBackupSettingsScreen() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.backup_raw_snapshot_include_logs),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                text = stringResource(R.string.backup_raw_snapshot_include_logs_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = includeRawSnapshotLogs,
+                            onCheckedChange = { includeRawSnapshotLogs = it },
+                            enabled = rawSnapshotOperationState != RawSnapshotOperation.BACKING_UP,
+                        )
+                    }
+
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -988,6 +1013,9 @@ fun ChatBackupSettingsScreen() {
                                     try {
                                         val outFile = RawSnapshotBackupManager.exportToBackupDir(
                                             context = context,
+                                            options = RawSnapshotBackupManager.SnapshotOptions(
+                                                includeLogs = includeRawSnapshotLogs,
+                                            ),
                                             onProgress = { progress ->
                                                 val suffix = progress.percent?.let { " ${it}%" } ?: ""
                                                 rawSnapshotOperationMessage = when (progress.stage) {
