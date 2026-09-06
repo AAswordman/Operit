@@ -1619,10 +1619,15 @@ private fun ChatInputBottomBar(
     }
 
     fun handleUserMessageChange(value: TextFieldValue) {
-        val clipboardText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+        val pastedLength = value.text.length - userMessage.text.length
         val pastedText =
-            if (convertLongPastedTextToFile && clipboardText != null) {
-                extractClipboardPastedText(userMessage, value, clipboardText)
+            if (convertLongPastedTextToFile && pastedLength > longPastedTextFileThreshold) {
+                val clipboardText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+                if (clipboardText != null) {
+                    extractClipboardPastedText(userMessage, value, clipboardText)
+                } else {
+                    null
+                }
             } else {
                 null
             }
