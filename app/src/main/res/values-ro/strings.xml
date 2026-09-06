@@ -8309,4 +8309,15 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_trends">Analiza tendințelor</string>
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="model_fetch_error_timeout">Timpul de așteptare a expirat la preluarea modelelor. Verificați rețeaua sau proxy-ul.</string>
+    <string name="model_fetch_error_dns">Eșec la rezolvarea numelui de domeniu. Verificați adresa API (de ex. sufixul domeniului) sau rețeaua.</string>
+    <string name="model_fetch_error_network">Nu se poate conecta la server. Verificați rețeaua, portul sau setările proxy.</string>
+    <string name="model_fetch_error_ssl">Conexiunea de securitate SSL a eșuat. Verificați rețeaua sau setările proxy.</string>
+    <string name="model_fetch_error_unauthorized">Cheie API nevalidă sau neautorizată (HTTP 401)</string>
+    <string name="model_fetch_error_forbidden">Acces interzis (HTTP 403). Posibilă restricție regională sau este necesar un proxy.</string>
+    <string name="model_fetch_error_not_found">Endpoint negăsit (HTTP 404). Verificați adresa API.</string>
+    <string name="model_fetch_error_rate_limit">Limita de solicitări a fost atinsă sau cota este epuizată (HTTP 429)</string>
+    <string name="model_fetch_error_server">Eroare de server a furnizorului de modele (HTTP %d). Încercați din nou mai târziu.</string>
+    <string name="model_fetch_error_format">Eșec la parsarea modelelor: format de răspuns neașteptat de la endpoint.</string>
+    <string name="model_fetch_error_http">Eșec la preluarea modelelor (HTTP %1$d): %2$s</string>
 </resources>

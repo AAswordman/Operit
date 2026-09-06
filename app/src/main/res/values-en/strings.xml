@@ -8325,4 +8325,15 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <string name="model_fetch_error_timeout">Fetching models timed out. Please check network or proxy connection.</string>
+    <string name="model_fetch_error_dns">Domain resolution failed. Please check the API address spelling (e.g. domain suffix) or network.</string>
+    <string name="model_fetch_error_network">Unable to connect to server. Please check network, endpoint, or proxy settings.</string>
+    <string name="model_fetch_error_ssl">SSL connection failed. Please check network environment or proxy settings.</string>
+    <string name="model_fetch_error_unauthorized">Invalid or unauthorized API key (HTTP 401)</string>
+    <string name="model_fetch_error_forbidden">Access forbidden (HTTP 403). Possible region restriction or proxy required.</string>
+    <string name="model_fetch_error_not_found">Endpoint not found (HTTP 404). Please verify the endpoint URL.</string>
+    <string name="model_fetch_error_rate_limit">Rate limit reached or quota exhausted (HTTP 429)</string>
+    <string name="model_fetch_error_server">Model provider server error (HTTP %d). Please try again later.</string>
+    <string name="model_fetch_error_format">Failed to parse models: unexpected response format from endpoint.</string>
+    <string name="model_fetch_error_http">Failed to fetch models (HTTP %1$d): %2$s</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.settings.sections
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.annotation.StringRes
 import com.ai.assistance.operit.util.AppLogger
 import androidx.compose.foundation.BorderStroke
@@ -52,6 +53,7 @@ import com.ai.assistance.operit.api.chat.llmprovider.AIServiceFactory
 import com.ai.assistance.operit.api.chat.llmprovider.CodexModelListFetcher
 import com.ai.assistance.operit.api.chat.llmprovider.LlamaProvider
 import com.ai.assistance.operit.api.chat.llmprovider.ModelListFetcher
+import com.ai.assistance.operit.api.chat.llmprovider.ModelFetchErrorHelper
 import com.ai.assistance.operit.data.api.CodexAuthManager
 import com.ai.assistance.operit.data.api.CodexUsageSnapshot
 import com.ai.assistance.operit.data.api.CodexUsageWindow
@@ -70,8 +72,10 @@ import com.ai.assistance.operit.ui.common.icons.rememberProviderLogoPainter
 import com.ai.assistance.operit.ui.features.settings.RegisterModelConfigSaveAction
 import com.ai.assistance.operit.ui.features.codex.CodexLoginDialog
 import com.ai.assistance.operit.util.LocationUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -432,6 +436,22 @@ fun ModelApiSettingsSection(
     var modelsList by remember { mutableStateOf<List<ModelOption>>(emptyList()) }
     var modelLoadError by remember { mutableStateOf<String?>(null) }
     var showEndpointDialog by remember(config.id) { mutableStateOf(false) }
+    var fetchModelsJob by remember { mutableStateOf<Job?>(null) }
+
+    // 当配置ID或API提供商发生变化时，立即取消正在进行的模型获取任务并重置加载状态
+    LaunchedEffect(config.id, selectedProviderTypeId) {
+        fetchModelsJob?.cancel()
+        fetchModelsJob = null
+        isLoadingModels = false
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            fetchModelsJob?.cancel()
+            fetchModelsJob = null
+            isLoadingModels = false
+        }
+    }
 
     // 检查是否未填写API密钥（仅用于UI显示）
     val isUsingDefaultApiKey = apiKeyInput.isBlank()
@@ -770,53 +790,55 @@ fun ModelApiSettingsSection(
                                     TAG,
                                     "模型列表按钮被点击 - API端点: $apiEndpointInput, API类型: $selectedProviderTypeId"
                             )
+                            if (isLoadingModels) return@IconButton
                             val gettingModelsText = context.getString(R.string.getting_models_list)
-                            val unknownErrorText = context.getString(R.string.unknown_error)
-                            val getModelsFailedText = context.getString(R.string.get_models_list_failed)
                             val defaultConfigNoModelsText = context.getString(R.string.default_config_no_models_list)
                             val fillEndpointKeyText = context.getString(R.string.fill_endpoint_and_key)
                             val modelsListSuccessText = context.getString(R.string.models_list_success)
-                            
-                            showNotification(gettingModelsText)
 
-                            scope.launch {
-                                if (canRequestModelList) {
-                                    isLoadingModels = true
-                                    modelLoadError = null
-                                    AppLogger.d(
-                                            TAG,
-                                            "开始获取模型列表: 端点=$apiEndpointInput, API类型=$selectedProviderTypeId"
-                                    )
-
-                                    try {
-                                        val result = fetchAvailableModels()
-                                        if (result.isSuccess) {
-                                            val models = result.getOrThrow()
-                                            AppLogger.d(TAG, "模型列表获取成功，共 ${models.size} 个模型")
-                                            modelsList = models
-                                            showModelsDialog = true
-                                            showNotification(modelsListSuccessText.format(models.size))
-                                        } else {
-                                            val errorMsg =
-                                                    result.exceptionOrNull()?.message ?: unknownErrorText
-                                            AppLogger.e(TAG, "模型列表获取失败: $errorMsg")
-                                            modelLoadError = getModelsFailedText.format(errorMsg)
-                                            showNotification(modelLoadError ?: getModelsFailedText.format(""))
-                                        }
-                                    } catch (e: Exception) {
-                                        AppLogger.e(TAG, "获取模型列表发生异常", e)
-                                        modelLoadError = getModelsFailedText.format(e.message ?: "")
-                                        showNotification(modelLoadError ?: getModelsFailedText.format(""))
-                                    } finally {
-                                        isLoadingModels = false
-                                        AppLogger.d(TAG, "模型列表获取流程完成")
-                                    }
-                                } else if (!isToolPkgProvider && isUsingDefaultApiKey && providerRequiresApiKey) {
-                                    AppLogger.d(TAG, "使用默认配置，不获取模型列表")
-                                    showNotification(defaultConfigNoModelsText)
+                            if (!canRequestModelList) {
+                                if (!isToolPkgProvider && isUsingDefaultApiKey && providerRequiresApiKey) {
+                                    Toast.makeText(context, defaultConfigNoModelsText, Toast.LENGTH_SHORT).show()
                                 } else {
-                                    AppLogger.d(TAG, "API端点或密钥为空")
-                                    showNotification(fillEndpointKeyText)
+                                    Toast.makeText(context, fillEndpointKeyText, Toast.LENGTH_SHORT).show()
+                                }
+                                return@IconButton
+                            }
+
+                            fetchModelsJob?.cancel()
+                            Toast.makeText(context, gettingModelsText, Toast.LENGTH_SHORT).show()
+                            fetchModelsJob = scope.launch {
+                                isLoadingModels = true
+                                modelLoadError = null
+                                AppLogger.d(
+                                        TAG,
+                                        "开始获取模型列表: 端点=$apiEndpointInput, API类型=$selectedProviderTypeId"
+                                )
+                                try {
+                                    val result = fetchAvailableModels()
+                                    if (result.isSuccess) {
+                                        val models = result.getOrThrow()
+                                        AppLogger.d(TAG, "模型列表获取成功，共 ${models.size} 个模型")
+                                        modelsList = models
+                                        showModelsDialog = true
+                                        Toast.makeText(context, modelsListSuccessText.format(models.size), Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        val throwable = result.exceptionOrNull()
+                                        val errorMsg = ModelFetchErrorHelper.formatError(context, throwable)
+                                        AppLogger.e(TAG, "模型列表获取失败: $errorMsg")
+                                        modelLoadError = errorMsg
+                                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                    }
+                                } catch (e: CancellationException) {
+                                    AppLogger.d(TAG, "获取模型列表任务被取消")
+                                } catch (e: Exception) {
+                                    AppLogger.e(TAG, "获取模型列表发生异常", e)
+                                    val errorMsg = ModelFetchErrorHelper.formatError(context, e)
+                                    modelLoadError = errorMsg
+                                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                } finally {
+                                    isLoadingModels = false
+                                    AppLogger.d(TAG, "模型列表获取流程完成")
                                 }
                             }
                         },
@@ -825,7 +847,7 @@ fun ModelApiSettingsSection(
                                 IconButtonDefaults.iconButtonColors(
                                         contentColor = MaterialTheme.colorScheme.primary
                                 ),
-                                enabled = canRequestModelList
+                        enabled = !isLoadingModels
                 ) {
                     if (isLoadingModels) {
                         CircularProgressIndicator(
@@ -976,22 +998,31 @@ fun ModelApiSettingsSection(
 
                         FilledIconButton(
                                 onClick = {
-                                    scope.launch {
+                                    if (isLoadingModels) return@FilledIconButton
+                                    val gettingModelsText = context.getString(R.string.getting_models_list)
+                                    val modelsListSuccessText = context.getString(R.string.models_list_success)
+                                    fetchModelsJob?.cancel()
+                                    Toast.makeText(context, gettingModelsText, Toast.LENGTH_SHORT).show()
+                                    fetchModelsJob = scope.launch {
                                         if (canRequestModelList) {
                                             isLoadingModels = true
                                             try {
                                                 val result = fetchAvailableModels()
                                                 if (result.isSuccess) {
                                                     modelsList = result.getOrThrow()
+                                                    Toast.makeText(context, modelsListSuccessText.format(modelsList.size), Toast.LENGTH_SHORT).show()
                                                 } else {
-                                                    val errorMsg = result.exceptionOrNull()?.message ?: context.getString(R.string.unknown_error)
-                                                    modelLoadError = context.getString(R.string.refresh_models_list_failed, errorMsg)
-                                                    showNotification(modelLoadError ?: context.getString(R.string.refresh_models_failed))
+                                                    val throwable = result.exceptionOrNull()
+                                                    val errorMsg = ModelFetchErrorHelper.formatError(context, throwable)
+                                                    modelLoadError = errorMsg
+                                                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                                                 }
+                                            } catch (e: CancellationException) {
+                                                AppLogger.d(TAG, "刷新模型列表任务被取消")
                                             } catch (e: Exception) {
-                                                val errorMsg = e.message ?: context.getString(R.string.unknown_error)
-                                                modelLoadError = context.getString(R.string.refresh_models_list_failed, errorMsg)
-                                                showNotification(modelLoadError ?: context.getString(R.string.refresh_models_failed))
+                                                val errorMsg = ModelFetchErrorHelper.formatError(context, e)
+                                                modelLoadError = errorMsg
+                                                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                                             } finally {
                                                 isLoadingModels = false
                                             }
@@ -1005,7 +1036,8 @@ fun ModelApiSettingsSection(
                                                 contentColor =
                                                         MaterialTheme.colorScheme.onPrimaryContainer
                                         ),
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(36.dp),
+                                enabled = !isLoadingModels
                         ) {
                             if (isLoadingModels) {
                                 CircularProgressIndicator(

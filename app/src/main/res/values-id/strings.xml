@@ -7633,4 +7633,15 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_activity_chart_tap_hint">Ketuk grafik untuk melihat data detail</string>
     <string name="token_activity_total_tokens">Total Token</string>
     <string name="token_activity_peak_tokens">Token puncak</string>
+    <string name="model_fetch_error_timeout">Batas waktu habis saat mengambil model. Periksa koneksi jaringan atau proxy.</string>
+    <string name="model_fetch_error_dns">Gagal menyelesaikan domain. Periksa ejaan alamat API (misal akhiran domain) atau jaringan.</string>
+    <string name="model_fetch_error_network">Tidak dapat terhubung ke server. Periksa jaringan, port, atau pengaturan proxy.</string>
+    <string name="model_fetch_error_ssl">Koneksi SSL gagal. Periksa lingkungan jaringan atau pengaturan proxy.</string>
+    <string name="model_fetch_error_unauthorized">Kunci API tidak valid atau tidak diizinkan (HTTP 401)</string>
+    <string name="model_fetch_error_forbidden">Akses ditolak (HTTP 403). Kemungkinan dibatasi wilayah atau memerlukan proxy.</string>
+    <string name="model_fetch_error_not_found">Endpoint tidak ditemukan (HTTP 404). Periksa kembali alamat API.</string>
+    <string name="model_fetch_error_rate_limit">Batas permintaan tercapai atau kuota habis (HTTP 429)</string>
+    <string name="model_fetch_error_server">Kesalahan server penyedia model (HTTP %d). Coba lagi nanti.</string>
+    <string name="model_fetch_error_format">Gagal mengurai model: format respons tidak sesuai dari endpoint.</string>
+    <string name="model_fetch_error_http">Gagal mengambil model (HTTP %1$d): %2$s</string>
 </resources>

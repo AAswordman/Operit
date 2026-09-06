@@ -8342,4 +8342,15 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <string name="model_fetch_error_timeout">获取模型列表超时，请检查网络连接或代理是否通畅</string>
+    <string name="model_fetch_error_dns">域名解析失败，请检查API端点地址拼写（如域名后缀是否完整），或检查网络设置</string>
+    <string name="model_fetch_error_network">无法连接到服务器，请检查网络连接、服务端口或代理设置</string>
+    <string name="model_fetch_error_ssl">SSL安全连接失败，请检查网络环境或代理设置</string>
+    <string name="model_fetch_error_unauthorized">API密钥无效或未授权 (HTTP 401)</string>
+    <string name="model_fetch_error_forbidden">访问被拒绝 (HTTP 403)，可能受到区域限制或需要代理(梯子)</string>
+    <string name="model_fetch_error_not_found">API端点不存在 (HTTP 404)，请检查端点路径是否正确(是否缺少/v1)</string>
+    <string name="model_fetch_error_rate_limit">请求过于频繁或账户额度已用尽 (HTTP 429)</string>
+    <string name="model_fetch_error_server">模型提供商服务器错误 (HTTP %d)，请稍后重试</string>
+    <string name="model_fetch_error_format">解析模型列表失败：端点返回了非预期格式(可能遇到网关拦截或网页报错)</string>
+    <string name="model_fetch_error_http">获取模型失败 (HTTP %1$d): %2$s</string>
 </resources>
