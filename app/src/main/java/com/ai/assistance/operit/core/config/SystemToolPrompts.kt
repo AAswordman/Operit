@@ -113,6 +113,20 @@ object SystemToolPrompts {
                         required = false
                     ),
                     ToolParameterSchema(
+                        name = "start_line",
+                        type = "integer",
+                        description = "optional starting line number, 1-indexed",
+                        required = false,
+                        default = "1"
+                    ),
+                    ToolParameterSchema(
+                        name = "end_line",
+                        type = "integer",
+                        description = "optional ending line number, 1-indexed and inclusive",
+                        required = false,
+                        default = "start_line + 99"
+                    ),
+                    ToolParameterSchema(
                         name = "intent",
                         type = "string",
                         description = "optional, your question about the media/file (used for backend recognition)",
@@ -258,6 +272,20 @@ object SystemToolPrompts {
                         type = "string",
                         description = "可选，执行环境。取值：\"android\"（默认，Android文件系统）| \"linux\"（本地Ubuntu 24终端环境，通过proot实现；路径用Linux格式，如/home/...、/etc/hosts）| \"repo:<仓库名>\"（附加本地储存仓库）",
                         required = false
+                    ),
+                    ToolParameterSchema(
+                        name = "start_line",
+                        type = "integer",
+                        description = "可选，起始行号，从1开始",
+                        required = false,
+                        default = "1"
+                    ),
+                    ToolParameterSchema(
+                        name = "end_line",
+                        type = "integer",
+                        description = "可选，结束行号，从1开始并包括该行",
+                        required = false,
+                        default = "start_line + 99"
                     ),
                     ToolParameterSchema(
                         name = "intent",
