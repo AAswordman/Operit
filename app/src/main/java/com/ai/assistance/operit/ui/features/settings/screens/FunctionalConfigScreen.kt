@@ -35,6 +35,9 @@ import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getModelList
 import com.ai.assistance.operit.data.model.getValidModelIndex
 import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.model.supportsDirectAudioProcessing
+import com.ai.assistance.operit.data.model.supportsDirectImageProcessing
+import com.ai.assistance.operit.data.model.supportsDirectVideoProcessing
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
@@ -276,7 +279,7 @@ fun FunctionConfigCard(
 
     var mediaSupportWarningResId by remember { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(functionType, currentConfig?.id) {
+    LaunchedEffect(functionType, currentConfig?.id, currentModelIndex) {
         mediaSupportWarningResId = null
         if (
             functionType != FunctionType.IMAGE_RECOGNITION &&
@@ -294,9 +297,12 @@ fun FunctionConfigCard(
         }
 
         val isSupported = when (functionType) {
-            FunctionType.IMAGE_RECOGNITION -> fullConfig.enableDirectImageProcessing
-            FunctionType.AUDIO_RECOGNITION -> fullConfig.enableDirectAudioProcessing
-            FunctionType.VIDEO_RECOGNITION -> fullConfig.enableDirectVideoProcessing
+            FunctionType.IMAGE_RECOGNITION ->
+                fullConfig.supportsDirectImageProcessing(currentModelIndex)
+            FunctionType.AUDIO_RECOGNITION ->
+                fullConfig.supportsDirectAudioProcessing(currentModelIndex)
+            FunctionType.VIDEO_RECOGNITION ->
+                fullConfig.supportsDirectVideoProcessing(currentModelIndex)
             else -> true
         }
 

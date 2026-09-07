@@ -3574,6 +3574,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="enable_direct_audio_processing_desc">Setelah diaktifkan, audio akan langsung dikirim ke AI untuk diproses, bukan dikembalikan melalui alat sebagai transkripsi/deskripsi teks</string>
     <string name="enable_direct_video_processing">Model mendukung analisis video</string>
     <string name="enable_direct_video_processing_desc">Setelah diaktifkan, video akan langsung dikirim ke AI untuk diproses, bukan dianalisis melalui alat ekstraksi frame/analisis</string>
+    <string name="media_capable_models_title">Model yang berlaku</string>
+    <string name="media_capable_models_desc">Konfigurasi ini berisi beberapa model. Centang model yang benar-benar memiliki kemampuan ini; model lainnya akan memakai model fungsional terkait.</string>
     <string name="enable_google_search">Aktifkan Google Search</string>
     <string name="enable_google_search_desc">Setelah diaktifkan, Gemini akan menggunakan Google Search untuk meningkatkan jawaban (mungkin menimbulkan biaya tambahan)</string>
     <string name="enable_claude_1h_prompt_cache">Aktifkan cache prompt Claude 1 jam</string>

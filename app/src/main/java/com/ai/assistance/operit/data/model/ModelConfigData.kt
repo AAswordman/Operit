@@ -156,6 +156,12 @@ data class ModelConfigData(
         val enableDirectAudioProcessing: Boolean = false, // 是否启用直接音频处理
         val enableDirectVideoProcessing: Boolean = false, // 是否启用直接视频处理
 
+        // 逐模型的媒体能力声明（逗号分隔的模型名，取值来自modelName）
+        // 留空表示不区分：上面的开关对配置内所有模型生效
+        val directImageModels: String = "",
+        val directAudioModels: String = "",
+        val directVideoModels: String = "",
+
         // Gemini特定配置
         val enableGoogleSearch: Boolean = false, // 是否启用Google Search Grounding (仅Gemini支持)
 
@@ -217,4 +223,69 @@ fun getValidModelIndex(modelName: String, requestedIndex: Int): Int {
     } else {
         0 // 索引越界时使用第一个
     }
+}
+
+/**
+ * 判断配置中某个具体模型是否具备某类媒体的直接处理能力。
+ *
+ * 配置级开关是总开关；[capableModels] 为空表示配置内所有模型共享该能力（单模型配置与旧配置即此情形），
+ * 非空时只有其中列出的模型才具备该能力。
+ */
+private fun modelHasDirectMediaSupport(
+    enabledForConfig: Boolean,
+    capableModels: String,
+    modelName: String,
+    modelIndex: Int
+): Boolean {
+    if (!enabledForConfig) return false
+    val capable = getModelList(capableModels)
+    if (capable.isEmpty()) return true
+    val selectedModel = getModelByIndex(modelName, getValidModelIndex(modelName, modelIndex))
+    if (selectedModel.isEmpty()) return false
+    return capable.any { it.equals(selectedModel, ignoreCase = true) }
+}
+
+/** 指定模型索引所选中的模型是否支持直接图片处理 */
+fun ModelConfigData.supportsDirectImageProcessing(modelIndex: Int = 0): Boolean =
+    modelHasDirectMediaSupport(
+        enabledForConfig = enableDirectImageProcessing,
+        capableModels = directImageModels,
+        modelName = modelName,
+        modelIndex = modelIndex
+    )
+
+/** 指定模型索引所选中的模型是否支持直接音频处理 */
+fun ModelConfigData.supportsDirectAudioProcessing(modelIndex: Int = 0): Boolean =
+    modelHasDirectMediaSupport(
+        enabledForConfig = enableDirectAudioProcessing,
+        capableModels = directAudioModels,
+        modelName = modelName,
+        modelIndex = modelIndex
+    )
+
+/** 指定模型索引所选中的模型是否支持直接视频处理 */
+fun ModelConfigData.supportsDirectVideoProcessing(modelIndex: Int = 0): Boolean =
+    modelHasDirectMediaSupport(
+        enabledForConfig = enableDirectVideoProcessing,
+        capableModels = directVideoModels,
+        modelName = modelName,
+        modelIndex = modelIndex
+    )
+
+/**
+ * 筛出仍然存在于模型列表中的能力声明，按模型列表顺序返回。
+ * [capableModels] 为空时返回全部模型（空串表示“不区分”）。
+ */
+fun retainCapableModels(modelName: String, capableModels: String): List<String> {
+    val models = getModelList(modelName)
+    val capable = getModelList(capableModels)
+    if (capable.isEmpty()) return models
+    return models.filter { model -> capable.any { it.equals(model, ignoreCase = true) } }
+}
+
+/** 归一化能力声明：覆盖配置内全部模型时收敛为空串 */
+fun normalizeCapableModels(modelName: String, capableModels: String): String {
+    val models = getModelList(modelName)
+    val retained = retainCapableModels(modelName, capableModels)
+    return if (retained.size == models.size) "" else retained.joinToString(",")
 }

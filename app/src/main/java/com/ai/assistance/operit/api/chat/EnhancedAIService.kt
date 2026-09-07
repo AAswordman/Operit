@@ -37,6 +37,9 @@ import com.ai.assistance.operit.data.model.ToolInvocation
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelParameter
+import com.ai.assistance.operit.data.model.supportsDirectAudioProcessing
+import com.ai.assistance.operit.data.model.supportsDirectImageProcessing
+import com.ai.assistance.operit.data.model.supportsDirectVideoProcessing
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
@@ -161,6 +164,13 @@ class EnhancedAIService private constructor(private val context: Context) {
             functionType: FunctionType
         ): ModelConfigData {
             return getInstance(context).multiServiceManager.getModelConfigForFunction(functionType)
+        }
+
+        suspend fun getModelIndexForFunction(
+            context: Context,
+            functionType: FunctionType
+        ): Int {
+            return getInstance(context).multiServiceManager.getModelIndexForFunction(functionType)
         }
 
         /**
@@ -419,6 +429,8 @@ class EnhancedAIService private constructor(private val context: Context) {
             get() = lease.service
         val config: ModelConfigData
             get() = lease.modelConfig
+        val modelIndex: Int
+            get() = lease.modelIndex
         val modelParameters: List<ModelParameter<*>>
             get() = lease.modelParameters
     }
@@ -635,6 +647,21 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
     }
 
+    /** 获取指定功能类型实际选中的模型索引（与getModelConfigForFunction配套） */
+    suspend fun getModelIndexForFunction(
+        functionType: FunctionType,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null
+    ): Int {
+        ensureInitialized()
+        val overrideConfigId = chatModelConfigIdOverride?.takeIf { it.isNotBlank() }
+        return if (functionType == FunctionType.CHAT && overrideConfigId != null) {
+            (chatModelIndexOverride ?: 0).coerceAtLeast(0)
+        } else {
+            multiServiceManager.getModelIndexForFunction(functionType)
+        }
+    }
+
     /**
      * 刷新指定功能类型的 AIService 实例 当配置发生更改时调用
      * @param functionType 功能类型
@@ -793,6 +820,12 @@ class EnhancedAIService private constructor(private val context: Context) {
                 chatModelConfigIdOverride = chatModelConfigIdOverride,
                 chatModelIndexOverride = chatModelIndexOverride
             )
+        val modelIndex =
+            getModelIndexForFunction(
+                functionType = functionType,
+                chatModelConfigIdOverride = chatModelConfigIdOverride,
+                chatModelIndexOverride = chatModelIndexOverride
+            )
         val preparedHistory =
             prepareConversationHistory(
                 chatHistory = chatHistory,
@@ -809,6 +842,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 isSubTask = isSubTask,
                 functionType = functionType,
                 modelConfig = modelConfig,
+                modelIndex = modelIndex,
                 memorySpaceIdOverride = memorySpaceIdOverride,
                 dispatchHistoryHooks = PromptHookRegistry::dispatchPromptEstimateHistoryHooks,
                 dispatchSystemPromptComposeHooks = ::bypassPromptHooks,
@@ -833,7 +867,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                 chatId = chatId,
                 promptFunctionType = promptFunctionType,
                 roleCardId = roleCardId,
-                modelConfig = modelConfig
+                modelConfig = modelConfig,
+                modelIndex = modelIndex
             )
 
         var finalProcessedInput = message
@@ -1012,6 +1047,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     isSubTask,
                                     functionType,
                                     modelSnapshot.config,
+                                    modelSnapshot.modelIndex,
                                     memorySpaceIdOverride
                             )
                     val tAfterPrepareHistory = messageTimingNow()
@@ -1050,7 +1086,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         chatId = chatId,
                         promptFunctionType = promptFunctionType,
                         roleCardId = roleCardId,
-                        modelConfig = modelSnapshot.config
+                        modelConfig = modelSnapshot.config,
+                        modelIndex = modelSnapshot.modelIndex
                     )
                     val tAfterGetTools = messageTimingNow()
                     AppLogger.d(TAG, "sendMessage本地耗时: getAvailableToolsForFunction=${tAfterGetTools - tAfterGetService}ms")
@@ -2305,7 +2342,8 @@ class EnhancedAIService private constructor(private val context: Context) {
             chatId = chatId,
             promptFunctionType = promptFunctionType,
             roleCardId = roleCardId,
-            modelConfig = modelSnapshot.config
+            modelConfig = modelSnapshot.config,
+            modelIndex = modelSnapshot.modelIndex
         )
  
         val currentTokens = estimatePreparedRequestWindow(
@@ -2681,6 +2719,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             isSubTask: Boolean = false,
             functionType: FunctionType = FunctionType.CHAT,
             modelConfig: ModelConfigData,
+            modelIndex: Int,
             memorySpaceIdOverride: String? = null,
             dispatchHistoryHooks: (PromptHookContext) -> PromptHookContext =
                 PromptHookRegistry::dispatchPromptHistoryHooks,
@@ -2698,9 +2737,9 @@ class EnhancedAIService private constructor(private val context: Context) {
         // 获取当前功能类型（通常是聊天模型）的模型配置，用于判断聊天模型是否自带识图能力
         val config = modelConfig
         val useToolCallApi = config.enableToolCall
-        val chatModelHasDirectImage = config.enableDirectImageProcessing
-        val chatModelHasDirectAudio = config.enableDirectAudioProcessing
-        val chatModelHasDirectVideo = config.enableDirectVideoProcessing
+        val chatModelHasDirectImage = config.supportsDirectImageProcessing(modelIndex)
+        val chatModelHasDirectAudio = config.supportsDirectAudioProcessing(modelIndex)
+        val chatModelHasDirectVideo = config.supportsDirectVideoProcessing(modelIndex)
         val toolExposureMode = ToolExposureMode.resolve(config.apiProviderType)
 
         return conversationService.prepareConversationHistory(
@@ -2893,7 +2932,8 @@ class EnhancedAIService private constructor(private val context: Context) {
         chatId: String? = null,
         promptFunctionType: PromptFunctionType? = null,
         roleCardId: String? = null,
-        modelConfig: ModelConfigData
+        modelConfig: ModelConfigData,
+        modelIndex: Int
     ): List<ToolPrompt>? {
         return try {
             AppLogger.d(
@@ -2939,11 +2979,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                 apiPreferences.safBookmarksFlow.first().map { it.name }
             }.getOrElse { emptyList() }
 
-            // 当前功能模型（通常是聊天模型）是否支持直接看图
-            val chatModelHasDirectImage = config.enableDirectImageProcessing
+            // 当前功能实际选中的模型（通常是聊天模型）是否支持直接看图
+            val chatModelHasDirectImage = config.supportsDirectImageProcessing(modelIndex)
 
-            val chatModelHasDirectAudio = config.enableDirectAudioProcessing
-            val chatModelHasDirectVideo = config.enableDirectVideoProcessing
+            val chatModelHasDirectAudio = config.supportsDirectAudioProcessing(modelIndex)
+            val chatModelHasDirectVideo = config.supportsDirectVideoProcessing(modelIndex)
 
             val selectedTools = if (toolExposureMode == ToolExposureMode.CLI) {
                 CliToolModeSupport.buildCliPublicToolPrompts(isEnglish).toMutableList()

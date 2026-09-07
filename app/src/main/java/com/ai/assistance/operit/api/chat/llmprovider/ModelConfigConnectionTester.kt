@@ -7,6 +7,9 @@ import com.ai.assistance.operit.data.model.ToolParameterSchema
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getValidModelIndex
+import com.ai.assistance.operit.data.model.supportsDirectAudioProcessing
+import com.ai.assistance.operit.data.model.supportsDirectImageProcessing
+import com.ai.assistance.operit.data.model.supportsDirectVideoProcessing
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
@@ -156,7 +159,7 @@ object ModelConfigConnectionTester {
                 }
             }
 
-            if (configForTest.enableDirectImageProcessing) {
+            if (configForTest.supportsDirectImageProcessing()) {
                 runCase(ModelConnectionTestType.IMAGE) {
                     val imageFile = AssetCopyUtils.copyAssetToCache(context, "test/1.jpg")
                     val imageId = ImagePoolManager.addImage(imageFile.absolutePath)
@@ -185,7 +188,7 @@ object ModelConfigConnectionTester {
                 }
             }
 
-            if (configForTest.enableDirectAudioProcessing) {
+            if (configForTest.supportsDirectAudioProcessing()) {
                 runCase(ModelConnectionTestType.AUDIO) {
                     val audioFile = AssetCopyUtils.copyAssetToCache(context, "test/1.mp3")
                     val audioId = MediaPoolManager.addMedia(audioFile.absolutePath, "audio/mpeg")
@@ -214,7 +217,7 @@ object ModelConfigConnectionTester {
                 }
             }
 
-            if (configForTest.enableDirectVideoProcessing) {
+            if (configForTest.supportsDirectVideoProcessing()) {
                 runCase(ModelConnectionTestType.VIDEO) {
                     val videoFile = AssetCopyUtils.copyAssetToCache(context, "test/1.mp4")
                     val videoId = MediaPoolManager.addMedia(videoFile.absolutePath, "video/mp4")

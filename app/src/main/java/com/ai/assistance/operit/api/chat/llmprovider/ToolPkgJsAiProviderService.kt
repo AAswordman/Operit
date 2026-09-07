@@ -10,6 +10,9 @@ import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.model.supportsDirectAudioProcessing
+import com.ai.assistance.operit.data.model.supportsDirectImageProcessing
+import com.ai.assistance.operit.data.model.supportsDirectVideoProcessing
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistration
 import com.ai.assistance.operit.plugins.toolpkg.decodeToolPkgHookResult
 import com.ai.assistance.operit.plugins.toolpkg.jsonObjectToMap
@@ -321,9 +324,9 @@ internal class ToolPkgJsAiProviderService(
             "modelName" to config.modelName,
             "customHeaders" to decodeJsonObjectString(config.customHeaders),
             "customParameters" to decodeJsonArrayString(config.customParameters),
-            "enableDirectImageProcessing" to config.enableDirectImageProcessing,
-            "enableDirectAudioProcessing" to config.enableDirectAudioProcessing,
-            "enableDirectVideoProcessing" to config.enableDirectVideoProcessing,
+            "enableDirectImageProcessing" to config.supportsDirectImageProcessing(),
+            "enableDirectAudioProcessing" to config.supportsDirectAudioProcessing(),
+            "enableDirectVideoProcessing" to config.supportsDirectVideoProcessing(),
             "enableGoogleSearch" to config.enableGoogleSearch,
             "enableClaude1hPromptCache" to config.enableClaude1hPromptCache,
             "enableToolCall" to config.enableToolCall,

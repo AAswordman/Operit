@@ -3763,6 +3763,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="enable_direct_audio_processing_desc">Al activarlo, el audio se enviará directamente a la IA para su procesamiento, en lugar de devolver una transcripción/descripción de texto mediante una herramienta</string>
     <string name="enable_direct_video_processing">El modelo admite análisis de video</string>
     <string name="enable_direct_video_processing_desc">Al activarlo, el video se enviará directamente a la IA para su procesamiento, en lugar de extraer fotogramas/analizar mediante una herramienta</string>
+    <string name="media_capable_models_title">Modelos aplicables</string>
+    <string name="media_capable_models_desc">Esta configuración contiene varios modelos. Marca los que realmente tienen esta capacidad; los demás usarán el modelo funcional correspondiente.</string>
     <string name="enable_google_search">Habilitar Google Search</string>
     <string name="enable_google_search_desc">Al activarlo, Gemini usará Google Search para mejorar las respuestas (pueden generarse costos adicionales)</string>
     <string name="enable_claude_1h_prompt_cache">Habilitar caché de prompts de Claude de 1 hora</string>
