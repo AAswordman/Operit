@@ -243,7 +243,25 @@ val bilingualPresetTags = listOf(
 - speed（速度）
 - battery_charging_full（充电）
 
-完整图标列表：https://fonts.google.com/icons
+可用图标名（应用内置的离线图标字体只覆盖下面这些，写别的名字只会显示成一串字母）：
+account_circle, alarm, analytics, auto_awesome, autorenew, badge, bar_chart, battery_alert,
+battery_charging_full, battery_full, bedtime, block, bolt, book, bookmark, bug_report,
+build, calendar_month, campaign, cancel, celebration, chat, check_circle, close, cloud,
+cloud_done, cloud_off, code, construction, dark_mode, data_usage, description,
+developer_board, diamond, directions_run, done_all, draw, eco, edit, electric_bolt,
+emoji_emotions, emoji_events, error, event, explore, extension, face, favorite, flight,
+forum, grade, group, groups, handshake, help, history, home, hourglass_empty, hourglass_top,
+hub, image, info, insights, key, leaderboard, light_mode, lightbulb, local_cafe,
+local_fire_department, lock, map, memory, menu_book, military_tech, monitor_heart,
+monitoring, mood, mood_bad, music_note, neurology, notifications, palette, park, pause,
+pending, person, person_search, pets, pie_chart, place, play_arrow, priority_high,
+psychology, psychology_alt, public, query_stats, refresh, report, restaurant, rocket_launch,
+schedule, science, search, security, self_improvement, sentiment_dissatisfied,
+sentiment_neutral, sentiment_satisfied, sentiment_very_dissatisfied,
+sentiment_very_satisfied, settings, shield, show_chart, smart_toy, speed, star, storage,
+sync, task_alt, terminal, thermostat, thumb_down, thumb_up, timeline, timer,
+tips_and_updates, today, translate, travel_explore, trending_down, trending_up, tune,
+update, verified, visibility, water_drop, waving_hand, wifi, wifi_off, workspace_premium
 
 ## 重要规则：
 - ❌ 卡片内禁止使用标题标签（h1-h6）
@@ -309,7 +327,25 @@ Then start responding to the user's question normally. The status card should ch
 - speed (speed)
 - battery_charging_full (charging)
 
-Full icon list: https://fonts.google.com/icons
+Available icon names (the app bundles an offline icon font covering only these; any other name renders as plain letters):
+account_circle, alarm, analytics, auto_awesome, autorenew, badge, bar_chart, battery_alert,
+battery_charging_full, battery_full, bedtime, block, bolt, book, bookmark, bug_report,
+build, calendar_month, campaign, cancel, celebration, chat, check_circle, close, cloud,
+cloud_done, cloud_off, code, construction, dark_mode, data_usage, description,
+developer_board, diamond, directions_run, done_all, draw, eco, edit, electric_bolt,
+emoji_emotions, emoji_events, error, event, explore, extension, face, favorite, flight,
+forum, grade, group, groups, handshake, help, history, home, hourglass_empty, hourglass_top,
+hub, image, info, insights, key, leaderboard, light_mode, lightbulb, local_cafe,
+local_fire_department, lock, map, memory, menu_book, military_tech, monitor_heart,
+monitoring, mood, mood_bad, music_note, neurology, notifications, palette, park, pause,
+pending, person, person_search, pets, pie_chart, place, play_arrow, priority_high,
+psychology, psychology_alt, public, query_stats, refresh, report, restaurant, rocket_launch,
+schedule, science, search, security, self_improvement, sentiment_dissatisfied,
+sentiment_neutral, sentiment_satisfied, sentiment_very_dissatisfied,
+sentiment_very_satisfied, settings, shield, show_chart, smart_toy, speed, star, storage,
+sync, task_alt, terminal, thermostat, thumb_down, thumb_up, timeline, timer,
+tips_and_updates, today, translate, travel_explore, trending_down, trending_up, tune,
+update, verified, visibility, water_drop, waving_hand, wifi, wifi_off, workspace_premium
 
 ## Important Rules:
 - ❌ Prohibit using heading tags (h1-h6) inside cards
