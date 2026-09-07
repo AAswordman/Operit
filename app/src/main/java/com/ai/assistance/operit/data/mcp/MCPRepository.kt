@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.runBlocking
 
 /**
  * 统一的MCP仓库管理类
@@ -1095,7 +1094,8 @@ class MCPRepository(private val context: Context) {
     }
 
     /**
-     * Returns the names exposed by a remote MCP service for list presentation.
+     * Returns the names exposed by a remote MCP service for list presentation, and registers
+     * the service with the AI runtime once its tools are known.
      *
      * Remote configuration is persisted independently from the in-memory runtime. This
      * method establishes that runtime boundary from the current metadata before asking
@@ -1108,23 +1108,39 @@ class MCPRepository(private val context: Context) {
             return@withContext emptyList()
         }
 
+        val toolNames = discoverRemoteToolNames(pluginId, metadata)
+
+        // Discovery is also the moment the server proves it is usable, so hand it to the AI
+        // runtime here. Otherwise the management screen lists tools that the AI never sees,
+        // because the only other registration trigger runs once during startup.
+        if (toolNames.isNotEmpty() && !metadata.disabled) {
+            registerToolsForPlugin(pluginId)
+        }
+
+        toolNames
+    }
+
+    private suspend fun discoverRemoteToolNames(
+        pluginId: String,
+        metadata: MCPLocalServer.PluginMetadata
+    ): List<String> {
         val cachedToolNames = mcpLocalServer.getCachedTools(pluginId)
             .orEmpty()
             .map { cachedTool -> cachedTool.name.trim() }
             .filter { toolName -> toolName.isNotEmpty() }
             .distinct()
         if (cachedToolNames.isNotEmpty()) {
-            return@withContext cachedToolNames
+            return cachedToolNames
         }
 
         if (metadata.disabled) {
-            return@withContext emptyList()
+            return emptyList()
         }
 
         val mcpManager = MCPManager.getInstance(context)
         mcpManager.registerRuntime(pluginId, createRuntimeDescriptor(metadata))
         val session = mcpManager.getOrCreateSession(pluginId)
-            ?: return@withContext emptyList()
+            ?: return emptyList()
         val discoveredTools = session.listTools()
             .mapNotNull { tool ->
                 val toolName = tool.name.trim()
@@ -1141,7 +1157,7 @@ class MCPRepository(private val context: Context) {
             mcpLocalServer.cacheServerTools(pluginId, discoveredTools)
         }
 
-        discoveredTools.map { tool -> tool.name }.distinct()
+        return discoveredTools.map { tool -> tool.name }.distinct()
     }
 
     /**
@@ -1171,74 +1187,78 @@ class MCPRepository(private val context: Context) {
         }
 
         AppLogger.d(TAG, "开始为 ${successfulPluginIds.size} 个插件注册工具: ${successfulPluginIds.joinToString()}")
-
-        val mcpManager = MCPManager.getInstance(context)
-        val toolHandler = AIToolHandler.getInstance(context)
-        val mcpToolExecutor = MCPToolExecutor(context, mcpManager)
-
-        successfulPluginIds.forEach { pluginId ->
-            try {
-                AppLogger.d(TAG, "正在为插件 $pluginId 注册工具...")
-
-                val pluginMetadata = mcpLocalServer.getPluginMetadata(pluginId)
-                if (pluginMetadata == null) {
-                    AppLogger.w(TAG, "在MCPLocalServer中找不到插件 $pluginId 的元数据")
-                    return@forEach
-                }
-
-                val runtimeDescriptor = createRuntimeDescriptor(pluginMetadata)
-                val serverConfig = MCPServerConfig(
-                    name = pluginId,
-                    endpoint = when (runtimeDescriptor) {
-                        is McpRuntimeDescriptor.Local -> "mcp://plugin/${runtimeDescriptor.serviceName}"
-                        is McpRuntimeDescriptor.Remote -> runtimeDescriptor.endpoint
-                    },
-                    description = pluginMetadata.description,
-                    capabilities = listOf("tools"),
-                    extraData = emptyMap()
-                )
-                mcpManager.registerServer(pluginId, serverConfig, runtimeDescriptor)
-                AppLogger.d(TAG, "已在MCPManager中注册服务器: $pluginId (类型: ${pluginMetadata.type})")
-
-                // 获取工具信息
-                val toolsToRegister = getToolsForPlugin(pluginId)
-
-                if (toolsToRegister.isEmpty()) {
-                    AppLogger.w(TAG, "插件 $pluginId 没有可注册的工具")
-                    return@forEach
-                }
-
-                // 统一注册工具
-                toolsToRegister.forEach { toolInfo ->
-                    val prefixedToolName = "$pluginId:${toolInfo.name}"
-
-                    if (toolHandler.getToolExecutor(prefixedToolName) != null) {
-                        AppLogger.d(TAG, "工具 $prefixedToolName 已注册，跳过")
-                        return@forEach
-                    }
-
-                    runBlocking {
-                        toolHandler.registerTool(
-                            name = prefixedToolName,
-                            executor = mcpToolExecutor,
-                            descriptionGenerator = { tool ->
-                                val baseDescription = toolInfo.description
-                                val paramsString = if (tool.parameters.isNotEmpty()) {
-                                    "\nParameters: " + tool.parameters.joinToString(", ") { "${it.name}='${it.value}'" }
-                                } else ""
-                                baseDescription + paramsString
-                            }
-                        )
-                    }
-                    AppLogger.i(TAG, "成功注册工具: $prefixedToolName")
-                }
-                AppLogger.d(TAG, "插件 $pluginId 的工具注册完成，共 ${toolsToRegister.size} 个")
-
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "为插件 $pluginId 注册工具时发生异常", e)
-            }
-        }
+        successfulPluginIds.forEach { pluginId -> registerToolsForPlugin(pluginId) }
         AppLogger.d(TAG, "所有插件的工具注册流程完成")
+    }
+
+    /**
+     * 把单个插件接入 AI 运行时：在 MCPManager 中注册服务器（这是 AI 能看到该包的前提），
+     * 并把它的工具注册到 AIToolHandler。
+     *
+     * 注册由多个生命周期节点触发（启动校验、MCP 管理页的远程发现），所以这里必须幂等：
+     * 已注册的工具会被跳过，重复调用不会产生重复注册。
+     */
+    fun registerToolsForPlugin(pluginId: String) {
+        try {
+            AppLogger.d(TAG, "正在为插件 $pluginId 注册工具...")
+
+            val pluginMetadata = mcpLocalServer.getPluginMetadata(pluginId)
+            if (pluginMetadata == null) {
+                AppLogger.w(TAG, "在MCPLocalServer中找不到插件 $pluginId 的元数据")
+                return
+            }
+
+            val mcpManager = MCPManager.getInstance(context)
+            val runtimeDescriptor = createRuntimeDescriptor(pluginMetadata)
+            val serverConfig = MCPServerConfig(
+                name = pluginId,
+                endpoint = when (runtimeDescriptor) {
+                    is McpRuntimeDescriptor.Local -> "mcp://plugin/${runtimeDescriptor.serviceName}"
+                    is McpRuntimeDescriptor.Remote -> runtimeDescriptor.endpoint
+                },
+                description = pluginMetadata.description,
+                capabilities = listOf("tools"),
+                extraData = emptyMap()
+            )
+            mcpManager.registerServer(pluginId, serverConfig, runtimeDescriptor)
+            AppLogger.d(TAG, "已在MCPManager中注册服务器: $pluginId (类型: ${pluginMetadata.type})")
+
+            // 获取工具信息
+            val toolsToRegister = getToolsForPlugin(pluginId)
+
+            if (toolsToRegister.isEmpty()) {
+                AppLogger.w(TAG, "插件 $pluginId 没有可注册的工具")
+                return
+            }
+
+            // 统一注册工具
+            val toolHandler = AIToolHandler.getInstance(context)
+            val mcpToolExecutor = MCPToolExecutor(context, mcpManager)
+            toolsToRegister.forEach { toolInfo ->
+                val prefixedToolName = "$pluginId:${toolInfo.name}"
+
+                if (toolHandler.getToolExecutor(prefixedToolName) != null) {
+                    AppLogger.d(TAG, "工具 $prefixedToolName 已注册，跳过")
+                    return@forEach
+                }
+
+                toolHandler.registerTool(
+                    name = prefixedToolName,
+                    executor = mcpToolExecutor,
+                    descriptionGenerator = { tool ->
+                        val baseDescription = toolInfo.description
+                        val paramsString = if (tool.parameters.isNotEmpty()) {
+                            "\nParameters: " + tool.parameters.joinToString(", ") { "${it.name}='${it.value}'" }
+                        } else ""
+                        baseDescription + paramsString
+                    }
+                )
+                AppLogger.i(TAG, "成功注册工具: $prefixedToolName")
+            }
+            AppLogger.d(TAG, "插件 $pluginId 的工具注册完成，共 ${toolsToRegister.size} 个")
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "为插件 $pluginId 注册工具时发生异常", e)
+        }
     }
 
     /**
