@@ -6,6 +6,7 @@ const File = Java.type('java.io.File');
 const FileOutputStream = Java.type('java.io.FileOutputStream');
 const OutputStreamWriter = Java.type('java.io.OutputStreamWriter');
 const Charset = Java.type('java.nio.charset.Charset');
+const BitmapFactory = Java.type('android.graphics.BitmapFactory');
 
 const UTF8 = Charset.forName('UTF-8');
 const BASE_DIR = '/sdcard/Download/Operit/browser_tool_suite';
@@ -72,6 +73,16 @@ function extractRef(snapshotOutput, marker) {
 function extractSavedPath(output) {
   const match = String(output || '').match(/Saved screenshot to ([^\r\n]+)/);
   return match ? match[1].trim() : null;
+}
+
+function bitmapSize(path) {
+  const bitmap = BitmapFactory.decodeFile(String(path));
+  assert(bitmap != null, 'screenshot should decode as a bitmap');
+  try {
+    return { width: Number(bitmap.getWidth()), height: Number(bitmap.getHeight()) };
+  } finally {
+    bitmap.recycle();
+  }
 }
 
 async function tryBrowserTool(name, params) {
@@ -352,10 +363,23 @@ exports.run = async function run() {
       const value = await evaluateExpression('() => document.body.dataset.upload');
       assert(String(value).indexOf('upload_payload.txt') >= 0, 'uploaded file name should be visible');
     }),
-    test('browser_resize reports new viewport', async () => {
+    test('browser_resize changes the page layout viewport', async () => {
       await ensureFixtureOpen();
       const value = await callBrowserTool('browser_resize', { width: 720, height: 1280 });
       assert(String(value).indexOf('720x1280') >= 0, 'resize should report requested viewport');
+      const actualViewport = await evaluateExpression('() => window.innerWidth + "x" + window.innerHeight');
+      assert(String(actualViewport).indexOf('720x1280') >= 0, 'page layout viewport should match requested size');
+    }),
+    test('browser_resize rejects unsafe viewport sizes without mutating the page', async () => {
+      let rejected = false;
+      try {
+        await callBrowserTool('browser_resize', { width: 100000, height: 100000 });
+      } catch (_expected) {
+        rejected = true;
+      }
+      assert(rejected, 'unsafe viewport should be rejected');
+      const actualViewport = await evaluateExpression('() => window.innerWidth + "x" + window.innerHeight');
+      assert(String(actualViewport).indexOf('720x1280') >= 0, 'rejected resize should keep the prior viewport');
     }),
     test('browser_take_screenshot writes an image file', async () => {
       await ensureFixtureOpen();
@@ -364,6 +388,16 @@ exports.run = async function run() {
       assert(savedPath, 'screenshot output should contain saved path');
       const state = fileState(savedPath);
       assert(state.exists && state.length > 0, 'screenshot file should exist');
+      const size = bitmapSize(savedPath);
+      assert(size.width === 720 && size.height === 1280, 'viewport screenshot should use CSS pixel dimensions');
+    }),
+    test('browser_take_screenshot fullPage uses CSS pixel dimensions', async () => {
+      await ensureFixtureOpen();
+      const value = await callBrowserTool('browser_take_screenshot', { type: 'png', fullPage: true });
+      const savedPath = extractSavedPath(value);
+      assert(savedPath, 'full-page screenshot output should contain saved path');
+      const size = bitmapSize(savedPath);
+      assert(size.width === 720 && size.height >= 1280, 'full-page screenshot should not be device-density scaled');
     }),
     test('browser_run_code still works on current page', async () => {
       await ensureFixtureOpen();
