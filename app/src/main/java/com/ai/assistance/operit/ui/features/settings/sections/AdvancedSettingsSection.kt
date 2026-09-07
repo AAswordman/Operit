@@ -106,7 +106,7 @@ fun AdvancedSettingsSection(
                 useMultipleApiKeys = state.useMultipleApiKeys,
                 apiKeyPool = state.apiKeyPool
             )
-            EnhancedAIService.refreshAllServices(configManager.appContext)
+            EnhancedAIService.refreshAllServices(configManager.appContext, cancelStreaming = false)
         }
     }
 
@@ -148,7 +148,7 @@ fun AdvancedSettingsSection(
             requestLimitPerMinute = state.requestLimitPerMinute,
             maxConcurrentRequests = state.maxConcurrentRequests
         )
-        EnhancedAIService.refreshAllServices(configManager.appContext)
+        EnhancedAIService.refreshAllServices(configManager.appContext, cancelStreaming = false)
     }
 
     LaunchedEffect(config.id) {

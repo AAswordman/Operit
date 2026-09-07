@@ -178,10 +178,7 @@ fun FunctionalConfigScreen(
                                             modelIndex
                                     )
                                     // 刷新服务实例
-                                    EnhancedAIService.refreshServiceForFunction(
-                                            context,
-                                            functionType
-                                    )
+                                    EnhancedAIService.refreshServiceForFunction(context, functionType, cancelStreaming = false)
                                     showSaveSuccess = true
                                 }
                             }
@@ -197,7 +194,7 @@ fun FunctionalConfigScreen(
                                 scope.launch {
                                     functionalConfigManager.resetAllFunctionConfigs()
                                     // 刷新所有服务实例
-                                    EnhancedAIService.refreshAllServices(context)
+                                    EnhancedAIService.refreshAllServices(context, cancelStreaming = false)
                                     showSaveSuccess = true
                                 }
                             },

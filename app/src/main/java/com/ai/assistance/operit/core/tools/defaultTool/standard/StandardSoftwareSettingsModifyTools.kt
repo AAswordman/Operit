@@ -1089,7 +1089,7 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
                     .map { it.key }
                     .sortedBy { it.name }
             affectedFunctions.forEach { functionType ->
-                runCatching { EnhancedAIService.refreshServiceForFunction(context, functionType) }
+                runCatching { EnhancedAIService.refreshServiceForFunction(context, functionType, cancelStreaming = false) }
             }
 
             ToolResult(
@@ -1157,7 +1157,7 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
             affectedFunctions
                 .sortedBy { it.name }
                 .forEach { functionType ->
-                    runCatching { EnhancedAIService.refreshServiceForFunction(context, functionType) }
+                    runCatching { EnhancedAIService.refreshServiceForFunction(context, functionType, cancelStreaming = false) }
                 }
 
             ToolResult(
@@ -1333,7 +1333,7 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
             val selectedModel = getModelByIndex(config.modelName, actualModelIndex)
 
             functionalConfigManager.setConfigForFunction(functionType, configId, actualModelIndex)
-            runCatching { EnhancedAIService.refreshServiceForFunction(context, functionType) }
+            runCatching { EnhancedAIService.refreshServiceForFunction(context, functionType, cancelStreaming = false) }
 
             ToolResult(
                 toolName = tool.name,

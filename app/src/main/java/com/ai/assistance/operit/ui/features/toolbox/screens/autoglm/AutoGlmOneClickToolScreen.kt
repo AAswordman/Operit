@@ -135,10 +135,7 @@ private fun AutoGlmOneClickScreen(
                     configId,
                     0
                 )
-                EnhancedAIService.refreshServiceForFunction(
-                    context,
-                    FunctionType.UI_CONTROLLER
-                )
+                EnhancedAIService.refreshServiceForFunction(context, FunctionType.UI_CONTROLLER, cancelStreaming = false)
 
                 // 自动应用 AutoGLM 推荐参数
                 try {
