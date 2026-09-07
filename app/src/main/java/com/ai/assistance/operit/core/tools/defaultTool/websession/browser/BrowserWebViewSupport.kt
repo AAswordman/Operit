@@ -23,6 +23,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.webkit.UserAgentMetadata
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.application.ActivityLifecycleManager
 import com.ai.assistance.operit.core.tools.defaultTool.standard.StandardBrowserSessionTools
@@ -52,6 +55,10 @@ internal fun StandardBrowserSessionTools.createSessionOnMain(
             sessionName = sessionName,
             customUserAgent = customUserAgent
         )
+    if (StandardBrowserSessionTools.desktopModeEnabled) {
+        session.viewportWidthPx = StandardBrowserSessionTools.DEFAULT_DESKTOP_VIEWPORT_WIDTH
+        session.viewportHeightPx = StandardBrowserSessionTools.DEFAULT_DESKTOP_VIEWPORT_HEIGHT
+    }
     configureWebView(session, resolveUserAgent(customUserAgent))
     userscriptManager.attachSession(session.id, session.webView)
     return session
@@ -808,7 +815,11 @@ internal fun StandardBrowserSessionTools.syncProjectedBrowserStateOnMain() {
     val resolvedActiveId = registry.activeSessionId
     val activeSession = resolvedActiveId?.let(::sessionById)
     StandardBrowserSessionTools.activeSessionId = resolvedActiveId
-    StandardBrowserSessionTools.browserHost?.attachActiveWebView(activeSession?.webView)
+    StandardBrowserSessionTools.browserHost?.attachActiveWebView(
+        activeSession?.webView,
+        activeSession?.viewportWidthPx,
+        activeSession?.viewportHeightPx
+    )
     activeSession?.let(::applyViewportOverride)
     userscriptManager.updateVisibleSession(
         sessionId = resolvedActiveId,
@@ -970,48 +981,51 @@ internal fun StandardBrowserSessionTools.applySessionUserAgent(
     session: BrowserToolSession,
     userAgent: String
 ) {
+    val isDesktopMode = StandardBrowserSessionTools.desktopModeEnabled
     with(session.webView.settings) {
         userAgentString = userAgent
-        useWideViewPort = StandardBrowserSessionTools.desktopModeEnabled
-        loadWithOverviewMode =
-            StandardBrowserSessionTools.desktopModeEnabled && session.viewportWidthPx == null
+        useWideViewPort = isDesktopMode && session.viewportWidthPx == null
+        loadWithOverviewMode = isDesktopMode && session.viewportWidthPx == null
+
+        if (
+            session.customUserAgent == null &&
+                WebViewFeature.isFeatureSupported(WebViewFeature.USER_AGENT_METADATA)
+        ) {
+            val userAgentMetadataBuilder =
+                UserAgentMetadata.Builder()
+                    .setMobile(!isDesktopMode)
+                    .setPlatform(if (isDesktopMode) "Windows" else "Android")
+            if (isDesktopMode) {
+                // Null fields inherit Android WebView defaults, which would contradict the desktop UA.
+                val brandVersions =
+                    listOf("Chromium", "Google Chrome").map { brand ->
+                        UserAgentMetadata.BrandVersion.Builder()
+                            .setBrand(brand)
+                            .setMajorVersion(StandardBrowserSessionTools.DESKTOP_CHROME_MAJOR_VERSION)
+                            .setFullVersion(StandardBrowserSessionTools.DESKTOP_CHROME_FULL_VERSION)
+                            .build()
+                    }
+                userAgentMetadataBuilder
+                    .setBrandVersionList(brandVersions)
+                    .setFullVersion(StandardBrowserSessionTools.DESKTOP_CHROME_FULL_VERSION)
+                    .setPlatformVersion("10.0.0")
+                    .setArchitecture("x86")
+                    .setModel("")
+                    .setBitness(64)
+                    .setWow64(false)
+            }
+            WebSettingsCompat.setUserAgentMetadata(this, userAgentMetadataBuilder.build())
+        }
     }
 }
 
 internal fun StandardBrowserSessionTools.applyViewportOverride(session: BrowserToolSession) {
-    val requestedWidth = session.viewportWidthPx
-    val requestedHeight = session.viewportHeightPx
-    val browserAreaWidth =
-        StandardBrowserSessionTools.browserHost?.currentBrowserAreaSize()?.first
-            ?.takeIf { it > 0 }
-            ?: session.webView.width.takeIf { it > 0 }
-            ?: context.resources.displayMetrics.widthPixels
-
-    session.webView.settings.loadWithOverviewMode =
-        StandardBrowserSessionTools.desktopModeEnabled && requestedWidth == null
-
-    val desiredScaleFactor =
-        if (requestedWidth == null || requestedHeight == null || browserAreaWidth <= 0) {
-            1f
-        } else {
-            (browserAreaWidth.toFloat() / requestedWidth.toFloat()).coerceIn(0.25f, 5f)
-        }
-
-    val currentScaleFactor = session.appliedViewportScaleFactor.takeIf { it > 0f } ?: 1f
-    val relativeScaleFactor = (desiredScaleFactor / currentScaleFactor).coerceIn(0.25f, 5f)
-
-    session.webView.post {
-        runCatching {
-            if (relativeScaleFactor != 1f) {
-                session.webView.zoomBy(relativeScaleFactor)
-            }
-            session.appliedViewportScaleFactor = desiredScaleFactor
-        }.onFailure {
-            AppLogger.w(
-                WEBVIEW_SUPPORT_TAG,
-                "Failed to apply viewport override for session=${session.id}: ${it.message}"
-            )
-        }
+    val hasViewportOverride = session.viewportWidthPx != null && session.viewportHeightPx != null
+    with(session.webView.settings) {
+        // Page zoom does not change Chromium's layout viewport. With an explicit viewport,
+        // size the WebView itself and let its control width define the CSS layout width.
+        useWideViewPort = StandardBrowserSessionTools.desktopModeEnabled && !hasViewportOverride
+        loadWithOverviewMode = StandardBrowserSessionTools.desktopModeEnabled && !hasViewportOverride
     }
 }
 
@@ -1275,10 +1289,18 @@ internal fun StandardBrowserSessionTools.setDesktopModeEnabled(enabled: Boolean)
 
     runOnMainSync<Unit> {
         StandardBrowserSessionTools.sessions.values.forEach { session ->
+            if (!session.hasExplicitViewportSize) {
+                session.viewportWidthPx =
+                    StandardBrowserSessionTools.DEFAULT_DESKTOP_VIEWPORT_WIDTH.takeIf { enabled }
+                session.viewportHeightPx =
+                    StandardBrowserSessionTools.DEFAULT_DESKTOP_VIEWPORT_HEIGHT.takeIf { enabled }
+            }
             if (session.customUserAgent == null) {
                 applySessionUserAgent(session, resolveUserAgent(null))
             }
+            applyViewportOverride(session)
         }
+        syncProjectedBrowserStateOnMain()
 
         val activeSession = getActiveSessionOnMain()
         if (activeSession != null && activeSession.customUserAgent == null) {
