@@ -16,6 +16,7 @@ function Screen(ctx) {
     const [xmlContent] = ctx.useState("xmlContent", "");
     const submittingState = useStateValue(ctx, "submitting", false);
     const startedState = useStateValue(ctx, "started", false);
+    const startedCheckedState = useStateValue(ctx, "startedChecked", false);
     const closedState = useStateValue(ctx, "closed", false);
     const errorState = useStateValue(ctx, "error", "");
     const expandedState = useStateValue(ctx, "expanded", false);
@@ -219,9 +220,18 @@ function Screen(ctx) {
         key: rootKey,
         fillMaxWidth: true,
         spacing: 12,
-        onLoad: () => {
+        onLoad: async () => {
             if (parsed.closed && !closedState.value) {
                 closedState.set(true);
+            }
+            // This screen is re-created from scratch on every chat view rebuild, so the
+            // handoff has to be re-read from the plugin runtime instead of assumed idle.
+            if (!ready || !planContent || startedState.value || startedCheckedState.value) {
+                return;
+            }
+            startedCheckedState.set(true);
+            if (await (0, plan_mode_execution_js_1.isPlanImplementationStarted)(planContent)) {
+                startedState.set(true);
             }
         },
     }, children);

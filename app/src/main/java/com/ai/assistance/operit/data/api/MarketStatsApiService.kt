@@ -70,6 +70,7 @@ data class ArtifactProjectRankDefaultVersionResponse(
     val runtimePackageId: String = "",
     val sha256: String = "",
     val version: String = "",
+    val apiVersion: String? = null,
     val downloadUrl: String = "",
     val state: String = "open",
     val publishedAt: String? = null
@@ -126,6 +127,7 @@ data class ArtifactProjectVersionResponse(
     val sourceFileName: String = "",
     val minSupportedAppVersion: String? = null,
     val maxSupportedAppVersion: String? = null,
+    val apiVersion: String? = null,
     val publishedAt: String? = null,
     val state: String = "open",
     val entry: MarketV2Entry
@@ -307,6 +309,7 @@ data class MarketV2Entry(
     val title: String = "",
     val description: String = "",
     val detail: String = "",
+    val logoUrl: String? = null,
     val authorId: String = "",
     val publisherId: String = "",
     val allowPublicUpdates: Boolean = true,
@@ -379,6 +382,7 @@ data class MarketV2Version(
     val id: String = "",
     val version: String = "",
     val formatVer: String = "",
+    val apiVersion: String? = null,
     val publisherId: String = "",
     val publisher: MarketV2Author? = null,
     val minAppVer: String? = null,
@@ -466,6 +470,7 @@ data class MarketV2PublishVersion(
     val version: String,
     val formatVer: String,
     val minAppVer: String,
+    val apiVersion: String? = null,
     val maxAppVer: String? = null,
     val changelog: String? = null,
     val projectId: String? = null,
@@ -723,6 +728,7 @@ class MarketStatsApiService {
                 sourceFileName = asset.assetName.ifBlank { asset.name },
                 minSupportedAppVersion = version.minAppVer,
                 maxSupportedAppVersion = version.maxAppVer,
+                apiVersion = version.apiVersion,
                 publishedAt = version.publishedAt,
                 state = version.stateCode.toPublicationState(),
                 entry = entry.copy(
@@ -937,6 +943,16 @@ class MarketStatsApiService {
                             description = request.description,
                             detail = request.detail,
                             stateCode = "pending",
+                            latestVersion = MarketV2Version(
+                                version = request.version.version,
+                                formatVer = request.version.formatVer,
+                                apiVersion = request.version.apiVersion,
+                                minAppVer = request.version.minAppVer,
+                                maxAppVer = request.version.maxAppVer,
+                                projectId = request.version.projectId.orEmpty(),
+                                runtimePackageId = request.version.runtimePackageId.orEmpty(),
+                                stateCode = "pending"
+                            ),
                             source = request.source?.let { MarketV2Source(kind = it.kind, url = it.url) }
                         )
                     item
@@ -1062,12 +1078,12 @@ class MarketStatsApiService {
             requestBuilder.addHeader("Authorization", "Bearer ${ensureMarketSession()}")
         }
 
-        val requestBody = body?.toRequestBody(JSON_MEDIA_TYPE)
+        val resolvedRequestBody = body?.toRequestBody(JSON_MEDIA_TYPE)
         when (method.uppercase()) {
             "GET" -> requestBuilder.get()
-            "POST" -> requestBuilder.post(requestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
-            "PATCH" -> requestBuilder.patch(requestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
-            "DELETE" -> requestBuilder.delete(requestBody)
+            "POST" -> requestBuilder.post(resolvedRequestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
+            "PATCH" -> requestBuilder.patch(resolvedRequestBody ?: ByteArray(0).toRequestBody(JSON_MEDIA_TYPE))
+            "DELETE" -> requestBuilder.delete(resolvedRequestBody)
             else -> error("Unsupported HTTP method: $method")
         }
 
@@ -1234,6 +1250,7 @@ class MarketStatsApiService {
                     runtimePackageId = version?.runtimePackageId.orEmpty(),
                     sha256 = asset?.sha256.orEmpty(),
                     version = latestVersion?.version.orEmpty(),
+                    apiVersion = version?.apiVersion,
                     downloadUrl = asset?.id?.let(::downloadUrlForAsset).orEmpty(),
                     state = stateCode.toPublicationState(),
                     publishedAt = publishedAt ?: updatedAt

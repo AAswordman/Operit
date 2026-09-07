@@ -49,7 +49,9 @@ open class ClaudeProvider(
     private val customHeaders: Map<String, String> = emptyMap(),
     private val providerType: ApiProviderType = ApiProviderType.ANTHROPIC,
     private val enableToolCall: Boolean = false, // 是否启用Tool Call接口（预留，Claude有原生tool支持）
-    private val enableClaude1hPromptCache: Boolean = false
+    private val enableClaude1hPromptCache: Boolean = false,
+    private val thinkingConfigurations: String = "",
+    private val thinkingOptionId: String = ""
 ) : AIService {
     // private val client: OkHttpClient = HttpClientFactory.instance
 
@@ -65,24 +67,9 @@ open class ClaudeProvider(
     @Volatile private var isManuallyCancelled = false
 
     /**
-     * Thinking 格式模式。
-     * - ADAPTIVE: thinking.type="adaptive" + display=summarized（新模型）
-     * - ENABLED:  thinking.type="enabled" + budget_tokens（旧模型）
+     * 带 HTTP 状态码的 API 异常，供统一重试日志和最终错误展示使用。
      */
-    private enum class ThinkingFormat { ADAPTIVE, ENABLED }
-
-    /**
-     * 缓存：当前模型对应的 thinking 格式。
-     * 初始由模型名启发式决定；若 API 返回 thinking 类型不兼容的 400 错误，
-     * 会自动翻转并缓存，后续请求直接使用正确格式，避免重复失败。
-     */
-    @Volatile
-    private var cachedThinkingFormat: ThinkingFormat? = null
-
-    /**
-     * 由客户端错误（如4xx状态码）触发的API异常，是否重试由统一策略决定
-     */
-    class NonRetriableException(
+    class HttpStatusException(
         message: String,
         override val statusCode: Int,
         cause: Throwable? = null
@@ -420,8 +407,6 @@ open class ClaudeProvider(
         
         val results = mutableListOf<Pair<String, String>>()
         var textContent = content
-        var resultIndex = 0
-        
         matches.forEach { match ->
             val fullContent = match.groupValues[2].trim()
             val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
@@ -431,11 +416,13 @@ open class ClaudeProvider(
                 fullContent
             }
             
-            results.add(Pair("toolu_result_${resultIndex}", resultContent))
+            val openingTag = match.value.substringBefore('>')
+            val resultName =
+                ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1).orEmpty()
+            results.add(Pair(resultName, resultContent))
             textContent = textContent.replace(match.value, "").trim()
             
-            AppLogger.d("AIService", "解析Claude tool_result #$resultIndex, content length=${resultContent.length}")
-            resultIndex++
+            AppLogger.d("AIService", "解析Claude tool_result $resultName, content length=${resultContent.length}")
         }
         
         return Pair(textContent.trim(), results)
@@ -735,7 +722,9 @@ open class ClaudeProvider(
         val systemPrompt =
             systemMessages
                 .takeIf { it.isNotEmpty() }
-                ?.joinToString("\n\n") { it.content }
+                ?.joinToString("\n\n") { turn ->
+                    ChatUtils.stripOpenAiResponsesProtocolMarkup(turn.content)
+                }
         val systemBlocks =
             systemPrompt
                 ?.takeIf { it.isNotBlank() }
@@ -751,8 +740,8 @@ open class ClaudeProvider(
         val historyWithoutSystem = effectiveHistory.filter { it.kind != PromptTurnKind.SYSTEM }
         var queuedAssistantToolText: String? = null
         var queuedToolUses = JSONArray()
-        val queuedToolUseIds = mutableListOf<String>()
-        val openToolUseIds = mutableListOf<String>()
+        val queuedOpenToolUses = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
+        val openToolUses = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
         var nextToolUseOrdinal = 0
 
         fun generatedToolUseId(ordinal: Int): String {
@@ -785,7 +774,12 @@ open class ClaudeProvider(
                 val toolUseId = generatedToolUseId(nextToolUseOrdinal++)
                 toolUse.put("id", toolUseId)
                 queuedToolUses.put(toolUse)
-                queuedToolUseIds.add(toolUseId)
+                queuedOpenToolUses.add(
+                    StructuredToolCallBridge.OpenToolCall(
+                        toolUseId,
+                        sourceToolUse.optString("name", "").trim()
+                    )
+                )
             }
         }
 
@@ -807,30 +801,30 @@ open class ClaudeProvider(
                 }
             )
 
-            openToolUseIds.addAll(queuedToolUseIds)
+            openToolUses.addAll(queuedOpenToolUses)
             queuedAssistantToolText = null
             queuedToolUses = JSONArray()
-            queuedToolUseIds.clear()
+            queuedOpenToolUses.clear()
         }
 
         fun appendCancelledOpenToolUses(target: JSONArray, reason: String): Boolean {
             emitQueuedToolUsesIfNeeded()
-            if (openToolUseIds.isEmpty()) return false
+            if (openToolUses.isEmpty()) return false
 
             AppLogger.w(
                 "AIService",
-                "发现未完成的tool_use，按取消处理: count=${openToolUseIds.size}, reason=$reason"
+                "发现未完成的tool_use，按取消处理: count=${openToolUses.size}, reason=$reason"
             )
-            for (toolUseId in openToolUseIds) {
+            for (openToolUse in openToolUses) {
                 target.put(
                     JSONObject().apply {
                         put("type", "tool_result")
-                        put("tool_use_id", toolUseId)
+                        put("tool_use_id", openToolUse.id)
                         put("content", "User cancelled")
                     }
                 )
             }
-            openToolUseIds.clear()
+            openToolUses.clear()
             return true
         }
 
@@ -846,12 +840,13 @@ open class ClaudeProvider(
         }
 
         for (turn in historyWithoutSystem) {
-            val content =
+            val rawContent =
                 if (!preserveThinkInHistory && turn.kind == PromptTurnKind.ASSISTANT) {
                     ChatUtils.removeThinkingContent(turn.content)
                 } else {
                     turn.content
                 }
+            val content = ChatUtils.stripOpenAiResponsesProtocolMarkup(rawContent)
 
             if (enableToolCall) {
                 when (turn.kind) {
@@ -860,7 +855,7 @@ open class ClaudeProvider(
                     PromptTurnKind.ASSISTANT -> {
                         val (textContent, toolUses) = parseXmlToolCalls(content)
                         if (toolUses != null && toolUses.length() > 0) {
-                            if (openToolUseIds.isNotEmpty()) {
+                            if (openToolUses.isNotEmpty()) {
                                 flushOpenToolUsesAsCancelled("assistant_tool_use_before_result")
                             }
                             queueToolUses(textContent, toolUses)
@@ -878,7 +873,7 @@ open class ClaudeProvider(
                     PromptTurnKind.TOOL_CALL -> {
                         val (textContent, toolUses) = parseXmlToolCalls(content)
                         if (toolUses != null && toolUses.length() > 0) {
-                            if (openToolUseIds.isNotEmpty()) {
+                            if (openToolUses.isNotEmpty()) {
                                 flushOpenToolUsesAsCancelled("typed_tool_use_before_result")
                             }
                             queueToolUses(textContent, toolUses)
@@ -917,39 +912,40 @@ open class ClaudeProvider(
                         val (textContent, toolResults) = parseXmlToolResults(content)
                         val resultsList = toolResults ?: emptyList()
 
-                        if (resultsList.isNotEmpty() && openToolUseIds.isNotEmpty()) {
-                            val contentArray = JSONArray()
-                            val validCount = minOf(resultsList.size, openToolUseIds.size)
+                            if (resultsList.isNotEmpty() && openToolUses.isNotEmpty()) {
+                                val contentArray = JSONArray()
+                                val matchedCalls =
+                                    StructuredToolCallBridge.consumeMatchingToolCalls(
+                                        openToolUses,
+                                        resultsList.map { it.first }
+                                    )
+                                matchedCalls.forEach { matchedCall ->
+                                    val resultContent = resultsList[matchedCall.resultIndex].second
+                                    contentArray.put(
+                                        JSONObject().apply {
+                                            put("type", "tool_result")
+                                            put("tool_use_id", matchedCall.call.id)
+                                            put("content", nonEmptyContentText(resultContent))
+                                        }
+                                    )
+                                    AppLogger.d(
+                                        "AIService",
+                                        "历史XML→ClaudeToolResult: ID=${matchedCall.call.id}, content length=${resultContent.length}"
+                                    )
+                                }
 
-                            for (index in 0 until validCount) {
-                                val (_, resultContent) = resultsList[index]
-                                contentArray.put(
-                                    JSONObject().apply {
-                                        put("type", "tool_result")
-                                        put("tool_use_id", openToolUseIds[index])
-                                        put("content", nonEmptyContentText(resultContent))
-                                    }
-                                )
-                                AppLogger.d(
-                                    "AIService",
-                                    "历史XML→ClaudeToolResult: ID=${openToolUseIds[index]}, content length=${resultContent.length}"
-                                )
-                            }
+                                if (matchedCalls.size < resultsList.size) {
+                                    AppLogger.w(
+                                        "AIService",
+                                        "发现未匹配的tool_result: ${resultsList.size - matchedCalls.size}"
+                                    )
+                                }
 
-                            repeat(validCount) {
-                                openToolUseIds.removeAt(0)
-                            }
+                                appendCancelledOpenToolUses(contentArray, "tool_result_partial_batch")
 
-                            if (resultsList.size > validCount) {
-                                AppLogger.w(
-                                    "AIService",
-                                    "发现多余的tool_result: ${resultsList.size} results vs ${validCount} pending tool_uses"
-                                )
-                            }
-
-                            if (textContent.isNotEmpty()) {
-                                appendContentBlocks(contentArray, buildContentArray(textContent))
-                            }
+                                if (textContent.isNotEmpty()) {
+                                    appendContentBlocks(contentArray, buildContentArray(textContent))
+                                }
 
                             messagesArray.put(
                                 JSONObject().apply {
@@ -960,22 +956,17 @@ open class ClaudeProvider(
                         } else {
                             val contentArray = JSONArray()
                             appendCancelledOpenToolUses(contentArray, "tool_result_without_structured_match")
-                            appendContentBlocks(
-                                contentArray,
-                                buildContentArray(
-                                    when {
-                                        textContent.isNotEmpty() -> textContent
-                                        else -> content
-                                    },
-                                    allowEmptyArray = contentArray.length() > 0
+                            if (textContent.isNotEmpty()) {
+                                appendContentBlocks(contentArray, buildContentArray(textContent))
+                            }
+                            if (contentArray.length() > 0) {
+                                messagesArray.put(
+                                    JSONObject().apply {
+                                        put("role", "user")
+                                        put("content", contentArray)
+                                    }
                                 )
-                            )
-                            messagesArray.put(
-                                JSONObject().apply {
-                                    put("role", "user")
-                                    put("content", contentArray)
-                                }
-                            )
+                            }
                         }
                     }
                 }
@@ -1112,38 +1103,16 @@ open class ClaudeProvider(
             jsonObject.put("system", systemBlocks)
         }
 
-        if (enableThinking) {
-            // 添加extended thinking支持
-            val format = getThinkingFormat()
-            when (format) {
-                ThinkingFormat.ADAPTIVE -> {
-                    // adaptive thinking: thinking.type=adaptive + display=summarized
-                    // Opus 4.8/4.7 default display to "omitted" (empty thinking),
-                    // must explicitly set "summarized" to receive thinking content.
-                    val thinkingObject = JSONObject()
-                    thinkingObject.put("type", "adaptive")
-                    thinkingObject.put("display", "summarized")
-                    jsonObject.put("thinking", thinkingObject)
-
-                    AppLogger.d("AIService", "启用Claude adaptive thinking, display=summarized")
-                }
-                ThinkingFormat.ENABLED -> {
-                    // enabled thinking: thinking.type=enabled + budget_tokens
-                    val thinkingObject = JSONObject()
-                    thinkingObject.put("type", "enabled")
-
-                    val budgetTokensFromParams = modelParameters
-                        .firstOrNull { it.apiName == "budget_tokens" }
-                        ?.currentValue
-                    val budgetTokensValue = (budgetTokensFromParams as? Number)?.toInt()?.takeIf { it > 0 }
-                        ?: minOf(1024, maxTokensValue ?: DEFAULT_MAX_TOKENS)
-                    thinkingObject.put("budget_tokens", budgetTokensValue)
-
-                    jsonObject.put("thinking", thinkingObject)
-                    AppLogger.d("AIService", "启用Claude extended thinking, budget_tokens=$budgetTokensValue")
-                }
-            }
-        }
+        ThinkingConfigurationApplier.apply(
+            context = context,
+            requestJson = jsonObject,
+            providerTypeId = providerType.name,
+            modelName = modelName,
+            apiEndpoint = apiEndpoint,
+            thinkingConfigurations = thinkingConfigurations,
+            enableThinking = enableThinking,
+            optionId = thinkingOptionId,
+        )
 
         // 日志输出时省略过长的tools字段
         val logJson = JSONObject(jsonObject.toString())
@@ -1175,123 +1144,6 @@ open class ClaudeProvider(
     }
 
 
-    /**
-     * 判断模型是否推荐使用 adaptive thinking 格式。
-     * 仅做启发式匹配，覆盖已知官方模型家族和常见中转命名。
-     */
-    private fun prefersAdaptiveThinking(): Boolean {
-        val name = normalizeClaudeModelName(modelName)
-
-        if (hasClaudeFamilyAtLeast(name, "fable", 5, 0)) return true
-        if (hasClaudeFamilyAtLeast(name, "mythos", 5, 0)) return true
-
-        return hasClaudeFamilyAtLeast(name, "opus", 4, 6) ||
-                hasClaudeFamilyAtLeast(name, "sonnet", 4, 6)
-    }
-
-    private fun normalizeClaudeModelName(value: String): String {
-        return value
-            .trim()
-            .lowercase()
-            .replace(Regex("(?<=[a-z])(?=\\d)|(?<=\\d)(?=[a-z])"), "-")
-            .replace(Regex("[^a-z0-9]+"), "-")
-            .trim('-')
-    }
-
-    private fun hasClaudeFamilyAtLeast(
-        normalizedModelName: String,
-        family: String,
-        minMajor: Int,
-        minMinor: Int
-    ): Boolean {
-        val version = claudeFamilyVersion(normalizedModelName, family) ?: return false
-        val major = version.first
-        val minor = version.second
-        return major > minMajor || major == minMajor && minor >= minMinor
-    }
-
-    private fun claudeFamilyVersion(normalizedModelName: String, family: String): Pair<Int, Int>? {
-        val parts = normalizedModelName.split('-').filter { it.isNotEmpty() }
-        val familyIndex = parts.indexOf(family)
-        if (familyIndex == -1) return null
-
-        val beforeFamily = parts.take(familyIndex)
-            .takeLastWhileDigitParts()
-            .takeLast(2)
-        val beforeFamilyVersion = numericVersion(beforeFamily)
-        if (beforeFamilyVersion != null) return beforeFamilyVersion
-
-        val afterFamily = parts.drop(familyIndex + 1)
-            .takeWhileDigitParts()
-            .take(2)
-        return numericVersion(afterFamily)
-    }
-
-    private fun List<String>.takeLastWhileDigitParts(): List<String> {
-        return asReversed()
-            .takeWhile { it.isVersionPart() }
-            .asReversed()
-    }
-
-    private fun List<String>.takeWhileDigitParts(): List<String> {
-        return takeWhile { it.isVersionPart() }
-    }
-
-    private fun String.isVersionPart(): Boolean {
-        return all(Char::isDigit) && length < 8
-    }
-
-    private fun numericVersion(parts: List<String>): Pair<Int, Int>? {
-        val major = parts.firstOrNull()?.toIntOrNull() ?: return null
-        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
-        return major to minor
-    }
-
-    /**
-     * 获取当前模型应使用的 thinking 格式。
-     * 优先返回缓存值（包含回退后的正确结果）；
-     * 无缓存时根据模型名启发式推断。
-     */
-    private fun getThinkingFormat(): ThinkingFormat {
-        return cachedThinkingFormat
-            ?: if (prefersAdaptiveThinking()) ThinkingFormat.ADAPTIVE
-            else ThinkingFormat.ENABLED
-    }
-
-    /**
-     * 在检测到 API 返回 thinking type 不兼容的 400 错误后，
-     * 翻转当前缓存的 thinking 格式并记录日志。
-     */
-    private fun flipThinkingFormat(): ThinkingFormat {
-        val current = getThinkingFormat()
-        val flipped = if (current == ThinkingFormat.ADAPTIVE) ThinkingFormat.ENABLED
-                      else ThinkingFormat.ADAPTIVE
-        cachedThinkingFormat = flipped
-        AppLogger.w(
-            "AIService",
-            "【Claude Thinking 回退】$modelName detected thinking type incompatibility, " +
-            "flipped $current → $flipped (cached for subsequent requests)"
-        )
-        return flipped
-    }
-
-    /**
-     * 检测异常是否由 thinking type 不兼容导致（API 返回400）。
-     * 匹配关键词：thinking.type / thinking_type / "enabled" is not supported / "adaptive" is not supported
-     * 同时检查 Anthropic 直接错误和通过中转平台转发的错误。
-     */
-    private fun isThinkingTypeError(e: Exception): Boolean {
-        if (e !is NonRetriableException && e !is IOException) return false
-        val msg = e.message?.lowercase() ?: return false
-        // Anthropic 官方 / AWS Bedrock 的错误格式
-        return msg.contains("thinking") && (
-            msg.contains("is not supported") ||
-            msg.contains("not supported for this model") ||
-            msg.contains("type.") ||
-            msg.contains("unsupported") ||
-            msg.contains("invalid")
-        )
-    }
 
     // 添加模型参数
     protected open fun addParameters(jsonObject: JSONObject, modelParameters: List<ModelParameter<*>>) {
@@ -1461,7 +1313,6 @@ open class ClaudeProvider(
         var lastException: Exception? = null
         val receivedContent = StringBuilder()
         val requestSavepointId = "attempt_${UUID.randomUUID().toString().replace("-", "")}"
-        var thinkingFormatFlipped = false  // limit thinking format flip to once
         var outboundAttempt = 0
 
         suspend fun emitSavepoint(id: String) {
@@ -1585,9 +1436,9 @@ open class ClaudeProvider(
                     try {
                         if (!response.isSuccessful) {
                             val errorBody = response.body?.string() ?: context.getString(R.string.openai_error_no_error_details)
-                            // 4xx错误仍保留单独的异常类型，具体是否重试由统一策略决定
+                            // 状态码错误保留状态码信息，随后进入统一重试循环。
                             if (response.code in 400..499) {
-                                throw NonRetriableException(
+                                throw HttpStatusException(
                                     context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
                                     statusCode = response.code
                                 )
@@ -2136,20 +1987,7 @@ open class ClaudeProvider(
             } catch (e: Exception) {
                 lastException = e
 
-                // 检测 thinking type 不兼容错误，自动翻转格式并立即重试
-                if (enableThinking && !thinkingFormatFlipped && isThinkingTypeError(e)) {
-                    emitRollback(requestSavepointId)
-                    flipThinkingFormat()
-                    thinkingFormatFlipped = true
-                    onNonFatalError(
-                        context.getString(R.string.provider_error_retry_message,
-                            "Thinking format incompatibility detected, switching format",
-                            retryCount + 1)
-                    )
-                    // 不增加 retryCount，因为这是格式问题而非网络问题
-                    AppLogger.w("AIService", "【Claude】Thinking格式不兼容，已自动切换，准备立即重试")
-                } else {
-                    retryCount = handleRetryableError(
+                retryCount = handleRetryableError(
                         context = context,
                         exception = e,
                         retryCount = retryCount,
@@ -2161,7 +1999,6 @@ open class ClaudeProvider(
                             context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
                         },
                     )
-                }
             } finally {
                 activeCall = null
                 activeResponse = null

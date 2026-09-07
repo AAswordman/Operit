@@ -1,8 +1,15 @@
 import type { ToolParams } from './core';
 import type { ComposeDslScreen } from './compose-dsl';
 
+/**
+ * ToolPkg runtime API declarations.
+ *
+ * @since ToolPkg API 1.0.0
+ */
 export namespace ToolPkg {
     export type LocalizedText = string | { [lang: string]: string };
+
+    export type ComposeDslScreenRef = ComposeDslScreen | string;
 
     export type JsonPrimitive = string | number | boolean | null;
 
@@ -34,6 +41,8 @@ export namespace ToolPkg {
         | ChatInputEventName
         | ChatViewEventName
         | ChatMessageEventName
+        | ChatMessageMenuItemEventName
+        | ChatRuntimeEventName
         | "navigation_entry_action"
         | ToolLifecycleEventName
         | PromptInputEventName
@@ -75,7 +84,7 @@ export namespace ToolPkg {
         text?: string;
         content?: string;
         composeDsl?: {
-            screen: ComposeDslScreen;
+            screen: ComposeDslScreenRef;
             state?: JsonObject;
             memo?: JsonObject;
             moduleSpec?: JsonObject;
@@ -129,6 +138,38 @@ export namespace ToolPkg {
 
     export type ChatMessageEventName =
         | "message_persisted";
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatMessageMenuItemEventName =
+        | "chat_message_menu_item_click";
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatMessageSender =
+        | "user"
+        | "ai";
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatRuntimeEventName =
+        | "state_changed";
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatRuntimeSlotName =
+        | "main"
+        | "floating";
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatRuntimeStateName =
+        | "idle"
+        | "processing"
+        | "connecting"
+        | "receiving"
+        | "executing_tool"
+        | "tool_progress"
+        | "processing_tool_result"
+        | "summarizing"
+        | "executing_plan"
+        | "completed"
+        | "error";
 
     export interface ChatInputHookObjectResult extends JsonObject {
         action?: "allow" | "block" | "replace" | "consume";
@@ -193,7 +234,7 @@ export namespace ToolPkg {
     export interface PromptTurn extends JsonObject {
         kind: PromptTurnKind;
         content: string;
-        toolName?: string;
+        toolName?: string | null;
         metadata?: JsonObject;
     }
 
@@ -379,6 +420,14 @@ export namespace ToolPkg {
     export type ChatMessageHookHandler =
         (event: ChatMessageHookEvent) => HookReturn;
 
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatMessageMenuItemHandler =
+        (event: ChatMessageMenuItemHookEvent) => ChatMessageMenuItemHookReturn;
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatRuntimeHookHandler =
+        (event: ChatRuntimeHookEvent) => HookReturn;
+
     export type NavigationEntryActionHookHandler =
         (event: NavigationEntryActionHookEvent) => HookReturn;
 
@@ -490,7 +539,77 @@ export namespace ToolPkg {
         waitDurationMs: number;
         displayMode: string;
         selectedVariantIndex: number;
+        variantCount?: number;
         isFavorite: boolean;
+    }
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatMessageSnapshot extends JsonObject {
+        timestamp: number;
+        sender: ChatMessageSender;
+        roleName: string;
+        content: string;
+        completedAt: number;
+        provider: string;
+        modelName: string;
+        inputTokens: number;
+        outputTokens: number;
+        cachedInputTokens: number;
+        sentAt: number;
+        outputDurationMs: number;
+        waitDurationMs: number;
+        displayMode: string;
+        selectedVariantIndex: number;
+        variantCount: number;
+        isFavorite: boolean;
+    }
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatMessageMenuItemEventPayload extends JsonObject {
+        action: "click";
+        chatId: string;
+        messageIndex: number;
+        menuItemId: string;
+        message: ChatMessageSnapshot;
+    }
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatMessageMenuItemDialogResult extends JsonObject {
+        title?: string;
+        state?: JsonObject;
+        moduleSpec?: JsonObject;
+    }
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatMessageMenuItemResult extends JsonObject {
+        dialog?: ChatMessageMenuItemDialogResult;
+    }
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatMessageMenuItemReturnValue =
+        | ChatMessageMenuItemResult
+        | null
+        | void;
+
+    /** @since ToolPkg API 1.0.1 */
+    export type ChatMessageMenuItemHookReturn =
+        | ChatMessageMenuItemReturnValue
+        | Promise<ChatMessageMenuItemReturnValue>;
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatRuntimeEventPayload extends JsonObject {
+        chatId: string;
+        slot: ChatRuntimeSlotName;
+        state: ChatRuntimeStateName;
+        message?: string;
+        toolName?: string;
+        progress?: number;
+        isActive: boolean;
+        activeChatIds: string[];
+        currentTurnToolInvocationCount: number;
+        activeConversationCount: number;
+        currentSessionToolCount: number;
+        timestamp: number;
     }
 
     export interface NavigationEntryActionEventPayload extends JsonObject {
@@ -521,6 +640,14 @@ export namespace ToolPkg {
 
     export interface ChatMessageHookEvent
         extends HookEventBase<ChatMessageEventName, ChatMessageEventPayload> {}
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatMessageMenuItemHookEvent
+        extends HookEventBase<ChatMessageMenuItemEventName, ChatMessageMenuItemEventPayload> {}
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatRuntimeHookEvent
+        extends HookEventBase<ChatRuntimeEventName, ChatRuntimeEventPayload> {}
 
     export interface NavigationEntryActionHookEvent
         extends HookEventBase<"navigation_entry_action", NavigationEntryActionEventPayload> {}
@@ -680,7 +807,7 @@ export namespace ToolPkg {
     export interface ToolboxUiModuleRegistration {
         id: string;
         runtime?: string;
-        screen: ComposeDslScreen;
+        screen: ComposeDslScreenRef;
         params?: ToolParams;
         title?: LocalizedText;
         keepAlive?: boolean;
@@ -691,7 +818,7 @@ export namespace ToolPkg {
         route?: string;
         routeId?: string;
         runtime?: string;
-        screen: ComposeDslScreen;
+        screen: ComposeDslScreenRef;
         params?: ToolParams;
         title?: LocalizedText;
         keepAlive?: boolean;
@@ -759,6 +886,37 @@ export namespace ToolPkg {
     export interface ChatMessageHookRegistration {
         id: string;
         function: ChatMessageHookHandler;
+    }
+
+    /** @since ToolPkg API 1.0.1 */
+    export interface ChatMessageMenuDialogRegistration {
+        screen: ComposeDslScreenRef;
+        title?: LocalizedText;
+    }
+
+    /**
+     * Adds an item to the chat message long-press menu.
+     *
+     * @since ToolPkg API 1.0.1
+     */
+    export interface ChatMessageMenuItemRegistration {
+        id: string;
+        title: LocalizedText;
+        icon?: string;
+        order?: number;
+        senders?: ChatMessageSender[];
+        function: ChatMessageMenuItemHandler;
+        dialog?: ChatMessageMenuDialogRegistration;
+    }
+
+    /**
+     * Registration for chat runtime state notifications.
+     *
+     * @since ToolPkg API 1.0.1
+     */
+    export interface ChatRuntimeHookRegistration {
+        id: string;
+        function: ChatRuntimeHookHandler;
     }
 
     export interface ToolLifecycleHookRegistration {
@@ -888,26 +1046,51 @@ export namespace ToolPkg {
     }
 
     export interface Registry {
+        /** @since ToolPkg API 1.0.0 */
         registerToolboxUiModule(definition: ToolboxUiModuleRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerUiRoute(definition: UiRouteRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerNavigationEntry(definition: NavigationEntryRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerDesktopWidget(definition: DesktopWidgetRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerAppLifecycleHook(definition: AppLifecycleHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerMessageProcessingPlugin(definition: MessageProcessingPluginRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerXmlRenderPlugin(definition: XmlRenderPluginRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerInputMenuTogglePlugin(definition: InputMenuTogglePluginRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerChatInputHook(definition: ChatInputHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerChatViewHook(definition: ChatViewHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerChatMessageHook(definition: ChatMessageHookRegistration): void;
+        /** @since ToolPkg API 1.0.1 */
+        registerChatMessageMenuItem(definition: ChatMessageMenuItemRegistration): void;
+        /** @since ToolPkg API 1.0.1 */
+        registerChatRuntimeHook(definition: ChatRuntimeHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerToolLifecycleHook(definition: ToolLifecycleHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerPromptInputHook(definition: PromptInputHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerPromptHistoryHook(definition: PromptHistoryHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerPromptEstimateHistoryHook(definition: PromptEstimateHistoryHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerSystemPromptComposeHook(definition: SystemPromptComposeHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerToolPromptComposeHook(definition: ToolPromptComposeHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerPromptFinalizeHook(definition: PromptFinalizeHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerPromptEstimateFinalizeHook(definition: PromptEstimateFinalizeHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerSummaryGenerateHook(definition: SummaryGenerateHookRegistration): void;
+        /** @since ToolPkg API 1.0.0 */
         registerAiProvider(definition: AiProviderRegistration): void;
         readResource(key: string, outputFileName?: string, internal?: boolean): Promise<string>;
         getConfigDir(pluginId?: string): string;
@@ -938,6 +1121,12 @@ declare global {
     function registerToolPkgChatViewHook(definition: ToolPkg.ChatViewHookRegistration): void;
 
     function registerToolPkgChatMessageHook(definition: ToolPkg.ChatMessageHookRegistration): void;
+
+    /** @since ToolPkg API 1.0.1 */
+    function registerToolPkgChatMessageMenuItem(definition: ToolPkg.ChatMessageMenuItemRegistration): void;
+
+    /** @since ToolPkg API 1.0.1 */
+    function registerToolPkgChatRuntimeHook(definition: ToolPkg.ChatRuntimeHookRegistration): void;
 
     function registerToolPkgToolLifecycleHook(definition: ToolPkg.ToolLifecycleHookRegistration): void;
 

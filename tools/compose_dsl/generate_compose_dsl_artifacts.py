@@ -995,12 +995,18 @@ def build_component_renderer_function(spec: ComponentSpec, params: Sequence[Para
                     verticalArrangement = props.verticalArrangement("verticalArrangement", spacing),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    itemsIndexed(contentNodes) { index, child ->
-                        renderComposeDslNode(
-                            node = child,
-                            onAction = onAction,
-                            nodePath = "$nodePath/$index"
-                        )
+                    itemsIndexed(
+                        items = contentNodes,
+                        key = { index, child -> child.lazyItemRenderKey(nodePath, index) }
+                    ) { index, child ->
+                        val childPath = "$nodePath/$index"
+                        key(child.lazyItemRenderKey(nodePath, index)) {
+                            renderComposeDslNode(
+                                node = child,
+                                onAction = onAction,
+                                nodePath = childPath
+                            )
+                        }
                     }
                 }
             }
@@ -1025,12 +1031,18 @@ def build_component_renderer_function(spec: ComponentSpec, params: Sequence[Para
                     horizontalArrangement = props.horizontalArrangement("horizontalArrangement", spacing),
                     verticalAlignment = props.verticalAlignment("verticalAlignment")
                 ) {
-                    itemsIndexed(contentNodes) { index, child ->
-                        renderComposeDslNode(
-                            node = child,
-                            onAction = onAction,
-                            nodePath = "$nodePath/$index"
-                        )
+                    itemsIndexed(
+                        items = contentNodes,
+                        key = { index, child -> child.lazyItemRenderKey(nodePath, index) }
+                    ) { index, child ->
+                        val childPath = "$nodePath/$index"
+                        key(child.lazyItemRenderKey(nodePath, index)) {
+                            renderComposeDslNode(
+                                node = child,
+                                onAction = onAction,
+                                nodePath = childPath
+                            )
+                        }
                     }
                 }
             }

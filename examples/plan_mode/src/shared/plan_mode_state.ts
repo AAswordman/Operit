@@ -12,11 +12,13 @@ export type PlanModeTrackedChatView = {
 
 type PlanModeState = {
   enabledChatIds: Record<string, true>;
+  startedPlanKeys: Record<string, true>;
   trackedViewsByChatId: Record<string, PlanModeTrackedChatView>;
 };
 
 const state: PlanModeState = {
   enabledChatIds: {},
+  startedPlanKeys: {},
   trackedViewsByChatId: {},
 };
 
@@ -43,6 +45,7 @@ function cloneTrackedViewsByChatId(): Record<string, PlanModeTrackedChatView> {
 export function readPlanModeStateSnapshot(): PlanModeState {
   return {
     enabledChatIds: { ...state.enabledChatIds },
+    startedPlanKeys: { ...state.startedPlanKeys },
     trackedViewsByChatId: cloneTrackedViewsByChatId(),
   };
 }
@@ -64,6 +67,18 @@ export async function setPlanModeEnabledForChatAsync(
     return;
   }
   delete state.enabledChatIds[chatId];
+}
+
+export function isPlanStartRecorded(planKey: string): boolean {
+  return state.startedPlanKeys[planKey] === true;
+}
+
+export function recordPlanStart(planKey: string): void {
+  state.startedPlanKeys[planKey] = true;
+}
+
+export function forgetPlanStart(planKey: string): void {
+  delete state.startedPlanKeys[planKey];
 }
 
 export function readActiveChatViewForRuntime(runtime: PlanModeRuntime): PlanModeTrackedChatView | null {

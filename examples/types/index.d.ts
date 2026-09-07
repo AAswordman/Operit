@@ -75,7 +75,8 @@ import {
     FunctionModelConfigResultData as _FunctionModelConfigResultData,
     FunctionModelBindingResultData as _FunctionModelBindingResultData,
     ModelConfigConnectionTestItemResultData as _ModelConfigConnectionTestItemResultData,
-    ModelConfigConnectionTestResultData as _ModelConfigConnectionTestResultData
+    ModelConfigConnectionTestResultData as _ModelConfigConnectionTestResultData,
+    ChatCallResultData as _ChatCallResultData
 } from './results';
 import { Intent as AndroidIntent, IntentFlag as AndroidIntentFlag, IntentAction as AndroidIntentAction, IntentCategory as AndroidIntentCategory } from './android';
 import { UINode as UINodeClass, UI as UINamespace } from './ui';
@@ -230,6 +231,7 @@ declare global {
     type FunctionModelBindingResultData = _FunctionModelBindingResultData;
     type ModelConfigConnectionTestItemResultData = _ModelConfigConnectionTestItemResultData;
     type ModelConfigConnectionTestResultData = _ModelConfigConnectionTestResultData;
+    type ChatCallResultData = _ChatCallResultData;
 
     export import Tasker = TaskerType;
 

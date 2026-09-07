@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -170,6 +171,17 @@ private fun ToolPkgComposeDslNode.slotChildren(
         return slotNodes
     }
     return if (fallbackToChildren) children else emptyList()
+}
+
+private fun ToolPkgComposeDslNode.lazyItemRenderKey(
+    parentNodePath: String,
+    index: Int
+): String {
+    val explicitKey = props["key"]?.toString()?.trim()?.ifBlank { null }
+    if (explicitKey != null) {
+        return "$parentNodePath:key:$explicitKey"
+    }
+    return "$parentNodePath/$index:${normalizeToken(type)}"
 }
 
 @Composable
@@ -376,18 +388,24 @@ internal fun renderLazyColumnNode(
 
     LazyColumn(
         state = listState,
-        modifier = applyScopedCommonModifier(Modifier.fillMaxSize(), props, modifierResolver),
+        modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
         horizontalAlignment = props.horizontalAlignment("horizontalAlignment"),
         reverseLayout = reverseLayout,
         verticalArrangement = props.verticalArrangement("verticalArrangement", spacing),
         contentPadding = PaddingValues(0.dp)
     ) {
-        itemsIndexed(contentNodes) { index, child ->
-            renderComposeDslNode(
-                node = child,
-                onAction = onAction,
-                nodePath = "$nodePath/$index"
-            )
+        itemsIndexed(
+            items = contentNodes,
+            key = { index, child -> child.lazyItemRenderKey(nodePath, index) }
+        ) { index, child ->
+            val childPath = "$nodePath/$index"
+            key(child.lazyItemRenderKey(nodePath, index)) {
+                renderComposeDslNode(
+                    node = child,
+                    onAction = onAction,
+                    nodePath = childPath
+                )
+            }
         }
     }
 }
@@ -407,12 +425,18 @@ internal fun renderLazyRowNode(
         horizontalArrangement = props.horizontalArrangement("horizontalArrangement", spacing),
         verticalAlignment = props.verticalAlignment("verticalAlignment")
     ) {
-        itemsIndexed(contentNodes) { index, child ->
-            renderComposeDslNode(
-                node = child,
-                onAction = onAction,
-                nodePath = "$nodePath/$index"
-            )
+        itemsIndexed(
+            items = contentNodes,
+            key = { index, child -> child.lazyItemRenderKey(nodePath, index) }
+        ) { index, child ->
+            val childPath = "$nodePath/$index"
+            key(child.lazyItemRenderKey(nodePath, index)) {
+                renderComposeDslNode(
+                    node = child,
+                    onAction = onAction,
+                    nodePath = childPath
+                )
+            }
         }
     }
 }

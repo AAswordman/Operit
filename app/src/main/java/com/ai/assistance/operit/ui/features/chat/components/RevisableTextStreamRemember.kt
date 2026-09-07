@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ai.assistance.operit.util.stream.MutableSharedStream
+import com.ai.assistance.operit.util.stream.MutableSharedStreamImpl
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamRollbackPrefix
 import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
@@ -83,8 +84,9 @@ fun rememberRevisableTextStream(sourceStream: Stream<String>?): Stream<String>? 
                 }
             } finally {
                 eventJob.cancelAndJoin()
-                currentOutputStream.resetReplayCache()
-                displayStream = null
+                // Keep completed replay available until the message switches to static content.
+                // Clearing it here can race the renderer's final frame and leave a tool result blank.
+                (currentOutputStream as? MutableSharedStreamImpl<String>)?.close()
             }
         }
     }

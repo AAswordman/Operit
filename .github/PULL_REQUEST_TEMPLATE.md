@@ -1,8 +1,8 @@
 ## 变更说明 / Description
 
 <!--
-日常开发 PR 的目标分支默认为 `development`；只有维护者执行稳定发布同步时才使用 `main`。
-For regular development PRs, the target branch is `development`; use `main` only for maintainer-led release synchronization.
+日常开发 PR 的目标分支默认为 `dev`；只有维护者执行稳定发布同步时才使用 `main`。
+For regular development PRs, the target branch is `dev`; use `main` only for maintainer-led release synchronization.
 
 请先用几句话说明这个 PR 为什么存在，以及用户或维护者会得到什么变化。
 Briefly explain why this PR exists and what users or maintainers will gain.
@@ -59,7 +59,7 @@ Use these items for a final self-review. Automated checks do not enforce their e
 -->
 
 - [ ] 我已记录可复现验证和未运行项原因 / Reproducible verification and reasons for unrun checks are recorded
-- [ ] 日常开发 PR 的目标分支为 `development`；如目标为 `main`，我已说明这是维护者发布同步 / The target branch is `development` for regular work; if it is `main`, I explained why this is a maintainer-led release sync
+- [ ] 日常开发 PR 的目标分支为 `dev`；如目标为 `main`，我已说明这是维护者发布同步 / The target branch is `dev` for regular work; if it is `main`, I explained why this is a maintainer-led release sync
 - [ ] 我已确认 `Candidate checks` 覆盖改动范围，并会处理技术失败项 / `Candidate checks` covers the change scope and technical failures will be addressed
 - [ ] 最终 diff 无无关、临时、生成、二进制或敏感内容 / Final diff has no unrelated, temporary, generated, binary, or secret content
 - [ ] 已提供对应的回归、UI、文档/字符串或兼容性证据 / Relevant regression, UI, docs/strings, or compatibility evidence is provided

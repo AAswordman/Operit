@@ -3,6 +3,7 @@ package com.ai.assistance.operit.core.tools.packTool
 import com.ai.assistance.operit.core.tools.LocalizedText
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
 import com.ai.assistance.operit.util.AppLogger
+import org.json.JSONArray
 import org.json.JSONObject
 
 internal object ToolPkgMainRegistrationScriptParser {
@@ -12,6 +13,7 @@ internal object ToolPkgMainRegistrationScriptParser {
         script: String,
         toolPkgId: String,
         mainScriptPath: String,
+        apiVersion: String,
         jsEngine: JsEngine
     ): ToolPkgMainRegistrationParseResult {
         return try {
@@ -19,6 +21,7 @@ internal object ToolPkgMainRegistrationScriptParser {
                 jsEngine.executeToolPkgMainRegistrationFunction(
                     script = script,
                     functionName = "registerToolPkg",
+                    apiVersion = apiVersion,
                     params =
                         mapOf(
                             "toolPkgId" to toolPkgId,
@@ -62,6 +65,16 @@ internal object ToolPkgMainRegistrationScriptParser {
                 parseRegisteredFunctionHooks(
                     registrations = captured.chatMessageHooks,
                     registryName = TOOLPKG_REGISTRATION_CHAT_MESSAGE_HOOK
+                )
+            val chatMessageMenuItems =
+                parseRegisteredChatMessageMenuItems(
+                    registrations = captured.chatMessageMenuItems,
+                    registryName = TOOLPKG_REGISTRATION_CHAT_MESSAGE_MENU_ITEM
+                )
+            val chatRuntimeHooks =
+                parseRegisteredFunctionHooks(
+                    registrations = captured.chatRuntimeHooks,
+                    registryName = TOOLPKG_REGISTRATION_CHAT_RUNTIME_HOOK
                 )
             val toolLifecycleHooks =
                 parseRegisteredFunctionHooks(
@@ -132,6 +145,8 @@ internal object ToolPkgMainRegistrationScriptParser {
                         chatInputHooks = chatInputHooks,
                         chatViewHooks = chatViewHooks,
                         chatMessageHooks = chatMessageHooks,
+                        chatMessageMenuItems = chatMessageMenuItems,
+                        chatRuntimeHooks = chatRuntimeHooks,
                         toolLifecycleHooks = toolLifecycleHooks,
                         promptInputHooks = promptInputHooks,
                         promptHistoryHooks = promptHistoryHooks,
@@ -468,6 +483,60 @@ internal object ToolPkgMainRegistrationScriptParser {
         return hooks
     }
 
+    private fun parseRegisteredChatMessageMenuItems(
+        registrations: List<String>,
+        registryName: String
+    ): List<ToolPkgRegisteredChatMessageMenuItem> {
+        val items = mutableListOf<ToolPkgRegisteredChatMessageMenuItem>()
+        registrations.forEachIndexed { index, raw ->
+            val item =
+                try {
+                    JSONObject(raw)
+                } catch (e: Exception) {
+                    throw IllegalArgumentException(
+                        "$registryName payload[$index] must be a JSON object",
+                        e
+                    )
+                }
+            val id = item.optString("id").trim()
+            val functionName = item.optString("function").trim()
+            val functionSource = item.optString("function_source").trim().ifBlank { null }
+
+            if (id.isBlank()) {
+                throw IllegalArgumentException("$registryName[$index].id is required")
+            }
+            if (functionName.isBlank()) {
+                throw IllegalArgumentException("$registryName[$index].function is required")
+            }
+
+            val dialog =
+                item.optJSONObject("dialog")?.let { dialogObject ->
+                    val screen = dialogObject.optString("screen").trim()
+                    if (screen.isBlank()) {
+                        throw IllegalArgumentException("$registryName[$index].dialog.screen is required")
+                    }
+                    ToolPkgRegisteredChatMessageMenuDialog(
+                        screen = screen,
+                        title = parseLocalizedText(dialogObject.opt("title"), "")
+                    )
+                }
+
+            items.add(
+                ToolPkgRegisteredChatMessageMenuItem(
+                    id = id,
+                    title = parseLocalizedText(item.opt("title"), id),
+                    icon = item.optString("icon").trim().ifBlank { null },
+                    order = item.optInt("order", 0),
+                    senders = parseStringList(item.opt("senders")),
+                    function = functionName,
+                    functionSource = functionSource,
+                    dialog = dialog
+                )
+            )
+        }
+        return items
+    }
+
     private fun parseRegisteredTagFunctionHooks(
         registrations: List<String>,
         registryName: String
@@ -574,6 +643,19 @@ internal object ToolPkgMainRegistrationScriptParser {
             )
         }
         return providers
+    }
+
+    private fun parseStringList(raw: Any?): List<String> {
+        return when (raw) {
+            is JSONArray ->
+                buildList {
+                    for (index in 0 until raw.length()) {
+                        raw.optString(index).trim().takeIf { it.isNotBlank() }?.let(::add)
+                    }
+                }
+            is String -> raw.trim().takeIf { it.isNotBlank() }?.let(::listOf).orEmpty()
+            else -> emptyList()
+        }
     }
 
     private fun parseLocalizedText(raw: Any?, fallback: String): LocalizedText {

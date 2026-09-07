@@ -179,7 +179,6 @@ open class StandardFileSystemTools(protected val context: Context) {
 
     protected suspend fun getGrepModelParameters(): List<ModelParameter<*>> {
         val functionalConfigManager = FunctionalConfigManager(context)
-        functionalConfigManager.initializeIfNeeded()
         val modelConfigManager = ModelConfigManager(context)
         val mapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.GREP)
         return modelConfigManager.getModelParametersForConfig(mapping.configId)

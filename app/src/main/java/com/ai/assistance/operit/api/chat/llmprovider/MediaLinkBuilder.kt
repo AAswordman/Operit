@@ -15,4 +15,21 @@ object MediaLinkBuilder {
     fun video(context: Context, id: String): String {
         return context.getString(R.string.conversation_media_video_link, id)
     }
+
+    fun file(context: Context, id: String, fileName: String): String {
+        return context.getString(
+            R.string.conversation_media_file_link,
+            id,
+            escapeXmlAttribute(fileName),
+        )
+    }
+
+    private fun escapeXmlAttribute(value: String): String {
+        return value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&apos;")
+    }
 }

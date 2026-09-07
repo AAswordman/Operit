@@ -4,6 +4,8 @@ import android.content.Context
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgArchiveParser
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOriginCodec
+import com.ai.assistance.operit.ui.features.packages.market.PUBLISH_LOGO_MAX_BYTES
+import com.ai.assistance.operit.ui.features.packages.market.ToolPkgLogoAsset
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -15,6 +17,47 @@ import org.json.JSONObject
 
 /** Produces publish artifacts with optional AST minification and mandatory market provenance. */
 object ToolPkgArtifactMinifier {
+    fun readToolPkgLogoAsset(sourceFile: File): ToolPkgLogoAsset? {
+        val manifestPreview =
+            ToolPkgArchiveParser.readToolPkgManifestPreview { sourceFile.inputStream() }
+                ?: throw IllegalArgumentException("manifest.hjson or manifest.json not found")
+        val logoKey = manifestPreview.manifest.logo?.trim().orEmpty()
+        if (logoKey.isBlank()) return null
+
+        val resource =
+            manifestPreview.manifest.resources.firstOrNull {
+                it.key.equals(logoKey, ignoreCase = true)
+            } ?: throw IllegalArgumentException("manifest.logo must reference an existing resource key: $logoKey")
+        if (ToolPkgArchiveParser.isDirectoryResourceMime(resource.mime)) {
+            throw IllegalArgumentException("manifest.logo must reference a file resource: $logoKey")
+        }
+
+        val manifestBasePath = manifestPreview.entryName.substringBeforeLast('/', "")
+        val normalizedPath =
+            ToolPkgArchiveParser.resolveManifestRelativeResourcePath(
+                manifestBasePath,
+                resource.path
+            ) ?: throw IllegalArgumentException("Invalid logo resource path: ${resource.path}")
+        val fileName = normalizedPath.substringAfterLast('/')
+        val contentType = logoContentType(resource.mime, fileName)
+
+        ZipFile(sourceFile).use { archive ->
+            val entryIndex = ToolPkgArchiveParser.buildZipEntryIndex(archive)
+            val bytes =
+                ToolPkgArchiveParser.readZipEntryBytes(archive, entryIndex, normalizedPath)
+                    ?: throw IllegalArgumentException("Cannot read logo resource: ${resource.path}")
+            require(bytes.size <= PUBLISH_LOGO_MAX_BYTES) {
+                "ToolPkg logo must be at most ${PUBLISH_LOGO_MAX_BYTES / 1024} KiB"
+            }
+            return ToolPkgLogoAsset(
+                fileName = fileName,
+                contentType = contentType,
+                bytes = bytes
+            )
+        }
+    }
+
+
     internal fun processArtifactFile(
         context: Context,
         sourceFile: File,
@@ -321,5 +364,16 @@ object ToolPkgArtifactMinifier {
     private const val SCRIPT_MARKET_ORIGIN_METADATA_KEY = "__operit_market_origin"
     private val metadataContentPattern = Regex("""(?s)/\*\s*METADATA\s*(.*?)\*/""")
     private val staticModuleReferencePattern =
-        Regex("""(?:require\s*\(\s*[\"']([^\"']+)[\"']\s*\)|(?:from|import)\s*[\"']([^\"']+)[\"'])""")
+            Regex("""(?:require\s*\(\s*[\"']([^\"']+)[\"']\s*\)|(?:from|import)\s*[\"']([^\"']+)[\"'])""")
+
+    private fun logoContentType(mime: String, fileName: String): String {
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+        return when {
+            mime.equals("image/svg+xml", ignoreCase = true) || extension == "svg" -> "image/svg+xml"
+            mime.equals("image/png", ignoreCase = true) || extension == "png" -> "image/png"
+            mime.equals("image/jpeg", ignoreCase = true) || extension == "jpg" || extension == "jpeg" -> "image/jpeg"
+            mime.equals("image/webp", ignoreCase = true) || extension == "webp" -> "image/webp"
+            else -> throw IllegalArgumentException("Unsupported ToolPkg logo format: $fileName")
+        }
+    }
 }

@@ -7,7 +7,7 @@
 ## 核心概念
 
 -   **`Stream<T>`**: 这是库的核心，代表一个"冷"的异步数据序列。这意味着只有当存在收集器（Collector）时，`Stream` 才会开始执行其代码并发射元素。
--   **`SharedStream<T>`**: 一种"热"流，类似于 `SharedFlow`。它可以在多个收集器之间共享数据。即使没有收集器，它也可以保持活动状态。
+-   **`SharedStream<T>`**: 一种"热"流，类似于 `SharedFlow`。它可以在多个收集器之间共享数据。即使没有收集器，它也可以保持活动状态。流结束时的上游异常可通过 `completionCause` 查询。
 -   **`StateStream<T>`**: 一种特殊的"热"流，类似于 `StateFlow`。它总是拥有一个当前值，并且新的收集器会立即收到最新的值。
 
 ---
@@ -279,7 +279,7 @@ class MyViewModel : ViewModel() {
 
 您可以使用 `shareIn` 和 `stateIn` 将任何冷流转换为热流。
 
--   `share(scope, ...)`: 将冷流转换为 `SharedStream`。
+-   `share(scope, ...)`: 将冷流转换为 `SharedStream`。默认将上游异常抛给收集器；需要保留 `completionCause`、同时让订阅者正常收尾时，传入 `propagateCompletionCause = false`。
 -   `state(scope, ...)`: 将冷流转换为 `StateStream`。
 
 ```kotlin
@@ -558,4 +558,4 @@ markdownStream.splitBy(blockPlugins).collect { blockGroup ->
 -   **生命周期管理**: 在 Android 等具有生命周期的组件中，使用 `viewModelScope` 或 `lifecycleScope` 并结合 `launchIn` 来自动管理流的收集，避免内存泄漏。
 -   **利用 `onEach` 调试**: 当流的行为不符合预期时，`onEach { ... }` 是一个极佳的调试工具，可以在不影响流的情况下观察每个阶段的数据。
 
-希望这份指南能帮助您充分利用 `Stream` 库的强大功能！ 
+希望这份指南能帮助您充分利用 `Stream` 库的强大功能！

@@ -5,6 +5,7 @@ import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
 import com.ai.assistance.operit.data.skill.SkillRepository
+import com.ai.assistance.operit.util.AppLogger
 import com.google.gson.Gson
 import java.io.File
 
@@ -131,9 +132,23 @@ private fun readInstalledMarketMarkerRoots(
 
 private fun readMarketInstallMarker(root: File): MarketInstallMarker? {
     val markerFile = File(File(root, MARKET_MARKER_DIR_NAME), MARKET_MARKER_FILE_NAME)
-    if (!markerFile.exists() || !markerFile.isFile) return null
-    return Gson().fromJson(markerFile.readText(), MarketInstallMarker::class.java)
+    return try {
+        // A stale external-storage marker must not abort the market scan for every entry.
+        if (!markerFile.exists() || !markerFile.isFile) return null
+        Gson().fromJson(markerFile.readText(), MarketInstallMarker::class.java)
+            .takeIf { marker ->
+                marker.entryId.isNotBlank() && marker.versionId.isNotBlank()
+            }
+    } catch (error: Exception) {
+        AppLogger.w(
+            TAG,
+            "Skipping unreadable market install marker: ${markerFile.absolutePath}",
+            error
+        )
+        null
+    }
 }
 
+private const val TAG = "MarketInstallMarker"
 private const val MARKET_MARKER_DIR_NAME = ".operit"
 private const val MARKET_MARKER_FILE_NAME = "market.json"

@@ -73,7 +73,6 @@ class MultiServiceManager(private val context: Context) {
         if (isInitialized) return
         initMutex.withLock {
             if (isInitialized) return
-            functionalConfigManager.initializeIfNeeded()
             isInitialized = true
         }
     }

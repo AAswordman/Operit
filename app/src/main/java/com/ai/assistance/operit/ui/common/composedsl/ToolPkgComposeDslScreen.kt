@@ -105,6 +105,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -132,6 +133,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -160,6 +162,7 @@ import androidx.navigation.NavController
 import androidx.webkit.ScriptHandler
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
 import com.ai.assistance.operit.core.tools.javascript.JsJavaBridgeDelegates
@@ -168,6 +171,7 @@ import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuDialogRequest
 import com.ai.assistance.operit.ui.common.displays.MarkdownTextComposable
 import com.ai.assistance.operit.ui.common.markdown.DefaultXmlRenderer
 import com.ai.assistance.operit.ui.common.markdown.StreamMarkdownRenderer
@@ -964,7 +968,16 @@ fun ToolPkgComposeDslToolScreen(
         phase: String,
         rawResult: Any?
     ) {
-        val parsed = ToolPkgComposeDslParser.parseRenderResult(rawResult) ?: return
+        val parsed = ToolPkgComposeDslParser.parseRenderResult(rawResult)
+        if (parsed == null) {
+            AppLogger.e(
+                TAG,
+                "compose_dsl apply render result parse failed: phase=$phase, " +
+                    "routeInstanceId=$routeInstanceId, package=$containerPackageName, " +
+                    "uiModuleId=$uiModuleId, rawType=${rawResult?.javaClass?.name ?: "null"}"
+            )
+            return
+        }
         composeDslWebViewMainHandler.post {
             renderResult = parsed
             errorMessage = null
@@ -1313,23 +1326,7 @@ fun ToolPkgComposeDslToolScreen(
                     withContext(Dispatchers.IO) {
                         jsEngine.executeComposeDslScript(
                             script = scriptText,
-                            runtimeOptions =
-                                mapOf(
-                                    "packageName" to containerPackageName,
-                                    "toolPkgId" to containerPackageName,
-                                    "uiModuleId" to uiModuleId,
-                                    "__operit_ui_module_id" to uiModuleId,
-                                    "__operit_toolpkg_runtime_kind" to "ui",
-                                    "routeInstanceId" to routeInstanceId,
-                                    "__operit_route_instance_id" to routeInstanceId,
-                                    "executionContextKey" to executionContextKey,
-                                    "__operit_compose_execution_context_key" to executionContextKey,
-                                    "__operit_package_lang" to currentLanguage,
-                                    "__operit_script_screen" to (scriptScreenPath ?: ""),
-                                    "moduleSpec" to buildModuleSpec(scriptScreenPath),
-                                    "state" to (renderResult?.state ?: emptyMap<String, Any?>()),
-                                    "memo" to (renderResult?.memo ?: emptyMap<String, Any?>())
-                                )
+                            runtimeOptions = buildActionRuntimeOptions()
                         )
                     }
                 snapshotRawResult = rawResult
@@ -1582,6 +1579,480 @@ fun ToolPkgComposeDslToolScreen(
 }
 
 @Composable
+fun ToolPkgComposeDslDialogHost(
+    request: ChatMessageMenuDialogRequest,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val renderMutex = remember { Mutex() }
+    val currentLanguage =
+        (
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                context.resources.configuration.locales.get(0)
+            } else {
+                @Suppress("DEPRECATION")
+                context.resources.configuration.locale
+            }
+        )?.toLanguageTag()
+            ?.trim()
+            ?.ifBlank { null }
+            ?: "en"
+    val packageManager = remember {
+        PackageManager.getInstance(context, AIToolHandler.getInstance(context))
+    }
+    val uiModuleId =
+        remember(request) {
+            request.moduleSpec["id"]?.toString()?.trim()?.ifBlank { null }
+                ?: request.moduleSpec["menuItemId"]?.toString()?.trim()?.ifBlank { null }
+                ?: "chat_message_menu_dialog"
+        }
+    val routeInstanceId = remember(request) { UUID.randomUUID().toString() }
+    val executionContextKey = remember(routeInstanceId, request.containerPackageName, uiModuleId) {
+        buildComposeDslExecutionContextKey(
+            containerPackageName = request.containerPackageName,
+            uiModuleId = uiModuleId,
+            routeInstanceId = routeInstanceId
+        )
+    }
+    val jsEngine = remember(packageManager, executionContextKey) {
+        packageManager.acquireToolPkgExecutionEngine(
+            contextKey = executionContextKey,
+            containerPackageName = request.containerPackageName
+        )
+    }
+    var script by remember(request) { mutableStateOf<String?>(null) }
+    var renderResult by remember(request) {
+        mutableStateOf<ToolPkgComposeDslRenderResult?>(null)
+    }
+    var errorMessage by remember(request) { mutableStateOf<String?>(null) }
+    var isLoading by remember(request) { mutableStateOf(true) }
+    var dispatchingCount by remember(request) { mutableStateOf(0) }
+    var hasDispatchedInitialOnLoad by remember(request) { mutableStateOf(false) }
+    var nextDispatchTicket by remember(request) { mutableStateOf(1L) }
+    var pendingTreeRerenderJob by remember(request) { mutableStateOf<Job?>(null) }
+    val nextTextInputSyncTicket = remember(request) { AtomicLong(1L) }
+    val pendingTextInputSyncs =
+        remember(request) {
+            linkedMapOf<Long, CompletableDeferred<Unit>>()
+        }
+    val settledDispatchTickets = remember(request) { mutableSetOf<Long>() }
+
+    fun buildModuleSpec(): Map<String, Any?> =
+        linkedMapOf<String, Any?>(
+            "id" to uiModuleId,
+            "runtime" to "compose_dsl",
+            "screen" to request.screenPath,
+            "title" to request.title,
+            "toolPkgId" to request.containerPackageName
+        ).apply {
+            putAll(request.moduleSpec)
+        }
+
+    fun buildInitialState(): Map<String, Any?> =
+        linkedMapOf<String, Any?>().apply {
+            putAll(request.state)
+        }
+
+    fun buildActionRuntimeOptions(): Map<String, Any?> =
+        mapOf(
+            "packageName" to request.containerPackageName,
+            "containerPackageName" to request.containerPackageName,
+            "toolPkgId" to request.containerPackageName,
+            "__operit_ui_package_name" to request.containerPackageName,
+            "__operit_ui_toolpkg_id" to request.containerPackageName,
+            "uiModuleId" to uiModuleId,
+            "__operit_ui_module_id" to uiModuleId,
+            "__operit_toolpkg_runtime_kind" to "ui",
+            "routeInstanceId" to routeInstanceId,
+            "__operit_route_instance_id" to routeInstanceId,
+            "executionContextKey" to executionContextKey,
+            "__operit_compose_execution_context_key" to executionContextKey,
+            "__operit_package_lang" to currentLanguage,
+            "__operit_script_screen" to request.screenPath,
+            "moduleSpec" to buildModuleSpec(),
+            "state" to (renderResult?.state ?: buildInitialState()),
+            "memo" to (renderResult?.memo ?: emptyMap<String, Any?>())
+        )
+
+    fun applyBlockingRenderResult(
+        phase: String,
+        rawResult: Any?
+    ) {
+        val parsed = ToolPkgComposeDslParser.parseRenderResult(rawResult)
+        if (parsed == null) {
+            AppLogger.e(TAG, "compose_dsl dialog webview render result ignored: phase=$phase")
+            return
+        }
+        composeDslWebViewMainHandler.post {
+            renderResult = parsed
+            errorMessage = null
+        }
+    }
+
+    val webViewHostContext =
+        remember(routeInstanceId, executionContextKey, jsEngine) {
+            ComposeDslWebViewHostContext(
+                routeInstanceId = routeInstanceId,
+                executionContextKey = executionContextKey,
+                jsEngine = jsEngine,
+                runtimeOptionsProvider = ::buildActionRuntimeOptions,
+                applyRenderResult = ::applyBlockingRenderResult
+            )
+        }
+
+    suspend fun rerenderComposeDslTreeInternal(source: String) {
+        val rawResult =
+            withContext(Dispatchers.IO) {
+                jsEngine.rerenderComposeDslTree(
+                    runtimeOptions = buildActionRuntimeOptions()
+                )
+            }
+        val parsed = ToolPkgComposeDslParser.parseRenderResult(rawResult)
+        if (parsed == null) {
+            val rawText = rawResult?.toString()?.trim().orEmpty()
+            AppLogger.e(
+                TAG,
+                "compose_dsl dialog tree rerender failed: source=$source, raw=${rawText.ifBlank { "<empty>" }}"
+            )
+            return
+        }
+        renderResult = parsed
+        errorMessage = null
+    }
+
+    fun requestComposeDslTreeRerender(immediate: Boolean = false) {
+        pendingTreeRerenderJob?.cancel()
+        pendingTreeRerenderJob =
+            scope.launch {
+                if (!immediate) {
+                    withFrameNanos { }
+                }
+                renderMutex.withLock {
+                    rerenderComposeDslTreeInternal(
+                        source = if (immediate) "immediate" else "next_frame"
+                    )
+                }
+            }
+    }
+
+    fun hasPendingTextInputSyncs(): Boolean = pendingTextInputSyncs.isNotEmpty()
+
+    suspend fun awaitPendingTextInputSyncs() {
+        val pendingCompletions = pendingTextInputSyncs.values.toList()
+        pendingCompletions.forEach { completion ->
+            runCatching { completion.await() }
+        }
+    }
+
+    fun flushTextInputSyncsAndRerender() {
+        scope.launch {
+            awaitPendingTextInputSyncs()
+            requestComposeDslTreeRerender(true)
+        }
+    }
+
+    fun dispatchActionInternal(
+        actionId: String,
+        payload: Any? = null,
+        onSettled: (() -> Unit)? = null,
+        flushPendingTextInputs: Boolean = true
+    ): Boolean {
+        val normalizedActionId = actionId.trim()
+        if (normalizedActionId.isBlank()) {
+            onSettled?.invoke()
+            return false
+        }
+        if (flushPendingTextInputs && hasPendingTextInputSyncs()) {
+            scope.launch {
+                awaitPendingTextInputSyncs()
+                dispatchActionInternal(
+                    actionId = normalizedActionId,
+                    payload = payload,
+                    onSettled = onSettled,
+                    flushPendingTextInputs = false
+                )
+            }
+            return true
+        }
+        pendingTreeRerenderJob?.cancel()
+        pendingTreeRerenderJob = null
+        val dispatchTicket = nextDispatchTicket
+        nextDispatchTicket += 1
+
+        dispatchingCount += 1
+
+        val dispatched =
+            jsEngine.dispatchComposeDslActionAsync(
+                actionId = normalizedActionId,
+                payload = payload,
+                runtimeOptions = buildActionRuntimeOptions(),
+                onIntermediateResult = { intermediateResult ->
+                    if (settledDispatchTickets.contains(dispatchTicket)) {
+                        return@dispatchComposeDslActionAsync
+                    }
+                    val parsedIntermediate =
+                        ToolPkgComposeDslParser.parseRenderResult(intermediateResult)
+                    if (parsedIntermediate != null) {
+                        renderResult = parsedIntermediate
+                        errorMessage = null
+                    }
+                },
+                onFinalResult = { finalResult ->
+                    if (settledDispatchTickets.contains(dispatchTicket)) {
+                        return@dispatchComposeDslActionAsync
+                    }
+                    val parsedFinal =
+                        ToolPkgComposeDslParser.parseRenderResult(finalResult)
+                    if (parsedFinal != null) {
+                        renderResult = parsedFinal
+                        errorMessage = null
+                    }
+                },
+                onComplete = {
+                    dispatchingCount = (dispatchingCount - 1).coerceAtLeast(0)
+                    settledDispatchTickets.add(dispatchTicket)
+                    if (settledDispatchTickets.size > 64) {
+                        val latestTickets = settledDispatchTickets.toList().sortedDescending().take(32).toSet()
+                        settledDispatchTickets.retainAll(latestTickets)
+                    }
+                    onSettled?.invoke()
+                },
+                onError = { error ->
+                    errorMessage = "compose_dsl dialog runtime error: $error"
+                    AppLogger.e(
+                        TAG,
+                        "compose_dsl dialog action failed: actionId=$normalizedActionId, error=$error"
+                    )
+                }
+            )
+
+        if (!dispatched) {
+            dispatchingCount = (dispatchingCount - 1).coerceAtLeast(0)
+            settledDispatchTickets.add(dispatchTicket)
+            onSettled?.invoke()
+        }
+        return dispatched
+    }
+
+    fun dispatchAction(actionId: String, payload: Any? = null) {
+        dispatchActionInternal(actionId = actionId, payload = payload)
+    }
+
+    fun dispatchTextInputAction(actionId: String, text: String) {
+        val normalizedActionId = actionId.trim()
+        if (normalizedActionId.isBlank()) {
+            return
+        }
+        val syncTicket = nextTextInputSyncTicket.getAndIncrement()
+        val completion = CompletableDeferred<Unit>()
+        pendingTextInputSyncs[syncTicket] = completion
+        dispatchActionInternal(
+            actionId = normalizedActionId,
+            payload =
+                mapOf(
+                    "__composeTextFieldPayload" to true,
+                    "__no_render" to true,
+                    "value" to text
+                ),
+            onSettled = {
+                pendingTextInputSyncs.remove(syncTicket)
+                if (!completion.isCompleted) {
+                    completion.complete(Unit)
+                }
+                if (!hasPendingTextInputSyncs()) {
+                    requestComposeDslTreeRerender(false)
+                }
+            },
+            flushPendingTextInputs = false
+        )
+    }
+
+    suspend fun dispatchActionAwait(actionId: String, payload: Any? = null) {
+        val completion = CompletableDeferred<Unit>()
+        dispatchActionInternal(
+            actionId = actionId,
+            payload = payload,
+            onSettled = {
+                if (!completion.isCompleted) {
+                    completion.complete(Unit)
+                }
+            }
+        )
+        completion.await()
+    }
+
+    suspend fun render() {
+        renderMutex.withLock {
+            try {
+                pendingTreeRerenderJob?.cancel()
+                pendingTreeRerenderJob = null
+                pendingTextInputSyncs.values.forEach { completion ->
+                    if (!completion.isCompleted) {
+                        completion.complete(Unit)
+                    }
+                }
+                pendingTextInputSyncs.clear()
+                isLoading = true
+                dispatchingCount = 0
+                errorMessage = null
+
+                val scriptText =
+                    script ?: withContext(Dispatchers.IO) {
+                        packageManager.readToolPkgTextResource(
+                            packageNameOrSubpackageId = request.containerPackageName,
+                            resourcePath = request.screenPath
+                        )
+                    }
+                if (scriptText.isNullOrBlank()) {
+                    renderResult = null
+                    errorMessage =
+                        "compose_dsl dialog script not found: package=${request.containerPackageName}, screen=${request.screenPath}"
+                    return
+                }
+                if (script == null) {
+                    script = scriptText
+                }
+
+                val rawResult =
+                    withContext(Dispatchers.IO) {
+                        jsEngine.executeComposeDslScript(
+                            script = scriptText,
+                            runtimeOptions = buildActionRuntimeOptions()
+                        )
+                    }
+                val rawText = rawResult?.toString()?.trim().orEmpty()
+                val parsed = ToolPkgComposeDslParser.parseRenderResult(rawResult)
+                if (parsed == null) {
+                    val normalizedError =
+                        extractJsExecutionErrorMessage(rawResult)
+                            ?: if (rawText.isNotBlank()) {
+                                "Invalid compose_dsl dialog result: $rawText"
+                            } else {
+                                "Invalid compose_dsl dialog result"
+                            }
+                    renderResult = null
+                    errorMessage = normalizedError
+                    AppLogger.e(TAG, normalizedError)
+                    return
+                }
+
+                renderResult = parsed
+                errorMessage = null
+            } catch (error: Exception) {
+                renderResult = null
+                errorMessage = "compose_dsl dialog runtime error: ${error.message}"
+                AppLogger.e(TAG, "compose_dsl dialog render failed", error)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    LaunchedEffect(request) {
+        render()
+    }
+
+    DisposableEffect(executionContextKey) {
+        onDispose {
+            pendingTreeRerenderJob?.cancel()
+            pendingTreeRerenderJob = null
+            pendingTextInputSyncs.values.forEach { completion ->
+                if (!completion.isCompleted) {
+                    completion.complete(Unit)
+                }
+            }
+            pendingTextInputSyncs.clear()
+            ComposeDslWebViewHostRegistry.clearExecutionContext(executionContextKey)
+            packageManager.releaseToolPkgExecutionEngine(executionContextKey, jsEngine)
+        }
+    }
+
+    val rootNode = renderResult?.tree
+    val rootOnLoadActionId =
+        remember(rootNode) {
+            rootNode?.let { node ->
+                ToolPkgComposeDslParser.extractActionId(node.props["onLoad"])
+            }
+        }
+
+    LaunchedEffect(rootNode, rootOnLoadActionId, hasDispatchedInitialOnLoad) {
+        if (rootNode == null || rootOnLoadActionId.isNullOrBlank() || hasDispatchedInitialOnLoad) {
+            return@LaunchedEffect
+        }
+        withFrameNanos { }
+        if (hasDispatchedInitialOnLoad) {
+            return@LaunchedEffect
+        }
+        hasDispatchedInitialOnLoad = true
+        dispatchAction(actionId = rootOnLoadActionId, payload = null)
+    }
+
+    when {
+        isLoading -> {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Text(text = request.title)
+                },
+                text = {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(96.dp)
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.floating_close))
+                    }
+                }
+            )
+        }
+        errorMessage != null -> {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Text(text = request.title)
+                },
+                text = {
+                    Text(
+                        text = errorMessage.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.floating_close))
+                    }
+                }
+            )
+        }
+        rootNode != null -> {
+            CompositionLocalProvider(
+                LocalComposeDslActionHandler provides ::dispatchAction,
+                LocalComposeDslTextInputActionHandler provides ::dispatchTextInputAction,
+                LocalComposeDslFlushTextInputHandler provides ::flushTextInputSyncsAndRerender,
+                LocalComposeDslSuspendingActionHandler provides ::dispatchActionAwait,
+                LocalComposeDslDialogDismissHandler provides onDismiss,
+                LocalComposeDslRouteInstanceId provides routeInstanceId,
+                LocalComposeDslWebViewHost provides webViewHostContext
+            ) {
+                renderComposeDslNode(
+                    node = rootNode,
+                    onAction = ::dispatchAction,
+                    nodePath = "0"
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun RenderToolPkgComposeDslNode(
     node: ToolPkgComposeDslNode,
     modifier: Modifier = Modifier,
@@ -1624,6 +2095,9 @@ internal val LocalComposeDslSuspendingActionHandler =
     staticCompositionLocalOf<suspend (String, Any?) -> Unit> {
         { _, _ -> }
     }
+internal val LocalComposeDslDialogDismissHandler = staticCompositionLocalOf<(() -> Unit)?> {
+    null
+}
 internal val LocalComposeDslRouteInstanceId = staticCompositionLocalOf { "" }
 private data class ComposeDslDebugNodeInfo(
     val routeInstanceId: String,
@@ -1680,6 +2154,14 @@ internal fun renderComposeDslNode(
             renderMarkdownNode(node, onAction, nodePath, modifierResolver)
             return@CompositionLocalProvider
         }
+        if (normalizedType == "alertdialog") {
+            renderComposeDslAlertDialogNode(node, onAction, nodePath, modifierResolver)
+            return@CompositionLocalProvider
+        }
+        if (normalizedType == "dialog") {
+            renderComposeDslDialogNode(node, onAction, nodePath, modifierResolver)
+            return@CompositionLocalProvider
+        }
         val renderer = composeDslGeneratedNodeRendererRegistry[normalizedType]
         if (renderer != null) {
             renderer(node, onAction, nodePath, modifierResolver)
@@ -1700,6 +2182,7 @@ internal fun renderMarkdownNode(
     modifierResolver: ComposeDslModifierResolver
 ) {
     val props = node.props
+    val explicitNodeKey = props["key"]?.toString()?.trim()?.ifBlank { null }
     val modifier = applyScopedCommonModifier(Modifier, props, modifierResolver)
     val textColor = props.colorOrNull("color") ?: MaterialTheme.colorScheme.onSurface
     val fontSize = props.floatOrNull("fontSize")?.sp ?: Unspecified
@@ -1715,25 +2198,250 @@ internal fun renderMarkdownNode(
         }
 
     if (markdownStream != null) {
-        StreamMarkdownRenderer(
-            markdownStream = markdownStream,
-            modifier = modifier,
-            textColor = textColor,
-            fontSize = fontSize,
-            xmlRenderer = remember { DefaultXmlRenderer() },
-            enableDialogs = props.bool("enableDialogs", true),
-            fillMaxWidth = props.bool("fillMaxWidth", true)
-        )
+        val streamRenderKey = explicitNodeKey ?: "$nodePath:stream:$streamTagName"
+        key(streamRenderKey) {
+            StreamMarkdownRenderer(
+                markdownStream = markdownStream,
+                modifier = modifier,
+                textColor = textColor,
+                fontSize = fontSize,
+                xmlRenderer = remember { DefaultXmlRenderer() },
+                enableDialogs = props.bool("enableDialogs", true),
+                fillMaxWidth = props.bool("fillMaxWidth", true)
+            )
+        }
         return
     }
 
-    MarkdownTextComposable(
-        text = props.string("text"),
-        textColor = textColor,
-        modifier = modifier,
-        fontSize = fontSize,
-        enableDialogs = props.bool("enableDialogs", true)
+    val markdownText = props.string("text")
+    val markdownTextHash = markdownText.hashCode()
+    val staticRenderKey =
+        explicitNodeKey ?: "$nodePath:static:${markdownText.length}:$markdownTextHash"
+    key(staticRenderKey) {
+        MarkdownTextComposable(
+            text = markdownText,
+            textColor = textColor,
+            modifier = modifier,
+            fontSize = fontSize,
+            enableDialogs = props.bool("enableDialogs", true)
+        )
+    }
+}
+
+@Composable
+internal fun renderComposeDslAlertDialogNode(
+    node: ToolPkgComposeDslNode,
+    onAction: (String, Any?) -> Unit,
+    nodePath: String,
+    modifierResolver: ComposeDslModifierResolver
+) {
+    val props = node.props
+    val dismissHost = LocalComposeDslDialogDismissHandler.current
+    val onDismissRequestActionId =
+        ToolPkgComposeDslParser.extractActionId(props["onDismissRequest"])
+    val titleNodes = node.slots["title"].orEmpty()
+    val textNodes = node.slots["text"].orEmpty()
+    val iconNodes = node.slots["icon"].orEmpty()
+    val confirmButtonNodes = node.slots["confirmButton"].orEmpty()
+    val dismissButtonNodes = node.slots["dismissButton"].orEmpty()
+    val contentNodes = node.slots["content"].orEmpty()
+    val titleText = props.stringOrNull("title")
+    val textValue = props.stringOrNull("text")
+    val markdownValue = props.stringOrNull("markdown")
+
+    val titleContent: (@Composable () -> Unit)? =
+        when {
+            titleNodes.isNotEmpty() -> {
+                {
+                    renderComposeDslNodes(
+                        nodes = titleNodes,
+                        onAction = onAction,
+                        nodePath = "$nodePath:title"
+                    )
+                }
+            }
+            !titleText.isNullOrBlank() -> {
+                { Text(text = titleText) }
+            }
+            else -> null
+        }
+    val textContent: (@Composable () -> Unit)? =
+        when {
+            textNodes.isNotEmpty() -> {
+                {
+                    renderComposeDslNodes(
+                        nodes = textNodes,
+                        onAction = onAction,
+                        nodePath = "$nodePath:text",
+                        modifierResolver = { base, slotProps ->
+                            defaultComposeDslModifierResolver(base, slotProps)
+                        }
+                    )
+                }
+            }
+            contentNodes.isNotEmpty() -> {
+                {
+                    renderComposeDslNodes(
+                        nodes = contentNodes,
+                        onAction = onAction,
+                        nodePath = "$nodePath:content",
+                        modifierResolver = { base, slotProps ->
+                            defaultComposeDslModifierResolver(base, slotProps)
+                        }
+                    )
+                }
+            }
+            !markdownValue.isNullOrBlank() -> {
+                {
+                    MarkdownTextComposable(
+                        text = markdownValue,
+                        textColor = MaterialTheme.colorScheme.onSurface,
+                        enableDialogs = true
+                    )
+                }
+            }
+            !textValue.isNullOrBlank() -> {
+                { Text(text = textValue) }
+            }
+            else -> null
+        }
+    val iconContent: (@Composable () -> Unit)? =
+        if (iconNodes.isNotEmpty()) {
+            {
+                renderComposeDslNodes(
+                    nodes = iconNodes,
+                    onAction = onAction,
+                    nodePath = "$nodePath:icon"
+                )
+            }
+        } else {
+            null
+        }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = {
+            if (!onDismissRequestActionId.isNullOrBlank()) {
+                onAction(onDismissRequestActionId, null)
+            }
+            if (props.bool("closeOnDismissRequest", true)) {
+                dismissHost?.invoke()
+            }
+        },
+        confirmButton = {
+            if (confirmButtonNodes.isNotEmpty()) {
+                renderComposeDslNodes(
+                    nodes = confirmButtonNodes,
+                    onAction = onAction,
+                    nodePath = "$nodePath:confirmButton"
+                )
+            } else {
+                ComposeDslDialogTextButton(
+                    text = props.stringOrNull("confirmText"),
+                    actionId = ToolPkgComposeDslParser.extractActionId(props["onConfirm"]),
+                    closeOnClick = props.bool("closeOnConfirm", true),
+                    onAction = onAction,
+                    onClose = dismissHost
+                )
+            }
+        },
+        modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
+        dismissButton = {
+            if (dismissButtonNodes.isNotEmpty()) {
+                renderComposeDslNodes(
+                    nodes = dismissButtonNodes,
+                    onAction = onAction,
+                    nodePath = "$nodePath:dismissButton"
+                )
+            } else {
+                ComposeDslDialogTextButton(
+                    text = props.stringOrNull("dismissText"),
+                    actionId = ToolPkgComposeDslParser.extractActionId(props["onDismiss"]),
+                    closeOnClick = props.bool("closeOnDismiss", true),
+                    onAction = onAction,
+                    onClose = dismissHost
+                )
+            }
+        },
+        icon = iconContent,
+        title = titleContent,
+        text = textContent,
+        shape = props.shapeOrNull() ?: RoundedCornerShape(28.dp),
+        containerColor = props.colorOrNull("containerColor") ?: MaterialTheme.colorScheme.surface,
+        iconContentColor = props.colorOrNull("iconContentColor") ?: MaterialTheme.colorScheme.secondary,
+        titleContentColor = props.colorOrNull("titleContentColor") ?: MaterialTheme.colorScheme.onSurface,
+        textContentColor = props.colorOrNull("textContentColor") ?: MaterialTheme.colorScheme.onSurfaceVariant,
+        tonalElevation = props.dp("tonalElevation", 6.dp),
+        properties = dialogPropertiesFromValue(props["properties"])
     )
+}
+
+@Composable
+private fun ComposeDslDialogTextButton(
+    text: String?,
+    actionId: String?,
+    closeOnClick: Boolean,
+    onAction: (String, Any?) -> Unit,
+    onClose: (() -> Unit)?
+) {
+    if (text.isNullOrBlank()) {
+        return
+    }
+    androidx.compose.material3.TextButton(
+        onClick = {
+            if (!actionId.isNullOrBlank()) {
+                onAction(actionId, null)
+            }
+            if (closeOnClick) {
+                onClose?.invoke()
+            }
+        }
+    ) {
+        Text(text = text)
+    }
+}
+
+@Composable
+internal fun renderComposeDslDialogNode(
+    node: ToolPkgComposeDslNode,
+    onAction: (String, Any?) -> Unit,
+    nodePath: String,
+    modifierResolver: ComposeDslModifierResolver
+) {
+    val props = node.props
+    val dismissHost = LocalComposeDslDialogDismissHandler.current
+    val onDismissRequestActionId =
+        ToolPkgComposeDslParser.extractActionId(props["onDismissRequest"])
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = {
+            if (!onDismissRequestActionId.isNullOrBlank()) {
+                onAction(onDismissRequestActionId, null)
+            }
+            if (props.bool("closeOnDismissRequest", true)) {
+                dismissHost?.invoke()
+            }
+        },
+        properties = dialogPropertiesFromValue(props["properties"])
+    ) {
+        androidx.compose.material3.Surface(
+            modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
+            shape = props.shapeOrNull() ?: RoundedCornerShape(28.dp),
+            color = props.colorOrNull("containerColor") ?: MaterialTheme.colorScheme.surface,
+            tonalElevation = props.dp("tonalElevation", 6.dp)
+        ) {
+            val contentNodes =
+                node.slots["content"]
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: node.children
+            renderComposeDslNodes(
+                nodes = contentNodes,
+                onAction = onAction,
+                nodePath = "$nodePath:content",
+                modifierResolver = { base, slotProps ->
+                    defaultComposeDslModifierResolver(base, slotProps)
+                }
+            )
+        }
+    }
 }
 
 private fun createXmlTagBodyCharStream(
@@ -3761,6 +4469,16 @@ internal fun popupPropertiesFromValue(value: Any?): PopupProperties {
         dismissOnClickOutside = (map["dismissOnClickOutside"] as? Boolean) ?: true,
         clippingEnabled = (map["clippingEnabled"] as? Boolean) ?: true,
         usePlatformDefaultWidth = (map["usePlatformDefaultWidth"] as? Boolean) ?: false
+    )
+}
+
+internal fun dialogPropertiesFromValue(value: Any?): androidx.compose.ui.window.DialogProperties {
+    val map = value as? Map<*, *> ?: return androidx.compose.ui.window.DialogProperties()
+    return androidx.compose.ui.window.DialogProperties(
+        dismissOnBackPress = (map["dismissOnBackPress"] as? Boolean) ?: true,
+        dismissOnClickOutside = (map["dismissOnClickOutside"] as? Boolean) ?: true,
+        usePlatformDefaultWidth = (map["usePlatformDefaultWidth"] as? Boolean) ?: true,
+        decorFitsSystemWindows = (map["decorFitsSystemWindows"] as? Boolean) ?: true
     )
 }
 

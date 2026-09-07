@@ -45,6 +45,13 @@ fun pluginMatchesSearch(
             add(details.displayName)
             add(details.description)
             add(details.version)
+            add(details.apiVersion)
+            details.requires.forEach { requirement ->
+                add(requirement.id)
+                add(requirement.description)
+                add(requirement.minVersion.orEmpty())
+                add(requirement.maxVersion.orEmpty())
+            }
             addAll(details.author)
             details.subpackages.forEach { subpackage ->
                 add(subpackage.packageName)

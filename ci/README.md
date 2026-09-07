@@ -20,8 +20,8 @@ workspace = candidate
 本地检查需要显式指定比较边界。在干净的功能分支上运行：
 
 ```bash
-git fetch upstream development
-BASE_SHA="$(git merge-base upstream/development HEAD)"
+git fetch upstream dev
+BASE_SHA="$(git merge-base upstream/dev HEAD)"
 CANDIDATE_SHA="HEAD"
 
 python3 -B -m unittest discover -s ci/test -p 'test_*.py'
@@ -30,7 +30,7 @@ python3 -B ci/script/check_markdown_links.py --base "$BASE_SHA" --candidate "$CA
 python3 -B ci/script/check_localizations.py --base "$BASE_SHA" --candidate "$CANDIDATE_SHA"
 ```
 
-本地分支不是 GitHub merge candidate，因此本地结果用于提交前检查；PR 页面上的 `Candidate checks` 才验证与当前 `development` 合并后的实际树。
+本地分支不是 GitHub merge candidate，因此本地结果用于提交前检查；PR 页面上的 `Candidate checks` 才验证与当前 `dev` 合并后的实际树。
 
 ## PR check lanes
 

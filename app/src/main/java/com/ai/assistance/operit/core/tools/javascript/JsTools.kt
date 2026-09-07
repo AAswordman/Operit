@@ -1463,7 +1463,7 @@ fun getJsToolsDefinition(): String {
                 }
             },
             // 对话管理工具
-            Chat: {
+            Chat: __operitToolPkgApi.namespace("Tools.Chat", {
                 // 启动对话服务
                 startService: (options = {}) => {
                     const params = {};
@@ -1525,6 +1525,34 @@ fun getJsToolsDefinition(): String {
                     if (options.end !== undefined && options.end !== null && !isNaN(Number(options.end))) params.end = String(options.end);
                     return toolCall("get_chat_messages_range", params);
                 },
+                call: __operitToolPkgApi.method().since("1.0.1", function(options) {
+                        if (!options || typeof options !== 'object' || Array.isArray(options)) {
+                            throw new Error("Tools.Chat.call options is required");
+                        }
+                        if (typeof options.functionType !== 'string' || options.functionType.trim() === "") {
+                            throw new Error("Tools.Chat.call functionType must be a non-empty string");
+                        }
+                        if (!Array.isArray(options.turns)) {
+                            throw new Error("Tools.Chat.call turns must be a PromptTurn array");
+                        }
+                        const params = {
+                            function_type: options.functionType,
+                            turns: JSON.stringify(options.turns)
+                        };
+                        if (options.recordTokenUsage !== undefined) {
+                            if (typeof options.recordTokenUsage !== 'boolean') {
+                                throw new Error("Tools.Chat.call recordTokenUsage must be boolean");
+                            }
+                            params.record_token_usage = options.recordTokenUsage ? "true" : "false";
+                        }
+                        if (options.enableThinking !== undefined) {
+                            if (typeof options.enableThinking !== 'boolean') {
+                                throw new Error("Tools.Chat.call enableThinking must be boolean");
+                            }
+                            params.enable_thinking = options.enableThinking ? "true" : "false";
+                        }
+                        return toolCall("call_chat_model", params);
+                }),
                 // 发送消息给AI
                 sendMessage: (message, chatId, roleCardId, senderName, options = {}) => {
                     const params = { message };
@@ -1559,7 +1587,7 @@ fun getJsToolsDefinition(): String {
                 },
                 // 列出所有角色卡
                 listCharacterCards: () => toolCall("list_character_cards", {})
-            }
+            }),
         };
     """.trimIndent()
 }

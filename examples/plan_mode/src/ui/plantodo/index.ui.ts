@@ -1,7 +1,10 @@
 import type { ComposeDslContext, ComposeNode } from "../../../../types/compose-dsl";
 import { XML_TAG } from "../../shared/plan_mode_constants.js";
 import { resolvePlanModeI18n } from "../../shared/plan_mode_i18n.js";
-import { startPlanImplementation } from "../../shared/plan_mode_execution.js";
+import {
+  isPlanImplementationStarted,
+  startPlanImplementation,
+} from "../../shared/plan_mode_execution.js";
 import { parsePlantodoXml, splitPlanBodyLines } from "../../shared/plan_mode_xml.js";
 
 const PLAN_PREVIEW_LINE_COUNT = 4;
@@ -20,6 +23,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
   const [xmlContent] = ctx.useState("xmlContent", "");
   const submittingState = useStateValue(ctx, "submitting", false);
   const startedState = useStateValue(ctx, "started", false);
+  const startedCheckedState = useStateValue(ctx, "startedChecked", false);
   const closedState = useStateValue(ctx, "closed", false);
   const errorState = useStateValue(ctx, "error", "");
   const expandedState = useStateValue(ctx, "expanded", false);
@@ -268,9 +272,18 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
       key: rootKey,
       fillMaxWidth: true,
       spacing: 12,
-      onLoad: () => {
+      onLoad: async (): Promise<void> => {
         if (parsed.closed && !closedState.value) {
           closedState.set(true);
+        }
+        // This screen is re-created from scratch on every chat view rebuild, so the
+        // handoff has to be re-read from the plugin runtime instead of assumed idle.
+        if (!ready || !planContent || startedState.value || startedCheckedState.value) {
+          return;
+        }
+        startedCheckedState.set(true);
+        if (await isPlanImplementationStarted(planContent)) {
+          startedState.set(true);
         }
       },
     },

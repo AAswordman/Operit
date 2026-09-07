@@ -41,7 +41,7 @@ cd Operit
 git submodule update --init --recursive terminal
 git remote add upstream https://github.com/AAswordman/Operit.git
 git fetch upstream
-git switch -c fix/short-description upstream/development
+git switch -c fix/short-description upstream/dev
 ```
 
 不要提交 `local.properties`、本地密钥、手动下载的模型和二进制依赖。修改 WebChat 或示例包时，先按照编译指南准备根目录和 `web-chat` 的依赖。
@@ -60,8 +60,8 @@ git switch -c fix/short-description upstream/development
 在仓库根目录可以复现主要的快速检查：
 
 ```bash
-git fetch upstream development
-BASE_SHA="$(git merge-base upstream/development HEAD)"
+git fetch upstream dev
+BASE_SHA="$(git merge-base upstream/dev HEAD)"
 CANDIDATE_SHA="HEAD"
 
 python3 -B -m unittest discover -s ci/test -p 'test_*.py'
@@ -96,7 +96,7 @@ python3 ./tools/example_packages/sync_example_packages.py --no-hot-reload
 
 ## 创建 Pull Request
 
-日常开发的上游 PR 默认目标分支是长期集成分支 `development`，不再使用旧的 `pr-branch` 流程；`main` 仅用于稳定发布和由维护者执行的发布同步。`development` 是仓库维护的目标分支，不属于贡献分支命名规则的约束。新建贡献分支必须使用以下前缀加简短描述：
+日常开发的上游 PR 默认目标分支是长期集成分支 `dev`，不再使用旧的 `pr-branch` 流程；`main` 仅用于稳定发布和由维护者执行的发布同步。`dev` 是仓库维护的目标分支，不属于贡献分支命名规则的约束。新建贡献分支必须使用以下前缀加简短描述：
 
 - `feat/`：新功能
 - `fix/`：问题修复
@@ -111,7 +111,7 @@ python3 ./tools/example_packages/sync_example_packages.py --no-hot-reload
 
 ```bash
 git fetch upstream
-git rebase upstream/development
+git rebase upstream/dev
 git push --set-upstream origin fix/short-description
 ```
 
@@ -141,7 +141,7 @@ ci: add localization checks
 
 PR 会进入 [PR Check workflow](../../../.github/workflows/pr-check.yml)，并保留一个 `Candidate checks`
 聚合技术状态；适用时还会显示独立的 `Android build` 和 `Android JVM tests` job。检查运行在
-GitHub 为 PR 与当前 `development` 生成的 merge candidate 上：
+GitHub 为 PR 与当前 `dev` 生成的 merge candidate 上：
 
 - 快速检查：差异空白、冲突标记、JSON/XML/YAML、Actions、本地 Markdown 链接和门禁单元测试
 - 本地化：按 locale 和资源 key 归责类型、重复项、占位符及 locale 配置错误

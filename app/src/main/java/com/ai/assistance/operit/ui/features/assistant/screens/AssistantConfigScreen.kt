@@ -72,10 +72,6 @@ fun AssistantConfigScreen() {
     val voiceAutoAttachItems by wakePrefs.voiceAutoAttachItemsFlow.collectAsState(initial = WakeWordPreferences.getDefaultVoiceAutoAttachItems(context))
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(wakePrefs) {
-        wakePrefs.migrateVoiceAutoAttachItemsIfNeeded()
-    }
-
     val requestMicPermissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()

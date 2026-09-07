@@ -54,4 +54,26 @@ class HotStreamTest {
 
         assertEquals("partial", received.toString())
     }
+
+    @Test
+    fun shareCanRecordUpstreamFailureWithoutFailingObservers() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val expected = IOException("network interrupted")
+        val shared =
+            stream<String> {
+                emit("partial")
+                throw expected
+            }.share(
+                scope = scope,
+                replay = Int.MAX_VALUE,
+                propagateCompletionCause = false,
+            )
+        val received = StringBuilder()
+
+        shared.collect { chunk -> received.append(chunk) }
+
+        assertEquals("partial", received.toString())
+        assertSame(expected, shared.completionCause)
+        scope.cancel()
+    }
 }

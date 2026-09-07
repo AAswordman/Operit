@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "toolpkg_id": "com.operit.message_translation",
+  "version": "0.1.0",
+  "api_version": "1.0.1",
+  "main": "dist/main.js",
+  "display_name": {
+    "zh": "消息翻译",
+    "en": "Message Translation"
+  },
+  "description": {
+    "zh": "在聊天消息长按菜单中加入翻译入口，并通过 ToolPkg Compose DSL 弹窗显示原文与译文。",
+    "en": "Adds a Translate entry to the chat message long-press menu and displays the source text and translation in a ToolPkg Compose DSL dialog."
+  },
+  "enabled_by_default": true,
+  "subpackages": []
+}

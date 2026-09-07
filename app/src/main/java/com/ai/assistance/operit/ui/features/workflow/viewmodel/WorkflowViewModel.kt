@@ -70,15 +70,33 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
     private val _nodeExecutionStates = MutableStateFlow<Map<String, NodeExecutionState>>(emptyMap())
     val nodeExecutionStates: StateFlow<Map<String, NodeExecutionState>> = _nodeExecutionStates.asStateFlow()
     val runningWorkflowIds: StateFlow<Set<String>> = WorkflowRepository.runningWorkflowIds
+
+    private var workflowsLoadRequestId = 0L
+    private var workflowLoadRequestId = 0L
+    private var activeVisibleLoadCount = 0
     
     init {
+        viewModelScope.launch {
+            WorkflowRepository.workflowStorageWarnings.collectLatest { warning ->
+                error = warning
+            }
+        }
+
         loadWorkflows()
         loadToolPkgWorkflowTemplates()
 
         viewModelScope.launch {
             WorkflowRepository.workflowUpdateEvents.collectLatest {
-                loadWorkflows(showLoading = false)
-                currentWorkflow?.id?.let { loadWorkflow(it, showLoading = false) }
+                val workflowsRequestId = nextWorkflowsLoadRequestId()
+                loadWorkflowsInternal(showLoading = false, requestId = workflowsRequestId)
+                currentWorkflow?.id?.let { workflowId ->
+                    val workflowRequestId = nextWorkflowLoadRequestId()
+                    loadWorkflowInternal(
+                        id = workflowId,
+                        showLoading = false,
+                        requestId = workflowRequestId
+                    )
+                }
             }
         }
     }
@@ -96,20 +114,69 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
      * 加载所有工作流
      */
     fun loadWorkflows(showLoading: Boolean = true) {
+        val requestId = nextWorkflowsLoadRequestId()
         viewModelScope.launch {
-            if (showLoading) {
-                isLoading = true
+            loadWorkflowsInternal(showLoading = showLoading, requestId = requestId)
+        }
+    }
+
+    private fun nextWorkflowsLoadRequestId(): Long {
+        workflowsLoadRequestId += 1
+        return workflowsLoadRequestId
+    }
+
+    private fun nextWorkflowLoadRequestId(): Long {
+        workflowLoadRequestId += 1
+        return workflowLoadRequestId
+    }
+
+    private fun beginVisibleLoading(showLoading: Boolean, requestIsCurrent: Boolean): Boolean {
+        if (!showLoading || !requestIsCurrent) {
+            return false
+        }
+
+        activeVisibleLoadCount += 1
+        isLoading = true
+        return true
+    }
+
+    private fun finishVisibleLoading(started: Boolean) {
+        if (!started) {
+            return
+        }
+
+        if (activeVisibleLoadCount > 0) {
+            activeVisibleLoadCount -= 1
+        }
+
+        if (activeVisibleLoadCount == 0) {
+            isLoading = false
+        }
+    }
+
+    private suspend fun loadWorkflowsInternal(showLoading: Boolean, requestId: Long) {
+        val requestIsCurrent = requestId == workflowsLoadRequestId
+        val visibleLoadingStarted = beginVisibleLoading(showLoading, requestIsCurrent)
+
+        try {
+            if (requestIsCurrent) {
+                error = null
             }
-            error = null
-            
+
             repository.getAllWorkflows().fold(
-                onSuccess = { workflows = it },
-                onFailure = { error = it.message ?: app.getString(R.string.workflow_load_failed) }
+                onSuccess = {
+                    if (requestId == workflowsLoadRequestId) {
+                        workflows = it
+                    }
+                },
+                onFailure = {
+                    if (requestId == workflowsLoadRequestId) {
+                        error = it.message ?: app.getString(R.string.workflow_load_failed)
+                    }
+                }
             )
-            
-            if (showLoading) {
-                isLoading = false
-            }
+        } finally {
+            finishVisibleLoading(visibleLoadingStarted)
         }
     }
 
@@ -1003,34 +1070,59 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
      * 根据ID加载工作流
      */
     fun loadWorkflow(id: String, showLoading: Boolean = true) {
+        val requestId = nextWorkflowLoadRequestId()
         viewModelScope.launch {
+            loadWorkflowInternal(id = id, showLoading = showLoading, requestId = requestId)
+        }
+    }
+
+    private suspend fun loadWorkflowInternal(id: String, showLoading: Boolean, requestId: Long) {
+        if (requestId == workflowLoadRequestId) {
             if (showLoading) {
                 isLoading = true
             }
             error = null
-            
-            repository.getWorkflowById(id).fold(
-                onSuccess = {
+        }
+
+        repository.getWorkflowById(id).fold(
+            onSuccess = {
+                if (requestId == workflowLoadRequestId) {
                     currentWorkflow = it
-                    loadLatestExecutionRecordInternal(id)
-                },
-                onFailure = {
+                    if (it == null) {
+                        latestExecutionRecord = null
+                    } else {
+                        loadLatestExecutionRecordInternal(id, requestId)
+                    }
+                }
+            },
+            onFailure = {
+                if (requestId == workflowLoadRequestId) {
+                    currentWorkflow = null
                     latestExecutionRecord = null
                     error = it.message ?: app.getString(R.string.workflow_load_failed)
                 }
-            )
-            
-            if (showLoading) {
-                isLoading = false
             }
+        )
+
+        if (showLoading && requestId == workflowLoadRequestId) {
+            isLoading = false
         }
     }
 
-    private suspend fun loadLatestExecutionRecordInternal(workflowId: String) {
+    private suspend fun loadLatestExecutionRecordInternal(
+        workflowId: String,
+        workflowRequestId: Long? = null
+    ) {
         repository.getLatestExecutionRecord(workflowId).fold(
-            onSuccess = { latestExecutionRecord = it },
+            onSuccess = {
+                if (workflowRequestId == null || workflowRequestId == workflowLoadRequestId) {
+                    latestExecutionRecord = it
+                }
+            },
             onFailure = {
-                latestExecutionRecord = null
+                if (workflowRequestId == null || workflowRequestId == workflowLoadRequestId) {
+                    latestExecutionRecord = null
+                }
             }
         )
     }

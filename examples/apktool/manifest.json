@@ -2,6 +2,7 @@
   "schema_version": 1,
   "toolpkg_id": "com.operit.apk_reverse_toolkit",
   "version": "1.0.3",
+  "api_version": "1.0.0",
   "main": "dist/main.js",
   "display_name": {
     "zh": "APK 逆向工具包",

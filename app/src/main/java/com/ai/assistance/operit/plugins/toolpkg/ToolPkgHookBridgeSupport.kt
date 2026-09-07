@@ -2,9 +2,11 @@ package com.ai.assistance.operit.plugins.toolpkg
 
 import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.LocalizedText
 import com.ai.assistance.operit.core.tools.javascript.JsJavaBridgeDelegates
 import com.ai.assistance.operit.core.tools.javascript.extractJsExecutionErrorMessage
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -54,6 +56,30 @@ internal data class ToolPkgChatViewHookRegistration(
 )
 
 internal data class ToolPkgChatMessageHookRegistration(
+    val containerPackageName: String,
+    val hookId: String,
+    val functionName: String,
+    val functionSource: String? = null
+)
+
+internal data class ToolPkgChatMessageMenuDialogRegistration(
+    val screenPath: String,
+    val title: LocalizedText
+)
+
+internal data class ToolPkgChatMessageMenuItemRegistration(
+    val containerPackageName: String,
+    val itemId: String,
+    val title: LocalizedText,
+    val icon: String? = null,
+    val order: Int = 0,
+    val senders: List<String> = emptyList(),
+    val functionName: String,
+    val functionSource: String? = null,
+    val dialog: ToolPkgChatMessageMenuDialogRegistration? = null
+)
+
+internal data class ToolPkgChatRuntimeHookRegistration(
     val containerPackageName: String,
     val hookId: String,
     val functionName: String,
@@ -139,4 +165,20 @@ internal fun jsonArrayToList(jsonArray: JSONArray): List<Any?> {
 
 internal fun jsonValueToKotlin(value: Any?): Any? {
     return JsJavaBridgeDelegates.decodePlainJsonValue(value)
+}
+
+internal fun <T> Iterable<T>.sortedByToolPkgLoadOrder(
+    activeContainers: List<ToolPkgContainerRuntime>,
+    containerPackageName: (T) -> String,
+    registrationId: (T) -> String
+): List<T> {
+    val loadOrder = activeContainers.mapIndexed { index, container ->
+        container.packageName.lowercase() to index
+    }.toMap()
+    return sortedWith(
+        compareBy<T> { item ->
+            loadOrder[containerPackageName(item).lowercase()] ?: Int.MAX_VALUE
+        }.thenBy { item -> containerPackageName(item).lowercase() }
+            .thenBy(registrationId)
+    )
 }

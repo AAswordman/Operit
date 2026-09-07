@@ -415,11 +415,13 @@ object ToolExecutionManager {
     /**
      * Check if a tool requires permission and verify if it has permission
      *
+     * @param androidContext Android context used to resolve permission error messages
      * @param toolHandler The AIToolHandler instance to use for permission checks
      * @param invocation The tool invocation to check permissions for
      * @return A pair containing (has permission, error result if no permission)
      */
     suspend fun checkToolPermission(
+        androidContext: Context,
         toolHandler: AIToolHandler,
         invocation: ToolInvocation,
         toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
@@ -452,21 +454,22 @@ object ToolExecutionManager {
         if (hasPromptForPermission) {
             // 检查权限，如果需要则弹出权限请求界面
             val toolPermissionSystem = toolHandler.getToolPermissionSystem()
-            val hasPermission = toolPermissionSystem.checkToolPermission(permissionTool)
+            val permissionResult = toolPermissionSystem.checkToolPermission(permissionTool)
 
-            // 如果权限被拒绝，创建错误结果
-            if (!hasPermission) {
+            if (!permissionResult.isGranted) {
+                val errorMessage =
+                    androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
                 val errorResult =
                     ToolResult(
                         toolName = resolvedTarget.displayName,
                         success = false,
                         result = StringResultData(""),
-                        error = "User cancelled the tool execution."
+                        error = errorMessage
                     )
                 toolHandler.notifyToolPermissionChecked(
                     permissionTool,
                     granted = false,
-                    reason = errorResult.error
+                    reason = errorMessage
                 )
                 return Pair(false, errorResult)
             }
@@ -575,7 +578,7 @@ object ToolExecutionManager {
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
                 AIToolHookDecision.Allow -> {
                     val (hasPermission, errorResult) =
-                        checkToolPermission(toolHandler, invocation, toolExposureMode)
+                        checkToolPermission(context, toolHandler, invocation, toolExposureMode)
                     if (hasPermission) {
                         permittedInvocations.add(invocation)
                     } else {

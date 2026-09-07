@@ -64,7 +64,6 @@ class RenderBatchCoordinatorTest {
             BatchNodeUpdater(
                 nodes = nodes,
                 renderNodes = renderNodes,
-                conversionCache = mutableMapOf(),
                 nodeAnimationStates = nodeAnimationStates,
                 xmlNodeStreams = mutableMapOf<Int, Stream<String>>(),
                 rendererId = "tool-xml-test",
@@ -93,7 +92,6 @@ class RenderBatchCoordinatorTest {
             BatchNodeUpdater(
                 nodes = nodes,
                 renderNodes = renderNodes,
-                conversionCache = mutableMapOf(),
                 nodeAnimationStates = mutableStateMapOf(),
                 xmlNodeStreams = mutableMapOf<Int, Stream<String>>(),
                 rendererId = "equal-length-block-test",
@@ -104,7 +102,7 @@ class RenderBatchCoordinatorTest {
         advanceUntilIdle()
 
         nodes[0] = MarkdownNode(MarkdownProcessorType.BLOCK_LATEX, "x")
-        updater.requestStructuralUpdate(0)
+        updater.requestStructuralUpdate()
         advanceUntilIdle()
 
         assertEquals(MarkdownProcessorType.BLOCK_LATEX, renderNodes.single().type)
@@ -120,7 +118,6 @@ class RenderBatchCoordinatorTest {
             BatchNodeUpdater(
                 nodes = nodes,
                 renderNodes = renderNodes,
-                conversionCache = mutableMapOf(),
                 nodeAnimationStates = mutableStateMapOf(),
                 xmlNodeStreams = mutableMapOf<Int, Stream<String>>(),
                 rendererId = "equal-length-child-test",
@@ -131,7 +128,7 @@ class RenderBatchCoordinatorTest {
         advanceUntilIdle()
 
         parent.children[0] = MarkdownNode(MarkdownProcessorType.INLINE_LATEX, "x")
-        updater.requestStructuralUpdate(0)
+        updater.requestStructuralUpdate()
         advanceUntilIdle()
 
         assertEquals(MarkdownProcessorType.INLINE_LATEX, renderNodes.single().children.single().type)

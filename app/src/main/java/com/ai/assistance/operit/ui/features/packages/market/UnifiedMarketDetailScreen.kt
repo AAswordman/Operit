@@ -68,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.api.MarketV2Comment
+import com.ai.assistance.operit.ui.common.icons.rememberRemoteLogoPainter
 import com.ai.assistance.operit.ui.common.displays.MarkdownTextComposable
 import com.ai.assistance.operit.ui.main.LocalTopBarTitleContent
 import com.ai.assistance.operit.ui.main.TopBarTitleContent
@@ -90,6 +92,7 @@ import java.util.TimeZone
 data class UnifiedMarketDetailHeader(
     val title: String,
     val fallbackAvatarText: String,
+    val logoUrl: String? = null,
     val participants: List<UnifiedMarketDetailParticipant> = emptyList(),
     val badges: List<String> = emptyList(),
     val metrics: List<UnifiedMarketDetailMetric> = emptyList(),
@@ -384,8 +387,9 @@ fun UnifiedMarketDetailScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun UnifiedMarketDetailHeaderCard(
-    header: UnifiedMarketDetailHeader
+internal fun UnifiedMarketDetailHeaderCard(
+    header: UnifiedMarketDetailHeader,
+    logoPainter: Painter? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -398,7 +402,9 @@ private fun UnifiedMarketDetailHeaderCard(
         ) {
             UnifiedMarketDetailLeadingIcon(
                 title = header.title,
-                fallbackAvatarText = header.fallbackAvatarText
+                fallbackAvatarText = header.fallbackAvatarText,
+                logoUrl = header.logoUrl,
+                logoPainter = logoPainter
             )
 
             Column(
@@ -526,8 +532,16 @@ private fun UnifiedMarketDetailStickyTabs(
 @Composable
 private fun UnifiedMarketDetailLeadingIcon(
     title: String,
-    fallbackAvatarText: String
+    fallbackAvatarText: String,
+    logoUrl: String?,
+    logoPainter: Painter?
 ) {
+    val remoteLogoPainter =
+        rememberRemoteLogoPainter(
+            logoUrl = logoUrl.takeIf { logoPainter == null },
+            size = 76.dp
+        )
+    val resolvedLogoPainter = logoPainter ?: remoteLogoPainter
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
@@ -536,12 +550,21 @@ private fun UnifiedMarketDetailLeadingIcon(
             modifier = Modifier.size(76.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = fallbackAvatarText.ifBlank { marketDetailInitial(title) },
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            if (resolvedLogoPainter != null) {
+                Image(
+                    painter = resolvedLogoPainter,
+                    contentDescription = title,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(64.dp)
+                )
+            } else {
+                Text(
+                    text = fallbackAvatarText.ifBlank { marketDetailInitial(title) },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
         }
     }
 }

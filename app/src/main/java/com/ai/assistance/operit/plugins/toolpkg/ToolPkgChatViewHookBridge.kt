@@ -86,11 +86,10 @@ internal object ToolPkgChatViewHookBridge : ChatViewHookPlugin {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgChatViewHookRegistration::containerPackageName,
-                    ToolPkgChatViewHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgChatViewHookRegistration::containerPackageName,
+                registrationId = ToolPkgChatViewHookRegistration::hookId
             )
         hooks = nextHooks
 

@@ -6,6 +6,7 @@
  */
 
 import { BaseResult } from './core';
+import type { ToolPkg } from './toolpkg';
 
 // ============================================================================
 // Calculation and Date Result Types
@@ -1682,6 +1683,31 @@ export interface ChatMessagesResultData {
     messages: ChatMessageInfo[];
     start?: number;
     end?: number;
+    toString(): string;
+}
+
+/**
+ * Function model call finish reason.
+ *
+ * @since ToolPkg API 1.0.1
+ */
+export type ChatCallFinishReason = 'stop' | 'tool_call';
+
+/**
+ * Function model call result data.
+ *
+ * `text` contains assistant text with protocol metadata and tool XML removed.
+ * `turns` preserves assistant text and model-emitted tool calls as PromptTurn-shaped records.
+ * `metadata.protocolMeta` contains provider protocol entries with `provider` and raw `payload`.
+ *
+ * @since ToolPkg API 1.0.1
+ */
+export interface ChatCallResultData {
+    text: string;
+    turns: ToolPkg.PromptTurn[];
+    finishReason: ChatCallFinishReason;
+    metadata: ToolPkg.JsonObject;
+    receivedAt: number;
     toString(): string;
 }
 

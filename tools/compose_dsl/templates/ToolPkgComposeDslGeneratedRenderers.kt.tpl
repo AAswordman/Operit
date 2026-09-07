@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -170,6 +171,17 @@ private fun ToolPkgComposeDslNode.slotChildren(
         return slotNodes
     }
     return if (fallbackToChildren) children else emptyList()
+}
+
+private fun ToolPkgComposeDslNode.lazyItemRenderKey(
+    parentNodePath: String,
+    index: Int
+): String {
+    val explicitKey = props["key"]?.toString()?.trim()?.ifBlank { null }
+    if (explicitKey != null) {
+        return "$parentNodePath:key:$explicitKey"
+    }
+    return "$parentNodePath/$index:${normalizeToken(type)}"
 }
 
 @Composable

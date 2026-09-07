@@ -222,16 +222,13 @@
 
 ## Star History
 
-<div align="center">
-  <a href="https://www.star-history.com/?repos=AAswordman%2FOperit&amp;type=date&amp;legend=top-left">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=AAswordman/Operit&amp;type=date&amp;theme=dark&amp;legend=top-left&amp;sealed_token=x2g4HD_vqrg9vWOmPW-1NFSSSJK2LImmWpVQBambbxIE2pHqGHAzid1rnimOClPo9Xjg6oLM4771kAIr_JgdboIOqdJuFVSozXRgW2w2HOOSCBtWbL1w9w">
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=AAswordman/Operit&amp;type=date&amp;legend=top-left&amp;sealed_token=x2g4HD_vqrg9vWOmPW-1NFSSSJK2LImmWpVQBambbxIE2pHqGHAzid1rnimOClPo9Xjg6oLM4771kAIr_JgdboIOqdJuFVSozXRgW2w2HOOSCBtWbL1w9w">
-      <img alt="Star 历史图" src="https://api.star-history.com/chart?repos=AAswordman/Operit&amp;type=date&amp;legend=top-left&amp;sealed_token=x2g4HD_vqrg9vWOmPW-1NFSSSJK2LImmWpVQBambbxIE2pHqGHAzid1rnimOClPo9Xjg6oLM4771kAIr_JgdboIOqdJuFVSozXRgW2w2HOOSCBtWbL1w9w">
-    </picture>
-  </a>
-</div>
-
+<a href="https://www.star-history.com/?repos=AAswordman%2FOperit&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=AAswordman/Operit&type=date&theme=dark&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=AAswordman/Operit&type=date&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=AAswordman/Operit&type=date&legend=top-left&sealed_token=CtZ-YNyNp2_W0AUVXHyAzBNeMlpGVkDx0RjuJPYdalj2Kvy7HkPBhb-uzKQ8t8jbMDGjRvnjHo7Fi-FtGIv-NaS0gqafGHDjgoGufAgx8yXt3gi8f4vV3aP8KskKramok4_vcKfo8Ii4AohtLRdX13mCJz0ABDqwtmec2SoK0j1kLuPyLz6oH3k4lhY4" />
+ </picture>
+</a>
 ---
 
 <div align="center">

@@ -33,10 +33,32 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PLAN_MODE_START_IMPLEMENTATION_IPC_CHANNEL = void 0;
+exports.PLAN_MODE_IS_PLAN_STARTED_IPC_CHANNEL = exports.PLAN_MODE_START_IMPLEMENTATION_IPC_CHANNEL = void 0;
+exports.isPlanImplementationStarted = isPlanImplementationStarted;
 exports.startPlanImplementation = startPlanImplementation;
 const planModeI18n = __importStar(require("./plan_mode_i18n.js"));
 exports.PLAN_MODE_START_IMPLEMENTATION_IPC_CHANNEL = "plan_mode.start_implementation";
+exports.PLAN_MODE_IS_PLAN_STARTED_IPC_CHANNEL = "plan_mode.is_plan_started";
+/**
+ * Renderer state is rebuilt from scratch whenever the chat view is recreated, so the
+ * plan card asks the plugin runtime whether this exact plan was already handed off.
+ */
+async function isPlanImplementationStarted(planContent) {
+    const normalizedPlanContent = planContent.trim();
+    if (!normalizedPlanContent) {
+        return false;
+    }
+    try {
+        return await ToolPkg.ipc.call(exports.PLAN_MODE_IS_PLAN_STARTED_IPC_CHANNEL, normalizedPlanContent);
+    }
+    catch (error) {
+        const errorText = error instanceof Error
+            ? error.message || "error"
+            : (typeof error === "string" || error == null ? error || "error" : "error");
+        console.error(`[plan_mode_execution] isPlanImplementationStarted failed: channel=${exports.PLAN_MODE_IS_PLAN_STARTED_IPC_CHANNEL}, planLength=${normalizedPlanContent.length}, error=${errorText}`);
+        return false;
+    }
+}
 async function startPlanImplementation(planContent) {
     const text = planModeI18n.resolvePlanModeI18n();
     const normalizedPlanContent = planContent.trim();

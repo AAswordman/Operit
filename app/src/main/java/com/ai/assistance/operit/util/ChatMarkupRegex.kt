@@ -6,6 +6,7 @@ object ChatMarkupRegex {
     private const val TOOL_TAG_SUFFIX_REGEX_SOURCE = "[A-Za-z0-9_]+"
     private const val GEMINI_THOUGHT_SIGNATURE_PROVIDER = "gemini:thought_signature"
     private const val OPENAI_RESPONSES_REASONING_PROVIDER = "openai:responses_reasoning"
+    private const val OPENAI_RESPONSES_OUTPUT_ITEM_PROVIDER = "openai:responses_output_item"
     const val TOOL_TAG_NAME_REGEX_SOURCE =
         "tool(?:_(?!result(?:_|\\b))$TOOL_TAG_SUFFIX_REGEX_SOURCE)?"
     const val TOOL_RESULT_TAG_NAME_REGEX_SOURCE = "tool_result(?:_${TOOL_TAG_SUFFIX_REGEX_SOURCE})?"
@@ -242,6 +243,10 @@ object ChatMarkupRegex {
         return """<meta provider="$OPENAI_RESPONSES_REASONING_PROVIDER">$payloadBase64</meta>"""
     }
 
+    fun openAiResponsesOutputItemMetaTag(payloadBase64: String): String {
+        return """<meta provider="$OPENAI_RESPONSES_OUTPUT_ITEM_PROVIDER">$payloadBase64</meta>"""
+    }
+
     fun extractGeminiThoughtSignature(content: String): String? {
         return metaTag.findAll(content)
             .mapNotNull { match ->
@@ -260,11 +265,19 @@ object ChatMarkupRegex {
     }
 
     fun extractOpenAiResponsesReasoningPayloads(content: String): List<String> {
+        return extractMetaPayloads(content, OPENAI_RESPONSES_REASONING_PROVIDER)
+    }
+
+    fun extractOpenAiResponsesOutputItemPayloads(content: String): List<String> {
+        return extractMetaPayloads(content, OPENAI_RESPONSES_OUTPUT_ITEM_PROVIDER)
+    }
+
+    private fun extractMetaPayloads(content: String, expectedProvider: String): List<String> {
         return metaTag.findAll(content)
             .mapNotNull { match ->
                 val tagContent = match.value
                 val provider = extractMetaProvider(tagContent)
-                if (!provider.equals(OPENAI_RESPONSES_REASONING_PROVIDER, ignoreCase = true)) {
+                if (!provider.equals(expectedProvider, ignoreCase = true)) {
                     return@mapNotNull null
                 }
                 metaBodyRegex.find(tagContent)
@@ -277,24 +290,26 @@ object ChatMarkupRegex {
     }
 
     fun removeGeminiThoughtSignatureMeta(content: String): String {
-        var removed = false
-        val result = metaTag.replace(content) { match ->
-            val provider = extractMetaProvider(match.value)
-            if (provider.equals(GEMINI_THOUGHT_SIGNATURE_PROVIDER, ignoreCase = true)) {
-                removed = true
-                ""
-            } else {
-                match.value
-            }
-        }
-        return if (removed) result.trimEnd() else result
+        return removeMetaByProvider(content, GEMINI_THOUGHT_SIGNATURE_PROVIDER)
     }
 
     fun removeOpenAiResponsesReasoningMeta(content: String): String {
+        return removeMetaByProvider(content, OPENAI_RESPONSES_REASONING_PROVIDER)
+    }
+
+    fun removeOpenAiResponsesOutputItemMeta(content: String): String {
+        return removeMetaByProvider(content, OPENAI_RESPONSES_OUTPUT_ITEM_PROVIDER)
+    }
+
+    fun removeOpenAiResponsesProtocolMeta(content: String): String {
+        return removeOpenAiResponsesOutputItemMeta(removeOpenAiResponsesReasoningMeta(content))
+    }
+
+    private fun removeMetaByProvider(content: String, expectedProvider: String): String {
         var removed = false
         val result = metaTag.replace(content) { match ->
             val provider = extractMetaProvider(match.value)
-            if (provider.equals(OPENAI_RESPONSES_REASONING_PROVIDER, ignoreCase = true)) {
+            if (provider.equals(expectedProvider, ignoreCase = true)) {
                 removed = true
                 ""
             } else {

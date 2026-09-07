@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlanModeShared = exports.PLAN_MODE_REMOVE_TRACKED_CHAT_VIEW_IPC_CHANNEL = exports.PLAN_MODE_UPSERT_TRACKED_CHAT_VIEW_IPC_CHANNEL = exports.PLAN_MODE_WRITE_PLAN_FILE_IPC_CHANNEL = exports.PLAN_MODE_HAS_PLAN_FILE_IPC_CHANNEL = exports.PLAN_MODE_RESOLVE_WORKSPACE_IPC_CHANNEL = exports.PLAN_MODE_DISABLE_IPC_CHANNEL = exports.PLAN_MODE_ENABLE_IPC_CHANNEL = exports.PLAN_MODE_IS_ENABLED_IPC_CHANNEL = exports.PLAN_MODE_GET_SINGLE_ACTIVE_CHAT_VIEW_IPC_CHANNEL = void 0;
+exports.PlanModeShared = exports.PLAN_MODE_REMOVE_TRACKED_CHAT_VIEW_IPC_CHANNEL = exports.PLAN_MODE_UPSERT_TRACKED_CHAT_VIEW_IPC_CHANNEL = exports.PLAN_MODE_FORGET_PLAN_START_IPC_CHANNEL = exports.PLAN_MODE_CLAIM_PLAN_START_IPC_CHANNEL = exports.PLAN_MODE_IS_PLAN_STARTED_SHARED_IPC_CHANNEL = exports.PLAN_MODE_WRITE_PLAN_FILE_IPC_CHANNEL = exports.PLAN_MODE_HAS_PLAN_FILE_IPC_CHANNEL = exports.PLAN_MODE_RESOLVE_WORKSPACE_IPC_CHANNEL = exports.PLAN_MODE_DISABLE_IPC_CHANNEL = exports.PLAN_MODE_ENABLE_IPC_CHANNEL = exports.PLAN_MODE_IS_ENABLED_IPC_CHANNEL = exports.PLAN_MODE_GET_SINGLE_ACTIVE_CHAT_VIEW_IPC_CHANNEL = void 0;
 exports.registerSharedMethods = registerSharedMethods;
 const plan_mode_mode_js_1 = require("./plan_mode_mode.js");
 const plan_mode_plan_file_js_1 = require("./plan_mode_plan_file.js");
@@ -55,6 +55,9 @@ exports.PLAN_MODE_DISABLE_IPC_CHANNEL = "plan_mode.disable";
 exports.PLAN_MODE_RESOLVE_WORKSPACE_IPC_CHANNEL = "plan_mode.resolve_workspace";
 exports.PLAN_MODE_HAS_PLAN_FILE_IPC_CHANNEL = "plan_mode.has_plan_file";
 exports.PLAN_MODE_WRITE_PLAN_FILE_IPC_CHANNEL = "plan_mode.write_plan_file";
+exports.PLAN_MODE_IS_PLAN_STARTED_SHARED_IPC_CHANNEL = "plan_mode.shared_is_plan_started";
+exports.PLAN_MODE_CLAIM_PLAN_START_IPC_CHANNEL = "plan_mode.claim_plan_start";
+exports.PLAN_MODE_FORGET_PLAN_START_IPC_CHANNEL = "plan_mode.forget_plan_start";
 exports.PLAN_MODE_UPSERT_TRACKED_CHAT_VIEW_IPC_CHANNEL = "plan_mode.upsert_tracked_chat_view";
 exports.PLAN_MODE_REMOVE_TRACKED_CHAT_VIEW_IPC_CHANNEL = "plan_mode.remove_tracked_chat_view";
 class PlanModeShared {
@@ -78,6 +81,43 @@ class PlanModeShared {
     }
     static async writePlanFile(chatId, content) {
         return await (0, plan_mode_plan_file_js_1.writePlanFile)(chatId, content);
+    }
+    /**
+     * A plan counts as started once this session handed it off, or once the workspace plan
+     * file still holds exactly this plan because an earlier session started it.
+     */
+    static async isPlanStarted(planContent) {
+        const planKey = (0, plan_mode_plan_file_js_1.normalizePlanText)(planContent);
+        if (!planKey) {
+            return false;
+        }
+        if ((0, plan_mode_state_js_1.isPlanStartRecorded)(planKey)) {
+            return true;
+        }
+        const view = (0, plan_mode_state_js_1.readSingleActiveChatView)();
+        if (!view) {
+            return false;
+        }
+        return await (0, plan_mode_plan_file_js_1.planFileMatchesContent)(view.chatId, planKey);
+    }
+    static async claimPlanStart(planContent) {
+        const planKey = (0, plan_mode_plan_file_js_1.normalizePlanText)(planContent);
+        if (!planKey) {
+            return false;
+        }
+        if ((0, plan_mode_state_js_1.isPlanStartRecorded)(planKey)) {
+            return false;
+        }
+        // Record before awaiting so a second tap cannot slip through the same check.
+        (0, plan_mode_state_js_1.recordPlanStart)(planKey);
+        const view = (0, plan_mode_state_js_1.readSingleActiveChatView)();
+        if (view && (await (0, plan_mode_plan_file_js_1.planFileMatchesContent)(view.chatId, planKey))) {
+            return false;
+        }
+        return true;
+    }
+    static async forgetPlanStart(planContent) {
+        (0, plan_mode_state_js_1.forgetPlanStart)((0, plan_mode_plan_file_js_1.normalizePlanText)(planContent));
     }
     static async upsertTrackedChatView(view) {
         await (0, plan_mode_state_js_1.upsertTrackedChatViewAsync)(view);
@@ -129,6 +169,24 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], PlanModeShared, "writePlanFile", null);
+__decorate([
+    Shared(exports.PLAN_MODE_IS_PLAN_STARTED_SHARED_IPC_CHANNEL),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PlanModeShared, "isPlanStarted", null);
+__decorate([
+    Shared(exports.PLAN_MODE_CLAIM_PLAN_START_IPC_CHANNEL),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PlanModeShared, "claimPlanStart", null);
+__decorate([
+    Shared(exports.PLAN_MODE_FORGET_PLAN_START_IPC_CHANNEL),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PlanModeShared, "forgetPlanStart", null);
 __decorate([
     Shared(exports.PLAN_MODE_UPSERT_TRACKED_CHAT_VIEW_IPC_CHANNEL),
     __metadata("design:type", Function),

@@ -2,6 +2,39 @@
 
 `toolpkg.d.ts` 描述的是工具包插件注册系统。它的核心目标不是“调用工具”，而是**向宿主注册模块、钩子和插件**，让一个 tool package 可以在应用生命周期、消息处理、XML 渲染、输入菜单和提示词流水线中插入自己的行为。
 
+## ToolPkg API 版本
+
+ToolPkg manifest 可以使用 `api_version` 声明包依赖的宿主 API 版本。该字段严格使用 `major.minor.patch` 格式；历史包省略该字段时按 `1.0.0` 解释。
+
+`1.12.1+4` 之前的 Operit 只支持 `1.0.0`，`1.12.1+4` 及之后支持 `1.0.0` 和 `1.0.1`。使用较新 API 的包应在 manifest 中声明对应版本，这样宿主可以在包加载阶段明确提示版本不匹配。
+
+`1.0.1` 包含 `1.12.1+4` 之后新增的 ToolPkg 公开能力，目前包括聊天运行态 Hook、消息长按菜单注册、Compose DSL 弹窗组件和 `Tools.Chat.call` 功能模型调用。
+
+`examples/types/toolpkg.d.ts` 保持一份最新版声明，并用 `@since ToolPkg API x.y.z` 标注公开能力的引入版本。使用这些能力时，manifest 的 `api_version` 需要不低于对应版本。
+
+发布到市场时，市场版本信息会记录 manifest 中的 `api_version`。市场列表、详情和历史版本也会展示这个值；它与包自身的 `version` 以及归档格式的 `formatVer` 是不同的字段。对于缺失或空白的 `apiVersion`，按旧规范的 `1.0.0` 解释。
+
+manifest 还可以声明：
+
+- `requires`：manifest 的包依赖声明，不属于 ToolPkg JavaScript API。启用本包时必须加载的依赖对象列表。每项包含依赖包 ID、用途说明和可选的目标包版本范围；依赖包会先于本包加载。
+
+启用包时，`requires` 中的依赖会一并加入启用集合；已经被其他已启用 ToolPkg 依赖的包不能直接关闭。依赖关系有误时，宿主会在包加载错误中给出具体包名。
+
+```json
+"requires": [
+  {
+    "id": "com.example.shared",
+    "description": "提供共享运行能力",
+    "min_version": "1.2.0",
+    "max_version": "2.0.0"
+  }
+]
+```
+
+`min_version` 和 `max_version` 可以省略；它们约束的是目标包自己的 `version`，不是 ToolPkg API 版本。
+
+插件列表支持拖动排序。这个顺序作为没有 manifest 顺序约束时的基础顺序，manifest 中的依赖关系会优先形成最终加载顺序。
+
 ## 作用
 
 当前类型定义覆盖：
@@ -13,6 +46,8 @@
 - 输入菜单开关插件。
 - AI 聊天输入框监听和提交 Hook。
 - 聊天消息持久化通知 Hook。
+- 聊天消息长按菜单注册。
+- 聊天运行态变化通知 Hook。
 - 工具执行生命周期钩子。
 - Prompt 输入、历史、系统提示词、工具提示词、最终发送前的各类钩子。
 - 摘要生成阶段的各类钩子。
@@ -52,6 +87,8 @@ ToolPkg.registerMessageProcessingPlugin(...)
 - `registerToolPkgInputMenuTogglePlugin(...)`
 - `registerToolPkgChatInputHook(...)`
 - `registerToolPkgChatMessageHook(...)`
+- `registerToolPkgChatMessageMenuItem(...)`
+- `registerToolPkgChatRuntimeHook(...)`
 - `registerToolPkgToolLifecycleHook(...)`
 - `registerToolPkgPromptInputHook(...)`
 - `registerToolPkgPromptHistoryHook(...)`
@@ -104,6 +141,7 @@ type LocalizedText = string | { [lang: string]: string }
 - `input_menu_toggle`
 - 聊天输入框事件
 - 聊天消息持久化事件
+- 聊天消息长按菜单点击事件
 - 工具生命周期事件
 - Prompt 输入 / 历史 / 系统提示词 / 工具提示词 / 最终发送事件
 - 摘要生成事件
@@ -124,7 +162,7 @@ type PromptTurnKind =
 interface PromptTurn {
   kind: PromptTurnKind
   content: string
-  toolName?: string
+  toolName?: string | null
   metadata?: JsonObject
 }
 ```
@@ -133,6 +171,7 @@ interface PromptTurn {
 
 - 这里不再使用旧的 `{ role, content }` 结构。
 - `message_processing` 插件收到的 `chatHistory` 也是 `PromptTurn[]`。
+- `Tools.Chat.call` 使用同一套 `PromptTurn[]` 作为功能模型调用上下文。
 - 如果你要复用旧的 role 语义，需要自己把 `kind` 映射成对应角色。
 
 ### 工具生命周期事件：`ToolLifecycleEventName`
@@ -367,7 +406,7 @@ interface PromptTurn {
 
 `composeDsl` 结构里可以返回：
 
-- `screen: ComposeDslScreen`
+- `screen: ComposeDslScreenRef`
 - `state?`
 - `memo?`
 - `moduleSpec?`
@@ -408,6 +447,10 @@ interface PromptTurn {
 
 `message_persisted` 的返回值会被忽略。
 
+### 聊天消息长按菜单返回
+
+`chat_message_menu_item_click` 可返回 `{ dialog: { state?, moduleSpec?, title? } }`。如果注册项声明了 `dialog.screen`，宿主会打开对应 Compose DSL 弹窗，并把当前 `chatId`、`messageIndex`、`menuItemId` 和消息快照写入弹窗初始 `state`。
+
 ### Prompt 相关返回
 
 - `PromptInputHookReturn`
@@ -433,7 +476,7 @@ interface PromptTurn {
 
 - `id`
 - `runtime?`
-- `screen: ComposeDslScreen`
+- `screen: ComposeDslScreenRef`
 - `params?`
 - `title?`
 
@@ -481,6 +524,27 @@ interface PromptTurn {
 - `id`
 - `function`
 
+### `ChatMessageMenuItemRegistration`
+
+字段：
+
+- `id`
+- `title`
+- `icon?`
+- `order?`
+- `senders?`
+- `dialog?`
+- `function`
+
+`dialog.screen` 可以是 Compose DSL screen 引用，也可以是包内资源路径字符串。使用该注册项时，manifest 需要声明 `"api_version": "1.0.1"`。
+
+### `ChatRuntimeHookRegistration`
+
+字段：
+
+- `id`
+- `function`
+
 ### 其余注册对象
 
 以下注册对象结构都很简单，字段都是：`id` + `function`：
@@ -509,6 +573,8 @@ interface PromptTurn {
 - `registerInputMenuTogglePlugin(definition)`
 - `registerChatInputHook(definition)`
 - `registerChatMessageHook(definition)`
+- `registerChatMessageMenuItem(definition)`
+- `registerChatRuntimeHook(definition)`
 - `registerToolLifecycleHook(definition)`
 - `registerPromptInputHook(definition)`
 - `registerPromptHistoryHook(definition)`
@@ -535,6 +601,26 @@ const jarPath = await ToolPkg.readResource('apktool_lib_jar', 'apktool-lib.jar')
 - `outputFileName` 可选；不传时会使用清单资源原始文件名。
 - 如果资源 `mime` 是目录类型（例如 `inode/directory`、`vnd.android.document/directory`），运行时会先把该目录压成 zip，再返回这个 zip 文件的绝对路径；默认文件名会自动补 `.zip`。
 - `registerToolPkg()` 执行期间不可调用；调用会立即抛出异常。
+
+## ToolPkg Logo
+
+ToolPkg 可以把包 Logo 作为普通资源随归档分发。`logo` 填写资源 key，资源
+必须是文件，支持 SVG、PNG、JPEG 和 WebP：
+
+```json
+{
+  "logo": "package_logo",
+  "resources": [
+    {
+      "key": "package_logo",
+      "path": "resources/logo.svg",
+      "mime": "image/svg+xml"
+    }
+  ]
+}
+```
+
+没有 `logo` 字段的旧包继续使用默认图标。市场条目可以展示该资源对应的 Logo。
 
 ## AssemblyScript WASM 模块
 
@@ -787,6 +873,66 @@ ToolPkg.registerChatMessageHook({
 });
 ```
 
+### 注册聊天消息长按菜单
+
+消息长按菜单从 ToolPkg API `1.0.1` 开始可用。manifest 需要声明 `"api_version": "1.0.1"`。
+
+```ts
+ToolPkg.registerChatMessageMenuItem({
+  id: 'demo_translate_message',
+  title: {
+    zh: '翻译',
+    en: 'Translate'
+  },
+  icon: 'translate',
+  order: 20,
+  senders: ['user', 'ai'],
+  dialog: {
+    screen: 'dist/ui/translate_dialog.ui.js',
+    title: {
+      zh: '翻译消息',
+      en: 'Translate Message'
+    }
+  },
+  function(event) {
+    return {
+      dialog: {
+        state: {
+          message: event.eventPayload.message
+        }
+      }
+    };
+  }
+});
+```
+
+弹窗 UI 文件可以直接返回 `ctx.UI.AlertDialog(...)` 或 `ctx.UI.Dialog(...)`。宿主会把 `chatId`、`messageIndex`、`menuItemId` 和 `message` 写入 DSL 初始 state。界面语言请通过 `getLang()` 读取。
+
+### 注册聊天运行态 Hook
+
+聊天运行态 Hook 从 ToolPkg API `1.0.1` 开始可用。manifest 需要声明 `"api_version": "1.0.1"`。它会在宿主聊天运行状态变化时触发，事件名当前为 `state_changed`。
+
+```ts
+ToolPkg.registerChatRuntimeHook({
+  id: 'demo_chat_runtime',
+  function(event) {
+    if (event.eventName !== 'state_changed') {
+      return;
+    }
+
+    const state = event.eventPayload;
+    console.log('chat runtime:', {
+      chatId: state.chatId,
+      slot: state.slot,
+      state: state.state,
+      toolName: state.toolName,
+      progress: state.progress,
+      isActive: state.isActive
+    });
+  }
+});
+```
+
 ### 注册摘要生成 Hook
 
 ```ts
@@ -812,11 +958,9 @@ ToolPkg.registerSummaryGenerateHook({
 
 ## 关于 `registerToolPkg()` 入口
 
-从 `examples/linux_ssh/src/main.ts` 与 `examples/deepsearching/src/plugin/deep-search-plugin.ts` 可以看出，工具包通常会在入口文件中导出一个 `registerToolPkg()` 函数，并在里面集中调用上述注册方法。
+工具包应在 manifest 的 `main` 入口文件中导出 `registerToolPkg()` 函数，并在里面集中调用上述注册方法。
 
-这是一种**从仓库示例总结出的约定**；它不是 `toolpkg.d.ts` 本身直接声明的函数签名。
-
-包管理器会在独立的临时 QuickJS 引擎中执行每个工具包的 `registerToolPkg()`，单包最长执行 12 秒。该入口只应用于声明注册项，不应启动常驻定时器、无限循环或等待长期任务。`ToolPkg.readResource(...)` 与 `ToolPkg.wasm.call(...)` 在此阶段会立即抛出异常。注册结束后临时引擎会被销毁，工具调用与 UI hook 在各自的运行时 context 中执行，因此不要依赖注册阶段留下的 JavaScript 全局状态。
+`registerToolPkg()` 只应用于声明注册项，不应启动常驻定时器、无限循环或等待长期任务。该入口有 12 秒执行上限。`ToolPkg.readResource(...)` 与 `ToolPkg.wasm.call(...)` 不能在注册阶段使用。注册阶段的 JavaScript 全局状态不会作为后续工具调用或 UI hook 的持久状态。
 
 ## 开发调试安装
 
@@ -825,10 +969,10 @@ ToolPkg.registerSummaryGenerateHook({
 如果你在开发 ToolPkg，需要注意：
 
 - 普通 `.js` 包可以用 `tools/adb/execute_js.bat` / `tools/adb/execute_js.sh` 做单次执行调试
-- `toolpkg` 不适合这样调试，因为它涉及 `manifest`、`main` 注册、ToolPkg cache、以及多类 hook/runtime 的重新同步
+- `toolpkg` 不适合这样调试，因为它需要读取 manifest、执行 `main` 注册入口，并重新安装注册信息
 - 调试 ToolPkg 时，应使用 `tools/toolpkg/debug_toolpkg.bat` / `tools/toolpkg/debug_toolpkg.sh` / `tools/toolpkg/debug_toolpkg.py`
 
-完整的打包、烧录、启用、刷新 hook/runtime 的工作流说明，见 [TOOLPKG_FORMAT_GUIDE.md](../../TOOLPKG_FORMAT_GUIDE.md) 中的“10.3 使用调试安装脚本快速烧录到手机”。
+完整的打包、烧录、启用和刷新流程，见 [TOOLPKG_FORMAT_GUIDE.md](../../TOOLPKG_FORMAT_GUIDE.md) 中的“10.3 使用调试安装脚本快速烧录到手机”。
 
 ## 相关文件
 

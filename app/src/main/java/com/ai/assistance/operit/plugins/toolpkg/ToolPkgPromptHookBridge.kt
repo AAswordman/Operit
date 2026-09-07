@@ -254,11 +254,10 @@ internal object ToolPkgPromptHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgPromptHookRegistration::containerPackageName,
-                    ToolPkgPromptHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgPromptHookRegistration::containerPackageName,
+                registrationId = ToolPkgPromptHookRegistration::hookId
             )
 
         promptHistoryHooks =
@@ -271,11 +270,10 @@ internal object ToolPkgPromptHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgPromptHookRegistration::containerPackageName,
-                    ToolPkgPromptHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgPromptHookRegistration::containerPackageName,
+                registrationId = ToolPkgPromptHookRegistration::hookId
             )
 
         promptEstimateHistoryHooks =
@@ -288,11 +286,10 @@ internal object ToolPkgPromptHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgPromptHookRegistration::containerPackageName,
-                    ToolPkgPromptHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgPromptHookRegistration::containerPackageName,
+                registrationId = ToolPkgPromptHookRegistration::hookId
             )
 
         systemPromptComposeHooks =
@@ -305,11 +302,10 @@ internal object ToolPkgPromptHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgPromptHookRegistration::containerPackageName,
-                    ToolPkgPromptHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgPromptHookRegistration::containerPackageName,
+                registrationId = ToolPkgPromptHookRegistration::hookId
             )
 
         toolPromptComposeHooks =
@@ -322,11 +318,10 @@ internal object ToolPkgPromptHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgPromptHookRegistration::containerPackageName,
-                    ToolPkgPromptHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgPromptHookRegistration::containerPackageName,
+                registrationId = ToolPkgPromptHookRegistration::hookId
             )
 
         promptFinalizeHooks =
@@ -339,11 +334,10 @@ internal object ToolPkgPromptHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgPromptHookRegistration::containerPackageName,
-                    ToolPkgPromptHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgPromptHookRegistration::containerPackageName,
+                registrationId = ToolPkgPromptHookRegistration::hookId
             )
 
         promptEstimateFinalizeHooks =
@@ -356,11 +350,10 @@ internal object ToolPkgPromptHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgPromptHookRegistration::containerPackageName,
-                    ToolPkgPromptHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgPromptHookRegistration::containerPackageName,
+                registrationId = ToolPkgPromptHookRegistration::hookId
             )
     }
 

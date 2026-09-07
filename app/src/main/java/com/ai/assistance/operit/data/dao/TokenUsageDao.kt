@@ -118,6 +118,19 @@ abstract class TokenUsageDao {
 
     @Query(
         """
+        SELECT MIN(occurredAtMs)
+        FROM token_usage_records
+        WHERE occurredAtMs IS NOT NULL
+            AND (:allModels OR (provider || ':' || model) IN (:providerModels))
+        """
+    )
+    abstract suspend fun getEarliestOccurredAtMs(
+        providerModels: List<String>,
+        allModels: Boolean,
+    ): Long?
+
+    @Query(
+        """
         SELECT
             provider AS provider,
             model AS model,

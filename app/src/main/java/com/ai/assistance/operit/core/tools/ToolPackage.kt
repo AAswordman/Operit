@@ -332,7 +332,8 @@ data class ToolPackage(
     val displayName: LocalizedText = LocalizedText.of(""),
     val category: String = "Other",
     @Serializable(with = StringOrStringListSerializer::class)
-    val author: List<String> = emptyList()
+    val author: List<String> = emptyList(),
+    val version: String = ""
 )
  
  @Serializable

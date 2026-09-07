@@ -265,7 +265,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
 
     val featureStates by actualViewModel.featureToggles.collectAsState()
     val enableThinkingMode by actualViewModel.enableThinkingMode.collectAsState() // 收集思考模式状态
-    val thinkingQualityLevel by actualViewModel.thinkingQualityLevel.collectAsState()
+    val thinkingOptionId by actualViewModel.thinkingOptionId.collectAsState()
     val enableMemoryAutoUpdate by actualViewModel.enableMemoryAutoUpdate.collectAsState()
     val enableMaxContextMode by actualViewModel.enableMaxContextMode.collectAsState()
     val enableTools by actualViewModel.enableTools.collectAsState()
@@ -1013,9 +1013,9 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                     onSetPermissionLevel = actualViewModel::setMasterPermissionLevel,
                                     enableThinkingMode = enableThinkingMode,
                                     onToggleThinkingMode = { actualViewModel.toggleThinkingMode() },
-                                    thinkingQualityLevel = thinkingQualityLevel,
-                                    onThinkingQualityLevelChange = {
-                                        actualViewModel.updateThinkingQualityLevel(it)
+                                    thinkingOptionId = thinkingOptionId,
+                                    onThinkingOptionIdChange = {
+                                        actualViewModel.updateThinkingOptionId(it)
                                     },
                                     maxWindowSizeInK =
                                             actualViewModel.maxWindowSizeInK.collectAsState().value,
@@ -1099,7 +1099,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 enableTools = enableTools,
                                 isWorkspaceOpen = isWorkspaceOpen,
                                 enableThinkingMode = enableThinkingMode,
-                                thinkingQualityLevel = thinkingQualityLevel,
+                                thinkingOptionId = thinkingOptionId,
                                 enableMaxContextMode = enableMaxContextMode,
                                 featureStates = featureStates,
                                 enableMemoryAutoUpdate = enableMemoryAutoUpdate,
@@ -1495,7 +1495,7 @@ private fun ChatInputBottomBar(
     enableTools: Boolean,
     isWorkspaceOpen: Boolean,
     enableThinkingMode: Boolean,
-    thinkingQualityLevel: Int,
+    thinkingOptionId: String,
     enableMaxContextMode: Boolean,
     featureStates: Map<String, Boolean>,
     enableMemoryAutoUpdate: Boolean,
@@ -1897,8 +1897,8 @@ private fun ChatInputBottomBar(
                 isWorkspaceOpen = isWorkspaceOpen,
                 enableThinkingMode = enableThinkingMode,
                 onToggleThinkingMode = actualViewModel::toggleThinkingMode,
-                thinkingQualityLevel = thinkingQualityLevel,
-                onThinkingQualityLevelChange = actualViewModel::updateThinkingQualityLevel,
+                thinkingOptionId = thinkingOptionId,
+                onThinkingOptionIdChange = actualViewModel::updateThinkingOptionId,
                 enableMaxContextMode = enableMaxContextMode,
                 onToggleEnableMaxContextMode = actualViewModel::toggleEnableMaxContextMode,
                 currentChatId = currentChatId,

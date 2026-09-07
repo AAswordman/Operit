@@ -253,11 +253,10 @@ internal object ToolPkgToolLifecycleBridge : AIToolHook {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgToolLifecycleHookRegistration::containerPackageName,
-                    ToolPkgToolLifecycleHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgToolLifecycleHookRegistration::containerPackageName,
+                registrationId = ToolPkgToolLifecycleHookRegistration::hookId
             )
     }
 }

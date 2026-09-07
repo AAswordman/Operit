@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.core.tools.javascript
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -50,5 +51,32 @@ class JsToolPkgRegistrationTest {
 
         assertTrue(bridge.contains("_m: captureMarketOrigin"))
         assertTrue(bridge.contains("captureToolPkgMarketOrigin"))
+    }
+
+    @Test
+    fun `registration bridge declares versioned APIs beside their implementations`() {
+        val bridge = buildToolPkgRegistrationBridgeScript()
+
+        assertTrue(bridge.contains("toolPkgApi.namespace('ToolPkg'"))
+        assertTrue(bridge.contains("toolPkgApi.method().since("))
+        assertTrue(bridge.contains("ToolPkg.registerChatMessageMenuItem"))
+        assertTrue(bridge.contains("ToolPkg.registerChatRuntimeHook"))
+        assertFalse(bridge.contains("requiredApi"))
+        assertFalse(bridge.contains("requiredFeature"))
+        assertFalse(bridge.contains("registrationBindings"))
+        assertFalse(bridge.contains("__operit_toolpkg_api_version"))
+        assertFalse(bridge.contains("supportsToolPkgApiVersion"))
+    }
+
+    @Test
+    fun `registration session captures registrations after facade dispatch`() {
+        val session = JsToolPkgRegistrationSession()
+        session.begin()
+
+        session.appendChatRuntimeHook("{\"id\":\"runtime\",\"function\":\"onRuntime\"}")
+        val capture = session.finish(null)
+
+        assertEquals(1, capture.chatRuntimeHooks.size)
+        session.end()
     }
 }

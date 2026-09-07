@@ -5,25 +5,17 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.util.AppLogger
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 /**
  * NVIDIA API Catalog / NIM provider.
  *
- * Official docs indicate two reasoning control styles:
- * 1) chat_template_kwargs.enable_thinking (Nemotron and many template-based models)
- * 2) reasoning_effort (GPT-OSS deployments)
+ * Official docs expose model-specific reasoning_effort values for GPT-OSS and
+ * the current Nemotron 3 Super/Ultra endpoints.
  *
- * We always write chat_template_kwargs.enable_thinking for an explicit toggle and
- * add a default reasoning_effort=medium for GPT-OSS models when thinking is enabled
- * and user has not set reasoning_effort manually.
+ * The request mapper writes only the control published for the selected model.
  */
 class NvidiaAIProvider(
     apiEndpoint: String,
@@ -35,7 +27,9 @@ class NvidiaAIProvider(
     supportsVision: Boolean = false,
     supportsAudio: Boolean = false,
     supportsVideo: Boolean = false,
-    enableToolCall: Boolean = false
+    enableToolCall: Boolean = false,
+    thinkingConfigurations: String = "",
+    thinkingOptionId: String = ""
 ) : OpenAIProvider(
     apiEndpoint = apiEndpoint,
     apiKeyProvider = apiKeyProvider,
@@ -46,8 +40,11 @@ class NvidiaAIProvider(
     supportsVision = supportsVision,
     supportsAudio = supportsAudio,
     supportsVideo = supportsVideo,
-    enableToolCall = enableToolCall
+    enableToolCall = enableToolCall,
+    thinkingConfigurations = thinkingConfigurations,
+        thinkingOptionId = thinkingOptionId
 ) {
+    private val configuredApiEndpoint = apiEndpoint
 
     override fun createRequestBody(
         context: Context,
@@ -68,50 +65,17 @@ class NvidiaAIProvider(
         )
         val jsonObject = JSONObject(baseRequestBodyJson)
 
-        // Explicit thinking toggle for NVIDIA template-based reasoning models.
-        val chatTemplateKwargs = jsonObject.optJSONObject("chat_template_kwargs") ?: JSONObject()
-        chatTemplateKwargs.put("enable_thinking", enableThinking)
-        jsonObject.put("chat_template_kwargs", chatTemplateKwargs)
-
-        // GPT-OSS models on NVIDIA use reasoning_effort to control reasoning depth.
-        val modelNameLower = modelName.lowercase()
-        val isGptOss = modelNameLower.contains("gpt-oss")
-        val gptOssEffort = if (enableThinking && isGptOss && !jsonObject.has("reasoning_effort")) {
-            resolveGptOssReasoningEffort(context)
-        } else {
-            null
-        }
-        if (gptOssEffort != null) {
-            jsonObject.put("reasoning_effort", gptOssEffort)
-        }
-
-        AppLogger.d(
-            "NvidiaAIProvider",
-            "NVIDIA thinking params applied: enable_thinking=$enableThinking, gpt_oss_reasoning_effort=$gptOssEffort"
+        ThinkingConfigurationApplier.apply(
+            context = context,
+            requestJson = jsonObject,
+            providerTypeId = ApiProviderType.NVIDIA.name,
+            modelName = modelName,
+            apiEndpoint = configuredApiEndpoint,
+            thinkingConfigurations = thinkingConfigurations,
+            enableThinking = enableThinking,
+            optionId = thinkingOptionId,
         )
 
         return createJsonRequestBody(jsonObject.toString())
-    }
-
-    private fun resolveGptOssReasoningEffort(context: Context): String? {
-        val qualityLevel = runCatching {
-            runBlocking {
-                ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
-            }
-        }.getOrElse {
-            AppLogger.w(
-                "NvidiaAIProvider",
-                "Failed to read thinking quality level for NVIDIA GPT-OSS; reasoning_effort not applied",
-                it
-            )
-            return null
-        }
-
-        val efforts = listOf("low", "medium", "high", "max", "max")
-        val qualityIndex = qualityLevel.coerceIn(
-            ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-            ApiPreferences.MAX_THINKING_QUALITY_LEVEL
-        ) - 1
-        return efforts[qualityIndex]
     }
 }

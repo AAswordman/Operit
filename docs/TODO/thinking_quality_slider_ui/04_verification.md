@@ -1,0 +1,41 @@
+# 验证记录
+
+验证记录：
+
+- `git diff --check`：通过
+- Web typecheck：未执行，本地环境没有 `node`/`npm`
+- 远程 `npm run build:webchat`、Vite 构建和 Android assets 同步：通过
+- 远程 Release 首次构建：失败，修复 Compose Slider API 和 DeepSeek import 后重试
+- 远程 Release 二次构建：通过
+- 构建提交：`f39af4438`
+- Release APK：`operit-release-fix_provider-logos-token-statistics-main-f39af443.apk`
+- APK SHA-256：`6b33bac6c4f7960e970bee097487d29984b7ba1a7aff5eb458635b8cfc95c2d7`
+- 视觉修订 Release 构建：通过，静态渐变和拖动流光版本
+- 修订构建提交：`d41f50f90`
+- 修订 Release APK：`operit-release-fix_provider-logos-token-statistics-main-d41f50f9.apk`
+- 修订 APK SHA-256：`486e85beb7077e5934bca7e52d94d7c7cdc58fc6e2e18a4783c51d7d0b127595`
+- thumb/track 比例和渐变对比修订：通过
+- 视觉修订构建提交：`3a76aa699`
+- 视觉修订 Release APK：`operit-release-fix_provider-logos-token-statistics-main-3a76aa69.apk`
+- 视觉修订 APK SHA-256：`c3860d34bbef661c4ec84c0ad2d2a4e54160b90c734cd038c7f8c0d8b3fb4ef0`
+- `3a76aa699` 视觉验收：未通过，Android 实际轨道仍为 8dp，12dp thumb 没有嵌入轨道
+- 当前修正：Android/Web 统一为 12dp/px 轨道和 8dp/px thumb，移除外圈并改用单层高对比渐变
+- 当前修正 `git diff --check`：通过
+- 当前修正 Release 构建：通过
+- 当前修正构建提交：`8a2ae80ad`
+- 当前修正 Release APK：`operit-release-fix_provider-logos-token-statistics-main-8a2ae80a.apk`
+- 当前修正 APK SHA-256：`5761f15c58c0f47671faccb2c072bb53befd0efd19d4a6f7863f828bbd21be4b`
+- `8a2ae80ad` 视觉验收：未通过，`onPrimary` 产生黑色 thumb，静态渐变错误填满 inactive 区域
+- 参考样式修正：20dp/px 透明外框、16dp/px active track、12dp/px thumb，右侧不填充
+- 参考样式修正 Release 构建：通过
+- 参考样式修正构建提交：`49b5ba3fc`
+- 参考样式修正 Release APK：`operit-release-fix_provider-logos-token-statistics-main-49b5ba3f.apk`
+- 参考样式修正 APK SHA-256：`c206440ce40234e81900999ea0d5e66bf08489df6b461ad7f6bd3b3e6813ac56`
+- 参考样式修正视觉验收：待确认
+- 响应式标签对齐修正：Android/Web 标签改为与 stop indicator 共用锚点
+- 响应式标签对齐 `git diff --check`：通过
+- 响应式标签对齐 Release 构建：通过
+- 响应式标签对齐构建提交：`65d4859f2`
+- 响应式标签对齐 Release APK：`operit-release-fix_provider-logos-token-statistics-main-65d4859f.apk`
+- 响应式标签对齐 APK SHA-256：`982ff1cb7ef1be1cde19f57ea52f90d3b4dd603522cbed4b40e0fa1c55064b13`
+- 响应式标签对齐视觉验收：待确认

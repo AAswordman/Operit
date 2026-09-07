@@ -664,6 +664,35 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
     }
 
+    suspend fun callFunctionModel(
+        functionType: FunctionType,
+        turns: List<PromptTurn>,
+        enableThinking: Boolean = false,
+        recordTokenUsage: Boolean = true
+    ): String {
+        ensureInitialized()
+        val serviceForFunction = getAIServiceForFunction(functionType)
+        val modelParameters = getModelParametersForFunction(functionType)
+        val output = StringBuilder()
+
+        serviceForFunction
+            .sendMessage(
+                context = context,
+                chatHistory = turns,
+                modelParameters = modelParameters,
+                enableThinking = enableThinking,
+                stream = false,
+                availableTools = emptyList(),
+                preserveThinkInHistory = true,
+                recordTokenUsage = recordTokenUsage
+            )
+            .collect { chunk ->
+                output.append(chunk)
+            }
+
+        return output.toString()
+    }
+
     private fun publishRequestWindowEstimate(windowSize: Long) {
         _requestWindowEstimate.value = windowSize
     }
@@ -850,10 +879,6 @@ class EnhancedAIService private constructor(private val context: Context) {
             finalProcessedInput = ChatUtils.stripGeminiThoughtSignatureMeta(finalProcessedInput)
             finalPreparedHistory = ChatUtils.stripGeminiThoughtSignatureMetaTurns(finalPreparedHistory)
         }
-        if (!ChatUtils.isOpenAIResponsesProviderModel(serviceForFunction.providerModel)) {
-            finalProcessedInput = ChatUtils.stripOpenAiResponsesReasoningMeta(finalProcessedInput)
-            finalPreparedHistory = ChatUtils.stripOpenAiResponsesReasoningMetaTurns(finalPreparedHistory)
-        }
 
         val requestHistory =
             applyFinalizedCurrentUserTurn(
@@ -945,6 +970,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 )
             registerExecutionContext(execContext)
             var hadFatalError = false
+            var providerStreamCollectionStarted = false
             try {
                 // 确保所有操作都在IO线程上执行
                 withContext(Dispatchers.IO) {
@@ -1070,10 +1096,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                         finalProcessedInput = ChatUtils.stripGeminiThoughtSignatureMeta(finalProcessedInput)
                         finalPreparedHistory = ChatUtils.stripGeminiThoughtSignatureMetaTurns(finalPreparedHistory)
                     }
-                    if (!ChatUtils.isOpenAIResponsesProviderModel(serviceForFunction.providerModel)) {
-                        finalProcessedInput = ChatUtils.stripOpenAiResponsesReasoningMeta(finalProcessedInput)
-                        finalPreparedHistory = ChatUtils.stripOpenAiResponsesReasoningMetaTurns(finalPreparedHistory)
-                    }
                     val requestHistory =
                         applyFinalizedCurrentUserTurn(
                             preparedHistory = finalPreparedHistory,
@@ -1127,6 +1149,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     var totalChars = 0
                     var lastLogTime = messageTimingNow()
 
+                    providerStreamCollectionStarted = true
                     coroutineScope {
                         val revisionJob =
                             revisableStream?.let { carrier ->
@@ -1199,6 +1222,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                             revisionJob?.cancelAndJoin()
                         }
                     }
+                    providerStreamCollectionStarted = false
 
                     // Update accumulated token counts and persist them
                     val inputTokens = serviceForFunction.inputTokenCount
@@ -1239,16 +1263,20 @@ class EnhancedAIService private constructor(private val context: Context) {
                     hadFatalError = true
                     // Handle any exceptions
                     AppLogger.e(TAG, "发送消息时发生错误: ${e.message}", e)
-                    withContext(Dispatchers.Main) {
-                        _inputProcessingState.value =
-                                InputProcessingState.Error(message = context.getString(R.string.enhanced_error_with_message, e.message ?: ""))
+                    if (!providerStreamCollectionStarted) {
+                        withContext(Dispatchers.Main) {
+                            _inputProcessingState.value =
+                                    InputProcessingState.Error(message = context.getString(R.string.enhanced_error_with_message, e.message ?: ""))
+                        }
                     }
                 }
 
                 // 发生无法处理的错误时，也应停止服务，但用户取消除外
                 if (!isSocketClosed) {
                     if (!isSubTask) stopAiService()
-                    throw e
+                    if (!providerStreamCollectionStarted) {
+                        throw e
+                    }
                 }
             } finally {
                 try {

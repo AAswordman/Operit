@@ -3,7 +3,6 @@ package com.ai.assistance.operit.data.preferences
 import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.data.backup.OperitBackupDirs
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
@@ -43,9 +42,38 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Context.characterCardDataStore by preferencesDataStore(
-    name = "character_cards"
+private val Context.characterCardDataStore by
+    versionedPreferencesDataStore(
+        name = "character_cards",
+        currentVersion = 1,
+    ) { appContext ->
+        CharacterCardSchemaMigration(appContext)
+    }
+
+internal data class CharacterCardSchemaMigrationResult(
+    val defaultCharacterWasCreated: Boolean,
+    val activeCharacterCardId: String,
 )
+
+private class CharacterCardSchemaMigration(
+    private val context: Context,
+) : PreferencesSchemaMigration {
+    private var versionZeroResult: CharacterCardSchemaMigrationResult? = null
+
+    override suspend fun migrate(version: Int, preferences: MutablePreferences) {
+        when (version) {
+            0 -> versionZeroResult =
+                CharacterCardManager.migratePreferencesFromVersionZero(context, preferences)
+            else -> missingPreferencesSchemaMigration(version)
+        }
+    }
+
+    override suspend fun cleanUp() {
+        versionZeroResult?.let { result ->
+            CharacterCardManager.cleanUpPreferencesFromVersionZero(context, result)
+        }
+    }
+}
 
 /**
  * 角色卡管理器
@@ -78,6 +106,137 @@ class CharacterCardManager private constructor(private val context: Context) {
         fun getInstance(context: Context): CharacterCardManager {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: CharacterCardManager(context.applicationContext).also { INSTANCE = it }
+            }
+        }
+
+        internal suspend fun migratePreferencesFromVersionZero(
+            context: Context,
+            preferences: MutablePreferences,
+        ): CharacterCardSchemaMigrationResult {
+            val currentList = preferences[CHARACTER_CARD_LIST]?.toMutableSet()
+            val defaultCharacterWasCreated = currentList == null || currentList.isEmpty()
+
+            if (defaultCharacterWasCreated) {
+                preferences[CHARACTER_CARD_LIST] = setOf(DEFAULT_CHARACTER_CARD_ID)
+                setupDefaultCharacterCard(context, preferences, DEFAULT_CHARACTER_CARD_ID)
+            }
+
+            migrateLegacyOtherContentToChat(context, preferences)
+
+            val validTagIds = PromptTagManager.getInstance(context)
+                .getAllTags()
+                .map { it.id }
+                .toSet()
+            removeDeletedTagReferences(preferences, validTagIds)
+
+            return CharacterCardSchemaMigrationResult(
+                defaultCharacterWasCreated = defaultCharacterWasCreated,
+                activeCharacterCardId =
+                    preferences[ACTIVE_CHARACTER_CARD_ID] ?: DEFAULT_CHARACTER_CARD_ID,
+            )
+        }
+
+        internal suspend fun cleanUpPreferencesFromVersionZero(
+            context: Context,
+            result: CharacterCardSchemaMigrationResult,
+        ) {
+            val userPreferencesManager = UserPreferencesManager.getInstance(context)
+            userPreferencesManager.migrateLegacyDefaultCharacterThemeIfEligible(
+                activeCharacterCardId = result.activeCharacterCardId,
+                defaultCharacterWasCreated =
+                    result.defaultCharacterWasCreated &&
+                        result.activeCharacterCardId == DEFAULT_CHARACTER_CARD_ID,
+            )
+
+            if (result.defaultCharacterWasCreated) {
+                val defaultAvatarUri = userPreferencesManager
+                    .getAiAvatarForCharacterCardFlow(DEFAULT_CHARACTER_CARD_ID)
+                    .first()
+                if (defaultAvatarUri.isNullOrBlank()) {
+                    userPreferencesManager.saveAiAvatarForCharacterCard(
+                        DEFAULT_CHARACTER_CARD_ID,
+                        "file:///android_asset/operit.png",
+                    )
+                }
+            }
+        }
+
+        internal fun setupDefaultCharacterCard(
+            context: Context,
+            preferences: MutablePreferences,
+            id: String,
+        ) {
+            val nameKey = stringPreferencesKey("character_card_${id}_name")
+            val descriptionKey = stringPreferencesKey("character_card_${id}_description")
+            val characterSettingKey = stringPreferencesKey("character_card_${id}_character_setting")
+            val openingStatementKey = stringPreferencesKey("character_card_${id}_opening_statement")
+            val otherContentChatKey = stringPreferencesKey("character_card_${id}_other_content_chat")
+            val otherContentVoiceKey = stringPreferencesKey("character_card_${id}_other_content_voice")
+            val attachedTagIdsKey = stringSetPreferencesKey("character_card_${id}_attached_tag_ids")
+            val advancedCustomPromptKey = stringPreferencesKey("character_card_${id}_advanced_custom_prompt")
+            val marksKey = stringPreferencesKey("character_card_${id}_marks")
+            val chatModelBindingModeKey = stringPreferencesKey("character_card_${id}_chat_model_binding_mode")
+            val chatModelConfigIdKey = stringPreferencesKey("character_card_${id}_chat_model_config_id")
+            val chatModelIndexKey = intPreferencesKey("character_card_${id}_chat_model_index")
+            val memoryProfileBindingModeKey = stringPreferencesKey("character_card_${id}_memory_profile_binding_mode")
+            val memoryProfileIdKey = stringPreferencesKey("character_card_${id}_memory_profile_id")
+            val toolAccessConfigKey = stringPreferencesKey("character_card_${id}_tool_access_config_json")
+            val isDefaultKey = booleanPreferencesKey("character_card_${id}_is_default")
+            val createdAtKey = longPreferencesKey("character_card_${id}_created_at")
+            val updatedAtKey = longPreferencesKey("character_card_${id}_updated_at")
+
+            preferences[nameKey] = DEFAULT_CHARACTER_NAME
+            preferences[descriptionKey] = CharacterCardBilingualData.getDefaultDescription(context)
+            preferences[characterSettingKey] = CharacterCardBilingualData.getDefaultCharacterSetting(context)
+            preferences[openingStatementKey] = ""
+            preferences[otherContentChatKey] = CharacterCardBilingualData.getDefaultOtherContentChat(context)
+            preferences[otherContentVoiceKey] = CharacterCardBilingualData.getDefaultOtherContentVoice(context)
+            preferences[attachedTagIdsKey] = setOf<String>()
+            preferences[advancedCustomPromptKey] = ""
+            preferences[marksKey] = ""
+            preferences[chatModelBindingModeKey] = CharacterCardChatModelBindingMode.FOLLOW_GLOBAL
+            preferences.remove(chatModelConfigIdKey)
+            preferences[chatModelIndexKey] = 0
+            preferences[memoryProfileBindingModeKey] = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL
+            preferences.remove(memoryProfileIdKey)
+            preferences.remove(toolAccessConfigKey)
+            preferences[isDefaultKey] = true
+            preferences[createdAtKey] = System.currentTimeMillis()
+            preferences[updatedAtKey] = System.currentTimeMillis()
+        }
+
+        private fun removeDeletedTagReferences(
+            preferences: MutablePreferences,
+            validTagIds: Set<String>,
+        ) {
+            val cardIds = preferences[CHARACTER_CARD_LIST]?.toSet() ?: setOf(DEFAULT_CHARACTER_CARD_ID)
+            cardIds.forEach { cardId ->
+                val attachedKey = stringSetPreferencesKey("character_card_${cardId}_attached_tag_ids")
+                val attached = preferences[attachedKey] ?: return@forEach
+                val filtered = attached.filterTo(mutableSetOf()) { it in validTagIds }
+                if (filtered.size != attached.size) {
+                    preferences[attachedKey] = filtered
+                }
+            }
+        }
+
+        private fun migrateLegacyOtherContentToChat(
+            context: Context,
+            preferences: MutablePreferences,
+        ) {
+            val cardIds = preferences[CHARACTER_CARD_LIST]?.toSet() ?: setOf(DEFAULT_CHARACTER_CARD_ID)
+            cardIds.forEach { cardId ->
+                val legacyKey = stringPreferencesKey("character_card_${cardId}_other_content")
+                val chatKey = stringPreferencesKey("character_card_${cardId}_other_content_chat")
+                val voiceKey = stringPreferencesKey("character_card_${cardId}_other_content_voice")
+                val legacyValue = preferences[legacyKey]
+                if (!legacyValue.isNullOrBlank() && preferences[chatKey].isNullOrBlank()) {
+                    preferences[chatKey] = legacyValue
+                }
+                if (preferences[voiceKey].isNullOrBlank() && cardId == DEFAULT_CHARACTER_CARD_ID) {
+                    preferences[voiceKey] = CharacterCardBilingualData.getDefaultOtherContentVoice(context)
+                }
+                preferences.remove(legacyKey)
             }
         }
     }
@@ -503,55 +662,6 @@ class CharacterCardManager private constructor(private val context: Context) {
         return combinedPrompt.trim()
     }
     
-    // 初始化默认角色卡
-    suspend fun initializeIfNeeded() {
-        var isInitialized = false
-        dataStore.edit { preferences ->
-            val cardListKey = CHARACTER_CARD_LIST
-            val currentList = preferences[cardListKey]?.toMutableSet()
-
-            if (currentList == null || currentList.isEmpty()) {
-                isInitialized = true
-                // 首次安装，创建默认角色卡
-                val defaultCardId = DEFAULT_CHARACTER_CARD_ID
-                preferences[cardListKey] = setOf(defaultCardId)
-                // 不再自动设置活跃角色卡，让用户自己选择角色卡或群组
-                // preferences[ACTIVE_CHARACTER_CARD_ID] = defaultCardId
-
-                // 设置默认角色卡数据
-                setupDefaultCharacterCard(preferences, defaultCardId)
-            }
-        }
-
-        val activePromptManager = ActivePromptManager.getInstance(context)
-        activePromptManager.runThemeTransition {
-            val activePrompt = activePromptManager.getActivePrompt()
-            val activeCardId = (activePrompt as? ActivePrompt.CharacterCard)?.id
-            userPreferencesManager.migrateLegacyDefaultCharacterThemeIfEligible(
-                activeCharacterCardId = activeCardId,
-                defaultCharacterWasCreated = isInitialized && activeCardId == DEFAULT_CHARACTER_CARD_ID,
-            )
-
-            if (isInitialized) {
-                val defaultAvatarUri = userPreferencesManager
-                    .getAiAvatarForCharacterCardFlow(DEFAULT_CHARACTER_CARD_ID)
-                    .first()
-                if (defaultAvatarUri.isNullOrBlank()) {
-                    userPreferencesManager.saveAiAvatarForCharacterCard(
-                        DEFAULT_CHARACTER_CARD_ID,
-                        "file:///android_asset/operit.png",
-                    )
-                }
-            }
-
-        }
-
-        // 清理历史内置功能标签（chat/voice/desktop pet）
-        tagManager.removeLegacyBuiltInTags()
-        removeDeletedTagReferencesFromCharacterCards()
-        migrateLegacyOtherContentToChat()
-    }
-
     // 重置默认角色卡
     suspend fun resetDefaultCharacterCard() {
         dataStore.edit { preferences ->
@@ -571,43 +681,7 @@ class CharacterCardManager private constructor(private val context: Context) {
     }
     
     private fun setupDefaultCharacterCard(preferences: MutablePreferences, id: String) {
-        val nameKey = stringPreferencesKey("character_card_${id}_name")
-        val descriptionKey = stringPreferencesKey("character_card_${id}_description")
-        val characterSettingKey = stringPreferencesKey("character_card_${id}_character_setting")
-        val openingStatementKey = stringPreferencesKey("character_card_${id}_opening_statement")
-        val otherContentChatKey = stringPreferencesKey("character_card_${id}_other_content_chat")
-        val otherContentVoiceKey = stringPreferencesKey("character_card_${id}_other_content_voice")
-        val attachedTagIdsKey = stringSetPreferencesKey("character_card_${id}_attached_tag_ids")
-        val advancedCustomPromptKey = stringPreferencesKey("character_card_${id}_advanced_custom_prompt")
-        val marksKey = stringPreferencesKey("character_card_${id}_marks")
-        val chatModelBindingModeKey = stringPreferencesKey("character_card_${id}_chat_model_binding_mode")
-        val chatModelConfigIdKey = stringPreferencesKey("character_card_${id}_chat_model_config_id")
-        val chatModelIndexKey = intPreferencesKey("character_card_${id}_chat_model_index")
-        val memoryProfileBindingModeKey = stringPreferencesKey("character_card_${id}_memory_profile_binding_mode")
-        val memoryProfileIdKey = stringPreferencesKey("character_card_${id}_memory_profile_id")
-        val toolAccessConfigKey = toolAccessConfigKey(id)
-        val isDefaultKey = booleanPreferencesKey("character_card_${id}_is_default")
-        val createdAtKey = longPreferencesKey("character_card_${id}_created_at")
-        val updatedAtKey = longPreferencesKey("character_card_${id}_updated_at")
-
-        preferences[nameKey] = DEFAULT_CHARACTER_NAME
-        preferences[descriptionKey] = CharacterCardBilingualData.getDefaultDescription(context)
-        preferences[characterSettingKey] = CharacterCardBilingualData.getDefaultCharacterSetting(context)
-        preferences[openingStatementKey] = ""
-        preferences[otherContentChatKey] = CharacterCardBilingualData.getDefaultOtherContentChat(context)
-        preferences[otherContentVoiceKey] = CharacterCardBilingualData.getDefaultOtherContentVoice(context)
-        preferences[attachedTagIdsKey] = setOf<String>()
-        preferences[advancedCustomPromptKey] = ""
-        preferences[marksKey] = ""
-        preferences[chatModelBindingModeKey] = CharacterCardChatModelBindingMode.FOLLOW_GLOBAL
-        preferences.remove(chatModelConfigIdKey)
-        preferences[chatModelIndexKey] = 0
-        preferences[memoryProfileBindingModeKey] = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL
-        preferences.remove(memoryProfileIdKey)
-        preferences.remove(toolAccessConfigKey)
-        preferences[isDefaultKey] = true
-        preferences[createdAtKey] = System.currentTimeMillis()
-        preferences[updatedAtKey] = System.currentTimeMillis()
+        CharacterCardManager.setupDefaultCharacterCard(context, preferences, id)
     }
     
     // 获取所有角色卡
@@ -1322,40 +1396,6 @@ class CharacterCardManager private constructor(private val context: Context) {
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
-    }
-
-    private suspend fun removeDeletedTagReferencesFromCharacterCards() {
-        val validTagIds = tagManager.getAllTags().map { it.id }.toSet()
-        dataStore.edit { preferences ->
-            val cardIds = preferences[CHARACTER_CARD_LIST]?.toSet() ?: setOf(DEFAULT_CHARACTER_CARD_ID)
-            cardIds.forEach { cardId ->
-                val attachedKey = stringSetPreferencesKey("character_card_${cardId}_attached_tag_ids")
-                val attached = preferences[attachedKey] ?: return@forEach
-                val filtered = attached.filterTo(mutableSetOf()) { it in validTagIds }
-                if (filtered.size != attached.size) {
-                    preferences[attachedKey] = filtered
-                }
-            }
-        }
-    }
-
-    private suspend fun migrateLegacyOtherContentToChat() {
-        dataStore.edit { preferences ->
-            val cardIds = preferences[CHARACTER_CARD_LIST]?.toSet() ?: setOf(DEFAULT_CHARACTER_CARD_ID)
-            cardIds.forEach { cardId ->
-                val legacyKey = stringPreferencesKey("character_card_${cardId}_other_content")
-                val chatKey = stringPreferencesKey("character_card_${cardId}_other_content_chat")
-                val voiceKey = stringPreferencesKey("character_card_${cardId}_other_content_voice")
-                val legacyValue = preferences[legacyKey]
-                if (!legacyValue.isNullOrBlank() && preferences[chatKey].isNullOrBlank()) {
-                    preferences[chatKey] = legacyValue
-                }
-                if (preferences[voiceKey].isNullOrBlank() && cardId == DEFAULT_CHARACTER_CARD_ID) {
-                    preferences[voiceKey] = CharacterCardBilingualData.getDefaultOtherContentVoice(context)
-                }
-                preferences.remove(legacyKey)
-            }
-        }
     }
 
     /**

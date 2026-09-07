@@ -40,6 +40,15 @@ class ChatUtilsTest {
         assertFalse(ChatUtils.isGeminiProviderModel("OPENAI:gpt-4"))
     }
 
+    @Test fun stripOpenAiResponsesProtocolMarkup_removesMetaAndSearchDisplay() {
+        val content =
+            "<meta provider=\"openai:responses_output_item\">payload</meta>" +
+                "<search provider=\"deepseek\"><query>q</query></search>" +
+                "answer"
+
+        assertEquals("answer", ChatUtils.stripOpenAiResponsesProtocolMarkup(content))
+    }
+
     @Test fun removeThinkingContent_removesThinkBlock() {
         assertEquals("answer", ChatUtils.removeThinkingContent("<think>draft</think>answer"))
     }
@@ -50,6 +59,13 @@ class ChatUtilsTest {
 
     @Test fun removeThinkingContent_removesSearchBlock() {
         assertEquals("answer", ChatUtils.removeThinkingContent("<search>source</search>answer"))
+    }
+
+    @Test fun removeThinkingContent_removesSearchBlockWithAttributes() {
+        assertEquals(
+            "answer",
+            ChatUtils.removeThinkingContent("<search provider=\"deepseek\"><query>x</query></search>answer")
+        )
     }
 
     @Test fun removeThinkingContent_handlesUnclosedThink() {
@@ -74,6 +90,14 @@ class ChatUtilsTest {
 
     @Test fun extractThinkingContent_alsoRemovesSearchBlocks() {
         val result = ChatUtils.extractThinkingContent("<search>s</search><think>a</think>answer")
+        assertEquals("answer", result.first)
+        assertEquals("a", result.second)
+    }
+
+    @Test fun extractThinkingContent_alsoRemovesSearchBlocksWithAttributes() {
+        val result = ChatUtils.extractThinkingContent(
+            "<search provider=\"codex\"><source url=\"https://example.com\" /></search><think>a</think>answer"
+        )
         assertEquals("answer", result.first)
         assertEquals("a", result.second)
     }

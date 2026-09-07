@@ -11,18 +11,16 @@ import {
   SaveIcon,
   TuneIcon
 } from '../../../../util/chatIcons';
-import {
-  clampThinkingQualityLevel,
-  MAX_THINKING_QUALITY_LEVEL
-} from '../../../../util/thinkingQuality';
 import type {
   WebInputSettingsState,
   WebModelSelectorConfig,
   WebMemorySelectorState,
   WebModelSelectorState,
-  WebSelectModelResponse
+  WebSelectModelResponse,
+  WebThinkingQualityMapping
 } from '../../../../util/chatTypes';
 import { CharacterCardModelBindingSwitchConfirmDialog } from '../common/CharacterCardModelBindingSwitchConfirmDialog';
+import { ThinkingQualitySlider } from '../common/ThinkingQualitySlider';
 
 type InfoContent = {
   title: string;
@@ -49,7 +47,7 @@ const INFO_COPY = {
   },
   thinkingQuality: {
     title: '思考程度',
-    description: '仅在思考模式下生效；GPT-5.6 系列使用 5 档，其它模型保持原有 4 档。'
+    description: '仅在思考模式下生效；具体档位与当前模型配置一致。'
   },
   maxMode: {
     title: 'Max模式',
@@ -479,19 +477,19 @@ function ClassicThinkingSettingsItem({
   onQualityInfoClick,
   onToggle,
   onToggleInfoClick,
-  maxQualityLevel,
-  qualityLevel
+  qualityMapping,
+  qualityOptionId
 }: {
   enabled: boolean;
   expanded: boolean;
   onExpandedChange: (value: boolean) => void;
   onInfoClick: () => void;
-  onQualityChange: (value: number) => void;
+  onQualityChange: (value: string) => void;
   onQualityInfoClick: () => void;
   onToggle: () => void;
   onToggleInfoClick: () => void;
-  maxQualityLevel: number;
-  qualityLevel: number;
+  qualityMapping: WebThinkingQualityMapping | undefined;
+  qualityOptionId: string;
 }) {
   return (
     <>
@@ -519,29 +517,19 @@ function ClassicThinkingSettingsItem({
             onToggle={onToggle}
             title="思考模式"
           />
-          {enabled ? (
+          {enabled && qualityMapping?.mode === 'levels' ? (
             <ClassicSettingsRow className="is-child">
               <span className="classic-settings-popup-icon is-active">
                 <TuneIcon size={16} />
               </span>
               <ClassicInfoButton onClick={onQualityInfoClick} />
               <ClassicInfoSpacer />
-              <span className="classic-settings-popup-copy">
-                <strong>思考程度</strong>
-              </span>
-              <select
-                className="classic-settings-popup-select"
-                onChange={(event) => {
-                  onQualityChange(Number(event.target.value));
-                }}
-                value={String(qualityLevel)}
-              >
-                {Array.from({ length: maxQualityLevel }, (_, index) => index + 1).map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </select>
+              <ThinkingQualitySlider
+                label="思考程度"
+                mapping={qualityMapping}
+                onChange={onQualityChange}
+                value={qualityOptionId}
+              />
             </ClassicSettingsRow>
           ) : null}
         </div>
@@ -680,7 +668,7 @@ export function ClassicChatSettingsBar({
   onUpdateInputSettings: (
     payload: Partial<{
       enable_thinking_mode: boolean;
-      thinking_quality_level: number;
+      thinking_option_id: string;
       enable_memory_auto_update: boolean;
       enable_auto_read: boolean;
       enable_max_context_mode: boolean;
@@ -698,13 +686,20 @@ export function ClassicChatSettingsBar({
   const [showThinkingDropdown, setShowThinkingDropdown] = useState(false);
   const [showDisableSettingsDropdown, setShowDisableSettingsDropdown] = useState(false);
   const [infoPopupContent, setInfoPopupContent] = useState<InfoContent | null>(null);
-  const thinkingEnabled = inputSettings?.enable_thinking_mode ?? false;
+  const thinkingMapping = modelSelector?.thinking_quality_mapping;
+  const thinkingEnabled = (inputSettings?.enable_thinking_mode ?? false) || (thinkingMapping?.reasoning_required ?? false);
   const thinkingQuality = inputSettings
     ? {
-        maxLevel: MAX_THINKING_QUALITY_LEVEL,
-        level: clampThinkingQualityLevel(inputSettings.thinking_quality_level)
+        optionId: inputSettings.thinking_option_id,
+        mapping: thinkingMapping
       }
     : null;
+  useEffect(() => {
+    const mapping = thinkingQuality?.mapping;
+    if (mapping && mapping.options.length > 0 && !mapping.options.some((option) => option.id === thinkingQuality.optionId)) {
+      void onUpdateInputSettings({ thinking_option_id: mapping.options[0].id });
+    }
+  }, [onUpdateInputSettings, thinkingQuality?.mapping, thinkingQuality?.optionId]);
   const enableMaxContextMode = inputSettings?.enable_max_context_mode ?? false;
   const enableMemoryAutoUpdate = inputSettings?.enable_memory_auto_update ?? false;
   const enableAutoRead = inputSettings?.enable_auto_read ?? false;
@@ -784,22 +779,24 @@ export function ClassicChatSettingsBar({
                   onSelectProfile={onSelectMemoryProfile}
                 />
 
-                {thinkingQuality ? (
+                {thinkingQuality && thinkingQuality.mapping?.mode !== 'unsupported' ? (
                   <ClassicThinkingSettingsItem
                     enabled={thinkingEnabled}
                     expanded={showThinkingDropdown}
                     onExpandedChange={setShowThinkingDropdown}
                     onInfoClick={() => openInfo(INFO_COPY.thinkingSettings)}
                     onQualityChange={(value) => {
-                      void onUpdateInputSettings({ thinking_quality_level: value });
+                      void onUpdateInputSettings({ thinking_option_id: value });
                     }}
                     onQualityInfoClick={() => openInfo(INFO_COPY.thinkingQuality)}
                     onToggle={() => {
-                      void onUpdateInputSettings({ enable_thinking_mode: !thinkingEnabled });
+                      if (!thinkingQuality?.mapping?.reasoning_required) {
+                        void onUpdateInputSettings({ enable_thinking_mode: !thinkingEnabled });
+                      }
                     }}
                     onToggleInfoClick={() => openInfo(INFO_COPY.thinkingMode)}
-                    maxQualityLevel={thinkingQuality.maxLevel}
-                    qualityLevel={thinkingQuality.level}
+                    qualityMapping={thinkingQuality.mapping}
+                    qualityOptionId={thinkingQuality.optionId}
                   />
                 ) : null}
 

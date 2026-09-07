@@ -3,6 +3,7 @@ package com.ai.assistance.operit.core.tools.packTool
 import android.content.Context
 import com.ai.assistance.operit.core.tools.ToolPackage
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
+import com.ai.assistance.operit.util.AppLogger
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
@@ -80,19 +81,21 @@ internal class ToolPkgManager(
     }
 
     fun getEnabledToolPkgContainerRuntimes(
-        enabledPackageNames: List<String>
+        enabledPackageNames: List<String>,
+        availablePackages: Map<String, ToolPackage>,
+        preferredOrder: List<String>
     ): List<ToolPkgContainerRuntime> {
         val enabledSet = enabledPackageNames.toSet()
-        return containersInternal.values
-            .asSequence()
-            .filter { runtime ->
-                enabledSet.contains(runtime.packageName) ||
-                    runtime.subpackages.any { subpackage ->
-                        enabledSet.contains(subpackage.packageName)
-                    }
-            }
-            .sortedBy(ToolPkgContainerRuntime::packageName)
-            .toList()
+        val result = ToolPkgLoadOrderResolver.resolve(
+            containers = containersInternal.values,
+            availablePackages = availablePackages,
+            enabledPackageNames = enabledSet,
+            preferredOrder = preferredOrder
+        )
+        result.failures.forEach { (packageName, message) ->
+            AppLogger.w("ToolPkg", "Skipped enabled ToolPkg '$packageName': $message")
+        }
+        return result.orderedContainers
     }
 
     fun addToolPkgRuntimeChangeListener(

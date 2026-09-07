@@ -43,4 +43,29 @@ class ChatMarkupRegexMetaTest {
 
         assertEquals(content, ChatMarkupRegex.removeOpenAiResponsesReasoningMeta(content))
     }
+
+    @Test fun extractOpenAiResponsesOutputItem_returnsMatchingPayloads() {
+        val content =
+            "<meta provider=\"openai:responses_output_item\">first</meta>" +
+                "answer" +
+                "<meta provider='openai:responses_output_item'>second</meta>"
+
+        assertEquals(
+            listOf("first", "second"),
+            ChatMarkupRegex.extractOpenAiResponsesOutputItemPayloads(content)
+        )
+    }
+
+    @Test fun removeOpenAiResponsesProtocolMeta_removesReasoningAndOutputItemsOnly() {
+        val content =
+            "<meta charset=\"utf-8\">visible" +
+                "<meta provider=\"openai:responses_reasoning\">reasoning</meta>" +
+                "<meta provider=\"openai:responses_output_item\">search-call</meta>" +
+                "<meta provider=\"other\">kept</meta>"
+
+        assertEquals(
+            "<meta charset=\"utf-8\">visible<meta provider=\"other\">kept</meta>",
+            ChatMarkupRegex.removeOpenAiResponsesProtocolMeta(content)
+        )
+    }
 }

@@ -70,6 +70,9 @@ private class DelegatingRevisableSharedTextStream(
     override val replayCache: List<String>
         get() = upstream.replayCache
 
+    override val completionCause: Throwable?
+        get() = upstream.completionCause
+
     override suspend fun lock() {
         upstream.lock()
     }
@@ -153,11 +156,22 @@ fun Stream<String>.shareRevisable(
     scope: CoroutineScope,
     replay: Int = 0,
     started: StreamStart = StreamStart.EAGERLY,
-    onComplete: suspend () -> Unit = {}
+    onComplete: suspend () -> Unit = {},
+    propagateCompletionCause: Boolean = true,
 ): SharedStream<String> {
-    val sharedTextStream = share(scope = scope, replay = replay, started = started, onComplete = onComplete)
+    val sharedTextStream = share(
+        scope = scope,
+        replay = replay,
+        started = started,
+        onComplete = onComplete,
+        propagateCompletionCause = propagateCompletionCause,
+    )
     val carrier = this as? TextStreamEventCarrier ?: return sharedTextStream
-    val sharedEventStream =
-        carrier.eventChannel.share(scope = scope, replay = Int.MAX_VALUE, started = started)
+    val sharedEventStream = carrier.eventChannel.share(
+        scope = scope,
+        replay = Int.MAX_VALUE,
+        started = started,
+        propagateCompletionCause = propagateCompletionCause,
+    )
     return sharedTextStream.withEventChannel(sharedEventStream)
 }

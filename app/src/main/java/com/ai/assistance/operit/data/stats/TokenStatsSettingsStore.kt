@@ -12,6 +12,14 @@ interface TokenStatsSettingsStore {
 
     suspend fun saveTargetCurrency(currency: PricingCurrency)
 
+    suspend fun loadTokenDisplayUnit(): TokenStatsDisplayUnit
+
+    suspend fun saveTokenDisplayUnit(unit: TokenStatsDisplayUnit)
+
+    suspend fun loadActivityViewMode(): TokenActivityViewMode
+
+    suspend fun saveActivityViewMode(mode: TokenActivityViewMode)
+
     suspend fun loadTimeRange(): TokenStatsTimeRange?
 
     suspend fun saveTimeRange(range: TokenStatsTimeRange?)
@@ -35,6 +43,22 @@ class TokenStatsPreferencesStore(context: Context) : TokenStatsSettingsStore {
 
     override suspend fun saveTargetCurrency(currency: PricingCurrency) {
         preferences.saveTargetCurrency(currency)
+    }
+
+    override suspend fun loadTokenDisplayUnit(): TokenStatsDisplayUnit {
+        return preferences.loadTokenDisplayUnit()
+    }
+
+    override suspend fun saveTokenDisplayUnit(unit: TokenStatsDisplayUnit) {
+        preferences.saveTokenDisplayUnit(unit)
+    }
+
+    override suspend fun loadActivityViewMode(): TokenActivityViewMode {
+        return preferences.loadActivityViewMode()
+    }
+
+    override suspend fun saveActivityViewMode(mode: TokenActivityViewMode) {
+        preferences.saveActivityViewMode(mode)
     }
 
     override suspend fun loadTimeRange(): TokenStatsTimeRange? {

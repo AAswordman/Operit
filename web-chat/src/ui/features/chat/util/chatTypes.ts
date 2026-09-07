@@ -276,6 +276,18 @@ export interface WebModelSelectorConfig {
   selected_model_index?: number | null;
 }
 
+export interface WebThinkingQualityOption {
+  id: string;
+  label: string;
+}
+
+export interface WebThinkingQualityMapping {
+  mode: 'levels' | 'toggle_only' | 'unsupported';
+  parameter_label: string;
+  options: WebThinkingQualityOption[];
+  reasoning_required: boolean;
+}
+
 export interface WebModelSelectorState {
   current_config_id: string;
   current_config_name?: string | null;
@@ -285,6 +297,7 @@ export interface WebModelSelectorState {
   locked_by_character_card: boolean;
   locked_character_card_id?: string | null;
   locked_character_card_name?: string | null;
+  thinking_quality_mapping: WebThinkingQualityMapping;
   configs: WebModelSelectorConfig[];
 }
 
@@ -325,7 +338,7 @@ export interface ContextStatsSnapshot {
 
 export interface WebInputSettingsState {
   enable_thinking_mode: boolean;
-  thinking_quality_level: number;
+  thinking_option_id: string;
   enable_memory_auto_update: boolean;
   enable_auto_read: boolean;
   enable_max_context_mode: boolean;

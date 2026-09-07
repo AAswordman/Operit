@@ -115,7 +115,7 @@ internal fun ThemeSettingsBackgroundTab(
 internal data class ThemeSettingsBackgroundRuntime(
     val exoPlayer: ExoPlayer,
     val launchImageCrop: (Uri) -> Unit,
-    val mediaPickerLauncher: ManagedActivityResultLauncher<String, Uri?>,
+    val mediaPickerLauncher: ManagedActivityResultLauncher<Array<String>, Uri?>,
 )
 
 @Composable
@@ -308,8 +308,11 @@ internal fun rememberThemeSettingsBackgroundRuntime(
         cropImageLauncher.launch(cropOptions)
     }
 
+    // ACTION_OPEN_DOCUMENT keeps the per-URI grant of ACTION_GET_CONTENT while routing to the
+    // system document picker, whose browse view lists user-created album folders that some OEM
+    // photo pickers hide. See issue #1054.
     val mediaPickerLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) {
                 uri: Uri? ->
             if (uri != null) {
                 val isVideo = FileUtils.isVideoFile(context, uri)

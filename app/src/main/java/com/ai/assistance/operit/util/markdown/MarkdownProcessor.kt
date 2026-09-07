@@ -52,7 +52,13 @@ enum class MarkdownProcessorType {
  * Markdown数据模型 
  * 
  */
-class MarkdownNode(val type: MarkdownProcessorType, initialContent: String = "") {
+private val markdownNodeIdGenerator = java.util.concurrent.atomic.AtomicLong()
+
+class MarkdownNode(
+    val type: MarkdownProcessorType,
+    initialContent: String = "",
+    val nodeId: Long = markdownNodeIdGenerator.incrementAndGet(),
+) {
     val content: SmartString = SmartString(initialContent)
     val children: SnapshotStateList<MarkdownNode> = mutableStateListOf()
 }
@@ -61,7 +67,8 @@ class MarkdownNode(val type: MarkdownProcessorType, initialContent: String = "")
 data class MarkdownNodeStable(
     val type: MarkdownProcessorType,
     val content: String,
-    val children: List<MarkdownNodeStable>
+    val children: List<MarkdownNodeStable>,
+    val nodeId: Long = 0L,
 )
 
 /** 将字符串转换为字符流 */

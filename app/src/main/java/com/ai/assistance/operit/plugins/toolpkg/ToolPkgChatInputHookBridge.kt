@@ -171,11 +171,10 @@ internal object ToolPkgChatInputHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgChatInputHookRegistration::containerPackageName,
-                    ToolPkgChatInputHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgChatInputHookRegistration::containerPackageName,
+                registrationId = ToolPkgChatInputHookRegistration::hookId
             )
     }
 

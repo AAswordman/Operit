@@ -4,7 +4,7 @@
 
 **ToolPkg** 是 Operit 项目中用于打包和分发工具包的标准格式。它允许开发者将多个相关的工具脚本、资源文件和 UI 模块打包成一个单一的、易于分发和管理的文件。
 
-本文档的格式、manifest 与运行时说明适用于所有 ToolPkg 作者。文中 `tools/toolpkg/debug_toolpkg.*` 的命令仅面向拥有 Operit 源码仓库和 ADB 的桌面开发环境；应用内 AI 协作开发应先更新 `SandboxPackage_DEV`，并遵循其本地 `SKILL.md` 指定的目录与调试方式。
+本文档的格式、manifest 与运行时说明适用于所有 ToolPkg 作者。文中 `tools/toolpkg/debug_toolpkg.*` 的命令适用于拥有 Operit 源码仓库和 ADB 的桌面开发环境；应用内 AI 协作开发应先更新 `SandboxPackage_DEV`，并遵循其本地 `SKILL.md` 指定的目录与调试方式。
 
 ### 1.1 什么是 ToolPkg？
 
@@ -42,6 +42,7 @@ windows_control.toolpkg (ZIP 压缩包)
 ├── modules/                               # 可选 WASM 核心模块
 │   └── core.wasm                          # AssemblyScript 编译产物
 ├── resources/                             # 资源文件目录
+│   ├── logo.svg                            # 可选包 Logo
 │   └── pc_agent/
 │       └── operit-pc-agent/              # 目录资源（readResource 时自动导出为 zip）
 └── i18n/                                  # 国际化文件（可选）
@@ -74,6 +75,8 @@ windows_control.toolpkg (ZIP 压缩包)
   "schema_version": 1,
   "toolpkg_id": "com.operit.windows_bundle",
   "version": "0.2.0",
+  "api_version": "1.0.0",
+  "requires": [],
   "author": ["Operit Team", "Alice"],
   "main": "main.js",
   "display_name": {
@@ -84,6 +87,7 @@ windows_control.toolpkg (ZIP 压缩包)
     "zh": "Windows 一键配置与控制工具包",
     "en": "Windows one-click setup and control bundle"
   },
+  "logo": "package_logo",
   "subpackages": [
     {
       "id": "windows_control",
@@ -100,6 +104,11 @@ windows_control.toolpkg (ZIP 压缩包)
     }
   ],
   "resources": [
+    {
+      "key": "package_logo",
+      "path": "resources/logo.svg",
+      "mime": "image/svg+xml"
+    },
     {
       "key": "pc_agent_zip",
       "path": "resources/pc_agent/operit-pc-agent.zip",
@@ -156,15 +165,72 @@ windows_control.toolpkg (ZIP 压缩包)
 | `schema_version` | number | 是 | 清单架构版本，当前为 `1` |
 | `toolpkg_id` | string | 是 | 包的唯一标识符，建议使用反向域名格式（如 `com.operit.windows_bundle`） |
 | `version` | string | 否 | 包的版本号，建议使用语义化版本（如 `0.2.0`） |
+| `api_version` | string | 否 | 包使用的 ToolPkg API 版本，严格使用 `major.minor.patch` 格式；省略时按 `1.0.0` 处理 |
+| `requires` | object[] | 否 | 包必须加载的依赖。每项包含目标包 ID、用途说明和可选版本范围；依赖同时决定加载顺序 |
 | `author` | string \| string[] | 否 | 作者信息，支持单个作者字符串或作者字符串数组 |
 | `main` | string | 是 | ToolPkg 主入口脚本路径（相对于 ZIP 根目录），用于执行注册函数 |
 | `display_name` | LocalizedText | 否 | 包的显示名称，支持多语言 |
 | `description` | LocalizedText | 否 | 包的描述信息，支持多语言 |
+| `logo` | string | 否 | 包 Logo 对应的 `resources[].key`；支持 SVG、PNG、JPEG 和 WebP |
 | `subpackages` | array | 否 | 子包列表，每个子包是一个独立的工具集 |
 | `resources` | array | 否 | 资源文件列表，可以是任意类型的文件 |
 | `wasm_modules` | array | 否 | 企业核心算法模块列表，当前用于声明和校验 `.wasm` 产物 |
 | `workflow_templates` | array | 否 | 注册到宿主“工作流”入口的工作流模板列表 |
 | `workspace_templates` | array | 否 | 注册到宿主“工作区创建”入口的工作区模板列表 |
+
+#### ToolPkg API 版本
+
+`api_version` 描述的是包调用的宿主 ToolPkg API，不是包自身的 `version`。未声明该字段的历史包使用 `1.0.0`。
+
+Operit 的 ToolPkg API 支持关系如下：
+
+| Operit 版本 | 支持的 ToolPkg API |
+|------|------|
+| `1.12.1+4` 之前 | `1.0.0` |
+| `1.12.1+4` 及之后 | `1.0.0`、`1.0.1` |
+
+`1.0.1` 包含 `1.12.1+4` 之后新增的 ToolPkg 公开能力，目前包括聊天运行态 Hook、消息长按菜单注册、Compose DSL 弹窗组件和 `Tools.Chat.call` 功能模型调用。
+
+类型文件保持一份最新版声明，并用 `@since ToolPkg API x.y.z` 标注公开能力的引入版本。使用这些能力时，manifest 的 `api_version` 需要不低于对应版本。
+
+当前应用不支持 manifest 声明的 API 版本时，包会显示在包加载错误中，并附带当前应用版本和支持的 API 版本。
+
+#### 市场发布中的 API 版本
+
+发布 ToolPkg 时，市场版本信息会记录 manifest 中的 `api_version`。这个字段描述宿主 ToolPkg API，不是包自身的 `version`，也不是归档格式的 `formatVer`。发布前如需调整该值，应修改 manifest。
+
+市场列表、详情和历史版本会展示 ToolPkg API 版本。历史包未记录该值时，按 `1.0.0` 理解。
+
+#### 包依赖与加载顺序
+
+`requires` 是 manifest 的包依赖声明，不属于 ToolPkg JavaScript API。每项都使用对象格式，可以引用 ToolPkg 容器、ToolPkg 子包或普通脚本包。依赖包会先于声明方加载，因此 `requires` 同时表达“必须加载什么”和“加载顺序”。
+
+启用声明了 `requires` 的包时，宿主会把依赖包加入启用集合。被其他已启用 ToolPkg 依赖的包不能直接关闭，必须先处理依赖它的包。
+
+```json
+{
+  "toolpkg_id": "com.example.feature",
+  "requires": [
+    {
+      "id": "com.example.shared",
+      "description": "提供共享运行能力",
+      "min_version": "1.2.0",
+      "max_version": "2.0.0"
+    }
+  ]
+}
+```
+
+`description` 用于在包管理界面向用户说明依赖用途。`min_version` 和 `max_version` 都是可选的，表示目标包自身版本的下限和上限，不是 ToolPkg API 版本。插件列表中的拖动顺序是没有依赖关系时的基础顺序；`requires` 产生的依赖顺序优先于这个基础顺序，循环关系会使相关包加载失败。
+
+| 依赖字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | 被依赖包的 ID，可以是 ToolPkg 容器、ToolPkg 子包或普通脚本包 |
+| `description` | string | 是 | 依赖用途的简短说明，用于包管理界面展示 |
+| `min_version` | string | 否 | 被依赖包允许的最低版本，格式为 `major.minor.patch` |
+| `max_version` | string | 否 | 被依赖包允许的最高版本，格式为 `major.minor.patch` |
+
+发布 ToolPkg 时仅使用归档中已有的 `manifest.logo` 资源。市场条目可以展示该资源对应的 Logo。
 
 #### 压缩发布
 
@@ -397,6 +463,25 @@ function registerToolPkg() {
     function: onInputMenuToggle
   });
 
+  ToolPkg.registerChatMessageMenuItem({
+    id: "windows_translate_message",
+    title: {
+      zh: "翻译",
+      en: "Translate"
+    },
+    icon: "translate",
+    order: 20,
+    senders: ["user", "ai"],
+    dialog: {
+      screen: "dist/ui/message_dialog.ui.js",
+      title: {
+        zh: "消息操作",
+        en: "Message Action"
+      }
+    },
+    function: onMessageMenuItem
+  });
+
   return true;
 }
 
@@ -434,11 +519,22 @@ function onInputMenuToggle(params) {
   return { ok: false };
 }
 
+function onMessageMenuItem(event) {
+  return {
+    dialog: {
+      state: {
+        message: event.eventPayload.message
+      }
+    }
+  };
+}
+
 exports.registerToolPkg = registerToolPkg;
 exports.onApplicationCreate = onApplicationCreate;
 exports.onMessageProcessing = onMessageProcessing;
 exports.onXmlRender = onXmlRender;
 exports.onInputMenuToggle = onInputMenuToggle;
+exports.onMessageMenuItem = onMessageMenuItem;
 ```
 
 注册项字段：
@@ -480,6 +576,15 @@ exports.onInputMenuToggle = onInputMenuToggle;
 | `ToolPkg.registerXmlRenderPlugin` | `function` | 是 | 函数引用（支持箭头函数） |
 | `ToolPkg.registerInputMenuTogglePlugin` | `id` | 是 | 输入菜单开关插件唯一标识 |
 | `ToolPkg.registerInputMenuTogglePlugin` | `function` | 是 | 函数引用（支持箭头函数） |
+| `ToolPkg.registerChatMessageMenuItem` | `id` | 是 | 消息长按菜单项唯一标识，需要 ToolPkg API `1.0.1` |
+| `ToolPkg.registerChatMessageMenuItem` | `title` | 是 | 菜单文案，支持 `LocalizedText` |
+| `ToolPkg.registerChatMessageMenuItem` | `icon` | 否 | Material 图标名，例如 `translate`、`info` |
+| `ToolPkg.registerChatMessageMenuItem` | `order` | 否 | 排序值，越小越靠前 |
+| `ToolPkg.registerChatMessageMenuItem` | `senders` | 否 | 允许出现的消息发送方，当前支持 `user`、`ai` |
+| `ToolPkg.registerChatMessageMenuItem` | `dialog.screen` | 否 | 点击后可打开的 Compose DSL 弹窗资源路径或 screen 引用 |
+| `ToolPkg.registerChatMessageMenuItem` | `function` | 是 | 点击回调函数，可返回 `dialog.state` 和 `dialog.moduleSpec` |
+
+`registerChatMessageMenuItem` 的点击事件名是 `chat_message_menu_item_click`。事件载荷包含 `chatId`、`messageIndex`、`menuItemId` 和当前消息快照。若注册项声明了 `dialog.screen`，宿主会把这些字段写入弹窗 DSL 的初始 `state`，插件函数返回的 `dialog.state` 会一并传入弹窗。
 
 `ToolPkg.registerAppLifecycleHook` 支持的 `event`：
 
@@ -1058,6 +1163,8 @@ exports.default = Screen;
 - `Checkbox`：复选框
 - `Card`：卡片
 - `Icon`：图标
+- `AlertDialog`：Material3 标准弹窗，需要 ToolPkg API `1.0.1`
+- `Dialog`：自定义内容弹窗，需要 ToolPkg API `1.0.1`
 - `AiChat`：嵌入当前主聊天的消息列表和输入区，不包含工作区
 - `AdaptiveSidePanel`：宽屏可拖拽分栏、窄屏覆盖层的自适应侧栏
 
@@ -1167,9 +1274,7 @@ const directory = await ctx.openFilePicker({
 兼容说明：
 
 - `ToolPkg.registerToolboxUiModule(...)` 仍然保留。
-- 宿主内部会把它自动映射为：
-  - 注册一个 `compose_dsl` UI route
-  - 自动挂载一个 `toolbox` 导航入口
+- 调用后会注册一个 `compose_dsl` UI route，并挂载到 `toolbox` 导航入口。
 - 旧接口不会自动创建主侧边栏插件入口；若需要主侧边栏插件入口，请额外调用 `ToolPkg.registerNavigationEntry(...)` 并使用 `surface: "main_sidebar_plugins"`。
 
 #### 其他
@@ -1355,7 +1460,7 @@ my_toolpkg/
 - 解析 `toolpkg_id`
 - 加载 `main` 脚本里的注册逻辑
 - 同步 UI 模块、消息处理插件、Prompt Hook、Tool Lifecycle Hook 等宿主级注册
-- 刷新 ToolPkg cache 与运行时 hook 映射
+- 刷新 ToolPkg 注册信息
 
 因此，`toolpkg` 调试的正确思路不是“一次运行”，而是“快速重新安装”。
 
@@ -1374,7 +1479,7 @@ my_toolpkg/
 5. 发送调试广播，让 App 重新扫描外部 packages 目录
 6. 按 `toolpkg_id` 启用该 ToolPkg 容器
 7. 按 manifest 默认值重新应用 subpackage 启用状态（可选关闭）
-8. 刷新 ToolPkg cache、hook/runtime 映射，并尝试重新激活先前已注册过的 subpackage 工具
+8. 刷新 ToolPkg 注册信息，并尝试重新激活先前已注册过的 subpackage 工具
 
 这条链路更接近真实安装行为，适合调试：
 
@@ -1382,6 +1487,8 @@ my_toolpkg/
 - `ToolPkg.registerMessageProcessingPlugin(...)`
 - `ToolPkg.registerXmlRenderPlugin(...)`
 - `ToolPkg.registerInputMenuTogglePlugin(...)`
+- `ToolPkg.registerChatMessageMenuItem(...)`，需要 ToolPkg API `1.0.1`
+- `ToolPkg.registerChatRuntimeHook(...)`，需要 ToolPkg API `1.0.1`
 - `ToolPkg.registerToolLifecycleHook(...)`
 - Prompt 相关 hook
 
@@ -1488,14 +1595,4 @@ ls -lh app/src/main/assets/packages/windows_control.toolpkg
 ## 12. 参考资料
 
 - [脚本开发指南](./SCRIPT_DEV_GUIDE.md)：了解如何编写子包脚本
-- [PackageManager.kt](../app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManager.kt)：包管理器源码
-- [ToolPkgParser.kt](../app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgParser.kt)：解析器源码
-- [JsComposeDslBridge.kt](../app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsComposeDslBridge.kt)：Compose DSL 桥接
-
-## 13. 更新日志
-
-### v1.0.0 (2024-02-14)
-- 初始版本
-- 支持子包、UI 模块、资源文件
-- 支持多语言
-- 提供 Compose DSL UI 框架
+- [ToolPkg API 文档](./doc-src/package-dev/toolpkg.md)：了解注册 API

@@ -980,6 +980,52 @@ export interface CircularProgressIndicatorProps extends ComposeCommonProps {
 
 export interface SnackbarHostProps extends ComposeCommonProps {}
 
+/** @since ToolPkg API 1.0.1 */
+export interface DialogProperties {
+  dismissOnBackPress?: boolean;
+  dismissOnClickOutside?: boolean;
+  usePlatformDefaultWidth?: boolean;
+  decorFitsSystemWindows?: boolean;
+}
+
+/** @since ToolPkg API 1.0.1 */
+export interface AlertDialogProps extends ComposeCommonProps {
+  title?: string | ComposeChildren;
+  text?: string | ComposeChildren;
+  markdown?: string;
+  content?: ComposeChildren;
+  icon?: ComposeChildren;
+  confirmButton?: ComposeChildren;
+  dismissButton?: ComposeChildren;
+  confirmText?: string;
+  dismissText?: string;
+  onConfirm?: () => void | Promise<void>;
+  onDismiss?: () => void | Promise<void>;
+  onDismissRequest?: () => void | Promise<void>;
+  closeOnConfirm?: boolean;
+  closeOnDismiss?: boolean;
+  closeOnDismissRequest?: boolean;
+  containerColor?: ComposeColor;
+  iconContentColor?: ComposeColor;
+  titleContentColor?: ComposeColor;
+  textContentColor?: ComposeColor;
+  tonalElevation?: number;
+  shape?: ComposeShape;
+  properties?: DialogProperties;
+}
+
+/** @since ToolPkg API 1.0.1 */
+export interface DialogProps extends ComposeCommonProps {
+  content?: ComposeChildren;
+  onDismissRequest?: () => void | Promise<void>;
+  closeOnDismissRequest?: boolean;
+  containerColor?: ComposeColor;
+  contentColor?: ComposeColor;
+  tonalElevation?: number;
+  shape?: ComposeShape;
+  properties?: DialogProperties;
+}
+
 /** Embeds the host AI chat surface without its workspace panel. */
 export interface AiChatProps extends ComposeCommonProps {}
 
@@ -1090,6 +1136,10 @@ export interface ComposeUiFactoryRegistry {
   LinearProgressIndicator: ComposeNodeFactory<LinearProgressIndicatorProps>;
   CircularProgressIndicator: ComposeNodeFactory<CircularProgressIndicatorProps>;
   SnackbarHost: ComposeNodeFactory<SnackbarHostProps>;
+  /** @since ToolPkg API 1.0.1 */
+  AlertDialog: ComposeNodeFactory<AlertDialogProps>;
+  /** @since ToolPkg API 1.0.1 */
+  Dialog: ComposeNodeFactory<DialogProps>;
   AiChat: ComposeNodeFactory<AiChatProps>;
   AdaptiveSidePanel: ComposeNodeFactory<AdaptiveSidePanelProps>;
   Canvas: ComposeNodeFactory<CanvasProps>;

@@ -20,6 +20,7 @@ import {
 import { appendPrompt, buildExistingPlanPrompt, buildPlanningModePrompt } from "../shared/plan_mode_prompt.js";
 import { type PlanModeRuntime } from "../shared/plan_mode_state.js";
 import {
+  PLAN_MODE_IS_PLAN_STARTED_IPC_CHANNEL,
   PLAN_MODE_START_IMPLEMENTATION_IPC_CHANNEL,
   type StartPlanImplementationResult,
 } from "../shared/plan_mode_execution.js";
@@ -118,23 +119,32 @@ async function handleStartImplementationIpc(
       await Tools.System.toast(text.toastChatViewMissing);
       return { success: false, error: text.toastChatViewMissing };
     }
-    const written = await PlanModeShared.writePlanFile(activeView.chatId, normalizedPlanContent);
-    await PlanModeShared.disable(written.chatId);
-    void Tools.Chat.sendMessage(
-      text.implementationMessage,
-      written.chatId,
-      undefined,
-      undefined,
-      { runtime: activeView.runtime }
-    ).catch((error) => {
-      const errorText = error instanceof Error
-        ? error.message || "error"
-        : (typeof error === "string" || error == null ? error || "error" : "error");
-      const messageText = `${text.toastPlanSendFailedPrefix}${errorText}`;
-      void Tools.System.toast(messageText);
-    });
-    void Tools.System.toast(text.toastPlanStarted);
-    return { success: true };
+    if (!(await PlanModeShared.claimPlanStart(normalizedPlanContent))) {
+      await Tools.System.toast(text.toastPlanAlreadyStarted);
+      return { success: true, alreadyStarted: true };
+    }
+    try {
+      const written = await PlanModeShared.writePlanFile(activeView.chatId, normalizedPlanContent);
+      await PlanModeShared.disable(written.chatId);
+      void Tools.Chat.sendMessage(
+        text.implementationMessage,
+        written.chatId,
+        undefined,
+        undefined,
+        { runtime: activeView.runtime }
+      ).catch((error) => {
+        const errorText = error instanceof Error
+          ? error.message || "error"
+          : (typeof error === "string" || error == null ? error || "error" : "error");
+        const messageText = `${text.toastPlanSendFailedPrefix}${errorText}`;
+        void Tools.System.toast(messageText);
+      });
+      void Tools.System.toast(text.toastPlanStarted);
+      return { success: true };
+    } catch (error) {
+      await PlanModeShared.forgetPlanStart(normalizedPlanContent);
+      throw error;
+    }
   } catch (error) {
     const errorText = error instanceof Error
       ? error.message || "error"
@@ -142,6 +152,17 @@ async function handleStartImplementationIpc(
     const messageText = `${text.toastPlanWriteFailedPrefix}${errorText}`;
     await Tools.System.toast(messageText);
     return { success: false, error: messageText };
+  }
+}
+
+async function handleIsPlanStartedIpc(planContent: string): Promise<boolean> {
+  try {
+    return await PlanModeShared.isPlanStarted(planContent);
+  } catch (error) {
+    logPlanModeDebug("handleIsPlanStartedIpc.error", {
+      message: error instanceof Error ? error.message : "error",
+    });
+    return false;
   }
 }
 
@@ -158,6 +179,10 @@ function registerPlanModeIpc(): void {
   ToolPkg.ipc.on<string, StartPlanImplementationResult>(
     PLAN_MODE_START_IMPLEMENTATION_IPC_CHANNEL,
     handleStartImplementationIpc
+  );
+  ToolPkg.ipc.on<string, boolean>(
+    PLAN_MODE_IS_PLAN_STARTED_IPC_CHANNEL,
+    handleIsPlanStartedIpc
   );
 }
 

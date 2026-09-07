@@ -65,6 +65,53 @@ class TokenCostCalculatorTest {
     }
 
     @Test
+    fun `legacy non independent cache write is known zero`() {
+        val row = normalizeLegacyCacheWriteUsage(
+            aggregateRow(
+                requests = 165L,
+                provider = "DEEPSEEK/legacy configuration",
+                configId = "",
+                cacheWriteKnown = 0L,
+            )
+        )
+        val result = TokenCostCalculator.currentCost(
+            row = row,
+            pricing = tokenPricing(),
+            targetCurrency = PricingCurrency.USD,
+            usdToCnyRate = 7.0,
+        )
+
+        assertEquals(165L, row.cacheWriteKnown)
+        assertEquals(0L, result.unknownContributionCount)
+    }
+
+    @Test
+    fun `legacy independently billed cache write remains unknown`() {
+        val row = normalizeLegacyCacheWriteUsage(
+            aggregateRow(
+                provider = "ANTHROPIC/legacy configuration",
+                configId = "",
+                cacheWriteKnown = 0L,
+            )
+        )
+
+        assertEquals(0L, row.cacheWriteKnown)
+    }
+
+    @Test
+    fun `configured non independent provider rows are not rewritten`() {
+        val row = normalizeLegacyCacheWriteUsage(
+            aggregateRow(
+                provider = "DEEPSEEK",
+                configId = "current-config",
+                cacheWriteKnown = 0L,
+            )
+        )
+
+        assertEquals(0L, row.cacheWriteKnown)
+    }
+
+    @Test
     fun `unknown zero pricing counts every request as unknown`() {
         val result =
             TokenCostCalculator.currentCost(
@@ -156,6 +203,8 @@ class TokenCostCalculatorTest {
 
     private fun aggregateRow(
         requests: Long = 1L,
+        provider: String = "OPENAI",
+        configId: String = "test-config",
         uncachedInputTokens: Long = 1_000L,
         uncachedInputKnown: Long = requests,
         cachedInputTokens: Long = 0L,
@@ -167,9 +216,9 @@ class TokenCostCalculatorTest {
         outputTokens: Long = 500L,
         outputKnown: Long = requests,
     ) = TokenUsageModelAggregateRow(
-        provider = "OPENAI",
+        provider = provider,
         model = "gpt-test",
-        configId = "test-config",
+        configId = configId,
         requests = requests,
         uncachedInputTokens = uncachedInputTokens,
         uncachedInputKnown = uncachedInputKnown,

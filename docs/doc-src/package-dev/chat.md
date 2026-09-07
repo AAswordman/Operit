@@ -105,6 +105,39 @@ findChat({ query, match?, index? }): Promise<ChatFindResultData>
 - `runtime` 用于指定本次消息发送到哪个 chat runtime，未指定时默认走 `floating`
 - `timeout_ms` 用于控制本次发送的最长等待时间，单位毫秒
 
+### `call(options)`
+
+自 ToolPkg API `1.0.1` 起可用。
+
+```ts
+call(options: {
+  functionType:
+    | 'CHAT'
+    | 'SUMMARY'
+    | 'TITLE_GENERATION'
+    | 'MEMORY'
+    | 'UI_CONTROLLER'
+    | 'TRANSLATION'
+    | 'GREP'
+    | 'ROLE_RESPONSE_PLANNER'
+    | 'IMAGE_RECOGNITION'
+    | 'AUDIO_RECOGNITION'
+    | 'VIDEO_RECOGNITION'
+  turns: ToolPkg.PromptTurn[]
+  recordTokenUsage?: boolean
+  enableThinking?: boolean
+}): Promise<ChatCallResultData>
+```
+
+调用指定功能模型，并使用项目统一的 `PromptTurn` 结构传入上下文。这个接口不写入聊天记录，也不执行模型返回的工具调用。
+
+返回值：
+
+- `text`：去掉协议 metadata 和工具 XML 后的助手文本
+- `turns`：模型输出按 `PromptTurn` 形状切分后的结果，可能包含 `ASSISTANT` 和 `TOOL_CALL`
+- `finishReason`：`stop` 或 `tool_call`
+- `metadata`：宿主从协议标签提取的结构信息；当前 `protocolMeta` 为数组，每项包含 `provider` 和原始 `payload`
+
 ### `listCharacterCards()`
 
 列出可用角色卡。
@@ -138,6 +171,7 @@ getMessagesRange(chatId: string, options: { order?: 'asc' | 'desc'; start: numbe
 - `ChatTitleUpdateResultData`
 - `ChatDeleteResultData`
 - `MessageSendResultData`
+- `ChatCallResultData`
 - `ChatMessagesResultData`
 - `CharacterCardListResultData`
 
@@ -186,6 +220,32 @@ const messages = await Tools.Chat.getMessagesRange('chat_123', {
   end: 399
 });
 console.log(messages.messages.length);
+```
+
+### 调用翻译功能模型
+
+```ts
+const result = await Tools.Chat.call({
+  functionType: 'TRANSLATION',
+  turns: [
+    {
+      kind: 'SYSTEM',
+      content: 'Translate the user message into Chinese. Return only the translated text.'
+    },
+    {
+      kind: 'USER',
+      content: originalText,
+      metadata: { targetLanguage: 'Chinese' }
+    }
+  ],
+  recordTokenUsage: false
+});
+
+if (result.finishReason === 'tool_call') {
+  console.warn(result.turns);
+} else {
+  console.log(result.text);
+}
 ```
 
 ## 相关文件

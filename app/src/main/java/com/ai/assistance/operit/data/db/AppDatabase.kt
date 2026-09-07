@@ -227,7 +227,7 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        /** v20 -> v21: final unpublished token statistics schema. */
+        /** v20 -> v21: token statistics schema and Room-declared message indexes. */
         internal val MIGRATION_20_21 =
             object : Migration(20, 21) {
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -246,6 +246,16 @@ abstract class AppDatabase : RoomDatabase() {
                 }
 
                 private fun runSql(exec: (String) -> Unit) {
+                    // Released v20 databases created before MessageEntity declared indexes still need
+                    // these exact indexes before Room validates the migrated schema.
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_messages_chatId` " +
+                            "ON `messages` (`chatId`)"
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_messages_chatId_timestamp` " +
+                            "ON `messages` (`chatId`, `timestamp`)"
+                    )
                     exec(
                         """
                         CREATE TABLE IF NOT EXISTS `token_usage_records` (

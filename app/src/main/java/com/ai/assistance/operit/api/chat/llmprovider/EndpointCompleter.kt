@@ -87,6 +87,10 @@ object EndpointCompleter {
                 return completeResponsesEndpoint(endpoint)
             }
 
+            ApiProviderType.OPENAI_CODEX -> {
+                return endpoint
+            }
+
             ApiProviderType.ANTHROPIC,
             ApiProviderType.ANTHROPIC_GENERIC -> {
                 try {

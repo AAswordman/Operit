@@ -7,6 +7,7 @@ export type PlanModeI18n = {
   toastChatViewMissing: string;
   toastPlanEmpty: string;
   toastPlanStarted: string;
+  toastPlanAlreadyStarted: string;
   toastPlanWriteFailedPrefix: string;
   toastPlanSendFailedPrefix: string;
   toastPlanAlreadyCompleted: string;
@@ -48,6 +49,7 @@ const ZH_CN: PlanModeI18n = {
   toastChatViewMissing: "当前没有可用的聊天视图，无法开始实施。",
   toastPlanEmpty: "计划内容为空，无法开始实施。",
   toastPlanStarted: "已写入内部计划文件，并发送“开始实施”。",
+  toastPlanAlreadyStarted: "这份计划已经开始实施，不会重复发起。",
   toastPlanWriteFailedPrefix: "写入计划失败：",
   toastPlanSendFailedPrefix: "发送开始实施失败：",
   toastPlanAlreadyCompleted: "当前工作区没有计划文件。",
@@ -108,6 +110,7 @@ const EN_US: PlanModeI18n = {
   toastChatViewMissing: "No active chat view is available, so implementation cannot start.",
   toastPlanEmpty: "The plan is empty, so implementation cannot start.",
   toastPlanStarted: "The internal plan file has been written and \"Start implementation\" was sent.",
+  toastPlanAlreadyStarted: "This plan is already being implemented, so it was not started again.",
   toastPlanWriteFailedPrefix: "Failed to write the plan: ",
   toastPlanSendFailedPrefix: "Failed to send the implementation kickoff: ",
   toastPlanAlreadyCompleted: "The current workspace does not have a plan file.",

@@ -31,6 +31,33 @@ class ChatConfigReadinessTest {
     }
 
     @Test
+    fun codexWithoutOAuthLogin_isRejected() {
+        assertIssue(
+            ChatConfigReadinessIssue.CODEX_LOGIN_REQUIRED,
+            remoteConfig(
+                ApiProviderType.OPENAI_CODEX,
+                apiKey = "",
+                endpoint = "https://chatgpt.com/backend-api/codex/responses",
+            ),
+        )
+    }
+
+    @Test
+    fun codexWithOAuthLogin_doesNotRequireApiKey() {
+        val result = ChatConfigReadiness.evaluate(
+            config = remoteConfig(
+                ApiProviderType.OPENAI_CODEX,
+                apiKey = "",
+                endpoint = "https://chatgpt.com/backend-api/codex/responses",
+            ),
+            modelIndex = 0,
+            registeredPluginProviderIds = emptySet(),
+            codexAuthenticated = true,
+        )
+        assertTrue(result.isReady)
+    }
+
+    @Test
     fun genericProviderMayUseCustomHeaderAuthentication() {
         assertReady(remoteConfig(ApiProviderType.OPENAI_GENERIC, apiKey = ""))
     }

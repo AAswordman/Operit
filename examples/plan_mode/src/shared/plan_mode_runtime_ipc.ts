@@ -5,11 +5,16 @@ import {
 } from "./plan_mode_mode.js";
 import {
   hasPlanFile,
+  normalizePlanText,
+  planFileMatchesContent,
   writePlanFile,
   type PlanFileRecord,
 } from "./plan_mode_plan_file.js";
 import {
+  forgetPlanStart as forgetPlanStartRecord,
+  isPlanStartRecorded,
   readSingleActiveChatView,
+  recordPlanStart,
   removeTrackedChatViewAsync,
   upsertTrackedChatViewAsync,
   type PlanModeRuntime,
@@ -79,6 +84,9 @@ export const PLAN_MODE_DISABLE_IPC_CHANNEL = "plan_mode.disable";
 export const PLAN_MODE_RESOLVE_WORKSPACE_IPC_CHANNEL = "plan_mode.resolve_workspace";
 export const PLAN_MODE_HAS_PLAN_FILE_IPC_CHANNEL = "plan_mode.has_plan_file";
 export const PLAN_MODE_WRITE_PLAN_FILE_IPC_CHANNEL = "plan_mode.write_plan_file";
+export const PLAN_MODE_IS_PLAN_STARTED_SHARED_IPC_CHANNEL = "plan_mode.shared_is_plan_started";
+export const PLAN_MODE_CLAIM_PLAN_START_IPC_CHANNEL = "plan_mode.claim_plan_start";
+export const PLAN_MODE_FORGET_PLAN_START_IPC_CHANNEL = "plan_mode.forget_plan_start";
 export const PLAN_MODE_UPSERT_TRACKED_CHAT_VIEW_IPC_CHANNEL = "plan_mode.upsert_tracked_chat_view";
 export const PLAN_MODE_REMOVE_TRACKED_CHAT_VIEW_IPC_CHANNEL = "plan_mode.remove_tracked_chat_view";
 
@@ -119,6 +127,49 @@ export class PlanModeShared {
   @Shared(PLAN_MODE_WRITE_PLAN_FILE_IPC_CHANNEL)
   static async writePlanFile(chatId: string, content: string): Promise<PlanFileRecord> {
     return await writePlanFile(chatId, content);
+  }
+
+  /**
+   * A plan counts as started once this session handed it off, or once the workspace plan
+   * file still holds exactly this plan because an earlier session started it.
+   */
+  @Shared(PLAN_MODE_IS_PLAN_STARTED_SHARED_IPC_CHANNEL)
+  static async isPlanStarted(planContent: string): Promise<boolean> {
+    const planKey = normalizePlanText(planContent);
+    if (!planKey) {
+      return false;
+    }
+    if (isPlanStartRecorded(planKey)) {
+      return true;
+    }
+    const view = readSingleActiveChatView();
+    if (!view) {
+      return false;
+    }
+    return await planFileMatchesContent(view.chatId, planKey);
+  }
+
+  @Shared(PLAN_MODE_CLAIM_PLAN_START_IPC_CHANNEL)
+  static async claimPlanStart(planContent: string): Promise<boolean> {
+    const planKey = normalizePlanText(planContent);
+    if (!planKey) {
+      return false;
+    }
+    if (isPlanStartRecorded(planKey)) {
+      return false;
+    }
+    // Record before awaiting so a second tap cannot slip through the same check.
+    recordPlanStart(planKey);
+    const view = readSingleActiveChatView();
+    if (view && (await planFileMatchesContent(view.chatId, planKey))) {
+      return false;
+    }
+    return true;
+  }
+
+  @Shared(PLAN_MODE_FORGET_PLAN_START_IPC_CHANNEL)
+  static async forgetPlanStart(planContent: string): Promise<void> {
+    forgetPlanStartRecord(normalizePlanText(planContent));
   }
 
   @Shared(PLAN_MODE_UPSERT_TRACKED_CHAT_VIEW_IPC_CHANNEL)

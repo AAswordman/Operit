@@ -293,8 +293,10 @@ fun ChatBackupSettingsScreen() {
                 val roomDbFiles = mergedFiles(OperitBackupDirs.roomDbDir())
 
                 chatBackupFileCount = chatFiles.count { file ->
-                    file.name.startsWith("chat_backup_") && file.extension == "json" ||
-                        file.name.startsWith("chat_export_") && file.extension in listOf("json", "md", "html", "txt")
+                    (file.name.startsWith("chat_backup_") &&
+                        file.extension in listOf("json", "zip", "html", "txt", "csv")) ||
+                        (file.name.startsWith("chat_export_") &&
+                            file.extension in listOf("json", "md", "html", "txt", "csv", "zip"))
                 }
 
                 characterCardBackupFileCount = characterCardFiles.count { file ->
@@ -519,8 +521,10 @@ fun ChatBackupSettingsScreen() {
                             val roomDbFiles = mergedFiles(OperitBackupDirs.roomDbDir())
 
                             chatBackupFileCount = chatFiles.count { file ->
-                                file.name.startsWith("chat_backup_") && file.extension == "json" ||
-                                    file.name.startsWith("chat_export_") && file.extension in listOf("json", "md", "html", "txt")
+                                (file.name.startsWith("chat_backup_") &&
+                                    file.extension in listOf("json", "zip", "html", "txt", "csv")) ||
+                                    (file.name.startsWith("chat_export_") &&
+                                        file.extension in listOf("json", "md", "html", "txt", "csv", "zip"))
                             }
 
                             characterCardBackupFileCount = characterCardFiles.count { file ->
@@ -1281,7 +1285,7 @@ fun ChatBackupSettingsScreen() {
                                 ExportFormat.MARKDOWN -> context.getString(R.string.backup_format_markdown)
                                 ExportFormat.HTML -> context.getString(R.string.backup_format_html)
                                 ExportFormat.TXT -> context.getString(R.string.backup_format_txt)
-                                ExportFormat.CSV -> "CSV"
+                                ExportFormat.CSV -> context.getString(R.string.backup_format_csv)
                             }
                             operationMessage = context.getString(
                                 R.string.backup_chat_export_result_success,

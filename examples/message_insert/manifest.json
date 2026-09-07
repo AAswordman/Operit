@@ -2,6 +2,7 @@
   "schema_version": 1,
   "toolpkg_id": "com.operit.message_insert_bundle",
   "version": "0.3.0",
+  "api_version": "1.0.0",
   "main": "dist/main.js",
   "display_name": {
     "zh": "额外信息注入",

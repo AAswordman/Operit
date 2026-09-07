@@ -116,10 +116,12 @@ internal fun TokenStatsDateRangeDialog(
                         datePickerMillisToLocalDate(end),
                         zone,
                     )
+                    val isUnchangedInitialRange = range == initialRange
                     inlineError =
                         when (validateCustomRange(range.startMs, range.endMs, zone, maxRangeDays)) {
                             CustomRangeValidation.INVALID_BOUNDS -> invalidRangeText
-                            CustomRangeValidation.TOO_LONG -> rangeTooLongText
+                            CustomRangeValidation.TOO_LONG ->
+                                if (isUnchangedInitialRange) null else rangeTooLongText
                             CustomRangeValidation.VALID -> null
                         }
                     if (inlineError == null && onConfirm(range.startMs, range.endMs)) onDismiss()
@@ -243,7 +245,7 @@ internal fun PriceSettingsDialog(
     val allPricesValid =
         priceFields.all { raw ->
             raw.isBlank() ||
-                raw.toDoubleOrNull()?.let { it.isFinite() && it > 0.0 } == true
+                raw.toDoubleOrNull()?.let { it.isFinite() && it >= 0.0 } == true
         }
     val targetValid = scope != TokenStatsPriceScope.CONFIG || configId.isNotBlank()
     AlertDialog(

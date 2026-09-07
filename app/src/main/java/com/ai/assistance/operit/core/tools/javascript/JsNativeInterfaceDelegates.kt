@@ -17,6 +17,7 @@ import com.ai.assistance.operit.core.tools.IntResultData
 import com.ai.assistance.operit.core.tools.SandboxScriptExecutionResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolResultData
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgApiVersion
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
@@ -676,6 +677,7 @@ internal object JsNativeInterfaceDelegates {
         toolType: String,
         toolName: String,
         paramsJson: String,
+        toolPkgApiVersion: ToolPkgApiVersion?,
         binaryDataRegistry: ConcurrentHashMap<String, ByteArray>,
         binaryHandlePrefix: String,
         binaryDataThreshold: Int
@@ -710,6 +712,7 @@ internal object JsNativeInterfaceDelegates {
         toolType: String,
         toolName: String,
         paramsJson: String,
+        toolPkgApiVersion: ToolPkgApiVersion?,
         binaryDataRegistry: ConcurrentHashMap<String, ByteArray>,
         binaryHandlePrefix: String,
         binaryDataThreshold: Int,
@@ -762,6 +765,7 @@ internal object JsNativeInterfaceDelegates {
         toolType: String,
         toolName: String,
         paramsJson: String,
+        toolPkgApiVersion: ToolPkgApiVersion?,
         binaryDataRegistry: ConcurrentHashMap<String, ByteArray>,
         binaryHandlePrefix: String,
         binaryDataThreshold: Int,

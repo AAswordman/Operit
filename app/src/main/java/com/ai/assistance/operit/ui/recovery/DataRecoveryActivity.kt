@@ -71,8 +71,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.OperitUtilityTheme
+import com.ai.assistance.operit.util.LocaleUtils
 
 class DataRecoveryActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleUtils.getLocalizedContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -131,9 +136,9 @@ private fun DataRecoveryScreen() {
             }
 
             item {
-                RecoverySection(title = stringResource(R.string.data_recovery_snapshot_section)) {
+                RecoverySection(title = stringResource(R.string.data_recovery_raw_snapshot_section)) {
                     Text(
-                        text = stringResource(R.string.data_recovery_snapshot_description),
+                        text = stringResource(R.string.data_recovery_raw_snapshot_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -170,17 +175,20 @@ private fun DataRecoveryScreen() {
                         FilledTonalButton(onClick = { restartMainApp(context) }) {
                             Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.data_recovery_launch_main))
+                            Text(stringResource(R.string.data_recovery_start_main_app))
                         }
                     }
                 }
             }
 
             item {
-                RecoverySection(title = stringResource(R.string.data_recovery_file_management_section)) {
+                RecoverySection(title = stringResource(R.string.data_recovery_file_management)) {
                     val authority = "${context.packageName}.documents.data"
                     Text(
-                        text = stringResource(R.string.data_recovery_file_management_description, authority),
+                        text = stringResource(
+                            R.string.data_recovery_file_management_description,
+                            authority
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -188,7 +196,7 @@ private fun DataRecoveryScreen() {
             }
 
             item {
-                RecoverySection(title = stringResource(R.string.data_recovery_sql_executor_section)) {
+                RecoverySection(title = stringResource(R.string.data_recovery_sql_executor)) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -221,7 +229,7 @@ private fun DataRecoveryScreen() {
                         onValueChange = viewModel::setSqlText,
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        label = { Text("SQL") },
+                        label = { Text(stringResource(R.string.data_recovery_sql_label)) },
                         minLines = 4,
                         maxLines = 8
                     )
@@ -250,8 +258,8 @@ private fun DataRecoveryScreen() {
     pendingRestoreUri?.let { uri ->
         AlertDialog(
             onDismissRequest = { pendingRestoreUri = null },
-            title = { Text(stringResource(R.string.data_recovery_import_dialog_title)) },
-            text = { Text(stringResource(R.string.data_recovery_import_dialog_message)) },
+            title = { Text(stringResource(R.string.data_recovery_import_snapshot_title)) },
+            text = { Text(stringResource(R.string.data_recovery_import_snapshot_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -259,12 +267,12 @@ private fun DataRecoveryScreen() {
                         viewModel.restoreRawSnapshot(uri)
                     }
                 ) {
-                    Text(stringResource(R.string.data_recovery_import))
+                    Text(stringResource(R.string.data_recovery_import_action))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingRestoreUri = null }) {
-                    Text(stringResource(R.string.cancel))
+                    Text(stringResource(R.string.data_recovery_cancel_action))
                 }
             }
         )
@@ -293,7 +301,7 @@ private fun StatusPanel(
             }
             Column {
                 Text(
-                    text = error ?: status ?: stringResource(R.string.data_recovery_idle),
+                    text = error ?: status ?: stringResource(R.string.data_recovery_started),
                     style = MaterialTheme.typography.bodyMedium,
                     color =
                         if (error != null) {
@@ -337,7 +345,7 @@ private fun RecoverySection(
 
 @Composable
 private fun QueryResultPanel(result: DataRecoveryViewModel.QueryResult) {
-    RecoverySection(title = stringResource(R.string.data_recovery_query_results, result.rows.size)) {
+    RecoverySection(title = stringResource(R.string.data_recovery_query_result, result.rows.size)) {
         val horizontalScrollState = rememberScrollState()
         Box(
             modifier =

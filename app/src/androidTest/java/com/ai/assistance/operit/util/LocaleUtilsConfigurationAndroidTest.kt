@@ -60,7 +60,7 @@ class LocaleUtilsConfigurationAndroidTest {
         assertEquals("設定", localizedContext.getString(R.string.nav_settings))
         assertEquals(
             "生データのスナップショット",
-            localizedContext.getString(R.string.data_recovery_snapshot_section)
+            localizedContext.getString(R.string.data_recovery_raw_snapshot_section)
         )
         assertEquals(
             "Show Model Selector",

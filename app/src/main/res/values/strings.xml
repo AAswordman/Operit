@@ -1070,6 +1070,10 @@
     <string name="plugin_enable_failed">插件启用失败</string>
     <string name="plugin_disable_failed">插件禁用失败</string>
     <string name="plugin_subpackage_count">子包数：%1$d</string>
+    <string name="pkg_toolpkg_api_version">ToolPkg API：%1$s</string>
+    <string name="toolpkg_api_version_label">ToolPkg API 版本</string>
+    <string name="toolpkg_api_version_value">ToolPkg API 版本：%1$s</string>
+    <string name="pkg_toolpkg_requires">依赖包：%1$s</string>
     <string name="pkg_toolpkg_subpackages">ToolPkg 子包</string>
     <string name="pkg_toolpkg_version">版本：%1$s</string>
     <string name="pkg_toolpkg_resources">资源数：%1$d</string>
@@ -1461,35 +1465,38 @@
     <string name="title_activity_crash_report">Application Error</string>
     <string name="title_activity_data_recovery">数据救援</string>
     <string name="shortcut_data_recovery">数据救援</string>
-    <string name="data_recovery_snapshot_section">原始快照</string>
-    <string name="data_recovery_snapshot_description">导出会打包内部 files、shared_prefs、datastore、databases 和 Android/data 包目录；导入会覆盖当前数据。</string>
+    <string name="data_recovery_raw_snapshot_section">原始快照</string>
+    <string name="data_recovery_raw_snapshot_description">导出会打包内部 files、shared_prefs、datastore、databases 和 Android/data 包目录；导入会覆盖当前数据。</string>
     <string name="data_recovery_export_snapshot">导出快照</string>
     <string name="data_recovery_import_snapshot">导入快照</string>
-    <string name="data_recovery_launch_main">启动主应用</string>
-    <string name="data_recovery_file_management_section">文件管理</string>
-    <string name="data_recovery_file_management_description">此页不直接打开文件管理器。需要手动查看或导出内部文件时，可以打开 MT 管理器，添加“本地存储仓库”，选择 Operit 的数据仓库后再管理。provider: %1$s</string>
-    <string name="data_recovery_sql_executor_section">SQL 执行器</string>
+    <string name="data_recovery_start_main_app">启动主应用</string>
+    <string name="data_recovery_file_management">文件管理</string>
+    <string name="data_recovery_file_management_description">此页不直接打开文件管理器。需要手动查看或导出内部文件时，可以打开 MT 管理器，添加「本地存储仓库」，选择 Operit 的数据仓库后再管理。provider: %1$s</string>
+    <string name="data_recovery_sql_executor">SQL 执行器</string>
     <string name="data_recovery_messages_size">messages 大小</string>
     <string name="data_recovery_variants_size">variants 大小</string>
     <string name="data_recovery_chats_fields">chats 字段</string>
+    <string name="data_recovery_sql_label">SQL</string>
     <string name="data_recovery_execute">执行</string>
-    <string name="data_recovery_import_dialog_title">导入原始快照</string>
-    <string name="data_recovery_import_dialog_message">导入会覆盖当前应用数据。确认导入这个快照？</string>
-    <string name="data_recovery_import">导入</string>
-    <string name="data_recovery_idle">救援进程已启动</string>
+    <string name="data_recovery_import_snapshot_title">导入原始快照</string>
+    <string name="data_recovery_import_snapshot_message">导入会覆盖当前应用数据。确认导入这个快照？</string>
+    <string name="data_recovery_import_action">导入</string>
+    <string name="data_recovery_cancel_action">取消</string>
+    <string name="data_recovery_started">救援进程已启动</string>
     <string name="data_recovery_affected_rows">受影响行数：%1$d</string>
-    <string name="data_recovery_query_results">查询结果 %1$d 行</string>
-    <string name="data_recovery_launch_failed">无法启动主应用</string>
+    <string name="data_recovery_query_result">查询结果 %1$d 行</string>
     <string name="data_recovery_sql_empty">SQL 为空</string>
-    <string name="data_recovery_executing_sql">正在执行 SQL</string>
-    <string name="data_recovery_query_complete">查询完成：%1$d 行</string>
-    <string name="data_recovery_sql_complete">SQL 执行完成</string>
-    <string name="data_recovery_exporting_snapshot">正在导出原始快照</string>
-    <string name="data_recovery_export_complete">原始快照导出完成</string>
-    <string name="data_recovery_importing_snapshot">正在导入原始快照</string>
-    <string name="data_recovery_import_complete_restart">原始快照导入完成，请重启应用</string>
-    <string name="data_recovery_export_progress">导出：%1$s%2$s</string>
-    <string name="data_recovery_import_progress">导入：%1$s</string>
+    <string name="data_recovery_sql_running">正在执行 SQL</string>
+    <string name="data_recovery_query_completed">查询完成：%1$d 行</string>
+    <string name="data_recovery_sql_completed">SQL 执行完成</string>
+    <string name="data_recovery_export_running">正在导出原始快照</string>
+    <string name="data_recovery_export_completed">原始快照导出完成</string>
+    <string name="data_recovery_restore_running">正在导入原始快照</string>
+    <string name="data_recovery_restore_completed">原始快照导入完成，请重启应用</string>
+    <string name="data_recovery_export_progress">导出：%1$s</string>
+    <string name="data_recovery_restore_progress">导入：%1$s</string>
+    <string name="data_recovery_progress_percent"> %1$d%%</string>
+    <string name="data_recovery_launch_failed">无法启动主应用</string>
 
     <!-- Crash Report Screen -->
     <string name="crash_report_header">应用遇到了一个无法恢复的错误，需要重启。</string>
@@ -1661,8 +1668,10 @@
     <!-- Context Menu -->
     <string name="copy_message">复制消息</string>
     <string name="markdown_source">Markdown 源码</string>
+    <string name="xml_source">XML 源码</string>
     <string name="copy_plain_text">复制纯文本</string>
     <string name="copy_markdown_source">复制 Markdown 源码</string>
+    <string name="copy_xml_source">复制 XML 源码</string>
     <string name="chat_hidden_user_message_placeholder">自动触发用户消息（内容已隐藏）</string>
     <string name="chat_hidden_user_message_badge">自动触发</string>
     <string name="info">信息</string>
@@ -2972,7 +2981,6 @@
     <string name="functional_model_config_desc">为不同功能设置单独的模型配置，使每个功能都能使用最适合的API设置。</string>
     <string name="manage_all_model_configs">管理所有模型配置</string>
     <string name="manage_model_configs_desc">管理模型配置</string>
-    <string name="follow_chat_model_for_all_functions">全部跟随当前对话模型</string>
     <string name="reset_all_functions_to_default">重置所有功能至默认配置</string>
     <string name="current_config_label">当前配置: %1$s</string>
     <string name="default_config">默认配置</string>
@@ -3162,7 +3170,7 @@
     <string name="thinking_type_off">off</string>
     <string name="thinking_type_mode">mode</string>
     <string name="thinking_quality">思考程度</string>
-    <string name="thinking_quality_desc">仅在思考模式下生效。GPT-5.6 系列使用 5 档，其它模型保持原有 4 档；数值越高思考越深。</string>
+    <string name="thinking_quality_desc">仅在思考模式下生效。可用值与当前模型和服务提供商的真实映射一致。</string>
     <string name="model_config">模型配置</string>
     <string name="model_config_desc">在这里选择一个已经配置好的模型，或者点击下方的管理配置去新建或修改模型</string>
     <string name="prompt">提示词</string>
@@ -3486,6 +3494,11 @@
     <string name="settings_speech_services_subtitle">TTS/STT服务设置</string>
     <string name="settings_custom_headers">自定义请求头</string>
     <string name="settings_custom_headers_subtitle">API请求头字段配置</string>
+    <string name="thinking_config_title">思考配置</string>
+    <string name="thinking_config_subtitle">按规则顺序匹配思考参数，首条命中生效</string>
+    <string name="thinking_config_rule_order_hint">规则会从上到下依次匹配模型，第一条启用且命中的规则生效。使用每条规则右侧的箭头调整顺序。</string>
+    <string name="thinking_config_rule_move_up">上移规则</string>
+    <string name="thinking_config_rule_move_down">下移规则</string>
     <string name="headers_configured_count">已配置 %1$d 条</string>
     <string name="screen_title_external_http_chat_settings">外部 HTTP 调用</string>
     <string name="settings_system_prompts_subtitle">系统和模型提示词</string>
@@ -3640,6 +3653,9 @@
     <string name="token_stats_metric_cost">费用</string>
     <string name="token_stats_metric_requests">请求</string>
     <string name="token_stats_metric_tokens">Token</string>
+    <string name="token_stats_unit_millions">M</string>
+    <string name="token_stats_unit_billions">B</string>
+    <string name="token_stats_unit_toggle_description">当前 Token 单位为 %1$s，点击切换为 %2$s</string>
     <string name="token_stats_no_data_in_range">该范围暂无数据</string>
     <string name="token_stats_empty">暂无统计数据</string>
     <string name="token_stats_empty_hint">模型调用统计将在此显示</string>
@@ -3651,6 +3667,7 @@
     <string name="token_stats_model_show_all">展开全部（%1$d）</string>
     <string name="token_stats_model_collapse">收起</string>
     <string name="token_stats_pricing_configuration">配置价格</string>
+    <string name="token_stats_pricing_model">模型价格</string>
     <string name="token_stats_price_label">单价</string>
     <string name="token_stats_unknown_pricing">定价未知</string>
     <string name="token_stats_config_deleted">已删除的配置</string>
@@ -3988,6 +4005,10 @@
     <string name="enable_direct_video_processing_desc">启用后，视频将直接发送给AI处理，而不是通过工具抽帧/分析</string>
     <string name="enable_google_search">启用 Google Search</string>
     <string name="enable_google_search_desc">启用后，Gemini 将使用 Google 搜索来增强回答（可能产生额外费用）</string>
+    <string name="enable_deepseek_web_search">启用 DeepSeek 网络搜索</string>
+    <string name="enable_deepseek_web_search_desc">使用 DeepSeek Responses 端点时，允许模型使用服务端网络搜索。</string>
+    <string name="enable_codex_web_search">启用 Codex 网络搜索</string>
+    <string name="enable_codex_web_search_desc">登录 Codex 后，允许模型使用服务端网络搜索。</string>
     <string name="enable_claude_1h_prompt_cache">启用 Claude 1 小时提示缓存</string>
     <string name="enable_claude_1h_prompt_cache_desc">启用后，Claude 和 Claude 兼容供应商的提示缓存 TTL 将使用 1 小时</string>
     <string name="enable_tool_call">模型支持ToolCall</string>
@@ -3995,6 +4016,10 @@
     <string name="enable_deepseek_reasoning">启用 DeepSeek 推理模式</string>
     <string name="enable_deepseek_reasoning_desc">启用后，&lt;think&gt;标签内的内容将作为reasoning_content发送给DeepSeek模型，用于支持DeepSeek-R1等推理模型的工具调用</string>
     <string name="search_sources">搜索来源</string>
+    <string name="search_query_label">查询</string>
+    <string name="search_action_label">动作</string>
+    <string name="search_status_label">状态</string>
+    <string name="search_source_count">%1$d 个来源</string>
     <string name="api_settings_saved">API设置已保存</string>
     <string name="save_api_settings">保存API设置</string>
     <string name="available_models_list">可用模型列表</string>
@@ -4012,6 +4037,7 @@
     <string name="auto_save_failed">自动保存失败</string>
     <!-- API Provider names -->
     <string name="provider_openai">OpenAI (GPT系列)</string>
+    <string name="provider_xai">SpaceXAI (Grok)</string>
     <string name="provider_openai_responses">OpenAI (Responses API)</string>
     <string name="provider_openai_responses_generic">OpenAI Responses通用</string>
     <string name="provider_anthropic">Anthropic (Claude系列)</string>
@@ -4087,6 +4113,7 @@
     <string name="parameter_value">参数值</string>
     <string name="parameter_range_format">范围: %1$s - %2$s</string>
     <string name="overseas_provider_warning">检测到您在中国大陆，但选择了海外服务商。请确认是否已开启代理工具</string>
+    <string name="international_proxy_provider_warning">该服务通过国际第三方代理中转。在中国大陆访问需要代理工具；请求数据将经第三方转发，请留意网络环境、服务条款与数据合规政策。</string>
     
     <!-- 自定义参数对话框 -->
     <string name="custom_parameter_added">自定义参数已新增</string>
@@ -4454,12 +4481,10 @@
     <string name="market_manage_resubmitted">已提交重新上架「%1$s」的请求</string>
     <string name="market_manage_resubmit">重新提交</string>
     <string name="market_manage_submit_revision">修改后提交新版本</string>
-    <string name="market_manage_revision_cooldown">被打回后的修改版提交仍在冷却中，还需等待 %1$s。</string>
     <string name="market_manage_loading_request_title">正在加载请求</string>
     <string name="market_manage_loading_request_message">请求正在处理中，请稍候…</string>
     <string name="market_manage_resubmitting_title">正在重新提交</string>
     <string name="market_manage_resubmitting_message">正在提交审核请求，请稍候…</string>
-    <string name="market_manage_resubmit_cooldown_message">该条目已进入本地冷却期，剩余 %1$s 后才能再次提交。</string>
     <string name="market_manage_resubmit_rejected_blocked">该条目已被拒绝，客户端不允许再次提交。</string>
     <string name="market_manage_resubmit_state_blocked">只有已打回的条目可以重新提交。</string>
     <string name="market_manage_resubmit_confirm_title">确认重新提交？</string>
@@ -4468,7 +4493,6 @@
     <string name="market_manage_resubmit_last_reason">打回原因：%1$s</string>
     <string name="market_manage_review_detail">审核说明：%1$s</string>
     <string name="market_manage_review_dialog_title">审核状态</string>
-    <string name="market_manage_resubmit_confirm_warning">请确认已经按打回原因完成修改。提交成功后，本地 12 小时内不可再次提交。</string>
     <string name="market_manage_resubmit_confirm_action">确认提交</string>
     <string name="market_error_load_failed">加载失败</string>
     <string name="market_error_action_failed">操作失败</string>
@@ -4497,6 +4521,24 @@
     <string name="artifact_publish_asset_source_upload">上传当前本地包</string>
     <string name="artifact_publish_asset_source_github_release">引用 GitHub Release 资产</string>
     <string name="artifact_publish_asset_source_confirmation">发布资源来源: %1$s</string>
+    <string name="artifact_publish_logo_title">包 Logo</string>
+    <string name="artifact_publish_logo_description">可选择新的图片。直接上传会把它写入发布包，GitHub Release 模式只更新市场 Logo。</string>
+    <string name="artifact_publish_logo_choose">选择 Logo</string>
+    <string name="artifact_publish_logo_use_package">使用包内 Logo</string>
+    <string name="artifact_publish_logo_selected">已选择: %1$s</string>
+    <string name="artifact_publish_logo_from_package">包内 Logo: %1$s</string>
+    <string name="artifact_publish_logo_confirmation">Logo: %1$s</string>
+    <string name="artifact_publish_logo_preview">Logo 预览</string>
+    <string name="artifact_publish_logo_invalid">无法读取 Logo，请选择有效的 SVG、PNG、JPEG 或 WebP 文件</string>
+    <string name="artifact_publish_logo_too_large">Logo 文件不能超过 512 KiB</string>
+    <string name="artifact_publish_logo_market_preview">预览市场效果</string>
+    <string name="artifact_publish_logo_market_preview_title">市场效果预览</string>
+    <string name="artifact_publish_logo_market_list">列表</string>
+    <string name="artifact_publish_logo_market_detail">详情</string>
+    <string name="artifact_publish_logo_market_preview_action">安装插件（预览）</string>
+    <string name="artifact_publish_logo_market_preview_account">当前账号</string>
+    <string name="artifact_publish_logo_market_preview_untitled">未命名工具包</string>
+    <string name="artifact_publish_logo_market_preview_empty_description">暂无描述</string>
     <string name="artifact_publish_github_repository_url">作者 GitHub 仓库链接</string>
     <string name="artifact_publish_load_github_releases">加载 Release</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
@@ -4718,6 +4760,8 @@
     <string name="artifact_publish_published_name_readonly">已发布作品的命名不可修改</string>
     <string name="artifact_publish_locked_name_must_match_source">基于版本发布时，插件名字必须和来源版本保持一致</string>
     <string name="artifact_publish_published_version_readonly">已发布节点的版本号不可修改</string>
+    <string name="artifact_publish_toolpkg_version_readonly">ToolPkg 发布版本来自包内 manifest，发布前不可手动修改</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">ToolPkg API 版本来自包内 manifest，发布前不可手动修改</string>
     <string name="artifact_publish_save_artifact_info">保存作品信息</string>
     <string name="artifact_publish_publish_update_version">发布更新版本</string>
     <string name="artifact_publish_confirm_save_artifact_info">确认保存作品信息</string>
@@ -5729,6 +5773,9 @@
     <string name="mood_tag_block">情绪标签</string>
     <string name="thinking_tools_group_title_with_count">思考与工具调用（%1$d）</string>
     <string name="tools_group_title_with_count">工具调用（%1$d）</string>
+    <string name="search_group_title">搜索</string>
+    <string name="thinking_search_group_title">思考并搜索</string>
+    <string name="thinking_search_tools_group_title_with_count">思考、搜索并调用工具（%1$d）</string>
     
     <!-- 备份设置界面 -->
     <string name="backup_data_overview">数据概览</string>
@@ -5847,6 +5894,8 @@
     <string name="backup_format_html_desc">网页格式，适合在浏览器中查看</string>
     <string name="backup_format_txt">纯文本</string>
     <string name="backup_format_txt_desc">简单的文本格式，便于分享</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">表格格式，适合数据清洗和迁移</string>
     
     <!-- 导入格式选择 -->
     <string name="backup_select_import_format">选择导入格式</string>
@@ -6102,6 +6151,7 @@
     <string name="toolreg_update_chat_title_desc">更新对话标题: %1$s</string>
     <string name="toolreg_delete_chat_desc">删除对话: %1$s</string>
     <string name="toolreg_send_message_to_ai_desc">发送消息给AI: %1$s</string>
+    <string name="toolreg_call_chat_model_desc">调用功能模型: %1$s</string>
     <string name="toolreg_list_character_cards_desc">列出所有角色卡</string>
     <string name="toolreg_get_chat_messages_desc">获取对话消息: %1$s%2$s%3$s</string>
     <string name="toolreg_list_files_desc">列出目录内容: %1$s%2$s</string>
@@ -6461,6 +6511,7 @@
     <string name="headers_preset_lang_en">设置语言为英文</string>
     <string name="headers_preset_cmcc_gateway">模拟中国移动网关</string>
     <string name="headers_preset_us_la">模拟美国洛杉矶 (需配合)</string>
+    <string name="thinking_config_invalid_json">思考配置无效</string>
 
     <!-- Context Summary Settings Screen -->
     <string name="context_validation_failed">验证失败</string>
@@ -6802,6 +6853,13 @@
 
     <!-- Workflow -->
     <string name="workflow_load_failed">加载工作流失败</string>
+    <string name="workflow_storage_dir_unavailable">无法创建工作流目录：%1$s</string>
+    <string name="workflow_storage_dir_unreadable">无法读取工作流目录：%1$s</string>
+    <string name="workflow_storage_path_not_directory">工作流存储路径不是目录：%1$s</string>
+    <string name="workflow_storage_file_parent_missing">工作流文件缺少父目录：%1$s</string>
+    <string name="workflow_storage_file_root_invalid">工作流文件格式错误：%1$s 不是 JSON 对象</string>
+    <string name="workflow_storage_invalid_files">发现 %1$d 个工作流文件格式错误，已跳过：%2$s</string>
+    <string name="workflow_storage_single_file_invalid">工作流文件格式错误，无法打开：%1$s</string>
     <string name="workflow_create_failed">创建工作流失败</string>
     <string name="workflow_update_condition_failed">更新连接条件失败</string>
     <string name="workflow_update_failed">更新工作流失败</string>
@@ -7588,6 +7646,7 @@
     <string name="openai_error_network_interrupted">网络中断</string>
     <string name="openai_audio_video_omitted">音视频内容已省略，当前模型不支持音视频处理</string>
     <string name="openai_image_omitted">图片内容已省略，当前模型不支持图片处理</string>
+    <string name="openai_file_omitted">文件内容已省略，当前模型不支持文件处理</string>
 
     <!-- WorkflowExecutor (新增) -->
     <string name="workflow_non_execute_node">非执行节点</string>
@@ -7699,6 +7758,7 @@
     <string name="conversation_media_image_link">&lt;link type=&quot;image&quot; id=&quot;%1$s&quot;&gt;图片&lt;/link&gt;</string>
     <string name="conversation_media_audio_link">&lt;link type=&quot;audio&quot; id=&quot;%1$s&quot;&gt;音频&lt;/link&gt;</string>
     <string name="conversation_media_video_link">&lt;link type=&quot;video&quot; id=&quot;%1$s&quot;&gt;视频&lt;/link&gt;</string>
+    <string name="conversation_media_file_link">&lt;link type=&quot;file&quot; id=&quot;%1$s&quot; filename=&quot;%2$s&quot;&gt;PDF&lt;/link&gt;</string>
     <string name="conversation_analyze_image_prompt">Please analyze this image.</string>
     <string name="conversation_analyze_audio_prompt">Please analyze this audio.</string>
     <string name="conversation_analyze_video_prompt">Please analyze this video.</string>
@@ -7724,6 +7784,9 @@
 
     <!-- ToolPermissionSystem -->
     <string name="tool_permission_operation">%1$s 操作</string>
+    <string name="tool_permission_execution_denied">工具执行权限被拒绝。</string>
+    <string name="tool_permission_overlay_required_for_confirmation">需要悬浮窗权限才能确认工具执行。</string>
+    <string name="tool_permission_confirmation_timeout">工具执行确认超时。</string>
 
     <!-- MessageImageGenerator -->
     <string name="message_image_capture_failed">图片捕获失败: %1$s</string>
@@ -8260,4 +8323,29 @@
     <string name="token_stats_detail_open">点击查看详细数据</string>
     <string name="markdown_link_not_openable">该链接指向文档内部的引用，无法打开</string>
 
+    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
+    <string name="onboarding_config_codex_login_required">请先登录 OpenAI Codex</string>
+    <string name="codex_login_title">登录 OpenAI Codex</string>
+    <string name="codex_login_starting">正在准备 Codex 登录...</string>
+    <string name="codex_login_waiting">请在浏览器中完成登录</string>
+    <string name="codex_login_action">登录 ChatGPT</string>
+    <string name="codex_login_success">OpenAI Codex 登录成功</string>
+    <string name="codex_login_failed">OpenAI Codex 登录失败：%1$s</string>
+    <string name="codex_logout_action">退出 Codex 登录</string>
+    <string name="codex_logout_success">已退出 OpenAI Codex 登录</string>
+    <string name="codex_auth_title">OpenAI Codex 账号</string>
+    <string name="codex_auth_not_logged_in">登录 ChatGPT 后使用 Codex 订阅额度</string>
+    <string name="codex_auth_account">账号：%1$s</string>
+    <string name="codex_endpoint_fixed">Codex endpoint 由系统固定</string>
+    <string name="codex_plan">套餐：%1$s</string>
+    <string name="codex_direct_media_processing">图片/PDF 直传</string>
+    <string name="codex_direct_media_processing_desc">将图片和 PDF 直接发送给 Codex 处理</string>
+    <string name="codex_quota_five_hour">近 5 小时</string>
+    <string name="codex_quota_seven_day">近 7 天</string>
+    <string name="codex_quota_remaining">剩余 %1$d%%</string>
+    <string name="codex_quota_no_data">暂无数据</string>
+    <string name="codex_usage_refresh">刷新 Codex 额度</string>
+    <string name="codex_usage_unavailable">额度暂时不可用</string>
+    <string name="codex_reset_after_days">%1$d 天后重置</string>
+    <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
 </resources>

@@ -6,8 +6,6 @@
    See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- EncryptedSharedPreferences depends on a device-local Android Keystore key. -->
+    <exclude domain="sharedpref" path="codex_oauth_credentials.xml" />
 </full-backup-content>

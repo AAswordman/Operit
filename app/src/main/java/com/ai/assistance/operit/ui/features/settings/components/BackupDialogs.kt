@@ -444,6 +444,16 @@ fun ExportFormatDialog(
                         onClick = { onFormatSelected(ExportFormat.TXT) }
                     )
                 }
+
+                item {
+                    FormatOption(
+                        format = ExportFormat.CSV,
+                        title = stringResource(R.string.backup_format_csv),
+                        description = stringResource(R.string.backup_format_csv_desc),
+                        selected = selectedFormat == ExportFormat.CSV,
+                        onClick = { onFormatSelected(ExportFormat.CSV) }
+                    )
+                }
             }
         },
         confirmButton = {

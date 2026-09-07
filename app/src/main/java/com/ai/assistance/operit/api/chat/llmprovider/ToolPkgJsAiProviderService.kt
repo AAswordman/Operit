@@ -14,6 +14,7 @@ import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistration
 import com.ai.assistance.operit.plugins.toolpkg.decodeToolPkgHookResult
 import com.ai.assistance.operit.plugins.toolpkg.jsonObjectToMap
 import com.ai.assistance.operit.plugins.toolpkg.toolPkgPackageManager
+import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
 import java.util.UUID
 import kotlinx.coroutines.coroutineScope
@@ -335,7 +336,7 @@ internal class ToolPkgJsAiProviderService(
     private fun serializePromptTurn(turn: PromptTurn): JSONObject {
         return jsonObjectOf(
             "kind" to turn.kind.name,
-            "content" to turn.content,
+            "content" to ChatUtils.stripOpenAiResponsesProtocolMarkup(turn.content),
             "toolName" to turn.toolName,
             "metadata" to turn.metadata
         )

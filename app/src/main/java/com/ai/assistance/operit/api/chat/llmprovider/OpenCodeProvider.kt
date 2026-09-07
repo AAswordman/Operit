@@ -6,23 +6,12 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterCategory
 import com.ai.assistance.operit.data.model.ParameterValueType
 import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.stats.ProviderUsageSnapshot
-import com.ai.assistance.operit.data.stats.TokenStatCategory
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -35,8 +24,9 @@ class OpenCodeProvider private constructor(
     private val baseEndpoint: String,
     private val modelName: String,
     private val protocol: ApiProviderType,
-    private val client: OkHttpClient,
-    private val apiKeyProvider: ApiKeyProvider
+    private val apiKeyProvider: ApiKeyProvider,
+    private val thinkingConfigurations: String,
+    private val thinkingOptionId: String
 ) : AIService by delegate {
     // Keep the routed provider identity so shared response handling recognizes Responses/Gemini streams.
     override val providerModel: String = delegate.providerModel
@@ -62,25 +52,25 @@ class OpenCodeProvider private constructor(
         onUsageReported: (suspend (ProviderUsageSnapshot, attempt: Int) -> Unit)?,
         onNonFatalError: suspend (error: String) -> Unit,
         enableRetry: Boolean,
-        statsCategory: TokenStatCategory?
+        recordTokenUsage: Boolean,
+        onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
-        val qualityLevel =
-            if (enableThinking) ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
-            else 1
-        val capability = OpenCodeModelCatalog.resolve(client, baseEndpoint, modelName)
-        val variant = OpenCodeReasoningMapper.select(capability, enableThinking, qualityLevel)
-        val opencodeParameters = OpenCodeReasoningParameters.forVariant(
-            protocol = protocol,
+        val (thinkingMapping, opencodeParameters) = ThinkingConfigurationApplier.modelParameters(
+            providerTypeId = ApiProviderType.OPENCODE.name,
             modelName = modelName,
-            capability = capability,
-            variant = variant
+            apiEndpoint = baseEndpoint,
+            thinkingConfigurations = thinkingConfigurations,
+            enableThinking = enableThinking,
+            optionId = thinkingOptionId,
+            protocol = protocol,
         )
+        val thinkingEnabled = enableThinking || thinkingMapping.reasoningRequired
 
         return delegate.sendMessage(
             context = context,
             chatHistory = chatHistory,
             modelParameters = modelParameters + opencodeParameters,
-            enableThinking = enableThinking && protocol == ApiProviderType.OPENAI_RESPONSES_GENERIC,
+            enableThinking = thinkingEnabled && protocol == ApiProviderType.OPENAI_RESPONSES_GENERIC,
             stream = stream,
             availableTools = availableTools,
             preserveThinkInHistory = preserveThinkInHistory,
@@ -88,14 +78,14 @@ class OpenCodeProvider private constructor(
             onUsageReported = onUsageReported,
             onNonFatalError = onNonFatalError,
             enableRetry = enableRetry,
-            statsCategory = statsCategory
+            recordTokenUsage = recordTokenUsage,
+            onUsageFinalized = onUsageFinalized,
         )
     }
 
     companion object {
         fun create(
             config: ModelConfigData,
-            modelConfigManager: ModelConfigManager,
             context: Context,
             client: OkHttpClient,
             customHeaders: Map<String, String>,
@@ -120,7 +110,7 @@ class OpenCodeProvider private constructor(
                     endpoint, apiKeyProvider, model, client, customHeaders, enableToolCall
                 )
                 else -> OpenCodeChatProvider(
-                    endpoint, apiKeyProvider, model, client, customHeaders,
+                    endpoint, apiKeyProvider, model, context.applicationContext, client, customHeaders,
                     supportsVision, supportsAudio, supportsVideo, enableToolCall
                 )
             }
@@ -129,8 +119,9 @@ class OpenCodeProvider private constructor(
                 baseEndpoint = config.apiEndpoint,
                 modelName = model,
                 protocol = provider,
-                client = client,
-                apiKeyProvider = apiKeyProvider
+                apiKeyProvider = apiKeyProvider,
+                thinkingConfigurations = config.thinkingConfigurations,
+                thinkingOptionId = config.thinkingOptionId
             )
         }
     }
@@ -138,13 +129,16 @@ class OpenCodeProvider private constructor(
 
 internal object OpenCodeRouting {
     fun protocolFor(baseEndpoint: String, modelName: String): ApiProviderType {
-        val model = modelName.lowercase()
+        val model = modelName.trim().lowercase()
+        val provider = model.substringBefore('/').takeIf { it != model }.orEmpty()
+        val modelId = model.substringAfterLast('/')
         return when {
-            model.startsWith("gpt-") || model.startsWith("grok-") || model.contains("codex") ->
+            provider == "openai" || provider == "azure" || provider == "xai" ||
+                modelId.startsWith("gpt-") || modelId.startsWith("grok-") || modelId.contains("codex") ->
                 ApiProviderType.OPENAI_RESPONSES_GENERIC
-            model.startsWith("claude-") || model.startsWith("qwen") || model.startsWith("minimax-") ->
+            provider == "anthropic" || provider == "minimax" || modelId.startsWith("claude-") || modelId.startsWith("minimax-") ->
                 ApiProviderType.ANTHROPIC_GENERIC
-            model.startsWith("gemini-") -> ApiProviderType.GEMINI_GENERIC
+            provider == "google" || modelId.startsWith("gemini-") -> ApiProviderType.GEMINI_GENERIC
             else -> ApiProviderType.OPENAI_GENERIC
         }
     }
@@ -183,6 +177,7 @@ internal class OpenCodeChatProvider(
     endpoint: String,
     apiKeyProvider: ApiKeyProvider,
     modelName: String,
+    private val appContext: Context,
     client: OkHttpClient,
     customHeaders: Map<String, String>,
     supportsVision: Boolean,
@@ -201,6 +196,18 @@ internal class OpenCodeChatProvider(
     supportsVideo = supportsVideo,
     enableToolCall = enableToolCall
 ) {
+    // OpenCode 的 OpenAI Chat 路由会向后端透传 DeepSeek 风格 thinking 输出
+    // （即使 Operit 未显式开启 thinking，OpenCode 也可能按模型能力自行开启）。
+    // 该协议要求历史 assistant 消息必须原样回传 reasoning_content，否则
+    // 在模型完成工具调用后的下一轮请求会返回 400：
+    //   "The reasoning_content in the thinking mode must be passed back to the API."
+    //
+    // 以下重写将 reasoning_content 的提取与回传完全收敛在 OpenCodeChatProvider 内部：
+    //   1) 强制 preserveThinkInHistory = true，让父类 buildMessagesAndCountTokens
+    //      保留历史 assistant 消息中的 <think> 内容；
+    //   2) 覆盖 customizeFinalRequestObject，在 messagesArray 后处理阶段对
+    //      assistant 消息做 think -> reasoning_content 的拆分与回填。
+    // 该实现不动通用 OpenAIProvider，不影响其它 OpenAI 兼容 provider 的行为。
     override fun createRequestBody(
         context: Context,
         chatHistory: List<PromptTurn>,
@@ -216,9 +223,43 @@ internal class OpenCodeChatProvider(
             modelParameters = modelParameters,
             stream = stream,
             availableTools = availableTools,
-            preserveThinkInHistory = preserveThinkInHistory
+            preserveThinkInHistory = true
         )
     )
+
+    override fun customizeFinalRequestObject(
+        requestObject: JSONObject,
+        messagesArray: JSONArray,
+        toolsJson: String?
+    ) {
+        if (messagesArray.length() == 0) return
+        for (i in 0 until messagesArray.length()) {
+            val message = messagesArray.optJSONObject(i) ?: continue
+            if (message.optString("role") != "assistant") continue
+            extractReasoningContentIntoMessage(appContext, message)
+        }
+    }
+
+    /**
+     * 对单个 assistant 消息提取 <think>...</think> 内容，写入 reasoning_content 字段，
+     * 并将清理后的内容写回 content 字段。
+     *
+     * 仅处理纯文本 content（多模态 JSONArray 形态跳过，避免改动既有
+     * 多模态构造逻辑；该路径在 OpenCodeChatProvider 实际请求中极少触发）。
+     */
+    private fun extractReasoningContentIntoMessage(context: Context, message: JSONObject) {
+        val textContent = message.opt("content") as? String
+        val (cleanContent, reasoning) = textContent?.let(ChatUtils::extractThinkingContent)
+            ?: ("" to "")
+        // 总是写入 reasoning_content（即使为空，OpenAI Chat 路由上游在历史不含
+        // 该字段时也会拒绝；写空字符串与未写含义不同）。
+        message.put("reasoning_content", reasoning)
+        if (textContent != null) {
+            // Assistant history must not re-inject rich media links while the thinking
+            // marker is being split into the provider-specific reasoning field.
+            message.put("content", buildContentField(context, cleanContent, role = "assistant"))
+        }
+    }
 }
 
 /** OpenCode's OpenAI Responses route. */
@@ -286,7 +327,8 @@ internal class OpenCodeClaudeProvider(
     client = client,
     customHeaders = customHeaders,
     providerType = ApiProviderType.ANTHROPIC_GENERIC,
-    enableToolCall = enableToolCall
+    enableToolCall = enableToolCall,
+    thinkingConfigurations = "[]"
 ) {
     override fun addParameters(
         jsonObject: JSONObject,
@@ -336,7 +378,8 @@ internal class OpenCodeGeminiProvider(
     client = client,
     customHeaders = opencodeCustomHeaders,
     providerType = ApiProviderType.GEMINI_GENERIC,
-    enableToolCall = enableToolCall
+    enableToolCall = enableToolCall,
+    thinkingConfigurations = "[]"
 ) {
     override suspend fun createRequest(
         context: Context,
@@ -357,411 +400,4 @@ internal class OpenCodeGeminiProvider(
         AppLogger.d("OpenCodeGeminiProvider", "OpenCode Gemini request URL: " + requestUrl)
         return builder.build()
     }
-}
-/** The reasoning capabilities published by models.opencode.ai for one model. */
-internal data class OpenCodeReasoningCapability(
-    val reasoning: Boolean,
-    val options: List<OpenCodeReasoningOption>,
-    val outputLimit: Int
-)
-
-internal sealed class OpenCodeReasoningOption {
-    data class Effort(val values: List<String?>) : OpenCodeReasoningOption()
-    object Toggle : OpenCodeReasoningOption()
-
-    data class BudgetTokens(val min: Int?, val max: Int?) : OpenCodeReasoningOption()
-}
-
-internal sealed class OpenCodeReasoningVariant {
-    data class Effort(val value: String) : OpenCodeReasoningVariant()
-    data class BudgetTokens(val value: Int) : OpenCodeReasoningVariant()
-    data class Toggle(val enabled: Boolean) : OpenCodeReasoningVariant()
-}
-
-/**
- * Maps Operit's five global quality positions to the finite variants exposed by
- * OpenCode. The mapping deliberately happens after removing the optional `none`
- * value, so a model's declared capability remains the source of truth.
- */
-internal object OpenCodeReasoningMapper {
-    fun select(
-        capability: OpenCodeReasoningCapability?,
-        enableThinking: Boolean,
-        qualityLevel: Int
-    ): OpenCodeReasoningVariant? {
-        if (capability == null || !capability.reasoning || capability.options.isEmpty()) {
-            return null
-        }
-
-        // OpenCode gives effort options precedence over toggle and budget options.
-        val effort = capability.options.filterIsInstance<OpenCodeReasoningOption.Effort>().firstOrNull()
-        if (effort != null) {
-            if (!enableThinking) {
-                return if (effort.values.any { it == null || it.equals("none", ignoreCase = true) }) {
-                    OpenCodeReasoningVariant.Effort("none")
-                } else {
-                    null
-                }
-            }
-            val selectedEffort = effortForQuality(effort.values, qualityLevel) ?: return null
-            return OpenCodeReasoningVariant.Effort(selectedEffort)
-        }
-
-        val toggle = capability.options.any { it is OpenCodeReasoningOption.Toggle }
-        val budget = capability.options.filterIsInstance<OpenCodeReasoningOption.BudgetTokens>().firstOrNull()
-        if (budget != null) {
-            if (!enableThinking) {
-                return if (toggle) OpenCodeReasoningVariant.Toggle(false) else null
-            }
-            val budgets = budgetVariants(budget, capability.outputLimit)
-            if (budgets.isEmpty()) return null
-            val selectedBudget = budgets[qualityIndex(budgets.size, qualityLevel)]
-            return OpenCodeReasoningVariant.BudgetTokens(selectedBudget)
-        }
-
-        // A toggle has no intensity dimension, so every quality position selects
-        // the same variant. Unsupported protocol-specific toggles are left empty
-        // by toParameters rather than being replaced with an invented effort value.
-        return if (toggle) OpenCodeReasoningVariant.Toggle(enableThinking) else null
-    }
-
-    internal fun effortForQuality(values: List<String?>, qualityLevel: Int): String? {
-        val activeValues = values
-            .mapNotNull { it?.trim()?.takeIf { value -> value.isNotEmpty() } }
-            .filterNot { it.equals("none", ignoreCase = true) }
-        if (activeValues.isEmpty()) return null
-        return activeValues[qualityIndex(activeValues.size, qualityLevel)]
-    }
-
-    internal fun qualityIndex(optionCount: Int, qualityLevel: Int): Int {
-        require(optionCount > 0) { "optionCount must be positive" }
-        val quality = qualityLevel.coerceIn(1, 5)
-        return when (optionCount) {
-            1 -> 0
-            2 -> if (quality <= 2) 0 else 1
-            3 -> when {
-                quality <= 2 -> 0
-                quality <= 4 -> 1
-                else -> 2
-            }
-            4 -> when (quality) {
-                1 -> 0
-                2, 3 -> 1
-                4 -> 2
-                else -> 3
-            }
-            else -> (((quality - 1) * (optionCount - 1)) + 2) / 4
-        }.coerceIn(0, optionCount - 1)
-    }
-
-    internal fun budgetVariants(
-        option: OpenCodeReasoningOption.BudgetTokens,
-        outputLimit: Int
-    ): List<Int> {
-        // This mirrors OpenCode's high/max budget variant construction.
-        val maximum = minOf(
-            option.max ?: (outputLimit - 1),
-            outputLimit - 1,
-            1_048_575
-        )
-        if (maximum <= 0) return emptyList()
-        val high = minOf(
-            maxOf(option.min ?: 0, (maximum + 1) / 2),
-            maximum
-        )
-        return listOf(high, maximum).distinct().filter { it > 0 }
-    }
-}
-
-internal object OpenCodeReasoningParameters {
-    fun forVariant(
-        protocol: ApiProviderType,
-        modelName: String,
-        capability: OpenCodeReasoningCapability?,
-        variant: OpenCodeReasoningVariant?
-    ): List<ModelParameter<*>> {
-        val result = mutableListOf<ModelParameter<*>>()
-        if (variant == null) return result
-
-        when (variant) {
-            is OpenCodeReasoningVariant.Effort -> {
-                when {
-                    protocol.isOpenAiResponses() -> {
-                        val reasoning = JSONObject().put("effort", variant.value)
-                        if (!variant.value.equals("none", ignoreCase = true)) {
-                            reasoning.put("summary", "auto")
-                        }
-                        result += objectParameter(
-                            apiName = "reasoning",
-                            value = reasoning
-                        )
-                        if (!variant.value.equals("none", ignoreCase = true)) {
-                            result += objectParameter(
-                                apiName = "include",
-                                value = JSONArray().put("reasoning.encrypted_content")
-                            )
-                        }
-                    }
-                    protocol.isOpenAiChat() -> {
-                        result += stringParameter("reasoning_effort", variant.value)
-                    }
-                    protocol.isAnthropic() -> {
-                        anthropicEffortParameters(result, modelName, capability, variant.value)
-                    }
-                    protocol.isGemini() -> {
-                        result += objectParameter(
-                            apiName = "thinkingConfig",
-                            value = JSONObject()
-                                .put("includeThoughts", true)
-                                .put("thinkingLevel", variant.value),
-                            category = ParameterCategory.GENERATION
-                        )
-                    }
-                }
-            }
-            is OpenCodeReasoningVariant.BudgetTokens -> {
-                when {
-                    protocol.isAnthropic() -> {
-                        result += objectParameter(
-                            apiName = "thinking",
-                            value = JSONObject()
-                                .put("type", "enabled")
-                                .put("budget_tokens", variant.value)
-                        )
-                    }
-                    protocol.isGemini() -> {
-                        result += objectParameter(
-                            apiName = "thinkingConfig",
-                            value = JSONObject()
-                                .put("includeThoughts", true)
-                                .put("thinkingBudget", variant.value),
-                            category = ParameterCategory.GENERATION
-                        )
-                    }
-                }
-            }
-            is OpenCodeReasoningVariant.Toggle -> {
-                // OpenCode's native fallback currently defines a wire-level toggle
-                // for MiniMax's Anthropic-compatible route. Other SDKs have no
-                // generic toggle lowerer, so they remain at the provider default.
-                if (protocol.isAnthropic() && modelName.contains("minimax", ignoreCase = true)) {
-                    result += objectParameter(
-                        apiName = "thinking",
-                        value = JSONObject().put(
-                            "type",
-                            if (variant.enabled) "adaptive" else "disabled"
-                        )
-                    )
-                }
-            }
-        }
-        return result
-    }
-
-    private fun anthropicEffortParameters(
-        result: MutableList<ModelParameter<*>>,
-        modelName: String,
-        capability: OpenCodeReasoningCapability?,
-        effort: String
-    ) {
-        val thinking = anthropicThinkingForEffort(modelName, capability?.outputLimit ?: 0)
-        if (thinking != null) {
-            result += objectParameter("thinking", thinking)
-        }
-        result += objectParameter(
-            apiName = "output_config",
-            value = JSONObject().put("effort", effort)
-        )
-    }
-
-    private fun anthropicThinkingForEffort(modelName: String, outputLimit: Int): JSONObject? {
-        val id = modelName.lowercase()
-        if (id.contains("opus-4-5") || id.contains("opus-4.5")) {
-            val budget = minOf(16_000, (outputLimit / 2 - 1).coerceAtLeast(0))
-            return if (budget > 0) {
-                JSONObject().put("type", "enabled").put("budget_tokens", budget)
-            } else {
-                null
-            }
-        }
-
-        if (id.contains("kimi") || id.contains("k2p")) {
-            return JSONObject().put("type", "adaptive").put("display", "summarized")
-        }
-
-        val match = CLAUDE_VERSION_REGEX.find(id) ?: return null
-        val major = match.groupValues[1].toIntOrNull() ?: return null
-        val minor = match.groupValues[2].toIntOrNull() ?: 0
-        return when {
-            major > 4 || (major == 4 && minor >= 7) ->
-                JSONObject().put("type", "adaptive").put("display", "summarized")
-            major == 4 && minor == 6 -> JSONObject().put("type", "adaptive")
-            else -> null
-        }
-    }
-
-    private fun stringParameter(apiName: String, value: String): ModelParameter<String> = ModelParameter(
-        id = "opencode-$apiName",
-        name = apiName,
-        apiName = apiName,
-        defaultValue = value,
-        currentValue = value,
-        isEnabled = true,
-        valueType = ParameterValueType.STRING,
-        category = ParameterCategory.OTHER,
-        isCustom = false
-    )
-
-    private fun objectParameter(
-        apiName: String,
-        value: Any,
-        category: ParameterCategory = ParameterCategory.OTHER
-    ): ModelParameter<String> {
-        val serialized = value.toString()
-        return ModelParameter(
-            id = "opencode-$apiName",
-            name = apiName,
-            apiName = apiName,
-            defaultValue = serialized,
-            currentValue = serialized,
-            isEnabled = true,
-            valueType = ParameterValueType.OBJECT,
-            category = category,
-            isCustom = false
-        )
-    }
-
-    private fun ApiProviderType.isOpenAiResponses(): Boolean =
-        this == ApiProviderType.OPENAI_RESPONSES || this == ApiProviderType.OPENAI_RESPONSES_GENERIC
-
-    private fun ApiProviderType.isOpenAiChat(): Boolean =
-        this == ApiProviderType.OPENAI || this == ApiProviderType.OPENAI_GENERIC || this == ApiProviderType.OPENAI_LOCAL
-
-    private fun ApiProviderType.isAnthropic(): Boolean =
-        this == ApiProviderType.ANTHROPIC || this == ApiProviderType.ANTHROPIC_GENERIC
-
-    private fun ApiProviderType.isGemini(): Boolean =
-        this == ApiProviderType.GOOGLE || this == ApiProviderType.GEMINI_GENERIC
-
-    private val CLAUDE_VERSION_REGEX =
-        Regex("claude-(?:[a-z]+-)?(\\d+)(?:[.-](\\d{1,2}))?(?:[.@-]|$)")
-}
-
-/** Fetches and caches the same model capability catalog used by OpenCode. */
-internal object OpenCodeModelCatalog {
-    private const val CATALOG_URL = "https://models.opencode.ai/api.json"
-    private const val CACHE_TTL_MS = 5 * 60 * 1000L
-    private const val TAG = "OpenCodeModelCatalog"
-
-    private data class Snapshot(
-        val fetchedAt: Long,
-        val providers: Map<String, Map<String, OpenCodeReasoningCapability>>
-    )
-
-    @Volatile private var snapshot: Snapshot? = null
-    private val refreshMutex = Mutex()
-
-    suspend fun resolve(
-        client: OkHttpClient,
-        baseEndpoint: String,
-        modelName: String
-    ): OpenCodeReasoningCapability? {
-        val providerId = OpenCodeRouting.catalogProviderId(baseEndpoint)
-        val now = System.currentTimeMillis()
-        snapshot?.takeIf { now - it.fetchedAt < CACHE_TTL_MS }?.let {
-            return it.providers[providerId]?.get(modelName)
-        }
-
-        return refreshMutex.withLock {
-            val current = snapshot
-            val refreshedNow = System.currentTimeMillis()
-            if (current != null && refreshedNow - current.fetchedAt < CACHE_TTL_MS) {
-                return@withLock current.providers[providerId]?.get(modelName)
-            }
-
-            val fresh = try {
-                fetch(client)
-            } catch (error: Exception) {
-                AppLogger.w(TAG, "刷新OpenCode模型能力目录失败", error)
-                null
-            }
-            if (fresh != null) {
-                snapshot = fresh
-                fresh.providers[providerId]?.get(modelName)
-            } else {
-                current?.providers?.get(providerId)?.get(modelName)
-            }
-        }
-    }
-
-    private suspend fun fetch(client: OkHttpClient): Snapshot = withContext(Dispatchers.IO) {
-        val request = Request.Builder()
-            .url(CATALOG_URL)
-            .header("Accept", "application/json")
-            .build()
-        val catalogClient = client.newBuilder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .build()
-        val body = catalogClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException("OpenCode model catalog HTTP ${response.code}")
-            }
-            response.body?.string() ?: throw IOException("OpenCode model catalog response is empty")
-        }
-        val root = JSONObject(body)
-        val providers = listOf("opencode", "opencode-go").associateWith { providerId ->
-            parseProvider(root.optJSONObject(providerId))
-        }
-        Snapshot(System.currentTimeMillis(), providers)
-    }
-
-    private fun parseProvider(provider: JSONObject?): Map<String, OpenCodeReasoningCapability> {
-        if (provider == null) return emptyMap()
-        val models = provider.optJSONObject("models") ?: return emptyMap()
-        val result = mutableMapOf<String, OpenCodeReasoningCapability>()
-        val keys = models.keys()
-        while (keys.hasNext()) {
-            val modelId = keys.next()
-            val model = models.optJSONObject(modelId) ?: continue
-            result[modelId] = OpenCodeReasoningCapability(
-                reasoning = model.optBoolean("reasoning", false),
-                options = parseOptions(model),
-                outputLimit = model.optJSONObject("limit")?.optInt("output", 0) ?: 0
-            )
-        }
-        return result
-    }
-
-    private fun parseOptions(model: JSONObject): List<OpenCodeReasoningOption> {
-        if (!model.has("reasoning_options") || model.isNull("reasoning_options")) {
-            return emptyList()
-        }
-        val array = model.optJSONArray("reasoning_options") ?: return emptyList()
-        val result = mutableListOf<OpenCodeReasoningOption>()
-        for (index in 0 until array.length()) {
-            val option = array.optJSONObject(index) ?: continue
-            when (option.optString("type")) {
-                "effort" -> {
-                    val values = option.optJSONArray("values") ?: JSONArray()
-                    val parsed = buildList {
-                        for (valueIndex in 0 until values.length()) {
-                            add(if (values.isNull(valueIndex)) null else values.optString(valueIndex))
-                        }
-                    }
-                    result += OpenCodeReasoningOption.Effort(parsed)
-                }
-                "toggle" -> result += OpenCodeReasoningOption.Toggle
-                "budget_tokens" -> result += OpenCodeReasoningOption.BudgetTokens(
-                    min = optionalInt(option, "min"),
-                    max = optionalInt(option, "max")
-                )
-            }
-        }
-        return result
-    }
-
-    private fun optionalInt(objectValue: JSONObject, key: String): Int? =
-        (objectValue.opt(key) as? Number)?.toInt()
 }

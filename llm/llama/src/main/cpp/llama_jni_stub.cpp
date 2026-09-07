@@ -288,12 +288,14 @@ Java_com_ai_assistance_llama_LlamaNative_nativeApplyChatTemplate(
         jlong sessionPtr,
         jobjectArray roles,
         jobjectArray contents,
+        jboolean enableThinking,
         jboolean addAssistant
 ) {
     (void) clazz;
     (void) sessionPtr;
     (void) roles;
     (void) contents;
+    (void) enableThinking;
     (void) addAssistant;
     return nullptr;
 }
@@ -305,6 +307,7 @@ Java_com_ai_assistance_llama_LlamaNative_nativeApplyStructuredChatTemplate(
         jlong sessionPtr,
         jstring messagesJson,
         jstring toolsJson,
+        jboolean enableThinking,
         jboolean addAssistant
 ) {
     (void) env;
@@ -312,6 +315,7 @@ Java_com_ai_assistance_llama_LlamaNative_nativeApplyStructuredChatTemplate(
     (void) sessionPtr;
     (void) messagesJson;
     (void) toolsJson;
+    (void) enableThinking;
     (void) addAssistant;
     return nullptr;
 }
@@ -956,9 +960,10 @@ Java_com_ai_assistance_llama_LlamaNative_nativeApplyChatTemplate(
     JNIEnv * env,
     jclass clazz,
     jlong sessionPtr,
-    jobjectArray roles,
-    jobjectArray contents,
-    jboolean addAssistant
+        jobjectArray roles,
+        jobjectArray contents,
+        jboolean enableThinking,
+        jboolean addAssistant
 ) {
     (void) clazz;
 
@@ -992,6 +997,7 @@ Java_com_ai_assistance_llama_LlamaNative_nativeApplyChatTemplate(
     common_chat_templates_inputs inputs;
     inputs.messages = std::move(messages);
     inputs.add_generation_prompt = addAssistant == JNI_TRUE;
+    inputs.enable_thinking = enableThinking == JNI_TRUE;
     inputs.use_jinja = true;
 
     try {
@@ -1014,9 +1020,10 @@ Java_com_ai_assistance_llama_LlamaNative_nativeApplyStructuredChatTemplate(
     JNIEnv * env,
     jclass clazz,
     jlong sessionPtr,
-    jstring messagesJson,
-    jstring toolsJson,
-    jboolean addAssistant
+        jstring messagesJson,
+        jstring toolsJson,
+        jboolean enableThinking,
+        jboolean addAssistant
 ) {
     (void) clazz;
 
@@ -1044,6 +1051,7 @@ Java_com_ai_assistance_llama_LlamaNative_nativeApplyStructuredChatTemplate(
             ? COMMON_CHAT_TOOL_CHOICE_NONE
             : COMMON_CHAT_TOOL_CHOICE_AUTO;
         inputs.add_generation_prompt = addAssistant == JNI_TRUE;
+        inputs.enable_thinking = enableThinking == JNI_TRUE;
         inputs.use_jinja = true;
 
         const common_chat_params params = common_chat_templates_apply(session->chatTemplates.get(), inputs);

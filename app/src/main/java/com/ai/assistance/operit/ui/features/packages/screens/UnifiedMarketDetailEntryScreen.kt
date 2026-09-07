@@ -68,6 +68,7 @@ import com.ai.assistance.operit.ui.features.packages.market.MarketInstallStage
 import com.ai.assistance.operit.ui.features.packages.market.MarketLocalInstallState
 import com.ai.assistance.operit.ui.features.packages.market.MarketLocalInstallStateKind
 import com.ai.assistance.operit.ui.features.packages.market.MarketAppVersionCompatibilityKind
+import com.ai.assistance.operit.ui.features.packages.market.PublishArtifactType
 import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailAction
 import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailBanner
 import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailCommentDialog
@@ -84,6 +85,7 @@ import com.ai.assistance.operit.ui.features.packages.market.UnifiedMarketDetailS
 import com.ai.assistance.operit.ui.features.packages.market.canInstallFromUnifiedMarket
 import com.ai.assistance.operit.ui.features.packages.market.formatMarketDetailCompactDate
 import com.ai.assistance.operit.ui.features.packages.market.formatMarketDetailDate
+import com.ai.assistance.operit.ui.features.packages.market.effectiveToolPkgApiVersion
 import com.ai.assistance.operit.ui.features.packages.market.labelResId
 import com.ai.assistance.operit.ui.features.packages.market.marketDetailInitial
 import com.ai.assistance.operit.ui.features.packages.market.resolveCurrentAppVersionCompatibility
@@ -184,6 +186,7 @@ fun UnifiedMarketDetailEntryScreen(
             UnifiedMarketDetailHeader(
                 title = entry.title,
                 fallbackAvatarText = marketDetailInitial(entry.title),
+                logoUrl = entry.logoUrl,
                 participants =
                     listOf(
                         UnifiedMarketDetailParticipant(
@@ -522,6 +525,8 @@ private fun MarketVersionHistoryDialog(
                 items(entry.versions, key = { it.id }) { version ->
                     MarketVersionHistoryRow(
                         version = version,
+                        showToolPkgApiVersion =
+                            PublishArtifactType.fromWireValue(entry.type) == PublishArtifactType.PACKAGE,
                         selected = version.id == entry.latestVersion?.id,
                         onNavigateToAuthor = onNavigateToAuthor,
                         onClick = { onSelectVersion(version) }
@@ -540,6 +545,7 @@ private fun MarketVersionHistoryDialog(
 @Composable
 private fun MarketVersionHistoryRow(
     version: MarketV2Version,
+    showToolPkgApiVersion: Boolean,
     selected: Boolean,
     onNavigateToAuthor: (String, String, String) -> Unit,
     onClick: () -> Unit
@@ -600,6 +606,19 @@ private fun MarketVersionHistoryRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            if (showToolPkgApiVersion) {
+                Text(
+                    text =
+                        stringResource(
+                            R.string.toolpkg_api_version_value,
+                            version.effectiveToolPkgApiVersion()
+                        ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             version.publisher?.let { publisher ->
                 Row(
                     modifier =
@@ -715,6 +734,17 @@ private fun MarketV2Entry.metadataRows(
         latestVersion?.version?.takeIf { it.isNotBlank() }?.let {
             add(UnifiedMarketDetailInfoRow(context.getString(R.string.version_label), it, Icons.Default.Update))
         }
+        if (PublishArtifactType.fromWireValue(type) == PublishArtifactType.PACKAGE) {
+            latestVersion?.let {
+                add(
+                    UnifiedMarketDetailInfoRow(
+                        context.getString(R.string.toolpkg_api_version_label),
+                        it.effectiveToolPkgApiVersion(),
+                        Icons.Default.Info
+                    )
+                )
+            }
+        }
         categoryId.takeIf { it.isNotBlank() }?.let {
             add(
                 UnifiedMarketDetailInfoRow(
@@ -751,11 +781,17 @@ private fun MarketV2Entry.metadataRows(
     }
 }
 
+@Composable
 private fun MarketV2Entry.detailBadges(): List<String> {
     return buildList {
         if (type.isNotBlank()) add(type)
         if (categoryId.isNotBlank()) add(categoryId)
         latestVersion?.version?.takeIf { it.isNotBlank() }?.let { add("v${normalizeDetailVersionBadge(it)}") }
+        if (PublishArtifactType.fromWireValue(type) == PublishArtifactType.PACKAGE) {
+            latestVersion?.let {
+                add(stringResource(R.string.toolpkg_api_version_value, it.effectiveToolPkgApiVersion()))
+            }
+        }
     }
 }
 

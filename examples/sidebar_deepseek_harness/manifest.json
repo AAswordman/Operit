@@ -2,6 +2,7 @@
   "schema_version": 1,
   "toolpkg_id": "com.operit.sidebar_deepseek_harness",
   "version": "0.2.1",
+  "api_version": "1.0.0",
   "author": "AAswordsman & luojiaping & 空悲切 & zjxdzh",
   "main": "dist/main.js",
   "display_name": {

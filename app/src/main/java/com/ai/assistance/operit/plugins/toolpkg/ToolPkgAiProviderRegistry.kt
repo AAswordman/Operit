@@ -30,7 +30,7 @@ internal object ToolPkgAiProviderRegistry {
 
     fun list(): List<ToolPkgAiProviderRegistration> {
         register()
-        return providersById.values.sortedBy(ToolPkgAiProviderRegistration::providerId)
+        return providersById.values.toList()
     }
 
     fun releasedTokenProviderAliases(): Map<String, String> =
@@ -46,7 +46,7 @@ internal object ToolPkgAiProviderRegistry {
         }
 
     private fun syncToolPkgRegistrations(activeContainers: List<ToolPkgContainerRuntime>) {
-        providersById =
+        val registrations =
             activeContainers
                 .flatMap { runtime ->
                     runtime.aiProviders.map { provider ->
@@ -69,6 +69,11 @@ internal object ToolPkgAiProviderRegistry {
                         )
                     }
                 }
-                .associateBy { registration -> registration.providerId.trim().lowercase() }
+                .sortedByToolPkgLoadOrder(
+                    activeContainers = activeContainers,
+                    containerPackageName = ToolPkgAiProviderRegistration::containerPackageName,
+                    registrationId = ToolPkgAiProviderRegistration::providerId
+                )
+        providersById = registrations.associateBy { registration -> registration.providerId.trim().lowercase() }
     }
 }

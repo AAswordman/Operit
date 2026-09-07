@@ -238,6 +238,46 @@ class ChatHistoryManager private constructor(private val context: Context) {
         AppLogger.d(TAG, "流式导出 Operit 聊天记录完成，共 ${chatHistories.size} 个会话，目标=${file.absolutePath}")
     }
 
+    private suspend fun exportOperitArchiveCsvStream(
+        file: File,
+        chatHistories: List<ChatHistory>,
+    ) {
+        AppLogger.d(TAG, "开始导出 Operit CSV 聊天记录，共 ${chatHistories.size} 个会话，目标=${file.absolutePath}")
+        BufferedWriter(
+            OutputStreamWriter(FileOutputStream(file), StandardCharsets.UTF_8),
+        ).use { writer ->
+            ChatHistoryCsv.writeHeader(writer)
+            chatHistories.forEachIndexed { index, chatHistory ->
+                val archivedChat = buildOperitArchivedChat(chatHistory)
+                ChatHistoryCsv.writeChat(writer, archivedChat)
+                archivedChat.messages.forEachIndexed { messageIndex, archivedMessage ->
+                    ChatHistoryCsv.writeMessage(
+                        writer = writer,
+                        chatId = archivedChat.id,
+                        orderIndex = messageIndex,
+                        message = archivedMessage.baseMessage,
+                    )
+                    archivedMessage.variants.forEach { variant ->
+                        ChatHistoryCsv.writeVariant(
+                            writer = writer,
+                            chatId = archivedChat.id,
+                            messageTimestamp = archivedMessage.baseMessage.timestamp,
+                            variant = variant,
+                        )
+                    }
+                }
+                writer.flush()
+                if ((index + 1) % 20 == 0 || index == chatHistories.lastIndex) {
+                    AppLogger.d(
+                        TAG,
+                        "CSV 导出进度: ${index + 1}/${chatHistories.size}，chatId=${archivedChat.id}，messages=${archivedChat.messages.size}",
+                    )
+                }
+            }
+        }
+        AppLogger.d(TAG, "CSV 导出 Operit 聊天记录完成，共 ${chatHistories.size} 个会话，目标=${file.absolutePath}")
+    }
+
     private fun <T> decodeStreamElement(
         reader: JsonReader,
         decode: (String) -> T,
@@ -1973,9 +2013,9 @@ class ChatHistoryManager private constructor(private val context: Context) {
                     }
 
                     ExportFormat.CSV -> {
-                        val file = File(exportDir, "chat_backup_$timestamp.json")
+                        val file = File(exportDir, "chat_backup_$timestamp.csv")
                         pendingExportFile = file
-                        exportOperitArchiveJsonStream(file, chatHistoriesBasic)
+                        exportOperitArchiveCsvStream(file, chatHistoriesBasic)
                         file
                     }
                 }

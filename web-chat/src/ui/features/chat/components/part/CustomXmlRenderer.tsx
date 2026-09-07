@@ -37,6 +37,136 @@ const READ_ONLY_GROUPABLE_TOOL_NAMES = new Set([
 
 type ToolCollapseMode = 'read_only' | 'all' | 'full' | string;
 
+interface SearchSourceDisplay {
+  type: string;
+  title: string;
+  url: string;
+  faviconUrl: string;
+  host: string;
+  siteName: string;
+  displayName: string;
+  attributes: Record<string, string>;
+}
+
+interface SearchDisplayState {
+  provider: string;
+  action: string;
+  status: string;
+  queries: string[];
+  sources: SearchSourceDisplay[];
+  bodyText: string;
+  structured: boolean;
+}
+
+function hostFromUrl(url: string) {
+  const withoutProtocol = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  return withoutProtocol
+    .split(/[/?#]/)[0]
+    .split('@')
+    .pop()
+    ?.split(':')[0]
+    ?.trim() ?? '';
+}
+
+function faviconUrlForSourceUrl(url: string) {
+  const host = hostFromUrl(url);
+  return host ? `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(host)}` : '';
+}
+
+function searchSourceSiteName(source: Element) {
+  return ['site_name', 'siteName', 'source', 'name']
+    .map((name) => source.getAttribute(name)?.trim() ?? '')
+    .find((value) => value.length > 0) ?? '';
+}
+
+function searchSourceDisplayName(siteName: string, host: string, title: string, url: string) {
+  if (siteName) {
+    return siteName;
+  }
+  const domainName = host.replace(/^www\./i, '').trim();
+  if (domainName) {
+    return domainName;
+  }
+  if (title) {
+    return title;
+  }
+  return url;
+}
+
+function parseSearchDocument(xmlText: string) {
+  if (!xmlText.trim() || typeof DOMParser === 'undefined') {
+    return null;
+  }
+
+  try {
+    const document = new DOMParser().parseFromString(xmlText, 'application/xml');
+    if (document.getElementsByTagName('parsererror').length > 0) {
+      return null;
+    }
+    return document.documentElement.tagName.toLowerCase() === 'search'
+      ? document.documentElement
+      : null;
+  } catch (error) {
+    console.warn('Failed to parse structured search block', error);
+    return null;
+  }
+}
+
+function parseSearchDisplayState(block: WebMessageContentBlock): SearchDisplayState {
+  const bodyText = block.content?.trim() ?? '';
+  const xmlText = block.xml?.trim() ?? '';
+  const root = parseSearchDocument(xmlText);
+  const provider = root?.getAttribute('provider')?.trim() ?? '';
+  const action = root?.getAttribute('action')?.trim() ?? '';
+  const status = root?.getAttribute('status')?.trim() ?? '';
+  const queries = root
+    ? Array.from(root.getElementsByTagName('query'))
+        .map((query) => query.textContent?.trim() ?? '')
+        .filter((query) => query.length > 0)
+    : [];
+  const sources = root
+    ? Array.from(root.getElementsByTagName('source'))
+        .map((source) => {
+          const url = source.getAttribute('url')?.trim() ?? '';
+          const host = hostFromUrl(url);
+          const title = source.getAttribute('title')?.trim() ?? '';
+          const siteName = searchSourceSiteName(source);
+          const faviconUrl = faviconUrlForSourceUrl(url);
+          const attributes = Object.fromEntries(
+            Array.from(source.attributes).map((attribute) => [attribute.name, attribute.value])
+          );
+          return {
+            type: source.getAttribute('type')?.trim() ?? '',
+            title,
+            url,
+            faviconUrl,
+            host,
+            siteName,
+            displayName: searchSourceDisplayName(siteName, host, title, url),
+            attributes
+          };
+        })
+        .filter((source) => source.url.length > 0)
+    : [];
+  const structured = root !== null && (
+    provider.length > 0 ||
+    action.length > 0 ||
+    status.length > 0 ||
+    queries.length > 0 ||
+    sources.length > 0
+  );
+
+  return {
+    provider,
+    action,
+    status,
+    queries,
+    sources,
+    bodyText,
+    structured
+  };
+}
+
 function readThinkingExpandedPreference() {
   if (typeof window === 'undefined') {
     return false;
@@ -51,10 +181,15 @@ function writeThinkingExpandedPreference(expanded: boolean) {
   window.localStorage.setItem(EXPAND_THINKING_PROCESS_STORAGE_KEY, expanded ? 'true' : 'false');
 }
 
-function shouldHideGeminiThoughtSignatureMeta(block: WebMessageContentBlock) {
+function shouldHideProtocolMeta(block: WebMessageContentBlock) {
+  const provider = block.attrs?.provider?.trim()?.toLowerCase() ?? '';
   return (
     block.tag_name === 'meta' &&
-    (block.attrs?.provider?.trim()?.toLowerCase() ?? '') === 'gemini:thought_signature'
+    (
+      provider === 'gemini:thought_signature' ||
+      provider === 'openai:responses_reasoning' ||
+      provider === 'openai:responses_output_item'
+    )
   );
 }
 
@@ -68,6 +203,10 @@ function shouldHideStatusBlock(block: WebMessageContentBlock, showStatusTags: bo
 
 function toolCountInGroup(children: WebMessageContentBlock[]) {
   return children.filter((child) => child.kind === 'xml' && child.tag_name === 'tool').length;
+}
+
+function searchCountInGroup(children: WebMessageContentBlock[]) {
+  return children.filter((child) => child.kind === 'xml' && child.tag_name === 'search').length;
 }
 
 function shouldGroupToolByName(toolName: string | null | undefined, toolCollapseMode: ToolCollapseMode) {
@@ -96,11 +235,11 @@ function isConformingTailBlock(
   }
 
   if (block.kind === 'group') {
-    return block.group_type === 'think_tools' || block.group_type === 'tools_only';
+    return block.group_type === 'think_tools' || block.group_type === 'tools_only' || block.group_type === 'search_only';
   }
 
   const tagName = block.tag_name;
-  if (tagName === 'think' || tagName === 'thinking' || tagName === 'meta') {
+  if (tagName === 'think' || tagName === 'thinking' || tagName === 'search' || tagName === 'meta') {
     return true;
   }
 
@@ -134,14 +273,29 @@ function GroupBlock({
   ) => ReactNode;
 }) {
   const children = block.children ?? [];
-  const count = toolCountInGroup(children);
+  const toolCount = toolCountInGroup(children);
+  const searchCount = searchCountInGroup(children);
   const hasNonConformingAfterGroup = useMemo(() => {
     return siblings.slice(blockIndex + 1).some((candidate) => !isConformingTailBlock(candidate, toolCollapseMode));
   }, [blockIndex, siblings, toolCollapseMode]);
   const shouldAutoExpand = streaming && !hasNonConformingAfterGroup;
   const [expanded, setExpanded] = useState(shouldAutoExpand);
   const [userOverride, setUserOverride] = useState<boolean | null>(null);
-  const title = block.group_type === 'tools_only' ? `工具调用 (${count})` : `思考与工具 (${count})`;
+  const title = (() => {
+    if (block.group_type === 'search_only') {
+      return '搜索';
+    }
+    if (block.group_type === 'tools_only') {
+      return `工具调用 (${toolCount})`;
+    }
+    if (searchCount > 0 && toolCount > 0) {
+      return `思考、搜索并调用工具 (${toolCount})`;
+    }
+    if (searchCount > 0) {
+      return '思考并搜索';
+    }
+    return `思考与工具 (${toolCount})`;
+  })();
 
   useEffect(() => {
     if (userOverride === null) {
@@ -244,21 +398,133 @@ function ThinkBlock({
 }
 
 function SearchBlock({ block }: { block: WebMessageContentBlock }) {
+  const displayState = useMemo(() => parseSearchDisplayState(block), [block]);
   const [expanded, setExpanded] = useState(false);
+  const [selectedSource, setSelectedSource] = useState<SearchSourceDisplay | null>(null);
+  const visibleSearchItems =
+    displayState.sources.length > 0
+      ? displayState.sources
+      : displayState.queries.map((query) => ({
+          type: 'query',
+          title: query,
+          url: '',
+          faviconUrl: '',
+          host: '',
+          siteName: '',
+          displayName: query,
+          attributes: {
+            type: 'query',
+            query
+          }
+        }));
+
+  if (!displayState.structured) {
+    return (
+      <section className="structured-search-block">
+        <StructuredExpandRow
+          expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+          title="搜索来源"
+        />
+        <AnimatedExpandBody className="structured-search-body" durationMs={200} visible={expanded}>
+          <div className="structured-search-body-content">
+            <MarkdownRenderer className="markdown-block is-structured" content={displayState.bodyText} />
+          </div>
+        </AnimatedExpandBody>
+      </section>
+    );
+  }
+
+  if (visibleSearchItems.length === 0) {
+    return null;
+  }
 
   return (
     <section className="structured-search-block">
-      <StructuredExpandRow
-        expanded={expanded}
-        onClick={() => setExpanded((value) => !value)}
-        title="搜索来源"
-      />
-      <AnimatedExpandBody className="structured-search-body" durationMs={200} visible={expanded}>
-        <div className="structured-search-body-content">
-          <MarkdownRenderer className="markdown-block is-structured" content={block.content ?? ''} />
-        </div>
-      </AnimatedExpandBody>
+      <div className="structured-search-source-list">
+        {visibleSearchItems.map((source, index) => (
+          <button
+            className="structured-search-source-row"
+            key={`${source.url || source.displayName}-${index}`}
+            onClick={() => setSelectedSource(source)}
+            type="button"
+            title={source.url || source.displayName}
+          >
+            <span className="structured-search-source-icon">
+              <span className="structured-search-source-initial">
+                {source.displayName.slice(0, 1).toUpperCase()}
+              </span>
+              {source.faviconUrl ? (
+                <img
+                  alt=""
+                  className="structured-search-favicon"
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.hidden = true;
+                  }}
+                  src={source.faviconUrl}
+                />
+              ) : null}
+            </span>
+            <span className="structured-search-source-title">{source.displayName}</span>
+          </button>
+        ))}
+      </div>
+      {selectedSource ? (
+        <SearchSourceDialog
+          source={selectedSource}
+          onDismiss={() => setSelectedSource(null)}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function SearchSourceDialog({
+  source,
+  onDismiss
+}: {
+  source: SearchSourceDisplay;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="structured-modal-backdrop" onClick={onDismiss} role="presentation">
+      <section
+        aria-label={source.displayName}
+        className="structured-modal-card structured-search-source-dialog"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <div className="structured-modal-main">
+          <header className="structured-modal-header">
+            <div className="structured-modal-title-row">
+              <span className="structured-search-dialog-icon">
+                {source.faviconUrl ? <img alt="" src={source.faviconUrl} /> : source.displayName.slice(0, 1).toUpperCase()}
+              </span>
+              <div className="structured-modal-title-stack">
+                <strong>{source.displayName}</strong>
+                {source.host ? <span>{source.host}</span> : null}
+              </div>
+            </div>
+          </header>
+          <div className="structured-modal-divider" />
+          <div className="structured-search-source-detail">
+            {source.title ? <p className="structured-search-source-detail-title">{source.title}</p> : null}
+            {source.url ? <a href={source.url} rel="noreferrer" target="_blank">{source.url}</a> : null}
+          </div>
+          <footer className="structured-modal-footer">
+            {source.url ? (
+              <a className="structured-modal-primary" href={source.url} rel="noreferrer" target="_blank">
+                打开网页
+              </a>
+            ) : null}
+            <button className="structured-modal-secondary" onClick={onDismiss} type="button">
+              关闭
+            </button>
+          </footer>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -339,7 +605,7 @@ function renderXmlBlock(
 ) {
   const tagName = block.tag_name;
 
-  if (shouldHideGeminiThoughtSignatureMeta(block)) {
+  if (shouldHideProtocolMeta(block)) {
     return null;
   }
 

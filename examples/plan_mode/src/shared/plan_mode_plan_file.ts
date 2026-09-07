@@ -10,8 +10,12 @@ type PlanFileBinding = ChatWorkspaceBinding & {
   path: string;
 };
 
+export function normalizePlanText(content: string): string {
+  return content.replace(/\r\n/g, "\n").trim();
+}
+
 export function normalizePlanContent(content: string): string {
-  const normalized = content.replace(/\r\n/g, "\n").trim();
+  const normalized = normalizePlanText(content);
   if (!normalized) {
     throw new Error("plan content is empty");
   }
@@ -52,6 +56,15 @@ export async function readPlanFile(chatId: string): Promise<PlanFileRecord | nul
     ...binding,
     content: result.content.replace(/\r\n/g, "\n"),
   };
+}
+
+export async function planFileMatchesContent(chatId: string, content: string): Promise<boolean> {
+  const normalized = normalizePlanText(content);
+  if (!normalized) {
+    return false;
+  }
+  const plan = await readPlanFile(chatId);
+  return plan !== null && normalizePlanText(plan.content) === normalized;
 }
 
 export async function writePlanFile(chatId: string, content: string): Promise<PlanFileRecord> {

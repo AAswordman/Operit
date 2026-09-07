@@ -110,6 +110,7 @@ object AIMessageManager {
      * @param workspaceEnv 工作区环境标签。
      * @param replyToMessage 回复消息。
      * @param enableDirectImageProcessing 是否将图片附件转换为link标签（用于直接图片处理）。
+     * @param enableDirectFileProcessing 是否将PDF附件转换为文件link（用于直接文件处理）。
      * @param enableDirectAudioProcessing 是否将音频附件转换为link标签（用于直接音频处理）。
      * @param enableDirectVideoProcessing 是否将视频附件转换为link标签（用于直接视频处理）。
      * @return 格式化后的完整消息字符串。
@@ -122,8 +123,9 @@ object AIMessageManager {
         workspacePath: String? = null,
         workspaceEnv: String? = null,
         replyToMessage: ChatMessage? = null,
-        enableDirectImageProcessing: Boolean = false,
-        enableDirectAudioProcessing: Boolean = false,
+         enableDirectImageProcessing: Boolean = false,
+         enableDirectFileProcessing: Boolean = false,
+         enableDirectAudioProcessing: Boolean = false,
         enableDirectVideoProcessing: Boolean = false,
         chatId: String? = null,
         roleCardId: String? = null,
@@ -234,6 +236,15 @@ object AIMessageManager {
                         }
                         "<attachment $attributes>${attachment.content}</attachment>"
                     }
+                } else if (
+                    enableDirectFileProcessing &&
+                    attachment.mimeType.equals("application/pdf", ignoreCase = true)
+                ) {
+                    val fileId = MediaPoolManager.addMedia(attachment.filePath, attachment.mimeType)
+                    check(fileId != "error") {
+                        "Failed to add PDF attachment to the media pool: ${attachment.filePath}"
+                    }
+                    MediaLinkBuilder.file(context, fileId, attachment.fileName)
                 } else if (enableDirectAudioProcessing && attachment.mimeType.startsWith("audio/", ignoreCase = true)) {
                     try {
                         val audioId = MediaPoolManager.addMedia(attachment.filePath, attachment.mimeType)
@@ -289,7 +300,7 @@ object AIMessageManager {
         logMessageTiming(
             stage = "buildUserMessageContent.attachmentTags",
             startTimeMs = attachmentTagsStartTime,
-            details = "attachments=${attachments.size}, length=${attachmentTags.length}, directImage=$enableDirectImageProcessing, directAudio=$enableDirectAudioProcessing, directVideo=$enableDirectVideoProcessing"
+            details = "attachments=${attachments.size}, length=${attachmentTags.length}, directImage=$enableDirectImageProcessing, directFile=$enableDirectFileProcessing, directAudio=$enableDirectAudioProcessing, directVideo=$enableDirectVideoProcessing"
         )
 
         // 4. 组合最终消息
@@ -433,6 +444,7 @@ object AIMessageManager {
                 val pluginStream = pluginExecution.stream.share(
                     scope = scope,
                     replay = Int.MAX_VALUE,
+                    propagateCompletionCause = false,
                     onComplete = {
                         activeMessageProcessingControllerByChatId.remove(chatKey)
                         activeEnhancedAiServiceByChatId.remove(chatKey)
@@ -491,6 +503,9 @@ object AIMessageManager {
             ).shareRevisable(
                 scope = scope,
                 replay = Int.MAX_VALUE,
+                // Provider 终态异常由消息处理主订阅读取 completionCause；
+                // 其他订阅者只观察文本，不应因同一网络错误触发全局未捕获异常。
+                propagateCompletionCause = false,
                 onComplete = {
                     activeMessageProcessingControllerByChatId.remove(chatKey)
                     activeEnhancedAiServiceByChatId.remove(chatKey)

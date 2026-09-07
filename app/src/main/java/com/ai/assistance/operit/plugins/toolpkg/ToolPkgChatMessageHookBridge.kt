@@ -76,11 +76,10 @@ internal object ToolPkgChatMessageHookBridge {
                         functionSource = hook.functionSource
                     )
                 }
-            }.sortedWith(
-                compareBy(
-                    ToolPkgChatMessageHookRegistration::containerPackageName,
-                    ToolPkgChatMessageHookRegistration::hookId
-                )
+            }.sortedByToolPkgLoadOrder(
+                activeContainers = activeContainers,
+                containerPackageName = ToolPkgChatMessageHookRegistration::containerPackageName,
+                registrationId = ToolPkgChatMessageHookRegistration::hookId
             )
     }
 

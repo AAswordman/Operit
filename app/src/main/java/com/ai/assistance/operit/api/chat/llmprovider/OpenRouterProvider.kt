@@ -5,10 +5,6 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.util.AppLogger
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import org.json.JSONObject
@@ -19,9 +15,7 @@ import org.json.JSONObject
  * OpenRouter chat completions are largely OpenAI-compatible, but reasoning is controlled via
  * the unified `reasoning` object instead of the app's generic `enableThinking` toggle.
  *
- * We align the default reasoning request shape with RikkaHub's OpenRouter handling:
- * - thinking on: `reasoning: {}` or `reasoning.max_tokens = <budget>`
- * - thinking off: `reasoning: { enabled: false, max_tokens: 0 }`
+ * Reasoning is emitted from the model config's editable thinking rules.
  *
  * This provider keeps the shared OpenAI request/response handling while applying OpenRouter's
  * request-body conventions and default headers.
@@ -36,7 +30,9 @@ open class OpenRouterProvider(
     supportsVision: Boolean = false,
     supportsAudio: Boolean = false,
     supportsVideo: Boolean = false,
-    enableToolCall: Boolean = false
+    enableToolCall: Boolean = false,
+    thinkingConfigurations: String = "",
+    thinkingOptionId: String = ""
 ) : OpenAIProvider(
     apiEndpoint = apiEndpoint,
     apiKeyProvider = apiKeyProvider,
@@ -47,8 +43,13 @@ open class OpenRouterProvider(
     supportsVision = supportsVision,
     supportsAudio = supportsAudio,
     supportsVideo = supportsVideo,
-    enableToolCall = enableToolCall
+    enableToolCall = enableToolCall,
+    thinkingConfigurations = thinkingConfigurations,
+        thinkingOptionId = thinkingOptionId
 ) {
+
+    private val openRouterApiEndpoint: String = apiEndpoint
+    private val openRouterProviderType: ApiProviderType = providerType
 
     override fun createRequestBody(
         context: Context,
@@ -72,7 +73,6 @@ open class OpenRouterProvider(
         applyOpenRouterReasoning(
             context = context,
             requestJson = jsonObject,
-            modelParameters = modelParameters,
             enableThinking = enableThinking
         )
 
@@ -94,100 +94,18 @@ open class OpenRouterProvider(
     private fun applyOpenRouterReasoning(
         context: Context,
         requestJson: JSONObject,
-        modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean
     ) {
-        val reasoningObject = requestJson.optJSONObject("reasoning")
-        val existingHasExplicitReasoningControl =
-            reasoningObject?.let {
-                it.has("enabled") || it.has("max_tokens") || it.has("effort")
-            } == true
-
-        when {
-            reasoningObject == null && requestJson.has("reasoning") && !requestJson.isNull("reasoning") -> {
-                AppLogger.w(
-                    "OpenRouterProvider",
-                    "Skipping OpenRouter reasoning adaptation because reasoning is not an object"
-                )
-            }
-
-            existingHasExplicitReasoningControl -> {
-                AppLogger.d(
-                    "OpenRouterProvider",
-                    "Preserving caller-supplied OpenRouter reasoning object"
-                )
-            }
-
-            else -> {
-                val finalReasoningObject = reasoningObject ?: JSONObject()
-                if (enableThinking) {
-                    val budgetTokens = resolveReasoningBudget(context, requestJson, modelParameters)
-                    if (budgetTokens != null && budgetTokens > 0) {
-                        finalReasoningObject.put("max_tokens", budgetTokens)
-                    }
-                    requestJson.put("reasoning", finalReasoningObject)
-                    AppLogger.d(
-                        "OpenRouterProvider",
-                        if (budgetTokens != null) {
-                            "OpenRouter thinking enabled via reasoning.max_tokens=$budgetTokens"
-                        } else {
-                            "OpenRouter thinking enabled via empty reasoning object"
-                        }
-                    )
-                } else {
-                    finalReasoningObject.put("enabled", false)
-                    finalReasoningObject.put("max_tokens", 0)
-                    requestJson.put("reasoning", finalReasoningObject)
-                    AppLogger.d(
-                        "OpenRouterProvider",
-                        "OpenRouter thinking disabled via reasoning.enabled=false and max_tokens=0"
-                    )
-                }
-            }
-        }
-    }
-
-    private fun resolveReasoningBudget(
-        context: Context,
-        requestJson: JSONObject,
-        modelParameters: List<ModelParameter<*>>
-    ): Int? {
-        val qualityLevel = runCatching {
-            runBlocking {
-                ApiPreferences.getInstance(context).thinkingQualityLevelFlow.first()
-            }
-        }.getOrElse {
-            AppLogger.w(
-                "OpenRouterProvider",
-                "Failed to read thinking quality level, falling back to auto reasoning",
-                it
-            )
-            return null
-        }
-
-        val reasoningBudgets = listOf(null, 1_024, 16_000, 32_000, 64_000)
-        val qualityIndex = qualityLevel.coerceIn(
-            ApiPreferences.MIN_THINKING_QUALITY_LEVEL,
-            ApiPreferences.MAX_THINKING_QUALITY_LEVEL
-        ) - 1
-        val requestedBudget = reasoningBudgets[qualityIndex]
-
-        if (requestedBudget == null) {
-            return null
-        }
-
-        val modelMaxTokens =
-            (modelParameters.firstOrNull { it.apiName == "max_tokens" && it.isEnabled }?.currentValue as? Number)
-                ?.toInt()
-                ?.takeIf { it > 1 }
-                ?: requestJson.optInt("max_tokens", 0).takeIf { it > 1 }
-
-        if (modelMaxTokens == null) {
-            return requestedBudget
-        }
-
-        val cappedBudget = minOf(requestedBudget, modelMaxTokens - 1)
-        return if (cappedBudget > 0) cappedBudget else null
+        ThinkingConfigurationApplier.apply(
+            context = context,
+            requestJson = requestJson,
+            providerTypeId = openRouterProviderType.name,
+            modelName = modelName,
+            apiEndpoint = openRouterApiEndpoint,
+            thinkingConfigurations = thinkingConfigurations,
+            enableThinking = enableThinking,
+            optionId = thinkingOptionId,
+        )
     }
 
     companion object {

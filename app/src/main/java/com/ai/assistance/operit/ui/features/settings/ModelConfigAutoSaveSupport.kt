@@ -44,6 +44,22 @@ class ModelConfigSaveCoordinator {
         }
     }
 
+    /**
+     * Removes save actions for a deleted model config before its composables dispose.
+     * Otherwise their disposal can schedule a write for the deleted config again.
+     */
+    fun discardConfig(configId: String) {
+        val suffix = ":$configId"
+        synchronized(lock) {
+            saveActions.keys
+                .filter { it.endsWith(suffix) }
+                .forEach { key ->
+                    saveActions.remove(key)
+                    backgroundFlushFailures.remove(key)
+                }
+        }
+    }
+
     suspend fun flushAll(showSuccess: Boolean = false) {
         while (true) {
             val pendingJobs = synchronized(lock) { backgroundFlushJobs.toList() }

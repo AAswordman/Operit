@@ -1,6 +1,10 @@
 package com.ai.assistance.operit.api.chat
 
 import android.content.Context
+import com.ai.assistance.operit.core.chat.hooks.ChatRuntimeHookContext
+import com.ai.assistance.operit.core.chat.hooks.ChatRuntimeHookEvent
+import com.ai.assistance.operit.core.chat.hooks.ChatRuntimeHookRegistry
+import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.services.ChatServiceCore
 import com.ai.assistance.operit.services.core.ChatSelectionMode
 import com.ai.assistance.operit.util.AppLogger
@@ -30,6 +34,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
         }
         setupCrossSessionSync()
         observeStats()
+        observeRuntimeHooks()
     }
 
     fun getCore(slot: ChatRuntimeSlot): ChatServiceCore {
@@ -71,6 +76,66 @@ class ChatRuntimeHolder private constructor(context: Context) {
                     countCurrentTurnToolsForActiveChats(floatingActiveChatIds, floatingCounts)
             }.collect { count ->
                 _currentSessionToolCount.value = count
+            }
+        }
+    }
+
+    private data class RuntimeHookObservation(
+        val stateByChatId: Map<String, InputProcessingState>,
+        val activeChatIds: Set<String>,
+        val toolInvocationCountByChatId: Map<String, Int>
+    )
+
+    private fun observeRuntimeHooks() {
+        ChatRuntimeSlot.values().forEach { slot ->
+            val core = getCore(slot)
+            val previousStates = mutableMapOf<String, InputProcessingState>()
+            runtimeScope.launch {
+                combine(
+                    core.inputProcessingStateByChatId,
+                    core.activeStreamingChatIds,
+                    core.currentTurnToolInvocationCountByChatId
+                ) { stateByChatId, activeChatIds, toolInvocationCountByChatId ->
+                    RuntimeHookObservation(
+                        stateByChatId = stateByChatId,
+                        activeChatIds = activeChatIds,
+                        toolInvocationCountByChatId = toolInvocationCountByChatId
+                    )
+                }.collect { observation ->
+                    observation.stateByChatId.forEach { (chatId, state) ->
+                        if (chatId == DEFAULT_CHAT_KEY) {
+                            return@forEach
+                        }
+                        if (previousStates[chatId] == state) {
+                            return@forEach
+                        }
+                        previousStates[chatId] = state
+                        ChatRuntimeHookRegistry.dispatchAsync(
+                            event = ChatRuntimeHookEvent.STATE_CHANGED,
+                            context =
+                                ChatRuntimeHookContext(
+                                    context = appContext,
+                                    chatId = chatId,
+                                    slot = slot,
+                                    state = state,
+                                    activeChatIds = observation.activeChatIds,
+                                    currentTurnToolInvocationCount =
+                                        observation.toolInvocationCountByChatId[chatId] ?: 0,
+                                    activeConversationCount = activeConversationCount.value,
+                                    currentSessionToolCount = currentSessionToolCount.value
+                                )
+                        )
+                    }
+
+                    val activeStateChatIds = observation.stateByChatId.keys.toSet()
+                    val iterator = previousStates.keys.iterator()
+                    while (iterator.hasNext()) {
+                        val chatId = iterator.next()
+                        if (chatId !in activeStateChatIds) {
+                            iterator.remove()
+                        }
+                    }
+                }
             }
         }
     }
@@ -185,6 +250,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
 
     companion object {
         private const val TAG = "ChatRuntimeHolder"
+        private const val DEFAULT_CHAT_KEY = "__DEFAULT_CHAT__"
 
         @Volatile
         private var instance: ChatRuntimeHolder? = null
