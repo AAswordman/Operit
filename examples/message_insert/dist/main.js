@@ -30,7 +30,6 @@ function pushInjectionProcessingState(chatId) {
             : EnhancedAIService.getInstance(context);
         const state = Java.newInstance(InputProcessingStateBase + "Processing", resolveInjectionStatusText());
         service.setInputProcessingState(state);
-        (0, shared_1.logExtraInfoInjectionInfo)("processing_state.updated", `chat_id_present=${Boolean(resolvedChatId)}`);
     }
     catch (error) {
         (0, shared_1.logExtraInfoInjectionError)("processing_state.failed", error);
@@ -79,48 +78,42 @@ function registerToolPkg() {
     (0, shared_1.logExtraInfoInjectionInfo)("plugin.registered");
     return true;
 }
+// Prompt hooks run for multiple pipeline stages, so normal no-op branches stay silent on this hot path.
 async function onPromptInput(input) {
     const stage = String(input.eventPayload.stage ?? input.eventName ?? "");
     if (stage !== "before_process") {
-        (0, shared_1.logExtraInfoInjectionInfo)("prompt_input.skipped", `reason=unexpected_stage stage=${stage}`);
         return null;
     }
     const settings = (0, shared_1.loadSettings)();
     if (!settings.persistInjectedContent) {
-        (0, shared_1.logExtraInfoInjectionInfo)("prompt_input.skipped", "reason=transient_mode");
         return null;
     }
     const processedInput = String(input.eventPayload.processedInput ?? input.eventPayload.rawInput ?? "");
     if (!processedInput.trim()) {
-        (0, shared_1.logExtraInfoInjectionInfo)("prompt_input.skipped", "reason=empty_input");
         return null;
     }
     const chatId = String(input.eventPayload.chatId ?? getChatId() ?? "").trim();
     const activePrompt = resolveHookActivePrompt(input);
-    (0, shared_1.logExtraInfoInjectionInfo)("prompt_input.running", "mode=persisted");
     return appendExtraInfoWithStatus(processedInput, chatId || undefined, activePrompt);
 }
 async function onPromptFinalize(input) {
     const stage = String(input.eventPayload.stage ?? input.eventName ?? "");
     if (stage !== "before_send_to_model") {
-        (0, shared_1.logExtraInfoInjectionInfo)("prompt_finalize.skipped", `reason=unexpected_stage stage=${stage}`);
         return null;
     }
     const settings = (0, shared_1.loadSettings)();
     if (settings.persistInjectedContent) {
-        (0, shared_1.logExtraInfoInjectionInfo)("prompt_finalize.skipped", "reason=persisted_mode");
         return null;
     }
     const processedInput = String(input.eventPayload.processedInput ?? input.eventPayload.rawInput ?? "");
     if (!processedInput.trim()) {
-        (0, shared_1.logExtraInfoInjectionInfo)("prompt_finalize.skipped", "reason=empty_input");
         return null;
     }
     const chatId = String(input.eventPayload.chatId ?? getChatId() ?? "").trim();
     const activePrompt = resolveHookActivePrompt(input);
-    (0, shared_1.logExtraInfoInjectionInfo)("prompt_finalize.running", "mode=transient");
     return appendExtraInfoWithStatus(processedInput, chatId || undefined, activePrompt);
 }
+// Menu definitions can be requested repeatedly during UI refreshes; only user-triggered changes are logged.
 function onInputMenuToggle(input) {
     const action = String(input.eventPayload.action ?? "").toLowerCase();
     if (action === "toggle") {
@@ -130,11 +123,9 @@ function onInputMenuToggle(input) {
         return [];
     }
     if (action !== "create") {
-        (0, shared_1.logExtraInfoInjectionInfo)("menu_toggle.skipped", `reason=unsupported_action action=${action}`);
         return [];
     }
     const text = (0, shared_1.resolveExtraInfoI18n)();
-    (0, shared_1.logExtraInfoInjectionInfo)("menu_toggle.created");
     return [
         {
             id: "message_extra_info_injection",
