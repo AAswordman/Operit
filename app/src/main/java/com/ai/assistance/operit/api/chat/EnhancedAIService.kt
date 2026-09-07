@@ -1791,8 +1791,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                                         R.string.enhanced_pure_thinking_only_warning
                                 )
                         )
-                context.roundManager.appendContent("\n$pureThinkingWarning")
-                collector.emit(pureThinkingWarning)
+                val pureThinkingWarningDisplayContent = "\n$pureThinkingWarning"
+                context.roundManager.appendContent(pureThinkingWarningDisplayContent)
+                collector.emit(pureThinkingWarningDisplayContent)
                 try {
                     context.conversationHistory.add(
                         PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = pureThinkingWarning)
