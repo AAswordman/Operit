@@ -2732,6 +2732,18 @@
     <string name="logcat_description">您可以将应用运行期间的所有内部日志导出到一个文件，用于调试和问题分析。</string>
     <string name="logcat_save_to_file">保存日志到文件</string>
     <string name="logcat_clear_all">清除所有日志</string>
+    <string name="logcat_export_filters_title">导出过滤</string>
+    <string name="logcat_export_filters_subtitle">默认全部关闭，导出完整日志。仅影响导出文件，不改变写入。</string>
+    <string name="logcat_filter_exclude_debug">排除调试日志</string>
+    <string name="logcat_filter_exclude_debug_desc">去掉 Verbose 和 Debug 级别</string>
+    <string name="logcat_filter_exclude_system">排除系统日志</string>
+    <string name="logcat_filter_exclude_system_desc">去掉 WebView、OkHttp 等系统噪声标签</string>
+    <string name="logcat_filter_error_context">仅错误上下文</string>
+    <string name="logcat_filter_error_context_desc">保留最后一条错误及其上方 10% 的日志</string>
+    <string name="logcat_filter_hide_sensitive">隐藏敏感内容</string>
+    <string name="logcat_filter_hide_sensitive_desc">遮盖提示词和请求体正文</string>
+    <string name="logcat_filter_strip_timestamp">不保留时间</string>
+    <string name="logcat_filter_strip_timestamp_desc">导出时去掉时间戳</string>
 
     <!-- Speech-to-Text -->
     <string name="stt_title">语音识别</string>
@@ -6108,6 +6120,7 @@
 
     <!-- Logcat -->
     <string name="logcat_no_logs_to_save">没有日志可保存</string>
+    <string name="logcat_no_error_logs">没有错误日志可导出</string>
     <string name="logcat_header">=== Operit 日志 ===</string>
     <string name="logcat_date">日期: %1$s</string>
     <string name="logcat_total_count">总条数: %1$d</string>
@@ -6116,7 +6129,7 @@
     <string name="logcat_saved_to">日志已保存至：%1$s</string>
     <string name="logcat_cannot_create_file">保存失败：无法创建文件，可能是存储权限问题</string>
     <string name="logcat_cannot_open_output_stream">无法打开输出流</string>
-    <string name="logcat_mediestore_save_failed">MediaStore保存失败：%1$s</string>
+    <string name="logcat_mediastore_save_failed">MediaStore保存失败：%1$s</string>
     <string name="logcat_cannot_create_download_dir">无法创建下载目录</string>
     <string name="logcat_cannot_create_operit_dir">无法创建operit目录</string>
     <string name="logcat_file_create_failed">文件创建失败或为空</string>

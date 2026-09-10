@@ -2596,6 +2596,18 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="logcat_description">Puteți exporta toate jurnalele interne generate în timpul rulării aplicației într-un fișier, în scopul depanării și al analizei problemelor.</string>
     <string name="logcat_save_to_file">Salvarea jurnalului într-un fișier</string>
     <string name="logcat_clear_all">Șterge toate jurnalele</string>
+    <string name="logcat_export_filters_title">Export filters</string>
+    <string name="logcat_export_filters_subtitle">All filters are off by default and export the full log. They only affect the exported file.</string>
+    <string name="logcat_filter_exclude_debug">Exclude debug logs</string>
+    <string name="logcat_filter_exclude_debug_desc">Drop Verbose and Debug levels</string>
+    <string name="logcat_filter_exclude_system">Exclude system logs</string>
+    <string name="logcat_filter_exclude_system_desc">Drop noisy system tags such as WebView and OkHttp</string>
+    <string name="logcat_filter_error_context">Error context only</string>
+    <string name="logcat_filter_error_context_desc">Keep the last error and the 10% of records above it</string>
+    <string name="logcat_filter_hide_sensitive">Hide sensitive content</string>
+    <string name="logcat_filter_hide_sensitive_desc">Redact prompts and request-body dumps</string>
+    <string name="logcat_filter_strip_timestamp">Omit timestamps</string>
+    <string name="logcat_filter_strip_timestamp_desc">Remove timestamps from the exported file</string>
 
     <!-- Speech-to-Text -->
     <string name="stt_title">Recunoașterea vocală</string>
@@ -5846,6 +5858,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
 
     <!-- Logcat -->
     <string name="logcat_no_logs_to_save">Nu există jurnale care pot fi salvate</string>
+    <string name="logcat_no_error_logs">No error logs to export</string>
     <string name="logcat_header">=== Operit Jurnal ===</string>
     <string name="logcat_date">Data: %1$s</string>
     <string name="logcat_total_count">Numărul total de articole: %1$d</string>
@@ -5854,7 +5867,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="logcat_saved_to">Jurnalul a fost salvat în:%1$s</string>
     <string name="logcat_cannot_create_file">Eroare la salvare: nu se poate crea fișierul; este posibil să fie o problemă legată de permisiunile de stocare</string>
     <string name="logcat_cannot_open_output_stream">Nu se poate deschide fluxul de ieșire</string>
-    <string name="logcat_mediestore_save_failed">MediaStoreEroare la salvare:%1$s</string>
+    <string name="logcat_mediastore_save_failed">MediaStoreEroare la salvare:%1$s</string>
     <string name="logcat_cannot_create_download_dir">Nu se poate crea directorul de descărcări</string>
     <string name="logcat_cannot_create_operit_dir">Nu se poate creaoperitCuprins</string>
     <string name="logcat_file_create_failed">Fișierul nu a putut fi creat sau este gol</string>

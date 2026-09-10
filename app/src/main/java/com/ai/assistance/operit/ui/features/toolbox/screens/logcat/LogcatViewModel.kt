@@ -11,12 +11,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * 日志查看器ViewModel - 使用AppLogger文件
- */
 class LogcatViewModel(private val context: Context) : ViewModel() {
     private val logcatManager = LogcatManager(context)
-
+    private val exportPreferences = LogExportPreferences(context)
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
@@ -24,21 +21,27 @@ class LogcatViewModel(private val context: Context) : ViewModel() {
     private val _saveResult = MutableStateFlow<String?>(null)
     val saveResult: StateFlow<String?> = _saveResult.asStateFlow()
 
-
+    private val _exportOptions = MutableStateFlow(exportPreferences.load())
+    val exportOptions: StateFlow<LogExportOptions> = _exportOptions.asStateFlow()
 
     fun clearLogs() {
         logcatManager.clearLogs()
     }
 
+    fun updateExportOptions(transform: (LogExportOptions) -> LogExportOptions) {
+        val updated = transform(_exportOptions.value)
+        _exportOptions.value = updated
+        exportPreferences.save(updated)
+    }
+
     fun saveLogsToFile() {
         if (_isSaving.value) return
-
         _isSaving.value = true
         _saveResult.value = null
-
+        val options = _exportOptions.value
         viewModelScope.launch {
             try {
-                val result = LogcatExportHelper.exportLogs(context)
+                val result = LogcatExportHelper.exportLogs(context, options)
                 _saveResult.value = result.message
                 delay(3000)
                 _saveResult.value = null
@@ -63,10 +66,5 @@ class LogcatViewModel(private val context: Context) : ViewModel() {
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        // No-op, no more monitoring to stop
     }
 }

@@ -2678,6 +2678,18 @@
     <string name="logcat_description">You can export all internal logs during app runtime to a file for debugging and issue analysis.</string>
     <string name="logcat_save_to_file">Save logs to file</string>
     <string name="logcat_clear_all">Clear all logs</string>
+    <string name="logcat_export_filters_title">Export filters</string>
+    <string name="logcat_export_filters_subtitle">All filters are off by default and export the full log. They only affect the exported file.</string>
+    <string name="logcat_filter_exclude_debug">Exclude debug logs</string>
+    <string name="logcat_filter_exclude_debug_desc">Drop Verbose and Debug levels</string>
+    <string name="logcat_filter_exclude_system">Exclude system logs</string>
+    <string name="logcat_filter_exclude_system_desc">Drop noisy system tags such as WebView and OkHttp</string>
+    <string name="logcat_filter_error_context">Error context only</string>
+    <string name="logcat_filter_error_context_desc">Keep the last error and the 10% of records above it</string>
+    <string name="logcat_filter_hide_sensitive">Hide sensitive content</string>
+    <string name="logcat_filter_hide_sensitive_desc">Redact prompts and request-body dumps</string>
+    <string name="logcat_filter_strip_timestamp">Omit timestamps</string>
+    <string name="logcat_filter_strip_timestamp_desc">Remove timestamps from the exported file</string>
 
     <!-- Speech-to-Text -->
     <string name="stt_title">Speech Recognition</string>
@@ -5684,6 +5696,7 @@
 
     <!-- Logcat -->
     <string name="logcat_no_logs_to_save">No logs to save</string>
+    <string name="logcat_no_error_logs">No error logs to export</string>
     <string name="logcat_header">=== Operit Logs ===</string>
     <string name="logcat_date">Date: %1$s</string>
     <string name="logcat_total_count">Total count: %1$d</string>
@@ -5692,7 +5705,7 @@
     <string name="logcat_saved_to">Logs saved to: %1$s</string>
     <string name="logcat_cannot_create_file">Save failed: Unable to create file, possibly due to storage permissions</string>
     <string name="logcat_cannot_open_output_stream">Cannot open output stream</string>
-    <string name="logcat_mediestore_save_failed">MediaStore save failed: %1$s</string>
+    <string name="logcat_mediastore_save_failed">MediaStore save failed: %1$s</string>
     <string name="logcat_cannot_create_download_dir">Cannot create download directory</string>
     <string name="logcat_cannot_create_operit_dir">Cannot create operit directory</string>
     <string name="logcat_file_create_failed">File creation failed or is empty</string>

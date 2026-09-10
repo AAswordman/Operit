@@ -2795,6 +2795,18 @@
     <string name="logcat_description">Puede exportar todos los registros internos de la aplicación durante su ejecución a un archivo para depuración y análisis de problemas.</string>
     <string name="logcat_save_to_file">Guardar registros en archivo</string>
     <string name="logcat_clear_all">Limpiar todos los registros</string>
+    <string name="logcat_export_filters_title">Export filters</string>
+    <string name="logcat_export_filters_subtitle">All filters are off by default and export the full log. They only affect the exported file.</string>
+    <string name="logcat_filter_exclude_debug">Exclude debug logs</string>
+    <string name="logcat_filter_exclude_debug_desc">Drop Verbose and Debug levels</string>
+    <string name="logcat_filter_exclude_system">Exclude system logs</string>
+    <string name="logcat_filter_exclude_system_desc">Drop noisy system tags such as WebView and OkHttp</string>
+    <string name="logcat_filter_error_context">Error context only</string>
+    <string name="logcat_filter_error_context_desc">Keep the last error and the 10% of records above it</string>
+    <string name="logcat_filter_hide_sensitive">Hide sensitive content</string>
+    <string name="logcat_filter_hide_sensitive_desc">Redact prompts and request-body dumps</string>
+    <string name="logcat_filter_strip_timestamp">Omit timestamps</string>
+    <string name="logcat_filter_strip_timestamp_desc">Remove timestamps from the exported file</string>
     <string name="stt_title">Reconocimiento de voz</string>
     <string name="stt_start_recording">Iniciar grabación</string>
     <string name="stt_stop_recording">Detener grabación</string>
@@ -5138,6 +5150,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="uidebugger_element_info_package_name">nombre del paquete: %1$s</string>
     <string name="uidebugger_element_info_size_px">tamaño: %1$d×%2$dpx</string>
     <string name="logcat_no_logs_to_save">no hay registros para guardar</string>
+    <string name="logcat_no_error_logs">No error logs to export</string>
     <string name="logcat_header">=== Registros de Operit ===</string>
     <string name="logcat_date">fecha: %1$s</string>
     <string name="logcat_total_count">total: %1$d</string>
@@ -5146,7 +5159,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="logcat_saved_to">registros guardados en: %1$s</string>
     <string name="logcat_cannot_create_file">error al guardar: no se pudo crear el archivo, posible problema de permisos de almacenamiento</string>
     <string name="logcat_cannot_open_output_stream">no se pudo abrir el flujo de salida</string>
-    <string name="logcat_mediestore_save_failed">error al guardar en MediaStore: %1$s</string>
+    <string name="logcat_mediastore_save_failed">error al guardar en MediaStore: %1$s</string>
     <string name="logcat_cannot_create_download_dir">no se pudo crear el directorio de descargas</string>
     <string name="logcat_cannot_create_operit_dir">no se pudo crear el directorio operit</string>
     <string name="logcat_file_create_failed">no se pudo crear el archivo o está vacío</string>

@@ -2279,6 +2279,18 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="logcat_description">Você pode exportar todos os logs internos durante a execução do aplicativo para um arquivo para depuração e análise de problemas.</string>
     <string name="logcat_save_to_file">Salvar registro em arquivo</string>
     <string name="logcat_clear_all">Limpar todos os registros</string>
+    <string name="logcat_export_filters_title">Export filters</string>
+    <string name="logcat_export_filters_subtitle">All filters are off by default and export the full log. They only affect the exported file.</string>
+    <string name="logcat_filter_exclude_debug">Exclude debug logs</string>
+    <string name="logcat_filter_exclude_debug_desc">Drop Verbose and Debug levels</string>
+    <string name="logcat_filter_exclude_system">Exclude system logs</string>
+    <string name="logcat_filter_exclude_system_desc">Drop noisy system tags such as WebView and OkHttp</string>
+    <string name="logcat_filter_error_context">Error context only</string>
+    <string name="logcat_filter_error_context_desc">Keep the last error and the 10% of records above it</string>
+    <string name="logcat_filter_hide_sensitive">Hide sensitive content</string>
+    <string name="logcat_filter_hide_sensitive_desc">Redact prompts and request-body dumps</string>
+    <string name="logcat_filter_strip_timestamp">Omit timestamps</string>
+    <string name="logcat_filter_strip_timestamp_desc">Remove timestamps from the exported file</string>
     <string name="stt_title">reconhecimento de fala</string>
     <string name="stt_start_recording">Comece a gravar</string>
     <string name="stt_stop_recording">Pare de gravar</string>
@@ -4678,6 +4690,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="uidebugger_element_info_package_name">Nome do pacote: %1$s</string>
     <string name="uidebugger_element_info_size_px">Tamanho: %1$d×%2$dpx</string>
     <string name="logcat_no_logs_to_save">Não há registros para salvar</string>
+    <string name="logcat_no_error_logs">No error logs to export</string>
     <string name="logcat_header">=== Log de operações ===</string>
     <string name="logcat_date">Data: %1$s</string>
     <string name="logcat_total_count">Número total de itens: %1$d</string>
@@ -4686,7 +4699,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="logcat_saved_to">Registro salvo em: %1$s</string>
     <string name="logcat_cannot_create_file">Falha ao salvar: não é possível criar o arquivo, possivelmente problema de permissão de armazenamento</string>
     <string name="logcat_cannot_open_output_stream">Não foi possível abrir o fluxo de saída</string>
-    <string name="logcat_mediestore_save_failed">Falha ao salvar no MediaStore: %1$s</string>
+    <string name="logcat_mediastore_save_failed">Falha ao salvar no MediaStore: %1$s</string>
     <string name="logcat_cannot_create_download_dir">Não foi possível criar o diretório de download</string>
     <string name="logcat_cannot_create_operit_dir">Não foi possível criar o diretório operacional</string>
     <string name="logcat_file_create_failed">A criação do arquivo falhou ou está vazia</string>

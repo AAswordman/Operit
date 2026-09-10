@@ -2290,6 +2290,18 @@
     <string name="logcat_description">Anda boleh mengeksport semua log dalaman semasa aplikasi berjalan ke dalam fail untuk penyahpepijatan dan analisis masalah.</string>
     <string name="logcat_save_to_file">Simpan Log ke Fail</string>
     <string name="logcat_clear_all">Kosongkan Semua Log</string>
+    <string name="logcat_export_filters_title">Export filters</string>
+    <string name="logcat_export_filters_subtitle">All filters are off by default and export the full log. They only affect the exported file.</string>
+    <string name="logcat_filter_exclude_debug">Exclude debug logs</string>
+    <string name="logcat_filter_exclude_debug_desc">Drop Verbose and Debug levels</string>
+    <string name="logcat_filter_exclude_system">Exclude system logs</string>
+    <string name="logcat_filter_exclude_system_desc">Drop noisy system tags such as WebView and OkHttp</string>
+    <string name="logcat_filter_error_context">Error context only</string>
+    <string name="logcat_filter_error_context_desc">Keep the last error and the 10% of records above it</string>
+    <string name="logcat_filter_hide_sensitive">Hide sensitive content</string>
+    <string name="logcat_filter_hide_sensitive_desc">Redact prompts and request-body dumps</string>
+    <string name="logcat_filter_strip_timestamp">Omit timestamps</string>
+    <string name="logcat_filter_strip_timestamp_desc">Remove timestamps from the exported file</string>
     <string name="stt_title">Pengecaman Suara</string>
     <string name="stt_start_recording">Mula Rakaman</string>
     <string name="stt_stop_recording">Hentikan Rakaman</string>
@@ -4980,6 +4992,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
 
     <string name="uidebugger_element_info_size_px">Saiz: %1$d×%2$dpx</string>
     <string name="logcat_no_logs_to_save">Tiada log untuk disimpan</string>
+    <string name="logcat_no_error_logs">No error logs to export</string>
     <string name="logcat_header">=== Log Operit ===</string>
     <string name="logcat_date">Tarikh: %1$s</string>
     <string name="logcat_total_count">Jumlah: %1$d</string>
@@ -4988,7 +5001,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="logcat_saved_to">Log telah disimpan ke: %1$s</string>
     <string name="logcat_cannot_create_file">Gagal menyimpan: Tidak dapat mencipta fail, mungkin masalah kebenaran storan</string>
     <string name="logcat_cannot_open_output_stream">Tidak dapat membuka aliran output</string>
-    <string name="logcat_mediestore_save_failed">MediaStore gagal menyimpan: %1$s</string>
+    <string name="logcat_mediastore_save_failed">MediaStore gagal menyimpan: %1$s</string>
     <string name="logcat_cannot_create_download_dir">Tidak dapat mencipta direktori muat turun</string>
     <string name="logcat_cannot_create_operit_dir">Tidak dapat mencipta direktori operit</string>
     <string name="logcat_file_create_failed">Penciptaan fail gagal atau kosong</string>
