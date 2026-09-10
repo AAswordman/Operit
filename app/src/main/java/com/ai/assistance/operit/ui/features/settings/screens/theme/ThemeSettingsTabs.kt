@@ -114,8 +114,11 @@ internal fun ThemeSettingsFooter(
     onShowSaveSuccessMessageChange: (Boolean) -> Unit,
     saveEnabled: Boolean,
     isSaving: Boolean,
+    showApplyToAll: Boolean,
+    applyToAllEnabled: Boolean,
     onSave: () -> Unit,
     onReset: () -> Unit,
+    onApplyToAllCharacterCards: () -> Unit,
 ) {
     Button(
         onClick = onSave,
@@ -129,6 +132,16 @@ internal fun ThemeSettingsFooter(
             )
         }
         Text(stringResource(id = R.string.save_action))
+    }
+
+    if (showApplyToAll) {
+        OutlinedButton(
+            onClick = onApplyToAllCharacterCards,
+            enabled = applyToAllEnabled,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        ) {
+            Text(stringResource(id = R.string.theme_apply_to_all_character_cards))
+        }
     }
 
     OutlinedButton(

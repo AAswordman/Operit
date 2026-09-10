@@ -750,6 +750,12 @@
     <string name="theme_select_image">选择图片</string>
     <string name="theme_bg_opacity">背景不透明度: %1$d%%</string>
     <string name="theme_reset">重置为默认主题</string>
+    <string name="theme_apply_to_all_character_cards">应用到全部角色卡</string>
+    <string name="theme_apply_to_all_character_cards_title">应用到全部角色卡？</string>
+    <string name="theme_apply_to_all_character_cards_message">当前选项会覆盖所有角色卡，且不可撤销，是否继续？</string>
+    <string name="theme_apply_to_all_character_cards_confirm">继续</string>
+    <string name="theme_applied_to_all_character_cards">已应用到全部角色卡</string>
+    <string name="theme_apply_to_all_character_cards_failed">应用到全部角色卡失败</string>
     <string name="theme_saved">设置已保存</string>
     <string name="theme_select_target">选择主题对象</string>
     <string name="theme_unsaved_title">保存主题修改？</string>

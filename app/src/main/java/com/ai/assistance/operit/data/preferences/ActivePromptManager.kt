@@ -104,6 +104,21 @@ class ActivePromptManager private constructor(context: Context) {
         }
     }
 
+    suspend fun applyVisualThemeToAllCharacterCards(values: ThemePreferenceValues) {
+        themeOperations.runTransition {
+            val characterCardIds = characterCardManager.getAllCharacterCards()
+                .map { it.id }
+                .toMutableList()
+            if (characterCardIds.none { it == CharacterCardManager.DEFAULT_CHARACTER_CARD_ID }) {
+                characterCardIds.add(0, CharacterCardManager.DEFAULT_CHARACTER_CARD_ID)
+            }
+            userPreferencesManager.applyVisualThemeToCharacterCards(
+                values = values,
+                characterCardIds = characterCardIds,
+            )
+        }
+    }
+
     suspend fun saveAiAvatarForPrompt(target: ActivePrompt, avatarUri: String?) {
         themeOperations.runTransition {
             when (target) {
