@@ -376,28 +376,28 @@ object AIMessageManager {
         lastActiveChatKey = chatKey
         activeEnhancedAiServiceByChatId[chatKey] = enhancedAiService
 
-        val buildMemoryStartTime = messageTimingNow()
-        val memory = getMemoryFromMessages(
-            messages = chatHistory,
-            splitByRole = splitHistoryByRole,
-            targetRoleName = currentRoleName,
-            groupOrchestrationMode = groupOrchestrationMode
-        )
-        logMessageTiming(
-            stage = "sendMessage.buildMemory",
-            startTimeMs = buildMemoryStartTime,
-            details = "chatKey=$chatKey, source=${chatHistory.size}, result=${memory.size}, splitByRole=$splitHistoryByRole, groupOrchestration=$groupOrchestrationMode"
-        )
-        if (splitHistoryByRole && !currentRoleName.isNullOrBlank()) {
-            val assistantCount = memory.count { it.kind == PromptTurnKind.ASSISTANT }
-            val userCount = memory.count { it.kind == PromptTurnKind.USER }
-            AppLogger.d(
-                TAG,
-                "按角色拆解历史: role=$currentRoleName, assistant=$assistantCount, user=$userCount, total=${memory.size}"
-            )
-        }
-
         return withContext(Dispatchers.IO) {
+            val buildMemoryStartTime = messageTimingNow()
+            val memory = getMemoryFromMessages(
+                messages = chatHistory,
+                splitByRole = splitHistoryByRole,
+                targetRoleName = currentRoleName,
+                groupOrchestrationMode = groupOrchestrationMode
+            )
+            logMessageTiming(
+                stage = "sendMessage.buildMemory",
+                startTimeMs = buildMemoryStartTime,
+                details = "chatKey=$chatKey, source=${chatHistory.size}, result=${memory.size}, splitByRole=$splitHistoryByRole, groupOrchestration=$groupOrchestrationMode"
+            )
+            if (splitHistoryByRole && !currentRoleName.isNullOrBlank()) {
+                val assistantCount = memory.count { it.kind == PromptTurnKind.ASSISTANT }
+                val userCount = memory.count { it.kind == PromptTurnKind.USER }
+                AppLogger.d(
+                    TAG,
+                    "按角色拆解历史: role=$currentRoleName, assistant=$assistantCount, user=$userCount, total=${memory.size}"
+                )
+            }
+
             val limitHistoryStartTime = messageTimingNow()
             val maxImageHistoryUserTurns = apiPreferences.maxImageHistoryUserTurnsFlow.first()
             val maxMediaHistoryUserTurns = apiPreferences.maxMediaHistoryUserTurnsFlow.first()
@@ -702,7 +702,7 @@ object AIMessageManager {
             return null
         }
 
-        val memoryTagRegex = Regex("<memory>.*?</memory>", RegexOption.DOT_MATCHES_ALL)
+        val memoryTagRegex = ChatMarkupRegex.memoryTag
         val conversationReviewEntries = mutableListOf<Pair<String, String>>()
         fun normalizeForReview(text: String): String {
             return text
@@ -1393,11 +1393,7 @@ object AIMessageManager {
         targetRoleName: String,
         removeStatusTags: (String) -> String
     ): PromptTurn? {
-        // 清理思考内容
-        val cleanedContent = ChatUtils.removeThinkingContent(message.content).trim()
-        val contentWithoutStatus = removeStatusTags(cleanedContent)
-
-        // 非角色隔离模式：直接返回 assistant 消息
+        // 非角色隔离模式和当前角色消息无需清洗；只有跨角色桥接才需要移除思考内容。
         if (!isRoleScopedMode) {
             return PromptTurn(
                 kind = PromptTurnKind.ASSISTANT,
@@ -1407,25 +1403,24 @@ object AIMessageManager {
 
         // 角色隔离模式：判断是当前角色还是其他角色
         val messageRoleName = message.roleName.trim()
-        return if (messageRoleName == targetRoleName) {
-            // 当前角色的消息：作为 assistant 返回
-            PromptTurn(
+        if (messageRoleName == targetRoleName) {
+            return PromptTurn(
                 kind = PromptTurnKind.ASSISTANT,
                 content = message.content
             )
-        } else {
-            // 其他角色的消息：转换为 user 消息，添加角色标签
-            val roleLabel = if (messageRoleName.isNotBlank()) messageRoleName else "unknown"
-            val bridgedContent = removeStatusTags(cleanedContent)
-            if (bridgedContent.isBlank()) {
-                null
-            } else {
-                PromptTurn(
-                    kind = PromptTurnKind.USER,
-                    content = "[From role: $roleLabel]\n$bridgedContent"
-                )
-            }
         }
+
+        val cleanedContent = ChatUtils.removeThinkingContent(message.content).trim()
+        val bridgedContent = removeStatusTags(cleanedContent)
+        // 其他角色的消息：转换为 user 消息，添加角色标签
+        val roleLabel = if (messageRoleName.isNotBlank()) messageRoleName else "unknown"
+        if (bridgedContent.isBlank()) {
+            return null
+        }
+        return PromptTurn(
+            kind = PromptTurnKind.USER,
+            content = "[From role: $roleLabel]\n$bridgedContent"
+        )
     }
 
     private fun processUserMessage(

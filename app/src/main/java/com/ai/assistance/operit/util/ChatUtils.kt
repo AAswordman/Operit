@@ -5,6 +5,17 @@ import com.ai.assistance.operit.core.chat.hooks.withContent
 
 /** Utility functions for chat message handling */
 object ChatUtils {
+    private val cachedThinkPattern =
+        ("<" + "think(?:ing)?>.*?(?:<" + "/think(?:ing)?>|\\z)")
+            .toRegex(RegexOption.DOT_MATCHES_ALL)
+    private val cachedSearchPattern =
+        ("<" + "search\\b[\\s\\S]*?(?:<" + "/search>|\\z)")
+            .toRegex(setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+    private val cachedThinkCapturePattern =
+        ("<" + "think(?:ing)?>([\\s\\S]*?)<" + "/think(?:ing)?>")
+            .toRegex(RegexOption.DOT_MATCHES_ALL)
+
+
     fun stripGeminiThoughtSignatureMeta(content: String): String {
         return ChatMarkupRegex.removeGeminiThoughtSignatureMeta(content)
     }
@@ -57,19 +68,7 @@ object ChatUtils {
 
     /** 过滤掉内容中的思考部分和搜索来源 移除<think></think>、<thinking></thinking>和<search></search>标签及其中的内容，并处理未闭合的情况 */
     fun removeThinkingContent(content: String): String {
-        // 使用正则表达式匹配<think>、<thinking>和<search>标签及其内容
-        // 这个正则表达式会匹配以下情况：
-        // 1. <think>...</think> (正常闭合的标签)
-        // 2. <think>... (未闭合，直到字符串末尾)
-        // 3. <thinking>...</thinking> (正常闭合的标签)
-        // 4. <thinking>... (未闭合，直到字符串末尾)
-        // 5. <search>...</search> (正常闭合的标签)
-        // 6. <search>... (未闭合，直到字符串末尾)
-        // \\z 匹配字符串的绝对末尾
-        val thinkPattern = "<think(?:ing)?>.*?(</think(?:ing)?>|\\z)".toRegex(RegexOption.DOT_MATCHES_ALL)
-        val searchPattern = "<search\\b[\\s\\S]*?(</search>|\\z)"
-            .toRegex(setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
-        return content.replace(thinkPattern, "").replace(searchPattern, "").trim()
+        return content.replace(cachedThinkPattern, "").replace(cachedSearchPattern, "").trim()
     }
 
     /**
@@ -78,22 +77,17 @@ object ChatUtils {
      * @return Pair(移除think标签后的内容, think标签内的内容)
      */
     fun extractThinkingContent(content: String): Pair<String, String> {
-        val thinkPattern = "<think(?:ing)?>([\\s\\S]*?)</think(?:ing)?>".toRegex(RegexOption.DOT_MATCHES_ALL)
-        val thinkMatches = thinkPattern.findAll(content)
-        
+        val thinkMatches = cachedThinkCapturePattern.findAll(content)
+
         // 收集所有think标签内的内容
         val thinkingContent = thinkMatches.joinToString("\n") { it.groupValues[1].trim() }
-        
+
         // 移除think标签和search标签
         val contentWithoutThink = content
-            .replace(thinkPattern, "")
-            .replace(
-                "<search\\b[\\s\\S]*?(</search>|\\z)"
-                    .toRegex(setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)),
-                ""
-            )
+            .replace(cachedThinkCapturePattern, "")
+            .replace(cachedSearchPattern, "")
             .trim()
-        
+
         return Pair(contentWithoutThink, thinkingContent)
     }
 

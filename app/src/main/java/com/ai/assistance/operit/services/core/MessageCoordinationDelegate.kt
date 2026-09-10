@@ -46,7 +46,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
@@ -121,6 +120,7 @@ class MessageCoordinationDelegate(
 
     private val pendingAutoContinuationByChatId =
         ConcurrentHashMap<String, PendingAutoContinuationRequest>()
+    private val stableWindowRefreshJobsByChatId = ConcurrentHashMap<String, Job>()
 
     init {
         ensureNonFatalErrorCollectorStarted()
@@ -270,9 +270,9 @@ class MessageCoordinationDelegate(
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
         memorySpaceIdOverride: String? = null
-    ): Long? {
-        val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return null
-        val service = resolveWindowEstimateService(targetChatId) ?: return null
+    ): Long? = withContext(Dispatchers.IO) {
+        val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return@withContext null
+        val service = resolveWindowEstimateService(targetChatId) ?: return@withContext null
         val effectiveRoleCardId = resolveRoleCardId(targetChatId, roleCardId)
         val effectivePromptFunctionType = promptFunctionType ?: currentPromptFunctionType
         val effectiveChatModelConfigIdOverride =
@@ -317,7 +317,43 @@ class MessageCoordinationDelegate(
                 "input=$inputTokens, output=$outputTokens, service=${service.javaClass.simpleName}, " +
                 "promptType=$effectivePromptFunctionType"
         )
-        return newWindowSize
+        newWindowSize
+    }
+
+    fun scheduleStableContextWindowRefresh(
+        chatId: String? = null,
+        roleCardId: String? = null,
+        promptFunctionType: PromptFunctionType? = null,
+        groupOrchestrationMode: Boolean = false,
+        groupParticipantNamesText: String? = null,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null,
+        memorySpaceIdOverride: String? = null
+    ): Job? {
+        val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return null
+        val refreshJob = coroutineScope.launch(Dispatchers.IO) {
+            try {
+                refreshStableContextWindow(
+                    chatId = targetChatId,
+                    roleCardId = roleCardId,
+                    promptFunctionType = promptFunctionType,
+                    groupOrchestrationMode = groupOrchestrationMode,
+                    groupParticipantNamesText = groupParticipantNamesText,
+                    chatModelConfigIdOverride = chatModelConfigIdOverride,
+                    chatModelIndexOverride = chatModelIndexOverride,
+                    memorySpaceIdOverride = memorySpaceIdOverride
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "异步刷新上下文窗口失败: chatId=$targetChatId", e)
+            }
+        }
+        stableWindowRefreshJobsByChatId.put(targetChatId, refreshJob)?.cancel()
+        refreshJob.invokeOnCompletion {
+            stableWindowRefreshJobsByChatId.remove(targetChatId, refreshJob)
+        }
+        return refreshJob
     }
 
     /**
@@ -376,18 +412,20 @@ class MessageCoordinationDelegate(
                 )
             }
         } else {
-            // 已有对话，直接发送消息
-            sendMessageInternal(
-                promptFunctionType,
-                roleCardIdOverride = roleCardIdOverride,
-                preferActiveRoleCard = preferActiveRoleCard,
-                chatIdOverride = chatIdOverride,
-                messageTextOverride = messageTextOverride,
-                proxySenderNameOverride = proxySenderNameOverride,
-                chatModelConfigIdOverride = chatModelConfigIdOverride,
-                chatModelIndexOverride = chatModelIndexOverride,
-                turnOptions = turnOptions
-            )
+            // 已有对话，异步进入发送流程；内部的配置和历史读取会切到 IO
+            coroutineScope.launch {
+                sendMessageInternal(
+                    promptFunctionType,
+                    roleCardIdOverride = roleCardIdOverride,
+                    preferActiveRoleCard = preferActiveRoleCard,
+                    chatIdOverride = chatIdOverride,
+                    messageTextOverride = messageTextOverride,
+                    proxySenderNameOverride = proxySenderNameOverride,
+                    chatModelConfigIdOverride = chatModelConfigIdOverride,
+                    chatModelIndexOverride = chatModelIndexOverride,
+                    turnOptions = turnOptions
+                )
+            }
         }
     }
 
@@ -515,7 +553,7 @@ class MessageCoordinationDelegate(
     /**
      * 内部发送消息的逻辑
      */
-    private fun sendMessageInternal(
+    private suspend fun sendMessageInternal(
         promptFunctionType: PromptFunctionType,
         isContinuation: Boolean = false,
         skipSummaryCheck: Boolean = false,
@@ -613,7 +651,7 @@ class MessageCoordinationDelegate(
         val currentAttachments =
             if (shouldReadComposerState) attachmentDelegate.attachments.value else emptyList()
         // 手动发送必须与选择器一致；后台和定向消息仍由窗口绑定决定角色卡。
-        val roleCardId = runBlocking {
+        val roleCardId = withContext(Dispatchers.IO) {
             resolveRoleCardId(
                 chatId = chatId,
                 roleCardId = roleCardIdOverride,
@@ -621,32 +659,34 @@ class MessageCoordinationDelegate(
             )
         }
         val resolvedOverrides = try {
-            if (promptFunctionType == PromptFunctionType.CHAT) {
-                val (resolvedChatModelConfigIdOverride, resolvedChatModelIndexOverride) =
-                    when {
-                        !chatModelConfigIdOverride.isNullOrBlank() -> {
-                            Pair(chatModelConfigIdOverride, (chatModelIndexOverride ?: 0).coerceAtLeast(0))
+            withContext(Dispatchers.IO) {
+                if (promptFunctionType == PromptFunctionType.CHAT) {
+                    val (resolvedChatModelConfigIdOverride, resolvedChatModelIndexOverride) =
+                        when {
+                            !chatModelConfigIdOverride.isNullOrBlank() -> {
+                                Pair(chatModelConfigIdOverride, (chatModelIndexOverride ?: 0).coerceAtLeast(0))
+                            }
+                            isAutoContinuation -> {
+                                Pair(currentChatModelConfigIdOverride, currentChatModelIndexOverride)
+                            }
+                            else -> {
+                                resolveRoleCardChatModelOverrides(roleCardId)
+                            }
                         }
-                        isAutoContinuation -> {
-                            Pair(currentChatModelConfigIdOverride, currentChatModelIndexOverride)
+                    val resolvedMemorySpaceIdOverride =
+                        when {
+                            !memorySpaceIdOverride.isNullOrBlank() -> memorySpaceIdOverride
+                            isAutoContinuation -> currentMemorySpaceIdOverride
+                            else -> roleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
                         }
-                        else -> {
-                            resolveRoleCardChatModelOverrides(roleCardId)
-                        }
-                    }
-                val resolvedMemorySpaceIdOverride =
-                    when {
-                        !memorySpaceIdOverride.isNullOrBlank() -> memorySpaceIdOverride
-                        isAutoContinuation -> currentMemorySpaceIdOverride
-                        else -> roleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
-                    }
-                Triple(
-                    resolvedChatModelConfigIdOverride,
-                    resolvedChatModelIndexOverride,
-                    resolvedMemorySpaceIdOverride
-                )
-            } else {
-                Triple(null, null, null)
+                    Triple(
+                        resolvedChatModelConfigIdOverride,
+                        resolvedChatModelIndexOverride,
+                        resolvedMemorySpaceIdOverride
+                    )
+                } else {
+                    Triple(null, null, null)
+                }
             }
         } catch (e: Exception) {
             AppLogger.e(TAG, "解析角色卡对话模型绑定失败", e)
@@ -659,7 +699,7 @@ class MessageCoordinationDelegate(
         val resolvedChatModelIndexOverride = resolvedOverrides.second
         val resolvedMemorySpaceIdOverride = resolvedOverrides.third
         val chatContextSettings =
-            runBlocking {
+            withContext(Dispatchers.IO) {
                 resolveChatContextSettingsForRequest(resolvedChatModelConfigIdOverride)
             }
 
@@ -679,7 +719,10 @@ class MessageCoordinationDelegate(
 
         // 如果不是续写，检查是否需要总结
         if (turnOptions.persistTurn && !isBackgroundSend && !isContinuation && !skipSummaryCheck) {
-            val currentMessages = runBlocking { chatHistoryDelegate.getCurrentRuntimeChatHistorySnapshot() }
+            val currentMessages =
+                withContext(Dispatchers.IO) {
+                    chatHistoryDelegate.getCurrentRuntimeChatHistorySnapshot()
+                }
             val currentTokens = tokenStatsDelegate.currentWindowSizeFlow.value
 
             val isShouldGenerateSummary = AIMessageManager.shouldGenerateSummary(
@@ -760,7 +803,7 @@ class MessageCoordinationDelegate(
         }
     }
 
-    private fun shouldRunGroupOrchestration(
+    private suspend fun shouldRunGroupOrchestration(
         promptFunctionType: PromptFunctionType,
         isContinuation: Boolean,
         isAutoContinuation: Boolean,
@@ -776,7 +819,7 @@ class MessageCoordinationDelegate(
         if (!proxySenderNameOverride.isNullOrBlank()) return false
         if (!messageTextOverride.isNullOrBlank()) return false
         if (!chatIdOverride.isNullOrBlank()) return false
-        val activePrompt = runBlocking { activePromptManager.getActivePrompt() }
+        val activePrompt = withContext(Dispatchers.IO) { activePromptManager.getActivePrompt() }
         if (activePrompt !is ActivePrompt.CharacterGroup) return false
         return true
     }
@@ -1409,8 +1452,8 @@ class MessageCoordinationDelegate(
         }
     }
 
-    private fun resolveRoleCardChatModelOverrides(roleCardId: String): Pair<String?, Int?> {
-        val roleCard = runBlocking { characterCardManager.getCharacterCardFlow(roleCardId).first() }
+    private suspend fun resolveRoleCardChatModelOverrides(roleCardId: String): Pair<String?, Int?> {
+        val roleCard = characterCardManager.getCharacterCardFlow(roleCardId).first()
         val bindingMode = CharacterCardChatModelBindingMode.normalize(roleCard.chatModelBindingMode)
         return if (
             bindingMode == CharacterCardChatModelBindingMode.FIXED_CONFIG &&
@@ -1422,8 +1465,8 @@ class MessageCoordinationDelegate(
         }
     }
 
-    private fun resolveRoleCardMemoryProfileOverride(roleCardId: String): String? {
-        val roleCard = runBlocking { characterCardManager.getCharacterCardFlow(roleCardId).first() }
+    private suspend fun resolveRoleCardMemoryProfileOverride(roleCardId: String): String? {
+        val roleCard = characterCardManager.getCharacterCardFlow(roleCardId).first()
         val bindingMode =
             CharacterCardMemoryProfileBindingMode.normalize(roleCard.memoryProfileBindingMode)
         return if (
