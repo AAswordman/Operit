@@ -33,7 +33,7 @@ DeepSeek Responses 当前不声明 `include`。兼容表没有列出 `include` �
 
 Responses 流以 `response.completed`、`response.incomplete` 或 `response.failed` 结束。`completed` 和 `incomplete` 都是服务器确认的终止事件；`failed` 按响应错误处理。连接在收到终止事件前结束仍视为网络中断。
 
-`response.reasoning_text.delta` 和 `response.reasoning_summary_text.delta` 到达时立即输出 reasoning。DeepSeek Responses 的 `message.phase` 可能到 `response.output_item.done` 才稳定，因此 DeepSeek 子 provider 按 output item 缓冲 `response.output_text.delta`：`phase=commentary` 输出到 `<think>`，最终回答再输出正文。`response.reasoning_text.done` 只在事件携带完整文本且该文本尚未通过 delta 输出时处理，`response.output_item.done` 只补充 reasoning item 自带的 `content[].reasoning_text`。终止事件不补写 reasoning 或正文，避免答案完成后才追加思考。
+`response.reasoning_text.delta` 和 `response.reasoning_summary_text.delta` 到达时立即输出 reasoning。DeepSeek 子 provider 在 `response.output_item.added` 记录 message item：`phase=commentary` 的 `output_text.delta` 只写入隐藏 metadata，不进入界面；非 commentary 的正文 delta 立即输出。`response.output_item.done` 只对尚未实时输出的缓冲正文补发一次，避免把已经流式发出的最终回答再整段重放。可见思考只来自 `reasoning` item。`response.reasoning_text.done` 只在事件携带完整文本且该文本尚未通过 delta 输出时处理，`response.output_item.done` 只补充 reasoning item 自带的 `content[].reasoning_text`。终止事件不补写 reasoning 或正文，避免答案完成后才追加思考。
 
 ## 搜索展示
 
@@ -51,7 +51,9 @@ provider 从 `web_search_call.action.queries` 生成 `<query>` 子节点；从 `
 
 `call_id` 从 Responses 输出进入内部工具调用标记，经过并行执行后写入对应的工具结果标记。下一轮按该 ID 绑定调用与结果，不依赖并行任务的完成顺序。旧聊天记录没有 `call_id` 时仍按已发布版本的位置关系读取。
 
-思考模式下发生客户端函数调用时，DeepSeek 返回的纯文本 `reasoning` item 也属于后续请求必须携带的无状态历史。该 item 使用现有 Responses reasoning 隐藏 metadata 保存，并在下一轮 input 中恢复到对应的 assistant message 与 `function_call` 之前。纯文本 `content` 必须保留原始 `reasoning_text` 和 item ID；OpenAI Responses 的加密 reasoning item 继续使用既有 `encrypted_content` 格式。
+思考模式下发生客户端函数调用时，DeepSeek 返回的纯文本 `reasoning` item 与 `message.phase=commentary` 都属于后续请求必须携带的无状态历史。`reasoning` item 使用 Responses reasoning 隐藏 metadata 保存，并在下一轮 input 中恢复到对应的 assistant message 与 `function_call` 之前；它同时是用户可见的 `<think>` 来源。`commentary` message 使用 Responses output item 隐藏 metadata 保存，界面不渲染这段文本；回放到 input 时改写成带 `reasoning_text` 的 `reasoning` item。思考模式里 `function_call` 前面必须是 `reasoning_text`，把 commentary 原样写成 `output_text` 消息会返回 400。纯文本 `reasoning` content 必须保留原始 `reasoning_text` 和 item ID；OpenAI Responses 的加密 reasoning item 继续使用既有 `encrypted_content` 格式。
+
+`reasoning_text` 的保存与恢复由 `DeepseekResponsesProvider` 和 `DeepseekResponsesPayloadAdapter` 负责。通用 OpenAI Responses adapter 只维护 OpenAI Responses 的加密 reasoning 历史格式。
 
 ## 当前边界
 

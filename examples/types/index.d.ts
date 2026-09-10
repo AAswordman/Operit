@@ -74,6 +74,7 @@ import {
     FunctionModelConfigsResultData as _FunctionModelConfigsResultData,
     FunctionModelConfigResultData as _FunctionModelConfigResultData,
     FunctionModelBindingResultData as _FunctionModelBindingResultData,
+    ModelConfigConnectionTestOutcome as _ModelConfigConnectionTestOutcome,
     ModelConfigConnectionTestItemResultData as _ModelConfigConnectionTestItemResultData,
     ModelConfigConnectionTestResultData as _ModelConfigConnectionTestResultData,
     ChatCallResultData as _ChatCallResultData
@@ -229,6 +230,7 @@ declare global {
     type FunctionModelConfigsResultData = _FunctionModelConfigsResultData;
     type FunctionModelConfigResultData = _FunctionModelConfigResultData;
     type FunctionModelBindingResultData = _FunctionModelBindingResultData;
+    type ModelConfigConnectionTestOutcome = _ModelConfigConnectionTestOutcome;
     type ModelConfigConnectionTestItemResultData = _ModelConfigConnectionTestItemResultData;
     type ModelConfigConnectionTestResultData = _ModelConfigConnectionTestResultData;
     type ChatCallResultData = _ChatCallResultData;

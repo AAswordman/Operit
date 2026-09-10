@@ -122,11 +122,20 @@ object WaifuMessageProcessor {
 
                 MarkdownProcessorType.CODE_BLOCK,
                 MarkdownProcessorType.TABLE,
-                MarkdownProcessorType.BLOCK_LATEX,
                 MarkdownProcessorType.IMAGE -> {
                     val blockBuilder = StringBuilder()
                     blockGroup.stream.collect { blockBuilder.append(it) }
                     appendRenderableText(blockBuilder.toString())
+                }
+
+                MarkdownProcessorType.BLOCK_LATEX -> {
+                    val blockBuilder = StringBuilder()
+                    blockGroup.stream.collect { blockBuilder.append(it) }
+                    // The `$$…$$` block plugin strips its delimiters; the paren/bracket variant
+                    // keeps them. Re-attach `$$` when missing so the accumulated buffer still
+                    // parses as BLOCK_LATEX on the second pass and the chat bubble renderer
+                    // recognizes the segment as a LaTeX block.
+                    appendRenderableText(ensureBlockLatexDelimiters(blockBuilder.toString()))
                 }
 
                 else -> {
@@ -138,6 +147,36 @@ object WaifuMessageProcessor {
         }
 
         session.collectFinalSegments(renderableBuffer.toString()).forEach { emit(it) }
+    }
+
+    /**
+     * Ensure a BLOCK_LATEX body carries a recognized block delimiter pair.
+     *
+     * `StreamMarkdownBlockLaTeXPlugin` strips the `$$…$$` delimiters from its output while
+     * `StreamMarkdownBlockBracketLaTeXPlugin` keeps `\[…\]`. In Waifu mode the block content
+     * is flattened back into a raw string buffer that is later re-parsed by the same block
+     * splitter and, ultimately, rendered by `StreamMarkdownRenderer`. Without delimiters the
+     * body is indistinguishable from plain text and the LaTeX renderer never fires. This
+     * helper re-attaches `$$` around the body when neither `$$…$$` nor `\[…\]` is present.
+     * Leading and trailing whitespace are preserved so the block still nests correctly inside
+     * the surrounding buffer.
+     */
+    internal fun ensureBlockLatexDelimiters(rawContent: String): String {
+        if (rawContent.isEmpty()) return rawContent
+        val start = rawContent.indexOfFirst { !it.isWhitespace() }
+        if (start < 0) return rawContent
+        val end = rawContent.indexOfLast { !it.isWhitespace() } + 1
+        val body = rawContent.substring(start, end)
+        val hasBracketDelims = body.length >= 4 && body.startsWith("\\[") && body.endsWith("\\]")
+        val hasDollarDelims = body.length >= 4 && body.startsWith("$$") && body.endsWith("$$")
+        if (hasBracketDelims || hasDollarDelims) {
+            return rawContent
+        }
+        // A lone delimiter marker has no interior to wrap; leave it untouched.
+        if (body == "$$" || body == "\\[" || body == "\\]") {
+            return rawContent
+        }
+        return rawContent.substring(0, start) + "$$" + body + "$$" + rawContent.substring(end)
     }
 
     internal fun calculateTypingDelayMs(
@@ -842,13 +881,23 @@ object WaifuMessageProcessor {
                     val isProtected =
                         when (blockType) {
                             MarkdownProcessorType.CODE_BLOCK,
-                            MarkdownProcessorType.TABLE -> true
+                            MarkdownProcessorType.TABLE,
+                            MarkdownProcessorType.BLOCK_LATEX -> true
                             else -> false
+                        }
+
+                    // BLOCK_LATEX from `$$…$$` reaches us stripped of delimiters. Re-attach
+                    // them so the emitted segment renders as LaTeX in the chat bubble.
+                    val normalizedBlock =
+                        if (blockType == MarkdownProcessorType.BLOCK_LATEX) {
+                            ensureBlockLatexDelimiters(block)
+                        } else {
+                            block
                         }
 
                     segments.add(
                         Segment(
-                            content = block,
+                            content = normalizedBlock,
                             isProtected = isProtected,
                             blockType = blockType,
                         )

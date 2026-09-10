@@ -213,7 +213,8 @@
     <string name="preference_lock_desc">Una vez bloqueado, no podrá modificar la información de preferencias de usuario</string>
 
     <!-- Package Manager Screen -->
-    <string name="packages">Gestión de paquetes</string>
+    <string name="packages">Scripts</string>
+    <string name="package_tab_skills">Skill</string>
     <string name="package_manager">Gestor de paquetes</string>
     <string name="available_packages">Paquetes disponibles</string>
     <string name="imported_packages">Paquetes importados</string>
@@ -1222,9 +1223,9 @@
     <string name="close">Cerrar</string>
     
     <!-- API Provider names -->
-    <string name="provider_openai">OpenAI (Serie GPT)</string>
+    <string name="provider_openai">ChatGPT API</string>
     <string name="provider_xai">SpaceXAI (Grok)</string>
-    <string name="provider_openai_responses">OpenAI (API Responses)</string>
+    <string name="provider_openai_responses">ChatGPT Responses API</string>
     <string name="provider_openai_responses_generic">OpenAI Responses (Genérico)</string>
     <string name="provider_openai_generic">OpenAI genérico</string>
     <string name="provider_anthropic">Anthropic (Serie Claude)</string>
@@ -2064,6 +2065,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">Caché</string>
+    <string name="message_info_token_hit_rate_short">Tasa de aciertos</string>
     <string name="message_info_unavailable">No registrado</string>
     <string name="webview_ssl_cert_error">Error de certificado SSL</string>
     <string name="webview_ssl_error_untrusted">La entidad emisora del certificado no es de confianza</string>
@@ -3280,6 +3282,15 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="test_item_image">Imagen</string>
     <string name="test_item_audio">Audio</string>
     <string name="test_item_video">Video</string>
+    <string name="test_media_image_understood">Este modelo puede entender imágenes</string>
+    <string name="test_media_audio_understood">Este modelo puede entender audio</string>
+    <string name="test_media_video_understood">Este modelo puede entender video</string>
+    <string name="test_media_image_unverified">La solicitud de imagen se conectó, pero no se pudo verificar la comprensión</string>
+    <string name="test_media_audio_unverified">La solicitud de audio se conectó, pero no se pudo verificar la comprensión</string>
+    <string name="test_media_video_unverified">La solicitud de video se conectó, pero no se pudo verificar la comprensión</string>
+    <string name="test_media_unverified">Conectado, pero no verificado</string>
+    <string name="test_result_expand">Expandir</string>
+    <string name="test_result_collapse">Contraer</string>
     <string name="functional_config_warning_image_unsupported">Advertencia: el modelo seleccionado actualmente no tiene habilitada la opción "Soporte de reconocimiento de imágenes". Es posible que el reconocimiento de imágenes no esté disponible. Cambie a un modelo que admita visión y active "El modelo admite reconocimiento de imágenes".</string>
     <string name="functional_config_warning_audio_unsupported">Advertencia: el modelo seleccionado actualmente no tiene habilitada la opción "Soporte de análisis de audio". Es posible que el reconocimiento/transcripción de audio no esté disponible. Cambie a un modelo que admita entrada/transcripción de audio y active "El modelo admite análisis de audio".</string>
     <string name="functional_config_warning_video_unsupported">Advertencia: el modelo seleccionado actualmente no tiene habilitada la opción "Soporte de análisis de video". Es posible que la comprensión de video no esté disponible. Cambie a un modelo que admita entrada de video/imagen y active "El modelo admite análisis de video".</string>
@@ -4846,8 +4857,11 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
 
     <string name="show_message_timing_stats">Mostrar estadísticas de tiempo de mensajes</string>
     <string name="show_message_timing_stats_description">Mostrar el tiempo del primer paquete y el tiempo de generación en la parte inferior de los mensajes de IA</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (caché: %2$d) ↓ %4$d</string>
+    <string name="show_message_token_speed">Mostrar velocidad de generación de tokens del mensaje</string>
+    <string name="show_message_token_speed_description">Mostrar la velocidad de generación de tokens de salida debajo de los mensajes de IA (t/s)</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (caché: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">tiempo: %1$s (primer %2$s generar %3$s)</string>
+    <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="global_user_name">Nombre de usuario global</string>
     <string name="system_display_settings">Configuración de pantalla del sistema</string>
     <string name="show_fps_counter_description">Mostrar métricas de rendimiento de FPS en la pantalla</string>
@@ -7413,6 +7427,16 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
 
     <string name="settings_summary_custom_rules">Reglas personalizadas de resumen</string>
     <string name="settings_summary_custom_rules_desc">Reglas adicionales enviadas al resumir la conversación. Déjelo en blanco para no agregar ninguna.</string>
+    <string name="settings_summary_structure">Estructura del resumen</string>
+    <string name="settings_summary_section_enabled_desc">Desactívalo para omitir esta sección de los resúmenes generados</string>
+    <string name="settings_summary_section_title">Título de la sección</string>
+    <string name="settings_summary_section_title_desc">Título mostrado en el resumen</string>
+    <string name="settings_summary_section_instruction">Instrucciones de la sección</string>
+    <string name="settings_summary_section_instruction_desc">Describe qué debe registrar esta sección</string>
+    <string name="settings_summary_dialogue_review">Revisión de la conversación</string>
+    <string name="settings_summary_dialogue_review_desc">Añade al final del resumen un registro generado por el programa de usuarios, asistentes y llamadas a herramientas</string>
+    <string name="settings_summary_dialogue_review_title">Título de la revisión</string>
+    <string name="settings_summary_dialogue_review_title_desc">Título mostrado al final del resumen. Déjalo vacío para usar el predeterminado</string>
     <string name="title_activity_data_recovery">Recuperación de datos</string>
     <string name="shortcut_data_recovery">Recuperación de datos</string>
     <string name="memory_space_select">Seleccionar espacio de memoria</string>
@@ -7430,7 +7454,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="market_tab_categories">Categorías</string>
     <string name="market_category_type_all">Todo</string>
     <string name="market_category_type_script">Script</string>
-    <string name="market_category_type_package">Paquete de herramientas</string>
+    <string name="market_category_type_package">Complemento</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Búsqueda e investigación</string>
@@ -7504,17 +7528,17 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Activo de Release</string>
     <string name="markdown_link_not_openable">Este enlace apunta a una referencia dentro del documento y no se puede abrir</string>
-    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
-    <string name="onboarding_config_codex_login_required">Inicia sesión primero en OpenAI Codex</string>
-    <string name="codex_login_title">Iniciar sesión en OpenAI Codex</string>
+    <string name="provider_openai_codex">Codex</string>
+    <string name="onboarding_config_codex_login_required">Inicia sesión primero en Codex</string>
+    <string name="codex_login_title">Iniciar sesión en Codex</string>
     <string name="codex_login_starting">Preparando el inicio de sesión de Codex...</string>
     <string name="codex_login_waiting">Completa el inicio de sesión en el navegador</string>
     <string name="codex_login_action">Iniciar sesión con ChatGPT</string>
-    <string name="codex_login_success">Inicio de sesión de OpenAI Codex correcto</string>
-    <string name="codex_login_failed">Error al iniciar sesión en OpenAI Codex: %1$s</string>
+    <string name="codex_login_success">Inicio de sesión de Codex correcto</string>
+    <string name="codex_login_failed">Error al iniciar sesión en Codex: %1$s</string>
     <string name="codex_logout_action">Cerrar sesión de Codex</string>
-    <string name="codex_logout_success">Sesión de OpenAI Codex cerrada</string>
-    <string name="codex_auth_title">Cuenta de OpenAI Codex</string>
+    <string name="codex_logout_success">Sesión de Codex cerrada</string>
+    <string name="codex_auth_title">Cuenta de Codex</string>
     <string name="codex_auth_not_logged_in">Inicia sesión con ChatGPT para usar el acceso de suscripción de Codex</string>
     <string name="codex_auth_account">Cuenta: %1$s</string>
     <string name="codex_endpoint_fixed">El endpoint de Codex está fijado por el sistema</string>

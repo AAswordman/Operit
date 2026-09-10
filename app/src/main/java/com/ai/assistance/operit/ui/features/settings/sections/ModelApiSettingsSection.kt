@@ -114,6 +114,19 @@ private data class ProviderSelectionOption(
     val displayName: String
 )
 
+private data class ProviderSelectionGroup(
+    @StringRes val titleResId: Int,
+    val providers: List<ProviderSelectionOption>
+)
+
+private val genericCompatibleProviderOrder =
+    listOf(
+        ApiProviderType.OPENAI_GENERIC,
+        ApiProviderType.OPENAI_RESPONSES_GENERIC,
+        ApiProviderType.GEMINI_GENERIC,
+        ApiProviderType.ANTHROPIC_GENERIC
+    )
+
 @Composable
 @SuppressLint("MissingPermission")
 fun ModelApiSettingsSection(
@@ -1457,14 +1470,26 @@ private fun getProviderDisplayName(providerTypeId: String, context: android.cont
     return ToolPkgAiProviderRegistry.get(providerTypeId)?.displayName ?: providerTypeId
 }
 
-private fun getProviderSelectionOptions(context: android.content.Context): List<ProviderSelectionOption> {
-    val builtInProviders =
-        ApiProviderType.values().map { provider ->
+private fun getProviderSelectionGroups(context: android.content.Context): List<ProviderSelectionGroup> {
+    val genericProviderSet = genericCompatibleProviderOrder.toSet()
+    val genericProviders =
+        genericCompatibleProviderOrder.map { provider ->
             ProviderSelectionOption(
                 id = provider.name,
                 displayName = getBuiltInProviderDisplayName(provider, context)
             )
         }
+
+    val dedicatedBuiltInProviders =
+        ApiProviderType.values()
+            .filter { provider -> provider !in genericProviderSet }
+            .map { provider ->
+                ProviderSelectionOption(
+                    id = provider.name,
+                    displayName = getBuiltInProviderDisplayName(provider, context)
+                )
+            }
+
     val toolPkgProviders =
         ToolPkgAiProviderRegistry.list().map { provider ->
             ProviderSelectionOption(
@@ -1472,7 +1497,22 @@ private fun getProviderSelectionOptions(context: android.content.Context): List<
                 displayName = provider.displayName
             )
         }
-    return builtInProviders + toolPkgProviders
+
+    return listOf(
+        ProviderSelectionGroup(
+            titleResId = R.string.provider_section_generic_compatible,
+            providers = genericProviders
+        ),
+        ProviderSelectionGroup(
+            titleResId = R.string.provider_section_proprietary,
+            providers = dedicatedBuiltInProviders + toolPkgProviders
+        )
+    )
+}
+
+private fun ProviderSelectionOption.matches(query: String): Boolean {
+    return displayName.contains(query, ignoreCase = true) ||
+        id.contains(query, ignoreCase = true)
 }
 
 
@@ -1929,17 +1969,23 @@ private fun ApiProviderDialog(
         onProviderSelected: (ProviderSelectionOption) -> Unit
 ) {
     val context = LocalContext.current
-    val providers = remember { getProviderSelectionOptions(context) }
+    val providerGroups = remember { getProviderSelectionGroups(context) }
     var searchQuery by remember { mutableStateOf("") }
     
-    val filteredProviders = remember(searchQuery) {
-        if (searchQuery.isEmpty()) {
-            providers
+    val filteredProviderGroups = remember(searchQuery, providerGroups) {
+        val normalizedQuery = searchQuery.trim()
+        if (normalizedQuery.isEmpty()) {
+            providerGroups
         } else {
-            providers.filter { provider ->
-                provider.displayName.contains(searchQuery, ignoreCase = true) ||
-                    provider.id.contains(searchQuery, ignoreCase = true)
-            }
+            providerGroups
+                .map { group ->
+                    group.copy(
+                        providers = group.providers.filter { provider ->
+                            provider.matches(normalizedQuery)
+                        }
+                    )
+                }
+                .filter { group -> group.providers.isNotEmpty() }
         }
     }
 
@@ -1994,66 +2040,86 @@ private fun ApiProviderDialog(
                 androidx.compose.foundation.lazy.LazyColumn(
                         modifier = Modifier.weight(1f)
                 ) {
-                    items(filteredProviders.size) { index ->
-                        val provider = filteredProviders[index]
-                        // 美化的提供商选项
-                        Surface(
-                                modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                        .clickable { onProviderSelected(provider) },
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                        ) {
-                            Row(
-                                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                    filteredProviderGroups.forEachIndexed { groupIndex, group ->
+                        item(key = "provider-section-${group.titleResId}") {
+                            Text(
+                                text = stringResource(group.titleResId),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier =
+                                    Modifier.padding(
+                                        start = 4.dp,
+                                        top = if (groupIndex == 0) 0.dp else 12.dp,
+                                        bottom = 4.dp
+                                    )
+                            )
+                        }
+
+                        items(
+                            count = group.providers.size,
+                            key = { index -> group.providers[index].id }
+                        ) { index ->
+                            val provider = group.providers[index]
+                            // 美化的提供商选项
+                            Surface(
+                                    modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .clickable { onProviderSelected(provider) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                             ) {
-                                // 提供商图标（优先显示品牌 Logo，缺失时回退到首字母色块）
-                                val providerLogo =
-                                        rememberProviderLogoPainter(provider.id, 32.dp)
-                                if (providerLogo != null) {
-                                    Box(
-                                            modifier = Modifier
-                                                    .size(32.dp)
-                                                    .background(
-                                                            getProviderColor(provider.id).copy(alpha = 0.14f),
-                                                            CircleShape
-                                                    ),
-                                            contentAlignment = Alignment.Center
-                                    ) {
-                                        Image(
-                                                painter = providerLogo,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(24.dp),
-                                                colorFilter = providerLogoColorFilter()
-                                        )
+                                Row(
+                                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // 提供商图标（优先显示品牌 Logo，缺失时回退到首字母色块）
+                                    val providerLogo =
+                                            rememberProviderLogoPainter(provider.id, 32.dp)
+                                    if (providerLogo != null) {
+                                        Box(
+                                                modifier = Modifier
+                                                        .size(32.dp)
+                                                        .background(
+                                                                getProviderColor(provider.id).copy(alpha = 0.14f),
+                                                                CircleShape
+                                                        ),
+                                                contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                    painter = providerLogo,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp),
+                                                    colorFilter = providerLogoColorFilter()
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                                modifier = Modifier
+                                                        .size(32.dp)
+                                                        .background(
+                                                                getProviderColor(provider.id),
+                                                                CircleShape
+                                                        ),
+                                                contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                    text = provider.displayName.firstOrNull()?.toString() ?: "?",
+                                                    color = MaterialTheme.colorScheme.onPrimary,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
-                                } else {
-                                    Box(
-                                            modifier = Modifier
-                                                    .size(32.dp)
-                                                    .background(
-                                                            getProviderColor(provider.id),
-                                                            CircleShape
-                                                    ),
-                                            contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                                text = provider.displayName.firstOrNull()?.toString() ?: "?",
-                                                color = MaterialTheme.colorScheme.onPrimary,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.Bold
-                                        )
-                                    }
+
+                                    Spacer(modifier = Modifier.width(16.dp))
+
+                                    Text(
+                                            text = provider.displayName,
+                                            style = MaterialTheme.typography.bodyLarge
+                                    )
                                 }
-                                
-                                Spacer(modifier = Modifier.width(16.dp))
-                                
-                                Text(
-                                        text = provider.displayName,
-                                        style = MaterialTheme.typography.bodyLarge
-                                )
                             }
                         }
                     }

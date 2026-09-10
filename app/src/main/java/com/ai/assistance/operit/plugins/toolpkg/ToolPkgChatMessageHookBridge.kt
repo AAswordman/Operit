@@ -34,7 +34,11 @@ internal object ToolPkgChatMessageHookBridge {
         syncToolPkgRegistrations(manager.getEnabledToolPkgContainerRuntimes())
     }
 
+    @Volatile
+    internal var onMessagePersistedDispatchedForTest: ((chatId: String, message: ChatMessage) -> Unit)? = null
+
     fun dispatchMessagePersisted(chatId: String, message: ChatMessage) {
+        onMessagePersistedDispatchedForTest?.invoke(chatId, message)
         val activeHooks = hooks
         if (activeHooks.isEmpty()) {
             return
@@ -83,7 +87,7 @@ internal object ToolPkgChatMessageHookBridge {
             )
     }
 
-    private fun buildChatMessageEventPayload(
+    internal fun buildChatMessageEventPayload(
         chatId: String,
         message: ChatMessage
     ): Map<String, Any?> =

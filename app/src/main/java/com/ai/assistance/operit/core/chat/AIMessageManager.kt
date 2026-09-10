@@ -20,6 +20,7 @@ import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.PromptFunctionType
@@ -53,6 +54,13 @@ internal fun logMessageTiming(
     val elapsed = SystemClock.elapsedRealtime() - startTimeMs
     val suffix = details?.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""
     AppLogger.d(MESSAGE_PROCESS_TIMING_TAG, "$stage 耗时=${elapsed}ms$suffix")
+}
+
+internal fun formatDialogueReviewHeader(defaultHeader: String, customTitle: String): String {
+    val normalizedTitle =
+        customTitle.replace(Regex("\\s+"), " ").trim().trimEnd(':', '：')
+    val separator = if (defaultHeader.contains('：')) '：' else ':'
+    return if (normalizedTitle.isBlank()) defaultHeader else "\n\n$normalizedTitle$separator\n"
 }
 
 /**
@@ -678,7 +686,7 @@ object AIMessageManager {
         messages: List<ChatMessage>,
         autoContinue: Boolean = false,
         isGroupChat: Boolean = false,
-        summaryCustomRules: String? = null
+        summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig()
     ): ChatMessage? {
         val lastSummaryIndex = messages.indexOfLast { it.sender == "summary" }
         val previousSummary = if (lastSummaryIndex != -1) messages[lastSummaryIndex].content.trim() else null
@@ -1034,7 +1042,12 @@ object AIMessageManager {
 
         return try {
             AppLogger.d(TAG, "开始使用AI生成对话总结：总结 ${messagesToSummarize.size} 条消息")
-            val summary = enhancedAiService.generateSummary(conversationToSummarize, previousSummary, summaryCustomRules)
+            val summary =
+                enhancedAiService.generateSummary(
+                    conversationToSummarize,
+                    previousSummary,
+                    summaryConfig
+                )
             AppLogger.d(TAG, "AI生成总结完成: ${summary.take(50)}...")
 
             if (summary.isBlank()) {
@@ -1047,8 +1060,13 @@ object AIMessageManager {
                 val packageWarmupBlock = buildPackageWarmupBlock(messagesToSummarize, useEnglish)
                 val summaryWithQuotes = buildString {
                     append(trimmedSummary)
-                    if (conversationReviewEntries.isNotEmpty()) {
-                        append(context.getString(R.string.ai_message_dialogue_review))
+                    if (summaryConfig.dialogueReviewEnabled && conversationReviewEntries.isNotEmpty()) {
+                        append(
+                            formatDialogueReviewHeader(
+                                defaultHeader = context.getString(R.string.ai_message_dialogue_review),
+                                customTitle = summaryConfig.dialogueReviewTitle
+                            )
+                        )
                         conversationReviewEntries.forEach { (speaker, content) ->
                             append("- ")
                             append(speaker)

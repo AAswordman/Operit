@@ -893,6 +893,16 @@
     <string name="settings_summary_message_count_threshold_subtitle">Numărul de mesaje noi care declanșează generarea unui rezumat(1-20articol)</string>
     <string name="settings_summary_custom_rules">Reguli personalizate de rezumare</string>
     <string name="settings_summary_custom_rules_desc">Rezumați regulile suplimentare trimise în timpul conversației; dacă lăsați câmpul gol, nu se adaugă nimic</string>
+    <string name="settings_summary_structure">Structura rezumatului</string>
+    <string name="settings_summary_section_enabled_desc">Dezactivați pentru a omite această secțiune din rezumatele generate</string>
+    <string name="settings_summary_section_title">Titlul secțiunii</string>
+    <string name="settings_summary_section_title_desc">Titlul afișat în rezumat</string>
+    <string name="settings_summary_section_instruction">Instrucțiuni pentru secțiune</string>
+    <string name="settings_summary_section_instruction_desc">Descrieți ce trebuie să înregistreze această secțiune</string>
+    <string name="settings_summary_dialogue_review">Retrospectiva conversației</string>
+    <string name="settings_summary_dialogue_review_desc">Adaugă la sfârșitul rezumatului o evidență generată de program pentru utilizatori, asistenți și apeluri de instrumente</string>
+    <string name="settings_summary_dialogue_review_title">Titlul retrospectivei</string>
+    <string name="settings_summary_dialogue_review_title_desc">Titlul afișat la sfârșitul rezumatului. Lăsați necompletat pentru titlul implicit</string>
 
     <string name="settings_section_display">Afișare și comportament</string>
 
@@ -1003,8 +1013,9 @@
     <string name="tag_count_locked_status">A fost selectat %1$d / Limita maximă %2$d</string>
 
     <!-- Package Manager Screen -->
-    <string name="packages">Gestionarea pachetelor</string>
+    <string name="packages">Scripturi</string>
     <string name="skills">Abilități</string>
+    <string name="package_tab_skills">Skill</string>
     <string name="quick_plugin_creator_title">Creează-ți rapid pluginul</string>
     <string name="quick_plugin_creator_desc">Nu găsești pluginul dorit nici în cele preinstalate, nici în magazin? Creează-l tu însuți!</string>
     <string name="quick_plugin_creator_step1_title">1. Actualizare sau descărcare de pachete de creație Skill</string>
@@ -1753,6 +1764,7 @@
     <string name="message_info_token_input_short">↑</string>
     <string name="message_info_token_output_short">↓</string>
     <string name="message_info_token_cached_short">Cache</string>
+    <string name="message_info_token_hit_rate_short">Rată de hit</string>
     <string name="message_info_unavailable">Nu a fost înregistrat</string>
     <string name="selected_content_copied">Conținutul selectat a fost copiat</string>
     <string name="requesting_root_permission">Se solicităRootDrepturi...</string>
@@ -2919,6 +2931,15 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="test_item_image">Imagine</string>
     <string name="test_item_audio">Audio</string>
     <string name="test_item_video">Video</string>
+    <string name="test_media_image_understood">Acest model poate înțelege imagini</string>
+    <string name="test_media_audio_understood">Acest model poate înțelege audio</string>
+    <string name="test_media_video_understood">Acest model poate înțelege video</string>
+    <string name="test_media_image_unverified">Cererea de imagine s-a conectat, dar înțelegerea nu a putut fi verificată</string>
+    <string name="test_media_audio_unverified">Cererea audio s-a conectat, dar înțelegerea nu a putut fi verificată</string>
+    <string name="test_media_video_unverified">Cererea video s-a conectat, dar înțelegerea nu a putut fi verificată</string>
+    <string name="test_media_unverified">Conectat, dar neverificat</string>
+    <string name="test_result_expand">Extindeți</string>
+    <string name="test_result_collapse">Restrângeți</string>
     <string name="test">Testare</string>
     <string name="expand_desc">Extindeți</string>
     <string name="selected_desc">A fost selectat</string>
@@ -3868,9 +3889,9 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="model_name_multiple_hint"> (Se pot separa mai multe modele cu virgulă)</string>
     <string name="auto_save_failed">Salvarea automată a eșuat</string>
     <!-- API Provider names -->
-    <string name="provider_openai">OpenAI (GPTSerie)</string>
+    <string name="provider_openai">ChatGPT API</string>
     <string name="provider_xai">SpaceXAI (Grok)</string>
-    <string name="provider_openai_responses">OpenAI (Responses API)</string>
+    <string name="provider_openai_responses">ChatGPT Responses API</string>
     <string name="provider_openai_responses_generic">OpenAI ResponsesGeneralități</string>
     <string name="provider_anthropic">Anthropic (ClaudeSerie)</string>
     <string name="provider_anthropic_generic">AnthropicGeneralități</string>
@@ -4289,7 +4310,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="market_tab_mine">Al meu</string>
     <string name="market_category_type_all">Toate</string>
     <string name="market_category_type_script">Scenariu</string>
-    <string name="market_category_type_package">Set de instrumente</string>
+    <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_category_search_research">Căutare și cercetare</string>
@@ -5484,10 +5505,13 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="show_message_token_stats_description">în AI În partea de jos a știrii se afișează un mesaj concis token Informații privind traficul de intrare și ieșire și memoria cache</string>
     <string name="show_message_timing_stats">Raport privind durata de afișare a mesajelor</string>
     <string name="show_message_timing_stats_description">în AI În partea de jos a mesajului se afișează primul pachet și timpul necesar pentru generare</string>
+    <string name="show_message_token_speed">Afișează viteza de generare a tokenilor mesajului</string>
+    <string name="show_message_token_speed_description">Afișează viteza de generare a tokenilor de ieșire sub mesajele AI (t/s)</string>
     <string name="show_message_timestamp">Afișează ora mesajului</string>
     <string name="show_message_timestamp_description">în AI În partea de jos a mesajului este afișată ora la care a fost postat mesajul respectiv</string>
-    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d</string>
+    <string name="chat_message_token_stats_compact">token: %1$d ↑ %3$d (cache: %2$d) ↓ %4$d (hit: %5$s)</string>
     <string name="chat_message_timing_stats_compact">usage: %1$s (Primul %2$s Generare %3$s)</string>
+    <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">Numele de utilizator global</string>
     <string name="system_display_settings">Setări de afișare ale sistemului</string>
@@ -8031,17 +8055,17 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="notification_kind_entry_curated">Selectat în selecția de top</string>
     <string name="markdown_link_not_openable">Acest link indică o referință din interiorul documentului și nu poate fi deschis</string>
 
-    <string name="provider_openai_codex">OpenAI Codex (ChatGPT OAuth)</string>
-    <string name="onboarding_config_codex_login_required">Conectați-vă mai întâi la OpenAI Codex</string>
-    <string name="codex_login_title">Conectare OpenAI Codex</string>
+    <string name="provider_openai_codex">Codex</string>
+    <string name="onboarding_config_codex_login_required">Conectați-vă mai întâi la Codex</string>
+    <string name="codex_login_title">Conectare Codex</string>
     <string name="codex_login_starting">Se pregătește conectarea Codex...</string>
     <string name="codex_login_waiting">Finalizați conectarea în browser</string>
     <string name="codex_login_action">Conectare cu ChatGPT</string>
-    <string name="codex_login_success">Conectarea OpenAI Codex a reușit</string>
-    <string name="codex_login_failed">Conectarea OpenAI Codex a eșuat: %1$s</string>
+    <string name="codex_login_success">Conectarea Codex a reușit</string>
+    <string name="codex_login_failed">Conectarea Codex a eșuat: %1$s</string>
     <string name="codex_logout_action">Deconectare Codex</string>
-    <string name="codex_logout_success">Deconectat de la OpenAI Codex</string>
-    <string name="codex_auth_title">Cont OpenAI Codex</string>
+    <string name="codex_logout_success">Deconectat de la Codex</string>
+    <string name="codex_auth_title">Cont Codex</string>
     <string name="codex_auth_not_logged_in">Conectați-vă cu ChatGPT pentru a folosi accesul Codex inclus în abonament</string>
     <string name="codex_auth_account">Cont: %1$s</string>
     <string name="codex_endpoint_fixed">Endpointul Codex este fixat de sistem</string>

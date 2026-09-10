@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.db
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -16,6 +17,12 @@ import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
+import com.ai.assistance.operit.util.AppLogger
+import java.io.File
+import java.util.UUID
+
+private const val APP_DATABASE_VERSION = 21
+
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
     entities = [
@@ -25,7 +32,7 @@ import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
     ],
-    version = 21,
+    version = APP_DATABASE_VERSION,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +46,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun tokenUsageDao(): TokenUsageDao
 
     companion object {
+        const val DATABASE_VERSION = APP_DATABASE_VERSION
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -433,39 +442,108 @@ abstract class AppDatabase : RoomDatabase() {
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE
                 ?: synchronized(this) {
-                    val instance =
-                        Room.databaseBuilder(
-                            context.applicationContext,
-                            AppDatabase::class.java,
-                            "app_database"
-                        )
-                            .addMigrations(
-                                MIGRATION_1_2,
-                                MIGRATION_2_3,
-                                MIGRATION_3_4,
-                                MIGRATION_4_5,
-                                MIGRATION_5_6,
-                                MIGRATION_6_7,
-                                MIGRATION_7_8,
-                                MIGRATION_8_9,
-                                MIGRATION_9_10,
-                                MIGRATION_10_11,
-                                MIGRATION_11_12,
-                                MIGRATION_12_13,
-                                MIGRATION_13_14,
-                                MIGRATION_14_15,
-                                MIGRATION_15_16,
-                                MIGRATION_16_17,
-                                MIGRATION_17_18,
-                                MIGRATION_18_19,
-                                MIGRATION_19_20,
-                                MIGRATION_20_21
-                            ) // 添加新的迁移
-                            .build()
+                    val instance = buildDatabase(context.applicationContext, "app_database")
                     INSTANCE = instance
                     instance
                 }
         }
+
+        /**
+         * Opens a private copy through Room so the recovery UI can validate the complete schema
+         * and migration chain without modifying the live database.
+         */
+        internal fun validateRecoveryCopy(context: Context, sourceDatabase: File): Boolean {
+            if (!sourceDatabase.isFile) return false
+            val appContext = context.applicationContext
+            val validationName =
+                "room_health_validation_${UUID.randomUUID().toString().replace("-", "")}"
+            val validationDatabase = appContext.getDatabasePath(validationName)
+            validationDatabase.parentFile?.mkdirs()
+
+            return try {
+                sourceDatabase.copyTo(validationDatabase, overwrite = false)
+                databaseFiles(sourceDatabase).drop(1).forEach { sourceSidecar ->
+                    if (sourceSidecar.exists()) {
+                        check(sourceSidecar.isFile) {
+                            "Room validation sidecar is not a file: ${sourceSidecar.name}"
+                        }
+                        val suffix = sourceSidecar.name.removePrefix(sourceDatabase.name)
+                        sourceSidecar.copyTo(
+                            File(validationDatabase.absolutePath + suffix),
+                            overwrite = false
+                        )
+                    }
+                }
+
+                // Removing the identity table from the isolated copy forces Room to compare the
+                // actual tables, columns, foreign keys, and indexes instead of trusting one hash.
+                SQLiteDatabase.openDatabase(
+                    validationDatabase.absolutePath,
+                    null,
+                    SQLiteDatabase.OPEN_READWRITE
+                ).use { database ->
+                    database.execSQL("DROP TABLE IF EXISTS `room_master_table`")
+                }
+
+                val database = buildDatabase(appContext, validationName)
+                try {
+                    database.openHelper.writableDatabase
+                    true
+                } finally {
+                    database.close()
+                }
+            } catch (e: Exception) {
+                AppLogger.e("AppDatabase", "Room recovery copy validation failed", e)
+                false
+            } finally {
+                databaseFiles(validationDatabase).forEach { file ->
+                    if (file.exists() && !file.deleteRecursively()) {
+                        AppLogger.w(
+                            "AppDatabase",
+                            "Failed to delete Room validation file: ${file.name}"
+                        )
+                    }
+                }
+            }
+        }
+
+        private fun buildDatabase(context: Context, databaseName: String): AppDatabase =
+            Room.databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                databaseName
+            )
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                    MIGRATION_6_7,
+                    MIGRATION_7_8,
+                    MIGRATION_8_9,
+                    MIGRATION_9_10,
+                    MIGRATION_10_11,
+                    MIGRATION_11_12,
+                    MIGRATION_12_13,
+                    MIGRATION_13_14,
+                    MIGRATION_14_15,
+                    MIGRATION_15_16,
+                    MIGRATION_16_17,
+                    MIGRATION_17_18,
+                    MIGRATION_18_19,
+                    MIGRATION_19_20,
+                    MIGRATION_20_21
+                )
+                .build()
+
+        private fun databaseFiles(databaseFile: File): List<File> =
+            listOf(
+                databaseFile,
+                File(databaseFile.absolutePath + "-wal"),
+                File(databaseFile.absolutePath + "-shm"),
+                File(databaseFile.absolutePath + "-journal")
+            )
 
         fun closeDatabase() {
             synchronized(this) {

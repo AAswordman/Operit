@@ -2353,7 +2353,6 @@ class JsEngine(private val context: Context) {
                 toolType = toolType,
                 toolName = toolName,
                 paramsJson = paramsJson,
-                toolPkgApiVersion = null,
                 binaryDataRegistry = binaryDataRegistry,
                 binaryHandlePrefix = BINARY_HANDLE_PREFIX,
                 binaryDataThreshold = BINARY_DATA_THRESHOLD
@@ -2374,32 +2373,6 @@ class JsEngine(private val context: Context) {
                 toolType = toolType,
                 toolName = toolName,
                 paramsJson = paramsJson,
-                toolPkgApiVersion = null,
-                binaryDataRegistry = binaryDataRegistry,
-                binaryHandlePrefix = BINARY_HANDLE_PREFIX,
-                binaryDataThreshold = BINARY_DATA_THRESHOLD,
-                sendToolResult = { callback, result, isError ->
-                    sendToolResult(callback, result, isError)
-                }
-            )
-        }
-
-        @JavascriptInterface
-        fun callToolAsyncForCall(
-                callbackId: String,
-                callId: String,
-                toolType: String,
-                toolName: String,
-                paramsJson: String
-        ) {
-            val toolPkgApiVersion = resolveExecutionSession(callId)?.toolPkgApiVersion
-            JsNativeInterfaceDelegates.callToolAsync(
-                toolHandler = toolHandler,
-                callbackId = callbackId,
-                toolType = toolType,
-                toolName = toolName,
-                paramsJson = paramsJson,
-                toolPkgApiVersion = toolPkgApiVersion,
                 binaryDataRegistry = binaryDataRegistry,
                 binaryHandlePrefix = BINARY_HANDLE_PREFIX,
                 binaryDataThreshold = BINARY_DATA_THRESHOLD,
@@ -2424,37 +2397,6 @@ class JsEngine(private val context: Context) {
                 toolType = toolType,
                 toolName = toolName,
                 paramsJson = paramsJson,
-                toolPkgApiVersion = null,
-                binaryDataRegistry = binaryDataRegistry,
-                binaryHandlePrefix = BINARY_HANDLE_PREFIX,
-                binaryDataThreshold = BINARY_DATA_THRESHOLD,
-                sendToolResult = { callback, result, isError ->
-                    sendToolResult(callback, result, isError)
-                },
-                sendIntermediateResult = { callback, result, isError ->
-                    sendToolResult(callback, result, isError)
-                }
-            )
-        }
-
-        @JavascriptInterface
-        fun callToolAsyncStreamingForCall(
-                callbackId: String,
-                intermediateCallbackId: String,
-                callId: String,
-                toolType: String,
-                toolName: String,
-                paramsJson: String
-        ) {
-            val toolPkgApiVersion = resolveExecutionSession(callId)?.toolPkgApiVersion
-            JsNativeInterfaceDelegates.callToolAsyncStreaming(
-                toolHandler = toolHandler,
-                callbackId = callbackId,
-                intermediateCallbackId = intermediateCallbackId,
-                toolType = toolType,
-                toolName = toolName,
-                paramsJson = paramsJson,
-                toolPkgApiVersion = toolPkgApiVersion,
                 binaryDataRegistry = binaryDataRegistry,
                 binaryHandlePrefix = BINARY_HANDLE_PREFIX,
                 binaryDataThreshold = BINARY_DATA_THRESHOLD,

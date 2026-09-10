@@ -34,7 +34,7 @@ MAIN_PATTERN = re.compile(
     r'^\s*["\']?main["\']?\s*:\s*["\']([^"\']+)["\']',
     re.MULTILINE,
 )
-SKIP_DIR_NAMES = {".git", "__pycache__"}
+SKIP_DIR_NAMES = {".git", "__pycache__", ".backup", "backup", ".operit"}
 SKIP_FILE_NAMES = {".DS_Store", "Thumbs.db"}
 
 

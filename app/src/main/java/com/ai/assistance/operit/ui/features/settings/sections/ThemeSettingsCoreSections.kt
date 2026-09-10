@@ -2126,6 +2126,7 @@ internal fun ThemeSettingsDisplayOptionsSection(
     showUserNameInput: Boolean,
     showMessageTokenStatsInput: Boolean,
     showMessageTimingStatsInput: Boolean,
+    showMessageTokenSpeedInput: Boolean,
     showMessageTimestampInput: Boolean,
     showInputProcessingStatusInput: Boolean,
     showChatFloatingDotsAnimationInput: Boolean,
@@ -2277,6 +2278,32 @@ internal fun ThemeSettingsDisplayOptionsSection(
                     checked = showMessageTokenStatsInput,
                     onCheckedChange = {
                         editorSession.setBoolean("show_message_token_stats", it)
+                    },
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(id = R.string.show_message_token_speed),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = stringResource(id = R.string.show_message_token_speed_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = showMessageTokenSpeedInput,
+                    onCheckedChange = {
+                        editorSession.setBoolean("show_message_token_speed", it)
                     },
                 )
             }

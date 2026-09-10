@@ -234,20 +234,26 @@ open class KimiProvider(
             queuedOpenToolCalls.clear()
         }
 
-        fun flushOpenToolCallsAsCancelled(reason: String) {
+        fun flushOpenToolCallsAsUnmatched(reason: String) {
             emitQueuedToolCallsIfNeeded()
             if (openToolCalls.isEmpty()) return
 
             AppLogger.w(
                 "KimiProvider",
-                "发现未完成的tool_calls，按取消处理: count=${openToolCalls.size}, reason=$reason"
+                "发现未匹配的tool_calls，按工具结果未匹配处理: count=${openToolCalls.size}, reason=$reason"
             )
             for (openToolCall in openToolCalls) {
                 messagesArray.put(
                     JSONObject().apply {
                         put("role", "tool")
                         put("tool_call_id", openToolCall.id)
-                        put("content", "User cancelled")
+                        put(
+                            "content",
+                            StructuredToolCallBridge.unmatchedToolResultContent(
+                                reason,
+                                openToolCall.matchingName
+                            )
+                        )
                     }
                 )
             }
@@ -260,7 +266,7 @@ open class KimiProvider(
                 if (useToolCall) {
                     when (turn.kind) {
                         PromptTurnKind.SYSTEM -> {
-                            flushOpenToolCallsAsCancelled("system_boundary")
+                            flushOpenToolCallsAsUnmatched("system_boundary")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "system")
@@ -271,7 +277,7 @@ open class KimiProvider(
 
                         PromptTurnKind.USER,
                         PromptTurnKind.SUMMARY -> {
-                            flushOpenToolCallsAsCancelled("user_boundary")
+                            flushOpenToolCallsAsUnmatched("user_boundary")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "user")
@@ -292,11 +298,11 @@ open class KimiProvider(
 
                             if (toolCalls != null && toolCalls.length() > 0) {
                                 if (openToolCalls.isNotEmpty()) {
-                                    flushOpenToolCallsAsCancelled("assistant_tool_call_before_result")
+                                    flushOpenToolCallsAsUnmatched("assistant_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls, reasoningContent)
                             } else {
-                                flushOpenToolCallsAsCancelled("assistant_boundary")
+                                flushOpenToolCallsAsUnmatched("assistant_boundary")
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
@@ -323,11 +329,11 @@ open class KimiProvider(
 
                             if (toolCalls != null && toolCalls.length() > 0) {
                                 if (openToolCalls.isNotEmpty()) {
-                                    flushOpenToolCallsAsCancelled("typed_tool_call_before_result")
+                                    flushOpenToolCallsAsUnmatched("typed_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls)
                             } else {
-                                flushOpenToolCallsAsCancelled("typed_tool_call_without_payload")
+                                flushOpenToolCallsAsUnmatched("typed_tool_call_without_payload")
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
@@ -374,7 +380,7 @@ open class KimiProvider(
                                     )
                                 }
 
-                                flushOpenToolCallsAsCancelled("tool_result_partial_batch")
+                                flushOpenToolCallsAsUnmatched("tool_result_partial_batch")
 
                                 appendReadableImageMessageIfNeeded(
                                     messagesArray,
@@ -391,7 +397,7 @@ open class KimiProvider(
                                     )
                                 }
                             } else {
-                                flushOpenToolCallsAsCancelled("tool_result_without_structured_match")
+                                flushOpenToolCallsAsUnmatched("tool_result_without_structured_match")
                                 if (textContent.isNotEmpty()) {
                                     messagesArray.put(
                                         JSONObject().apply {
@@ -468,7 +474,7 @@ open class KimiProvider(
             }
         }
 
-        flushOpenToolCallsAsCancelled("history_end")
+        flushOpenToolCallsAsUnmatched("history_end")
         return messagesArray
     }
 

@@ -99,6 +99,12 @@ writeEnvironmentVariable(key: string, value?: string): Promise<StringResultData>
 
 对某个模型配置执行连接测试，返回 `ModelConfigConnectionTestResultData`。
 
+返回值区分连通与能力验证：
+
+- `success`：本次测试没有硬失败。多模态请求返回了内容但没有命中探针时，仍可能为 `true`
+- `verified`：所有请求的测试项都已验证通过
+- `tests[].outcome`：单项结果，取值为 `passed`、`unverified` 或 `failed`
+
 ## 模型配置可更新字段
 
 `ModelConfigUpdateOptions` 中可见的主要字段包括：

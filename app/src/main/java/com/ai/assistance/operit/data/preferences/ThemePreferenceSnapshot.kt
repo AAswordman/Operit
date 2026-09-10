@@ -111,6 +111,7 @@ data class ThemePreferenceValues(
                     "show_user_name" to true,
                     "show_message_token_stats" to false,
                     "show_message_timing_stats" to false,
+                    "show_message_token_speed" to false,
                     "show_message_timestamp" to false,
                     "show_input_processing_status" to true,
                     "show_chat_floating_dots_animation" to true,
@@ -266,6 +267,7 @@ data class ThemePreferenceSnapshot(
     val showUserName: Boolean get() = values.requiredBoolean("show_user_name")
     val showMessageTokenStats: Boolean get() = values.requiredBoolean("show_message_token_stats")
     val showMessageTimingStats: Boolean get() = values.requiredBoolean("show_message_timing_stats")
+    val showMessageTokenSpeed: Boolean get() = values.requiredBoolean("show_message_token_speed")
     val showMessageTimestamp: Boolean get() = values.requiredBoolean("show_message_timestamp")
     val showInputProcessingStatus: Boolean
         get() = values.requiredBoolean("show_input_processing_status")

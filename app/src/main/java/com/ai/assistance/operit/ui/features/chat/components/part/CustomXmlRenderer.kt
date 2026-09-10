@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -1424,8 +1423,8 @@ class CustomXmlRenderer(
             }
             
             // 构建完整的HTML文档
-            val fullHtml = remember(styledHtml, textColor) {
-                buildFullHtmlDocument(styledHtml, textColor)
+            val fullHtml = remember(styledHtml, textColor, context) {
+                StatusCardHtmlDocument.build(context, styledHtml, textColor)
             }
 
             val webView = remember(context) {
@@ -1476,82 +1475,6 @@ class CustomXmlRenderer(
                 factory = { webView }
             )
         }
-    }
-    
-    /**
-     * 构建完整的HTML文档，包含CSS样式
-     */
-    private fun buildFullHtmlDocument(bodyContent: String, textColor: Color): String {
-        val textColorHex = String.format("#%06X", 0xFFFFFF and textColor.toArgb())
-        
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-                <style>
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                        font-size: 13px;
-                        line-height: 1.4;
-                        color: $textColorHex;
-                        padding: 0;
-                        background: transparent;
-                    }
-                    .material-symbols-rounded {
-                        font-family: 'Material Symbols Rounded';
-                        font-weight: normal;
-                        font-style: normal;
-                        font-size: 20px;
-                        display: inline-block;
-                        line-height: 1;
-                        text-transform: none;
-                        letter-spacing: normal;
-                        word-wrap: normal;
-                        white-space: nowrap;
-                        direction: ltr;
-                        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-                    }
-                    h1, h2, h3, h4, h5, h6 {
-                        margin: 2px 0 3px 0;
-                        font-weight: 600;
-                        line-height: 1.3;
-                        color: inherit;
-                    }
-                    h1 { font-size: 15px; }
-                    h2 { font-size: 14px; }
-                    h3 { font-size: 13px; }
-                    h4 { font-size: 13px; }
-                    h5 { font-size: 12px; }
-                    h6 { font-size: 12px; }
-                    p {
-                        margin: 2px 0;
-                        font-size: 13px;
-                    }
-                    a {
-                        color: #007AFF;
-                        text-decoration: none;
-                    }
-                    a:hover {
-                        text-decoration: underline;
-                    }
-                    strong, b {
-                        font-weight: 600;
-                    }
-                </style>
-            </head>
-            <body>
-                $bodyContent
-            </body>
-            </html>
-        """.trimIndent()
     }
     
     /**

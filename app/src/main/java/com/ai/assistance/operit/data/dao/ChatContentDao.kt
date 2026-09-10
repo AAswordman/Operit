@@ -206,12 +206,15 @@ abstract class ChatContentDao {
 
     @Query(
         MESSAGE_VARIANT_CONTENT_ROW_QUERY +
-            " WHERE chatId = :chatId AND messageTimestamp IN (:messageTimestamps)" +
+            " WHERE chatId = :chatId" +
+            " AND messageTimestamp >= :minTimestamp" +
+            " AND messageTimestamp <= :maxTimestamp" +
             " ORDER BY messageTimestamp ASC, variantIndex ASC"
     )
-    protected abstract suspend fun queryVariantsForMessages(
+    protected abstract suspend fun queryVariantsForMessageRange(
         chatId: String,
-        messageTimestamps: List<Long>,
+        minTimestamp: Long,
+        maxTimestamp: Long,
     ): List<MessageVariantContentRow>
 
     @Query(
@@ -369,8 +372,24 @@ abstract class ChatContentDao {
     open suspend fun getVariantsForMessages(
         chatId: String,
         messageTimestamps: List<Long>,
-    ): List<MessageVariantEntity> =
-        materializeVariants(queryVariantsForMessages(chatId, messageTimestamps))
+    ): List<MessageVariantEntity> {
+        if (messageTimestamps.isEmpty()) {
+            return emptyList()
+        }
+
+        val requestedTimestamps = messageTimestamps.toHashSet()
+        val minTimestamp = messageTimestamps.minOrNull() ?: return emptyList()
+        val maxTimestamp = messageTimestamps.maxOrNull() ?: return emptyList()
+
+        // Preserve exact timestamp-set semantics while avoiding Room expanding a large list into SQLite bind variables.
+        val rows =
+            queryVariantsForMessageRange(
+                chatId = chatId,
+                minTimestamp = minTimestamp,
+                maxTimestamp = maxTimestamp,
+            ).filter { row -> row.variant.messageTimestamp in requestedTimestamps }
+        return materializeVariants(rows)
+    }
 
     @Transaction
     open suspend fun getVariantsForMessage(

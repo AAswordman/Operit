@@ -233,7 +233,9 @@ class CharacterCardManager private constructor(private val context: Context) {
                 if (!legacyValue.isNullOrBlank() && preferences[chatKey].isNullOrBlank()) {
                     preferences[chatKey] = legacyValue
                 }
-                if (preferences[voiceKey].isNullOrBlank() && cardId == DEFAULT_CHARACTER_CARD_ID) {
+                // Only seed the default voice prompt when the field has never been written.
+                // An explicit empty string means the user cleared it and must be kept.
+                if (!preferences.contains(voiceKey) && cardId == DEFAULT_CHARACTER_CARD_ID) {
                     preferences[voiceKey] = CharacterCardBilingualData.getDefaultOtherContentVoice(context)
                 }
                 preferences.remove(legacyKey)

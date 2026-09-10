@@ -84,6 +84,11 @@ data class ChatExportResult(
     val chatCount: Int,
 )
 
+data class AddedMessageVariant(
+    val selectedVariantIndex: Int,
+    val message: ChatMessage,
+)
+
 class ChatHistoryManager private constructor(private val context: Context) {
     companion object {
         private const val TAG = "ChatHistoryManager"
@@ -1245,7 +1250,7 @@ class ChatHistoryManager private constructor(private val context: Context) {
         chatId: String,
         messageTimestamp: Long,
         message: ChatMessage,
-    ): Int {
+    ): AddedMessageVariant {
         return chatMutex(chatId).withLock {
             val baseMessage =
                 chatContentDao.getMessageByTimestamp(chatId, messageTimestamp)
@@ -1255,14 +1260,15 @@ class ChatHistoryManager private constructor(private val context: Context) {
             }
             val nextVariantIndex =
                 chatContentDao.getVariantsForMessage(chatId, messageTimestamp).size + 1
-            messageVariantDao.insertVariant(
+            val variant =
                 MessageVariantEntity.fromChatMessage(
                     chatId = chatId,
                     messageTimestamp = messageTimestamp,
                     variantIndex = nextVariantIndex,
-                    message = message.copy(selectedVariantIndex = nextVariantIndex, variantCount = 1),
+                    message = message.copy(selectedVariantIndex = nextVariantIndex, variantCount = nextVariantIndex),
                 )
-            )
+            messageVariantDao.insertVariant(variant)
+            val persistedMessage = variant.applyTo(baseMessage.toChatMessage(), nextVariantIndex)
             messageDao.updateSelectedVariantIndex(chatId, messageTimestamp, nextVariantIndex)
             chatDao.getChatById(chatId)?.let { chat ->
                 chatDao.updateChatMetadata(
@@ -1274,7 +1280,10 @@ class ChatHistoryManager private constructor(private val context: Context) {
                     currentWindowSize = chat.currentWindowSize
                 )
             }
-            nextVariantIndex
+            AddedMessageVariant(
+                selectedVariantIndex = nextVariantIndex,
+                message = persistedMessage,
+            )
         }
     }
 

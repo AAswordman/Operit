@@ -2351,9 +2351,25 @@ internal fun StandardBrowserSessionTools.takeScreenshot(
         output.parentFile?.mkdirs()
         val bitmap =
             when {
-                fullPage -> captureFullPageBitmap(session.webView)
-                ref != null -> captureElementBitmap(session.webView, ref)
-                else -> captureViewportBitmap(session.webView)
+                fullPage ->
+                    captureFullPageBitmap(
+                        session.webView,
+                        session.viewportWidthPx,
+                        session.viewportHeightPx
+                    )
+                ref != null ->
+                    captureElementBitmap(
+                        session.webView,
+                        ref,
+                        session.viewportWidthPx,
+                        session.viewportHeightPx
+                    )
+                else ->
+                    captureViewportBitmap(
+                        session.webView,
+                        session.viewportWidthPx,
+                        session.viewportHeightPx
+                    )
             }
         FileOutputStream(output).use { stream ->
             bitmap.compress(
@@ -2367,43 +2383,106 @@ internal fun StandardBrowserSessionTools.takeScreenshot(
     }
 }
 
-internal fun StandardBrowserSessionTools.captureViewportBitmap(webView: WebView): Bitmap {
-    val width = webView.width.coerceAtLeast(1)
-    val height = webView.height.coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+internal fun StandardBrowserSessionTools.captureViewportBitmap(
+    webView: WebView,
+    viewportWidthCssPx: Int? = null,
+    viewportHeightCssPx: Int? = null
+): Bitmap {
+    val sourceWidth = webView.width.coerceAtLeast(1)
+    val sourceHeight = webView.height.coerceAtLeast(1)
+    val width = viewportWidthCssPx ?: sourceWidth
+    val height = viewportHeightCssPx ?: sourceHeight
+    val bitmap = createBrowserScreenshotBitmap(width, height)
     val canvas = Canvas(bitmap)
+    if (width != sourceWidth || height != sourceHeight) {
+        canvas.scale(width.toFloat() / sourceWidth, height.toFloat() / sourceHeight)
+    }
     webView.draw(canvas)
     return bitmap
 }
 
-internal fun StandardBrowserSessionTools.captureFullPageBitmap(webView: WebView): Bitmap {
-    val (width, height) = resolveFullPageBitmapSize(webView)
+internal fun StandardBrowserSessionTools.captureFullPageBitmap(
+    webView: WebView,
+    viewportWidthCssPx: Int? = null,
+    viewportHeightCssPx: Int? = null
+): Bitmap {
+    val pageSize = resolveFullPageCssSize(webView)
     val originalWidth = webView.width.coerceAtLeast(1)
     val originalHeight = webView.height.coerceAtLeast(1)
     val originalScrollX = webView.scrollX
     val originalScrollY = webView.scrollY
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val hasCssViewport = viewportWidthCssPx != null && viewportHeightCssPx != null
+    val outputWidth =
+        if (hasCssViewport) {
+            pageSize.contentWidthCssPx
+        } else {
+            (pageSize.contentWidthCssPx * (webView.scale.takeIf { it > 0f } ?: 1f))
+                .toInt()
+                .coerceAtLeast(originalWidth)
+        }
+    val outputHeight =
+        if (hasCssViewport) {
+            pageSize.contentHeightCssPx
+        } else {
+            (pageSize.contentHeightCssPx * (webView.scale.takeIf { it > 0f } ?: 1f))
+                .toInt()
+                .coerceAtLeast(originalHeight)
+        }
+    val layoutScaleX = originalWidth.toFloat() / pageSize.viewportWidthCssPx.coerceAtLeast(1)
+    val layoutScaleY = originalHeight.toFloat() / pageSize.viewportHeightCssPx.coerceAtLeast(1)
+    val layoutWidth =
+        kotlin.math.ceil(pageSize.contentWidthCssPx * layoutScaleX)
+            .toLong()
+            .also { require(it in 1..Int.MAX_VALUE.toLong()) { "Full-page layout width is too large" } }
+            .toInt()
+    val layoutHeight =
+        kotlin.math.ceil(pageSize.contentHeightCssPx * layoutScaleY)
+            .toLong()
+            .also { require(it in 1..Int.MAX_VALUE.toLong()) { "Full-page layout height is too large" } }
+            .toInt()
+    val layoutPixelCount = layoutWidth.toLong() * layoutHeight.toLong()
+    require(
+        layoutWidth <= StandardBrowserSessionTools.MAX_SCREENSHOT_DIMENSION_PX &&
+            layoutHeight <= StandardBrowserSessionTools.MAX_SCREENSHOT_DIMENSION_PX &&
+            layoutPixelCount <= StandardBrowserSessionTools.MAX_VIEWPORT_LAYOUT_PIXEL_COUNT
+    ) {
+        "Full-page layout dimensions ${layoutWidth}x$layoutHeight exceed the safe rendering budget"
+    }
+    val bitmap = createBrowserScreenshotBitmap(outputWidth, outputHeight)
     val canvas = Canvas(bitmap)
-    webView.measure(
-        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
-    )
-    webView.layout(0, 0, width, height)
-    webView.scrollTo(0, 0)
-    webView.draw(canvas)
-    webView.measure(
-        View.MeasureSpec.makeMeasureSpec(originalWidth, View.MeasureSpec.EXACTLY),
-        View.MeasureSpec.makeMeasureSpec(originalHeight, View.MeasureSpec.EXACTLY)
-    )
-    webView.layout(0, 0, originalWidth, originalHeight)
-    webView.scrollTo(originalScrollX, originalScrollY)
-    return bitmap
+    canvas.scale(outputWidth.toFloat() / layoutWidth, outputHeight.toFloat() / layoutHeight)
+    try {
+        webView.measure(
+            View.MeasureSpec.makeMeasureSpec(layoutWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(layoutHeight, View.MeasureSpec.EXACTLY)
+        )
+        webView.layout(0, 0, layoutWidth, layoutHeight)
+        webView.scrollTo(0, 0)
+        webView.draw(canvas)
+        return bitmap
+    } catch (failure: Throwable) {
+        bitmap.recycle()
+        throw failure
+    } finally {
+        webView.measure(
+            View.MeasureSpec.makeMeasureSpec(originalWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(originalHeight, View.MeasureSpec.EXACTLY)
+        )
+        webView.layout(0, 0, originalWidth, originalHeight)
+        webView.scrollTo(originalScrollX, originalScrollY)
+    }
 }
 
-internal fun StandardBrowserSessionTools.resolveFullPageBitmapSize(
+internal data class BrowserFullPageCssSize(
+    val contentWidthCssPx: Int,
+    val contentHeightCssPx: Int,
+    val viewportWidthCssPx: Int,
+    val viewportHeightCssPx: Int
+)
+
+internal fun StandardBrowserSessionTools.resolveFullPageCssSize(
     webView: WebView
-): Pair<Int, Int> {
-    val scale = webView.scale.takeIf { it > 0f } ?: 1f
+): BrowserFullPageCssSize {
     val pageSize =
         runJsonScript(
             webView,
@@ -2425,32 +2504,73 @@ internal fun StandardBrowserSessionTools.resolveFullPageBitmapSize(
                     body ? (body.scrollHeight || 0) : 0,
                     body ? (body.offsetHeight || 0) : 0
                 );
-                return JSON.stringify({ ok: true, width, height });
+                return JSON.stringify({
+                    ok: true,
+                    width,
+                    height,
+                    viewportWidth: window.innerWidth || 0,
+                    viewportHeight: window.innerHeight || 0
+                });
             })();
             """.trimIndent(),
             "page_size_error"
         )
 
-    val width =
-        (((pageSize?.optDouble("width", 0.0) ?: 0.0) * scale).toInt())
-            .coerceAtLeast(webView.width.coerceAtLeast(1))
-    val height =
-        (((pageSize?.optDouble("height", 0.0) ?: 0.0) * scale).toInt())
-            .coerceAtLeast(webView.height.coerceAtLeast(1))
-    return width to height
+    val fallbackScale = webView.scale.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val fallbackViewportWidth = (webView.width / fallbackScale).toInt().coerceAtLeast(1)
+    val fallbackViewportHeight = (webView.height / fallbackScale).toInt().coerceAtLeast(1)
+    val viewportWidth =
+        (pageSize?.optDouble("viewportWidth", 0.0) ?: 0.0)
+            .toInt()
+            .takeIf { it > 0 }
+            ?: fallbackViewportWidth
+    val viewportHeight =
+        (pageSize?.optDouble("viewportHeight", 0.0) ?: 0.0)
+            .toInt()
+            .takeIf { it > 0 }
+            ?: fallbackViewportHeight
+    return BrowserFullPageCssSize(
+        contentWidthCssPx =
+            (pageSize?.optDouble("width", 0.0) ?: 0.0).toInt().coerceAtLeast(viewportWidth),
+        contentHeightCssPx =
+            (pageSize?.optDouble("height", 0.0) ?: 0.0).toInt().coerceAtLeast(viewportHeight),
+        viewportWidthCssPx = viewportWidth,
+        viewportHeightCssPx = viewportHeight
+    )
+}
+
+internal fun StandardBrowserSessionTools.createBrowserScreenshotBitmap(width: Int, height: Int): Bitmap {
+    require(width > 0 && height > 0) { "Screenshot dimensions must be positive" }
+    require(
+        width <= StandardBrowserSessionTools.MAX_SCREENSHOT_DIMENSION_PX &&
+            height <= StandardBrowserSessionTools.MAX_SCREENSHOT_DIMENSION_PX
+    ) {
+        "Screenshot dimensions ${width}x$height exceed the safe side-length limit"
+    }
+    val pixelCount = width.toLong() * height.toLong()
+    require(pixelCount <= StandardBrowserSessionTools.MAX_SCREENSHOT_PIXEL_COUNT) {
+        "Screenshot dimensions ${width}x$height exceed the safe pixel budget"
+    }
+    return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 }
 
 internal fun StandardBrowserSessionTools.captureElementBitmap(
     webView: WebView,
-    ref: String
+    ref: String,
+    viewportWidthCssPx: Int? = null,
+    viewportHeightCssPx: Int? = null
 ): Bitmap {
     val rect = resolveElementRect(webView, ref) ?: throw RuntimeException("ref_not_found")
-    val bitmap = captureViewportBitmap(webView)
+    val bitmap = captureViewportBitmap(webView, viewportWidthCssPx, viewportHeightCssPx)
     val left = rect.left.coerceIn(0, bitmap.width - 1)
     val top = rect.top.coerceIn(0, bitmap.height - 1)
     val width = rect.width().coerceAtLeast(1).coerceAtMost(bitmap.width - left)
     val height = rect.height().coerceAtLeast(1).coerceAtMost(bitmap.height - top)
-    return Bitmap.createBitmap(bitmap, left, top, width, height)
+    val cropped = Bitmap.createBitmap(bitmap, left, top, width, height)
+    if (cropped !== bitmap) {
+        bitmap.recycle()
+    }
+    return cropped
 }
 
 internal fun StandardBrowserSessionTools.resolveElementRect(

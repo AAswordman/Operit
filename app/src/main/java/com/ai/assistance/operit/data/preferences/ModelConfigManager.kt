@@ -18,6 +18,7 @@ import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ParameterCategory
 import com.ai.assistance.operit.data.model.ParameterValueType
 import com.ai.assistance.operit.data.model.StandardModelParameters
+import com.ai.assistance.operit.data.model.SummarySectionOverride
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ApiKeyInfo
 import java.util.Locale
@@ -940,15 +941,31 @@ class ModelConfigManager(
             summaryTokenThreshold: Float,
             enableSummaryByMessageCount: Boolean,
             summaryMessageCountThreshold: Int,
-            summaryCustomRules: String = ""
+            summaryCustomRules: String? = null,
+            summarySectionOverrides: List<SummarySectionOverride>? = null
     ): ModelConfigData {
-        return updateConfigInternal(configId) {
-            it.copy(
+        return updateConfigInternal(configId) { current ->
+            current.copy(
                     enableSummary = enableSummary,
                     summaryTokenThreshold = summaryTokenThreshold,
                     enableSummaryByMessageCount = enableSummaryByMessageCount,
                     summaryMessageCountThreshold = summaryMessageCountThreshold,
-                    summaryCustomRules = summaryCustomRules
+                    summaryCustomRules = summaryCustomRules ?: current.summaryCustomRules,
+                    summarySectionOverrides =
+                        summarySectionOverrides ?: current.summarySectionOverrides
+            )
+        }
+    }
+
+    suspend fun updateSummaryDialogueReviewSettings(
+            configId: String,
+            enabled: Boolean,
+            title: String
+    ): ModelConfigData {
+        return updateConfigInternal(configId) {
+            it.copy(
+                    enableSummaryDialogueReview = enabled,
+                    summaryDialogueReviewTitle = title
             )
         }
     }

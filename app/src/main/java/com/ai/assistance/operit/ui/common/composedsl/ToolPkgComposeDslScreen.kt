@@ -212,7 +212,6 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 private const val TAG = "ToolPkgComposeDslScreen"
@@ -890,12 +889,6 @@ fun ToolPkgComposeDslToolScreen(
         }
     var nextDispatchTicket by remember(containerPackageName, uiModuleId) { mutableStateOf(1L) }
     var pendingTreeRerenderJob by remember(containerPackageName, uiModuleId) { mutableStateOf<Job?>(null) }
-    val nextTextInputSyncTicket =
-        remember(containerPackageName, uiModuleId) { AtomicLong(1L) }
-    val pendingTextInputSyncs =
-        remember(containerPackageName, uiModuleId) {
-            linkedMapOf<Long, CompletableDeferred<Unit>>()
-        }
     val settledDispatchTickets = remember(containerPackageName, uiModuleId) { mutableSetOf<Long>() }
     val requiresWebViewImeResize =
         remember(renderResult?.tree) {
@@ -1048,14 +1041,18 @@ fun ToolPkgComposeDslToolScreen(
             }
     }
 
-    fun hasPendingTextInputSyncs(): Boolean = pendingTextInputSyncs.isNotEmpty()
-
-    suspend fun awaitPendingTextInputSyncs() {
-        val pendingCompletions = pendingTextInputSyncs.values.toList()
-        pendingCompletions.forEach { completion ->
-            runCatching { completion.await() }
+    // Text edits must reach the JS runtime in keystroke order; dispatching each keystroke on its
+    // own thread lets later edits apply first and regresses the runtime state behind the field.
+    val textInputDispatchQueue =
+        remember(containerPackageName, uiModuleId) {
+            ComposeDslTextInputDispatchQueue(
+                onAllSettled = { requestComposeDslTreeRerender(false) }
+            )
         }
-    }
+
+    fun hasPendingTextInputSyncs(): Boolean = textInputDispatchQueue.hasPending()
+
+    suspend fun awaitPendingTextInputSyncs() = textInputDispatchQueue.awaitAll()
 
     fun flushTextInputSyncsAndRerender() {
         scope.launch {
@@ -1190,28 +1187,19 @@ fun ToolPkgComposeDslToolScreen(
         if (normalizedActionId.isBlank()) {
             return
         }
-        val syncTicket = nextTextInputSyncTicket.getAndIncrement()
-        val completion = CompletableDeferred<Unit>()
-        pendingTextInputSyncs[syncTicket] = completion
-        dispatchActionInternal(
-            actionId = normalizedActionId,
-            payload =
-                mapOf(
-                    "__composeTextFieldPayload" to true,
-                    "__no_render" to true,
-                    "value" to text
-                ),
-            onSettled = {
-                pendingTextInputSyncs.remove(syncTicket)
-                if (!completion.isCompleted) {
-                    completion.complete(Unit)
-                }
-                if (!hasPendingTextInputSyncs()) {
-                    requestComposeDslTreeRerender(false)
-                }
-            },
-            flushPendingTextInputs = false
-        )
+        textInputDispatchQueue.enqueue(normalizedActionId, text) { entry, onSettled ->
+            dispatchActionInternal(
+                actionId = entry.actionId,
+                payload =
+                    mapOf(
+                        "__composeTextFieldPayload" to true,
+                        "__no_render" to true,
+                        "value" to entry.text
+                    ),
+                onSettled = onSettled,
+                flushPendingTextInputs = false
+            )
+        }
     }
 
     suspend fun dispatchActionAwait(actionId: String, payload: Any? = null) {
@@ -1275,12 +1263,7 @@ fun ToolPkgComposeDslToolScreen(
             try {
                 pendingTreeRerenderJob?.cancel()
                 pendingTreeRerenderJob = null
-                pendingTextInputSyncs.values.forEach { completion ->
-                    if (!completion.isCompleted) {
-                        completion.complete(Unit)
-                    }
-                }
-                pendingTextInputSyncs.clear()
+                textInputDispatchQueue.completeAll()
                 isLoading = true
                 dispatchingCount = 0
                 isDispatching = false
@@ -1484,12 +1467,7 @@ fun ToolPkgComposeDslToolScreen(
             ComposeDslFilePickerHostRegistry.unbind(executionContextKey)
             pendingTreeRerenderJob?.cancel()
             pendingTreeRerenderJob = null
-            pendingTextInputSyncs.values.forEach { completion ->
-                if (!completion.isCompleted) {
-                    completion.complete(Unit)
-                }
-            }
-            pendingTextInputSyncs.clear()
+            textInputDispatchQueue.completeAll()
             setTopBarTitleContent(null)
             ToolPkgComposeDslDebugSnapshotStore.clear(routeInstanceId)
             ComposeDslWebViewHostRegistry.clearExecutionContext(executionContextKey)
@@ -1631,11 +1609,6 @@ fun ToolPkgComposeDslDialogHost(
     var hasDispatchedInitialOnLoad by remember(request) { mutableStateOf(false) }
     var nextDispatchTicket by remember(request) { mutableStateOf(1L) }
     var pendingTreeRerenderJob by remember(request) { mutableStateOf<Job?>(null) }
-    val nextTextInputSyncTicket = remember(request) { AtomicLong(1L) }
-    val pendingTextInputSyncs =
-        remember(request) {
-            linkedMapOf<Long, CompletableDeferred<Unit>>()
-        }
     val settledDispatchTickets = remember(request) { mutableSetOf<Long>() }
 
     fun buildModuleSpec(): Map<String, Any?> =
@@ -1736,14 +1709,18 @@ fun ToolPkgComposeDslDialogHost(
             }
     }
 
-    fun hasPendingTextInputSyncs(): Boolean = pendingTextInputSyncs.isNotEmpty()
-
-    suspend fun awaitPendingTextInputSyncs() {
-        val pendingCompletions = pendingTextInputSyncs.values.toList()
-        pendingCompletions.forEach { completion ->
-            runCatching { completion.await() }
+    // Text edits must reach the JS runtime in keystroke order; dispatching each keystroke on its
+    // own thread lets later edits apply first and regresses the runtime state behind the field.
+    val textInputDispatchQueue =
+        remember(request) {
+            ComposeDslTextInputDispatchQueue(
+                onAllSettled = { requestComposeDslTreeRerender(false) }
+            )
         }
-    }
+
+    fun hasPendingTextInputSyncs(): Boolean = textInputDispatchQueue.hasPending()
+
+    suspend fun awaitPendingTextInputSyncs() = textInputDispatchQueue.awaitAll()
 
     fun flushTextInputSyncsAndRerender() {
         scope.launch {
@@ -1844,28 +1821,19 @@ fun ToolPkgComposeDslDialogHost(
         if (normalizedActionId.isBlank()) {
             return
         }
-        val syncTicket = nextTextInputSyncTicket.getAndIncrement()
-        val completion = CompletableDeferred<Unit>()
-        pendingTextInputSyncs[syncTicket] = completion
-        dispatchActionInternal(
-            actionId = normalizedActionId,
-            payload =
-                mapOf(
-                    "__composeTextFieldPayload" to true,
-                    "__no_render" to true,
-                    "value" to text
-                ),
-            onSettled = {
-                pendingTextInputSyncs.remove(syncTicket)
-                if (!completion.isCompleted) {
-                    completion.complete(Unit)
-                }
-                if (!hasPendingTextInputSyncs()) {
-                    requestComposeDslTreeRerender(false)
-                }
-            },
-            flushPendingTextInputs = false
-        )
+        textInputDispatchQueue.enqueue(normalizedActionId, text) { entry, onSettled ->
+            dispatchActionInternal(
+                actionId = entry.actionId,
+                payload =
+                    mapOf(
+                        "__composeTextFieldPayload" to true,
+                        "__no_render" to true,
+                        "value" to entry.text
+                    ),
+                onSettled = onSettled,
+                flushPendingTextInputs = false
+            )
+        }
     }
 
     suspend fun dispatchActionAwait(actionId: String, payload: Any? = null) {
@@ -1887,12 +1855,7 @@ fun ToolPkgComposeDslDialogHost(
             try {
                 pendingTreeRerenderJob?.cancel()
                 pendingTreeRerenderJob = null
-                pendingTextInputSyncs.values.forEach { completion ->
-                    if (!completion.isCompleted) {
-                        completion.complete(Unit)
-                    }
-                }
-                pendingTextInputSyncs.clear()
+                textInputDispatchQueue.completeAll()
                 isLoading = true
                 dispatchingCount = 0
                 errorMessage = null
@@ -1957,12 +1920,7 @@ fun ToolPkgComposeDslDialogHost(
         onDispose {
             pendingTreeRerenderJob?.cancel()
             pendingTreeRerenderJob = null
-            pendingTextInputSyncs.values.forEach { completion ->
-                if (!completion.isCompleted) {
-                    completion.complete(Unit)
-                }
-            }
-            pendingTextInputSyncs.clear()
+            textInputDispatchQueue.completeAll()
             ComposeDslWebViewHostRegistry.clearExecutionContext(executionContextKey)
             packageManager.releaseToolPkgExecutionEngine(executionContextKey, jsEngine)
         }

@@ -8,7 +8,7 @@ enum class ApiProviderType {
         OPENAI, // OpenAI (GPT系列)
         XAI, // xAI (Grok)
         OPENAI_RESPONSES, // OpenAI Responses API
-        OPENAI_CODEX, // OpenAI Codex（ChatGPT OAuth）
+        OPENAI_CODEX, // Codex（ChatGPT OAuth）
         OPENAI_RESPONSES_GENERIC, // OpenAI Responses通用（自定义端点）
         OPENAI_GENERIC, // OpenAI通用（自定义端点）
         ANTHROPIC, // Anthropic (Claude系列)
@@ -67,6 +67,28 @@ object ModelConfigDefaults {
         const val DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT = true
         const val DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD = 16
 }
+
+data class SummarySectionConfig(
+        val id: String,
+        val enabled: Boolean = true,
+        val title: String = "",
+        val instruction: String = ""
+)
+
+@Serializable
+data class SummarySectionOverride(
+        val id: String,
+        val enabled: Boolean? = null,
+        val title: String? = null,
+        val instruction: String? = null
+)
+
+data class ConversationSummaryConfig(
+        val globalRules: String? = null,
+        val sectionOverrides: List<SummarySectionOverride> = emptyList(),
+        val dialogueReviewEnabled: Boolean = true,
+        val dialogueReviewTitle: String = ""
+)
 
 /** 表示完整的模型配置，包括API设置和模型参数 */
 @Serializable
@@ -132,6 +154,9 @@ data class ModelConfigData(
                 ModelConfigDefaults.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD,
         // 自定义总结规则
         val summaryCustomRules: String = "",
+        val summarySectionOverrides: List<SummarySectionOverride> = emptyList(),
+        val enableSummaryDialogueReview: Boolean = true,
+        val summaryDialogueReviewTitle: String = "",
 
         // MNN特定配置
         // 注意：MNN模型路径会根据modelName自动构建，不需要单独存储

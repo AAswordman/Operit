@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
 import android.os.Environment
+import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
 import com.ai.assistance.operit.util.AppLogger
@@ -273,6 +274,14 @@ object ModelListFetcher {
                                 requestBuilder.addHeader("x-api-key", apiKey)
                             }
                             requestBuilder.addHeader("anthropic-version", ANTHROPIC_VERSION)
+                        }
+                        ApiProviderType.OPENCODE -> {
+                            // Zen and Go expose an OpenAI-compatible model catalog and expect
+                            // the same agent-owned identity as their inference requests.
+                            if (apiKey.isNotBlank()) {
+                                requestBuilder.addHeader("Authorization", "Bearer $apiKey")
+                            }
+                            requestBuilder.addHeader("User-Agent", "Operit/${BuildConfig.VERSION_NAME}")
                         }
                         else -> {
                             if (apiKey.isNotBlank()) {

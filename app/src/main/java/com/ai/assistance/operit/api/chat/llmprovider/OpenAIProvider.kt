@@ -213,6 +213,25 @@ open class OpenAIProvider(
     ) {
     }
 
+    protected open fun convertChatRequestToResponsesRequest(requestObject: JSONObject): JSONObject {
+        return OpenAIResponsesPayloadAdapter.toResponsesRequest(requestObject)
+    }
+
+    protected open fun createResponsesReasoningMetadataTag(item: JSONObject): String? {
+        return OpenAIResponsesPayloadAdapter.createReasoningMetadataTag(item)
+    }
+
+    protected open fun createResponsesMessageMetadataTag(
+        item: JSONObject,
+        bufferedText: String
+    ): String? = null
+
+    protected open fun parseResponsesNonStreamingResponse(
+        jsonResponse: JSONObject
+    ): OpenAIResponsesPayloadAdapter.ParsedResponseOutput {
+        return OpenAIResponsesPayloadAdapter.parseNonStreamingResponse(jsonResponse)
+    }
+
     protected open fun applyAuthenticationHeaders(
         builder: Request.Builder,
         currentApiKey: String
@@ -676,7 +695,7 @@ open class OpenAIProvider(
 
         val finalRequestObject =
             if (useResponsesApi) {
-                OpenAIResponsesPayloadAdapter.toResponsesRequest(jsonObject)
+                convertChatRequestToResponsesRequest(jsonObject)
             } else {
                 jsonObject
             }
@@ -1063,20 +1082,26 @@ open class OpenAIProvider(
             queuedOpenToolCalls.clear()
         }
 
-        fun flushOpenToolCallsAsCancelled(reason: String) {
+        fun flushOpenToolCallsAsUnmatched(reason: String) {
             emitQueuedToolCallsIfNeeded()
             if (openToolCalls.isEmpty()) return
 
             AppLogger.w(
                 "AIService",
-                "发现未完成的tool_calls，按取消处理: count=${openToolCalls.size}, reason=$reason"
+                "发现未匹配的tool_calls，按工具结果未匹配处理: count=${openToolCalls.size}, reason=$reason"
             )
             for (openToolCall in openToolCalls) {
                 messagesArray.put(
                     JSONObject().apply {
                         put("role", "tool")
                         put("tool_call_id", openToolCall.id)
-                        put("content", "User cancelled")
+                        put(
+                            "content",
+                            StructuredToolCallBridge.unmatchedToolResultContent(
+                                reason,
+                                openToolCall.matchingName
+                            )
+                        )
                     }
                 )
             }
@@ -1091,7 +1116,7 @@ open class OpenAIProvider(
                 if (useToolCall) {
                     when (turn.kind) {
                         PromptTurnKind.SYSTEM -> {
-                            flushOpenToolCallsAsCancelled("system_boundary")
+                            flushOpenToolCallsAsUnmatched("system_boundary")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "system")
@@ -1102,7 +1127,7 @@ open class OpenAIProvider(
 
                         PromptTurnKind.USER,
                         PromptTurnKind.SUMMARY -> {
-                            flushOpenToolCallsAsCancelled("user_boundary")
+                            flushOpenToolCallsAsUnmatched("user_boundary")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "user")
@@ -1122,11 +1147,11 @@ open class OpenAIProvider(
 
                             if (toolCalls != null && toolCalls.length() > 0) {
                                 if (openToolCalls.isNotEmpty()) {
-                                    flushOpenToolCallsAsCancelled("assistant_tool_call_before_result")
+                                    flushOpenToolCallsAsUnmatched("assistant_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls)
                             } else {
-                                flushOpenToolCallsAsCancelled("assistant_boundary")
+                                flushOpenToolCallsAsUnmatched("assistant_boundary")
                                 val effectiveContent = if (content.isBlank()) {
                                     AppLogger.d("AIService", "发现空的assistant消息，填充为[空消息]")
                                     "[Empty]"
@@ -1158,11 +1183,11 @@ open class OpenAIProvider(
 
                             if (toolCalls != null && toolCalls.length() > 0) {
                                 if (openToolCalls.isNotEmpty()) {
-                                    flushOpenToolCallsAsCancelled("typed_tool_call_before_result")
+                                    flushOpenToolCallsAsUnmatched("typed_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls)
                             } else {
-                                flushOpenToolCallsAsCancelled("typed_tool_call_without_payload")
+                                flushOpenToolCallsAsUnmatched("typed_tool_call_without_payload")
                                 val effectiveContent = if (content.isBlank()) "[Empty]" else content
                                 messagesArray.put(
                                     JSONObject().apply {
@@ -1209,7 +1234,7 @@ open class OpenAIProvider(
                                     )
                                 }
 
-                                flushOpenToolCallsAsCancelled("tool_result_partial_batch")
+                                flushOpenToolCallsAsUnmatched("tool_result_partial_batch")
 
                                 if (!useResponsesApi) {
                                     appendReadableImageMessageIfNeeded(
@@ -1228,7 +1253,7 @@ open class OpenAIProvider(
                                     )
                                 }
                             } else {
-                                flushOpenToolCallsAsCancelled("tool_result_without_structured_match")
+                                flushOpenToolCallsAsUnmatched("tool_result_without_structured_match")
                                 if (textContent.isNotEmpty()) {
                                     messagesArray.put(
                                         JSONObject().apply {
@@ -1241,7 +1266,7 @@ open class OpenAIProvider(
                         }
                     }
                 } else {
-                    flushOpenToolCallsAsCancelled("tool_call_api_disabled")
+                    flushOpenToolCallsAsUnmatched("tool_call_api_disabled")
                     val role = providerRoleForTurn(turn)
                     // 不启用Tool Call API时，保持原样
                     val historyMessage = JSONObject()
@@ -1267,7 +1292,7 @@ open class OpenAIProvider(
             }
         }
 
-        flushOpenToolCallsAsCancelled("history_end")
+        flushOpenToolCallsAsUnmatched("history_end")
 
         return Pair(messagesArray, tokenCount)
     }
@@ -1847,7 +1872,9 @@ open class OpenAIProvider(
         val responsesWebSearchItems: MutableMap<Int, JSONObject> = linkedMapOf(),
         val emittedResponsesWebSearchKeys: MutableSet<String> = mutableSetOf(),
         val emittedResponsesOutputItemMetadataKeys: MutableSet<String> = mutableSetOf(),
-        val responsesOutputTextBuffers: MutableMap<Int, StringBuilder> = linkedMapOf()
+        val responsesOutputTextBuffers: MutableMap<Int, StringBuilder> = linkedMapOf(),
+        val responsesMessageItems: MutableMap<Int, JSONObject> = linkedMapOf(),
+        val responsesLiveEmittedOutputIndexes: MutableSet<Int> = mutableSetOf()
     )
 
     /**
@@ -2577,8 +2604,11 @@ open class OpenAIProvider(
                 if (delta.isNotEmpty()) {
                     val outputIndex = jsonResponse.optInt("output_index", -1)
                     if (bufferResponsesOutputTextUntilItemDone && outputIndex >= 0) {
+                        // Keep a buffer for commentary metadata. Visible final text is emitted
+                        // live once output_item.added has shown this item is not commentary.
                         state.responsesOutputTextBuffers.getOrPut(outputIndex) { StringBuilder() }
                             .append(delta)
+                        emitLiveResponsesOutputText(outputIndex, delta, state, emitter)
                     } else {
                         processResponsesRegularContentDelta(delta, state, emitter)
                     }
@@ -2633,8 +2663,45 @@ open class OpenAIProvider(
                         // Responses output item 的顺序是 reasoning -> web search -> message。
                         // 消息边界只负责把已完成的搜索来源放到正文之前。
                         emitResponsesWebSearchDisplayFromResponse(context, null, state, emitter)
-                    } else if (eventType == "response.output_item.done" && bufferResponsesOutputTextUntilItemDone) {
-                        emitBufferedResponsesMessageItemContent(item, outputIndex, state, emitter)
+                        if (bufferResponsesOutputTextUntilItemDone && outputIndex >= 0) {
+                            state.responsesMessageItems[outputIndex] = JSONObject(item.toString())
+                            val pendingText =
+                                state.responsesOutputTextBuffers[outputIndex]?.toString().orEmpty()
+                            if (pendingText.isNotEmpty() &&
+                                outputIndex !in state.responsesLiveEmittedOutputIndexes
+                            ) {
+                                emitLiveResponsesOutputText(
+                                    outputIndex,
+                                    pendingText,
+                                    state,
+                                    emitter
+                                )
+                            }
+                        }
+                    } else if (eventType == "response.output_item.done") {
+                        val bufferedText =
+                            if (outputIndex >= 0) {
+                                state.responsesOutputTextBuffers[outputIndex]?.toString().orEmpty()
+                            } else {
+                                ""
+                            }
+                        if (bufferResponsesOutputTextUntilItemDone) {
+                            if (outputIndex in state.responsesLiveEmittedOutputIndexes) {
+                                state.responsesOutputTextBuffers.remove(outputIndex)
+                            } else {
+                                emitBufferedResponsesMessageItemContent(
+                                    item,
+                                    outputIndex,
+                                    state,
+                                    emitter
+                                )
+                            }
+                        }
+                        // Some Responses providers attach opaque continuation state to a completed
+                        // message item. The provider-specific hook owns both the encoding and replay.
+                        createResponsesMessageMetadataTag(item, bufferedText)?.let { metadataTag ->
+                            emitter.emitMetadataTag(metadataTag)
+                        }
                     }
                     return
                 }
@@ -2654,7 +2721,7 @@ open class OpenAIProvider(
                             emitter
                         )
                         closeReasoningModeIfOpen(state, emitter)
-                        OpenAIResponsesPayloadAdapter.createReasoningMetadataTag(item)?.let { metadataTag ->
+                        createResponsesReasoningMetadataTag(item)?.let { metadataTag ->
                             emitter.emitMetadataTag(metadataTag)
                         }
                     }
@@ -2920,6 +2987,23 @@ open class OpenAIProvider(
         processContentDelta("", regularContent, state, emitter)
     }
 
+    private suspend fun emitLiveResponsesOutputText(
+        outputIndex: Int,
+        text: String,
+        state: StreamingState,
+        emitter: StreamEmitter
+    ) {
+        if (text.isEmpty() || outputIndex < 0) {
+            return
+        }
+        val item = state.responsesMessageItems[outputIndex] ?: return
+        if (isResponsesCommentaryMessage(item)) {
+            return
+        }
+        processResponsesRegularContentDelta(text, state, emitter)
+        state.responsesLiveEmittedOutputIndexes.add(outputIndex)
+    }
+
     private suspend fun emitBufferedResponsesMessageItemContent(
         item: JSONObject,
         outputIndex: Int,
@@ -2937,9 +3021,9 @@ open class OpenAIProvider(
         }
 
         if (isResponsesCommentaryMessage(item)) {
+            // DeepSeek commentary is persisted as hidden metadata on output_item.done.
+            // Emitting it as think would show a second thinking block next to the reasoning item.
             state.reasoningObserved = true
-            processContentDelta(bufferedText, "", state, emitter)
-            closeReasoningModeIfOpen(state, emitter)
         } else {
             processResponsesRegularContentDelta(bufferedText, state, emitter)
         }
@@ -3272,7 +3356,7 @@ open class OpenAIProvider(
                                 val handledImages = tryHandleOpenAiImageResponse(jsonResponse, emitter, null)
 
                                 if (useResponsesApi) {
-                                    val parsed = OpenAIResponsesPayloadAdapter.parseNonStreamingResponse(jsonResponse)
+                                    val parsed = parseResponsesNonStreamingResponse(jsonResponse)
                                     val responseDisplayState = StreamingState()
 
                                     parsed.reasoningChunks.forEach { reasoningChunk ->

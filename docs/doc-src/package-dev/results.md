@@ -196,10 +196,21 @@
 - `FunctionModelConfigsResultData`
 - `FunctionModelConfigResultData`
 - `FunctionModelBindingResultData`
+- `ModelConfigConnectionTestOutcome`
 - `ModelConfigConnectionTestItemResultData`
 - `ModelConfigConnectionTestResultData`
 
 这一部分主要给 `Tools.SoftwareSettings` 使用。
+
+`ModelConfigConnectionTestResultData.success` 表示连接测试没有硬失败，例如请求或工具调用没有报错。它不等于多模态能力已经被证明。
+
+`ModelConfigConnectionTestResultData.verified` 表示本次请求的所有测试项都得到验证。单项 `tests[].outcome` 有三种取值：
+
+- `passed`：该项已验证通过
+- `unverified`：请求已连通，但返回内容没有证明对应能力
+- `failed`：该项请求或执行失败
+
+统计字段中，`passedTests`、`unverifiedTests`、`failedTests` 分别对应这三类单项结果。
 
 ### 8. Chat 结果
 

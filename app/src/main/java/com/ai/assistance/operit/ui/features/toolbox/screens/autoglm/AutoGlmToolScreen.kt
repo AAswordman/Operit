@@ -54,7 +54,7 @@ private fun AutoGlmToolContent(
             OutlinedTextField(
                 value = task,
                 onValueChange = onTaskChange,
-                label = { Text("Enter Task") },
+                label = { Text("Enter Task", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 5
             )
@@ -67,7 +67,11 @@ private fun AutoGlmToolContent(
                 verticalAlignment = Alignment.CenterVertically
             )
             {
-                Text(stringResource(R.string.autoglm_virtual_screen))
+                Text(
+                    stringResource(R.string.autoglm_virtual_screen),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
                 Switch(
                     checked = useVirtualScreen,
                     onCheckedChange = { onUseVirtualScreenChange(it) },
@@ -90,12 +94,23 @@ private fun AutoGlmToolContent(
                     containerColor = if (uiState.isLoading) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text(if (uiState.isLoading) "Cancel" else "Execute")
+                Text(
+                    if (uiState.isLoading) "Cancel" else "Execute",
+                    color = if (uiState.isLoading) {
+                        MaterialTheme.colorScheme.onError
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Execution Log", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Execution Log",
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -113,6 +128,7 @@ private fun AutoGlmToolContent(
 
             Text(
                 text = uiState.log,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(logScrollState)

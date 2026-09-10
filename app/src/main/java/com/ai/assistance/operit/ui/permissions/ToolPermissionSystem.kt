@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
 
 // Define DataStore
@@ -113,8 +114,8 @@ class ToolPermissionSystem private constructor(private val context: Context) {
         }
     }
     
-    // Registry of operation descriptions by tool name
-    private val operationDescriptionRegistry = mutableMapOf<String, (AITool) -> String>()
+    // MCP startup registers verified plugins concurrently, while permission checks may read this.
+    private val operationDescriptionRegistry = ConcurrentHashMap<String, (AITool) -> String>()
     
     /**
      * Register a description generator for a tool

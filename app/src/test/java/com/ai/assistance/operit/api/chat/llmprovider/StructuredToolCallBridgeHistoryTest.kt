@@ -5,6 +5,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,6 +35,15 @@ class StructuredToolCallBridgeHistoryTest {
             )
 
         assertEquals(listOf("user", "assistant", "tool", "tool", "user"), messages.roles())
+        val placeholder = messages.at(3).getString("content")
+        assertEquals(
+            StructuredToolCallBridge.unmatchedToolResultContent(
+                "tool_result_partial_batch",
+                "read_file_part"
+            ),
+            placeholder
+        )
+        assertFalse(placeholder.contains("用户取消"))
         assertEquals("The second read was skipped.", messages.at(4).getString("content"))
         assertToolResultsFollowTheirCalls(messages)
     }
@@ -84,7 +94,108 @@ class StructuredToolCallBridgeHistoryTest {
 
         assertEquals(listOf(1), matched.map { it.resultIndex })
         assertEquals(listOf("first-id"), matched.map { it.call.id })
-        assertEquals(listOf("second"), openToolCalls.map { it.name })
+        assertEquals(listOf("second"), openToolCalls.map { it.matchingName })
+    }
+
+    @Test
+    fun `Gemini package proxy result matches concrete tool and retains proxy identity`() {
+        val geminiFunctionCall =
+            JSONObject().apply {
+                put("name", "package_proxy")
+                put(
+                    "args",
+                    JSONObject().apply {
+                        put("tool_name", "extended_http_tools:http_request")
+                    }
+                )
+            }
+        val openToolCalls =
+            mutableListOf(
+                StructuredToolCallBridge.OpenToolCall(
+                    id = geminiFunctionCall.getString("name"),
+                    matchingName = StructuredToolCallBridge.toolCallName(geminiFunctionCall),
+                )
+            )
+
+        val matched =
+            StructuredToolCallBridge.consumeMatchingToolCalls(
+                openToolCalls,
+                listOf("extended_http_tools:http_request")
+            )
+
+        assertEquals(1, matched.size)
+        assertEquals("package_proxy", matched.single().call.id)
+        assertTrue(openToolCalls.isEmpty())
+    }
+
+    @Test
+    fun `Claude package proxy result matches concrete tool from input`() {
+        val claudeToolUse =
+            JSONObject().apply {
+                put("type", "tool_use")
+                put("name", "package_proxy")
+                put(
+                    "input",
+                    JSONObject().apply {
+                        put("tool_name", "extended_http_tools:http_request")
+                    }
+                )
+            }
+
+        val openToolCalls =
+            mutableListOf(
+                StructuredToolCallBridge.OpenToolCall(
+                    id = "claude-tool-use-id",
+                    matchingName = StructuredToolCallBridge.toolCallName(claudeToolUse),
+                )
+            )
+        val matched =
+            StructuredToolCallBridge.consumeMatchingToolCalls(
+                openToolCalls,
+                listOf("extended_http_tools:http_request")
+            )
+
+        assertEquals(1, matched.size)
+        assertEquals("claude-tool-use-id", matched.single().call.id)
+        assertTrue(openToolCalls.isEmpty())
+    }
+
+    @Test
+    fun `OpenAI local proxy result matches concrete target from arguments`() {
+        val openAiProxyCall =
+            JSONObject().apply {
+                put("id", "openai-local-proxy-id")
+                put(
+                    "function",
+                    JSONObject().apply {
+                        put("name", "proxy")
+                        put(
+                            "arguments",
+                            JSONObject().apply {
+                                put("tool_name", "read_file")
+                                put("params", JSONObject().apply { put("path", "a.txt") }.toString())
+                            }.toString()
+                        )
+                    }
+                )
+            }
+        val openToolCalls =
+            mutableListOf(
+                StructuredToolCallBridge.OpenToolCall(
+                    id = openAiProxyCall.getString("id"),
+                    matchingName = StructuredToolCallBridge.toolCallName(openAiProxyCall),
+                )
+            )
+
+        val matched =
+            StructuredToolCallBridge.consumeMatchingToolCalls(
+                openToolCalls,
+                listOf("read_file")
+            )
+
+        assertEquals(1, matched.size)
+        assertEquals("openai-local-proxy-id", matched.single().call.id)
+        assertTrue(openToolCalls.isEmpty())
     }
 
     @Test

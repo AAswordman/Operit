@@ -21,6 +21,10 @@ object OperitBackupDirs {
         return ensureDir(File(backupRootDir(), "room_db"))
     }
 
+    fun preferencesDir(): File {
+        return ensureDir(File(backupRootDir(), "preferences"))
+    }
+
     fun chatDir(): File {
         return ensureDir(File(backupRootDir(), "chat"))
     }

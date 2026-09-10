@@ -26,7 +26,6 @@ import com.ai.assistance.operit.core.chat.hooks.toRoleContentPairs
 import com.ai.assistance.operit.core.application.ActivityLifecycleManager
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.core.tools.ToolExecutionLimits
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
@@ -38,6 +37,7 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.data.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
@@ -1791,8 +1791,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                                         R.string.enhanced_pure_thinking_only_warning
                                 )
                         )
-                context.roundManager.appendContent("\n$pureThinkingWarning")
-                collector.emit(pureThinkingWarning)
+                val pureThinkingWarningDisplayContent = "\n$pureThinkingWarning"
+                context.roundManager.appendContent(pureThinkingWarningDisplayContent)
+                collector.emit(pureThinkingWarningDisplayContent)
                 try {
                     context.conversationHistory.add(
                         PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = pureThinkingWarning)
@@ -2216,18 +2217,8 @@ class EnhancedAIService private constructor(private val context: Context) {
     ) {
         val startTime = messageTimingNow()
         val toolNames = results.joinToString(", ") { it.toolName }
-        val rawToolResultMessage =
-            toolResultMessageOverride ?: ConversationMarkupManager.buildBoundedToolResultMessage(results)
         val toolResultMessage =
-            if (rawToolResultMessage.length <= ToolExecutionLimits.MAX_FINAL_TOOL_RESULT_MESSAGE_CHARS) {
-                rawToolResultMessage
-            } else {
-                AppLogger.w(
-                    TAG,
-                    "工具结果消息超过最终兜底上限，已静默截断。原长度: ${rawToolResultMessage.length}"
-                )
-                rawToolResultMessage.take(ToolExecutionLimits.MAX_FINAL_TOOL_RESULT_MESSAGE_CHARS)
-            }
+            toolResultMessageOverride ?: ConversationMarkupManager.buildToolResultMessage(results)
 
         if (toolResultMessage.isBlank()) {
             AppLogger.w(TAG, "工具结果消息为空，跳过后续AI请求")
@@ -2593,13 +2584,13 @@ class EnhancedAIService private constructor(private val context: Context) {
     suspend fun generateSummary(
             messages: List<Pair<String, String>>,
             previousSummary: String?,
-            customRules: String? = null,
+            summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
     ): String {
         return generateSummaryFromPromptTurns(
             messages.toPromptTurns(),
             previousSummary,
-            customRules,
+            summaryConfig,
             recordTokenUsage,
         )
     }
@@ -2607,7 +2598,7 @@ class EnhancedAIService private constructor(private val context: Context) {
     suspend fun generateSummaryFromPromptTurns(
             messages: List<PromptTurn>,
             previousSummary: String?,
-            customRules: String? = null,
+            summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
     ): String {
         // 调用ConversationService中的方法
@@ -2615,7 +2606,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             messages,
             previousSummary,
             multiServiceManager,
-            customRules,
+            summaryConfig,
             recordTokenUsage,
         )
     }

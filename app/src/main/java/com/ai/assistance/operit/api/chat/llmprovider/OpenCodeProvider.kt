@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
+import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
@@ -98,19 +99,27 @@ class OpenCodeProvider private constructor(
             val model = config.modelName.trim().removePrefix("opencode/").removePrefix("opencode-go/")
             val endpoint = OpenCodeRouting.endpointFor(config.apiEndpoint, model)
             val provider = OpenCodeRouting.protocolFor(config.apiEndpoint, model)
+            val routedHeaders = customHeaders.toMutableMap().apply {
+                // Go requires an agent-owned user agent and a stable session header so its
+                // gateway can identify the client and keep prompt-cache routing stable.
+                put("User-Agent", "Operit/${BuildConfig.VERSION_NAME}")
+                if (OpenCodeRouting.isGo(config.apiEndpoint)) {
+                    put("x-opencode-session", "operit-${config.id}")
+                }
+            }
             val routed: AIService = when (provider) {
                 ApiProviderType.OPENAI_RESPONSES_GENERIC -> OpenCodeResponsesProvider(
-                    endpoint, apiKeyProvider, model, client, customHeaders,
+                    endpoint, apiKeyProvider, model, client, routedHeaders,
                     supportsVision, supportsAudio, supportsVideo, enableToolCall
                 )
                 ApiProviderType.ANTHROPIC_GENERIC -> OpenCodeClaudeProvider(
-                    endpoint, apiKeyProvider, model, client, customHeaders, enableToolCall
+                    endpoint, apiKeyProvider, model, client, routedHeaders, enableToolCall
                 )
                 ApiProviderType.GEMINI_GENERIC -> OpenCodeGeminiProvider(
-                    endpoint, apiKeyProvider, model, client, customHeaders, enableToolCall
+                    endpoint, apiKeyProvider, model, client, routedHeaders, enableToolCall
                 )
                 else -> OpenCodeChatProvider(
-                    endpoint, apiKeyProvider, model, context.applicationContext, client, customHeaders,
+                    endpoint, apiKeyProvider, model, context.applicationContext, client, routedHeaders,
                     supportsVision, supportsAudio, supportsVideo, enableToolCall
                 )
             }
@@ -130,16 +139,38 @@ class OpenCodeProvider private constructor(
 internal object OpenCodeRouting {
     fun protocolFor(baseEndpoint: String, modelName: String): ApiProviderType {
         val model = modelName.trim().lowercase()
-        val provider = model.substringBefore('/').takeIf { it != model }.orEmpty()
         val modelId = model.substringAfterLast('/')
+        val isGoEndpoint = isGo(baseEndpoint)
         return when {
-            provider == "openai" || provider == "azure" || provider == "xai" ||
-                modelId.startsWith("gpt-") || modelId.startsWith("grok-") || modelId.contains("codex") ->
-                ApiProviderType.OPENAI_RESPONSES_GENERIC
-            provider == "anthropic" || provider == "minimax" || modelId.startsWith("claude-") || modelId.startsWith("minimax-") ->
+            modelId.startsWith("gemini-") -> ApiProviderType.GEMINI_GENERIC
+            modelId.startsWith("claude-") ||
+                modelId.startsWith("qwen3.") ||
+                (isGoEndpoint && modelId.startsWith("minimax-")) ||
+                (!isGoEndpoint && modelId.startsWith("minimax-") && modelId.endsWith("-free")) ->
                 ApiProviderType.ANTHROPIC_GENERIC
-            provider == "google" || modelId.startsWith("gemini-") -> ApiProviderType.GEMINI_GENERIC
-            else -> ApiProviderType.OPENAI_GENERIC
+            modelId.startsWith("gpt-") ||
+                modelId.startsWith("grok-") ||
+                modelId.startsWith("muse-spark-") ->
+                ApiProviderType.OPENAI_RESPONSES_GENERIC
+            !isGoEndpoint && modelId.startsWith("minimax-") -> ApiProviderType.OPENAI_GENERIC
+            modelId.startsWith("big-pickle") ||
+                modelId.startsWith("deepseek-") ||
+                modelId.startsWith("glm-") ||
+                modelId.startsWith("hy3") ||
+                modelId.startsWith("hy4-") ||
+                modelId.startsWith("kimi-") ||
+                modelId.startsWith("ling-") ||
+                modelId.startsWith("longcat-") ||
+                modelId.startsWith("mimo-") ||
+                modelId.startsWith("nemotron-") ||
+                modelId.startsWith("omen-") ||
+                modelId.startsWith("qwen3-coder") ||
+                modelId.startsWith("ring-") ||
+                modelId.startsWith("north-") ||
+                modelId.startsWith("laguna-") ||
+                modelId.startsWith("trinity-") ||
+                modelId.startsWith("x-preview-") -> ApiProviderType.OPENAI_GENERIC
+            else -> throw IllegalArgumentException("Unsupported OpenCode model protocol: $modelName")
         }
     }
 
@@ -166,7 +197,7 @@ internal object OpenCodeRouting {
     fun apiBase(endpoint: String): String =
         normalizedBase(endpoint.substringBefore("/models/"))
 
-    private fun isGo(endpoint: String): Boolean {
+    fun isGo(endpoint: String): Boolean {
         val trimmed = endpoint.trim().removeSuffix("/").lowercase()
         return trimmed.endsWith("/zen/go") || trimmed.endsWith("/zen/go/v1")
     }

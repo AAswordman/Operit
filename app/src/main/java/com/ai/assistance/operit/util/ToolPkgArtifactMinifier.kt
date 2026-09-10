@@ -149,6 +149,17 @@ object ToolPkgArtifactMinifier {
                 } else {
                     emptySet()
                 }
+            if (minify) {
+                // 剪枝以 manifest 所在目录为根。若这里选错了 manifest（例如包内混入嵌套 manifest），
+                // 真正的入口会被判为不可达并整包丢弃，产出"能装但内容为空壳"的包，因此必须显式校验。
+                require(manifestEntryName in reachableEntryNames) {
+                    "Minified toolpkg lost its manifest entry: $manifestEntryName"
+                }
+                val missingExecutables = executableEntryNames.filterNot { it in reachableEntryNames }
+                require(missingExecutables.isEmpty()) {
+                    "Minified toolpkg lost executable entries: ${missingExecutables.joinToString()}"
+                }
+            }
             ZipOutputStream(outputBytes).use { zipOutput ->
                 archiveEntries.forEach { entry ->
                     val normalizedName = ToolPkgArchiveParser.normalizeZipEntryPath(entry.name)

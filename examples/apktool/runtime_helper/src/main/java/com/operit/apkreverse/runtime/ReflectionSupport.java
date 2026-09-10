@@ -2,9 +2,18 @@ package com.operit.apkreverse.runtime;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 final class ReflectionSupport {
+
+    private static final java.util.Map<String, java.lang.reflect.Method> METHOD_CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static String cacheKey(Class<?> owner, String name, int argCount) {
+        return owner.getName() + '#' + name + '/' + argCount;
+    }
+
     private ReflectionSupport() {
     }
 
@@ -15,7 +24,11 @@ final class ReflectionSupport {
             throw new NoSuchMethodException("No compatible constructor found for " + className);
         }
         trySetAccessible(constructor);
-        return constructor.newInstance(args);
+        try {
+            return constructor.newInstance(args);
+        } catch (InvocationTargetException wrapper) {
+            throw unwrapInvocationTarget(wrapper, "new " + className);
+        }
     }
 
     static Object invoke(Object target, String methodName, Object... args) throws Exception {
@@ -24,7 +37,11 @@ final class ReflectionSupport {
             throw new NoSuchMethodException("No compatible method found: " + target.getClass().getName() + "." + methodName);
         }
         trySetAccessible(method);
-        return method.invoke(target, args);
+        try {
+            return method.invoke(target, args);
+        } catch (InvocationTargetException wrapper) {
+            throw unwrapInvocationTarget(wrapper, target.getClass().getName() + "." + methodName);
+        }
     }
 
     static Object invokeStatic(String className, String methodName, Object... args) throws Exception {
@@ -34,7 +51,11 @@ final class ReflectionSupport {
             throw new NoSuchMethodException("No compatible static method found: " + className + "." + methodName);
         }
         trySetAccessible(method);
-        return method.invoke(null, args);
+        try {
+            return method.invoke(null, args);
+        } catch (InvocationTargetException wrapper) {
+            throw unwrapInvocationTarget(wrapper, className + "." + methodName);
+        }
     }
 
     static Object getStaticField(String className, String fieldName) throws Exception {
@@ -42,6 +63,28 @@ final class ReflectionSupport {
         Field field = type.getDeclaredField(fieldName);
         trySetAccessible(field);
         return field.get(null);
+    }
+
+    /**
+     * Reflection wraps everything the callee threw into InvocationTargetException, whose own
+     * message is null. Rethrow the real cause so the diagnostic actually names the failure.
+     */
+    private static Exception unwrapInvocationTarget(InvocationTargetException wrapper, String where) {
+        Throwable cause = wrapper.getCause();
+        if (cause == null) {
+            cause = wrapper.getTargetException();
+        }
+        if (cause == null) {
+            return new IllegalStateException("Reflective call failed with no cause: " + where, wrapper);
+        }
+        if (cause instanceof Error) {
+            // OutOfMemoryError and friends must not be downgraded into a checked exception.
+            throw (Error) cause;
+        }
+        if (cause instanceof Exception) {
+            return (Exception) cause;
+        }
+        return new IllegalStateException("Reflective call failed at " + where + ": " + cause, cause);
     }
 
     private static Class<?> loadClass(String className) throws ClassNotFoundException {
@@ -81,6 +124,19 @@ final class ReflectionSupport {
     }
 
     private static Method findMethod(Class<?> type, String methodName, Object[] args) {
+        String key = cacheKey(type, methodName, args == null ? 0 : args.length);
+        Method cached = METHOD_CACHE.get(key);
+        if (cached != null && isCompatible(cached.getParameterTypes(), args)) {
+            return cached;
+        }
+        Method resolved = findMethodUncached(type, methodName, args);
+        if (resolved != null) {
+            METHOD_CACHE.put(key, resolved);
+        }
+        return resolved;
+    }
+
+    private static Method findMethodUncached(Class<?> type, String methodName, Object[] args) {
         Class<?> current = type;
         while (current != null) {
             for (Method method : current.getDeclaredMethods()) {

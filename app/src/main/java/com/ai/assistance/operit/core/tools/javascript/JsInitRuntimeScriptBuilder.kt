@@ -463,14 +463,7 @@ private fun buildRuntimeToolCallScript(): String {
                 return new Promise(function(resolve, reject) {
                     try {
                         var parsed = parseToolCallArguments(rawArgs);
-                        var apiRuntime = root.__operitToolPkgApi;
-                        if (!apiRuntime || typeof apiRuntime.currentCallId !== 'function') {
-                            throw new Error('ToolPkg API runtime is unavailable');
-                        }
-                        var callId = apiRuntime.currentCallId();
-                        if (!callId) {
-                            throw new Error('toolCall requires an active execution call');
-                        }
+                        // Versioned ToolPkg facades validate the manifest API before this raw dispatch.
                         var nativeParams = parsed.params || {};
                         var callbackId = nextToolCallbackId();
                         var intermediateCallbackId =
@@ -505,19 +498,17 @@ private fun buildRuntimeToolCallScript(): String {
                                 }
                             };
                             callNative(
-                                'callToolAsyncStreamingForCall',
+                                'callToolAsyncStreaming',
                                 callbackId,
                                 intermediateCallbackId,
-                                callId,
                                 parsed.type || 'default',
                                 parsed.name,
                                 JSON.stringify(nativeParams)
                             );
                         } else {
                             callNative(
-                                'callToolAsyncForCall',
+                                'callToolAsync',
                                 callbackId,
-                                callId,
                                 parsed.type || 'default',
                                 parsed.name,
                                 JSON.stringify(nativeParams)

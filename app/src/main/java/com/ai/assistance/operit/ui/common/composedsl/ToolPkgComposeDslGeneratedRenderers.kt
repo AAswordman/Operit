@@ -495,26 +495,22 @@ internal fun renderTextFieldNode(
             )
         )
     }
-    var lastAppliedExternalValue by remember(textFieldIdentity) { mutableStateOf(externalValue) }
+    val externalSyncGuard = remember(textFieldIdentity) { ComposeDslTextFieldEchoGuard(externalValue) }
     var isFocused by remember(textFieldIdentity) { mutableStateOf(false) }
 
     LaunchedEffect(textFieldIdentity, externalValue, isFocused) {
-        if (externalValue == textFieldValue.text) {
-            lastAppliedExternalValue = externalValue
-            return@LaunchedEffect
+        if (
+            externalSyncGuard.reconcile(externalValue, textFieldValue.text, isFocused) ==
+                ComposeDslTextFieldEchoGuard.ExternalUpdate.EXTERNAL_CHANGE
+        ) {
+            val start = textFieldValue.selection.start.coerceIn(0, externalValue.length)
+            val end = textFieldValue.selection.end.coerceIn(0, externalValue.length)
+            textFieldValue =
+                TextFieldValue(
+                    text = externalValue,
+                    selection = TextRange(start, end)
+                )
         }
-        val externalValueChanged = externalValue != lastAppliedExternalValue
-        if (isFocused && !externalValueChanged) {
-            return@LaunchedEffect
-        }
-        val start = textFieldValue.selection.start.coerceIn(0, externalValue.length)
-        val end = textFieldValue.selection.end.coerceIn(0, externalValue.length)
-        textFieldValue =
-            TextFieldValue(
-                text = externalValue,
-                selection = TextRange(start, end)
-            )
-        lastAppliedExternalValue = externalValue
     }
     val textStyle =
         composeDslTextFieldStyleFromValue(styleMap)
@@ -535,6 +531,7 @@ internal fun renderTextFieldNode(
                 val previousText = textFieldValue.text
                 textFieldValue = nextValue
                 if (nextValue.text != previousText) {
+                    externalSyncGuard.onLocalEditDispatched(nextValue.text)
                     onTextInputAction(actionId, nextValue.text)
                 }
             }

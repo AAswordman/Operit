@@ -46,7 +46,9 @@ import com.ai.assistance.operit.api.chat.llmprovider.ApiKeyPoolAvailabilityTeste
 import com.ai.assistance.operit.api.chat.llmprovider.ChatConfigReadiness
 import com.ai.assistance.operit.api.chat.llmprovider.ChatConfigReadinessIssue
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConfigConnectionTester
+import com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestOutcome
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestType
+import com.ai.assistance.operit.ui.features.settings.components.ExpandableStatusText
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigData
@@ -585,31 +587,23 @@ fun ModelConfigScreen(
                                                         )
 
                                                     report.items.forEach { item ->
-                                                        val result =
-                                                            if (item.success) {
-                                                                Result.success(Unit)
-                                                            } else {
-                                                                Result.failure(
-                                                                    Exception(item.error ?: "Unknown error")
-                                                                )
-                                                            }
                                                         results.add(
                                                             ConnectionTestItem(
                                                                 labelResId = item.type.toLabelResId(),
-                                                                result = result
+                                                                type = item.type,
+                                                                outcome = item.outcome,
+                                                                error = item.error
                                                             )
                                                         )
                                                     }
                                                 } ?: run {
                                                     results.add(
                                                         ConnectionTestItem(
-                                                            R.string.test_item_chat,
-                                                            Result.failure<Unit>(
-                                                                Exception(
-                                                                    context.getString(
-                                                                        R.string.no_config_selected
-                                                                    )
-                                                                )
+                                                            labelResId = R.string.test_item_chat,
+                                                            type = ModelConnectionTestType.CHAT,
+                                                            outcome = ModelConnectionTestOutcome.FAILED,
+                                                            error = context.getString(
+                                                                R.string.no_config_selected
                                                             )
                                                         )
                                                     )
@@ -619,8 +613,10 @@ fun ModelConfigScreen(
                                             } catch (e: Exception) {
                                                 results.add(
                                                     ConnectionTestItem(
-                                                        R.string.test_item_chat,
-                                                        Result.failure<Unit>(e)
+                                                        labelResId = R.string.test_item_chat,
+                                                        type = ModelConnectionTestType.CHAT,
+                                                        outcome = ModelConnectionTestOutcome.FAILED,
+                                                        error = e.message
                                                     )
                                                 )
                                             }
@@ -675,22 +671,25 @@ fun ModelConfigScreen(
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         results.forEachIndexed { index, item ->
-                                            val isSuccess = item.result.isSuccess
-                                            val statusText =
-                                                if (isSuccess) {
-                                                    context.getString(R.string.test_connection_success)
-                                                } else {
-                                                    context.getString(
-                                                        R.string.test_connection_failed,
-                                                        item.result.exceptionOrNull()?.message ?: ""
-                                                    )
-                                                }
+                                            val statusText = item.statusText(context)
                                             val contentColor =
-                                                if (isSuccess) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.error
+                                                when (item.outcome) {
+                                                    ModelConnectionTestOutcome.PASSED ->
+                                                        MaterialTheme.colorScheme.primary
+                                                    ModelConnectionTestOutcome.UNVERIFIED ->
+                                                        MaterialTheme.colorScheme.tertiary
+                                                    ModelConnectionTestOutcome.FAILED ->
+                                                        MaterialTheme.colorScheme.error
+                                                }
                                             val icon =
-                                                if (isSuccess) Icons.Default.CheckCircle
-                                                else Icons.Default.Warning
+                                                when (item.outcome) {
+                                                    ModelConnectionTestOutcome.PASSED ->
+                                                        Icons.Default.CheckCircle
+                                                    ModelConnectionTestOutcome.UNVERIFIED ->
+                                                        Icons.Default.Info
+                                                    ModelConnectionTestOutcome.FAILED ->
+                                                        Icons.Default.Warning
+                                                }
 
                                             Column(modifier = Modifier.fillMaxWidth()) {
                                                 Row(
@@ -710,22 +709,13 @@ fun ModelConfigScreen(
                                                         fontWeight = FontWeight.Medium,
                                                         modifier = Modifier.weight(1f)
                                                     )
-                                                    if (isSuccess) {
-                                                        Text(
-                                                            text = statusText,
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = contentColor
-                                                        )
-                                                    }
                                                 }
-                                                if (!isSuccess) {
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        text = statusText,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = contentColor
-                                                    )
-                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                ExpandableStatusText(
+                                                    text = statusText,
+                                                    color = contentColor,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
                                             }
 
                                             if (index != results.lastIndex) {
@@ -2486,8 +2476,44 @@ private fun ContextSummarySettingsSection(
 
 private data class ConnectionTestItem(
     val labelResId: Int,
-    val result: Result<Unit>
-)
+    val type: ModelConnectionTestType,
+    val outcome: ModelConnectionTestOutcome,
+    val error: String? = null
+) {
+    fun statusText(context: android.content.Context): String {
+        return when (outcome) {
+            ModelConnectionTestOutcome.PASSED ->
+                context.getString(
+                    when (type) {
+                        ModelConnectionTestType.IMAGE ->
+                            R.string.test_media_image_understood
+                        ModelConnectionTestType.AUDIO ->
+                            R.string.test_media_audio_understood
+                        ModelConnectionTestType.VIDEO ->
+                            R.string.test_media_video_understood
+                        else -> R.string.test_connection_success
+                    }
+                )
+            ModelConnectionTestOutcome.UNVERIFIED ->
+                context.getString(
+                    when (type) {
+                        ModelConnectionTestType.IMAGE ->
+                            R.string.test_media_image_unverified
+                        ModelConnectionTestType.AUDIO ->
+                            R.string.test_media_audio_unverified
+                        ModelConnectionTestType.VIDEO ->
+                            R.string.test_media_video_unverified
+                        else -> R.string.test_media_unverified
+                    }
+                )
+            ModelConnectionTestOutcome.FAILED ->
+                context.getString(
+                    R.string.test_connection_failed,
+                    error ?: ""
+                )
+        }
+    }
+}
 
 private fun ModelConnectionTestType.toLabelResId(): Int {
     return when (this) {

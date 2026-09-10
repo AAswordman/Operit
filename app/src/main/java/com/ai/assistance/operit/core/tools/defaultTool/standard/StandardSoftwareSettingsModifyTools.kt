@@ -3,6 +3,7 @@ package com.ai.assistance.operit.core.tools.defaultTool.standard
 import android.content.Context
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConfigConnectionTester
+import com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestOutcome
 import com.ai.assistance.operit.api.speech.SpeechServiceFactory
 import com.ai.assistance.operit.api.voice.HttpTtsResponsePipelineStep
 import com.ai.assistance.operit.api.voice.TtsException
@@ -1403,6 +1404,7 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
                     ModelConfigConnectionTestItemResultData(
                         type = item.type.name.lowercase(),
                         success = item.success,
+                        outcome = item.outcome.name.lowercase(),
                         error = item.error
                     )
                 }
@@ -1419,9 +1421,11 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
                         actualModelIndex = report.actualModelIndex,
                         testedModelName = report.testedModelName,
                         success = report.success,
+                        verified = report.verified,
                         totalTests = report.items.size,
                         passedTests = report.items.count { it.success },
-                        failedTests = report.items.count { !it.success },
+                        unverifiedTests = report.items.count { it.outcome == ModelConnectionTestOutcome.UNVERIFIED },
+                        failedTests = report.items.count { it.outcome == ModelConnectionTestOutcome.FAILED },
                         tests = testItems
                     ),
                 error = if (report.success) null else "One or more connection tests failed"

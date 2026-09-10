@@ -75,7 +75,9 @@ class MessageVariantEntityTest {
     @Test fun `applyTo preserves base message fields`() {
         val base = ChatMessage(
             sender = "ai", content = "Original", timestamp = 500L,
-            roleName = "Assistant", isFavorite = true,
+            roleName = "Assistant",
+            displayMode = ChatMessageDisplayMode.HIDDEN_PLACEHOLDER,
+            isFavorite = true,
         )
         val variant = MessageVariantEntity(
             chatId = "chat1", messageTimestamp = 100L, variantIndex = 1, content = "Updated"
@@ -84,6 +86,7 @@ class MessageVariantEntityTest {
         assertEquals("ai", result.sender)
         assertEquals(500L, result.timestamp)
         assertEquals("Assistant", result.roleName)
+        assertEquals(ChatMessageDisplayMode.HIDDEN_PLACEHOLDER, result.displayMode)
         assertEquals(true, result.isFavorite)
     }
 

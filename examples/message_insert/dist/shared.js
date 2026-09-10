@@ -601,7 +601,6 @@ async function buildOptionalContent(item, title, build, deadlineAt) {
         if (Date.now() >= deadlineAt) {
             return markTimeout();
         }
-        logExtraInfoInjectionInfo("item.completed", `item=${item} elapsed_ms=${Date.now() - startedAt} content_length=${content.length}`);
         return content;
     }, (error) => {
         if (Date.now() >= deadlineAt || isTimeoutError(error)) {
@@ -923,33 +922,27 @@ async function buildMemoryContent(messageText, chatId, activePrompt) {
     });
     return lines.join("\n");
 }
+// Normal no-op exits stay silent because hook callers can probe this path repeatedly.
 async function appendExtraInfoToMessage(messageText, chatId, activePrompt) {
     if (!stripMessageForMemorySearch(messageText)) {
-        logExtraInfoInjectionInfo("append.skipped", "reason=empty_message_after_metadata_removal");
         return null;
     }
     const tags = await buildExtraInfoAttachmentTags(messageText, chatId, activePrompt);
     if (!tags.length) {
-        logExtraInfoInjectionInfo("append.skipped", "reason=no_attachment_tags");
         return null;
     }
-    const result = `${String(messageText || "").replace(/\s+$/, "")} ${tags.join(" ")}`.trim();
-    logExtraInfoInjectionInfo("append.completed", `attachment_count=${tags.length} result_length=${result.length}`);
-    return result;
+    return `${String(messageText || "").replace(/\s+$/, "")} ${tags.join(" ")}`.trim();
 }
 async function buildExtraInfoAttachmentTags(messageText, chatId, activePrompt) {
     const settings = loadSettings();
     if (!settings.masterEnabled) {
-        logExtraInfoInjectionInfo("attachment_build.skipped", "reason=master_disabled");
         return [];
     }
     if (containsExtraInfoAttachment(messageText)) {
-        logExtraInfoInjectionInfo("attachment_build.skipped", "reason=attachment_already_present");
         return [];
     }
     const attachmentTimestampMs = Date.now();
     const deadlineAt = attachmentTimestampMs + settings.injectionTimeoutSeconds * 1000;
-    logExtraInfoInjectionInfo("attachment_build.started", `items=${describeEnabledItems(settings) || "none"} persist=${settings.persistInjectedContent}`);
     const contentTasks = [];
     if (settings.injectTime) {
         contentTasks.push(buildOptionalContent("time", resolveExtraInfoI18n().attachmentTimeTitle, buildTimeContent, deadlineAt));
@@ -980,10 +973,9 @@ async function buildExtraInfoAttachmentTags(messageText, chatId, activePrompt) {
     }
     const contentBlocks = await Promise.all(contentTasks);
     if (!contentBlocks.length) {
-        logExtraInfoInjectionInfo("attachment_build.skipped", contentTasks.length ? "reason=no_items_completed_before_deadline" : "reason=no_items_enabled");
         return [];
     }
-    const attachment = buildAttachmentTag(COMBINED_ATTACHMENT_ID_PREFIX, buildCombinedAttachmentFileName(attachmentTimestampMs), contentBlocks.join("\n\n"));
-    logExtraInfoInjectionInfo("attachment_build.completed", `content_blocks=${contentBlocks.length} attachment_length=${attachment.length} elapsed_ms=${Date.now() - attachmentTimestampMs}`);
-    return [attachment];
+    return [
+        buildAttachmentTag(COMBINED_ATTACHMENT_ID_PREFIX, buildCombinedAttachmentFileName(attachmentTimestampMs), contentBlocks.join("\n\n")),
+    ];
 }

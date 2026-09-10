@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.backup.RawSnapshotBackupManager
 import com.ai.assistance.operit.data.db.AppDatabase
+import com.ai.assistance.operit.data.recovery.PreferencesHealthManager
+import com.ai.assistance.operit.data.recovery.RoomDatabaseHealthManager
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +35,12 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
         val queryResult: QueryResult? = null,
         val affectedRows: Int? = null,
         val lastSnapshotPath: String? = null,
-        val restoreCompleted: Boolean = false
+        val restoreCompleted: Boolean = false,
+        val configurationHealthReport: PreferencesHealthManager.Report? = null,
+        val databaseHealthReport: RoomDatabaseHealthManager.Report? = null,
+        val lastConfigurationRepairArchivePath: String? = null,
+        val lastDatabaseRepairArchivePath: String? = null,
+        val healthRepairCompleted: Boolean = false
     )
 
     private val _state = MutableStateFlow(State())
@@ -62,7 +69,9 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                                 isRunning = false,
                                 status = context.getString(R.string.data_recovery_query_completed, result.rows.size),
                                 queryResult = result,
-                                affectedRows = null
+                                affectedRows = null,
+                                configurationHealthReport = null,
+                                databaseHealthReport = null
                             )
                     }
                 } else {
@@ -74,7 +83,9 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                                 isRunning = false,
                                 status = context.getString(R.string.data_recovery_sql_completed),
                                 queryResult = null,
-                                affectedRows = affectedRows
+                                affectedRows = affectedRows,
+                                configurationHealthReport = null,
+                                databaseHealthReport = null
                             )
                     }
                 }
@@ -135,7 +146,9 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                     _state.value.copy(
                         isRunning = false,
                         status = context.getString(R.string.data_recovery_restore_completed),
-                        restoreCompleted = true
+                        restoreCompleted = true,
+                        configurationHealthReport = null,
+                        databaseHealthReport = null
                     )
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Raw snapshot restore failed", e)
@@ -148,6 +161,158 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
+
+    fun inspectStorage() {
+        _state.value =
+            _state.value.copy(
+                isRunning = true,
+                error = null,
+                status = context.getString(R.string.data_recovery_database_check_running),
+                affectedRows = null,
+                configurationHealthReport = null,
+                databaseHealthReport = null,
+                lastConfigurationRepairArchivePath = null,
+                lastDatabaseRepairArchivePath = null,
+                healthRepairCompleted = false
+            )
+        viewModelScope.launch {
+            try {
+                val configurationReport = PreferencesHealthManager.inspect(context)
+                val databaseReport = RoomDatabaseHealthManager.inspect(context)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        status = healthSummary(configurationReport, databaseReport),
+                        configurationHealthReport = configurationReport,
+                        databaseHealthReport = databaseReport
+                    )
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Configuration and database health inspection failed", e)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        error = e.message ?: e.javaClass.name,
+                        status = null
+                    )
+            }
+        }
+    }
+
+    fun repairStorage() {
+        val repairConfiguration = _state.value.configurationHealthReport?.canRepair == true
+        val repairDatabase = _state.value.databaseHealthReport?.canRepair == true
+        if (!repairConfiguration && !repairDatabase) {
+            _state.value =
+                _state.value.copy(
+                    error = context.getString(R.string.data_recovery_database_no_supported_repair),
+                    status = null
+                )
+            return
+        }
+
+        _state.value =
+            _state.value.copy(
+                isRunning = true,
+                error = null,
+                status = context.getString(R.string.data_recovery_database_repair_running),
+                affectedRows = null,
+                lastConfigurationRepairArchivePath = null,
+                lastDatabaseRepairArchivePath = null,
+                healthRepairCompleted = false
+            )
+        viewModelScope.launch {
+            var configurationArchivePath: String? = null
+            var databaseArchivePath: String? = null
+            try {
+                if (repairDatabase) {
+                    databaseArchivePath =
+                        RoomDatabaseHealthManager.repair(context).sourceArchive.absolutePath
+                }
+                if (repairConfiguration) {
+                    configurationArchivePath =
+                        PreferencesHealthManager.repair(context).sourceArchive.absolutePath
+                }
+
+                val configurationReport = PreferencesHealthManager.inspect(context)
+                val databaseReport = RoomDatabaseHealthManager.inspect(context)
+                val status =
+                    if (isHealthy(configurationReport, databaseReport)) {
+                        context.getString(R.string.data_recovery_database_repair_completed)
+                    } else {
+                        context.getString(R.string.data_recovery_database_repair_remaining)
+                    }
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        status = status,
+                        configurationHealthReport = configurationReport,
+                        databaseHealthReport = databaseReport,
+                        lastConfigurationRepairArchivePath = configurationArchivePath,
+                        lastDatabaseRepairArchivePath = databaseArchivePath,
+                        healthRepairCompleted = true
+                    )
+            } catch (e: PreferencesHealthManager.RepairFailedException) {
+                AppLogger.e(TAG, "Preferences repair failed after source preservation", e)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        error =
+                            context.getString(
+                                R.string.data_recovery_database_repair_failed_preserved,
+                                e.sourceArchive.absolutePath
+                            ),
+                        status = null,
+                        lastConfigurationRepairArchivePath = e.sourceArchive.absolutePath,
+                        lastDatabaseRepairArchivePath = databaseArchivePath
+                    )
+            } catch (e: RoomDatabaseHealthManager.RepairFailedException) {
+                AppLogger.e(TAG, "Room database repair failed after source preservation", e)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        error =
+                            context.getString(
+                                R.string.data_recovery_database_repair_failed_preserved,
+                                e.sourceArchive.absolutePath
+                            ),
+                        status = null,
+                        lastConfigurationRepairArchivePath = configurationArchivePath,
+                        lastDatabaseRepairArchivePath = e.sourceArchive.absolutePath
+                    )
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Configuration and database repair failed", e)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        error = e.message ?: e.javaClass.name,
+                        status = null,
+                        lastConfigurationRepairArchivePath = configurationArchivePath,
+                        lastDatabaseRepairArchivePath = databaseArchivePath
+                    )
+            }
+        }
+    }
+
+    private fun healthSummary(
+        configurationReport: PreferencesHealthManager.Report,
+        databaseReport: RoomDatabaseHealthManager.Report
+    ): String =
+        when {
+            configurationReport.status == PreferencesHealthManager.Status.MANUAL_RECOVERY_REQUIRED ||
+                databaseReport.status == RoomDatabaseHealthManager.Status.MANUAL_RECOVERY_REQUIRED ->
+                context.getString(R.string.data_recovery_database_summary_manual)
+            configurationReport.status == PreferencesHealthManager.Status.NEEDS_REPAIR ||
+                databaseReport.status == RoomDatabaseHealthManager.Status.NEEDS_REPAIR ->
+                context.getString(R.string.data_recovery_database_summary_repairable)
+            else -> context.getString(R.string.data_recovery_database_summary_healthy)
+        }
+
+    private fun isHealthy(
+        configurationReport: PreferencesHealthManager.Report,
+        databaseReport: RoomDatabaseHealthManager.Report
+    ): Boolean =
+        configurationReport.status == PreferencesHealthManager.Status.HEALTHY &&
+            databaseReport.status == RoomDatabaseHealthManager.Status.HEALTHY
 
     private fun writableDatabase() = AppDatabase.getDatabase(context).openHelper.writableDatabase
 

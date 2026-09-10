@@ -1483,9 +1483,14 @@ export interface FunctionModelBindingResultData {
     toString(): string;
 }
 
+export type ModelConfigConnectionTestOutcome = 'passed' | 'unverified' | 'failed';
+
 export interface ModelConfigConnectionTestItemResultData {
     type: string;
+    /** True only when this individual probe is verified as passed. */
     success: boolean;
+    /** passed = verified; unverified = request succeeded but capability was not proven; failed = request or tool call failed. */
+    outcome: ModelConfigConnectionTestOutcome;
     error?: string | null;
 }
 
@@ -1496,9 +1501,13 @@ export interface ModelConfigConnectionTestResultData {
     requestedModelIndex: number;
     actualModelIndex: number;
     testedModelName: string;
+    /** True when no probe had a hard failure. Media probes may still be unverified. */
     success: boolean;
+    /** True only when every requested probe is verified as passed. */
+    verified: boolean;
     totalTests: number;
     passedTests: number;
+    unverifiedTests: number;
     failedTests: number;
     tests: ModelConfigConnectionTestItemResultData[];
     toString(): string;
