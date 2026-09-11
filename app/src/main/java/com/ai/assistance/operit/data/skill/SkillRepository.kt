@@ -30,6 +30,8 @@ class SkillRepository private constructor(private val context: Context) {
         private const val CONNECT_TIMEOUT = 15_000
         private const val READ_TIMEOUT = 30_000
         private const val BUFFER_SIZE = 64 * 1024
+        private const val OPERIT_META_DIR = ".operit"
+        private const val GITHUB_ZIP_KEY_FILE = "github_zip_key"
         private val SKILL_ID_PATTERN = Regex("^[A-Za-z0-9._-]+$")
 
         fun getInstance(context: Context): SkillRepository {
@@ -69,7 +71,15 @@ class SkillRepository private constructor(private val context: Context) {
 
     fun readSkillContent(skillName: String): String? = skillManager.readSkillContent(skillName)
 
-    fun deleteSkill(skillName: String): Boolean = skillManager.deleteSkill(skillName)
+    suspend fun deleteSkill(skillName: String): Boolean {
+        val skill = skillManager.getAvailableSkills()[skillName] ?: return false
+        val zipKey = readGithubZipKey(skill.directory)
+        val ok = skillManager.deleteSkill(skillName)
+        if (ok && !zipKey.isNullOrBlank()) {
+            SkillRepoZipPoolManager.invalidate(zipKey)
+        }
+        return ok
+    }
 
     suspend fun importSkillFromZip(zipFile: File): String {
         return withContext(Dispatchers.IO) {
@@ -99,10 +109,19 @@ class SkillRepository private constructor(private val context: Context) {
                 ?: getGithubDefaultBranch(owner, repoName)?.also { defaultBranchCache[repoKey] = it }
                 ?: return@withContext SkillRepoImportResult(context.getString(R.string.skill_cannot_determine_default_branch, "$owner/$repoName"), null)
 
-            val encodedRef = encodePathSegment(ref)
-            val zipUrl = "https://codeload.github.com/$owner/$repoName/zip/$encodedRef"
-            val repoRefKey = "$owner/$repoName@$ref"
-            val pooledZip = SkillRepoZipPoolManager.getOrDownloadZip(repoRefKey) { outFile ->
+            val commitSha = resolveGithubCommitSha(owner, repoName, ref)
+            val zipIdentity = commitSha ?: ref
+            val zipUrl = "https://codeload.github.com/$owner/$repoName/zip/${encodePathSegment(zipIdentity)}"
+            val repoRefKey = SkillRepoZipPoolManager.poolKey(owner, repoName, zipIdentity)
+            if (!commitSha.isNullOrBlank() && commitSha != ref) {
+                SkillRepoZipPoolManager.invalidate(
+                    SkillRepoZipPoolManager.poolKey(owner, repoName, ref)
+                )
+            }
+            val pooledZip = SkillRepoZipPoolManager.getOrDownloadZip(
+                key = repoRefKey,
+                forceRefresh = commitSha.isNullOrBlank()
+            ) { outFile ->
                 downloadFromUrl(zipUrl, outFile)
             }
 
@@ -127,6 +146,9 @@ class SkillRepository private constructor(private val context: Context) {
                 }
 
                 val result = skillManager.importSkillFromZipDetailed(zipFile, target.subDir)
+                if (result.installedDir != null) {
+                    runCatching { writeGithubZipKey(result.installedDir, repoRefKey) }
+                }
 
                 if (pooledZip == null) {
                     runCatching { fallbackTempFile.delete() }
@@ -411,6 +433,60 @@ class SkillRepository private constructor(private val context: Context) {
         return true
     }
 
+    private fun isFullCommitSha(value: String): Boolean {
+        return value.length == 40 && value.all { ch ->
+            ch.isDigit() || ch.lowercaseChar() in 'a'..'f'
+        }
+    }
+
+    private fun resolveGithubCommitSha(owner: String, repoName: String, ref: String): String? {
+        if (isFullCommitSha(ref)) {
+            return ref.lowercase()
+        }
+        return getGithubCommitSha(owner, repoName, ref)
+    }
+
+    private fun getGithubCommitSha(owner: String, repoName: String, ref: String): String? {
+        val apiUrl = "https://api.github.com/repos/$owner/$repoName/commits/${encodePathSegment(ref)}"
+        return try {
+            val url = URL(apiUrl)
+            val connection = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("Accept", "application/vnd.github.v3+json")
+                setRequestProperty("User-Agent", "Operit-Skill-Client")
+                connectTimeout = CONNECT_TIMEOUT
+                readTimeout = READ_TIMEOUT
+            }
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val jsonObject = JsonParser.parseString(response).asJsonObject
+                jsonObject.get("sha")?.asString?.trim()?.takeIf { it.isNotEmpty() }
+            } else {
+                AppLogger.w(TAG, "GitHub commit lookup failed, HTTP ${connection.responseCode}")
+                null
+            }
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to fetch GitHub commit SHA for $owner/$repoName@$ref", e)
+            null
+        }
+    }
+
+    private fun githubZipKeyFile(skillDir: File): File {
+        return File(File(skillDir, OPERIT_META_DIR), GITHUB_ZIP_KEY_FILE)
+    }
+
+    private fun writeGithubZipKey(skillDir: File, key: String) {
+        val file = githubZipKeyFile(skillDir)
+        file.parentFile?.mkdirs()
+        file.writeText(key)
+    }
+
+    private fun readGithubZipKey(skillDir: File): String? {
+        val file = githubZipKeyFile(skillDir)
+        if (!file.isFile) return null
+        return file.readText().trim().takeIf { it.isNotEmpty() }
+    }
+
     private fun getGithubDefaultBranch(owner: String, repoName: String): String? {
         val apiUrl = "https://api.github.com/repos/$owner/$repoName"
         return try {
@@ -418,6 +494,7 @@ class SkillRepository private constructor(private val context: Context) {
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 setRequestProperty("Accept", "application/vnd.github.v3+json")
+                setRequestProperty("User-Agent", "Operit-Skill-Client")
                 connectTimeout = CONNECT_TIMEOUT
                 readTimeout = READ_TIMEOUT
             }
