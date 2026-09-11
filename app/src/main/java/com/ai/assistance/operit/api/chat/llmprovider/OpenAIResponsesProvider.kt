@@ -564,6 +564,20 @@ object OpenAIResponsesPayloadAdapter {
                             }
                         }
 
+                        "video_url", "input_video" -> {
+                            val videoUrl =
+                                part.optJSONObject("video_url")?.optString("url", "")
+                                    ?: part.optString("video_url", "")
+                            if (videoUrl.isNotEmpty()) {
+                                convertedParts.put(
+                                    JSONObject().apply {
+                                        put("type", "input_video")
+                                        put("video_url", videoUrl)
+                                    }
+                                )
+                            }
+                        }
+
                         else -> {
                             val rawText = part.optString("text", "")
                             if (rawText.isNotEmpty()) {
