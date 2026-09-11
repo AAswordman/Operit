@@ -23,7 +23,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
+import com.ai.assistance.operit.ui.features.packages.market.MarketUpdateCheckButton
+import com.ai.assistance.operit.ui.features.packages.market.readMarketInstallMarkerForMcp
 
 /**
  * Actions component for the MCP server details diaAppLogger.
@@ -38,10 +41,11 @@ fun MCPServerDetailsActions(
     server: MCPLocalServer.PluginMetadata,
     isInstalled: Boolean,
     onInstall: (MCPLocalServer.PluginMetadata) -> Unit,
-    onUninstall: (MCPLocalServer.PluginMetadata) -> Unit
+    onUninstall: (MCPLocalServer.PluginMetadata) -> Unit,
+    installedPath: String? = null,
+    onOpenMarketDetail: (MarketV2Entry) -> Unit = {}
 ) {
     val context = LocalContext.current
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -69,7 +73,14 @@ fun MCPServerDetailsActions(
                 Text(text = stringResource(R.string.repo))
             }
         }
-
+        // 市场更新检查（仅已安装时可用）
+        if (isInstalled) {
+            MarketUpdateCheckButton(
+                markerProvider = { readMarketInstallMarkerForMcp(context, server.id, installedPath) },
+                onOpenMarketDetail = onOpenMarketDetail,
+                modifier = Modifier.weight(1f)
+            )
+        }
         // Install/Uninstall button
         if (isInstalled) {
             Button(

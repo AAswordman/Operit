@@ -54,6 +54,7 @@ import com.ai.assistance.operit.util.AppLogger
 import android.widget.Toast
 import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.api.MarketV2Entry
 import org.json.JSONObject
 
 import java.util.*
@@ -70,6 +71,7 @@ import com.ai.assistance.operit.ui.features.startup.screens.LocalPluginLoadingSt
 @Composable
 fun MCPConfigScreen(
     onNavigateToMCPMarket: () -> Unit = {},
+    onOpenMcpMarketDetail: (MarketV2Entry) -> Unit = {},
     searchQuery: String = ""
 ) {
     val context = LocalContext.current
@@ -435,6 +437,10 @@ fun MCPConfigScreen(
                 },
                 installedPath = installedPath,
                 pluginConfig = pluginConfigJson,
+                onOpenMarketDetail = { entry ->
+                    selectedPluginForDetails = null
+                    onOpenMcpMarketDetail(entry)
+                },
                 onSaveConfig = {
                     selectedPluginId?.let { pluginId ->
                         scope.launch {
