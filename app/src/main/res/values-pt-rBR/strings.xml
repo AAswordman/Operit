@@ -3321,7 +3321,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="actual_request_url">Endereço de solicitação real: %s</string>
     <string name="endpoint_completion_hint">Dica: Se você inserir uma URL base, o sistema completará automaticamente o caminho. Para desativá-lo, adicione um sinal # no final do URL.</string>
     <string name="api_key">Chave de API</string>
-    <string name="api_key_placeholder_default">Use a chave padrão e insira-a diretamente</string>
+    <string name="api_key_placeholder_default">Nenhuma chave definida. Digite aqui ou use o pool de chaves de API</string>
     <string name="api_key_placeholder_custom">Insira a chave API</string>
     <string name="model_name">Nome do modelo</string>
     <string name="model_name_placeholder">Por exemplo: gpt-4, claude-3-opus-20240229...</string>

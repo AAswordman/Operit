@@ -3565,7 +3565,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="actual_request_url">URL permintaan aktual: %s</string>
     <string name="endpoint_completion_hint">Petunjuk: Jika Anda memasukkan URL dasar, sistem akan melengkapi jalurnya secara otomatis. Untuk menonaktifkan, tambahkan tanda # di akhir URL.</string>
     <string name="api_key">Kunci API</string>
-    <string name="api_key_placeholder_default">Gunakan Kunci default, dapat langsung dimasukkan</string>
+    <string name="api_key_placeholder_default">Belum ada kunci. Masukkan langsung atau gunakan kumpulan kunci API</string>
     <string name="api_key_placeholder_custom">Masukkan kunci API</string>
     <string name="model_name">Nama model</string>
     <string name="model_name_placeholder">Contoh: gpt-4, claude-3-opus-20240229...</string>

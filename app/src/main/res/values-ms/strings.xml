@@ -3439,7 +3439,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="actual_request_url">Alamat permintaan sebenar: %s</string>
     <string name="endpoint_completion_hint">Petunjuk: Jika anda memasukkan URL asas, sistem akan melengkapkan laluan secara automatik. Untuk melumpuhkan, tambahkan tanda # di hujung URL.</string>
     <string name="api_key">Kunci API</string>
-    <string name="api_key_placeholder_default">Gunakan Kunci lalai, boleh dimasukkan terus</string>
+    <string name="api_key_placeholder_default">Tiada kunci ditetapkan. Masukkan di sini atau gunakan Kolam Kunci API</string>
     <string name="api_key_placeholder_custom">Masukkan kunci API</string>
     <string name="model_name">Nama model</string>
     <string name="model_name_placeholder">Contoh: gpt-4, claude-3-opus-20240229...</string>

@@ -3460,7 +3460,7 @@
     <string name="actual_request_url">실제 요청 URL: %s</string>
     <string name="endpoint_completion_hint">힌트: 기본 URL을 입력하면 시스템이 자동으로 경로를 완성합니다. 비활성화하려면 URL 끝에 #을 추가하세요.</string>
     <string name="api_key">API 키</string>
-    <string name="api_key_placeholder_default">기본 키 사용 중입니다. 직접 입력할 수 있습니다.</string>
+    <string name="api_key_placeholder_default">키가 설정되지 않았습니다. 여기에 입력하거나 API 키 풀을 사용하세요</string>
     <string name="api_key_placeholder_custom">API 키 입력</string>
     <string name="model_name">모델명</string>
     <string name="model_name_placeholder">예: gpt-4, claude-3-opus-20240229...</string>
