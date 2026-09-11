@@ -293,7 +293,7 @@ fun ClassicChatSettingsBar(
         } else {
             scope.launch {
                 functionalConfigManager.setConfigForFunction(FunctionType.CHAT, selectedId, modelIndex)
-                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
             }
         }
     }
@@ -312,7 +312,7 @@ fun ClassicChatSettingsBar(
             scope.launch {
                 userPreferencesManager.setActiveMemorySpace(selectedId)
                 // 用户偏好和记忆库绑定，可能影响AI行为，所以刷新服务
-                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
             }
         }
     }
@@ -372,7 +372,7 @@ fun ClassicChatSettingsBar(
                             memoryProfileId = profileId,
                         )
                     )
-                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
                 }
                 showMemoryDropdown = false
                 showCharacterCardMemoryBindingSwitchConfirm = false

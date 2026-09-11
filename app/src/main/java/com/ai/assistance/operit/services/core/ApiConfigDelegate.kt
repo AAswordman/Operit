@@ -569,7 +569,7 @@ class ApiConfigDelegate(
             }
             val enhancedAiService =
                 withContext(Dispatchers.IO) {
-                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
                     EnhancedAIService.getInstance(context)
                 }
             withContext(Dispatchers.Main) { onConfigChanged(enhancedAiService) }
@@ -631,7 +631,7 @@ class ApiConfigDelegate(
             modelConfigManager.updateThinkingOptionId(effectiveChatConfigId.value, optionId)
             val enhancedAiService =
                 withContext(Dispatchers.IO) {
-                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
                     EnhancedAIService.getInstance(context)
                 }
             withContext(Dispatchers.Main) { onConfigChanged(enhancedAiService) }

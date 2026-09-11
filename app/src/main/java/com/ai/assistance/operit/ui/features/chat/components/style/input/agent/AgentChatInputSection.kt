@@ -339,7 +339,7 @@ fun AgentChatInputSection(
                             memoryProfileId = profileId,
                         ),
                     )
-                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
                 }
                 showCharacterCardMemoryBindingSwitchConfirm = false
                 pendingCharacterCardMemorySelection = null
@@ -559,7 +559,7 @@ fun AgentChatInputSection(
                     selectedId,
                     modelIndex,
                 )
-                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
                 showModelSelectorPopup.value = false
             }
         }
@@ -580,7 +580,7 @@ fun AgentChatInputSection(
         } else {
             scope.launch {
                 userPreferencesManager.setActiveMemorySpace(selectedId)
-                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
+                EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT, cancelStreaming = false)
                 showExtraSettingsPopup.value = false
             }
         }

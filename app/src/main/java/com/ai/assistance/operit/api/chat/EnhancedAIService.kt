@@ -37,7 +37,6 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
@@ -168,24 +167,24 @@ class EnhancedAIService private constructor(private val context: Context) {
          * @param context 应用上下文
          * @param functionType 功能类型
          */
-        suspend fun refreshServiceForFunction(context: Context, functionType: FunctionType) {
+        suspend fun refreshServiceForFunction(context: Context, functionType: FunctionType, cancelStreaming: Boolean = true) {
             val allInstances = buildList {
                 add(getInstance(context))
                 addAll(CHAT_INSTANCES.values)
             }.distinct()
-            allInstances.forEach { it.multiServiceManager.refreshServiceForFunction(functionType) }
+            allInstances.forEach { it.multiServiceManager.refreshServiceForFunction(functionType, cancelStreaming) }
         }
 
         /**
          * 刷新所有 AIService 实例（非实例化方式）
          * @param context 应用上下文
          */
-        suspend fun refreshAllServices(context: Context) {
+        suspend fun refreshAllServices(context: Context, cancelStreaming: Boolean = true) {
             val allInstances = buildList {
                 add(getInstance(context))
                 addAll(CHAT_INSTANCES.values)
             }.distinct()
-            allInstances.forEach { it.multiServiceManager.refreshAllServices() }
+            allInstances.forEach { it.multiServiceManager.refreshAllServices(cancelStreaming) }
         }
 
         /**
@@ -1791,9 +1790,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                                         R.string.enhanced_pure_thinking_only_warning
                                 )
                         )
-                val pureThinkingWarningDisplayContent = "\n$pureThinkingWarning"
-                context.roundManager.appendContent(pureThinkingWarningDisplayContent)
-                collector.emit(pureThinkingWarningDisplayContent)
+                context.roundManager.appendContent("\n$pureThinkingWarning")
+                collector.emit(pureThinkingWarning)
                 try {
                     context.conversationHistory.add(
                         PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = pureThinkingWarning)
@@ -2584,13 +2582,13 @@ class EnhancedAIService private constructor(private val context: Context) {
     suspend fun generateSummary(
             messages: List<Pair<String, String>>,
             previousSummary: String?,
-            summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
+            customRules: String? = null,
             recordTokenUsage: Boolean = true,
     ): String {
         return generateSummaryFromPromptTurns(
             messages.toPromptTurns(),
             previousSummary,
-            summaryConfig,
+            customRules,
             recordTokenUsage,
         )
     }
@@ -2598,7 +2596,7 @@ class EnhancedAIService private constructor(private val context: Context) {
     suspend fun generateSummaryFromPromptTurns(
             messages: List<PromptTurn>,
             previousSummary: String?,
-            summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
+            customRules: String? = null,
             recordTokenUsage: Boolean = true,
     ): String {
         // 调用ConversationService中的方法
@@ -2606,7 +2604,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             messages,
             previousSummary,
             multiServiceManager,
-            summaryConfig,
+            customRules,
             recordTokenUsage,
         )
     }
@@ -2918,7 +2916,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             val toolExposureMode = ToolExposureMode.resolve(config.apiProviderType)
 
             // 获取所有工具分类
-            val isEnglish = !LocaleUtils.usesChineseContent(context)
+            val isEnglish = LocaleUtils.getCurrentLanguage(context) == "en"
 
             // 后端识图服务是否可用（IMAGE_RECOGNITION 功能），用于 intent-based 视觉模型
             val hasBackendImageRecognition = multiServiceManager.hasImageRecognitionConfigured()
