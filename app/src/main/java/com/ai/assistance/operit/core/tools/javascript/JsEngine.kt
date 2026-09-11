@@ -1247,7 +1247,8 @@ class JsEngine(private val context: Context) {
         targetContextKey: String,
         targetRuntime: String,
         channel: String,
-        payloadJson: String
+        payloadJson: String,
+        timeoutSec: Long = JsTimeoutConfig.TOOLPKG_IPC_TIMEOUT_SECONDS
     ): String {
         val normalizedTarget = packageTarget.trim()
         if (normalizedTarget.isEmpty()) {
@@ -1410,7 +1411,11 @@ class JsEngine(private val context: Context) {
                             "__operit_toolpkg_ipc_payload_json" to payloadJson.trim().ifEmpty { "null" },
                             "__operit_toolpkg_ipc_caller_context_key" to callerContextKey.trim()
                         ),
-                    timeoutSec = 15L
+                    timeoutSec = if (timeoutSec <= 0L) {
+                        JsTimeoutConfig.TOOLPKG_IPC_TIMEOUT_SECONDS
+                    } else {
+                        timeoutSec
+                    }
                 )
             val errorMessage = extractJsExecutionErrorMessage(result)
             if (errorMessage != null) {
@@ -1688,6 +1693,29 @@ class JsEngine(private val context: Context) {
             channel: String,
             payloadJson: String
         ) {
+            invokeToolPkgIpcAsync(
+                callbackId = callbackId,
+                packageTarget = packageTarget,
+                callerContextKey = callerContextKey,
+                targetContextKey = targetContextKey,
+                targetRuntime = targetRuntime,
+                channel = channel,
+                payloadJson = payloadJson,
+                timeoutSec = JsTimeoutConfig.TOOLPKG_IPC_TIMEOUT_SECONDS
+            )
+        }
+
+        @JavascriptInterface
+        fun invokeToolPkgIpcAsync(
+            callbackId: String,
+            packageTarget: String,
+            callerContextKey: String,
+            targetContextKey: String,
+            targetRuntime: String,
+            channel: String,
+            payloadJson: String,
+            timeoutSec: Long
+        ) {
             val normalizedCallback = callbackId.trim()
             if (normalizedCallback.isEmpty()) {
                 return
@@ -1701,7 +1729,8 @@ class JsEngine(private val context: Context) {
                             targetContextKey = targetContextKey,
                             targetRuntime = targetRuntime,
                             channel = channel,
-                            payloadJson = payloadJson
+                            payloadJson = payloadJson,
+                            timeoutSec = timeoutSec
                         )
                     sendToolPkgIpcResult(normalizedCallback, resultJson, false)
                 } catch (error: Throwable) {

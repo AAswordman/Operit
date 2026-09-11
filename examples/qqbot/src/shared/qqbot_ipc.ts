@@ -138,7 +138,8 @@ registerQQBotContextModule(QQBotAutoReply as QQBotContextModule);
 async function runWithContext<TResult extends object>(
   kind: ToolPkg.RuntimeKind,
   envs: object,
-  runner: QQBotContextRunner<TResult>
+  runner: QQBotContextRunner<TResult>,
+  timeoutMs?: number
 ): Promise<TResult> {
   const payload: QQBotContextRunPayload = {
     functionSource: runner.toString(),
@@ -149,7 +150,8 @@ async function runWithContext<TResult extends object>(
       QQBOT_CONTEXT_RUN_IPC_CHANNEL,
       payload,
       {
-        targetRuntime: kind
+        targetRuntime: kind,
+        ...(timeoutMs != null ? { timeoutMs } : {})
       }
     );
   } catch (error) {
@@ -164,18 +166,20 @@ async function runWithContext<TResult extends object>(
 export function withContext<TResult extends object>(
   kind: ToolPkg.RuntimeKind,
   envs: object,
-  runner: QQBotContextRunner<TResult>
+  runner: QQBotContextRunner<TResult>,
+  timeoutMs?: number
 ): Promise<TResult>;
 
 export function withContext<TResult extends object>(
   kind: ToolPkg.RuntimeKind,
   envs: object,
-  runner?: QQBotContextRunner<TResult>
+  runner?: QQBotContextRunner<TResult>,
+  timeoutMs?: number
 ): Promise<TResult> {
   if (!runner) {
     throw new Error("withContext requires runner");
   }
-  return runWithContext(kind, envs, runner);
+  return runWithContext(kind, envs, runner, timeoutMs);
 }
 
 export * from "./qqbot_runtime";

@@ -987,6 +987,7 @@ export namespace ToolPkg {
     export interface IpcCallOptions {
         targetRuntime?: RuntimeKind;
         targetContextKey?: string;
+        timeoutMs?: number;
     }
 
     export interface IpcApi {

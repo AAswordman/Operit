@@ -228,15 +228,26 @@ async function qqbot_service_start(params: QQBotServiceStartParams = {}): Promis
         await updatePersistedConfigAsync({
             listenerEnabled: true
         });
-        return {
-            success: true,
-            packageVersion: PACKAGE_VERSION,
-            ...(await ensureQQBotServiceStarted({
-                restart: parseOptionalBoolean(params.restart, "restart") === true,
-                timeout_ms: parsePositiveInt(params.timeout_ms, "timeout_ms", DEFAULT_SERVICE_WAIT_MS),
-                source: "qqbot_service_start"
-            }))
-        };
+        try {
+            return {
+                success: true,
+                packageVersion: PACKAGE_VERSION,
+                listenerEnabled: true,
+                ...(await ensureQQBotServiceStarted({
+                    restart: parseOptionalBoolean(params.restart, "restart") === true,
+                    timeout_ms: parsePositiveInt(params.timeout_ms, "timeout_ms", DEFAULT_SERVICE_WAIT_MS),
+                    source: "qqbot_service_start"
+                }))
+            };
+        } catch (startError: any) {
+            return {
+                success: true,
+                packageVersion: PACKAGE_VERSION,
+                listenerEnabled: true,
+                warning: safeErrorMessage(startError),
+                service: await buildServiceStatusAsync()
+            };
+        }
     } catch (error: any) {
         return {
             success: false,
@@ -252,12 +263,29 @@ async function qqbot_service_stop(params: QQBotServiceStopParams = {}): Promise<
         await updatePersistedConfigAsync({
             listenerEnabled: false
         });
-        await qqbot_auto_reply_configure({
-            enabled: false
-        });
-        const result = await stopQQBotServiceInternalAsync(timeoutMs);
+        try {
+            await qqbot_auto_reply_configure({
+                enabled: false
+            });
+        } catch (autoReplyError: any) {
+            console.error(`[qqbot_runtime] disable auto-reply after listener stop failed: ${safeErrorMessage(autoReplyError)}`);
+        }
+        let result: JsonObject;
+        try {
+            result = await stopQQBotServiceInternalAsync(timeoutMs);
+        } catch (stopError: any) {
+            console.error(`[qqbot_runtime] stop gateway after listener disable failed: ${safeErrorMessage(stopError)}`);
+            return {
+                success: true,
+                packageVersion: PACKAGE_VERSION,
+                listenerEnabled: false,
+                warning: safeErrorMessage(stopError),
+                service: await buildServiceStatusAsync()
+            };
+        }
         return {
             ...result,
+            listenerEnabled: false,
             service: await buildServiceStatusAsync()
         };
     } catch (error: any) {

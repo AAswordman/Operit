@@ -73,7 +73,7 @@ async function runTerminalCommand(command: string, timeoutMs: number): Promise<a
 async function ensureTerminalPythonAvailable(): Promise<void> {
     const result = await runTerminalCommand(
         "python3 - <<'PY'\nimport http.server, json, os, socket, ssl, sys, threading, urllib.request\nprint('__PY_OK__')\nPY",
-        15000
+        5000
     );
     if (Number(result.exitCode || 0) !== 0 || !asText(result.output).includes("__PY_OK__")) {
         throw new Error(firstNonBlank(asText(result.output).trim(), "python3 is required for qqbot gateway service"));
@@ -117,87 +117,39 @@ function uniqueStrings(values: Array<string | null | undefined>): string[] {
     return result;
 }
 
-type ProcessInspection = {
-    exists: boolean;
-    state: string;
-    cmdline: string;
-};
-
-function isQQBotServiceCommandLine(cmdline: string): boolean {
-    const normalized = cmdline.replace(/\u0000/g, " ").trim();
-    if (!normalized) {
-        return false;
-    }
-    return normalized.includes(TERMINAL_SERVICE_OUTPUT_FILE_NAME)
-        && normalized.includes("--state-dir")
-        && normalized.includes(getStateDirectoryPath());
-}
-
-async function inspectProcessAsync(pid: string): Promise<ProcessInspection> {
-    const trimmed = pid.trim();
-    if (!trimmed) {
-        return {
-            exists: false,
-            state: "",
-            cmdline: ""
-        };
-    }
-    const result = await runTerminalCommand(
-        `if [ -d /proc/${shellQuote(trimmed)} ]; then state=$(awk '{print $3}' /proc/${shellQuote(trimmed)}/stat 2>/dev/null); cmd=$(tr '\\000' ' ' < /proc/${shellQuote(trimmed)}/cmdline 2>/dev/null); printf '__STATE__=%s\\n__CMD__=%s\\n' "$state" "$cmd"; fi`,
-        4000
-    );
-    const output = asText(result.output);
-    const stateMatch = output.match(/__STATE__=([^\r\n]*)/);
-    const cmdMatch = output.match(/__CMD__=([^\r\n]*)/);
-    return {
-        exists: Number(result.exitCode ?? 1) === 0 && output.includes("__STATE__="),
-        state: (stateMatch?.[1] || "").trim(),
-        cmdline: (cmdMatch?.[1] || "").trim()
-    };
-}
-
 async function isProcessAliveAsync(pid: string): Promise<boolean> {
     const trimmed = pid.trim();
     if (!trimmed) {
         return false;
     }
-    const probe = await runTerminalCommand(`kill -0 ${shellQuote(trimmed)} >/dev/null 2>&1`, 4000);
-    if (Number(probe.exitCode ?? 1) !== 0) {
-        return false;
-    }
-    const inspection = await inspectProcessAsync(trimmed);
-    if (!inspection.exists) {
-        return true;
-    }
-    if (inspection.state === "Z") {
-        return false;
-    }
-    if (!inspection.cmdline) {
-        return true;
-    }
-    return isQQBotServiceCommandLine(inspection.cmdline);
+    const probe = await runTerminalCommand(`kill -0 ${shellQuote(trimmed)} >/dev/null 2>&1`, 1500);
+    return Number(probe.exitCode ?? 1) === 0;
 }
 
 async function listQQBotServicePidsAsync(): Promise<string[]> {
-    const stateDir = shellQuote(getStateDirectoryPath());
-    const scriptName = shellQuote(TERMINAL_SERVICE_OUTPUT_FILE_NAME);
+    const stateDir = getStateDirectoryPath();
+    const scriptName = TERMINAL_SERVICE_OUTPUT_FILE_NAME;
     const result = await runTerminalCommand(
-        `for proc_dir in /proc/[0-9]*; do pid=\${proc_dir#/proc/}; cmd=$(tr '\\000' ' ' < "$proc_dir/cmdline" 2>/dev/null); case "$cmd" in *${scriptName}*"--state-dir"*${stateDir}*) printf '%s\\n' "$pid";; esac; done`,
-        8000
+        [
+            "python3 - <<'PY'",
+            "import os",
+            `needle = ${JSON.stringify(scriptName)}`,
+            `state = ${JSON.stringify(stateDir)}`,
+            "for name in os.listdir('/proc'):",
+            "    if not name.isdigit():",
+            "        continue",
+            "    try:",
+            "        with open('/proc/%s/cmdline' % name, 'rb') as handle:",
+            "            cmd = handle.read().replace(b'\\x00', b' ').decode('utf-8', 'replace')",
+            "    except OSError:",
+            "        continue",
+            "    if needle in cmd and '--state-dir' in cmd and state in cmd:",
+            "        print(name)",
+            "PY"
+        ].join("\n"),
+        3000
     );
     return parseProcessPids(asText(result.output));
-}
-
-async function listAliveQQBotServicePidsAsync(): Promise<string[]> {
-    const pids = await listQQBotServicePidsAsync();
-    const alive: string[] = [];
-    for (let index = 0; index < pids.length; index += 1) {
-        const pid = pids[index];
-        if (await isProcessAliveAsync(pid)) {
-            alive.push(pid);
-        }
-    }
-    return alive;
 }
 
 async function requestLocalServiceAsync(
@@ -328,7 +280,6 @@ function isServiceConfigMatching(runtimeStatus: JsonObject, snapshot: QQBotConfi
 async function waitForServiceReadyAsync(timeoutMs: number): Promise<JsonObject> {
     const deadline = Date.now() + timeoutMs;
     let lastStatus: JsonObject | null = null;
-    let lastLogTail = "";
     while (Date.now() <= deadline) {
         const localStatus = await queryLocalQQBotServiceStatusAsync(1200);
         if (localStatus) {
@@ -340,18 +291,12 @@ async function waitForServiceReadyAsync(timeoutMs: number): Promise<JsonObject> 
                 };
             }
         }
-
-        const alivePids = await listAliveQQBotServicePidsAsync();
-        if (!localStatus && alivePids.length === 0) {
-            lastLogTail = await readServiceLogTailAsync();
-            break;
-        }
         await sleepMsAsync(SERVICE_POLL_INTERVAL_MS);
     }
     return {
         ready: false,
         status: lastStatus || {},
-        logTail: lastLogTail || await readServiceLogTailAsync()
+        logTail: await readServiceLogTailAsync()
     };
 }
 
@@ -505,12 +450,12 @@ async function stopProcessByPidAsync(pid: string, timeoutMs: number): Promise<Js
     if (!pid.trim()) {
         return { stopped: true, killedBy: "none" };
     }
-    await runTerminalCommand(`kill ${shellQuote(pid)} >/dev/null 2>&1`, 4000);
-    if (await waitForProcessExitAsync(pid, Math.max(1000, Math.floor(timeoutMs / 2)))) {
+    await runTerminalCommand(`kill ${shellQuote(pid)} >/dev/null 2>&1`, 1500);
+    if (await waitForProcessExitAsync(pid, Math.max(800, Math.floor(timeoutMs / 2)))) {
         return { stopped: true, killedBy: "term" };
     }
-    await runTerminalCommand(`kill -9 ${shellQuote(pid)} >/dev/null 2>&1`, 4000);
-    const stopped = await waitForProcessExitAsync(pid, Math.max(1000, Math.floor(timeoutMs / 2)));
+    await runTerminalCommand(`kill -9 ${shellQuote(pid)} >/dev/null 2>&1`, 1500);
+    const stopped = await waitForProcessExitAsync(pid, Math.max(800, Math.floor(timeoutMs / 2)));
     return { stopped, killedBy: stopped ? "kill9" : "failed" };
 }
 
@@ -533,9 +478,11 @@ async function requestLocalServiceStopAsync(timeoutMs: number): Promise<boolean>
 export async function stopQQBotServiceInternalAsync(timeoutMs: number): Promise<JsonObject> {
     const currentStatus = await queryLocalQQBotServiceStatusAsync();
     const candidatePids = uniqueStrings([
-        asText(currentStatus?.pid),
-        ...(await listQQBotServicePidsAsync())
+        asText(currentStatus?.pid)
     ]);
+    if (candidatePids.length === 0) {
+        candidatePids.push(...(await listQQBotServicePidsAsync()));
+    }
     const alivePids: string[] = [];
     for (let index = 0; index < candidatePids.length; index += 1) {
         const pid = candidatePids[index];
