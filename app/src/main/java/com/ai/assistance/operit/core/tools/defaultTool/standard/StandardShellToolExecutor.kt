@@ -88,14 +88,16 @@ open class StandardShellToolExecutor(private val context: Context) {
             command.isNullOrBlank() -> {
                 ToolValidationResult(valid = false, errorMessage = "Command parameter is required")
             }
-            command.contains("rm -rf") || command.contains("format") -> {
-                ToolValidationResult(
-                        valid = false,
-                        errorMessage = "Potentially dangerous command detected"
-                )
-            }
             else -> {
-                ToolValidationResult(valid = true)
+                val dangerReason = ShellCommandSafety.validate(command)
+                if (dangerReason != null) {
+                    ToolValidationResult(
+                            valid = false,
+                            errorMessage = "Potentially dangerous command detected: $dangerReason"
+                    )
+                } else {
+                    ToolValidationResult(valid = true)
+                }
             }
         }
     }
