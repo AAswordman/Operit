@@ -4076,7 +4076,7 @@
     <string name="actual_request_url">实际请求地址: %s</string>
     <string name="endpoint_completion_hint">提示: 如果您输入的是基础URL，系统将自动补全路径。如需禁用，请在URL末尾添加#号。</string>
     <string name="api_key">API密钥</string>
-    <string name="api_key_placeholder_default">使用默认Key, 可直接输入</string>
+    <string name="api_key_placeholder_default">未设置密钥，可直接输入或使用密钥池</string>
     <string name="api_key_placeholder_custom">输入API密钥</string>
     <string name="model_name">模型名称</string>
     <string name="model_name_placeholder">例如: gpt-4, claude-3-opus-20240229...</string>

@@ -4117,7 +4117,7 @@
     <string name="api_endpoint_placeholder">e.g.: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">Actual request URL: %s</string>
     <string name="endpoint_completion_hint">Hint: If you enter a base URL, the system will automatically complete the path. To disable, add # at the end of the URL.</string>
-    <string name="api_key_placeholder_default">Using default key, you can input directly</string>
+    <string name="api_key_placeholder_default">No key set. Type one here or use the API key pool</string>
     <string name="api_key_placeholder_custom">Enter API key</string>
     <string name="model_name_placeholder">e.g.: gpt-4, claude-3-opus-20240229...</string>
     <string name="get_models_list">Get Models List</string>

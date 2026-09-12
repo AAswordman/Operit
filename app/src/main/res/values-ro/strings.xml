@@ -3844,7 +3844,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="actual_request_url">Adresa efectivă a cererii: %s</string>
     <string name="endpoint_completion_hint">Sfat: Dacă introduceți elementul de bazăURL, sistemul va completa automat calea. Dacă doriți să dezactivați această funcție, vă rugăm săURLAdăugare la sfârșit#Nr.</string>
     <string name="api_key">APICheie</string>
-    <string name="api_key_placeholder_default">Utilizarea setărilor impliciteKey, se poate introduce direct</string>
+    <string name="api_key_placeholder_default">Nicio cheie setată. Introdu-o aici sau utilizează rezervorul de chei API</string>
     <string name="api_key_placeholder_custom">IntroducereAPICheie</string>
     <string name="model_name">Denumirea modelului</string>
     <string name="model_name_placeholder">De exemplu: gpt-4, claude-3-opus-20240229...</string>
