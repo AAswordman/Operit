@@ -116,6 +116,7 @@ internal class ToolPkgJsAiProviderService(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -142,6 +143,7 @@ internal class ToolPkgJsAiProviderService(
                             availableTools?.let { tools -> JSONArray(tools.map(::serializeToolPrompt)) }
                         )
                         put("enableThinking", enableThinking)
+                        put("thinkingOptionId", thinkingOptionId ?: JSONObject.NULL)
                         put("stream", stream)
                         put("preserveThinkInHistory", preserveThinkInHistory)
                         put("enableRetry", enableRetry)

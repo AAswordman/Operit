@@ -3109,6 +3109,10 @@
     <string name="function_desc_chat">主要的对话功能，用于与用户进行日常对话交互</string>
     <string name="function_desc_title_generation">根据用户第一条消息自动生成简短、准确的对话标题</string>
     <string name="function_desc_summary">压缩上下文，生成聊天摘要</string>
+    <string name="function_summary_thinking_on">思考开</string>
+    <string name="function_summary_thinking_off">思考关</string>
+    <string name="function_summary_thinking_level">思考档位</string>
+    <string name="function_summary_thinking_default_level">默认</string>
     <string name="function_desc_memory">处理记忆并存放到记忆库</string>
     <string name="function_desc_file_binding">处理文件内容的智能绑定与混合，提供更精确的代码处理能力。建议使用快速的廉价模型如Gemini Flash，不建议使用DeepSeek R1</string>
     <string name="function_desc_ui_controller">用于UI界面的自动遍历与操作，对应的 UI 控制器模型仅在用户明确要求使用“智能体”控制时才会启用，例如可选择 autoglm 等专用模型。</string>

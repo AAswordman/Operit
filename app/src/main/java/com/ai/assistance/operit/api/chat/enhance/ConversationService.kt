@@ -138,6 +138,7 @@ class ConversationService(
 
             // 获取SUMMARY功能类型的AIService实例
             val summaryService = multiServiceManager.getServiceForFunction(FunctionType.SUMMARY)
+            val summaryThinking = multiServiceManager.getThinkingRequestForFunction(FunctionType.SUMMARY)
             var summaryHistory = sanitizedMessages
             var summaryPrompt = FunctionalPrompts.summaryUserMessage(useEnglish)
             val baseSummaryMetadata =
@@ -273,6 +274,8 @@ class ConversationService(
                             context = context,
                             chatHistory = preparedHistory,
                             modelParameters = modelParameters,
+                            enableThinking = summaryThinking.enableThinking,
+                            thinkingOptionId = summaryThinking.thinkingOptionId,
                             recordTokenUsage = recordTokenUsage,
                     )
 
@@ -1174,6 +1177,7 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         try {
             // 获取总结功能的AIService实例
             val summaryService = multiServiceManager.getServiceForFunction(FunctionType.SUMMARY)
+            val summaryThinking = multiServiceManager.getThinkingRequestForFunction(FunctionType.SUMMARY)
             
             // 获取模型参数
             val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.SUMMARY)
@@ -1182,6 +1186,8 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
                 context = context,
                 chatHistory = chatHistory + PromptTurn(kind = PromptTurnKind.USER, content = descriptionPrompt),
                 modelParameters = modelParameters,
+                enableThinking = summaryThinking.enableThinking,
+                thinkingOptionId = summaryThinking.thinkingOptionId,
             )
             
             stream.collect { content ->

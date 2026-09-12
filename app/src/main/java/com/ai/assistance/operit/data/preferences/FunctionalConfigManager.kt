@@ -31,7 +31,9 @@ private val Context.functionalConfigDataStore: DataStore<Preferences> by
 @Serializable
 data class FunctionConfigMapping(
     val configId: String = FunctionalConfigManager.DEFAULT_CONFIG_ID,
-    val modelIndex: Int = 0
+    val modelIndex: Int = 0,
+    val enableThinking: Boolean = false,
+    val thinkingOptionId: String = ""
 )
 
 internal data class FunctionConfigMappingRepair(
@@ -181,7 +183,20 @@ class FunctionalConfigManager(private val context: Context) {
     // 设置指定功能的配置ID和模型索引
     suspend fun setConfigForFunction(functionType: FunctionType, configId: String, modelIndex: Int) {
         val mapping = functionConfigMappingWithIndexFlow.first().toMutableMap()
-        mapping[functionType] = FunctionConfigMapping(configId, modelIndex)
+        val current = mapping[functionType] ?: FunctionConfigMapping(DEFAULT_CONFIG_ID, 0)
+        mapping[functionType] = current.copy(configId = configId, modelIndex = modelIndex)
+        saveFunctionConfigMappingWithIndex(mapping)
+    }
+
+    suspend fun setThinkingForFunction(
+            functionType: FunctionType,
+            enableThinking: Boolean,
+            thinkingOptionId: String
+    ) {
+        val mapping = functionConfigMappingWithIndexFlow.first().toMutableMap()
+        val current = mapping[functionType] ?: FunctionConfigMapping(DEFAULT_CONFIG_ID, 0)
+        mapping[functionType] =
+                current.copy(enableThinking = enableThinking, thinkingOptionId = thinkingOptionId)
         saveFunctionConfigMappingWithIndex(mapping)
     }
 

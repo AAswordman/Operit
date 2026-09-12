@@ -53,6 +53,7 @@ open class KimiProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -66,7 +67,7 @@ open class KimiProvider(
                 apiEndpoint = configuredApiEndpoint,
                 thinkingConfigurations = thinkingConfigurations,
                 enableThinking = enableThinking,
-                optionId = thinkingOptionId,
+                optionId = thinkingOptionId ?: this.thinkingOptionId,
             )
         }
 
@@ -483,6 +484,7 @@ open class KimiProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -498,6 +500,7 @@ open class KimiProvider(
             chatHistory,
             modelParameters,
             enableThinking,
+            thinkingOptionId,
             stream,
             availableTools,
             preserveThinkInHistory,

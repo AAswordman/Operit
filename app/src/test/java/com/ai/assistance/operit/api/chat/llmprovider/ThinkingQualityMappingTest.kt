@@ -102,4 +102,17 @@ class ThinkingQualityMappingTest {
 
         assertEquals(ThinkingQualityControl.UNSUPPORTED, mapping.control)
     }
+
+    @Test
+    fun resolveOptionIdFallsBackToFirstLevelWhenBlank() {
+        val mapping = mapping(ApiProviderType.OPENAI, "gpt-5.6-luna")
+        assertEquals(mapping.options.first().id, mapping.resolveOptionId("", ""))
+    }
+
+    @Test
+    fun resolveOptionIdKeepsPreferredWhenSupported() {
+        val mapping = mapping(ApiProviderType.OPENAI, "gpt-5.6-luna")
+        val preferred = mapping.options.last().id
+        assertEquals(preferred, mapping.resolveOptionId(preferred, mapping.options.first().id))
+    }
 }
