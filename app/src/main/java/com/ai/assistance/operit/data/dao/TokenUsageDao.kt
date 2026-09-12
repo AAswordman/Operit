@@ -32,6 +32,12 @@ data class TokenUsageActivityDayRow(
     val tokens: Long,
 )
 
+data class TokenUsageActivityHourRow(
+    val localDate: String,
+    val localHour: Int,
+    val tokens: Long,
+)
+
 @Dao
 abstract class TokenUsageDao {
 
@@ -189,4 +195,35 @@ abstract class TokenUsageDao {
         providerModels: List<String>,
         allModels: Boolean,
     ): List<TokenUsageActivityDayRow>
+
+    @Query(
+        """
+        SELECT
+            strftime('%Y-%m-%d', occurredAtMs / 1000, 'unixepoch', 'localtime') AS localDate,
+            CAST(strftime('%H', occurredAtMs / 1000, 'unixepoch', 'localtime') AS INTEGER) AS localHour,
+            COALESCE(SUM(
+                COALESCE(
+                    totalInputTokens,
+                    CASE
+                        WHEN uncachedInputTokens IS NOT NULL
+                            AND cachedInputTokens IS NOT NULL
+                            AND cacheWriteTokens IS NOT NULL
+                        THEN uncachedInputTokens + cachedInputTokens + cacheWriteTokens
+                    END,
+                    0
+                ) + COALESCE(outputTokens, 0)
+            ), 0) AS tokens
+        FROM token_usage_records
+        WHERE occurredAtMs >= :startMs AND occurredAtMs < :endMs
+            AND (:allModels OR (provider || ':' || model) IN (:providerModels))
+        GROUP BY localDate, localHour, configId, provider, model
+        ORDER BY localDate, localHour, provider, model, configId
+        """
+    )
+    abstract suspend fun getActivityHoursInRange(
+        startMs: Long,
+        endMs: Long,
+        providerModels: List<String>,
+        allModels: Boolean,
+    ): List<TokenUsageActivityHourRow>
 }

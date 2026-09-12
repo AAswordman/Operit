@@ -233,6 +233,8 @@ internal fun TokenStatsSegmentedControl(
                     when (mode) {
                         TokenActivityViewMode.DAILY -> R.string.token_activity_daily
                         TokenActivityViewMode.WEEKLY -> R.string.token_activity_weekly
+                        TokenActivityViewMode.MONTHLY -> R.string.token_activity_monthly
+                        TokenActivityViewMode.YEARLY -> R.string.token_activity_yearly
                         TokenActivityViewMode.CUMULATIVE -> R.string.token_activity_cumulative
                     }
                 ),
@@ -246,7 +248,7 @@ internal fun TokenStatsSegmentedControl(
                         if (isSelected) colors.selectedSegmentContainer else Color.Transparent,
                     )
                     .clickable { onSelect(mode) }
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
             )
         }
     }
