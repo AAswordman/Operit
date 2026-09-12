@@ -14,7 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,12 +66,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -1266,6 +1268,8 @@ private enum class MessageCopyMode {
     XML_SOURCE,
 }
 
+private const val COPY_PREVIEW_SHEET_HEIGHT_FRACTION = 0.7f
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun MessageCopyPreviewBottomSheet(
@@ -1275,37 +1279,10 @@ private fun MessageCopyPreviewBottomSheet(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val textScrollState = rememberScrollState()
-    val copyPreviewNestedScrollConnection =
-        remember(textScrollState) {
-            object : NestedScrollConnection {
-                override fun onPostScroll(
-                    consumed: Offset,
-                    available: Offset,
-                    source: NestedScrollSource,
-                ): Offset {
-                    return if (
-                        source == NestedScrollSource.UserInput &&
-                            textScrollState.value == 0 &&
-                            available.y > 0f
-                    ) {
-                        Offset(x = 0f, y = available.y)
-                    } else {
-                        Offset.Zero
-                    }
-                }
-
-                override suspend fun onPostFling(
-                    consumed: Velocity,
-                    available: Velocity,
-                ): Velocity {
-                    return if (textScrollState.value == 0 && available.y > 0f) {
-                        Velocity(x = 0f, y = available.y)
-                    } else {
-                        Velocity.Zero
-                    }
-                }
-            }
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val sheetMaxHeight =
+        remember(screenHeightDp) {
+            (screenHeightDp * COPY_PREVIEW_SHEET_HEIGHT_FRACTION).coerceIn(200.dp, 720.dp)
         }
     var copyMode by remember(content) { mutableStateOf(MessageCopyMode.PLAIN_TEXT) }
     var plainText by remember(content.markdownSource) { mutableStateOf<String?>(null) }
@@ -1335,6 +1312,7 @@ private fun MessageCopyPreviewBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = sheetMaxHeight)
                 .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
         ) {
             Text(
@@ -1375,22 +1353,21 @@ private fun MessageCopyPreviewBottomSheet(
                     CircularProgressIndicator()
                 }
             } else {
-                SelectionContainer(
+                BasicTextField(
+                    value = displayedText,
+                    onValueChange = {},
+                    readOnly = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    // BasicTextField owns selection dragging, so it scrolls itself while a
+                    // handle is dragged past an edge and keeps the selection in sync.
                     modifier = Modifier
+                        .weight(1f, fill = false)
                         .fillMaxWidth()
-                        .heightIn(max = 520.dp)
-                        // Keep top pulls in the preview so the sheet does not start a second rebound.
-                        .nestedScroll(copyPreviewNestedScrollConnection)
-                        .verticalScroll(textScrollState)
                         .padding(bottom = 12.dp)
-                ) {
-                    Text(
-                        text = displayedText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
