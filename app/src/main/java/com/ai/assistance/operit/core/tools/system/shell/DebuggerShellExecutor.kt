@@ -8,22 +8,34 @@ import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
 import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
 import com.ai.assistance.operit.core.tools.system.ShellIdentity
 import java.io.BufferedReader
-import java.io.FileInputStream
-import java.io.InputStreamReader
-import java.io.InterruptedIOException
-import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
-import moe.shizuku.server.IShizukuService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.launch
-import java.io.InputStream
 import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import moe.shizuku.server.IRemoteProcess
+import moe.shizuku.server.IShizukuService
 
 /** 基于Shizuku的Shell命令执行器 实现DEBUGGER权限级别的命令执行 */
 class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
@@ -168,52 +180,9 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
         return false
     }
 
-    /**
-     * 封装重试逻辑的函数
-     * @param maxRetries 最大重试次数
-     * @param delayMs 每次重试前的延迟时间（毫秒）
-     * @param operation 要执行的操作
-     * @return 操作结果
-     */
-    private suspend fun <T> retryOperation(
-            maxRetries: Int = 3,
-            delayMs: Long = 500,
-            operation: suspend () -> T
-    ): T {
-        var lastException: Exception? = null
-        for (attempt in 0 until maxRetries) {
-            try {
-                return operation()
-            } catch (e: Exception) {
-                // 检查是否是 read interrupted 异常
-                val isInterruptedRead =
-                        e is InterruptedIOException &&
-                                e.message?.contains("read interrupted") == true
-
-                if (isInterruptedRead) {
-                    lastException = e
-                    AppLogger.w(
-                            TAG,
-                            "Read interrupted on attempt ${attempt + 1}/$maxRetries, retrying in $delayMs ms",
-                            e
-                    )
-                    delay(delayMs)
-                    continue
-                } else {
-                    // 对于其他异常，直接抛出
-                    throw e
-                }
-            }
-        }
-        // 如果达到最大重试次数，抛出最后一个异常
-        throw lastException ?: IllegalStateException("Unknown error in retry operation")
-    }
-
     /** 直接执行不包含特殊操作符的普通命令 */
     private suspend fun executeCommandDirect(command: String): ShellExecutor.CommandResult =
             withContext(Dispatchers.IO) {
-                var process: Any? = null
-
                 try {
                     val service =
                             getShizukuService()
@@ -223,95 +192,31 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
                                             "Shizuku service not available"
                                     )
 
-                    // 拆分命令行参数 - 使用更智能的解析方法
-                    val commandParts = parseCommand(command)
+                    // 直接执行时仍然通过 AIDL 的远程进程对象管理 stdin/stdout/stderr。
+                    val process = service.newProcess(parseCommand(command), null, null)
+                            ?: return@withContext ShellExecutor.CommandResult(
+                                    false,
+                                    "",
+                                    "Failed to create process"
+                            )
 
-                    // 创建进程
-                    process = service.newProcess(commandParts, null, null)
-
-                    if (process == null) {
-                        return@withContext ShellExecutor.CommandResult(
-                                false,
-                                "",
-                                "Failed to create process"
-                        )
-                    }
-
-                    // 将ParcelFileDescriptor转换为InputStream
-                    val processClass = process::class.java
-                    val inputStream =
-                            processClass.getMethod("getInputStream").invoke(process) as
-                                    ParcelFileDescriptor?
-                    val errorStream =
-                            processClass.getMethod("getErrorStream").invoke(process) as
-                                    ParcelFileDescriptor?
-
-                    // 使用重试逻辑读取标准输出和错误输出
-                    val stdout =
-                            if (inputStream != null) {
-                                retryOperation {
-                                    val stdoutStream = FileInputStream(inputStream.fileDescriptor)
-                                    BufferedReader(InputStreamReader(stdoutStream)).use {
-                                        it.readText()
-                                    }
-                                }
-                            } else ""
-
-                    val stderr =
-                            if (errorStream != null) {
-                                retryOperation {
-                                    val stderrStream = FileInputStream(errorStream.fileDescriptor)
-                                    BufferedReader(InputStreamReader(stderrStream)).use {
-                                        it.readText()
-                                    }
-                                }
-                            } else ""
-
-                    val exitCode = processClass.getMethod("waitFor").invoke(process) as Int
-
-                    // 返回结果
-                    return@withContext ShellExecutor.CommandResult(
-                            exitCode == 0,
-                            stdout,
-                            stderr,
-                            exitCode
+                    executeRemoteProcess(
+                            process = process,
+                            command = command,
+                            allowGrepExitCode = false,
                     )
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: RemoteException) {
                     AppLogger.e(TAG, "Remote exception while executing command", e)
-                    return@withContext ShellExecutor.CommandResult(
+                    ShellExecutor.CommandResult(
                             false,
                             "",
                             "Remote exception: ${e.message}"
                     )
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "Error executing command", e)
-                    return@withContext ShellExecutor.CommandResult(false, "", "Error: ${e.message}")
-                } finally {
-                    // 安全关闭文件描述符
-                    try {
-                        if (process != null) {
-                            val processClass = process::class.java
-                            try {
-                                val inputStream =
-                                        processClass.getMethod("getInputStream").invoke(process) as
-                                                ParcelFileDescriptor?
-                                inputStream?.close()
-                            } catch (e: Exception) {
-                                AppLogger.e(TAG, "Error closing input stream", e)
-                            }
-
-                            try {
-                                val errorStream =
-                                        processClass.getMethod("getErrorStream").invoke(process) as
-                                                ParcelFileDescriptor?
-                                errorStream?.close()
-                            } catch (e: Exception) {
-                                AppLogger.e(TAG, "Error closing error stream", e)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG, "Error in cleanup", e)
-                    }
+                    ShellExecutor.CommandResult(false, "", "Error: ${e.message}")
                 }
             }
 
@@ -348,14 +253,17 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
                                 processedCommand
                             }
 
-                    // 如果命令以单个'&'结尾（后台运行），我们只负责启动，不阻塞等待
-                    val trimmedForBg = enhancedCommand.trimEnd()
-                    val isBackground =
-                            trimmedForBg.endsWith("&") && !trimmedForBg.endsWith("&&")
+                    val isBackground = hasTrailingBackgroundOperator(enhancedCommand)
+                    // 后台命令不会把输出交给调用方；显式断开 stdin/stdout/stderr，避免
+                    // 后台子进程继承 Shizuku 的管道后让调用方永远等不到 EOF。
+                    val commandForExecution =
+                            if (isBackground) {
+                                detachBackgroundShellCommand(enhancedCommand)
+                            } else {
+                                enhancedCommand
+                            }
+                    val shellArgs = arrayOf("sh", "-e", "-c", commandForExecution)
 
-                    val shellArgs = arrayOf("sh", "-e", "-c", enhancedCommand)
-
-                    // 创建进程
                     val process =
                             service.newProcess(shellArgs, null, null)
                                     ?: return@withContext ShellExecutor.CommandResult(
@@ -363,95 +271,69 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
                                             "",
                                             "Failed to create process"
                                     )
-                    // 处理输入输出流
-                    val processClass = process::class.java
-                    val inputStream =
-                            processClass.getMethod("getInputStream").invoke(process) as
-                                    ParcelFileDescriptor?
-                    val errorStream =
-                            processClass.getMethod("getErrorStream").invoke(process) as
-                                    ParcelFileDescriptor?
 
-                    if (isBackground) {
-                        AppLogger.d(TAG, "Detected background shell command (ending with '&'), not waiting for process")
-                        // 对于后台命令，我们不读取输出，也不等待退出，只要进程创建成功就视为成功
-                        try {
-                            inputStream?.close()
-                        } catch (e: Exception) {
-                            AppLogger.e(TAG, "Error closing input stream for background shell command", e)
-                        }
-
-                        try {
-                            errorStream?.close()
-                        } catch (e: Exception) {
-                            AppLogger.e(TAG, "Error closing error stream for background shell command", e)
-                        }
-
-                        return@withContext ShellExecutor.CommandResult(
-                                true,
-                                "",
-                                "",
-                                0
-                        )
-                    }
-
-                    // 使用重试逻辑读取标准输出和错误输出
-                    val stdout =
-                            if (inputStream != null) {
-                                retryOperation {
-                                    val stdoutStream = FileInputStream(inputStream.fileDescriptor)
-                                    BufferedReader(InputStreamReader(stdoutStream)).use {
-                                        it.readText()
-                                    }
-                                }
-                            } else ""
-
-                    val stderr =
-                            if (errorStream != null) {
-                                retryOperation {
-                                    val stderrStream = FileInputStream(errorStream.fileDescriptor)
-                                    BufferedReader(InputStreamReader(stderrStream)).use {
-                                        it.readText()
-                                    }
-                                }
-                            } else ""
-
-                    val exitCode = processClass.getMethod("waitFor").invoke(process) as Int
-
-                    // 关闭文件描述符
-                    try {
-                        inputStream?.close()
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG, "Error closing input stream in shell execution", e)
-                    }
-
-                    try {
-                        errorStream?.close()
-                    } catch (e: Exception) {
-                        AppLogger.e(TAG, "Error closing error stream in shell execution", e)
-                    }
-
-                    // 确定命令是否成功
-                    val success =
-                            when {
-                                // 如果命令包含grep，即使没有找到匹配也认为成功
-                                command.contains("grep") -> exitCode == 0 || exitCode == 1
-
-                                // 对其他命令，只有exitCode=0才算成功
-                                else -> exitCode == 0
-                            }
-
-                    return@withContext ShellExecutor.CommandResult(
-                            success,
-                            stdout,
-                            stderr,
-                            exitCode
+                    executeRemoteProcess(
+                            process = process,
+                            command = command,
+                            allowGrepExitCode = command.contains("grep"),
+                            detach = isBackground,
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: RemoteException) {
+                    AppLogger.e(TAG, "Remote exception while executing shell command", e)
+                    ShellExecutor.CommandResult(
+                            false,
+                            "",
+                            "Remote exception: ${e.message}"
                     )
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "Error executing shell command", e)
-                    return@withContext ShellExecutor.CommandResult(false, "", "Error: ${e.message}")
+                    ShellExecutor.CommandResult(false, "", "Error: ${e.message}")
                 }
             }
+
+    /**
+     * 判断命令末尾是否有未转义、未处于引号中的单个后台操作符。
+     */
+    private fun hasTrailingBackgroundOperator(command: String): Boolean {
+        var inSingleQuotes = false
+        var inDoubleQuotes = false
+        var escaped = false
+        var lastSignificantIndex = -1
+
+        command.forEachIndexed { index, character ->
+            if (escaped) {
+                escaped = false
+                return@forEachIndexed
+            }
+            if (character == '\\') {
+                escaped = true
+                return@forEachIndexed
+            }
+            if (character == '\'' && !inDoubleQuotes) {
+                inSingleQuotes = !inSingleQuotes
+                return@forEachIndexed
+            }
+            if (character == '"' && !inSingleQuotes) {
+                inDoubleQuotes = !inDoubleQuotes
+                return@forEachIndexed
+            }
+            if (!inSingleQuotes && !inDoubleQuotes && !character.isWhitespace()) {
+                lastSignificantIndex = index
+            }
+        }
+
+        if (lastSignificantIndex < 0 || command[lastSignificantIndex] != '&') return false
+        return lastSignificantIndex == 0 || command[lastSignificantIndex - 1] != '&'
+    }
+
+    /** 将 fire-and-forget 命令与调用方的管道彻底解耦。 */
+    private fun detachBackgroundShellCommand(command: String): String {
+        val trimmed = command.trimEnd()
+        val body = trimmed.dropLast(1).trimEnd().ifBlank { ":" }
+        return "$body </dev/null >/dev/null 2>&1 &"
+    }
 
     /** 获取Shizuku服务 */
     private fun getShizukuService(): IShizukuService? {
@@ -570,76 +452,341 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
 }
 
 /**
- * 使用 Shizuku 实现的 ShellProcess。
+ * 通过 AIDL 管理一次性 Shizuku 远程进程的输出和生命周期。
+ *
+ * stdout 与 stderr 必须同时消费，否则任一管道写满都会阻塞远程进程；stdin
+ * 也必须主动关闭，否则需要 EOF 的命令会一直等待输入。
  */
-private class ShizukuShellProcess(
-    private val service: IShizukuService,
-    private val command: String
-) : ShellProcess {
-    private val process: Any
-    private val processClass: Class<*>
+private const val DEBUGGER_SHELL_TAG = "DebuggerShellExecutor"
+private const val REMOTE_PROCESS_POLL_INTERVAL_MS = 100L
+private const val POST_EXIT_OUTPUT_DRAIN_GRACE_MS = 1_000L
+private const val OUTPUT_TRUNCATION_NOTICE =
+        "Remote process output was truncated after the process exited."
 
-    init {
-        val shellArgs = arrayOf("sh", "-c", command)
-        process = service.newProcess(shellArgs, null, null)
-            ?: throw IOException("Failed to create Shizuku process")
-        processClass = process.javaClass
-    }
+private suspend fun executeRemoteProcess(
+        process: IRemoteProcess,
+        command: String,
+        allowGrepExitCode: Boolean,
+        detach: Boolean = false,
+): ShellExecutor.CommandResult = withContext(Dispatchers.IO) {
+    var stdoutDescriptor: ParcelFileDescriptor? = null
+    var stderrDescriptor: ParcelFileDescriptor? = null
+    var processFinished = false
 
-    private val inputStream: ParcelFileDescriptor by lazy {
-        processClass.getMethod("getInputStream").invoke(process) as ParcelFileDescriptor
-    }
+    try {
+        // One-shot commands have no input API at this layer. EOF prevents interactive
+        // commands and child scripts from waiting on an input pipe forever.
+        closeRemoteStdin(process)
+        stdoutDescriptor = process.getInputStream()
+        stderrDescriptor = process.getErrorStream()
 
-    private val errorStream: ParcelFileDescriptor by lazy {
-        processClass.getMethod("getErrorStream").invoke(process) as ParcelFileDescriptor
-    }
-
-    override val stdout: Flow<String> by lazy {
-        flowFromStream(FileInputStream(inputStream.fileDescriptor))
-    }
-
-    override val stderr: Flow<String> by lazy {
-        flowFromStream(FileInputStream(errorStream.fileDescriptor))
-    }
-
-    override val isAlive: Boolean
-        get() = try {
-            processClass.getMethod("exitValue").invoke(process)
-            false
-        } catch (e: Exception) {
-            // IllegalThreadStateException means it's still running
-            true
+        if (detach) {
+            closeDescriptor(stdoutDescriptor, "detached stdout")
+            closeDescriptor(stderrDescriptor, "detached stderr")
+            stdoutDescriptor = null
+            stderrDescriptor = null
+            // The shell command was deliberately detached; do not destroy it in cleanup.
+            processFinished = true
+            return@withContext ShellExecutor.CommandResult(true, "", "", 0)
         }
 
-    override fun destroy() {
-        try {
-            processClass.getMethod("destroy").invoke(process)
-        } finally {
-            inputStream.close()
-            errorStream.close()
-        }
-    }
+        val result = coroutineScope {
+            val stdoutBuilder = StringBuilder()
+            val stderrBuilder = StringBuilder()
+            val stdoutJob = async(Dispatchers.IO) {
+                drainDescriptor(stdoutDescriptor, stdoutBuilder, "stdout")
+            }
+            val stderrJob = async(Dispatchers.IO) {
+                drainDescriptor(stderrDescriptor, stderrBuilder, "stderr")
+            }
 
-    override suspend fun waitFor(): Int = withContext(Dispatchers.IO) {
-        processClass.getMethod("waitFor").invoke(process) as Int
+            try {
+                // Polling keeps cancellation responsive and avoids an uninterruptible Binder
+                // wait. The two drain jobs continue concurrently while the process runs.
+                val exitCode = awaitRemoteProcessExit(process)
+                processFinished = true
+
+                val outputDrained =
+                        withTimeoutOrNull(POST_EXIT_OUTPUT_DRAIN_GRACE_MS) {
+                            stdoutJob.await()
+                            stderrJob.await()
+                            true
+                        } ?: false
+
+                if (!outputDrained) {
+                    // A descendant may have inherited one of the pipe write ends. Close the
+                    // descriptors so the reader jobs cannot hold the tool call forever.
+                    closeDescriptor(stdoutDescriptor, "stdout after process exit")
+                    closeDescriptor(stderrDescriptor, "stderr after process exit")
+                    stdoutJob.cancelAndJoin()
+                    stderrJob.cancelAndJoin()
+                }
+
+                val stderr = buildString {
+                    append(stderrBuilder)
+                    if (!outputDrained) {
+                        if (isNotEmpty()) append('\n')
+                        append(OUTPUT_TRUNCATION_NOTICE)
+                    }
+                }
+                val success =
+                        if (allowGrepExitCode) {
+                            exitCode == 0 || exitCode == 1
+                        } else {
+                            exitCode == 0
+                        }
+                ShellExecutor.CommandResult(
+                        success = success,
+                        stdout = stdoutBuilder.toString(),
+                        stderr = stderr,
+                        exitCode = exitCode,
+                )
+            } finally {
+                withContext(NonCancellable) {
+                    if (!processFinished) {
+                        destroyRemoteProcess(process)
+                    }
+                    closeDescriptor(stdoutDescriptor, "stdout cleanup")
+                    closeDescriptor(stderrDescriptor, "stderr cleanup")
+                    stdoutJob.cancel()
+                    stderrJob.cancel()
+                    stdoutJob.join()
+                    stderrJob.join()
+                }
+            }
+        }
+        return@withContext result
+    } catch (e: CancellationException) {
+        // The finally block above destroys the remote process and closes both pipes before
+        // cancellation is allowed to leave this function.
+        throw e
+    } catch (e: RemoteException) {
+        AppLogger.e(DEBUGGER_SHELL_TAG, "Remote process operation failed: $command", e)
+        ShellExecutor.CommandResult(false, "", "Remote exception: ${e.message}")
+    } catch (e: Exception) {
+        AppLogger.e(DEBUGGER_SHELL_TAG, "Remote process execution failed: $command", e)
+        ShellExecutor.CommandResult(false, "", "Error: ${e.message}")
+    } finally {
+        // Covers failures before the structured reader scope was created.
+        withContext(NonCancellable) {
+            if (!processFinished && !detach) {
+                destroyRemoteProcess(process)
+            }
+            closeDescriptor(stdoutDescriptor, "stdout outer cleanup")
+            closeDescriptor(stderrDescriptor, "stderr outer cleanup")
+        }
     }
 }
 
-private fun flowFromStream(inputStream: InputStream): Flow<String> = callbackFlow {
-    val job = CoroutineScope(Dispatchers.IO).launch {
+private suspend fun awaitRemoteProcessExit(process: IRemoteProcess): Int {
+    while (true) {
+        currentCoroutineContext().ensureActive()
+        if (!process.alive()) {
+            return process.exitValue()
+        }
+        delay(REMOTE_PROCESS_POLL_INTERVAL_MS)
+    }
+}
+
+private fun closeRemoteStdin(process: IRemoteProcess) {
+    try {
+        process.getOutputStream()?.close()
+    } catch (e: Exception) {
+        // A command may still be usable when the optional stdin descriptor is unavailable.
+        AppLogger.v(DEBUGGER_SHELL_TAG, "Unable to close remote stdin", e)
+    }
+}
+
+private fun destroyRemoteProcess(process: IRemoteProcess?) {
+    if (process == null) return
+    try {
+        process.destroy()
+    } catch (e: Exception) {
+        AppLogger.v(DEBUGGER_SHELL_TAG, "Unable to destroy remote process", e)
+    }
+}
+
+private fun closeDescriptor(descriptor: ParcelFileDescriptor?, label: String) {
+    if (descriptor == null) return
+    try {
+        descriptor.close()
+    } catch (e: Exception) {
+        AppLogger.v(DEBUGGER_SHELL_TAG, "Unable to close $label", e)
+    }
+}
+
+private fun drainDescriptor(
+        descriptor: ParcelFileDescriptor?,
+        output: StringBuilder,
+        label: String,
+) {
+    if (descriptor == null) return
+    try {
+        ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { input ->
+            InputStreamReader(input).use { reader ->
+                val buffer = CharArray(8 * 1024)
+                while (true) {
+                    val count = reader.read(buffer)
+                    if (count < 0) break
+                    if (count > 0) output.append(buffer, 0, count)
+                }
+            }
+        }
+    } catch (e: IOException) {
+        // Closing a descriptor during cancellation or post-exit cleanup is expected.
+        AppLogger.v(DEBUGGER_SHELL_TAG, "Reading remote $label stopped", e)
+    } catch (e: Exception) {
+        AppLogger.w(DEBUGGER_SHELL_TAG, "Reading remote $label failed", e)
+    }
+}
+
+/**
+ * 使用 Shizuku 实现的 ShellProcess。
+ *
+ * 两个输出读取器在进程创建后立即启动，即使调用方只订阅 stdout，也不会因为 stderr
+ * 管道无人消费而把远程命令卡住。
+ */
+private class ShizukuShellProcess(
+        private val service: IShizukuService,
+        private val command: String,
+) : ShellProcess {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val destroyed = AtomicBoolean(false)
+    private val stdoutChannel =
+            Channel<String>(capacity = 256, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val stderrChannel =
+            Channel<String>(capacity = 256, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val completion = CompletableDeferred<Int>()
+
+    private lateinit var process: IRemoteProcess
+    private lateinit var stdoutDescriptor: ParcelFileDescriptor
+    private lateinit var stderrDescriptor: ParcelFileDescriptor
+    private lateinit var stdoutReader: kotlinx.coroutines.Job
+    private lateinit var stderrReader: kotlinx.coroutines.Job
+    private lateinit var completionJob: kotlinx.coroutines.Job
+
+    init {
+        var createdProcess: IRemoteProcess? = null
+        var createdStdout: ParcelFileDescriptor? = null
         try {
-            BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                reader.lineSequence().forEach { line ->
-                    if (isActive) {
-                        trySend(line)
+            createdProcess =
+                    service.newProcess(arrayOf("sh", "-c", command), null, null)
+                            ?: throw IOException("Failed to create Shizuku process")
+            closeRemoteStdin(createdProcess)
+            createdStdout = createdProcess.getInputStream()
+                    ?: throw IOException("Shizuku stdout is unavailable")
+            val createdStderr =
+                    createdProcess.getErrorStream()
+                            ?: throw IOException("Shizuku stderr is unavailable")
+
+            process = createdProcess
+            stdoutDescriptor = createdStdout
+            stderrDescriptor = createdStderr
+
+            // Start both readers eagerly. This is essential for commands that write diagnostics
+            // to stderr while the caller only consumes stdout.
+            stdoutReader = scope.launch { drainLines(stdoutDescriptor, stdoutChannel, "stdout") }
+            stderrReader = scope.launch { drainLines(stderrDescriptor, stderrChannel, "stderr") }
+            completionJob = scope.launch { monitorCompletion() }
+        } catch (e: Throwable) {
+            closeDescriptor(createdStdout, "constructor stdout")
+            destroyRemoteProcess(createdProcess)
+            scope.cancel()
+            throw e
+        }
+    }
+
+    override val stdout: Flow<String> = stdoutChannel.receiveAsFlow()
+    override val stderr: Flow<String> = stderrChannel.receiveAsFlow()
+
+    override val isAlive: Boolean
+        get() {
+            if (destroyed.get()) return false
+            return try {
+                process.alive()
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+    override fun destroy() {
+        if (!destroyed.compareAndSet(false, true)) return
+
+        // Destroy first, then close both descriptors so Binder/read calls unblock promptly.
+        destroyRemoteProcess(process)
+        closeDescriptor(stdoutDescriptor, "stdout destroy")
+        closeDescriptor(stderrDescriptor, "stderr destroy")
+        stdoutChannel.close()
+        stderrChannel.close()
+        completion.complete(-1)
+        scope.cancel()
+    }
+
+    override suspend fun waitFor(): Int = completion.await()
+
+    private suspend fun monitorCompletion() {
+        var processFinished = false
+        try {
+            val exitCode = awaitRemoteProcessExit(process)
+            processFinished = true
+            completion.complete(exitCode)
+
+            val outputDrained =
+                    withTimeoutOrNull(POST_EXIT_OUTPUT_DRAIN_GRACE_MS) {
+                        stdoutReader.join()
+                        stderrReader.join()
+                        true
+                    } ?: false
+            if (!outputDrained) {
+                closeDescriptor(stdoutDescriptor, "stdout after interactive process exit")
+                closeDescriptor(stderrDescriptor, "stderr after interactive process exit")
+                stdoutReader.cancelAndJoin()
+                stderrReader.cancelAndJoin()
+            }
+        } catch (e: CancellationException) {
+            if (!destroyed.get()) {
+                destroyRemoteProcess(process)
+            }
+            completion.complete(-1)
+            throw e
+        } catch (e: Exception) {
+            AppLogger.e(DEBUGGER_SHELL_TAG, "Interactive Shizuku process failed: $command", e)
+            completion.complete(-1)
+        } finally {
+            if (!processFinished && !destroyed.get()) {
+                destroyRemoteProcess(process)
+            }
+            closeDescriptor(stdoutDescriptor, "interactive stdout cleanup")
+            closeDescriptor(stderrDescriptor, "interactive stderr cleanup")
+            stdoutChannel.close()
+            stderrChannel.close()
+        }
+    }
+
+    private suspend fun drainLines(
+            descriptor: ParcelFileDescriptor,
+            channel: Channel<String>,
+            label: String,
+    ) {
+        try {
+            ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { input ->
+                BufferedReader(InputStreamReader(input)).use { reader ->
+                    while (isActive) {
+                        val line = reader.readLine() ?: break
+                        channel.trySend(line)
                     }
                 }
             }
         } catch (e: IOException) {
-            // This is expected when the process is destroyed
+            if (!destroyed.get()) {
+                AppLogger.v(DEBUGGER_SHELL_TAG, "Reading interactive $label stopped", e)
+            }
+        } catch (e: Exception) {
+            if (!destroyed.get()) {
+                AppLogger.w(DEBUGGER_SHELL_TAG, "Reading interactive $label failed", e)
+            }
         } finally {
-            close()
+            channel.close()
         }
     }
-    awaitClose { job.cancel() }
 }
