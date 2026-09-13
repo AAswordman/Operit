@@ -771,7 +771,7 @@ private class ShizukuShellProcess(
         try {
             ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { input ->
                 BufferedReader(InputStreamReader(input)).use { reader ->
-                    while (isActive) {
+                    while (currentCoroutineContext().isActive) {
                         val line = reader.readLine() ?: break
                         channel.trySend(line)
                     }
