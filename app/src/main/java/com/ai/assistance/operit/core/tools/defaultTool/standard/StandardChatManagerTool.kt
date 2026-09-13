@@ -89,6 +89,26 @@ sealed class MessageSendStreamStartResult {
 }
 
 /**
+ * 定向发送时，决定悬浮窗应跟随哪个对话显示。
+ *
+ * FLOATING runtime 的 currentChatId 由 ChatRuntimeHolder 从主界面同步而来，只用 chatIdOverride
+ * 发送会让消息进到目标对话、窗口却停在前台对话上。MAIN runtime 不做切换，否则后台发送会把用户
+ * 正在看的对话顶掉。
+ */
+internal object FloatingDisplayChatSelector {
+    fun select(
+        runtimeSlot: ChatRuntimeSlot,
+        targetChatId: String?,
+        displayedChatId: String?
+    ): String? {
+        if (runtimeSlot != ChatRuntimeSlot.FLOATING) return null
+        if (targetChatId.isNullOrBlank()) return null
+        if (targetChatId == displayedChatId) return null
+        return targetChatId
+    }
+}
+
+/**
  * 对话管理工具
  * 负责管理对话、浮窗服务，以及按指定 runtime 发送消息
  */
@@ -1733,7 +1753,8 @@ class StandardChatManagerTool(private val context: Context) {
                 )
             }
 
-            val core = chatRuntimeHolder.getCore(runtimeSlot ?: ChatRuntimeSlot.FLOATING)
+            val effectiveSlot = runtimeSlot ?: ChatRuntimeSlot.FLOATING
+            val core = chatRuntimeHolder.getCore(effectiveSlot)
 
             val message = tool.parameters.find { it.name == "message" }?.value
             if (message.isNullOrBlank()) {
@@ -1892,7 +1913,18 @@ class StandardChatManagerTool(private val context: Context) {
                 }
 
                 if (hasTargetChat) {
-                    // 后台发送到指定对话，不切换 UI
+                    // 悬浮窗跟随目标对话：chatIdOverride 只路由消息，FLOATING runtime 的
+                    // currentChatId 仍停在前台对话上，窗口会显示错误的会话（#555）。
+                    // switchChatLocal 只改悬浮窗本地状态，不写回全局，主界面不受影响。
+                    FloatingDisplayChatSelector.select(
+                        runtimeSlot = effectiveSlot,
+                        targetChatId = targetChatId,
+                        displayedChatId = core.currentChatId.value
+                    )?.let { chatToFollow ->
+                        core.switchChatLocal(chatToFollow)
+                    }
+
+                    // 后台发送到指定对话，不切换主界面
                     core.sendUserMessage(
                         promptFunctionType = PromptFunctionType.CHAT,
                         roleCardIdOverride = roleCardId,
