@@ -3026,6 +3026,10 @@
     <string name="function_desc_chat">Main chat function for daily conversation interaction with users</string>
     <string name="function_desc_title_generation">Generates a short, accurate conversation title from the first user message.</string>
     <string name="function_desc_summary">Compress context and generate chat summaries</string>
+    <string name="function_summary_thinking_on">Think on</string>
+    <string name="function_summary_thinking_off">Think off</string>
+    <string name="function_summary_thinking_level">Thinking level</string>
+    <string name="function_summary_thinking_default_level">Default</string>
     <string name="function_desc_memory">Process memories and store them in the memory library</string>
     <string name="function_desc_file_binding">Process intelligent binding and mixing of file content, providing more precise code processing capabilities. Recommend using fast, inexpensive models like Gemini Flash, not recommended to use DeepSeek R1</string>
     <string name="function_desc_ui_controller">Used for automatic traversal and operation of UI interfaces. The corresponding UI controller model is only activated when the user explicitly requests to use an "agent" for control, for example by choosing dedicated models such as autoglm-phone-9b.</string>
