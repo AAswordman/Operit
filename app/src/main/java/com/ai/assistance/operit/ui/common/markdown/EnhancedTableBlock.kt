@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.common.markdown
 
 import android.graphics.Typeface
 import android.os.SystemClock
+import android.text.Layout
 import android.text.Spanned
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -55,7 +57,7 @@ import kotlin.math.ceil
 import kotlin.math.exp
 
 private val TABLE_MIN_COLUMN_WIDTH = 80.dp
-private val TABLE_MAX_COLUMN_WIDTH = 320.dp
+private val TABLE_MAX_COLUMN_WIDTH = 800.dp
 private val TABLE_CELL_HORIZONTAL_PADDING = 8.dp
 private val TABLE_CELL_VERTICAL_PADDING = 8.dp
 private val TABLE_OUTER_VERTICAL_PADDING = 8.dp
@@ -174,14 +176,16 @@ fun EnhancedTableBlock(
         val cellHorizontalPaddingPx = with(density) { TABLE_CELL_HORIZONTAL_PADDING.toPx() }
         val cellVerticalPaddingPx = with(density) { TABLE_CELL_VERTICAL_PADDING.toPx() }
         val maxScrollPx = (renderLayout.totalWidthPx - availableWidthPx).coerceAtLeast(0).toFloat()
-
+        val currentMaxScrollPx by rememberUpdatedState(maxScrollPx)
+        val currentScrollOffsetPx by rememberUpdatedState(scrollOffsetPx)
         fun cancelFling() {
             flingJob?.cancel()
             flingJob = null
         }
 
         fun startFling(initialVelocityPxPerSec: Float) {
-            if (maxScrollPx <= 0f) return
+            val maxScroll = currentMaxScrollPx
+            if (maxScroll <= 0f) return
             val clampedVelocity =
                 initialVelocityPxPerSec
                     .coerceIn(-TABLE_MAX_FLING_VELOCITY, TABLE_MAX_FLING_VELOCITY)
@@ -198,17 +202,14 @@ fun EnhancedTableBlock(
                             lastFrameNanos = frameNanos
                             continue
                         }
-
                         val deltaSeconds = (frameNanos - lastFrameNanos) / 1_000_000_000f
                         lastFrameNanos = frameNanos
                         if (deltaSeconds <= 0f) continue
-
                         val nextOffset =
-                            (scrollOffsetPx + velocity * deltaSeconds).coerceIn(0f, maxScrollPx)
-                        val hitEdge = nextOffset <= 0f || nextOffset >= maxScrollPx
+                            (scrollOffsetPx + velocity * deltaSeconds).coerceIn(0f, currentMaxScrollPx)
+                        val hitEdge = nextOffset <= 0f || nextOffset >= currentMaxScrollPx
                         scrollOffsetPx = nextOffset
                         velocity *= exp(-TABLE_FLING_DECAY_RATE * deltaSeconds)
-
                         if (hitEdge) {
                             break
                         }
@@ -224,17 +225,16 @@ fun EnhancedTableBlock(
                 cancelFling()
             }
         }
-
         Canvas(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .padding(vertical = TABLE_OUTER_VERTICAL_PADDING)
                     .height(totalHeightDp)
-                    .pointerInput(maxScrollPx) {
-                        if (maxScrollPx <= 0f) return@pointerInput
+                    .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragStart = {
+                                if (currentMaxScrollPx <= 0f) return@detectHorizontalDragGestures
                                 cancelFling()
                                 dragVelocityPxPerSec = 0f
                                 lastDragEventTimeMs = SystemClock.uptimeMillis()
@@ -244,11 +244,13 @@ fun EnhancedTableBlock(
                                 lastDragEventTimeMs = 0L
                             },
                             onDragEnd = {
+                                if (currentMaxScrollPx <= 0f) return@detectHorizontalDragGestures
                                 startFling(dragVelocityPxPerSec)
                                 dragVelocityPxPerSec = 0f
                                 lastDragEventTimeMs = 0L
                             },
                         ) { _, dragAmount ->
+                            if (currentMaxScrollPx <= 0f) return@detectHorizontalDragGestures
                             val nowMs = SystemClock.uptimeMillis()
                             val deltaMs = (nowMs - lastDragEventTimeMs).coerceAtLeast(1L)
                             val instantVelocity = (-dragAmount / deltaMs.toFloat()) * 1000f
@@ -259,10 +261,10 @@ fun EnhancedTableBlock(
                                     dragVelocityPxPerSec * 0.35f + instantVelocity * 0.65f
                                 }
                             lastDragEventTimeMs = nowMs
-                            scrollOffsetPx = (scrollOffsetPx - dragAmount).coerceIn(0f, maxScrollPx)
+                            scrollOffsetPx = (scrollOffsetPx - dragAmount).coerceIn(0f, currentMaxScrollPx)
                         }
                     }
-                    .pointerInput(renderLayout, onLinkClick, scrollOffsetPx, touchSlop) {
+                    .pointerInput(renderLayout, onLinkClick, touchSlop) {
                         if (onLinkClick == null) return@pointerInput
                         awaitEachGesture {
                             val down =
@@ -309,7 +311,7 @@ fun EnhancedTableBlock(
                             outer@ for (rowIndex in renderLayout.cells.indices) {
                                 var cellX = 0f
                                 for (colIndex in renderLayout.cells[rowIndex].indices) {
-                                    val screenX = cellX - scrollOffsetPx
+                                    val screenX = cellX - currentScrollOffsetPx
                                     val cellWidth = renderLayout.columnWidthsPx[colIndex].toFloat()
                                     val cellHeight = renderLayout.rowHeightsPx[rowIndex].toFloat()
                                     if (
@@ -440,7 +442,6 @@ private fun measureTableLayout(
     val cellHorizontalPaddingPx = with(density) { TABLE_CELL_HORIZONTAL_PADDING.roundToPx() }
     val cellVerticalPaddingPx = with(density) { TABLE_CELL_VERTICAL_PADDING.roundToPx() }
     val innerMinWidthPx = (minColumnWidthPx - cellHorizontalPaddingPx * 2).coerceAtLeast(1)
-    val innerMaxWidthPx = (maxColumnWidthPx - cellHorizontalPaddingPx * 2).coerceAtLeast(innerMinWidthPx)
     val bodyFontSizePx = with(density) { bodyTextStyle.fontSize.toPx() }
     val headerFontSizePx = bodyFontSizePx
     val bodyPaint = TextPaint().apply {
@@ -502,8 +503,6 @@ private fun measureTableLayout(
                     measureCellDesiredWidth(
                         text = preparedCell,
                         paint = paint,
-                        widthPx = innerMaxWidthPx,
-                        lineSpacingMultiplier = lineSpacingMultiplier
                     ).also {
                         measuredLineCount += preparedCell.lineCountHint()
                     }
@@ -588,20 +587,24 @@ private fun createCellStaticLayout(
 private fun measureCellDesiredWidth(
     text: CharSequence,
     paint: TextPaint,
-    widthPx: Int,
-    lineSpacingMultiplier: Float,
 ): Float {
     if (text.isEmpty()) return 0f
-
-    val layout = createCellStaticLayout(text, paint, widthPx, lineSpacingMultiplier)
-    var maxWidth = 0f
-    for (lineIndex in 0 until layout.lineCount) {
-        maxWidth = maxOf(maxWidth, layout.getLineWidth(lineIndex))
-        if (maxWidth >= widthPx) {
-            return widthPx.toFloat()
+    var maxLineWidth = 0f
+    var lineStart = 0
+    val len = text.length
+    for (i in 0..len) {
+        if (i == len || text[i] == '\n') {
+            if (i > lineStart) {
+                val lineSub = text.subSequence(lineStart, i)
+                val lineWidth = Layout.getDesiredWidth(lineSub, paint)
+                if (lineWidth > maxLineWidth) {
+                    maxLineWidth = lineWidth
+                }
+            }
+            lineStart = i + 1
         }
     }
-    return maxWidth
+    return maxLineWidth
 }
 
 private fun CharSequence.lineCountHint(): Int {
