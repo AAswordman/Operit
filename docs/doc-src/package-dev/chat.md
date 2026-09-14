@@ -103,6 +103,7 @@ findChat({ query, match?, index? }): Promise<ChatFindResultData>
 其中：
 
 - `runtime` 用于指定本次消息发送到哪个 chat runtime，未指定时默认走 `floating`
+- 传入 `chatId` 时消息只投递到该对话，走 `floating` 时悬浮窗会一并切到该对话显示，走 `main` 时不切换用户正在看的对话
 - `timeout_ms` 用于控制本次发送的最长等待时间，单位毫秒
 
 ### `call(options)`
