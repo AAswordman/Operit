@@ -4,7 +4,7 @@ import com.ai.assistance.operit.util.AppLogger
 import java.io.BufferedWriter
 import java.io.IOException
 
-private const val TAG = "WebChatSseWriter"
+private const val TAG = "SseWriter"
 
 /**
  * Closes an SSE response writer whose read side belongs to the HTTP client. Once the client
@@ -13,10 +13,10 @@ private const val TAG = "WebChatSseWriter"
  * CoroutineExceptionHandler, so letting it escape reaches the process-wide uncaught handler and
  * kills the app.
  */
-internal fun closeSseWriter(writer: BufferedWriter, chatId: String) {
+internal fun closeSseWriter(writer: BufferedWriter, logContext: String) {
     try {
         writer.close()
     } catch (e: IOException) {
-        AppLogger.i(TAG, "Web SSE writer closed after client disconnect for chatId=$chatId: ${e.message}")
+        AppLogger.i(TAG, "SSE writer closed after client disconnect ($logContext): ${e.message}")
     }
 }
