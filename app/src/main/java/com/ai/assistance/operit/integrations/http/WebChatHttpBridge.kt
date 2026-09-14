@@ -1251,7 +1251,7 @@ class WebChatHttpBridge(
                 }
                 core.cancelMessage(activeChatId.get())
             } finally {
-                closeSseWriter(writer, chatId)
+                closeSseWriter(writer, "chatId=$chatId")
             }
         }
 

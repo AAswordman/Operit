@@ -32,7 +32,7 @@ private const val PIPE_BUFFER_SIZE = 64 * 1024
 private const val TIMEOUT_MS = 10_000L
 private const val SSE_EVENT = "event: assistant_delta\ndata: {\"delta\":\"hi\"}\n\n"
 
-class WebChatSseWriterTest {
+class SseWriterTest {
     private var previousSystemLogEnabled = true
     private val scopes = mutableListOf<CoroutineScope>()
     private val threads = mutableListOf<Thread>()
@@ -100,7 +100,7 @@ class WebChatSseWriterTest {
         // Left unflushed so that close() has to push it into the dead pipe.
         writer.write(SSE_EVENT)
 
-        closeSseWriter(writer, CHAT_ID)
+        closeSseWriter(writer, "chatId=$CHAT_ID")
     }
 
     @Test
@@ -113,7 +113,7 @@ class WebChatSseWriterTest {
         }
 
         writer.write(SSE_EVENT)
-        closeSseWriter(writer, CHAT_ID)
+        closeSseWriter(writer, "chatId=$CHAT_ID")
 
         assertEquals(SSE_EVENT, runBlocking { withTimeout(TIMEOUT_MS) { received.await() } })
     }
@@ -215,7 +215,7 @@ class WebChatSseWriterTest {
         } catch (e: IOException) {
             onCancelMessage()
         } finally {
-            closeSseWriter(writer, CHAT_ID)
+            closeSseWriter(writer, "chatId=$CHAT_ID")
         }
     }
 }
