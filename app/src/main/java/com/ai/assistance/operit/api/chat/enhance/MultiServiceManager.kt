@@ -219,10 +219,10 @@ class MultiServiceManager(private val context: Context) {
     }
 
     /** 刷新指定功能类型的服务实例 当配置更改时调用此方法 */
-    suspend fun refreshServiceForFunction(functionType: FunctionType) {
+    suspend fun refreshServiceForFunction(functionType: FunctionType, cancelStreaming: Boolean = true) {
         ensureInitialized()
         serviceMutex.withLock {
-            serviceInstances.remove(functionType)?.let { retireManagedServiceLocked(it) }
+            serviceInstances.remove(functionType)?.let { retireManagedServiceLocked(it, cancelStreaming) }
 
             if (functionType == FunctionType.CHAT) {
                 defaultService = null
@@ -238,7 +238,7 @@ class MultiServiceManager(private val context: Context) {
     }
 
     /** 刷新所有服务实例 当全局设置更改时调用此方法 */
-    suspend fun refreshAllServices() {
+    suspend fun refreshAllServices(cancelStreaming: Boolean = true) {
         ensureInitialized()
         serviceMutex.withLock {
             val services = mutableSetOf<ManagedService>()
@@ -252,7 +252,7 @@ class MultiServiceManager(private val context: Context) {
             retiredServices.clear()
             defaultService = null
             services.forEach { service ->
-                closeManagedServiceLocked(service, cancelStreaming = true)
+                closeManagedServiceLocked(service, cancelStreaming = cancelStreaming)
             }
             AppLogger.d(TAG, "已清除所有服务实例缓存并释放资源")
         }
@@ -265,15 +265,15 @@ class MultiServiceManager(private val context: Context) {
         }
     }
 
-    private fun retireManagedServiceLocked(managedService: ManagedService) {
+    private fun retireManagedServiceLocked(managedService: ManagedService, cancelStreaming: Boolean = true) {
         managedService.retired = true
         retiredServices.add(managedService)
         closeRetiredServiceLocked(managedService)
     }
 
-    private fun closeRetiredServiceLocked(managedService: ManagedService) {
+    private fun closeRetiredServiceLocked(managedService: ManagedService, cancelStreaming: Boolean = true) {
         if (managedService.retired && managedService.activeLeases == 0) {
-            closeManagedServiceLocked(managedService, cancelStreaming = false)
+            closeManagedServiceLocked(managedService, cancelStreaming)
         }
     }
 

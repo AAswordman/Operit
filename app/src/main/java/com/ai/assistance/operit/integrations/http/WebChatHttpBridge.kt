@@ -441,7 +441,7 @@ class WebChatHttpBridge(
                         normalizedModelIndex
                     )
                 }
-                EnhancedAIService.refreshServiceForFunction(appContext, FunctionType.CHAT)
+                EnhancedAIService.refreshServiceForFunction(appContext, FunctionType.CHAT, cancelStreaming = false)
             }
 
             WebSelectModelResponse(

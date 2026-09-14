@@ -333,10 +333,7 @@ fun ModelConfigScreen(
                     savedMapping.configId == targetConfigId &&
                         savedMapping.modelIndex == targetModelIndex
                 )
-                EnhancedAIService.refreshServiceForFunction(
-                    context.applicationContext,
-                    FunctionType.CHAT
-                )
+                EnhancedAIService.refreshServiceForFunction(context.applicationContext, FunctionType.CHAT, cancelStreaming = false)
                 true
             } catch (e: CancellationException) {
                 throw e
@@ -512,10 +509,7 @@ fun ModelConfigScreen(
 
                                                 affectedFunctions.forEach { functionType ->
                                                     try {
-                                                        EnhancedAIService.refreshServiceForFunction(
-                                                            context.applicationContext,
-                                                            functionType,
-                                                        )
+                                                        EnhancedAIService.refreshServiceForFunction(context.applicationContext, functionType, cancelStreaming = false)
                                                     } catch (e: Exception) {
                                                         AppLogger.e(
                                                             "ModelConfigScreen",
@@ -1128,7 +1122,7 @@ private fun ThinkingConfigurationsSection(
         saveMutex.withLock {
             withContext(Dispatchers.IO) {
                 configManager.updateThinkingConfigurations(latestConfig.id, value)
-                EnhancedAIService.refreshAllServices(configManager.appContext)
+                EnhancedAIService.refreshAllServices(configManager.appContext, cancelStreaming = false)
             }
         }
     }
@@ -1932,7 +1926,7 @@ private fun CustomHeadersSettingsSection(
         saveMutex.withLock {
             withContext(Dispatchers.IO) {
                 configManager.updateCustomHeaders(latestConfig.id, serializedHeaders)
-                EnhancedAIService.refreshAllServices(configManager.appContext)
+                EnhancedAIService.refreshAllServices(configManager.appContext, cancelStreaming = false)
             }
         }
     }
