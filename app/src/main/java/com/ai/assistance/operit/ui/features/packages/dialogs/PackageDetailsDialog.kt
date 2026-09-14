@@ -27,10 +27,24 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.ToolPackage
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.data.api.MarketStatsApiService
+import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.ui.common.icons.rememberLogoPainter
+import com.ai.assistance.operit.ui.features.packages.market.readMarketInstallMarkerForPackage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private sealed interface PackageUpdateCheckState {
+    data object UpToDate : PackageUpdateCheckState
+    data class UpdateAvailable(
+        val entry: MarketV2Entry,
+        val latestVersion: String
+    ) : PackageUpdateCheckState
+    data object NotFromMarket : PackageUpdateCheckState
+    data object EntryMissing : PackageUpdateCheckState
+    data object Failed : PackageUpdateCheckState
+}
 
 @Composable
 fun PackageDetailsDialog(
@@ -41,11 +55,60 @@ fun PackageDetailsDialog(
         onRunScript: (String, PackageTool) -> Unit,
         onOpenToolPkgPluginConfig: (String, String, String, Boolean) -> Unit,
         onDismiss: () -> Unit,
-        onPackageDeleted: () -> Unit
+        onPackageDeleted: () -> Unit,
+        onOpenMarketDetail: (MarketV2Entry) -> Unit
 ) {
     val context = LocalContext.current
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    var updateCheckState by remember(packageName) { mutableStateOf<PackageUpdateCheckState?>(null) }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+
+    fun runUpdateCheck() {
+        if (isCheckingUpdate) return
+        isCheckingUpdate = true
+        updateCheckState = null
+        scope.launch {
+            try {
+                val marker =
+                    withContext(Dispatchers.IO) {
+                        readMarketInstallMarkerForPackage(packageManager, packageName)
+                    }
+                if (marker == null) {
+                    updateCheckState = PackageUpdateCheckState.NotFromMarket
+                    return@launch
+                }
+                val entryResult =
+                    withContext(Dispatchers.IO) {
+                        MarketStatsApiService().getEntry(marker.entryId)
+                    }
+                if (entryResult.isFailure) {
+                    updateCheckState = PackageUpdateCheckState.Failed
+                    return@launch
+                }
+                val entry = entryResult.getOrNull()
+                if (entry == null) {
+                    updateCheckState = PackageUpdateCheckState.EntryMissing
+                    return@launch
+                }
+                val latest = entry.latestVersion
+                if (latest == null || latest.id.isBlank() || latest.id == marker.versionId) {
+                    updateCheckState = PackageUpdateCheckState.UpToDate
+                } else {
+                    updateCheckState =
+                        PackageUpdateCheckState.UpdateAvailable(
+                            entry = entry,
+                            latestVersion = latest.version.ifBlank { latest.id }
+                        )
+                }
+            } catch (error: Exception) {
+                AppLogger.e("PackageDetailsDialog", "Update check failed", error)
+                updateCheckState = PackageUpdateCheckState.Failed
+            } finally {
+                isCheckingUpdate = false
+            }
+        }
+    }
 
     val resolvedPackage by produceState<ToolPackage?>(initialValue = toolPackage, packageName, toolPackage) {
         value = toolPackage
@@ -182,6 +245,56 @@ fun PackageDetailsDialog(
                         Text(stringResource(R.string.pkg_cancel))
                     }
                 }
+        )
+    }
+
+    val currentUpdateCheckState = updateCheckState
+    if (currentUpdateCheckState != null) {
+        AlertDialog(
+            onDismissRequest = { updateCheckState = null },
+            title = { Text(stringResource(R.string.pkg_check_update)) },
+            text = {
+                Text(
+                    when (currentUpdateCheckState) {
+                        is PackageUpdateCheckState.UpToDate ->
+                            stringResource(R.string.pkg_check_update_up_to_date)
+                        is PackageUpdateCheckState.UpdateAvailable ->
+                            stringResource(
+                                R.string.pkg_check_update_available,
+                                currentUpdateCheckState.latestVersion
+                            )
+                        PackageUpdateCheckState.NotFromMarket ->
+                            stringResource(R.string.pkg_check_update_not_market)
+                        PackageUpdateCheckState.EntryMissing ->
+                            stringResource(R.string.pkg_check_update_entry_missing)
+                        PackageUpdateCheckState.Failed ->
+                            stringResource(R.string.pkg_check_update_failed)
+                    }
+                )
+            },
+            confirmButton = {
+                if (currentUpdateCheckState is PackageUpdateCheckState.UpdateAvailable) {
+                    Button(
+                        onClick = {
+                            updateCheckState = null
+                            onOpenMarketDetail(currentUpdateCheckState.entry)
+                        }
+                    ) {
+                        Text(stringResource(R.string.pkg_check_update_go))
+                    }
+                } else {
+                    Button(onClick = { updateCheckState = null }) {
+                        Text(stringResource(R.string.pkg_ok))
+                    }
+                }
+            },
+            dismissButton = {
+                if (currentUpdateCheckState is PackageUpdateCheckState.UpdateAvailable) {
+                    TextButton(onClick = { updateCheckState = null }) {
+                        Text(stringResource(R.string.pkg_cancel))
+                    }
+                }
+            }
         )
     }
 
@@ -656,6 +769,25 @@ fun PackageDetailsDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
                     if (metaPackage != null && !metaPackage.isBuiltIn) {
+                        OutlinedButton(
+                            onClick = { runUpdateCheck() },
+                            enabled = !isCheckingUpdate
+                        ) {
+                            if (isCheckingUpdate) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.pkg_check_update))
+                        }
                         OutlinedButton(
                             onClick = { showDeleteConfirmDialog = true },
                             colors = ButtonDefaults.outlinedButtonColors(
