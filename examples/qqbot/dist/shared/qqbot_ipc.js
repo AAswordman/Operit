@@ -129,14 +129,15 @@ function registerQQBotContextRunner() {
 registerQQBotContextRunner();
 registerQQBotContextModule(QQBotRuntime);
 registerQQBotContextModule(QQBotAutoReply);
-async function runWithContext(kind, envs, runner) {
+async function runWithContext(kind, envs, runner, timeoutMs) {
     const payload = {
         functionSource: runner.toString(),
         envs
     };
     try {
         return await ToolPkg.ipc.call(QQBOT_CONTEXT_RUN_IPC_CHANNEL, payload, {
-            targetRuntime: kind
+            targetRuntime: kind,
+            ...(timeoutMs != null ? { timeoutMs } : {})
         });
     }
     catch (error) {
@@ -145,11 +146,11 @@ async function runWithContext(kind, envs, runner) {
         throw error;
     }
 }
-function withContext(kind, envs, runner) {
+function withContext(kind, envs, runner, timeoutMs) {
     if (!runner) {
         throw new Error("withContext requires runner");
     }
-    return runWithContext(kind, envs, runner);
+    return runWithContext(kind, envs, runner, timeoutMs);
 }
 __exportStar(require("./qqbot_runtime"), exports);
 __exportStar(require("./qqbot_auto_reply"), exports);
