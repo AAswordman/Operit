@@ -4110,6 +4110,19 @@
     <string name="connection_test_success">Connection Success</string>
     <string name="connection_test_failed">Connection Failed: %1$s</string>
     <string name="no_config_selected">No Configuration Selected</string>
+    <string name="model_config_manage_organization">Manage configuration groups and order</string>
+    <string name="model_config_current_group">Current group: %1$s</string>
+    <string name="model_config_new_group">New configuration group</string>
+    <string name="model_config_toggle_group">Collapse or expand configuration group</string>
+    <string name="model_config_group_item_count">%1$s (%2$d)</string>
+    <string name="model_config_add_to_group">Create configuration in group</string>
+    <string name="model_config_rename_group">Rename configuration group</string>
+    <string name="model_config_delete_group">Delete configuration group</string>
+    <string name="model_config_drag_group">Long press to reorder group</string>
+    <string name="model_config_drag_config">Long press to reorder configuration</string>
+    <string name="model_config_current_selection">Current selection: %1$s</string>
+    <string name="model_config_save_group_order_failed">Failed to save group order</string>
+    <string name="model_config_save_order_failed">Failed to save configuration order</string>
     <string name="default_config_warning">Please modify the default configuration\'s API Key, otherwise it will be considered as not using your own configuration</string>
     <string name="config_deleted">Configuration Deleted</string>
     <string name="new_model_config">New Model Configuration</string>
@@ -8470,4 +8483,6 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <string name="model_config_group_empty">No model configurations in “%1$s”</string>
+    <string name="model_config_name_with_group">%1$s (%2$s)</string>
 </resources>

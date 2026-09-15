@@ -4066,6 +4066,19 @@
     <string name="connection_test_success">连接成功</string>
     <string name="connection_test_failed">连接失败: %1$s</string>
     <string name="no_config_selected">未选择配置</string>
+    <string name="model_config_manage_organization">管理配置组和排序</string>
+    <string name="model_config_current_group">当前分组：%1$s</string>
+    <string name="model_config_new_group">新建配置组</string>
+    <string name="model_config_toggle_group">折叠或展开配置组</string>
+    <string name="model_config_group_item_count">%1$s（%2$d）</string>
+    <string name="model_config_add_to_group">在组中新建配置</string>
+    <string name="model_config_rename_group">重命名配置组</string>
+    <string name="model_config_delete_group">删除配置组</string>
+    <string name="model_config_drag_group">长按拖拽分组</string>
+    <string name="model_config_drag_config">长按拖拽配置</string>
+    <string name="model_config_current_selection">当前选择：%1$s</string>
+    <string name="model_config_save_group_order_failed">保存分组顺序失败</string>
+    <string name="model_config_save_order_failed">保存配置顺序失败</string>
     <string name="default_config_warning">请修改默认配置的API Key，否则将被判断为未使用自己的配置</string>
     <string name="config_deleted">配置已删除</string>
     <string name="new_model_config">新建模型配置</string>
@@ -8455,4 +8468,6 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <string name="model_config_group_empty">“%1$s”中没有模型配置</string>
+    <string name="model_config_name_with_group">%1$s（%2$s）</string>
 </resources>

@@ -8,6 +8,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -19,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Api
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
@@ -59,6 +63,7 @@ import com.ai.assistance.operit.data.collects.ApiProviderConfigs
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.model.applySavedModelOrder
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
@@ -78,6 +83,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 val TAG = "ModelApiSettings"
 
@@ -442,7 +449,12 @@ fun ModelApiSettingsSection(
     // 模型列表状态
     var isLoadingModels by remember { mutableStateOf(false) }
     var showModelsDialog by remember { mutableStateOf(false) }
-    var modelsList by remember { mutableStateOf<List<ModelOption>>(emptyList()) }
+    var modelsList by remember(config.id) { mutableStateOf<List<ModelOption>>(emptyList()) }
+    fun orderedModels(models: List<ModelOption>): List<ModelOption> {
+        val modelsById = models.associateBy { it.id }
+        return applySavedModelOrder(models.map { it.id }, config.modelOrder)
+            .mapNotNull(modelsById::get)
+    }
     var modelLoadError by remember { mutableStateOf<String?>(null) }
     var showEndpointDialog by remember(config.id) { mutableStateOf(false) }
 
@@ -806,7 +818,7 @@ fun ModelApiSettingsSection(
                                         if (result.isSuccess) {
                                             val models = result.getOrThrow()
                                             AppLogger.d(TAG, "模型列表获取成功，共 ${models.size} 个模型")
-                                            modelsList = models
+                                            modelsList = orderedModels(models)
                                             showModelsDialog = true
                                             showNotification(modelsListSuccessText.format(models.size))
                                         } else {
@@ -966,6 +978,18 @@ fun ModelApiSettingsSection(
                     if (searchQuery.isEmpty()) modelsList
                     else modelsList.filter { it.id.contains(searchQuery, ignoreCase = true) }
                 }
+        val modelsLazyListState = rememberLazyListState()
+        val modelsReorderableState =
+            rememberReorderableLazyListState(modelsLazyListState) { from, to ->
+                if (searchQuery.isEmpty()) {
+                    modelsList = modelsList.toMutableList().apply {
+                        add(to.index, removeAt(from.index))
+                    }
+                    scope.launch {
+                        configManager.updateModelOrder(config.id, modelsList.map { it.id })
+                    }
+                }
+            }
 
         Dialog(onDismissRequest = { showModelsDialog = false }) {
             Surface(
@@ -995,7 +1019,7 @@ fun ModelApiSettingsSection(
                                             try {
                                                 val result = fetchAvailableModels()
                                                 if (result.isSuccess) {
-                                                    modelsList = result.getOrThrow()
+                                                    modelsList = orderedModels(result.getOrThrow())
                                                 } else {
                                                     val errorMsg = result.exceptionOrNull()?.message ?: context.getString(R.string.unknown_error)
                                                     modelLoadError = context.getString(R.string.refresh_models_list_failed, errorMsg)
@@ -1106,71 +1130,74 @@ fun ModelApiSettingsSection(
                             }
                         }
                     } else {
-                        androidx.compose.foundation.lazy.LazyColumn(
+                        LazyColumn(
+                                state = modelsLazyListState,
                                 modifier = Modifier.fillMaxWidth().weight(1f)
                         ) {
-                            items(filteredModelsList.size) { index ->
-                                val model = filteredModelsList[index]
+                            items(
+                                items = filteredModelsList,
+                                key = { it.id }
+                            ) { model ->
                                 val isSelected = selectedModels.value.contains(model.id)
-                                
-                                // 使用带Checkbox的Row实现多选
-                                Row(
-                                        modifier =
+                                ReorderableItem(
+                                    state = modelsReorderableState,
+                                    key = model.id
+                                ) { isDragging ->
+                                    Row(
+                                            modifier =
                                                 Modifier.fillMaxWidth()
-                                                        .clickable {
-                                                            // 切换选中状态
-                                                            val newSelection = selectedModels.value.toMutableSet()
-                                                            if (isSelected) {
-                                                                newSelection.remove(model.id)
-                                                            } else {
-                                                                newSelection.add(model.id)
-                                                            }
-                                                            selectedModels.value = newSelection
-                                                        }
-                                                        .padding(
-                                                                horizontal = 12.dp,
-                                                                vertical = 6.dp
-                                                        ),
-                                        verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Checkbox(
-                                            checked = isSelected,
-                                            onCheckedChange = { checked ->
-                                                val newSelection = selectedModels.value.toMutableSet()
-                                                if (checked) {
-                                                    newSelection.add(model.id)
-                                                } else {
-                                                    newSelection.remove(model.id)
-                                                }
-                                                selectedModels.value = newSelection
-                                            },
-                                            colors = CheckboxDefaults.colors(
-                                                    checkedColor = MaterialTheme.colorScheme.primary
-                                            )
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                            text = model.name,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            modifier = Modifier.weight(1f),
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                            color = if (isSelected) 
-                                                    MaterialTheme.colorScheme.primary 
-                                                else 
-                                                    MaterialTheme.colorScheme.onSurface
-                                    )
+                                                    .background(
+                                                        if (isDragging) MaterialTheme.colorScheme.surfaceVariant
+                                                        else MaterialTheme.colorScheme.surface
+                                                    )
+                                                    .clickable {
+                                                        val newSelection = selectedModels.value.toMutableSet()
+                                                        if (isSelected) newSelection.remove(model.id)
+                                                        else newSelection.add(model.id)
+                                                        selectedModels.value = newSelection
+                                                    }
+                                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Checkbox(
+                                                checked = isSelected,
+                                                onCheckedChange = { checked ->
+                                                    val newSelection = selectedModels.value.toMutableSet()
+                                                    if (checked) newSelection.add(model.id)
+                                                    else newSelection.remove(model.id)
+                                                    selectedModels.value = newSelection
+                                                },
+                                                colors = CheckboxDefaults.colors(
+                                                        checkedColor = MaterialTheme.colorScheme.primary
+                                                )
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                                text = model.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                modifier = Modifier.weight(1f),
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = if (isSelected)
+                                                        MaterialTheme.colorScheme.primary
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Icon(
+                                            Icons.Default.DragHandle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .longPressDraggableHandle()
+                                                .padding(8.dp)
+                                        )
+                                    }
                                 }
-
-                                if (index < filteredModelsList.size - 1) {
-                                    HorizontalDivider(
-                                            thickness = 0.5.dp,
-                                            color =
-                                                    MaterialTheme.colorScheme.outlineVariant.copy(
-                                                            alpha = 0.5f
-                                                    ),
-                                            modifier = Modifier.padding(horizontal = 12.dp)
-                                    )
-                                }
+                                HorizontalDivider(
+                                        thickness = 0.5.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.padding(horizontal = 12.dp)
+                                )
                             }
                         }
                     }
@@ -1205,6 +1232,9 @@ fun ModelApiSettingsSection(
                                     val orderedSelection = modelsList.map { it.id }
                                         .filter { selectedModels.value.contains(it) }
                                     modelNameInput = orderedSelection.joinToString(",")
+                                    scope.launch {
+                                        configManager.updateModelOrder(config.id, modelsList.map { it.id })
+                                    }
                                     if (selectedApiProvider == ApiProviderType.MNN) {
                                         AppLogger.d(TAG, "选择MNN模型: $modelNameInput")
                                     }
