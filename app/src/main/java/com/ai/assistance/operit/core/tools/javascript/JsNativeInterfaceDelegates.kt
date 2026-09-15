@@ -22,6 +22,7 @@ import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.preferences.EnvPreferences
+import com.ai.assistance.operit.plugins.toolpkg.ToolPkgHostBridge
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.OperitPaths
 import com.ai.assistance.operit.util.ToolPkgWasmRuntime
@@ -254,6 +255,22 @@ internal object JsNativeInterfaceDelegates {
                 applyEnvValue(preferences, rawKey, payload.opt(rawKey)?.toString())
             }
         }
+    }
+
+    fun invokeToolPkgHostBridge(
+        context: Context,
+        packageManager: PackageManager,
+        packageName: String,
+        capability: String,
+        payloadJson: String
+    ): String {
+        return ToolPkgHostBridge.invoke(
+            context = context,
+            packageManager = packageManager,
+            packageName = packageName,
+            capability = capability,
+            payloadJson = payloadJson
+        )
     }
 
     fun isPackageImported(packageManager: PackageManager, packageName: String): Boolean {

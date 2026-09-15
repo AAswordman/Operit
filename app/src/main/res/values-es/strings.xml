@@ -7073,16 +7073,6 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="github_login_external_waiting">Se ha abierto el navegador. Vuelve a la aplicación después de completar la autorización.</string>
     <string name="artifact_publication_pending_review_waiting_schedule">En revisión, espera la programación de publicación</string>
     <string name="artifact_publication_approved_waiting_schedule">Aprobado, espera la programación de publicación</string>
-    <string name="toolpkg_widget_host_label">Widget personalizado</string>
-    <string name="toolpkg_widget_host_description">Después de añadirlo, se puede vincular a la página de widget registrada por un plugin</string>
-    <string name="toolpkg_widget_unconfigured_title">Widget personalizado</string>
-    <string name="toolpkg_widget_unconfigured_subtitle">Toca para seleccionar una página de widget registrada</string>
-    <string name="toolpkg_widget_open_label">Tocar para abrir</string>
-    <string name="toolpkg_widget_picker_title">Seleccionar widget de escritorio</string>
-    <string name="toolpkg_widget_picker_cancel">Cancelar</string>
-    <string name="toolpkg_widget_picker_empty_title">Aún no hay widgets disponibles</string>
-    <string name="toolpkg_widget_picker_empty_body">Activa primero un ToolPkg que tenga registrado un desktop widget y luego vuelve para añadirlo.</string>
-    <string name="toolpkg_widget_picker_selecting">Configurando…</string>
     <string name="chat_message_locator_favorites_filter">Solo mensajes favoritos</string>
     <string name="attachment_package">Paquete</string>
     <string name="attachment_package_select_title">Seleccionar paquete</string>

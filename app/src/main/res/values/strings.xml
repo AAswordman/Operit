@@ -5319,16 +5319,9 @@
     <!-- Voice Assistant Widget -->
     <string name="voice_assistant_widget_description">快速启动 Operit 语音助手</string>
     <string name="voice_assistant_widget_title">语音助手</string>
-    <string name="toolpkg_widget_host_label">自定义小部件</string>
-    <string name="toolpkg_widget_host_description">添加后可绑定到某个插件注册的小组件页面</string>
-    <string name="toolpkg_widget_unconfigured_title">自定义小部件</string>
-    <string name="toolpkg_widget_unconfigured_subtitle">点击选择一个已注册的小组件页面</string>
-    <string name="toolpkg_widget_open_label">点击打开</string>
-    <string name="toolpkg_widget_picker_title">选择桌面小组件</string>
-    <string name="toolpkg_widget_picker_cancel">取消</string>
-    <string name="toolpkg_widget_picker_empty_title">还没有可用的小组件</string>
-    <string name="toolpkg_widget_picker_empty_body">先启用一个注册了 desktop widget 的 ToolPkg，再回来添加。</string>
-    <string name="toolpkg_widget_picker_selecting">正在配置…</string>
+    <string name="toolpkg_floating_window_title">插件悬浮窗</string>
+    <string name="toolpkg_floating_window_description">保持已显示的 ToolPkg 悬浮内容运行</string>
+    <string name="toolpkg_floating_window_running">ToolPkg 悬浮窗正在运行</string>
 
     <!-- MNN Model Download -->
     <string name="screen_title_mnn_model_download">MNN模型下载</string>

@@ -7003,16 +7003,6 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="github_login_external_waiting">Penyemak imbas telah dibuka, sila kembali ke aplikasi selepas selesai pengesahan.</string>
     <string name="artifact_publication_pending_review_waiting_schedule">Dalam semakan, sila tunggu penjadualan penerbitan</string>
     <string name="artifact_publication_approved_waiting_schedule">Diluluskan, sila tunggu penjadualan penerbitan</string>
-    <string name="toolpkg_widget_host_label">Widget Tersuai</string>
-    <string name="toolpkg_widget_host_description">Selepas ditambah, boleh diikat ke halaman widget yang didaftarkan oleh plugin</string>
-    <string name="toolpkg_widget_unconfigured_title">Widget Tersuai</string>
-    <string name="toolpkg_widget_unconfigured_subtitle">Klik untuk memilih halaman widget yang telah didaftarkan</string>
-    <string name="toolpkg_widget_open_label">Klik untuk Buka</string>
-    <string name="toolpkg_widget_picker_title">Pilih Widget Desktop</string>
-    <string name="toolpkg_widget_picker_cancel">Batal</string>
-    <string name="toolpkg_widget_picker_empty_title">Tiada widget tersedia lagi</string>
-    <string name="toolpkg_widget_picker_empty_body">Aktifkan ToolPkg yang mendaftarkan desktop widget dahulu, kemudian kembali untuk menambah.</string>
-    <string name="toolpkg_widget_picker_selecting">Sedang mengkonfigurasi…</string>
     <string name="chat_message_locator_favorites_filter">Lihat Hanya Mesej Kegemaran</string>
     <string name="attachment_package">Pakej</string>
     <string name="attachment_package_select_title">Pilih Pakej</string>

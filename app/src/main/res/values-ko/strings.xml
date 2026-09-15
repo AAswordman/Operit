@@ -4397,16 +4397,6 @@
     <string name="custom">맞춤형</string>
     <string name="voice_assistant_widget_description">Operit 음성 도우미 빠른 실행</string>
     <string name="voice_assistant_widget_title">음성 도우미</string>
-    <string name="toolpkg_widget_host_label">사용자 정의 위젯</string>
-    <string name="toolpkg_widget_host_description">추가 후 플러그인에 등록된 위젯 페이지에 바인딩합니다.</string>
-    <string name="toolpkg_widget_unconfigured_title">사용자 정의 위젯</string>
-    <string name="toolpkg_widget_unconfigured_subtitle">등록된 위젯 페이지를 선택하려면 탭하세요.</string>
-    <string name="toolpkg_widget_open_label">열려면 탭하세요.</string>
-    <string name="toolpkg_widget_picker_title">위젯 선택</string>
-    <string name="toolpkg_widget_picker_cancel">취소</string>
-    <string name="toolpkg_widget_picker_empty_title">아직 사용할 수 있는 위젯이 없습니다.</string>
-    <string name="toolpkg_widget_picker_empty_body">데스크톱 위젯을 등록하는 ToolPkg를 활성화한 후 다시 추가하세요.</string>
-    <string name="toolpkg_widget_picker_selecting">구성 중…</string>
     <string name="screen_title_mnn_model_download">MNN 모델 다운로드</string>
     <string name="mnn_model_download">MNN 모델 다운로드</string>
     <string name="mnn_model_management">모델 관리</string>
