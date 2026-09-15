@@ -153,6 +153,12 @@ fun ScriptExecutionDialog(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         tool.parameters.forEach { param ->
+                            val normalizedParamName = param.name.trim().lowercase()
+                            val isPromptParameter =
+                                param.type.equals("string", ignoreCase = true) &&
+                                    (normalizedParamName == "prompt" ||
+                                        normalizedParamName.endsWith("_prompt"))
+
                             OutlinedTextField(
                                 value = paramValues[param.name] ?: "",
                                 onValueChange = { value ->
@@ -164,7 +170,8 @@ fun ScriptExecutionDialog(
                                     Text("${param.name}${if (param.required) " *" else ""}")
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
+                                singleLine = !isPromptParameter,
+                                minLines = if (isPromptParameter) 3 else 1,
                                 placeholder = { Text(param.description.resolve(context)) }
                             )
                             Spacer(modifier = Modifier.height(6.dp))

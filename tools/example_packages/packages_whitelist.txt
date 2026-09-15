@@ -23,7 +23,7 @@ tavily.js
 time.js
 various_search.js
 workflow.js
-xai_draw.js
+spacexai_draw.js
 openai_draw.js
 operit_editor.js
 browser.js
