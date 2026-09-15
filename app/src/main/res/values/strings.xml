@@ -6548,6 +6548,18 @@
     <!-- Package Manager Module -->
     <string name="pkg_manage_env_vars">管理环境变量</string>
     <string name="pkg_config_env_vars">配置环境变量</string>
+    <string name="pkg_env_vars_subtitle">管理插件和脚本运行所需的配置</string>
+    <string name="pkg_env_vars_status">配置状态</string>
+    <string name="pkg_env_vars_configured_count">已配置 %1$d / %2$d</string>
+    <string name="pkg_env_vars_complete">配置完成</string>
+    <string name="pkg_env_vars_required_complete">必填项已配置</string>
+    <string name="pkg_env_vars_missing_required">还缺 %1$d 项必填</string>
+    <string name="pkg_env_vars_required">必填</string>
+    <string name="pkg_env_vars_optional">可选</string>
+    <string name="pkg_env_vars_configured">已配置</string>
+    <string name="pkg_env_vars_missing_description">此变量未提供用途说明</string>
+    <string name="pkg_env_vars_show_value">显示值</string>
+    <string name="pkg_env_vars_hide_value">隐藏值</string>
     <string name="pkg_no_env_vars">当前已导入的工具包没有声明需要的环境变量。</string>
     <string name="pkg_default">默认: %1$s</string>
     <string name="pkg_input_required">输入值（必需）</string>
