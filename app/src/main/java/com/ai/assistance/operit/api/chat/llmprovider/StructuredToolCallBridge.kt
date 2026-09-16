@@ -413,8 +413,15 @@ internal object StructuredToolCallBridge {
                     val resultsList = toolResults ?: emptyList()
 
                     if (resultsList.isNotEmpty() && openToolCalls.isNotEmpty()) {
+                        // Snapshot call order before consume mutates openToolCalls.
+                        // Providers with strict prefix caching (e.g. Anthropic) need tool results
+                        // in the same order as the tool_calls they answer (see issue #1159).
+                        val useOrder = openToolCalls
+                            .mapIndexed { i, c -> c.id to i }
+                            .toMap()
                         val matchedCalls =
                             consumeMatchingToolCalls(openToolCalls, resultsList.map { it.name })
+                                .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                         matchedCalls.forEach { matchedCall ->
                             val result = resultsList[matchedCall.resultIndex]
                             val toolMessage = JSONObject().apply {

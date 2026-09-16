@@ -870,11 +870,15 @@ open class GeminiProvider(
                         if (responsesList.isNotEmpty() && openFunctionCalls.isNotEmpty()) {
                             val partsArray = JSONArray()
                             val resultNames = responsesList.map { it.optString("name", "") }
+                            val useOrder = openFunctionCalls
+                                .mapIndexed { i, c -> c.id to i }
+                                .toMap()
                             val matchedCalls =
                                 StructuredToolCallBridge.consumeMatchingToolCalls(
                                     openFunctionCalls,
                                     resultNames
                                 )
+                                    .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                             matchedCalls.forEach { matchedCall ->
                                 val response = JSONObject(responsesList[matchedCall.resultIndex].toString())
                                 val pendingName = matchedCall.call.id

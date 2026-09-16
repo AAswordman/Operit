@@ -1210,11 +1210,15 @@ open class OpenAIProvider(
 
                             if (resultsList.isNotEmpty() && openToolCalls.isNotEmpty()) {
                                 val readableImageSources = mutableListOf<String>()
+                                val useOrder = openToolCalls
+                                    .mapIndexed { i, c -> c.id to i }
+                                    .toMap()
                                 val matchedCalls =
                                     StructuredToolCallBridge.consumeMatchingToolCalls(
                                         openToolCalls,
                                         resultsList.map { it.first }
                                     )
+                                        .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                                 matchedCalls.forEach { matchedCall ->
                                     val resultContent = resultsList[matchedCall.resultIndex].second
                                     readableImageSources.add(resultContent)

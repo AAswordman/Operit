@@ -49,7 +49,45 @@ class StructuredToolCallBridgeHistoryTest {
     }
 
     @Test
-    fun `tool results are paired by tool name when they come back out of order`() {
+    fun `same-name tool results follow call order after reorder`() {
+        // Two read_file calls; results come back in reverse completion order.
+        // Both results share the same name, so pairing is by name (first-come-first-served),
+        // but the emitted tool messages must still appear in tool_use order for prefix caches.
+        val messages =
+            buildMessages(
+                listOf(
+                    PromptTurn(kind = PromptTurnKind.USER, content = "Read both."),
+                    PromptTurn(
+                        kind = PromptTurnKind.ASSISTANT,
+                        content = toolCall("read_file", "path" to "a.txt") +
+                            toolCall("read_file", "path" to "b.txt")
+                    ),
+                    PromptTurn(
+                        kind = PromptTurnKind.TOOL_RESULT,
+                        // Results reversed: b.txt content first, a.txt content second.
+                        content = toolResult("read_file", "content-b") +
+                            toolResult("read_file", "content-a")
+                    )
+                )
+            )
+
+        val toolCalls = messages.at(1).getJSONArray("tool_calls")
+        // Messages 2 and 3 are tool results; they must be in tool_calls order (id order).
+        assertEquals(
+            toolCalls.getJSONObject(0).getString("id"),
+            messages.at(2).getString("tool_call_id")
+        )
+        assertEquals(
+            toolCalls.getJSONObject(1).getString("id"),
+            messages.at(3).getString("tool_call_id")
+        )
+    }
+
+    @Test
+    fun `tool results are emitted in tool_use order even when they come back reordered`() {
+        // Call order: list_files first, calculate second.
+        // Result order in XML: calculate first, list_files second (completion-time order).
+        // Emitted tool messages must follow call order for strict prefix caches (issue #1159).
         val messages =
             buildMessages(
                 listOf(
@@ -67,12 +105,14 @@ class StructuredToolCallBridgeHistoryTest {
             )
 
         val toolCalls = messages.at(1).getJSONArray("tool_calls")
-        assertEquals(
-            toolCalls.getJSONObject(1).getString("id"),
-            messages.at(2).getString("tool_call_id")
-        )
+        // First emitted tool message answers the first tool_use (list_files).
         assertEquals(
             toolCalls.getJSONObject(0).getString("id"),
+            messages.at(2).getString("tool_call_id")
+        )
+        // Second emitted tool message answers the second tool_use (calculate).
+        assertEquals(
+            toolCalls.getJSONObject(1).getString("id"),
             messages.at(3).getString("tool_call_id")
         )
         assertToolResultsFollowTheirCalls(messages)

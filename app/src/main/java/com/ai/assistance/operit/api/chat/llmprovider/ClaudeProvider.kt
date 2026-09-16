@@ -922,11 +922,19 @@ open class ClaudeProvider(
 
                         if (resultsList.isNotEmpty() && openToolUses.isNotEmpty()) {
                             val contentArray = JSONArray()
+                            // Snapshot tool_use order before consumeMatchingToolCalls mutates the list.
+                            // Anthropic prompt cache is a strict prefix match: tool_result blocks must
+                            // appear in the same order as their tool_use blocks, or cache breaks from
+                            // the first reordered pair onward (see issue #1159).
+                            val useOrder = openToolUses
+                                .mapIndexed { i, c -> c.id to i }
+                                .toMap()
                             val matchedCalls =
                                 StructuredToolCallBridge.consumeMatchingToolCalls(
                                     openToolUses,
                                     resultsList.map { it.first }
                                 )
+                                    .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                             matchedCalls.forEach { matchedCall ->
                                 val resultContent = resultsList[matchedCall.resultIndex].second
                                 contentArray.put(
