@@ -53,6 +53,11 @@ class StructuredToolCallBridgeHistoryTest {
         // Two read_file calls; results come back in reverse completion order.
         // Both results share the same name, so pairing is by name (first-come-first-served),
         // but the emitted tool messages must still appear in tool_use order for prefix caches.
+        //
+        // KNOWN LIMITATION (issue #1159): content-to-id pairing for same-name tools is still
+        // first-come-first-served. The first XML result ("content-b") is paired with the first
+        // call (a.txt), which is semantically wrong. This test only asserts ID ordering,
+        // not content correctness. Full fix requires stable call identity (follow-up PR).
         val messages =
             buildMessages(
                 listOf(
@@ -81,6 +86,10 @@ class StructuredToolCallBridgeHistoryTest {
             toolCalls.getJSONObject(1).getString("id"),
             messages.at(3).getString("tool_call_id")
         )
+        // Current behavior: first XML result is paired with first call (may be wrong for
+        // same-name tools). Assert this so the behavior change is visible if fixed later.
+        assertEquals("content-b", messages.at(2).getString("content"))
+        assertEquals("content-a", messages.at(3).getString("content"))
     }
 
     @Test
@@ -88,6 +97,7 @@ class StructuredToolCallBridgeHistoryTest {
         // Call order: list_files first, calculate second.
         // Result order in XML: calculate first, list_files second (completion-time order).
         // Emitted tool messages must follow call order for strict prefix caches (issue #1159).
+        // For different-name tools, sorting by call order also fixes content-to-id pairing.
         val messages =
             buildMessages(
                 listOf(
@@ -105,16 +115,18 @@ class StructuredToolCallBridgeHistoryTest {
             )
 
         val toolCalls = messages.at(1).getJSONArray("tool_calls")
-        // First emitted tool message answers the first tool_use (list_files).
+        // First emitted tool message answers the first tool_use (list_files) with its content.
         assertEquals(
             toolCalls.getJSONObject(0).getString("id"),
             messages.at(2).getString("tool_call_id")
         )
-        // Second emitted tool message answers the second tool_use (calculate).
+        assertEquals("a.txt", messages.at(2).getString("content"))
+        // Second emitted tool message answers the second tool_use (calculate) with its content.
         assertEquals(
             toolCalls.getJSONObject(1).getString("id"),
             messages.at(3).getString("tool_call_id")
         )
+        assertEquals("2", messages.at(3).getString("content"))
         assertToolResultsFollowTheirCalls(messages)
     }
 
