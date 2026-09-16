@@ -366,6 +366,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                         ?.toLongOrNull()
                         ?: 120000L
 
+                AppLogger.d(TAG, "Hidden exec requested: executorKey=$executorKey timeoutMs=$timeoutMs")
                 val terminal = Terminal.getInstance(context)
                 val hiddenResult =
                     terminal.executeHiddenCommand(
@@ -373,6 +374,10 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                         executorKey = executorKey,
                         timeoutMs = timeoutMs
                     )
+                AppLogger.d(
+                    TAG,
+                    "Hidden exec completed: executorKey=$executorKey state=${hiddenResult.state} exitCode=${hiddenResult.exitCode}"
+                )
                 val output = extractHiddenExecOutput(hiddenResult)
                 val didTimeout = hiddenResult.state == HiddenExecResult.State.TIMEOUT
                 val errorMessage =
