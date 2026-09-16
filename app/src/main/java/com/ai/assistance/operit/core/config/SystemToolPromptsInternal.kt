@@ -95,7 +95,7 @@ object SystemToolPromptsInternal {
                         ),
                         ToolPrompt(
                             name = "execute_hidden_terminal_command",
-                            description = "Execute a command in a hidden non-PTY terminal executor. Commands using the same executor_key reuse the same hidden login context and are not shown in the visible terminal UI.",
+                            description = "Execute a command in a hidden non-PTY terminal executor. Commands using the same executor_key reuse the same healthy hidden login context and are not shown in the visible terminal UI.",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -114,7 +114,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "timeout_ms",
                                         type = "integer",
-                                        description = "optional, command timeout in milliseconds",
+                                        description = "optional, whole hidden execution lifecycle timeout in milliseconds, including initialization and executor queueing",
                                         required = false,
                                         default = "120000"
                                     )

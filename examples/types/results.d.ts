@@ -678,7 +678,7 @@ export interface HiddenTerminalCommandResultData {
     /** Hidden executor key used for execution */
     executorKey: string;
 
-    /** Whether this execution ended due to timeout. On timeout, the current command is cancelled and the terminal session is kept. */
+    /** Whether this execution ended due to timeout. An active timed-out hidden executor is retired so the next call with that key starts cleanly. */
     timedOut?: boolean;
 
     /** Returns a formatted string representation of the hidden terminal execution result */
