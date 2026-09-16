@@ -10,6 +10,7 @@ import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_TOOL_LIFECYCLE
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.util.AppLogger
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,10 +24,21 @@ import org.json.JSONTokener
 private const val TAG = "ToolPkgToolLifecycleBridge"
 private const val TOOL_LIFECYCLE_EVENT_TOOL_CALL_INTERCEPT = "tool_call_intercept"
 
+/** 连续失败多少次后，暂停该钩子（断路器），避免坏包持续拖累/刷日志。 */
+private const val MAX_CONSECUTIVE_HOOK_FAILURES = 3
+
+/** 断路器打开时长。到期后自动重试一次，坏包修好了就能自愈。 */
+private const val HOOK_CIRCUIT_OPEN_MS = 60_000L
+
 private data class ToolLifecycleDispatch(
     val eventName: String,
     val eventPayload: Map<String, Any?>
 )
+
+private class HookHealth {
+    var consecutiveFailures: Int = 0
+    var disabledUntilMs: Long = 0L
+}
 
 internal object ToolPkgToolLifecycleBridge : AIToolHook {
     private val installed = AtomicBoolean(false)
@@ -68,6 +80,9 @@ internal object ToolPkgToolLifecycleBridge : AIToolHook {
         val eventPayload = buildBasePayload(tool)
         val manager = toolPkgPackageManager()
         hooks.forEach { hook ->
+            if (isHookCircuitOpen(hook)) {
+                return@forEach
+            }
             val raw =
                 manager.runToolPkgMainHook(
                     containerPackageName = hook.containerPackageName,
@@ -83,9 +98,10 @@ internal object ToolPkgToolLifecycleBridge : AIToolHook {
                         "ToolPkg tool lifecycle intercept hook failed: ${hook.containerPackageName}:${hook.hookId}",
                         error
                     )
-                    return AIToolHookDecision.Block(
-                        "ToolPkg tool lifecycle intercept hook failed: ${error.javaClass.simpleName}"
-                    )
+                    // 基础设施故障不是策略决策：只跳过这个坏钩子，放行本次调用。
+                    // 这里若返回 Block，一个坏容器会把整条工具链锁死（含修复用的工具）。
+                    noteHookFailure(hook)
+                    return@forEach
                 }
             val decoded =
                 try {
@@ -96,10 +112,11 @@ internal object ToolPkgToolLifecycleBridge : AIToolHook {
                         "ToolPkg tool lifecycle intercept hook returned invalid result: ${hook.containerPackageName}:${hook.hookId}",
                         error
                     )
-                    return AIToolHookDecision.Block(
-                        "ToolPkg tool lifecycle intercept hook returned invalid result: ${error.javaClass.simpleName}"
-                    )
+                    // 非法结果同样不是策略决策，fail-open 并跳过该钩子。
+                    noteHookFailure(hook)
+                    return@forEach
                 }
+            noteHookSuccess(hook)
             parseToolCallInterceptDecision(decoded)?.let { decision ->
                 return decision
             }
@@ -186,6 +203,35 @@ internal object ToolPkgToolLifecycleBridge : AIToolHook {
                 )
             }
         }
+    }
+
+    private val hookHealth = ConcurrentHashMap<String, HookHealth>()
+
+    private fun hookKey(hook: ToolPkgToolLifecycleHookRegistration): String =
+        "${hook.containerPackageName}:${hook.hookId}"
+
+    private fun isHookCircuitOpen(hook: ToolPkgToolLifecycleHookRegistration): Boolean {
+        val state = hookHealth[hookKey(hook)] ?: return false
+        return state.consecutiveFailures >= MAX_CONSECUTIVE_HOOK_FAILURES &&
+            System.currentTimeMillis() < state.disabledUntilMs
+    }
+
+    private fun noteHookFailure(hook: ToolPkgToolLifecycleHookRegistration) {
+        val key = hookKey(hook)
+        val state = hookHealth.getOrPut(key) { HookHealth() }
+        state.consecutiveFailures += 1
+        if (state.consecutiveFailures >= MAX_CONSECUTIVE_HOOK_FAILURES) {
+            state.disabledUntilMs = System.currentTimeMillis() + HOOK_CIRCUIT_OPEN_MS
+            AppLogger.w(
+                TAG,
+                "Tool lifecycle hook suspended for ${HOOK_CIRCUIT_OPEN_MS}ms after " +
+                    "${state.consecutiveFailures} consecutive failures: $key"
+            )
+        }
+    }
+
+    private fun noteHookSuccess(hook: ToolPkgToolLifecycleHookRegistration) {
+        hookHealth.remove(hookKey(hook))
     }
 
     private fun parseToolCallInterceptDecision(decoded: Any?): AIToolHookDecision? {
