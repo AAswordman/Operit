@@ -44,6 +44,22 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.EnvVar
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 
+internal enum class PackageEnvVarFieldState {
+    REQUIRED_EMPTY,
+    REQUIRED_FILLED,
+    OPTIONAL
+}
+
+internal fun packageEnvVarFieldState(
+    required: Boolean,
+    value: String?
+): PackageEnvVarFieldState =
+    when {
+        !required -> PackageEnvVarFieldState.OPTIONAL
+        value.isNullOrBlank() -> PackageEnvVarFieldState.REQUIRED_EMPTY
+        else -> PackageEnvVarFieldState.REQUIRED_FILLED
+    }
+
 @Composable
 fun PackageLoadErrorsDialog(
     errorInfos: List<PackageManager.PackageLoadErrorInfo>,
@@ -180,6 +196,11 @@ fun PackageEnvironmentVariablesDialog(
                             items = envVars,
                             key = { envVar -> "${packageName}:${envVar.name}" }
                         ) { envVar ->
+                            val fieldState =
+                                packageEnvVarFieldState(
+                                    required = envVar.required,
+                                    value = editableValues[envVar.name]
+                                )
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -197,11 +218,20 @@ fun PackageEnvironmentVariablesDialog(
                                                 fontWeight = FontWeight.Medium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            if (envVar.required) {
+                                            if (fieldState != PackageEnvVarFieldState.OPTIONAL) {
+                                                val missingRequired =
+                                                    fieldState ==
+                                                        PackageEnvVarFieldState.REQUIRED_EMPTY
                                                 Surface(
                                                     modifier = Modifier.size(16.dp),
                                                     shape = CircleShape,
-                                                    color = MaterialTheme.colorScheme.error
+                                                    color =
+                                                        if (missingRequired) {
+                                                            MaterialTheme.colorScheme.error
+                                                        } else {
+                                                            MaterialTheme.colorScheme
+                                                                .primaryContainer
+                                                        }
                                                 ) {
                                                     Box(
                                                         contentAlignment = Alignment.Center,
@@ -211,7 +241,13 @@ fun PackageEnvironmentVariablesDialog(
                                                             text = "!",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.onError
+                                                            color =
+                                                                if (missingRequired) {
+                                                                    MaterialTheme.colorScheme.onError
+                                                                } else {
+                                                                    MaterialTheme.colorScheme
+                                                                        .onPrimaryContainer
+                                                                }
                                                         )
                                                     }
                                                 }
@@ -266,6 +302,7 @@ fun PackageEnvironmentVariablesDialog(
                                         }
                                 },
                                 singleLine = true,
+                                isError = fieldState == PackageEnvVarFieldState.REQUIRED_EMPTY,
                                 modifier = Modifier.fillMaxWidth(),
                                 placeholder = {
                                     Text(
