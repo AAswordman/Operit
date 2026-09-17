@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import org.json.JSONObject
 
 /** Utility class for managing tool executions */
@@ -419,19 +420,21 @@ object ToolExecutionManager {
             }
         }
 
-        return executor.invokeAndStream(invocation.tool).catch { e ->
-            AppLogger.e(TAG, "Tool execution error: ${invocation.tool.name}", e)
-            toolHandler?.notifyToolExecutionError(invocation.tool, e)
-            emit(
-                ToolResult(
-                    toolName = invocation.tool.name,
-                    success = false,
-                    result = StringResultData(""),
-                    error = "Tool execution error: ${e.message}",
-                    callId = invocation.callId
+        return executor.invokeAndStream(invocation.tool)
+            .map { result -> result.copy(callId = invocation.callId) }
+            .catch { e ->
+                AppLogger.e(TAG, "Tool execution error: ${invocation.tool.name}", e)
+                toolHandler?.notifyToolExecutionError(invocation.tool, e)
+                emit(
+                    ToolResult(
+                        toolName = invocation.tool.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "Tool execution error: ${e.message}",
+                        callId = invocation.callId
+                    )
                 )
-            )
-        }
+            }
     }
 
     /**

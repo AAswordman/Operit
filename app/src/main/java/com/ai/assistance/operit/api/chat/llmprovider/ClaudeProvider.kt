@@ -362,19 +362,12 @@ open class ClaudeProvider(
             val toolName = match.groupValues[2]
             val toolBody = match.groupValues[3]
 
-            // 解析参数
-            val input = JSONObject()
+            // Use canonicalParamsJson + stableCallId so IDs match what
+            // extractToolInvocations generates during live execution (issue #1159).
+            val paramsJson = StructuredToolCallBridge.canonicalParamsJson(toolBody)
+            val input = JSONObject(paramsJson)
+            val callId = StructuredToolCallBridge.stableCallId(toolName, paramsJson, callIndex)
 
-            ChatMarkupRegex.toolParamPattern.findAll(toolBody).forEach { paramMatch ->
-                val paramName = paramMatch.groupValues[1]
-                val paramValue = XmlEscaper.unescape(paramMatch.groupValues[2].trim())
-                input.put(paramName, paramValue)
-            }
-
-            // 构建tool_use对象（Claude格式）
-            val toolNamePart = sanitizeToolCallId(toolName)
-            val hashPart = stableIdHashPart("${toolName}:${input}")
-            val callId = sanitizeToolCallId("toolu_${toolNamePart}_${hashPart}_$callIndex")
             toolUses.put(JSONObject().apply {
                 put("type", "tool_use")
                 put("id", callId)

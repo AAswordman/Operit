@@ -92,10 +92,12 @@ internal object StructuredToolCallBridge {
     /**
      * Matches tool results to open tool calls, preferring call_id when available.
      *
-     * When a result carries a call_id that matches an open call's ID, that pairing is used
-     * directly — this correctly handles same-name tools whose results arrive out of order.
-     * Results without a call_id (legacy records) fall back to name-based first-come-first-served
-     * matching.
+     * When a result carries a call_id, it is matched strictly by ID. If the ID does not
+     * match any open call, the result is left unmatched — falling back to name matching
+     * would silently pair it with the wrong same-name call and mask ID bugs.
+     *
+     * Results without a call_id (legacy records) fall back to name-based
+     * first-come-first-served matching.
      *
      * @return matched calls with their source result indexes; unmatched results remain unconsumed.
      */
@@ -109,17 +111,17 @@ internal object StructuredToolCallBridge {
             val normalizedResultName = resultName?.trim().orEmpty()
             if (normalizedResultName.isEmpty()) return@forEachIndexed
 
-            // First pass: match by call_id if available.
             val resultCallId = resultCallIds.getOrNull(resultIndex)?.trim().orEmpty()
             if (resultCallId.isNotEmpty()) {
+                // Strict ID matching: if the ID doesn't match, leave unmatched.
                 val callByIdIndex = openToolCalls.indexOfFirst { it.id == resultCallId }
                 if (callByIdIndex >= 0) {
                     matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callByIdIndex)))
-                    return@forEachIndexed
                 }
+                return@forEachIndexed
             }
 
-            // Fallback: match by name (first-come-first-served).
+            // Legacy fallback: no call_id in the result, match by name.
             val callIndex = openToolCalls.indexOfFirst { it.matchingName == normalizedResultName }
             if (callIndex >= 0) {
                 matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callIndex)))

@@ -131,6 +131,41 @@ class StructuredToolCallBridgeHistoryTest {
     }
 
     @Test
+    fun `consumeMatchingToolCalls does NOT fall back to name when call_id exists but mismatches`() {
+        // If a result carries a call_id that doesn't match any open call, it must NOT
+        // be paired with a different same-name call. Falling back would mask ID bugs.
+        val openToolCalls = mutableListOf(
+            StructuredToolCallBridge.OpenToolCall("id-a", "read_file"),
+            StructuredToolCallBridge.OpenToolCall("id-b", "read_file")
+        )
+
+        val matched = StructuredToolCallBridge.consumeMatchingToolCalls(
+            openToolCalls,
+            listOf("read_file", "read_file"),
+            listOf("id-x", "id-y")  // Neither matches id-a or id-b
+        )
+
+        // Both results should remain unmatched — not silently paired by name.
+        assertEquals(0, matched.size)
+        // Both open calls should remain unconsumed.
+        assertEquals(2, openToolCalls.size)
+    }
+
+    @Test
+    fun `stableCallId produces call_ prefix not toolu_ or bare name`() {
+        // All providers must use stableCallId (call_ prefix) for history rebuild IDs.
+        // ClaudeProvider historically used toolu_XXXX, Gemini used bare function names.
+        // If IDs differ between live execution and rebuild, call_id matching breaks.
+        val paramsJson = StructuredToolCallBridge.canonicalParamsJson(
+            """<param name="path">a.txt</param>"""
+        )
+        val callId = StructuredToolCallBridge.stableCallId("read_file", paramsJson, 0)
+
+        assertTrue("ID should start with call_: $callId", callId.startsWith("call_"))
+        assertFalse("ID should not start with toolu_: $callId", callId.startsWith("toolu_"))
+    }
+
+    @Test
     fun `same-name tool results without call_id fall back to name matching`() {
         // Legacy records: no call_id in tool_result XML. Pairing falls back to name-based
         // first-come-first-served. Content may be mispaired — this documents the limitation.

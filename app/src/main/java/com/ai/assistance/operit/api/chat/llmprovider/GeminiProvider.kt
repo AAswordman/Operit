@@ -425,19 +425,19 @@ open class GeminiProvider(
         }
 
         val functionCalls =
-            matches.map { match ->
+            matches.mapIndexed { index, match ->
                 val toolName = match.groupValues[2]
                 val toolBody = match.groupValues[3]
 
-                val args = JSONObject()
-                ChatMarkupRegex.toolParamPattern.findAll(toolBody).forEach { paramMatch ->
-                    val paramName = paramMatch.groupValues[1]
-                    val paramValue = XmlEscaper.unescape(paramMatch.groupValues[2].trim())
-                    args.put(paramName, paramValue)
-                }
+                // Use canonicalParamsJson + stableCallId so IDs match what
+                // extractToolInvocations generates during live execution (issue #1159).
+                val paramsJson = StructuredToolCallBridge.canonicalParamsJson(toolBody)
+                val args = JSONObject(paramsJson)
+                val callId = StructuredToolCallBridge.stableCallId(toolName, paramsJson, index)
 
-                AppLogger.d(TAG, "XML→GeminiFunctionCall: $toolName")
+                AppLogger.d(TAG, "XML→GeminiFunctionCall: $toolName -> ID: $callId")
                 JSONObject().apply {
+                    put("id", callId)
                     put("name", toolName)
                     put("args", args)
                 }
@@ -741,9 +741,12 @@ open class GeminiProvider(
 
             queuedFunctionCalls.forEach { functionCall ->
                 val functionName = functionCall.optString("name", "").trim()
+                // Use the stable ID from parseXmlToolCalls; fall back to function name
+                // only if ID is somehow missing.
+                val callId = functionCall.optString("id", "").ifBlank { functionName }
                 openFunctionCalls.add(
                     StructuredToolCallBridge.OpenToolCall(
-                        id = functionName,
+                        id = callId,
                         matchingName = StructuredToolCallBridge.toolCallName(functionCall),
                     )
                 )

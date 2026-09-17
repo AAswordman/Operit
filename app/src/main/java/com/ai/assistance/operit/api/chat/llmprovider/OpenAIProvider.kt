@@ -1049,7 +1049,9 @@ open class OpenAIProvider(
             for (i in 0 until toolCalls.length()) {
                 val sourceToolCall = toolCalls.optJSONObject(i) ?: continue
                 val toolCall = JSONObject(sourceToolCall.toString())
-                val callId = generatedToolCallId(nextToolCallOrdinal++)
+                // Preserve the stable ID from parseXmlToolCalls. Overwriting it breaks
+                // call_id-based matching when tool results are rebuilt from history.
+                val callId = toolCall.optString("id", "").ifBlank { generatedToolCallId(nextToolCallOrdinal++) }
                 toolCall.put("id", callId)
                 queuedToolCalls.put(toolCall)
                 queuedOpenToolCalls.add(
