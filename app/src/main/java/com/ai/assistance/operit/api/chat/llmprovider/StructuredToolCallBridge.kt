@@ -758,22 +758,15 @@ internal object StructuredToolCallBridge {
         matches.forEach { match ->
             val toolName = match.groupValues[2]
             val toolBody = match.groupValues[3]
-
-            val params = JSONObject()
-            ChatMarkupRegex.toolParamPattern.findAll(toolBody).forEach { paramMatch ->
-                val paramName = paramMatch.groupValues[1]
-                val paramValue = XmlEscaper.unescape(paramMatch.groupValues[2].trim())
-                params.put(paramName, paramValue)
-            }
-
-            val callId = stableCallId(toolName, params.toString(), callIndex)
+            val paramsJson = canonicalParamsJson(toolBody)
+            val callId = stableCallId(toolName, paramsJson, callIndex)
 
             toolCalls.put(JSONObject().apply {
                 put("id", callId)
                 put("type", "function")
                 put("function", JSONObject().apply {
                     put("name", toolName)
-                    put("arguments", params.toString())
+                    put("arguments", paramsJson)
                 })
             })
 
@@ -893,6 +886,20 @@ internal object StructuredToolCallBridge {
         val toolNamePart = sanitizeToolCallId(toolName)
         val hashPart = stableIdHashPart("$toolName:$paramsJson")
         return sanitizeToolCallId("call_${toolNamePart}_${hashPart}_$index")
+    }
+
+    /**
+     * Parses tool XML params into a canonical JSON string for stable call ID generation.
+     * Both live execution and history rebuild must use this to produce identical IDs.
+     */
+    fun canonicalParamsJson(toolBody: String): String {
+        val params = JSONObject()
+        ChatMarkupRegex.toolParamPattern.findAll(toolBody).forEach { paramMatch ->
+            val paramName = paramMatch.groupValues[1]
+            val paramValue = XmlEscaper.unescape(paramMatch.groupValues[2].trim())
+            params.put(paramName, paramValue)
+        }
+        return params.toString()
     }
 
     private fun generatedToolCallId(ordinal: Int): String {

@@ -52,8 +52,10 @@ class StructuredToolCallBridgeHistoryTest {
     fun `same-name tool results with call_id are paired correctly even when reordered`() {
         // Two read_file calls with different params. Results carry call_id in reverse
         // completion order. call_id matching must attach each result to the correct call.
-        val paramsA = org.json.JSONObject().put("path", "a.txt").toString()
-        val paramsB = org.json.JSONObject().put("path", "b.txt").toString()
+        val bodyA = """<param name="path">a.txt</param>"""
+        val bodyB = """<param name="path">b.txt</param>"""
+        val paramsA = StructuredToolCallBridge.canonicalParamsJson(bodyA)
+        val paramsB = StructuredToolCallBridge.canonicalParamsJson(bodyB)
         val callIdA = StructuredToolCallBridge.stableCallId("read_file", paramsA, 0)
         val callIdB = StructuredToolCallBridge.stableCallId("read_file", paramsB, 1)
 

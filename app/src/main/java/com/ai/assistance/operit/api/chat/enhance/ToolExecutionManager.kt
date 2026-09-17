@@ -328,17 +328,18 @@ object ToolExecutionManager {
                     val toolBody = toolMatch.groupValues.getOrNull(3).orEmpty()
 
                     val parameters = mutableListOf<ToolParameter>()
-                    val paramsJson = JSONObject()
                     MessageContentParser.toolParamPattern.findAll(toolBody)
                         .forEach { paramMatch ->
                             val paramName = paramMatch.groupValues[1]
                             val paramValue = paramMatch.groupValues[2]
                             parameters.add(ToolParameter(paramName, unescapeXml(paramValue)))
-                            paramsJson.put(paramName, unescapeXml(paramValue))
                         }
 
+                    // Use canonicalParamsJson for ID generation so live execution and
+                    // history rebuild produce identical call IDs (issue #1159).
+                    val paramsJson = StructuredToolCallBridge.canonicalParamsJson(toolBody)
                     val callId = StructuredToolCallBridge.stableCallId(
-                        toolName, paramsJson.toString(), callIndex
+                        toolName, paramsJson, callIndex
                     )
                     callIndex++
 
