@@ -476,4 +476,146 @@ class StructuredToolCallBridgeHistoryTest {
         }
         assertTrue("history ends with unanswered calls $pendingCallIds", pendingCallIds.isEmpty())
     }
+
+    // ─── Round-trip consistency tests (issue #1159 core acceptance) ───
+
+    /**
+     * Generates call IDs the same way extractToolInvocations does during live execution.
+     * IDs are derived from the tool call XML, NOT from a rebuilt request.
+     */
+    private fun liveExecutionCallIds(toolCallXml: String): List<String> {
+        val ids = mutableListOf<String>()
+        var index = 0
+        val pattern = Regex("""<tool\s+name="([^"]+)">([\s\S]*?)</tool>""")
+        pattern.findAll(toolCallXml).forEach { match ->
+            val toolName = match.groupValues[1]
+            val toolBody = match.groupValues[2]
+            val paramsJson = StructuredToolCallBridge.canonicalParamsJson(toolBody)
+            ids.add(StructuredToolCallBridge.stableCallId(toolName, paramsJson, index))
+            index++
+        }
+        return ids
+    }
+
+    @Test
+    fun `round-trip - same-name reverse order preserves content attribution`() {
+        // Live execution: two read_file calls, IDs generated from tool call XML.
+        val toolCallXml = toolCall("read_file", "path" to "a.txt") +
+            toolCall("read_file", "path" to "b.txt")
+        val liveIds = liveExecutionCallIds(toolCallXml)
+        assertEquals(2, liveIds.size)
+
+        // Results arrive in reverse completion order, carrying live-generated call_ids.
+        val resultXml = toolResult("read_file", "content-b", callId = liveIds[1]) +
+            toolResult("read_file", "content-a", callId = liveIds[0])
+
+        // Save to history and rebuild.
+        val messages = buildMessages(
+            listOf(
+                PromptTurn(kind = PromptTurnKind.USER, content = "Read both."),
+                PromptTurn(kind = PromptTurnKind.ASSISTANT, content = toolCallXml),
+                PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = resultXml)
+            )
+        )
+
+        // Verify: call order, ID, content attribution.
+        val toolCalls = messages.at(1).getJSONArray("tool_calls")
+        assertEquals(liveIds[0], toolCalls.getJSONObject(0).getString("id"))
+        assertEquals(liveIds[1], toolCalls.getJSONObject(1).getString("id"))
+        // Output in call order: a.txt first, b.txt second.
+        assertEquals(liveIds[0], messages.at(2).getString("tool_call_id"))
+        assertEquals("content-a", messages.at(2).getString("content"))
+        assertEquals(liveIds[1], messages.at(3).getString("tool_call_id"))
+        assertEquals("content-b", messages.at(3).getString("content"))
+    }
+
+    @Test
+    fun `round-trip - same-name same-params repeated calls get distinct IDs`() {
+        // Two identical read_file calls (same name, same params) must get different IDs.
+        val toolCallXml = toolCall("read_file", "path" to "same.txt") +
+            toolCall("read_file", "path" to "same.txt")
+        val liveIds = liveExecutionCallIds(toolCallXml)
+        assertEquals(2, liveIds.size)
+        assertNotEquals("Same params must produce distinct IDs", liveIds[0], liveIds[1])
+
+        // Results in reverse order with correct call_ids.
+        val resultXml = toolResult("read_file", "result-second", callId = liveIds[1]) +
+            toolResult("read_file", "result-first", callId = liveIds[0])
+
+        val messages = buildMessages(
+            listOf(
+                PromptTurn(kind = PromptTurnKind.USER, content = "Read same file twice."),
+                PromptTurn(kind = PromptTurnKind.ASSISTANT, content = toolCallXml),
+                PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = resultXml)
+            )
+        )
+
+        val toolCalls = messages.at(1).getJSONArray("tool_calls")
+        assertEquals(liveIds[0], messages.at(2).getString("tool_call_id"))
+        assertEquals("result-first", messages.at(2).getString("content"))
+        assertEquals(liveIds[1], messages.at(3).getString("tool_call_id"))
+        assertEquals("result-second", messages.at(3).getString("content"))
+    }
+
+    @Test
+    fun `round-trip - mixed different-name and same-name tools preserve attribution`() {
+        // Three calls: list_files, read_file(a), read_file(b).
+        val toolCallXml = toolCall("list_files", "path" to ".") +
+            toolCall("read_file", "path" to "a.txt") +
+            toolCall("read_file", "path" to "b.txt")
+        val liveIds = liveExecutionCallIds(toolCallXml)
+        assertEquals(3, liveIds.size)
+
+        // Results arrive as: read_file(b), list_files, read_file(a) — shuffled.
+        val resultXml = toolResult("read_file", "content-b", callId = liveIds[2]) +
+            toolResult("list_files", "file-list", callId = liveIds[0]) +
+            toolResult("read_file", "content-a", callId = liveIds[1])
+
+        val messages = buildMessages(
+            listOf(
+                PromptTurn(kind = PromptTurnKind.USER, content = "Do three things."),
+                PromptTurn(kind = PromptTurnKind.ASSISTANT, content = toolCallXml),
+                PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = resultXml)
+            )
+        )
+
+        // Output must be in original call order with correct content.
+        assertEquals(liveIds[0], messages.at(2).getString("tool_call_id"))
+        assertEquals("file-list", messages.at(2).getString("content"))
+        assertEquals(liveIds[1], messages.at(3).getString("tool_call_id"))
+        assertEquals("content-a", messages.at(3).getString("content"))
+        assertEquals(liveIds[2], messages.at(4).getString("tool_call_id"))
+        assertEquals("content-b", messages.at(4).getString("content"))
+    }
+
+    @Test
+    fun `round-trip - legacy results without call_id still work for different-name tools`() {
+        // Old records: no call_id in tool_result. Different-name tools can still be matched by name.
+        val toolCallXml = toolCall("list_files", "path" to ".") +
+            toolCall("calculate", "expression" to "1+1")
+
+        val resultXml = toolResult("calculate", "2") +
+            toolResult("list_files", "a.txt")
+
+        val messages = buildMessages(
+            listOf(
+                PromptTurn(kind = PromptTurnKind.USER, content = "Do both."),
+                PromptTurn(kind = PromptTurnKind.ASSISTANT, content = toolCallXml),
+                PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = resultXml)
+            )
+        )
+
+        val toolCalls = messages.at(1).getJSONArray("tool_calls")
+        // Name matching: list_files result goes to list_files call, calculate to calculate.
+        assertEquals(toolCalls.getJSONObject(0).getString("id"), messages.at(2).getString("tool_call_id"))
+        assertEquals("a.txt", messages.at(2).getString("content"))
+        assertEquals(toolCalls.getJSONObject(1).getString("id"), messages.at(3).getString("tool_call_id"))
+        assertEquals("2", messages.at(3).getString("content"))
+    }
+
+    private fun assertNotEquals(message: String, unexpected: Any?, actual: Any?) {
+        if (unexpected == actual) {
+            throw AssertionError("$message: both were $actual")
+        }
+    }
 }
