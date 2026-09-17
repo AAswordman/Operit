@@ -12,6 +12,8 @@
   <br>
   <a href="https://operit.app/"><img src="https://img.shields.io/badge/📖-用户指南-blue.svg" alt="用户指南"></a>
   <a href="docs/doc-src/dev-core/CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="欢迎贡献"></a>
+  <br>
+  <a href="https://trendshift.io/repositories/14027?utm_source=repository-badge&utm_medium=badge&utm_campaign=badge-repository-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/14027" alt="AAswordman/Operit | Trendshift" width="250" height="55"/></a>
 </div>
 
 <div align="center">
