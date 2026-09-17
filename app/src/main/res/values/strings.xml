@@ -5241,8 +5241,43 @@
     <!-- Advanced Settings Section -->
     <string name="advanced_settings">高级设置</string>
     <string name="use_api_key_pool">使用API密钥池</string>
+    <string name="api_key_pool_title">API 密钥池</string>
+    <string name="api_key_pool_empty_title">还没有密钥</string>
+    <string name="api_key_pool_add_short">添加密钥</string>
+    <string name="api_key_pool_import_short">导入</string>
+    <string name="api_key_pool_export_short">导出</string>
+    <string name="api_key_pool_test_short">测试</string>
+    <string name="api_key_pool_status_available">可用</string>
+    <string name="api_key_pool_status_unavailable">不可用</string>
+    <string name="api_key_pool_status_untested">未测</string>
+    <string name="api_key_pool_status_disabled">禁用</string>
+    <string name="api_key_pool_disable">禁用</string>
+    <string name="api_key_pool_enable">启用</string>
+    <string name="api_key_pool_saved">API密钥池已保存</string>
+    <string name="api_key_pool_enabled">API密钥池已开启</string>
+    <string name="api_key_pool_disabled">API密钥池已关闭</string>
+    <string name="api_key_pool_import_keys">导入密钥</string>
+    <string name="api_key_pool_delete_keys">删除密钥</string>
+    <string name="api_key_pool_selected_count">已选 %1$d / %2$d</string>
+    <string name="api_key_pool_filter_all">全选</string>
+    <string name="api_key_pool_filter_untested">未测试</string>
+    <string name="api_key_pool_export_n">导出 %1$d 把</string>
+    <string name="api_key_pool_delete_n">删除 %1$d 把</string>
+    <string name="api_key_pool_delete_hint">删除后无法恢复，不会同时清掉主 API</string>
+    <string name="api_key_pool_deleted_count">已删除 %1$d 把密钥</string>
+    <string name="api_key_pool_reorder">拖动排序</string>
+    <string name="api_key_pool_info_title">密钥池信息</string>
+    <string name="api_key_pool_info_subtitle">近 24 小时 · 按当前顺序</string>
+    <string name="api_key_pool_info_recent">最近使用</string>
+    <string name="api_key_pool_info_never">尚未调用</string>
+    <string name="api_key_pool_info_line_success">%1$s · 成功 · 24h %2$d/%3$d</string>
+    <string name="api_key_pool_info_line_failure_status">%1$s · %2$d失败 · 24h %3$d/%4$d</string>
+    <string name="api_key_pool_info_line_failure">%1$s · 失败 · 24h %2$d/%3$d</string>
+    <string name="api_key_pool_info_just_now">刚刚</string>
+    <string name="api_key_pool_info_minutes_ago">%1$d 分钟前</string>
+    <string name="api_key_pool_info_days_ago">%1$d 天前</string>
     <string name="api_key_pool_desc">启用后可管理多个API密钥，系统将自动轮换使用</string>
-    <string name="api_key_pool_empty">API密钥池为空，点击下方按钮添加密钥</string>
+    <string name="api_key_pool_empty">还没有密钥</string>
     <string name="add_api_key">添加API密钥</string>
     <string name="edit_api_key">编辑API密钥</string>
     <string name="delete_api_key">删除API密钥</string>
@@ -5265,8 +5300,9 @@
     <string name="clear_api_key_pool_confirm_message">确定要删除全部 %1$d 个密钥吗？此操作不可撤销。</string>
     <string name="api_key_pool_cleared">密钥池已清空</string>
 
-    <string name="api_key_pool_test_progress">可用: %1$d，不可用: %2$d，未测试: %3$d</string>
+    <string name="api_key_pool_test_progress">可用: %1$d，不可用: %2$d，未测试: %3$d，禁用: %4$d</string>
     <string name="api_key_pool_test_run_progress">测试进度: %1$d / %2$d</string>
+    <string name="api_key_pool_test_run_completed">测试已完成: %1$d / %2$d</string>
     <string name="api_key_pool_test_start">开始测试</string>
     <string name="api_key_pool_test_continue">继续测试</string>
     <string name="api_key_pool_test_pause">暂停</string>
@@ -7784,6 +7820,7 @@
     <!-- EnhancedAIService (新增) -->
     <string name="enhanced_processing_input">正在处理输入...</string>
     <string name="enhanced_processing_message">正在处理消息...</string>
+    <string name="enhanced_retrying_request">正在重试请求...</string>
     <string name="enhanced_connecting_service">正在连接AI服务...</string>
     <string name="enhanced_receiving_response">正在接收AI响应...</string>
     <string name="enhanced_error_with_message">错误: %1$s</string>
@@ -8504,4 +8541,6 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <string name="api_key_pool_exhausted">密钥池已试过 %1$d 把密钥（额度耗尽 %2$d，限流 %3$d）。最后错误: %4$s</string>
+    <string name="api_key_first_token_timeout">等待首字超时，正在切换密钥</string>
 </resources>

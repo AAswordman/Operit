@@ -1104,7 +1104,7 @@ class MessageProcessingDelegate(
                     maxTokens = effectiveMaxTokens,
                     tokenUsageThreshold = effectiveTokenUsageThreshold,
                     onNonFatalError = { error ->
-                        _nonFatalErrorEvent.emit(error)
+                        keepRequestUiAlive(activeChatId, turnId, error)
                     },
                     onTokenLimitExceeded = effectiveOnTokenLimitExceeded,
                     characterName = characterName,
@@ -1706,7 +1706,7 @@ class MessageProcessingDelegate(
                     enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                     maxTokens = maxTokens,
                     tokenUsageThreshold = tokenUsageThreshold,
-                    onNonFatalError = { error -> _nonFatalErrorEvent.emit(error) },
+                    onNonFatalError = { error -> keepRequestUiAlive(chatId, turnId, error) },
                     characterName = currentRoleName,
                     roleCardId = roleCardId,
                     currentRoleName = currentRoleName,
@@ -1950,6 +1950,29 @@ class MessageProcessingDelegate(
             }
         }
         return false
+    }
+
+    private suspend fun keepRequestUiAlive(chatId: String?, turnId: Long, error: String) {
+        val runtime = runtimeFor(chatId)
+        if (runtime.activeTurnId != turnId ||
+            runtime.cancellationInProgress ||
+            runtime.sendJob?.isActive != true
+        ) {
+            return
+        }
+        if (!runtime.isLoading.value) {
+            runtime.isLoading.value = true
+            updateGlobalLoadingState()
+        }
+        setChatInputProcessingState(
+            chatId,
+            EnhancedInputProcessingState.Connecting(
+                context.getString(R.string.enhanced_retrying_request)
+            )
+        )
+        if (error.isNotBlank()) {
+            _nonFatalErrorEvent.emit(error)
+        }
     }
 
     private fun cleanupRuntimeAfterSend(

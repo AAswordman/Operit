@@ -55,6 +55,18 @@ enum class ApiProviderType {
                         }
                 }
         }
+
+        fun supportsApiKeyPool(): Boolean {
+                return when (this) {
+                        OPENAI_CODEX,
+                        LMSTUDIO,
+                        OLLAMA,
+                        OPENAI_LOCAL,
+                        MNN,
+                        LLAMA_CPP -> false
+                        else -> true
+                }
+        }
 }
 
 object ModelConfigDefaults {
