@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.repository
 
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import android.net.Uri
 import com.ai.assistance.operit.util.AppLogger
 import androidx.datastore.preferences.core.edit
@@ -703,6 +704,10 @@ class ChatHistoryManager private constructor(private val context: Context) {
     }
 
     private suspend fun persistMessageLocked(chatId: String, messageToPersist: ChatMessage): ChatMessage {
+        if (chatDao.getChatById(chatId) == null) {
+            AppLogger.w(TAG, "Skip persisting message because chat no longer exists: $chatId")
+            return messageToPersist
+        }
         val nextOrderIndex = (messageDao.getMaxOrderIndex(chatId) ?: -1) + 1
         val messageEntity =
             MessageEntity.fromChatMessage(
@@ -710,7 +715,12 @@ class ChatHistoryManager private constructor(private val context: Context) {
                 message = messageToPersist,
                 orderIndex = nextOrderIndex,
             )
-        messageDao.insertMessage(messageEntity)
+        try {
+            messageDao.insertMessage(messageEntity)
+        } catch (e: SQLiteConstraintException) {
+            AppLogger.w(TAG, "Skip persisting message after chat was deleted: $chatId", e)
+            return messageToPersist
+        }
 
         chatDao.getChatById(chatId)?.let { chat ->
             chatDao.updateChatMetadata(
@@ -888,6 +898,9 @@ class ChatHistoryManager private constructor(private val context: Context) {
         chatMutex(chatId).withLock {
             try {
                 return persistMessageLocked(chatId, message)
+            } catch (e: SQLiteConstraintException) {
+                AppLogger.w(TAG, "Skip adding message after chat was deleted: $chatId", e)
+                return message
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to add message for chat $chatId", e)
                 throw e
@@ -1198,18 +1211,24 @@ class ChatHistoryManager private constructor(private val context: Context) {
                         }
                     }
                 } else {
-                    // 如果找不到现有消息，则插入新消息（避免在同一互斥锁下递归调用 addMessage）
+                    if (chatDao.getChatById(chatId) == null) {
+                        AppLogger.w(TAG, "Skip inserting message because chat no longer exists: $chatId")
+                        return@withLock
+                    }
                     val nextOrderIndex = (messageDao.getMaxOrderIndex(chatId) ?: -1) + 1
                     val messageEntity = MessageEntity.fromChatMessage(
                         chatId = chatId,
                         message = message,
                         orderIndex = nextOrderIndex,
                     )
-                    messageDao.insertMessage(messageEntity)
+                    try {
+                        messageDao.insertMessage(messageEntity)
+                    } catch (e: SQLiteConstraintException) {
+                        AppLogger.w(TAG, "Skip inserting message after chat was deleted: $chatId", e)
+                        return@withLock
+                    }
 
-                    // 更新聊天元数据
-                    val chat = chatDao.getChatById(chatId)
-                    if (chat != null) {
+                    chatDao.getChatById(chatId)?.let { chat ->
                         chatDao.updateChatMetadata(
                             chatId = chatId,
                             title = chat.title,
@@ -1220,6 +1239,8 @@ class ChatHistoryManager private constructor(private val context: Context) {
                         )
                     }
                 }
+            } catch (e: SQLiteConstraintException) {
+                AppLogger.w(TAG, "Skip updating message after chat was deleted: $chatId", e)
             } catch (e: Exception) {
                 throw e
             }
