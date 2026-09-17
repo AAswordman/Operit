@@ -24,7 +24,8 @@ internal object StructuredToolCallBridge {
 
     private data class ToolResultRecord(
         val name: String?,
-        val content: String
+        val content: String,
+        val callId: String? = null
     )
 
     /** A tool call that has been sent to the model but has no result answering it yet. */
@@ -85,11 +86,40 @@ internal object StructuredToolCallBridge {
         openToolCalls: MutableList<OpenToolCall>,
         resultToolNames: List<String?>
     ): List<MatchedToolCall> {
+        return consumeMatchingToolCalls(openToolCalls, resultToolNames, emptyList())
+    }
+
+    /**
+     * Matches tool results to open tool calls, preferring call_id when available.
+     *
+     * When a result carries a call_id that matches an open call's ID, that pairing is used
+     * directly — this correctly handles same-name tools whose results arrive out of order.
+     * Results without a call_id (legacy records) fall back to name-based first-come-first-served
+     * matching.
+     *
+     * @return matched calls with their source result indexes; unmatched results remain unconsumed.
+     */
+    fun consumeMatchingToolCalls(
+        openToolCalls: MutableList<OpenToolCall>,
+        resultToolNames: List<String?>,
+        resultCallIds: List<String?>
+    ): List<MatchedToolCall> {
         val matched = ArrayList<MatchedToolCall>(minOf(openToolCalls.size, resultToolNames.size))
         resultToolNames.forEachIndexed { resultIndex, resultName ->
             val normalizedResultName = resultName?.trim().orEmpty()
             if (normalizedResultName.isEmpty()) return@forEachIndexed
 
+            // First pass: match by call_id if available.
+            val resultCallId = resultCallIds.getOrNull(resultIndex)?.trim().orEmpty()
+            if (resultCallId.isNotEmpty()) {
+                val callByIdIndex = openToolCalls.indexOfFirst { it.id == resultCallId }
+                if (callByIdIndex >= 0) {
+                    matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callByIdIndex)))
+                    return@forEachIndexed
+                }
+            }
+
+            // Fallback: match by name (first-come-first-served).
             val callIndex = openToolCalls.indexOfFirst { it.matchingName == normalizedResultName }
             if (callIndex >= 0) {
                 matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callIndex)))
@@ -420,7 +450,11 @@ internal object StructuredToolCallBridge {
                             .mapIndexed { i, c -> c.id to i }
                             .toMap()
                         val matchedCalls =
-                            consumeMatchingToolCalls(openToolCalls, resultsList.map { it.name })
+                            consumeMatchingToolCalls(
+                                openToolCalls,
+                                resultsList.map { it.name },
+                                resultsList.map { it.callId }
+                            )
                                 .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                         matchedCalls.forEach { matchedCall ->
                             val result = resultsList[matchedCall.resultIndex]
@@ -729,9 +763,7 @@ internal object StructuredToolCallBridge {
                 params.put(paramName, paramValue)
             }
 
-            val toolNamePart = sanitizeToolCallId(toolName)
-            val hashPart = stableIdHashPart("${toolName}:${params}")
-            val callId = sanitizeToolCallId("call_${toolNamePart}_${hashPart}_$callIndex")
+            val callId = stableCallId(toolName, params.toString(), callIndex)
 
             toolCalls.put(JSONObject().apply {
                 put("id", callId)
@@ -806,7 +838,8 @@ internal object StructuredToolCallBridge {
             }
             val openingTag = match.value.substringBefore('>')
             val resultName = ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1)
-            results.add(ToolResultRecord(resultName, resultContent))
+            val callId = ChatMarkupRegex.callIdAttr.find(openingTag)?.groupValues?.getOrNull(1)
+            results.add(ToolResultRecord(resultName, resultContent, callId))
             textContent = textContent.replace(match.value, "").trim()
         }
 
@@ -846,6 +879,17 @@ internal object StructuredToolCallBridge {
             }
         }.replace(Regex("_+"), "_").trim('_')
         return if (output.isEmpty()) "call" else output
+    }
+
+    /**
+     * Generates a stable call ID from tool name, parameters, and position index.
+     * Used both when parsing tool calls from history and when creating invocations during
+     * live execution, so the same call produces the same ID on both paths.
+     */
+    fun stableCallId(toolName: String, paramsJson: String, index: Int): String {
+        val toolNamePart = sanitizeToolCallId(toolName)
+        val hashPart = stableIdHashPart("$toolName:$paramsJson")
+        return sanitizeToolCallId("call_${toolNamePart}_${hashPart}_$index")
     }
 
     private fun generatedToolCallId(ordinal: Int): String {

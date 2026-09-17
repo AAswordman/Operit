@@ -461,16 +461,16 @@ open class GeminiProvider(
      */
     private fun parseXmlToolResults(content: String): Pair<String, List<JSONObject>?> {
         if (!enableToolCall) return Pair(content, null)
-        
+
         val matches = ChatMarkupRegex.toolResultWithNameAnyPattern.findAll(content)
-        
+
         if (!matches.any()) {
             return Pair(content, null)
         }
-        
+
         val functionResponses = mutableListOf<JSONObject>()
         var textContent = content
-        
+
         matches.forEach { match ->
             val toolName = match.groupValues[2]
             val fullContent = match.groupValues[3].trim()
@@ -480,21 +480,25 @@ open class GeminiProvider(
             } else {
                 fullContent
             }
-            
+
+            val openingTag = match.value.substringBefore('>')
+            val callId = ChatMarkupRegex.callIdAttr.find(openingTag)?.groupValues?.getOrNull(1)
+
             // 构建functionResponse对象（Gemini格式）
             val functionResponse = JSONObject().apply {
                 put("name", toolName)
+                if (callId != null) put("call_id", callId)
                 put("response", JSONObject().apply {
                     put("result", resultContent)
                 })
             }
-            
+
             functionResponses.add(functionResponse)
             AppLogger.d(TAG, "解析Gemini functionResponse: $toolName, content length=${resultContent.length}")
-            
+
             textContent = textContent.replace(match.value, "").trim()
         }
-        
+
         return Pair(textContent, functionResponses)
     }
     
@@ -870,13 +874,15 @@ open class GeminiProvider(
                         if (responsesList.isNotEmpty() && openFunctionCalls.isNotEmpty()) {
                             val partsArray = JSONArray()
                             val resultNames = responsesList.map { it.optString("name", "") }
+                            val resultCallIds = responsesList.map { it.optString("call_id", "") }
                             val useOrder = openFunctionCalls
                                 .mapIndexed { i, c -> c.id to i }
                                 .toMap()
                             val matchedCalls =
                                 StructuredToolCallBridge.consumeMatchingToolCalls(
                                     openFunctionCalls,
-                                    resultNames
+                                    resultNames,
+                                    resultCallIds
                                 )
                                     .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                             matchedCalls.forEach { matchedCall ->

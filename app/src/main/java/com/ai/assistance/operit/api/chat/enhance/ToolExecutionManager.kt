@@ -11,6 +11,7 @@ import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.data.model.ToolInvocation
 import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.api.chat.llmprovider.StructuredToolCallBridge
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
@@ -200,7 +201,8 @@ object ToolExecutionManager {
             toolName = resolveDisplayToolName(invocation.tool),
             success = false,
             result = StringResultData(""),
-            error = context.getString(R.string.character_card_tool_access_denied_runtime)
+            error = context.getString(R.string.character_card_tool_access_denied_runtime),
+            callId = invocation.callId
         )
     }
 
@@ -246,7 +248,8 @@ object ToolExecutionManager {
             toolName = resultToolName,
             success = false,
             result = StringResultData(""),
-            error = errorMessage
+            error = errorMessage,
+            callId = invocation.callId
         )
     }
 
@@ -310,6 +313,7 @@ object ToolExecutionManager {
 
         val charStream = content.stream()
         val plugins = listOf(StreamXmlPlugin())
+        var callIndex = 0
 
         charStream.splitBy(plugins).collect { group ->
             val chunkContent = StringBuilder()
@@ -324,19 +328,27 @@ object ToolExecutionManager {
                     val toolBody = toolMatch.groupValues.getOrNull(3).orEmpty()
 
                     val parameters = mutableListOf<ToolParameter>()
+                    val paramsJson = JSONObject()
                     MessageContentParser.toolParamPattern.findAll(toolBody)
                         .forEach { paramMatch ->
                             val paramName = paramMatch.groupValues[1]
                             val paramValue = paramMatch.groupValues[2]
                             parameters.add(ToolParameter(paramName, unescapeXml(paramValue)))
+                            paramsJson.put(paramName, unescapeXml(paramValue))
                         }
+
+                    val callId = StructuredToolCallBridge.stableCallId(
+                        toolName, paramsJson.toString(), callIndex
+                    )
+                    callIndex++
 
                     val tool = AITool(name = toolName, parameters = parameters)
                     invocations.add(
                         ToolInvocation(
                             tool = tool,
                             rawText = toolMatch.value,
-                            responseLocation = toolMatch.range
+                            responseLocation = toolMatch.range,
+                            callId = callId
                         )
                     )
                 }
@@ -399,7 +411,8 @@ object ToolExecutionManager {
                         toolName = invocation.tool.name,
                         success = false,
                         result = StringResultData(""),
-                        error = "Invalid parameters: ${validationResult.errorMessage}"
+                        error = "Invalid parameters: ${validationResult.errorMessage}",
+                        callId = invocation.callId
                     )
                 )
             }
@@ -413,7 +426,8 @@ object ToolExecutionManager {
                     toolName = invocation.tool.name,
                     success = false,
                     result = StringResultData(""),
-                    error = "Tool execution error: ${e.message}"
+                    error = "Tool execution error: ${e.message}",
+                    callId = invocation.callId
                 )
             )
         }
@@ -471,7 +485,8 @@ object ToolExecutionManager {
                         toolName = resolvedTarget.displayName,
                         success = false,
                         result = StringResultData(""),
-                        error = errorMessage
+                        error = errorMessage,
+                        callId = invocation.callId
                     )
                 toolHandler.notifyToolPermissionChecked(
                     permissionTool,

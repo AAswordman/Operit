@@ -30,6 +30,7 @@ class ConversationMarkupManager {
             return createToolResultXml(
                 toolName = toolName,
                 status = "error",
+                callId = null,
                 content = "<content><error>${errorMessage}</error></content>"
             )
         }
@@ -58,6 +59,7 @@ class ConversationMarkupManager {
                     createBoundedToolResultXml(
                         toolName = result.toolName,
                         status = "success",
+                        callId = result.callId,
                         rawPayload = toolPayload
                     ) { payload ->
                         "<content>$payload</content>"
@@ -79,6 +81,7 @@ class ConversationMarkupManager {
                 createBoundedToolResultXml(
                     toolName = result.toolName,
                     status = "error",
+                    callId = result.callId,
                     rawPayload = errorPayload
                 ) { payload ->
                     "<content><error>$payload</error></content>"
@@ -142,14 +145,16 @@ class ConversationMarkupManager {
             return createToolErrorStatus(toolName, errorMessage)
         }
 
-        private fun createToolResultXml(toolName: String, status: String, content: String): String {
+        private fun createToolResultXml(toolName: String, status: String, callId: String?, content: String): String {
             val tagName = ChatMarkupRegex.generateRandomToolResultTagName()
-            return """<$tagName name="$toolName" status="$status">$content</$tagName>""".trimIndent()
+            val callIdAttr = if (callId.isNullOrBlank()) "" else """ call_id="$callId""""
+            return """<$tagName name="$toolName" status="$status"$callIdAttr>$content</$tagName>""".trimIndent()
         }
 
         private fun createBoundedToolResultXml(
             toolName: String,
             status: String,
+            callId: String?,
             rawPayload: String,
             bodyBuilder: (String) -> String
         ): String {
@@ -157,6 +162,7 @@ class ConversationMarkupManager {
                 createToolResultXml(
                     toolName = toolName,
                     status = status,
+                    callId = callId,
                     content = bodyBuilder("")
                 )
             val maxPayloadChars =
@@ -166,6 +172,7 @@ class ConversationMarkupManager {
             return createToolResultXml(
                 toolName = toolName,
                 status = status,
+                callId = callId,
                 content = bodyBuilder(boundedPayload)
             )
         }

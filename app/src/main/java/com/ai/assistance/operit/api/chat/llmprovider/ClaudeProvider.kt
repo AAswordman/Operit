@@ -396,16 +396,18 @@ open class ClaudeProvider(
      * 解析XML格式的tool_result，转换为Claude Tool Result格式
      * @return Pair<文本内容, tool_result数组>
      */
-    private fun parseXmlToolResults(content: String): Pair<String, List<Pair<String, String>>?> {
+    private data class ToolResultInfo(val name: String, val content: String, val callId: String?)
+
+    private fun parseXmlToolResults(content: String): Pair<String, List<ToolResultInfo>?> {
         if (!enableToolCall) return Pair(content, null)
-        
+
         val matches = ChatMarkupRegex.toolResultAnyPattern.findAll(content)
-        
+
         if (!matches.any()) {
             return Pair(content, null)
         }
-        
-        val results = mutableListOf<Pair<String, String>>()
+
+        val results = mutableListOf<ToolResultInfo>()
         var textContent = content
         matches.forEach { match ->
             val fullContent = match.groupValues[2].trim()
@@ -415,16 +417,17 @@ open class ClaudeProvider(
             } else {
                 fullContent
             }
-            
+
             val openingTag = match.value.substringBefore('>')
             val resultName =
                 ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1).orEmpty()
-            results.add(Pair(resultName, resultContent))
+            val callId = ChatMarkupRegex.callIdAttr.find(openingTag)?.groupValues?.getOrNull(1)
+            results.add(ToolResultInfo(resultName, resultContent, callId))
             textContent = textContent.replace(match.value, "").trim()
-            
+
             AppLogger.d("AIService", "解析Claude tool_result $resultName, content length=${resultContent.length}")
         }
-        
+
         return Pair(textContent.trim(), results)
     }
     
@@ -932,11 +935,12 @@ open class ClaudeProvider(
                             val matchedCalls =
                                 StructuredToolCallBridge.consumeMatchingToolCalls(
                                     openToolUses,
-                                    resultsList.map { it.first }
+                                    resultsList.map { it.name },
+                                    resultsList.map { it.callId }
                                 )
                                     .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                             matchedCalls.forEach { matchedCall ->
-                                val resultContent = resultsList[matchedCall.resultIndex].second
+                                val resultContent = resultsList[matchedCall.resultIndex].content
                                 contentArray.put(
                                     JSONObject().apply {
                                         put("type", "tool_result")

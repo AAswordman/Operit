@@ -21,7 +21,9 @@ data class ToolInvocation(
         val tool: AITool,
         val rawText: String,
         @Contextual
-        val responseLocation: IntRange // Where in the response this tool invocation was found
+        val responseLocation: IntRange, // Where in the response this tool invocation was found
+        /** Stable identity for this call, used to pair results back to the correct call. */
+        val callId: String? = null
 )
 
 /** Represents the result of a tool execution */
@@ -30,7 +32,9 @@ data class ToolResult(
         val toolName: String,
         val success: Boolean,
         val result: ToolResultData,
-        val error: String? = null
+        val error: String? = null,
+        /** Stable identity of the call this result answers, used for history rebuild pairing. */
+        val callId: String? = null
 )
 
 /** Represents the validation result for tool parameters */

@@ -1216,11 +1216,12 @@ open class OpenAIProvider(
                                 val matchedCalls =
                                     StructuredToolCallBridge.consumeMatchingToolCalls(
                                         openToolCalls,
-                                        resultsList.map { it.first }
+                                        resultsList.map { it.name },
+                                        resultsList.map { it.callId }
                                     )
                                         .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                                 matchedCalls.forEach { matchedCall ->
-                                    val resultContent = resultsList[matchedCall.resultIndex].second
+                                    val resultContent = resultsList[matchedCall.resultIndex].content
                                     readableImageSources.add(resultContent)
                                     messagesArray.put(
                                         JSONObject().apply {
@@ -1781,7 +1782,9 @@ open class OpenAIProvider(
      * 解析XML格式的tool_result，转换为OpenAI Tool消息格式
      * @return List<Pair<tool_name, result_content>>，tool_name 用于把结果配回发起它的 tool_call
      */
-    fun parseXmlToolResults(content: String): Pair<String, List<Pair<String, String>>?> {
+    data class ToolResultInfo(val name: String, val content: String, val callId: String?)
+
+    fun parseXmlToolResults(content: String): Pair<String, List<ToolResultInfo>?> {
         // 匹配带属性的tool_result标签，例如: <tool_result name="..." status="...">...</tool_result>
         val matches = ChatMarkupRegex.toolResultAnyPattern.findAll(content)
 
@@ -1789,7 +1792,7 @@ open class OpenAIProvider(
             return Pair(content, null)
         }
 
-        val results = mutableListOf<Pair<String, String>>()
+        val results = mutableListOf<ToolResultInfo>()
         var textContent = content
 
         matches.forEach { match ->
@@ -1806,7 +1809,8 @@ open class OpenAIProvider(
             val openingTag = match.value.substringBefore('>')
             val resultName =
                 ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1).orEmpty()
-            results.add(Pair(resultName, resultContent))
+            val callId = ChatMarkupRegex.callIdAttr.find(openingTag)?.groupValues?.getOrNull(1)
+            results.add(ToolResultInfo(resultName, resultContent, callId))
 
             // 从文本内容中移除tool_result标签（包括前后的空白符）
             textContent = textContent.replace(match.value, "").trim()

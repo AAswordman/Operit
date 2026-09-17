@@ -362,11 +362,12 @@ open class KimiProvider(
                                 val matchedCalls =
                                     StructuredToolCallBridge.consumeMatchingToolCalls(
                                         openToolCalls,
-                                        resultsList.map { it.first }
+                                        resultsList.map { it.name },
+                                        resultsList.map { it.callId }
                                     )
                                         .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                                 matchedCalls.forEach { matchedCall ->
-                                    val resultContent = resultsList[matchedCall.resultIndex].second
+                                    val resultContent = resultsList[matchedCall.resultIndex].content
                                     readableImageSources.add(resultContent)
                                     messagesArray.put(
                                         JSONObject().apply {
