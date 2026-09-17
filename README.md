@@ -16,6 +16,7 @@
 
 <div align="center">
   <a href="https://trendshift.io/repositories/14027?utm_source=repository-badge&utm_medium=badge&utm_campaign=badge-repository-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/14027" alt="AAswordman/Operit | Trendshift" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/14027?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/14027/monthly?language=Kotlin" alt="AAswordman/Operit | Trendshift" width="250" height="55"/></a>
 </div>
 
 <div align="center">
