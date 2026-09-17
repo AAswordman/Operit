@@ -109,10 +109,11 @@ class OpenAiToolCallHistoryTest {
         val listFilesId = toolCalls.getJSONObject(0).getString("id")
         val calculateId = toolCalls.getJSONObject(1).getString("id")
 
-        assertEquals(calculateId, messages.at(2).getString("tool_call_id"))
-        assertEquals("2", messages.at(2).getString("content"))
-        assertEquals(listFilesId, messages.at(3).getString("tool_call_id"))
-        assertEquals("a.txt", messages.at(3).getString("content"))
+        // Output is sorted by tool_use order for prompt cache stability (issue #1159).
+        assertEquals(listFilesId, messages.at(2).getString("tool_call_id"))
+        assertEquals("a.txt", messages.at(2).getString("content"))
+        assertEquals(calculateId, messages.at(3).getString("tool_call_id"))
+        assertEquals("2", messages.at(3).getString("content"))
     }
 
     @Test
