@@ -300,19 +300,26 @@ class StructuredToolCallBridgeHistoryTest {
         val openToolCalls =
             mutableListOf(
                 StructuredToolCallBridge.OpenToolCall(
-                    id = geminiFunctionCall.getString("name"),
+                    id = "call_package_proxy_abc_0",
                     matchingName = StructuredToolCallBridge.toolCallName(geminiFunctionCall),
+                    protocolName = geminiFunctionCall.getString("name"),
                 )
             )
 
         val matched =
             StructuredToolCallBridge.consumeMatchingToolCalls(
                 openToolCalls,
-                listOf("extended_http_tools:http_request")
+                listOf("extended_http_tools:http_request"),
+                listOf(null)
             )
 
         assertEquals(1, matched.size)
-        assertEquals("package_proxy", matched.single().call.id)
+        // matchingName is the unwrapped tool name for result pairing.
+        assertEquals("extended_http_tools:http_request", matched.single().call.matchingName)
+        // protocolName is the original function name for functionResponse.name.
+        assertEquals("package_proxy", matched.single().call.protocolName)
+        // id is the stable call ID for functionResponse.id.
+        assertEquals("call_package_proxy_abc_0", matched.single().call.id)
         assertTrue(openToolCalls.isEmpty())
     }
 

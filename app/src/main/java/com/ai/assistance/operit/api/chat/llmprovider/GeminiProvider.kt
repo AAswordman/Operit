@@ -768,6 +768,7 @@ open class GeminiProvider(
                         put(
                             "functionResponse",
                             JSONObject().apply {
+                                put("id", openFunctionCall.id)
                                 // Use protocolName (original function name as called by the model),
                                 // not the unwrapped tool name or call ID.
                                 put("name", openFunctionCall.protocolName.ifBlank { "unmatched_function" })
@@ -899,6 +900,8 @@ open class GeminiProvider(
                                 // functionCall.name. For proxy calls, the original name is
                                 // package_proxy, not the unwrapped tool name.
                                 response.put("name", matchedCall.call.protocolName)
+                                // Return the same id that was on the original functionCall.
+                                response.put("id", matchedCall.call.id)
                                 partsArray.put(
                                     JSONObject().apply {
                                         put("functionResponse", response)
