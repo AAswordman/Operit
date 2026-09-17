@@ -713,7 +713,8 @@ object SystemToolPromptsInternal {
                                 ToolParameterSchema(name = "headers", type = "string", description = "headers", required = false),
                                 ToolParameterSchema(name = "body", type = "string", description = "body", required = false),
                                 ToolParameterSchema(name = "body_type", type = "string", description = "json/form/text/xml", required = false),
-                                ToolParameterSchema(name = "ignore_ssl", type = "boolean", description = "ignore https certificate verification, true/false", required = false)
+                                ToolParameterSchema(name = "ignore_ssl", type = "boolean", description = "ignore https certificate verification, true/false", required = false),
+                                ToolParameterSchema(name = "timeout", type = "integer", description = "optional overall timeout; milliseconds if >=1000, otherwise seconds", required = false)
                             )
                         ),
                         ToolPrompt(
@@ -3705,7 +3706,8 @@ object SystemToolPromptsInternal {
                                 ToolParameterSchema(name = "headers", type = "string", description = "headers", required = false),
                                 ToolParameterSchema(name = "body", type = "string", description = "body", required = false),
                                 ToolParameterSchema(name = "body_type", type = "string", description = "json/form/text/xml", required = false),
-                                ToolParameterSchema(name = "ignore_ssl", type = "boolean", description = "是否忽略HTTPS证书校验，true/false", required = false)
+                                ToolParameterSchema(name = "ignore_ssl", type = "boolean", description = "是否忽略HTTPS证书校验，true/false", required = false),
+                                ToolParameterSchema(name = "timeout", type = "integer", description = "可选，整次请求超时；>=1000 按毫秒，否则按秒", required = false)
                             )
                         ),
                         ToolPrompt(

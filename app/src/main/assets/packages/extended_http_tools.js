@@ -22,7 +22,8 @@
                 { "name": "headers", "description": { "zh": "可选：headers（JSON 对象字符串）", "en": "Optional: headers (JSON object string)" }, "type": "string", "required": false },
                 { "name": "body", "description": { "zh": "可选：请求体（字符串）", "en": "Optional: body (string)" }, "type": "string", "required": false },
                 { "name": "body_type", "description": { "zh": "可选：json/form/text/xml", "en": "Optional: json/form/text/xml" }, "type": "string", "required": false },
-                { "name": "ignore_ssl", "description": { "zh": "可选：是否忽略 HTTPS 证书校验（true/false）", "en": "Optional: ignore HTTPS certificate verification (true/false)" }, "type": "boolean", "required": false }
+                { "name": "ignore_ssl", "description": { "zh": "可选：是否忽略 HTTPS 证书校验（true/false）", "en": "Optional: ignore HTTPS certificate verification (true/false)" }, "type": "boolean", "required": false },
+                { "name": "timeout", "description": { "zh": "可选：整次请求超时，毫秒或秒（>=1000 按毫秒）", "en": "Optional overall timeout in milliseconds or seconds (>=1000 treated as ms)" }, "type": "number", "required": false }
             ]
         },
         {
@@ -63,6 +64,16 @@ const ExtendedHttpTools = (function () {
             toolParams.body_type = params.body_type;
         if (params.ignore_ssl !== undefined)
             toolParams.ignore_ssl = params.ignore_ssl;
+        if (params.timeout !== undefined)
+            toolParams.timeout = params.timeout;
+        if (params.timeout_ms !== undefined)
+            toolParams.timeout_ms = params.timeout_ms;
+        if (params.connect_timeout !== undefined)
+            toolParams.connect_timeout = params.connect_timeout;
+        if (params.read_timeout !== undefined)
+            toolParams.read_timeout = params.read_timeout;
+        if (params.write_timeout !== undefined)
+            toolParams.write_timeout = params.write_timeout;
         const result = await toolCall({ name: "http_request", params: toolParams });
         const success = result.statusCode >= 200 && result.statusCode < 400;
         const contentStr = typeof result?.content === "string" ? result.content : "";
