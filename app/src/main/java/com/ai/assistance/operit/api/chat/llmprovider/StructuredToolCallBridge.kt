@@ -32,6 +32,8 @@ internal object StructuredToolCallBridge {
     data class OpenToolCall(
         val id: String,
         val matchingName: String,
+        /** The function name as it appeared in the original call (e.g. package_proxy for proxy calls). */
+        val protocolName: String = matchingName,
     )
 
     data class MatchedToolCall(val resultIndex: Int, val call: OpenToolCall)
@@ -334,7 +336,9 @@ internal object StructuredToolCallBridge {
                 val callId = toolCall.optString("id", "").ifBlank { generatedToolCallId(nextToolCallOrdinal++) }
                 toolCall.put("id", callId)
                 queuedToolCalls.put(toolCall)
-                queuedOpenToolCalls.add(OpenToolCall(callId, toolCallName(toolCall)))
+                val rawName = toolCall.optJSONObject("function")?.optString("name", "")
+                    ?: toolCall.optString("name", "")
+                queuedOpenToolCalls.add(OpenToolCall(callId, toolCallName(toolCall), protocolName = rawName))
             }
         }
 

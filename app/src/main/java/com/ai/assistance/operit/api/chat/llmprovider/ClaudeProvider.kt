@@ -772,12 +772,14 @@ open class ClaudeProvider(
                 val toolUseId = toolUse.optString("id", "").ifBlank { generatedToolUseId(nextToolUseOrdinal++) }
                 toolUse.put("id", toolUseId)
                 queuedToolUses.put(toolUse)
+                val rawName = sourceToolUse.optString("name", "")
                 queuedOpenToolUses.add(
                     StructuredToolCallBridge.OpenToolCall(
                         toolUseId,
                         // Claude returns the proxy envelope as the call name but tool execution
                         // reports the concrete package tool; pairing must use that same concrete name.
-                        StructuredToolCallBridge.toolCallName(sourceToolUse)
+                        StructuredToolCallBridge.toolCallName(sourceToolUse),
+                        protocolName = rawName,
                     )
                 )
             }

@@ -748,6 +748,7 @@ open class GeminiProvider(
                     StructuredToolCallBridge.OpenToolCall(
                         id = callId,
                         matchingName = StructuredToolCallBridge.toolCallName(functionCall),
+                        protocolName = functionName,
                     )
                 )
             }
@@ -767,8 +768,9 @@ open class GeminiProvider(
                         put(
                             "functionResponse",
                             JSONObject().apply {
-                                // Use matchingName (the actual tool name), not the call ID.
-                                put("name", openFunctionCall.matchingName.ifBlank { "unmatched_function" })
+                                // Use protocolName (original function name as called by the model),
+                                // not the unwrapped tool name or call ID.
+                                put("name", openFunctionCall.protocolName.ifBlank { "unmatched_function" })
                                 put(
                                     "response",
                                     JSONObject().apply {
@@ -894,12 +896,9 @@ open class GeminiProvider(
                                 // Remove internal call_id before sending to Gemini.
                                 response.remove("call_id")
                                 // Gemini requires functionResponse.name to match the original
-                                // functionCall.name. Use the tool name from the parsed result,
-                                // not the internal call ID.
-                                val originalName = responsesList[matchedCall.resultIndex].optString("name", "")
-                                if (originalName.isNotBlank()) {
-                                    response.put("name", originalName)
-                                }
+                                // functionCall.name. For proxy calls, the original name is
+                                // package_proxy, not the unwrapped tool name.
+                                response.put("name", matchedCall.call.protocolName)
                                 partsArray.put(
                                     JSONObject().apply {
                                         put("functionResponse", response)

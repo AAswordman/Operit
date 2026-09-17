@@ -1054,10 +1054,13 @@ open class OpenAIProvider(
                 val callId = toolCall.optString("id", "").ifBlank { generatedToolCallId(nextToolCallOrdinal++) }
                 toolCall.put("id", callId)
                 queuedToolCalls.put(toolCall)
+                val rawName = toolCall.optJSONObject("function")?.optString("name", "")
+                    ?: toolCall.optString("name", "")
                 queuedOpenToolCalls.add(
                     StructuredToolCallBridge.OpenToolCall(
                         callId,
-                        StructuredToolCallBridge.toolCallName(toolCall)
+                        StructuredToolCallBridge.toolCallName(toolCall),
+                        protocolName = rawName,
                     )
                 )
             }
