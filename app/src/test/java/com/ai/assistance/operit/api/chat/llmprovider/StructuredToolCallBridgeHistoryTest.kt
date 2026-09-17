@@ -166,6 +166,34 @@ class StructuredToolCallBridgeHistoryTest {
     }
 
     @Test
+    fun `intercepted result without call_id does not steal same-name call slot`() {
+        // Scenario: two read_file calls A and B. B is intercepted (no call_id in result).
+        // A's real result has call_id. Two-pass matching ensures ID matches take priority:
+        // pass 1 matches A by call_id, pass 2 matches B by name.
+        val openToolCalls = mutableListOf(
+            StructuredToolCallBridge.OpenToolCall("id-a", "read_file"),
+            StructuredToolCallBridge.OpenToolCall("id-b", "read_file")
+        )
+
+        // Result 0: intercepted B, no call_id.
+        // Result 1: real A result, has call_id.
+        val matched = StructuredToolCallBridge.consumeMatchingToolCalls(
+            openToolCalls,
+            listOf("read_file", "read_file"),
+            listOf(null, "id-a")
+        )
+
+        assertEquals(2, matched.size)
+        // Pass 1: result 1 (call_id=id-a) matches id-a.
+        // Pass 2: result 0 (no call_id) matches id-b by name.
+        // Output sorted by result index: result 0 first, result 1 second.
+        assertEquals(0, matched[0].resultIndex)
+        assertEquals("id-b", matched[0].call.id)
+        assertEquals(1, matched[1].resultIndex)
+        assertEquals("id-a", matched[1].call.id)
+    }
+
+    @Test
     fun `same-name tool results without call_id fall back to name matching`() {
         // Legacy records: no call_id in tool_result XML. Pairing falls back to name-based
         // first-come-first-served. Content may be mispaired — this documents the limitation.

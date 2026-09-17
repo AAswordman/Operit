@@ -622,7 +622,7 @@ object ToolExecutionManager {
                         toolHandler.buildToolInterceptionResult(
                             resolveDisplayToolName(invocation.tool),
                             interception
-                        )
+                        ).copy(callId = invocation.callId)
                     hookDeniedResults.add(interceptedResult)
                     toolHandler.notifyToolExecutionResult(invocation.tool, interceptedResult)
                     toolHandler.notifyToolExecutionFinished(invocation.tool)

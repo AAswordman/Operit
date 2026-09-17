@@ -92,12 +92,14 @@ internal object StructuredToolCallBridge {
     /**
      * Matches tool results to open tool calls, preferring call_id when available.
      *
-     * When a result carries a call_id, it is matched strictly by ID. If the ID does not
-     * match any open call, the result is left unmatched — falling back to name matching
-     * would silently pair it with the wrong same-name call and mask ID bugs.
+     * Two-pass matching:
+     * 1. Results with call_id are matched strictly by ID. If the ID doesn't match
+     *    any open call, the result is left unmatched (no name fallback).
+     * 2. Results without call_id (legacy records) are matched by name,
+     *    first-come-first-served.
      *
-     * Results without a call_id (legacy records) fall back to name-based
-     * first-come-first-served matching.
+     * Processing ID matches first prevents a name-only result from stealing a slot
+     * that belongs to a result with a explicit call_id.
      *
      * @return matched calls with their source result indexes; unmatched results remain unconsumed.
      */
@@ -107,26 +109,37 @@ internal object StructuredToolCallBridge {
         resultCallIds: List<String?>
     ): List<MatchedToolCall> {
         val matched = ArrayList<MatchedToolCall>(minOf(openToolCalls.size, resultToolNames.size))
+
+        // Pass 1: strict ID matching for results that carry call_id.
         resultToolNames.forEachIndexed { resultIndex, resultName ->
             val normalizedResultName = resultName?.trim().orEmpty()
             if (normalizedResultName.isEmpty()) return@forEachIndexed
 
             val resultCallId = resultCallIds.getOrNull(resultIndex)?.trim().orEmpty()
-            if (resultCallId.isNotEmpty()) {
-                // Strict ID matching: if the ID doesn't match, leave unmatched.
-                val callByIdIndex = openToolCalls.indexOfFirst { it.id == resultCallId }
-                if (callByIdIndex >= 0) {
-                    matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callByIdIndex)))
-                }
-                return@forEachIndexed
-            }
+            if (resultCallId.isEmpty()) return@forEachIndexed
 
-            // Legacy fallback: no call_id in the result, match by name.
+            val callByIdIndex = openToolCalls.indexOfFirst { it.id == resultCallId }
+            if (callByIdIndex >= 0) {
+                matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callByIdIndex)))
+            }
+        }
+
+        // Pass 2: name fallback for legacy results without call_id.
+        resultToolNames.forEachIndexed { resultIndex, resultName ->
+            val normalizedResultName = resultName?.trim().orEmpty()
+            if (normalizedResultName.isEmpty()) return@forEachIndexed
+
+            val resultCallId = resultCallIds.getOrNull(resultIndex)?.trim().orEmpty()
+            if (resultCallId.isNotEmpty()) return@forEachIndexed  // Already handled in pass 1.
+
             val callIndex = openToolCalls.indexOfFirst { it.matchingName == normalizedResultName }
             if (callIndex >= 0) {
                 matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callIndex)))
             }
         }
+
+        // Sort by original result index so output order is deterministic.
+        matched.sortBy { it.resultIndex }
         return matched
     }
 
