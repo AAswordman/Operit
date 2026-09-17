@@ -1748,20 +1748,12 @@ open class OpenAIProvider(
             val toolName = match.groupValues[2]
             val toolBody = match.groupValues[3]
 
-            // 解析参数
-            val params = JSONObject()
+            // Use canonicalParamsJson + stableCallId so IDs match what
+            // extractToolInvocations generates during live execution (issue #1159).
+            val paramsJson = StructuredToolCallBridge.canonicalParamsJson(toolBody)
+            val params = JSONObject(paramsJson)
+            val callId = StructuredToolCallBridge.stableCallId(toolName, paramsJson, callIndex)
 
-            ChatMarkupRegex.toolParamPattern.findAll(toolBody).forEach { paramMatch ->
-                val paramName = paramMatch.groupValues[1]
-                val paramValue = XmlEscaper.unescape(paramMatch.groupValues[2].trim())
-                params.put(paramName, paramValue)
-            }
-
-            // 构建tool_call对象
-            // 使用工具名和参数的哈希生成确定性ID
-            val toolNamePart = sanitizeToolCallId(toolName)
-            val hashPart = stableIdHashPart("${toolName}:${params}")
-            val callId = sanitizeToolCallId("call_${toolNamePart}_${hashPart}_$callIndex")
             toolCalls.put(JSONObject().apply {
                 put("id", callId)
                 put("type", "function")
