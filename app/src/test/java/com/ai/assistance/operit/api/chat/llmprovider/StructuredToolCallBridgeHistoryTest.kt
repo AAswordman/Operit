@@ -50,13 +50,13 @@ class StructuredToolCallBridgeHistoryTest {
 
     @Test
     fun `same-name tool results with call_id are paired correctly even when reordered`() {
-        // Two read_file calls with different params. Results carry call_id so they can be
-        // matched to the correct call even when completion order differs from call order.
-        // This is the full fix for issue #1159 same-name content mispairing.
-        //
-        // We don't pre-compute call IDs because the exact hash depends on JSONObject.toString()
-        // format. Instead we verify that content-a ends up with the first call's ID and
-        // content-b with the second, proving call_id-based pairing works.
+        // Two read_file calls with different params. Results carry call_id in reverse
+        // completion order. call_id matching must attach each result to the correct call.
+        val paramsA = org.json.JSONObject().put("path", "a.txt").toString()
+        val paramsB = org.json.JSONObject().put("path", "b.txt").toString()
+        val callIdA = StructuredToolCallBridge.stableCallId("read_file", paramsA, 0)
+        val callIdB = StructuredToolCallBridge.stableCallId("read_file", paramsB, 1)
+
         val messages = buildMessages(
             listOf(
                 PromptTurn(kind = PromptTurnKind.USER, content = "Read both."),
@@ -67,24 +67,22 @@ class StructuredToolCallBridgeHistoryTest {
                 ),
                 PromptTurn(
                     kind = PromptTurnKind.TOOL_RESULT,
-                    // We need call_ids that match what parseXmlToolCalls generates.
-                    // Use a placeholder test that verifies the mechanism works.
-                    content = toolResult("read_file", "content-b") +
-                        toolResult("read_file", "content-a")
+                    // b.txt completes first, a.txt second — reverse of call order.
+                    content = toolResult("read_file", "content-b", callId = callIdB) +
+                        toolResult("read_file", "content-a", callId = callIdA)
                 )
             )
         )
 
         val toolCalls = messages.at(1).getJSONArray("tool_calls")
-        val callIdA = toolCalls.getJSONObject(0).getString("id")
-        val callIdB = toolCalls.getJSONObject(1).getString("id")
+        assertEquals(callIdA, toolCalls.getJSONObject(0).getString("id"))
+        assertEquals(callIdB, toolCalls.getJSONObject(1).getString("id"))
 
-        // Without call_id, first result goes to first call (name-based fallback).
-        // This documents the legacy behavior.
+        // Output must be in call order with correct content pairing.
         assertEquals(callIdA, messages.at(2).getString("tool_call_id"))
-        assertEquals("content-b", messages.at(2).getString("content"))
+        assertEquals("content-a", messages.at(2).getString("content"))
         assertEquals(callIdB, messages.at(3).getString("tool_call_id"))
-        assertEquals("content-a", messages.at(3).getString("content"))
+        assertEquals("content-b", messages.at(3).getString("content"))
     }
 
     @Test

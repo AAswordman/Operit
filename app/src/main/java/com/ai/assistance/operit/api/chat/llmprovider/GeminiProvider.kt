@@ -887,6 +887,8 @@ open class GeminiProvider(
                                     .sortedBy { useOrder[it.call.id] ?: Int.MAX_VALUE }
                             matchedCalls.forEach { matchedCall ->
                                 val response = JSONObject(responsesList[matchedCall.resultIndex].toString())
+                                // Remove internal call_id before sending to Gemini.
+                                response.remove("call_id")
                                 val pendingName = matchedCall.call.id
                                 if (pendingName.isNotBlank()) {
                                     response.put("name", pendingName)

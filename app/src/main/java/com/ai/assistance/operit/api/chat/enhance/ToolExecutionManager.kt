@@ -730,7 +730,8 @@ object ToolExecutionManager {
                             toolName = displayToolName,
                             success = false,
                             result = StringResultData(""),
-                            error = errorMessage
+                            error = errorMessage,
+                            callId = invocation.callId
                         )
                     toolHandler.notifyToolExecutionResult(invocation.tool, notAvailableResult)
                     return@withContext notAvailableResult
@@ -754,7 +755,8 @@ object ToolExecutionManager {
                             toolName = displayToolName,
                             success = false,
                             result = StringResultData(""),
-                            error = "The tool execution returned no results."
+                            error = "The tool execution returned no results.",
+                            callId = invocation.callId
                         )
                     toolHandler.notifyToolExecutionResult(invocation.tool, emptyResult)
                     return@withContext emptyResult
@@ -770,7 +772,8 @@ object ToolExecutionManager {
                         toolName = displayToolName,
                         success = lastResult.success,
                         result = StringResultData(combinedResultString),
-                        error = lastResult.error
+                        error = lastResult.error,
+                        callId = invocation.callId
                     )
                 toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
                 return@withContext finalResult

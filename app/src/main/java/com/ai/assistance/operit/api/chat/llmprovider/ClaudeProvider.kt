@@ -774,7 +774,9 @@ open class ClaudeProvider(
             for (i in 0 until toolUses.length()) {
                 val sourceToolUse = toolUses.optJSONObject(i) ?: continue
                 val toolUse = JSONObject(sourceToolUse.toString())
-                val toolUseId = generatedToolUseId(nextToolUseOrdinal++)
+                // Preserve the stable ID from parseXmlToolCalls. Overwriting it breaks
+                // call_id-based matching when tool results are rebuilt from history.
+                val toolUseId = toolUse.optString("id", "").ifBlank { generatedToolUseId(nextToolUseOrdinal++) }
                 toolUse.put("id", toolUseId)
                 queuedToolUses.put(toolUse)
                 queuedOpenToolUses.add(
