@@ -294,9 +294,7 @@ fun ModelApiSettingsSection(
                     enableToolCall = state.enableToolCall,
                 )
 
-                EnhancedAIService.refreshAllServices(
-                    configManager.appContext
-                )
+                EnhancedAIService.refreshAllServices(configManager.appContext, cancelStreaming = false)
             }
         }
     }
@@ -621,7 +619,7 @@ fun ModelApiSettingsSection(
                          scope.launch {
                              codexAuthManager.logout()
                              codexUsageError = false
-                             EnhancedAIService.refreshAllServices(configManager.appContext)
+                             EnhancedAIService.refreshAllServices(configManager.appContext, cancelStreaming = false)
                              showNotification(context.getString(R.string.codex_logout_success))
                          }
                     },
@@ -942,7 +940,7 @@ fun ModelApiSettingsSection(
             onLoginSuccess = {
                 showCodexLoginDialog = false
                 scope.launch {
-                    EnhancedAIService.refreshAllServices(configManager.appContext)
+                    EnhancedAIService.refreshAllServices(configManager.appContext, cancelStreaming = false)
                     showNotification(context.getString(R.string.codex_login_success))
                 }
             },
