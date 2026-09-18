@@ -16,6 +16,8 @@ import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ParameterValueType
 import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.storage.LocalModelRuntimeRegistry
+import com.ai.assistance.operit.data.storage.LocalModelUsageHandle
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +63,7 @@ class MNNProvider(
 
     // MNN LLM Session 实例
     private var llmSession: MNNLlmSession? = null
+    private var modelUsageHandle: LocalModelUsageHandle? = null
 
     private var cachedModelMaxAllTokens: Int? = null
     private var cachedModelIsVisual: Boolean? = null
@@ -189,20 +192,33 @@ class MNNProvider(
                 AppLogger.d(TAG, "缓存目录存在: ${cacheDir.exists()}, 可写: ${cacheDir.canWrite()}")
                 
                 // 创建 LLM Session（配置必须在创建时传入！）
-                llmSession = MNNLlmSession.create(
-                    modelDir = modelDir,
-                    backendType = backendType,
-                    threadNum = threadCount,
-                    precision = "low",      // 使用低精度以提升性能
-                    memory = memoryMode,    // 根据后端选择内存模式
-                    tmpPath = cacheDir.absolutePath  // 指定缓存目录
-                )
-                
-                if (llmSession == null) {
+                val usageHandle = LocalModelRuntimeRegistry.acquire(modelDirFile)
+                    ?: return@withContext Result.failure(
+                        Exception(context.getString(R.string.mnn_cannot_create_session))
+                    )
+                val createdSession =
+                    try {
+                        MNNLlmSession.create(
+                            modelDir = modelDir,
+                            backendType = backendType,
+                            threadNum = threadCount,
+                            precision = "low",
+                            memory = memoryMode,
+                            tmpPath = cacheDir.absolutePath,
+                        )
+                    } catch (error: Exception) {
+                        usageHandle.close()
+                        throw error
+                    }
+
+                if (createdSession == null) {
+                    usageHandle.close()
                     return@withContext Result.failure(
                         Exception(context.getString(R.string.mnn_cannot_create_session))
                     )
                 }
+                llmSession = createdSession
+                modelUsageHandle = usageHandle
 
                 AppLogger.i(TAG, "MNN LLM模型初始化成功，后端: $backendType")
             }
@@ -1011,10 +1027,13 @@ class MNNProvider(
     override fun release() {
         try {
             llmSession?.release()
-            llmSession = null
             AppLogger.d(TAG, "MNN LLM资源已释放")
         } catch (e: Exception) {
             AppLogger.e(TAG, "释放资源时出错", e)
+        } finally {
+            llmSession = null
+            modelUsageHandle?.close()
+            modelUsageHandle = null
         }
     }
 }

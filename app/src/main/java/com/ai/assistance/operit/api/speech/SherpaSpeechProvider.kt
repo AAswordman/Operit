@@ -9,6 +9,8 @@ import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.OperitPaths
 import com.k2fsa.sherpa.ncnn.*
 import com.ai.assistance.operit.api.speech.SpeechPrerollStore
+import com.ai.assistance.operit.data.storage.LocalModelRuntimeRegistry
+import com.ai.assistance.operit.data.storage.LocalModelUsageHandle
 import java.io.File
 import com.ai.assistance.operit.util.AssetCopyUtils
 import java.io.IOException
@@ -39,6 +41,7 @@ class SherpaSpeechProvider(private val context: Context) : SpeechService {
     }
 
     private var recognizer: SherpaNcnn? = null
+    private var modelUsageHandle: LocalModelUsageHandle? = null
     private var vad: OnnxSileroVad? = null
     private var audioRecord: AudioRecord? = null
     private var recordingJob: Job? = null
@@ -184,11 +187,25 @@ class SherpaSpeechProvider(private val context: Context) : SpeechService {
                         hotwordsScore = 1.5f
                 )
 
+        val usageHandle = LocalModelRuntimeRegistry.acquire(localModelDir)
+        if (usageHandle == null) {
+            AppLogger.e(TAG, "Speech model is being deleted; skip recognizer creation.")
+            _recognitionState.value = SpeechService.RecognitionState.ERROR
+            _recognitionError.value =
+                SpeechService.RecognitionError(-1, "Failed to initialize recognizer")
+            return
+        }
         recognizer =
-                SherpaNcnn(
-                        config = recognizerConfig,
-                        assetManager = null // Force using newFromFile
-                )
+                try {
+                    SherpaNcnn(
+                            config = recognizerConfig,
+                            assetManager = null // Force using newFromFile
+                    )
+                } catch (error: Exception) {
+                    usageHandle.close()
+                    throw error
+                }
+        modelUsageHandle = usageHandle
     }
 
     /**
@@ -514,8 +531,11 @@ class SherpaSpeechProvider(private val context: Context) : SpeechService {
                 try {
                     recognizer?.release()
                 } catch (_: Exception) {
+                } finally {
+                    recognizer = null
+                    modelUsageHandle?.close()
+                    modelUsageHandle = null
                 }
-                recognizer = null
                 try {
                     vad?.close()
                 } catch (_: Exception) {
