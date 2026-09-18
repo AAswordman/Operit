@@ -81,8 +81,6 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     // 聊天服务核心 - 整合所有业务逻辑
     private lateinit var chatCore: ChatServiceCore
 
-    private var lastCrashTime = 0L
-    private var crashCount = 0
     private val defaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
     private val customExceptionHandler =
             Thread.UncaughtExceptionHandler { thread, throwable ->
@@ -94,6 +92,7 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     private val gson = Gson()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var hasHandledStartCommand = false
+    private var isServiceReady = false
 
     companion object {
         @Volatile
@@ -167,21 +166,35 @@ class FloatingChatService : Service(), FloatingWindowCallback {
         }
     }
 
-    override fun onBind(intent: Intent): IBinder = binder
+    override fun onBind(intent: Intent): IBinder? {
+        // 初始化失败时不能向调用方暴露尚未就绪的 chatCore 和窗口状态。
+        return if (isServiceReady) binder else null
+    }
 
     private fun handleServiceCrash(thread: Thread, throwable: Throwable) {
         try {
             AppLogger.e(TAG, "Service crashed: ${throwable.message}", throwable)
             val currentTime = System.currentTimeMillis()
-            if (currentTime - lastCrashTime > 60000) {
-                crashCount = 0
+            // 悬浮窗与主界面同进程，未捕获异常会杀死整个进程，
+            // 内存计数器随进程一起丢失，永远达不到停用阈值，
+            // 因此把崩溃计数与时间戳持久化，跨进程重启累计
+            val lastCrash = prefs.getLong("last_crash_time", 0L)
+            val previousCount =
+                if (currentTime - lastCrash > 60000) 0 else prefs.getInt("crash_count", 0)
+            val crashCount = previousCount + 1
+            // 默认异常处理器即将结束进程，必须同步提交计数与停用标记。
+            val crashStateSaved = prefs
+                .edit()
+                .putInt("crash_count", crashCount)
+                .putLong("last_crash_time", currentTime)
+                .putBoolean("service_disabled_due_to_crashes", crashCount > 3)
+                .commit()
+            if (!crashStateSaved) {
+                AppLogger.e(TAG, "Failed to persist floating service crash state")
             }
-            lastCrashTime = currentTime
-            crashCount++
 
             if (crashCount > 3) {
                 AppLogger.e(TAG, "Too many crashes in short time, stopping service")
-                prefs.edit().putBoolean("service_disabled_due_to_crashes", true).apply()
                 stopSelf()
                 return
             }
@@ -212,14 +225,13 @@ class FloatingChatService : Service(), FloatingWindowCallback {
         } catch (_: Exception) {
         }
 
-        Thread.setDefaultUncaughtExceptionHandler(customExceptionHandler)
-
         prefs = getSharedPreferences("floating_chat_prefs", Context.MODE_PRIVATE)
         if (prefs.getBoolean("service_disabled_due_to_crashes", false)) {
             AppLogger.w(TAG, "Service was disabled due to frequent crashes")
             stopSelf()
             return
         }
+        Thread.setDefaultUncaughtExceptionHandler(customExceptionHandler)
 
         try {
             acquireWakeLock()
@@ -292,6 +304,7 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                 notification = notification,
                 types = ForegroundServiceCompat.buildTypes(dataSync = true)
             )
+            isServiceReady = true
 
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error in onCreate", e)
@@ -369,6 +382,12 @@ class FloatingChatService : Service(), FloatingWindowCallback {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         AppLogger.d(TAG, "onStartCommand")
+        // onCreate 中 stopSelf 不会阻止已排队的启动回调，禁止访问未初始化的窗口对象。
+        if (!isServiceReady) {
+            sendLifecycleBroadcast(ACTION_FLOATING_CHAT_WINDOW_SHOW_FAILED)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
@@ -580,6 +599,7 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     }
 
     override fun onDestroy() {
+        isServiceReady = false
         try {
             AIForegroundService.setWakeListeningSuspendedForFloatingFullscreen(
                 applicationContext,
@@ -621,17 +641,29 @@ class FloatingChatService : Service(), FloatingWindowCallback {
             }
             
             serviceScope.cancel()
-            saveState()
-            super.onDestroy()
+            if (::windowState.isInitialized) {
+                try {
+                    saveState()
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "Error saving floating window state on destroy", e)
+                }
+            }
             AppLogger.d(TAG, "onDestroy")
-            lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-            lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
-            lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-            windowManager.destroy()
-            Thread.setDefaultUncaughtExceptionHandler(defaultExceptionHandler)
+            if (::lifecycleOwner.isInitialized) {
+                lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            }
+            if (::windowManager.isInitialized) {
+                windowManager.destroy()
+            }
             prefs.edit().putInt("view_creation_retry", 0).apply()
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error in onDestroy", e)
+        } finally {
+            // 初始化失败也必须解除进程级处理器，避免已销毁服务继续接收异常。
+            if (Thread.getDefaultUncaughtExceptionHandler() === customExceptionHandler) {
+                Thread.setDefaultUncaughtExceptionHandler(defaultExceptionHandler)
+            }
+            super.onDestroy()
         }
 
         try {

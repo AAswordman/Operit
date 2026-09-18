@@ -23,6 +23,11 @@ For_Agent: 性能分析界面实现记录
 - 导航：`Screen.PerformanceMonitor`（`NavItem.Settings`，`screen_title_performance_monitor`），设置页“数据和权限”分组新增入口
 - 字符串：`values/strings.xml` + `values-en/strings.xml` 新增 perf_* / settings_performance_monitor* / screen_title_performance_monitor
 
+## CPU 采样路径修正
+
+- `readProcStat` 接收的是文件路径；主进程、QuickJS 线程和终端进程树的调用点此前传入了相对的 `self`、tid 或 PID，导致 `/proc/*/stat` 始终读取失败并被转换成 0.0
+- 调用点统一传入 `/proc/self/stat`、`/proc/self/task/<tid>/stat` 和 `/proc/<pid>/stat`，恢复软件、插件与终端的 CPU 差分采样
+
 ## 验收点
 - 设置 → 性能分析可见，三个 Tab 可切换且共享同一份滚动历史
 - 打开/运行插件后 CPU、内存页出现对应插件行，数值随脚本执行变化

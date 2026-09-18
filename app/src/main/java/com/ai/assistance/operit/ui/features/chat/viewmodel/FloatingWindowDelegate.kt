@@ -66,7 +66,7 @@ class FloatingWindowDelegate(
                         }
                     }
                     FloatingChatService.ACTION_FLOATING_CHAT_WINDOW_SHOW_FAILED -> {
-                        moveTaskToBackOnWindowShownPending = false
+                        disconnectFromService(updateFloatingMode = true)
                     }
                 }
             }
@@ -93,6 +93,11 @@ class FloatingWindowDelegate(
                 floatingBinder = null
                 floatingService = null
                 isBoundToService = false
+            }
+
+            override fun onNullBinding(name: ComponentName?) {
+                // 被停用或初始化失败的服务没有可用 Binder，释放绑定才能完成停止。
+                disconnectFromService(updateFloatingMode = true)
             }
         }
 
@@ -134,6 +139,25 @@ class FloatingWindowDelegate(
         }
     }
 
+    /**
+     * 用户在主界面显式进入悬浮窗，视为对崩溃停用保护的重新授权：
+     * 清除停用标记与持久化崩溃计数，让服务可以再次启动。
+     * 若同一崩溃仍在，服务会再次连崩 4 次后重新停用，形成闭环。
+     */
+    private fun clearFloatingCrashDisableFlag() {
+        try {
+            context
+                .getSharedPreferences("floating_chat_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .remove("service_disabled_due_to_crashes")
+                .remove("crash_count")
+                .remove("last_crash_time")
+                .apply()
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "清除悬浮窗崩溃停用标记失败", e)
+        }
+    }
+
     /** 切换悬浮窗模式 */
     fun toggleFloatingMode(colorScheme: ColorScheme? = null, typography: Typography? = null) {
         val newMode = !_isFloatingMode.value
@@ -141,6 +165,8 @@ class FloatingWindowDelegate(
         if (newMode) {
             _isFloatingMode.value = true
             moveTaskToBackOnWindowShownPending = false
+
+            clearFloatingCrashDisableFlag()
 
             // 先启动并绑定服务
             val intent = Intent(context, FloatingChatService::class.java)
@@ -155,7 +181,7 @@ class FloatingWindowDelegate(
             } else {
                 context.startService(intent)
             }
-            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            isBoundToService = context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         } else {
             moveTaskToBackOnWindowShownPending = false
             // 统一调用关闭逻辑，确保服务被正确关闭
@@ -185,6 +211,8 @@ class FloatingWindowDelegate(
         _isFloatingMode.value = true
         moveTaskToBackOnWindowShownPending = moveTaskToBackOnReady
 
+        clearFloatingCrashDisableFlag()
+
         // 先启动并绑定服务
         val intent = Intent(context, FloatingChatService::class.java)
         // 添加初始模式参数
@@ -201,7 +229,7 @@ class FloatingWindowDelegate(
         } else {
             context.startService(intent)
         }
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        isBoundToService = context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
     /**

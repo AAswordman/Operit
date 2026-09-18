@@ -14,7 +14,6 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
-import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.async
@@ -499,8 +498,8 @@ object ToolExecutionManager {
      * @param invocations 要执行的工具调用列表。
      * @param toolHandler AIToolHandler 的实例。
      * @param packageManager PackageManager 的实例。
-     * @param collector 用于实时输出结果的 StreamCollector。
-     * @return 所有工具执行结果的列表。
+     * @param collector 按原始调用顺序输出最终结果的 StreamCollector。
+     * @return 有序结果及已经输出的 XML，供循环内模型历史复用。
      */
     suspend fun executeInvocations(
         invocations: List<ToolInvocation>,
@@ -512,7 +511,10 @@ object ToolExecutionManager {
         callerName: String? = null,
         callerChatId: String? = null,
         callerCardId: String? = null
-    ): List<ToolResult> = coroutineScope {
+    ): ToolExecutionBatch = coroutineScope {
+        val orderedResults = OrderedToolResults(invocations.size) { markup ->
+            collector.emit(ensureOwnLine(markup))
+        }
         // 默认工具注册现在可能在启动阶段被延后；这里确保在真正执行工具前已完成注册
         // registerDefaultTools() 是幂等且线程安全的，可安全重复调用
         withContext(Dispatchers.Default) {
@@ -537,25 +539,20 @@ object ToolExecutionManager {
             )
 
         // 1. 顶层工具暴露模式拦截
-        val toolExposurePermittedInvocations = mutableListOf<ToolInvocation>()
-        val toolExposureDeniedResults = mutableListOf<ToolResult>()
-        for (invocation in invocations) {
+        val toolExposurePermittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
+        for ((index, invocation) in invocations.withIndex()) {
             val deniedResult = buildToolExposureDeniedResult(context, invocation, toolExposureMode)
             if (deniedResult == null) {
-                toolExposurePermittedInvocations.add(invocation)
+                toolExposurePermittedInvocations.add(IndexedValue(index, invocation))
             } else {
-                toolExposureDeniedResults.add(deniedResult)
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
-                val toolResultStatusContent =
-                    ConversationMarkupManager.formatToolResultForMessage(deniedResult)
-                collector.emit(ensureOwnLine(toolResultStatusContent))
+                orderedResults.complete(index, deniedResult)
             }
         }
 
         // 2. 角色卡工具权限拦截（优先于权限弹窗与包自动激活）
-        val roleCardPermittedInvocations = mutableListOf<ToolInvocation>()
-        val roleCardDeniedResults = mutableListOf<ToolResult>()
-        for (invocation in toolExposurePermittedInvocations) {
+        val roleCardPermittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
+        for ((index, invocation) in toolExposurePermittedInvocations) {
             val deniedResult = if (roleCardToolAccess?.customEnabled == true &&
                 !isInvocationAllowedForRoleCard(invocation, roleCardToolAccess)
             ) {
@@ -565,21 +562,16 @@ object ToolExecutionManager {
             }
 
             if (deniedResult == null) {
-                roleCardPermittedInvocations.add(invocation)
+                roleCardPermittedInvocations.add(IndexedValue(index, invocation))
             } else {
-                roleCardDeniedResults.add(deniedResult)
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
-                val toolResultStatusContent =
-                    ConversationMarkupManager.formatToolResultForMessage(deniedResult)
-                collector.emit(ensureOwnLine(toolResultStatusContent))
+                orderedResults.complete(index, deniedResult)
             }
         }
 
         // 3. Hook 拦截与权限检查
-        val permittedInvocations = mutableListOf<ToolInvocation>()
-        val hookDeniedResults = mutableListOf<ToolResult>()
-        val permissionDeniedResults = mutableListOf<ToolResult>()
-        for (invocation in roleCardPermittedInvocations) {
+        val permittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
+        for ((index, invocation) in roleCardPermittedInvocations) {
             toolHandler.notifyToolCallRequested(invocation.tool)
             val interceptionTool = resolveToolTarget(invocation.tool).tool
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
@@ -587,14 +579,9 @@ object ToolExecutionManager {
                     val (hasPermission, errorResult) =
                         checkToolPermission(context, toolHandler, invocation, toolExposureMode)
                     if (hasPermission) {
-                        permittedInvocations.add(invocation)
+                        permittedInvocations.add(IndexedValue(index, invocation))
                     } else {
-                        errorResult?.let {
-                            permissionDeniedResults.add(it)
-                            val toolResultStatusContent =
-                                ConversationMarkupManager.formatToolResultForMessage(it)
-                            collector.emit(ensureOwnLine(toolResultStatusContent))
-                        }
+                        orderedResults.complete(index, checkNotNull(errorResult))
                     }
                 }
 
@@ -604,12 +591,9 @@ object ToolExecutionManager {
                             resolveDisplayToolName(invocation.tool),
                             interception
                         )
-                    hookDeniedResults.add(interceptedResult)
                     toolHandler.notifyToolExecutionResult(invocation.tool, interceptedResult)
                     toolHandler.notifyToolExecutionFinished(invocation.tool)
-                    val toolResultStatusContent =
-                        ConversationMarkupManager.formatToolResultForMessage(interceptedResult)
-                    collector.emit(ensureOwnLine(toolResultStatusContent))
+                    orderedResults.complete(index, interceptedResult)
                 }
             }
         }
@@ -619,13 +603,16 @@ object ToolExecutionManager {
                 permittedInvocations
             } else {
                 val jsPackageNames = packageManager.getAvailablePackages().keys
-                permittedInvocations.map { invocation ->
-                    injectPackageCallContext(
-                        invocation = invocation,
-                        jsPackageNames = jsPackageNames,
-                        callerName = callerName,
-                        callerChatId = callerChatId,
-                        callerCardId = callerCardId
+                permittedInvocations.map { (index, invocation) ->
+                    IndexedValue(
+                        index,
+                        injectPackageCallContext(
+                            invocation = invocation,
+                            jsPackageNames = jsPackageNames,
+                            callerName = callerName,
+                            callerChatId = callerChatId,
+                            callerCardId = callerCardId
+                        )
                     )
                 }
             }
@@ -638,63 +625,50 @@ object ToolExecutionManager {
         )
         val (parallelInvocations, serialInvocations) = injectedInvocations.partition {
             parallelizableToolNames.contains(
-                it.tool.name
+                it.value.tool.name
             )
         }
 
         // 5. 执行工具并收集聚合结果
-        val executionResults = ConcurrentHashMap<ToolInvocation, ToolResult>()
-
         // 启动并行工具
-        val parallelJobs = parallelInvocations.map { invocation ->
+        val parallelJobs = parallelInvocations.map { (index, invocation) ->
             async {
                 val result =
-                    executeAndEmitTool(
+                    executeTool(
                         invocation = invocation,
                         toolHandler = toolHandler,
                         packageManager = packageManager,
-                        collector = collector,
                         runtimeContext = toolRuntimeContext
                     )
-                executionResults[invocation] = result
+                orderedResults.complete(index, result)
             }
         }
 
         // 顺序执行串行工具
-        for (invocation in serialInvocations) {
+        for ((index, invocation) in serialInvocations) {
             val result =
-                executeAndEmitTool(
+                executeTool(
                     invocation = invocation,
                     toolHandler = toolHandler,
                     packageManager = packageManager,
-                    collector = collector,
                     runtimeContext = toolRuntimeContext
                 )
-            executionResults[invocation] = result
+            orderedResults.complete(index, result)
         }
 
         // 等待所有并行任务完成
         parallelJobs.awaitAll()
 
-        // 6. 按原始顺序重新排序结果
-        val orderedAggregated = injectedInvocations.mapNotNull { executionResults[it] }
-
-        // 7. 组合所有结果并返回
-        toolExposureDeniedResults +
-            roleCardDeniedResults +
-            hookDeniedResults +
-            permissionDeniedResults +
-            orderedAggregated
+        return@coroutineScope orderedResults.finish()
     }
 
     /**
-     * 封装单个工具的执行、实时输出和结果聚合的辅助函数
+     * 聚合单个调用的最终结果。发布由原始调用位置统一控制，避免保存分段结果而模型收到聚合结果。
      */
-    private suspend fun executeAndEmitTool(
+    private suspend fun executeTool(
         invocation: ToolInvocation,
         toolHandler: AIToolHandler,
         packageManager: PackageManager,
-        collector: StreamCollector<String>,
         runtimeContext: ToolRuntimeContext
     ): ToolResult {
         val toolName = invocation.tool.name
@@ -707,9 +681,6 @@ object ToolExecutionManager {
                     // 如果仍然为 null，则构建错误消息
                     val errorMessage =
                         buildToolNotAvailableErrorMessage(toolName, packageManager, toolHandler)
-                    val notAvailableContent =
-                        ConversationMarkupManager.createToolNotAvailableError(toolName, errorMessage)
-                    collector.emit(ensureOwnLine(notAvailableContent))
                     val notAvailableResult =
                         ToolResult(
                             toolName = displayToolName,
@@ -723,46 +694,43 @@ object ToolExecutionManager {
 
                 toolHandler.notifyToolExecutionStarted(invocation.tool)
 
-                val collectedResults = mutableListOf<ToolResult>()
-                executeToolSafely(invocation, executor, toolHandler).collect { result ->
-                    collectedResults.add(result)
-                    // 实时输出每个结果
-                    val toolResultStatusContent =
-                        ConversationMarkupManager.formatToolResultForMessage(result)
-                    collector.emit(ensureOwnLine(toolResultStatusContent))
-                }
-
-                // 为此调用聚合最终结果
-                if (collectedResults.isEmpty()) {
-                    val emptyResult =
-                        ToolResult(
-                            toolName = displayToolName,
-                            success = false,
-                            result = StringResultData(""),
-                            error = "The tool execution returned no results."
-                        )
-                    toolHandler.notifyToolExecutionResult(invocation.tool, emptyResult)
-                    return@withContext emptyResult
-                }
-
-                val lastResult = collectedResults.last()
-                val combinedResultString = collectedResults.joinToString("\n") { res ->
-                    (if (res.success) res.result.toString() else "Step error: ${res.error ?: "Unknown error"}").trim()
-                }.trim()
-
-                val finalResult =
-                    ToolResult(
-                        toolName = displayToolName,
-                        success = lastResult.success,
-                        result = StringResultData(combinedResultString),
-                        error = lastResult.error
-                    )
+                val finalResult = aggregateToolResults(
+                    displayToolName,
+                    executeToolSafely(invocation, executor, toolHandler)
+                )
                 toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
                 return@withContext finalResult
             } finally {
                 toolHandler.notifyToolExecutionFinished(invocation.tool)
             }
         }
+    }
+
+    /** Keep the existing aggregation semantics, but publish this result to both history paths. */
+    internal suspend fun aggregateToolResults(
+        displayToolName: String,
+        source: Flow<ToolResult>
+    ): ToolResult {
+        val collectedResults = mutableListOf<ToolResult>()
+        source.collect { collectedResults.add(it) }
+        if (collectedResults.isEmpty()) {
+            return ToolResult(
+                toolName = displayToolName,
+                success = false,
+                result = StringResultData(""),
+                error = "The tool execution returned no results."
+            )
+        }
+        val lastResult = collectedResults.last()
+        val combinedResultString = collectedResults.joinToString("\n") { res ->
+            (if (res.success) res.result.toString() else "Step error: ${res.error ?: "Unknown error"}").trim()
+        }.trim()
+        return ToolResult(
+            toolName = displayToolName,
+            success = lastResult.success,
+            result = StringResultData(combinedResultString),
+            error = lastResult.error
+        )
     }
 
     /**

@@ -2843,13 +2843,30 @@ class WebChatHttpBridge(
         pathOrName: String,
         fallback: String? = null
     ): String {
-        val extension = MimeTypeMap.getFileExtensionFromUrl(pathOrName)
-            ?.takeIf { it.isNotBlank() }
-            ?.lowercase(Locale.US)
+        val fileName = pathOrName.substringAfterLast('/').substringBefore('?').substringBefore('#')
+        val extension = fileName.substringAfterLast('.', missingDelimiterValue = "")
+            .lowercase(Locale.US)
+            .takeIf { it.isNotBlank() && it != fileName.lowercase(Locale.US) }
+        val webMimeType = mimeTypeForWebExtension(extension)
+        if (webMimeType != null) {
+            return webMimeType
+        }
         val mimeType = extension?.let {
             MimeTypeMap.getSingleton().getMimeTypeFromExtension(it)
         } ?: URLConnection.guessContentTypeFromName(pathOrName)
         return mimeType ?: fallback ?: DEFAULT_BINARY_MIME_TYPE
+    }
+
+    private fun mimeTypeForWebExtension(extension: String?): String? {
+        return when (extension) {
+            "js", "mjs", "cjs" -> "text/javascript"
+            "css" -> "text/css"
+            "json", "map" -> "application/json"
+            "wasm" -> "application/wasm"
+            "svg" -> "image/svg+xml"
+            "html", "htm" -> "text/html"
+            else -> null
+        }
     }
 
     private fun NanoHTTPD.Response.withCors(): NanoHTTPD.Response {

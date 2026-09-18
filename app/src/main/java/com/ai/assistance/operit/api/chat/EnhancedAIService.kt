@@ -2117,7 +2117,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 chatModelIndexOverride
             )
             val config = modelSnapshot.config
-            val allToolResults = ToolExecutionManager.executeInvocations(
+            val toolBatch = ToolExecutionManager.executeInvocations(
                 invocations = toolInvocations,
                 context = this@EnhancedAIService.context,
                 toolHandler = toolHandler,
@@ -2129,13 +2129,14 @@ class EnhancedAIService private constructor(private val context: Context) {
                 callerCardId = roleCardId
             )
 
-            if (allToolResults.isNotEmpty()) {
+            if (toolBatch.results.isNotEmpty()) {
                 AppLogger.d(TAG, "所有工具结果收集完毕，准备最终处理。")
                 processToolResults(
-                    allToolResults, context, functionType, promptFunctionType, collector, enableThinking,
+                    toolBatch.results, context, functionType, promptFunctionType, collector, enableThinking,
                     enableMemoryAutoUpdate, onNonFatalError, onTokenLimitExceeded, maxTokens, tokenUsageThreshold, isSubTask,
                     characterName, avatarUri, roleCardId, chatId, onToolInvocation, notifyReplyOverride,
                     chatModelConfigIdOverride, chatModelIndexOverride, memorySpaceIdOverride, stream, enableGroupOrchestrationHint,
+                    toolResultMessageOverride = toolBatch.message,
                     disableWarning = disableWarning
                 )
             } else if (!toolResultOverrideMessage.isNullOrEmpty()) {
@@ -2261,9 +2262,8 @@ class EnhancedAIService private constructor(private val context: Context) {
         // Get current conversation history is now just the normalized context history
         val currentChatHistory = context.conversationHistory
 
-        // 不再需要，因为结果在调用时已实时输出
-        // context.roundManager.appendContent(toolResultMessage)
-        // try { collector.emit(toolResultMessage) } catch (_: Exception) {}
+        // executeInvocations 已按调用顺序输出最终 XML；这里复用同一份文本，不能再次输出。
+        // 单独格式化或输出分段结果会让保存的历史与当前模型请求产生不同的工具结果。
 
         // Start new round - ensure tool execution response will be shown in a new message
         startAssistantResponseRound(context)

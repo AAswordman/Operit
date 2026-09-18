@@ -237,7 +237,9 @@ object PerformanceMonitorManager {
         val entities = mutableListOf<PerformanceEntitySample>()
 
         // —— 软件（主进程） ——
-        val appStat = readProcStat("self")
+        // /proc stat paths must be absolute: a relative "self"/PID is resolved against the
+        // app working directory, so every read fails and the CPU delta is rendered as 0.0.
+        val appStat = readProcStat("/proc/self/stat")
         val appCpuPercent =
             if (deltaValid && appStat != null) {
                 ticksToPercent(appStat.selfTicks - (prevEntityTicks[KEY_APP] ?: 0L), deltaMs, coreCount)
@@ -270,7 +272,7 @@ object PerformanceMonitorManager {
             var currentTicks = 0L
             var previousTicks = 0L
             overview.engineThreadIds.forEach { tid ->
-                val stat = readProcStat(tid.toString()) ?: return@forEach
+                val stat = readProcStat("/proc/self/task/$tid/stat") ?: return@forEach
                 currentTicks += stat.selfTicks
                 previousTicks += prevEntityTicks["${KEY_PLUGIN_PREFIX}${overview.containerPackageName}:$tid"] ?: 0L
                 prevEntityTicks["${KEY_PLUGIN_PREFIX}${overview.containerPackageName}:$tid"] = stat.selfTicks
@@ -420,7 +422,7 @@ object PerformanceMonitorManager {
         val dirs =
             File("/proc").listFiles { file -> file.name.all { it in '0'..'9' } } ?: return result
         dirs.forEach { dir ->
-            val stat = readProcStat(dir.name) ?: return@forEach
+            val stat = readProcStat("/proc/${dir.name}/stat") ?: return@forEach
             result[dir.name.toInt()] = stat
         }
         return result
