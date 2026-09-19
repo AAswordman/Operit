@@ -1,36 +1,37 @@
+"use strict";
 /* METADATA
 {
-  "name": "xai_draw",
+  "name": "spacexai_draw",
   "display_name": {
-    "zh": "xAI 图片与视频",
-    "en": "xAI Images and Video"
+    "zh": "SpaceXAI 图片与视频",
+    "en": "SpaceXAI Images and Video"
   },
   "description": {
-    "zh": "使用 xAI 官方接口生成图片和视频，并保存到本地。",
-    "en": "Generate images and videos with the official xAI APIs and save them locally."
+    "zh": "使用 SpaceXAI 接口生成图片和视频，并保存到本地。",
+    "en": "Generate images and videos with the SpaceXAI APIs and save them locally."
   },
   "env": [
     {
       "name": "XAI_API_KEY",
       "description": {
-        "zh": "xAI API Key（必填）",
-        "en": "xAI API key (required)"
+        "zh": "SpaceXAI API Key（必填）",
+        "en": "SpaceXAI API key (required)"
       },
       "required": true
     },
     {
       "name": "XAI_API_BASE_URL",
       "description": {
-        "zh": "xAI API 基地址（可选；默认 https://api.x.ai/v1）",
-        "en": "xAI API base URL (optional; default https://api.x.ai/v1)"
+        "zh": "SpaceXAI API 基地址（可选；默认 https://api.x.ai/v1）",
+        "en": "SpaceXAI API base URL (optional; default https://api.x.ai/v1)"
       },
       "required": false
     },
     {
       "name": "XAI_IMAGE_MODEL",
       "description": {
-        "zh": "默认图片模型（可选；未传 model 时使用，默认 grok-2-image-1212）",
-        "en": "Default image model (optional; used when model is omitted, default grok-2-image-1212)"
+        "zh": "默认图片模型（可选；未传 model 时使用，默认 grok-imagine-image-2.0）",
+        "en": "Default image model (optional; used when model is omitted, default grok-imagine-image-2.0)"
       },
       "required": false
     },
@@ -48,24 +49,26 @@
     {
       "name": "draw_image",
       "description": {
-        "zh": "根据提示词调用 xAI 图像生成 API 生成图片，保存到本地并返回 Markdown 图片提示。",
-        "en": "Generate an image via the xAI image generation API using a prompt, save it locally, and return a Markdown image reference."
+        "zh": "根据提示词调用 SpaceXAI 图像生成 API 生成图片，保存到本地并返回 Markdown 图片提示。",
+        "en": "Generate an image via the SpaceXAI image generation API using a prompt, save it locally, and return a Markdown image reference."
       },
       "parameters": [
-        { "name": "prompt", "description": { "zh": "绘图提示词（英文或中文皆可）", "en": "Prompt for image generation (Chinese or English)" }, "type": "string", "required": true },
-        { "name": "model", "description": { "zh": "xAI 图像模型名称；不传则优先取 XAI_IMAGE_MODEL，再用默认值 grok-2-image-1212", "en": "xAI image model name; falls back to XAI_IMAGE_MODEL, then grok-2-image-1212" }, "type": "string", "required": false },
-        { "name": "size", "description": { "zh": "图片尺寸，例如 1024x1024（可选）", "en": "Image size, e.g. 1024x1024 (optional)" }, "type": "string", "required": false },
+        { "name": "prompt", "description": { "zh": "绘图提示词（支持多行，英文或中文皆可）", "en": "Multiline prompt for image generation (Chinese or English)" }, "type": "string", "required": true },
+        { "name": "model", "description": { "zh": "SpaceXAI 图像模型名称；不传则优先取 XAI_IMAGE_MODEL，再用默认值 grok-imagine-image-2.0", "en": "SpaceXAI image model name; falls back to XAI_IMAGE_MODEL, then grok-imagine-image-2.0" }, "type": "string", "required": false },
+        { "name": "aspect_ratio", "description": { "zh": "画布宽高比，例如 9:16 或 2:3；只控制画面形状，不控制清晰度（可选）", "en": "Canvas aspect ratio, e.g. 9:16 or 2:3; controls shape, not detail (optional)" }, "type": "string", "required": false },
+        { "name": "resolution", "description": { "zh": "输出分辨率档位，可选 1k、2k 或 4k；控制像素与细节量，不改变宽高比（可选）", "en": "Output resolution tier: 1k, 2k, or 4k; controls pixel detail without changing aspect ratio (optional)" }, "type": "string", "required": false },
+        { "name": "quality", "description": { "zh": "生成质量档位，可选 low、medium 或 auto；影响质量、耗时与成本，不改变宽高比或分辨率（可选）", "en": "Generation quality: low, medium, or auto; affects quality, latency, and cost, not dimensions (optional)" }, "type": "string", "required": false },
         { "name": "file_name", "description": { "zh": "自定义保存到本地的文件名（不含路径和扩展名）", "en": "Custom output file name (without path or extension)" }, "type": "string", "required": false }
       ]
     },
     {
       "name": "draw_video",
       "description": {
-        "zh": "根据提示词调用 xAI 官方视频生成 API 生成视频，支持文生视频、图生视频和视频编辑，轮询完成后下载到本地并返回本地视频链接提示。",
-        "en": "Generate a video with the official xAI video API. Supports text-to-video, image-to-video, and video editing. Polls until completion, downloads locally, and returns local video link hints."
+        "zh": "根据提示词调用 SpaceXAI 视频生成 API 生成视频，支持文生视频、图生视频和视频编辑，轮询完成后下载到本地并返回本地视频链接提示。",
+        "en": "Generate a video with the SpaceXAI video API. Supports text-to-video, image-to-video, and video editing. Polls until completion, downloads locally, and returns local video link hints."
       },
       "parameters": [
-        { "name": "prompt", "description": { "zh": "视频提示词", "en": "Video prompt" }, "type": "string", "required": true },
+        { "name": "prompt", "description": { "zh": "视频提示词（支持多行）", "en": "Multiline video prompt" }, "type": "string", "required": true },
         { "name": "model", "description": { "zh": "视频模型；不传则优先取 XAI_VIDEO_MODEL，再用默认值 grok-imagine-video", "en": "Video model; falls back to XAI_VIDEO_MODEL, then grok-imagine-video" }, "type": "string", "required": false },
         { "name": "aspect_ratio", "description": { "zh": "输出比例，可选 1:1、16:9、9:16、4:3、3:4、3:2、2:3；默认 16:9；视频编辑模式不支持", "en": "Output aspect ratio. Supported: 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3. Defaults to 16:9; not supported for video editing." }, "type": "string", "required": false },
         { "name": "resolution", "description": { "zh": "输出分辨率，仅支持 480p 或 720p；默认 480p；视频编辑模式不支持", "en": "Output resolution, only 480p or 720p. Defaults to 480p; not supported for video editing." }, "type": "string", "required": false },
@@ -81,47 +84,30 @@
   ]
 }*/
 /// <reference path="./types/index.d.ts" />
-const xaiDraw = (function () {
+const spacexaiDraw = (function () {
     const HTTP_TIMEOUT_MS = 600000;
     const client = OkHttp.newBuilder()
         .connectTimeout(HTTP_TIMEOUT_MS)
         .readTimeout(HTTP_TIMEOUT_MS)
         .writeTimeout(HTTP_TIMEOUT_MS)
         .build();
-    const DEFAULT_IMAGE_MODEL = "grok-2-image-1212";
+    const DEFAULT_IMAGE_MODEL = "grok-imagine-image-2.0";
     const DEFAULT_VIDEO_MODEL = "grok-imagine-video";
     const DEFAULT_POLL_INTERVAL_MS = 5000;
     const DEFAULT_MAX_WAIT_TIME_MS = 600000;
     const DEFAULT_VIDEO_ASPECT_RATIO = "16:9";
     const DEFAULT_VIDEO_RESOLUTION = "480p";
     const DEFAULT_VIDEO_DURATION = 5;
+    const IMAGE_RESOLUTIONS = ["1k", "2k", "4k"];
     const VIDEO_ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"];
     const VIDEO_RESOLUTIONS = ["480p", "720p"];
     const MIN_VIDEO_DURATION = 1;
     const MAX_VIDEO_DURATION = 15;
     const DEFAULT_BASE_URL = "https://api.x.ai/v1";
     const DRAW_ROOT_DIR = getPluginConfigDir("draw");
-    const STORAGE_DIR = `${DRAW_ROOT_DIR}/xai_draw`;
+    const STORAGE_DIR = `${DRAW_ROOT_DIR}/spacexai_draw`;
     const DRAWS_DIR = `${STORAGE_DIR}/draws`;
     const VIDEOS_DIR = `${STORAGE_DIR}/videos`;
-
-    // ===== 新增：动态读取 BaseURL =====
-    function getBaseUrl() {
-        const raw = String(getEnv("XAI_API_BASE_URL") || "").trim();
-        const base = raw || DEFAULT_BASE_URL;
-        return base.replace(/\/+$/, "");
-    }
-    function getImageApiEndpoint() {
-        return `${getBaseUrl()}/images/generations`;
-    }
-    function getVideoGenerationEndpoint() {
-        return `${getBaseUrl()}/videos/generations`;
-    }
-    function getVideoQueryEndpoint(requestId) {
-        return `${getBaseUrl()}/videos/${encodeURIComponent(requestId)}`;
-    }
-    // ==================================
-
     function getErrorMessage(error) {
         if (error instanceof Error)
             return error.message;
@@ -138,9 +124,22 @@ const xaiDraw = (function () {
     function getApiKey() {
         const apiKey = getEnv("XAI_API_KEY");
         if (!apiKey) {
-            throw new Error("XAI_API_KEY 未配置，请在环境变量中设置 xAI 的 API Key。");
+            throw new Error("XAI_API_KEY 未配置，请在环境变量中设置 SpaceXAI 的 API Key。");
         }
         return apiKey;
+    }
+    function getBaseUrl() {
+        const base = String(getEnv("XAI_API_BASE_URL") || getEnv("XAI_BASE_URL") || "").trim();
+        return (base || DEFAULT_BASE_URL).replace(/\/+$/, "");
+    }
+    function getImageApiEndpoint() {
+        return `${getBaseUrl()}/images/generations`;
+    }
+    function getVideoGenerationEndpoint() {
+        return `${getBaseUrl()}/videos/generations`;
+    }
+    function getVideoQueryEndpoint(requestId) {
+        return `${getBaseUrl()}/videos/${encodeURIComponent(requestId)}`;
     }
     function getDefaultImageModel() {
         const fromEnv = String(getEnv("XAI_IMAGE_MODEL") || "").trim();
@@ -194,6 +193,15 @@ const xaiDraw = (function () {
         if (!Number.isFinite(parsed) || parsed <= 0)
             return fallback;
         return Math.floor(parsed);
+    }
+    function normalizeImageResolution(value) {
+        const raw = String(value || "").trim().toLowerCase();
+        if (!raw)
+            return "";
+        if (!IMAGE_RESOLUTIONS.includes(raw)) {
+            throw new Error(`图片 resolution 仅支持 ${IMAGE_RESOLUTIONS.join("、")}。`);
+        }
+        return raw;
     }
     function normalizeVideoAspectRatio(value) {
         const raw = String(value || "").trim();
@@ -267,6 +275,154 @@ const xaiDraw = (function () {
         }
         return "";
     }
+    function parseImageDataUrl(value) {
+        const raw = String(value || "").trim();
+        if (!raw.toLowerCase().startsWith("data:"))
+            return null;
+        const commaIndex = raw.indexOf(",");
+        if (commaIndex < 0)
+            return null;
+        const header = raw.substring(5, commaIndex);
+        if (!/(?:^|;)base64(?:;|$)/i.test(header))
+            return null;
+        const base64 = raw.substring(commaIndex + 1).replace(/\s+/g, "");
+        if (!base64)
+            return null;
+        const mimeType = String(header.split(";")[0] || "image/png").trim().toLowerCase();
+        return {
+            base64,
+            mime_type: mimeType || "image/png"
+        };
+    }
+    function isLikelyBase64(value) {
+        const normalized = String(value || "").replace(/\s+/g, "");
+        return normalized.length >= 16
+            && normalized.length % 4 !== 1
+            && /^[A-Za-z0-9+/]*={0,2}$/.test(normalized);
+    }
+    function normalizeImageValue(value, sourceField, allowRawBase64, mimeType = "") {
+        if (typeof value !== "string")
+            return null;
+        const raw = value.trim();
+        if (!raw)
+            return null;
+        const dataUrl = parseImageDataUrl(raw);
+        if (dataUrl) {
+            return {
+                response_format: "b64_json",
+                image_url: "",
+                b64_json: dataUrl.base64,
+                mime_type: dataUrl.mime_type,
+                source_field: sourceField
+            };
+        }
+        if (isProbablyUrl(raw)) {
+            return {
+                response_format: "url",
+                image_url: raw,
+                b64_json: "",
+                mime_type: "",
+                source_field: sourceField
+            };
+        }
+        if (allowRawBase64 && isLikelyBase64(raw)) {
+            return {
+                response_format: "b64_json",
+                image_url: "",
+                b64_json: raw.replace(/\s+/g, ""),
+                mime_type: String(mimeType || "image/png").trim().toLowerCase(),
+                source_field: sourceField
+            };
+        }
+        return null;
+    }
+    function extractImageFromRecord(record, sourcePrefix) {
+        const mimeType = typeof record.mime_type === "string"
+            ? record.mime_type
+            : (typeof record.content_type === "string" ? record.content_type : "");
+        for (const field of ["url", "image_url"]) {
+            const result = normalizeImageValue(record[field], `${sourcePrefix}.${field}`, false, mimeType);
+            if (result)
+                return result;
+        }
+        for (const field of ["b64_json", "base64"]) {
+            const result = normalizeImageValue(record[field], `${sourcePrefix}.${field}`, true, mimeType);
+            if (result)
+                return result;
+        }
+        return null;
+    }
+    function extractImagePayload(payload) {
+        for (const arrayField of ["data", "images"]) {
+            const values = Array.isArray(payload[arrayField]) ? payload[arrayField] : [];
+            if (values.length === 0)
+                continue;
+            const first = values[0];
+            const result = isRecord(first)
+                ? extractImageFromRecord(first, `${arrayField}[0]`)
+                : normalizeImageValue(first, `${arrayField}[0]`, true);
+            if (result)
+                return result;
+        }
+        return extractImageFromRecord(payload, "top_level");
+    }
+    function summarizeObjectKeys(value) {
+        if (!isRecord(value))
+            return "none";
+        const keys = Object.keys(value).sort().slice(0, 20);
+        return keys.length > 0 ? keys.join(",") : "empty";
+    }
+    function summarizeFirstArrayItem(payload, field) {
+        const values = Array.isArray(payload[field]) ? payload[field] : [];
+        if (values.length === 0)
+            return "none";
+        const first = values[0];
+        if (isRecord(first))
+            return `keys=[${summarizeObjectKeys(first)}]`;
+        return typeof first;
+    }
+    function extractEndpointHost(endpoint) {
+        const match = String(endpoint || "").match(/^https?:\/\/([^/?#]+)/i);
+        return match && match[1] ? match[1].replace(/^.*@/, "") : "unknown";
+    }
+    function sanitizeDiagnosticText(value) {
+        return String(value || "")
+            .replace(/bearer\s+[^\s,;]+/ig, "Bearer [redacted]")
+            .replace(/(api[_ -]?key|authorization|token)\s*[:=]\s*[^\s,;]+/ig, "$1=[redacted]")
+            .substring(0, 240);
+    }
+    function buildImageResponseDiagnostic(payload, statusCode, endpoint) {
+        const apiError = sanitizeDiagnosticText(extractApiErrorMessage(payload));
+        const parts = [
+            `HTTP ${statusCode}`,
+            `endpoint_host=${extractEndpointHost(endpoint)}`,
+            `top_level_keys=[${summarizeObjectKeys(payload)}]`,
+            `data[0]=${summarizeFirstArrayItem(payload, "data")}`,
+            `images[0]=${summarizeFirstArrayItem(payload, "images")}`
+        ];
+        if (apiError)
+            parts.push(`api_error=${apiError}`);
+        return parts.join("; ");
+    }
+    function guessImageExtension(mimeType, base64) {
+        const normalizedMime = String(mimeType || "").trim().toLowerCase();
+        if (normalizedMime === "image/jpeg" || normalizedMime === "image/jpg")
+            return "jpg";
+        if (normalizedMime === "image/webp")
+            return "webp";
+        if (normalizedMime === "image/gif")
+            return "gif";
+        if (normalizedMime === "image/png")
+            return "png";
+        const prefix = String(base64 || "").substring(0, 16);
+        if (prefix.startsWith("/9j/"))
+            return "jpg";
+        if (prefix.startsWith("UklGR"))
+            return "webp";
+        if (prefix.startsWith("R0lGOD"))
+            return "gif";
+        return "png";
+    }
     async function readLocalImageAsDataUrl(filePath) {
         const trimmedPath = String(filePath || "").trim();
         if (!trimmedPath) {
@@ -332,13 +488,18 @@ const xaiDraw = (function () {
             model: effectiveModel,
             prompt: params.prompt
         };
-        const size = String(params.size || "").trim();
-        if (size) {
-            body.size = size;
+        for (const field of ["aspect_ratio", "quality"]) {
+            const value = String(params[field] || "").trim();
+            if (value)
+                body[field] = value;
         }
+        const resolution = normalizeImageResolution(params.resolution);
+        if (resolution)
+            body.resolution = resolution;
+        const endpoint = getImageApiEndpoint();
         const request = client
             .newRequest()
-            .url(getImageApiEndpoint())
+            .url(endpoint)
             .method("POST")
             .headers({
             "accept": "application/json",
@@ -348,17 +509,26 @@ const xaiDraw = (function () {
             .body(JSON.stringify(body), "json");
         const response = await request.build().execute();
         if (!response.isSuccessful()) {
-            throw new Error(`xAI 图片 API 调用失败: ${response.statusCode} - ${response.content}`);
+            let failurePayload = {};
+            try {
+                const parsedFailure = JSON.parse(response.content);
+                if (isRecord(parsedFailure))
+                    failurePayload = parsedFailure;
+            }
+            catch (_) {
+                // Keep diagnostics structural when an upstream returns non-JSON content.
+            }
+            const diagnostic = buildImageResponseDiagnostic(failurePayload, response.statusCode, endpoint);
+            throw new Error(`xAI 图片 API 调用失败。${diagnostic}`);
         }
         const parsed = await parseJsonResponse(response, "xAI 图片生成");
-        const data = Array.isArray(parsed.data) ? parsed.data : [];
-        const first = data.length > 0 && isRecord(data[0]) ? data[0] : null;
-        const imageUrl = first && typeof first.url === "string" ? String(first.url).trim() : "";
-        if (!imageUrl) {
-            throw new Error("xAI 响应中未找到图片 URL，请检查模型和参数是否正确。");
+        const imageResult = extractImagePayload(parsed);
+        if (!imageResult) {
+            const diagnostic = buildImageResponseDiagnostic(parsed, response.statusCode, endpoint);
+            throw new Error(`xAI 响应中未找到图片数据，请检查模型和参数是否正确。${diagnostic}`);
         }
         return {
-            image_url: imageUrl,
+            ...imageResult,
             effective_model: effectiveModel
         };
     }
@@ -466,14 +636,26 @@ const xaiDraw = (function () {
         const apiResult = await callXaiImageApi({
             prompt,
             model: params.model,
-            size: params.size
+            aspect_ratio: params.aspect_ratio,
+            resolution: params.resolution,
+            quality: params.quality
         });
-        const ext = guessExtensionFromUrl(apiResult.image_url, "png");
-        const baseName = buildFileName(prompt, params.file_name, "xai_draw");
+        const ext = apiResult.response_format === "url"
+            ? guessExtensionFromUrl(apiResult.image_url, "png")
+            : guessImageExtension(apiResult.mime_type, apiResult.b64_json);
+        const baseName = buildFileName(prompt, params.file_name, "spacexai_draw");
         const filePath = `${DRAWS_DIR}/${baseName}.${ext}`;
-        const downloadResult = await Tools.Files.download(apiResult.image_url, filePath);
-        if (!downloadResult.successful) {
-            throw new Error(`下载图片失败: ${downloadResult.details}`);
+        if (apiResult.response_format === "url") {
+            const downloadResult = await Tools.Files.download(apiResult.image_url, filePath);
+            if (!downloadResult.successful) {
+                throw new Error(`下载图片失败: ${downloadResult.details}`);
+            }
+        }
+        else {
+            const writeResult = await Tools.Files.writeBinary(filePath, apiResult.b64_json);
+            if (!writeResult.successful) {
+                throw new Error(`保存 base64 图片失败: ${writeResult.details}`);
+            }
         }
         const fileUri = `file://${filePath}`;
         const markdown = `![AI生成的图片](${fileUri})`;
@@ -487,7 +669,9 @@ const xaiDraw = (function () {
         return {
             prompt,
             model: apiResult.effective_model,
-            remote_image_url: apiResult.image_url,
+            response_format: apiResult.response_format,
+            response_source: apiResult.source_field,
+            remote_image_url: apiResult.image_url || null,
             file_path: filePath,
             file_uri: fileUri,
             markdown,
@@ -542,7 +726,7 @@ const xaiDraw = (function () {
             throw new Error(`视频生成超时，最后状态为 ${latestStatus || "未知"}${latestErrorMessage ? `，原因：${latestErrorMessage}` : ""}`);
         }
         const extension = guessExtensionFromUrl(remoteVideoUrl, "mp4");
-        const baseName = buildFileName(prompt, params.file_name, "xai_video");
+        const baseName = buildFileName(prompt, params.file_name, "spacexai_video");
         const filePath = `${VIDEOS_DIR}/${baseName}.${extension}`;
         const downloadResult = await Tools.Files.download(remoteVideoUrl, filePath);
         if (!downloadResult.successful) {
@@ -585,7 +769,7 @@ const xaiDraw = (function () {
             const result = await draw_image(params);
             complete({
                 success: true,
-                message: "xAI 图片生成成功，已下载到本地。",
+                message: "SpaceXAI 图片生成成功，已保存到本地。",
                 data: result
             });
         }
@@ -593,7 +777,7 @@ const xaiDraw = (function () {
             console.error("draw_image 执行失败:", error);
             complete({
                 success: false,
-                message: `xAI 图片生成失败: ${getErrorMessage(error)}`,
+                message: `SpaceXAI 图片生成失败: ${getErrorMessage(error)}`,
                 error_stack: getErrorStack(error)
             });
         }
@@ -603,7 +787,7 @@ const xaiDraw = (function () {
             const result = await draw_video((params || {}));
             complete({
                 success: true,
-                message: "xAI 视频生成成功，已下载到本地。",
+                message: "SpaceXAI 视频生成成功，已下载到本地。",
                 data: result
             });
         }
@@ -611,7 +795,7 @@ const xaiDraw = (function () {
             console.error("draw_video 执行失败:", error);
             complete({
                 success: false,
-                message: `xAI 视频生成失败: ${getErrorMessage(error)}`,
+                message: `SpaceXAI 视频生成失败: ${getErrorMessage(error)}`,
                 error_stack: getErrorStack(error)
             });
         }
@@ -621,5 +805,5 @@ const xaiDraw = (function () {
         draw_video: draw_video_wrapper
     };
 })();
-exports.draw_image = xaiDraw.draw_image;
-exports.draw_video = xaiDraw.draw_video;
+exports.draw_image = spacexaiDraw.draw_image;
+exports.draw_video = spacexaiDraw.draw_video;
