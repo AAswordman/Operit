@@ -37,6 +37,75 @@ class TokenActivityAggregatorTest {
     }
 
     @Test
+    fun `range data groups monthly totals by calendar month`() {
+        val range = dateRange("2026-01-15", "2026-03-10")
+        val snapshot = TokenActivitySnapshot(
+            zone = zone,
+            dayTotals = mapOf(
+                LocalDate.of(2026, 1, 20) to 10L,
+                LocalDate.of(2026, 2, 5) to 20L,
+                LocalDate.of(2026, 3, 1) to 30L,
+            ),
+        )
+
+        val result = TokenActivityAggregator.rangeData(snapshot, range)
+
+        assertEquals(
+            listOf(
+                LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 2, 1),
+                LocalDate.of(2026, 3, 1),
+            ),
+            result.monthly.map(TokenActivityMonth::startDate),
+        )
+        assertEquals(listOf(10L, 20L, 30L), result.monthly.map(TokenActivityMonth::tokens))
+    }
+
+    @Test
+    fun `range data groups yearly totals by calendar year`() {
+        val range = dateRange("2025-06-01", "2026-06-30")
+        val snapshot = TokenActivitySnapshot(
+            zone = zone,
+            dayTotals = mapOf(
+                LocalDate.of(2025, 7, 1) to 15L,
+                LocalDate.of(2025, 12, 31) to 25L,
+                LocalDate.of(2026, 1, 1) to 35L,
+            ),
+        )
+
+        val result = TokenActivityAggregator.rangeData(snapshot, range)
+
+        assertEquals(
+            listOf(
+                LocalDate.of(2025, 1, 1),
+                LocalDate.of(2026, 1, 1),
+            ),
+            result.yearly.map(TokenActivityYear::startDate),
+        )
+        assertEquals(listOf(40L, 35L), result.yearly.map(TokenActivityYear::tokens))
+    }
+
+    @Test
+    fun `range data builds hourly buckets for a single day range`() {
+        val range = dateRange("2026-08-02", "2026-08-02")
+        val snapshot = TokenActivitySnapshot(
+            zone = zone,
+            dayTotals = mapOf(LocalDate.of(2026, 8, 2) to 70L),
+            hourTotals = mapOf(
+                LocalDate.of(2026, 8, 2).atTime(9, 0) to 10L,
+                LocalDate.of(2026, 8, 2).atTime(21, 0) to 60L,
+            ),
+        )
+
+        val result = TokenActivityAggregator.rangeData(snapshot, range)
+
+        assertEquals(24, result.hourly.size)
+        assertEquals(10L, result.hourly.first { it.hour == 9 }.tokens)
+        assertEquals(60L, result.hourly.first { it.hour == 21 }.tokens)
+        assertEquals(0L, result.hourly.first { it.hour == 3 }.tokens)
+    }
+
+    @Test
     fun `range data calculates streaks and cumulative totals inside the selected range`() {
         val range = dateRange("2026-08-01", "2026-08-05")
         val snapshot = TokenActivitySnapshot(
