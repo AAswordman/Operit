@@ -33,6 +33,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
 import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.model.ModelConfigSelection
 import com.ai.assistance.operit.data.model.ModelConfigSummary
 import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getModelList
@@ -62,32 +63,23 @@ fun FunctionalConfigScreen(
     val modelConfigManager = remember { ModelConfigManager(context) }
 
     // 配置映射状态
-    val configMapping =
-            functionalConfigManager.functionConfigMappingFlow.collectAsState(initial = emptyMap())
     val configMappingWithIndex =
             functionalConfigManager.functionConfigMappingWithIndexFlow.collectAsState(initial = emptyMap())
 
-    // 配置摘要列表
-    var configSummaries by remember { mutableStateOf<List<ModelConfigSummary>>(emptyList()) }
-
-    // UI状态
-    var isLoading by remember { mutableStateOf(true) }
+    // Keep candidates live when the selected group changes or a configuration moves between groups.
+    val configSelection: ModelConfigSelection? by
+            modelConfigManager.configSelectionFlow.collectAsState(initial = null)
     var showSaveSuccess by remember { mutableStateOf(false) }
 
-    // 加载配置摘要
-    LaunchedEffect(Unit) {
-        isLoading = true
-        configSummaries = modelConfigManager.getAllConfigSummaries()
-        isLoading = false
-    }
-
     CustomScaffold() { paddingValues ->
-        if (isLoading) {
+        val selection = configSelection
+        if (selection == null) {
             Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
                     contentAlignment = Alignment.Center
             ) { CircularProgressIndicator() }
         } else {
+            val selectedGroupName = selection.selectedGroup?.name ?: stringResource(R.string.ungrouped)
             LazyColumn(
                     modifier =
                             Modifier.fillMaxSize()
@@ -131,6 +123,13 @@ fun FunctionalConfigScreen(
                                     modifier = Modifier.padding(bottom = 8.dp)
                             )
 
+                            Text(
+                                    text = stringResource(R.string.model_config_current_group, selectedGroupName),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
                             HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 8.dp),
                                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
@@ -166,13 +165,22 @@ fun FunctionalConfigScreen(
                     val currentConfigMapping =
                             configMappingWithIndex.value[functionType]
                                     ?: FunctionConfigMapping(FunctionalConfigManager.DEFAULT_CONFIG_ID, 0)
-                    val currentConfig = configSummaries.find { it.id == currentConfigMapping.configId }
+                    val currentConfig = selection.allConfigs.find { it.id == currentConfigMapping.configId }
+                    val boundConfigGroupName =
+                        if (currentConfig != null && currentConfig.groupId != selection.selectedGroupId) {
+                            selection.groups.firstOrNull { it.id == currentConfig.groupId }?.name
+                                ?: stringResource(R.string.ungrouped)
+                        } else {
+                            null
+                        }
 
                     FunctionConfigCard(
                             functionType = functionType,
                             currentConfig = currentConfig,
                             currentModelIndex = currentConfigMapping.modelIndex,
-                            availableConfigs = configSummaries,
+                            availableConfigs = selection.availableConfigs,
+                            selectedGroupName = selectedGroupName,
+                            boundConfigGroupName = boundConfigGroupName,
                             onConfigSelected = { configId, modelIndex ->
                                 scope.launch {
                                     functionalConfigManager.setConfigForFunction(
@@ -267,15 +275,24 @@ fun FunctionConfigCard(
         currentConfig: ModelConfigSummary?,
         currentModelIndex: Int,
         availableConfigs: List<ModelConfigSummary>,
+        selectedGroupName: String,
+        boundConfigGroupName: String?,
         onConfigSelected: (String, Int) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var expandedConfigId by remember { mutableStateOf<String?>(null) } // 记录当前展开的配置的模型列表
+    var expandedConfigId by remember(availableConfigs) { mutableStateOf<String?>(null) } // 记录当前展开的配置的模型列表
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val modelConfigManager = remember { ModelConfigManager(context) }
     var isTestingConnection by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<FunctionTestDisplay?>(null) }
+
+    val currentConfigName = currentConfig?.name ?: stringResource(R.string.default_config)
+    val displayConfigName = if (boundConfigGroupName != null) {
+        stringResource(R.string.model_config_name_with_group, currentConfigName, boundConfigGroupName)
+    } else {
+        currentConfigName
+    }
 
     var mediaSupportWarningResId by remember { mutableStateOf<Int?>(null) }
 
@@ -372,7 +389,7 @@ fun FunctionConfigCard(
                             Text(
                                     text = stringResource(
                                         id = R.string.current_config_label,
-                                        currentConfig?.name ?: stringResource(id = R.string.default_config)
+                                        displayConfigName
                                     ),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium
@@ -795,6 +812,15 @@ fun FunctionConfigCard(
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(bottom = 8.dp)
                         )
+
+                        if (availableConfigs.isEmpty()) {
+                            Text(
+                                    text = stringResource(R.string.model_config_group_empty, selectedGroupName),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
 
                         availableConfigs.forEach { config ->
                             val isSelected =
