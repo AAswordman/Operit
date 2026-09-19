@@ -6244,6 +6244,18 @@
     <!-- Package Manager Module -->
     <string name="pkg_manage_env_vars">Manage Environment Variables</string>
     <string name="pkg_config_env_vars">Configure Environment Variables</string>
+    <string name="pkg_env_vars_subtitle">Manage the configuration required by packages and scripts</string>
+    <string name="pkg_env_vars_status">Configuration status</string>
+    <string name="pkg_env_vars_configured_count">%1$d / %2$d configured</string>
+    <string name="pkg_env_vars_complete">Configured</string>
+    <string name="pkg_env_vars_required_complete">Required items configured</string>
+    <string name="pkg_env_vars_missing_required">%1$d required remaining</string>
+    <string name="pkg_env_vars_required">Required</string>
+    <string name="pkg_env_vars_optional">Optional</string>
+    <string name="pkg_env_vars_configured">Configured</string>
+    <string name="pkg_env_vars_missing_description">This variable has no usage description.</string>
+    <string name="pkg_env_vars_show_value">Show value</string>
+    <string name="pkg_env_vars_hide_value">Hide value</string>
     <string name="pkg_no_env_vars">The currently imported tool packages have not declared any required environment variables.</string>
     <string name="pkg_default">Default: %1$s</string>
     <string name="pkg_input_required">Input value (required)</string>
