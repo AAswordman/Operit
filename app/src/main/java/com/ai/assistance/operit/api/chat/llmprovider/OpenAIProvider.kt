@@ -579,6 +579,7 @@ open class OpenAIProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>> = emptyList(),
         enableThinking: Boolean = false,
+        thinkingOptionId: String? = null,
         stream: Boolean = true,
         availableTools: List<ToolPrompt>? = null,
         preserveThinkInHistory: Boolean = false
@@ -594,7 +595,7 @@ open class OpenAIProvider(
             apiEndpoint = apiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
         return createJsonRequestBody(requestJson.toString())
     }
@@ -3209,6 +3210,7 @@ open class OpenAIProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -3269,6 +3271,7 @@ open class OpenAIProvider(
                     currentHistory,
                     modelParameters,
                     enableThinking,
+                    thinkingOptionId,
                     stream,
                     availableTools,
                     preserveThinkInHistory
