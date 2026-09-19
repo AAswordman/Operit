@@ -78,6 +78,9 @@ internal fun StandardBrowserSessionTools.configureWebView(
     session: BrowserToolSession,
     userAgent: String
 ) {
+    // P3.5b: Enable WebView CDP debugging
+    android.webkit.WebView.setWebContentsDebuggingEnabled(true)
+    AppLogger.i(WEBVIEW_SUPPORT_TAG, "[P3.5B] WebView CDP debugging ENABLED")
     with(session.webView.settings) {
         javaScriptEnabled = true
         domStorageEnabled = true
