@@ -41,7 +41,7 @@ internal const val TOOLPKG_EVENT_AI_PROVIDER_CALCULATE_INPUT_TOKENS =
 internal const val TOOLPKG_REGISTRATION_TOOLBOX_UI_MODULE = "registerToolPkgToolboxUiModule"
 internal const val TOOLPKG_REGISTRATION_UI_ROUTE = "registerToolPkgUiRoute"
 internal const val TOOLPKG_REGISTRATION_NAVIGATION_ENTRY = "registerToolPkgNavigationEntry"
-internal const val TOOLPKG_REGISTRATION_DESKTOP_WIDGET = "registerToolPkgDesktopWidget"
+internal const val TOOLPKG_REGISTRATION_FLOATING_WINDOW = "registerToolPkgFloatingWindow"
 internal const val TOOLPKG_REGISTRATION_APP_LIFECYCLE_HOOK = "registerToolPkgAppLifecycleHook"
 internal const val TOOLPKG_REGISTRATION_MESSAGE_PROCESSING_PLUGIN =
     "registerToolPkgMessageProcessingPlugin"

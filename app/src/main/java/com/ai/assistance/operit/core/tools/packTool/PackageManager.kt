@@ -32,7 +32,6 @@ import com.ai.assistance.operit.data.model.PackageToolPromptCategory
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspaceConfig
-import com.ai.assistance.operit.widget.ToolPkgDesktopWidgetHost
 import com.ai.assistance.operit.util.OperitPaths
 import com.ai.assistance.operit.util.ToolPkgWasmRuntime
 import java.io.File
@@ -243,17 +242,57 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         val functionSource: String? = null
     )
 
-    data class ToolPkgDesktopWidget(
+    data class ToolPkgFloatingWindowFollow(
+        val windowId: String,
+        val placement: String,
+        val offsetXDp: Float,
+        val offsetYDp: Float
+    )
+
+    data class ToolPkgFloatingWindowContentLayout(
+        val mode: String,
+        val widthDp: Int,
+        val heightDp: Int,
+        val scaleMode: String
+    )
+
+    data class ToolPkgFloatingWindowAnimation(
+        val scaleX: Float,
+        val scaleY: Float,
+        val alpha: Float,
+        val translationXDp: Float,
+        val translationYDp: Float,
+        val durationMs: Long,
+        val easing: String,
+        val pivotX: Float,
+        val pivotY: Float
+    )
+
+    data class ToolPkgFloatingWindowFeedback(
+        val soundResource: String?,
+        val animation: ToolPkgFloatingWindowAnimation?
+    )
+
+    data class ToolPkgFloatingWindow(
         val containerPackageName: String,
         val toolPkgId: String,
-        val widgetId: String,
-        val routeId: String,
-        val renderRouteId: String,
+        val windowId: String,
+        val contentRouteId: String,
         val title: String,
-        val subtitle: String,
         val description: String,
         val icon: String?,
-        val order: Int
+        val widthDp: Int,
+        val heightDp: Int,
+        val draggable: Boolean,
+        val resizable: Boolean,
+        val snapMode: String,
+        val contentLayout: ToolPkgFloatingWindowContentLayout,
+        val follow: ToolPkgFloatingWindowFollow?,
+        val pressFeedback: ToolPkgFloatingWindowFeedback,
+        val releaseFeedback: ToolPkgFloatingWindowFeedback,
+        val refreshIntervalMs: Long,
+        val refreshFunction: String?,
+        val refreshFunctionSource: String?
     )
 
     data class PackageLoadErrorInfo(
@@ -405,14 +444,6 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
 
     private fun notifyToolPkgRuntimeChangeListeners() {
         toolPkgManager.notifyToolPkgRuntimeChangeListeners(getEnabledToolPkgContainerRuntimes())
-        runCatching {
-            ToolPkgDesktopWidgetHost.refreshAll(context)
-        }.onFailure { error ->
-            logToolPkgError(
-                "toolpkg desktop widget refresh failed: ${error.message ?: error.javaClass.simpleName}",
-                error
-            )
-        }
     }
 
     private fun refreshToolPkgRuntimeState(
@@ -1538,16 +1569,16 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         return toolPkgFacade.getToolPkgUiRoutes(runtime, resolveContext)
     }
 
-    fun getToolPkgDesktopWidgets(
-        resolveContext: Context? = null
-    ): List<ToolPkgDesktopWidget> {
-        return toolPkgFacade.getToolPkgDesktopWidgets(resolveContext)
-    }
-
     fun getToolPkgNavigationEntries(
         resolveContext: Context? = null
     ): List<ToolPkgNavigationEntry> {
         return toolPkgFacade.getToolPkgNavigationEntries(resolveContext)
+    }
+
+    fun getToolPkgFloatingWindows(
+        resolveContext: Context? = null
+    ): List<ToolPkgFloatingWindow> {
+        return toolPkgFacade.getToolPkgFloatingWindows(resolveContext)
     }
 
     fun getToolPkgWorkflowTemplates(

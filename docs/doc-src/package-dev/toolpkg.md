@@ -566,7 +566,7 @@ interface PromptTurn {
 - `registerToolboxUiModule(definition)`
 - `registerUiRoute(definition)`
 - `registerNavigationEntry(definition)`
-- `registerDesktopWidget(definition)`
+- `registerFloatingWindow(definition)`
 - `registerAppLifecycleHook(definition)`
 - `registerMessageProcessingPlugin(definition)`
 - `registerXmlRenderPlugin(definition)`
@@ -585,6 +585,7 @@ interface PromptTurn {
 - `registerPromptEstimateFinalizeHook(definition)`
 - `registerSummaryGenerateHook(definition)`
 - `readResource(key, outputFileName?)`
+- `host.call(capability, payload)`
 
 ### `ToolPkg.readResource(...)`
 
@@ -621,6 +622,87 @@ ToolPkg 可以把包 Logo 作为普通资源随归档分发。`logo` 填写资�
 ```
 
 没有 `logo` 字段的旧包继续使用默认图标。市场条目可以展示该资源对应的 Logo。
+
+### `ToolPkg.host.call(...)`
+
+`ToolPkg.host.call()` 是由宿主声明 capability 后提供的异步 JSON 桥接。包必须在 `manifest.json` 的 `required_host_capabilities` 中声明 capability，宿主会同时校验包是否启用和当前运行时的包身份。
+
+完整的 capability 清单、请求响应字段、状态语义和悬浮窗开发规范见
+[ToolPkg 宿主能力开发规范](./host-capabilities.md)。
+
+桥接只返回 capability 对应的 DTO，不向沙盒传递不必要的凭据、Cookie、Authorization header 或宿主对象。大整数和金额应按字符串处理，返回值中的 `state` 或 `status` 用于区分成功、空结果和错误等明确状态。
+```ts
+const state = await ToolPkg.host.call(
+  "toolpkg.floating_window.v4",
+  { operation: "get", windowId: "status_overlay" },
+);
+```
+宿主 capability 是版本化接口。包应在界面中展示桥接返回的状态，不应在包内执行凭据读取或直接复刻宿主网络服务。
+
+### `ToolPkg.floatingWindow`
+
+`ToolPkg.registerFloatingWindow()` 注册一个由同一 ToolPkg `compose_dsl` route 承载的系统悬浮窗。注册不会自动显示，只有调用 `show()` 后宿主才会创建 Overlay 服务和该窗口的 Compose/JavaScript runtime。当前浮窗 capability 为 `toolpkg.floating_window.v4`。
+
+固定视口、跟随窗口、媒体反馈、刷新函数、持久化和并发语义见
+[ToolPkg 宿主能力开发规范](./host-capabilities.md) 的固定视口悬浮窗章节。
+
+```ts
+ToolPkg.registerFloatingWindow({
+  id: "status_overlay",
+  contentRoute: "toolpkg:com.example.demo:ui:overlay",
+  widthDp: 320,
+  heightDp: 420,
+  draggable: true,
+  resizable: true,
+  snapMode: "quarter",
+  contentLayout: {
+    mode: "fixed",
+    widthDp: 320,
+    heightDp: 420,
+    scaleMode: "fit",
+  },
+  follow: {
+    windowId: "anchor_window",
+    placement: "above",
+    offsetDp: { x: 0, y: 0 },
+  },
+  pressFeedback: {
+    soundResource: "press_sound",
+    animation: {
+      scaleX: 1.05,
+      scaleY: 0.9,
+      durationMs: 90,
+      easing: "overshoot",
+      pivotX: 0.5,
+      pivotY: 1,
+    },
+  },
+  releaseFeedback: {
+    soundResource: "release_sound",
+    animation: {
+      scaleX: 1,
+      scaleY: 1,
+      durationMs: 220,
+      easing: "overshoot",
+      pivotX: 0.5,
+      pivotY: 1,
+    },
+  },
+});
+
+await ToolPkg.floatingWindow.show("status_overlay", {});
+const state = await ToolPkg.floatingWindow.get("status_overlay");
+await ToolPkg.floatingWindow.update("status_overlay", {
+  widthDp: 240,
+  heightDp: 240,
+  alpha: 0.85,
+  snapMode: "none"
+});
+await ToolPkg.floatingWindow.update("status_overlay", { routeArgs: {} });
+await ToolPkg.floatingWindow.hide("status_overlay");
+```
+
+每个窗口 ID 是单实例。`hide()` 会取消宿主刷新任务并释放窗口运行时；插件停用时宿主也会立即清理所有窗口。用户显式显示的窗口位置和显示状态会在进程被系统回收后恢复，显式隐藏和插件停用会清除恢复标记。应用强制停止会终止当前服务，插件不应依赖强制停止后的恢复时机。
 
 ## AssemblyScript WASM 模块
 
@@ -720,34 +802,46 @@ ToolPkg.registerToolboxUiModule({
 });
 ```
 
-### 注册桌面小组件
+### 注册悬浮窗
 
 ```ts
-ToolPkg.registerDesktopWidget({
-  id: 'demo_widget',
-  route: 'toolpkg:com.example.demo:ui:dashboard',
-  render: 'toolpkg:com.example.demo:ui:dashboard_widget',
+ToolPkg.registerFloatingWindow({
+  id: 'demo_window',
+  contentRoute: 'toolpkg:com.example.demo:ui:dashboard',
   title: {
-    zh: '示例小组件',
-    en: 'Demo Widget'
-  },
-  subtitle: {
-    zh: '点击直接打开面板',
-    en: 'Tap to open dashboard'
+    zh: '示例浮窗',
+    en: 'Demo Window'
   },
   description: {
-    zh: '用于桌面添加时的说明',
-    en: 'Shown in widget picker'
+    zh: '用于长期驻留的示例浮窗',
+    en: 'A persistent overlay example'
+  },
+  widthDp: 320,
+  heightDp: 420,
+  draggable: true,
+  resizable: true,
+  contentLayout: {
+    mode: 'fixed',
+    widthDp: 320,
+    heightDp: 420,
+    scaleMode: 'fit'
   }
 });
+
+await ToolPkg.floatingWindow.show('demo_window');
 ```
 
 说明：
 
-- `route` / `routeId` 必须指向已经注册的 UI route。
-- `render` / `renderRouteId` 用于指定小组件本体渲染所使用的 UI route；不填时默认等于 `route`。
-- 当前宿主使用一个通用桌面小组件承载多个 ToolPkg widget；用户在添加到桌面时，会先进入配置页选择具体条目。
-- 当前点击行为是打开对应 route。
+- `contentRoute` 必须指向同一 ToolPkg 已注册的 `compose_dsl` UI route。
+- `show()`、`hide()`、`get()` 和 `update()` 控制单实例浮窗的生命周期和运行配置。
+- `snapMode` 支持 `quarter`（屏幕四分之一边缘吸附）和 `none`（自由定位）。
+- `contentLayout` 是必填的固定设计视口。宿主按照最终窗口尺寸做一次 `fit` 缩放，并在该视口内统一设计密度和字体比例。
+- `follow` 将窗口锚定到同一 ToolPkg 的另一个浮窗，并按 `placement` 和 `offsetDp` 计算位置。支持 `above`、`below`、`start`、`end` 和 `center`。
+- `pressFeedback` 和 `releaseFeedback` 分别声明按下、松开时的资源 key 与动画。宿主会在窗口显示时物化资源文件并异步准备媒体流音频。
+- 动画支持 `scaleX`、`scaleY`、`alpha`、`translationXDp`、`translationYDp`、`durationMs`、`pivotX`、`pivotY` 和 `linear`、`accelerate`、`decelerate`、`accelerateDecelerate`、`overshoot` 缓动。
+- `get()` / `update()` 状态包含尺寸、透明度、位置、吸附模式和反馈配置。
+- 浮窗隐藏或插件停用后，宿主会释放该窗口的 Compose 和 JavaScript runtime。
 
 ### 注册应用生命周期钩子
 

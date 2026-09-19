@@ -5061,16 +5061,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <!-- Voice Assistant Widget -->
     <string name="voice_assistant_widget_description">Pornire rapidă Operit Asistent vocal</string>
     <string name="voice_assistant_widget_title">Asistent vocal</string>
-    <string name="toolpkg_widget_host_label">Widgeturi personalizate</string>
-    <string name="toolpkg_widget_host_description">După adăugare, poate fi asociat cu pagina unui widget înregistrat de un anumit plugin</string>
-    <string name="toolpkg_widget_unconfigured_title">Widgeturi personalizate</string>
-    <string name="toolpkg_widget_unconfigured_subtitle">Faceți clic pentru a selecta o pagină de componentă înregistrată</string>
-    <string name="toolpkg_widget_open_label">Faceți clic pentru a deschide</string>
-    <string name="toolpkg_widget_picker_title">Selectați widget-urile de pe desktop</string>
-    <string name="toolpkg_widget_picker_cancel">Anulare</string>
-    <string name="toolpkg_widget_picker_empty_title">Nu există încă componente disponibile</string>
-    <string name="toolpkg_widget_picker_empty_body">Mai întâi, activează un cont înregistrat desktop widget al ToolPkg, apoi revino pentru a adăuga.</string>
-    <string name="toolpkg_widget_picker_selecting">Se configurează…</string>
 
     <!-- MNN Model Download -->
     <string name="screen_title_mnn_model_download">MNNDescărcare model</string>
