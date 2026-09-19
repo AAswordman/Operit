@@ -81,6 +81,8 @@ internal fun StandardBrowserSessionTools.configureWebView(
     // P3.5b: Enable WebView CDP debugging
     android.webkit.WebView.setWebContentsDebuggingEnabled(true)
     AppLogger.i(WEBVIEW_SUPPORT_TAG, "[P3.5B] WebView CDP debugging ENABLED")
+    // P3.5b: 启用 WebView 调试模式（暴露 CDP 端口，供 agent_browser_single 裸 WebSocket 接入）
+    WebView.setWebContentsDebuggingEnabled(true)
     with(session.webView.settings) {
         javaScriptEnabled = true
         domStorageEnabled = true
