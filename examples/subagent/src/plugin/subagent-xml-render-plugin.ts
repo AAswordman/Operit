@@ -1,4 +1,5 @@
-import SubagentStatusScreen from "../ui/subagent-status.ui";
+import SubagentStatusScreen from "../ui/subagent-status.ui.js";
+import { resolveSubagentI18n, type SubagentI18n } from "../shared/subagent_i18n.js";
 import type { ToolPkg } from "../../../types";
 
 const SUBAGENT_TOOL_NAME = "subagent_run";
@@ -211,20 +212,20 @@ function countTargetPaths(raw: unknown): number {
   }
 }
 
-function stageLabel(stage: string): string {
+function stageLabel(stage: string, text: SubagentI18n): string {
   switch (String(stage || "").trim().toLowerCase()) {
     case "accepted":
-      return "已接受";
+      return text.stageLabelAccepted;
     case "planning":
-      return "规划中";
+      return text.stageLabelPlanning;
     case "tool":
-      return "工具处理中";
+      return text.stageLabelTool;
     case "executing":
-      return "执行中";
+      return text.stageLabelExecuting;
     case "summarizing":
-      return "汇总中";
+      return text.stageLabelSummarizing;
     default:
-      return "进行中";
+      return text.stageLabelDefault;
   }
 }
 
@@ -315,14 +316,15 @@ function createComposeResult(
 }
 
 function buildToolStartState(info: ToolCallInfo): Record<string, ToolPkg.JsonValue> {
+  const text = resolveSubagentI18n();
   const taskSummary = summarizeText(info.params.task, 96);
   const targetCount = countTargetPaths(info.params.target_paths_json);
 
   return {
-    title: "Subagent 已启动",
+    title: text.titleStarted,
     summary: taskSummary,
-    detail: targetCount > 0 ? `目标文件 ${targetCount} 个` : "",
-    badge: targetCount > 0 ? `目标 ${targetCount}` : "",
+    detail: targetCount > 0 ? text.detailTargetCount(targetCount) : "",
+    badge: targetCount > 0 ? text.badgeTargetCount(targetCount) : "",
     tone: "start",
     variant: "tool_start",
   };
@@ -331,16 +333,17 @@ function buildToolStartState(info: ToolCallInfo): Record<string, ToolPkg.JsonVal
 function buildUpdateState(
   message: SubagentUpdateMessage
 ): Record<string, ToolPkg.JsonValue> {
+  const text = resolveSubagentI18n();
   const detailParts: string[] = [];
   if (message.runId) {
-    detailParts.push(`运行 ${message.runId}`);
+    detailParts.push(text.detailRun(message.runId));
   }
 
   return {
-    title: `Subagent ${stageLabel(message.stage)}`,
+    title: `Subagent ${stageLabel(message.stage, text)}`,
     summary: message.text,
     detail: detailParts.join(" · "),
-    badge: message.count && message.count > 0 ? `工具 ${message.count}` : "",
+    badge: message.count && message.count > 0 ? text.badgeToolCount(message.count) : "",
     tone: stageTone(message.stage),
     variant: "update",
   };
@@ -349,19 +352,20 @@ function buildUpdateState(
 function buildFinalState(
   message: SubagentFinalMessage
 ): Record<string, ToolPkg.JsonValue> {
+  const text = resolveSubagentI18n();
   const detailParts: string[] = [];
   if (message.runId) {
-    detailParts.push(`运行 ${message.runId}`);
+    detailParts.push(text.detailRun(message.runId));
   }
   if (message.toolCount && message.toolCount > 0) {
-    detailParts.push(`工具调用 ${message.toolCount} 次`);
+    detailParts.push(text.detailToolCalls(message.toolCount));
   }
 
   return {
-    title: message.success ? "Subagent 已完成" : "Subagent 失败",
+    title: message.success ? text.titleCompleted : text.titleFailed,
     summary: message.text,
     detail: detailParts.join(" · "),
-    badge: message.success ? "成功" : "失败",
+    badge: message.success ? text.badgeSuccess : text.badgeFailure,
     tone: message.success ? "success" : "failure",
     variant: "final",
   };
