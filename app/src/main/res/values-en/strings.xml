@@ -1205,6 +1205,19 @@
     ]]></string>
     <string name="agreement_disclaimer">The plain language version is only for easier understanding. If it differs from the Chinese formal version, the Chinese formal version prevails.</string>
     <string name="agreement_accept">I have read and agree</string>
+
+    <!-- Health Connect permission rationale (privacy policy) screen.
+         Health Connect verifies that the requesting app declares a
+         VIEW_PERMISSION_USAGE entry point; without it PermissionsActivity
+         finishes immediately, so tapping Allow appears to do nothing. -->
+    <string name="health_rationale_title">How Operit AI uses your health data</string>
+    <string name="health_rationale_intro">Operit AI reads health and fitness data through the system Health Connect to show metrics such as steps and heart rate on your device, and to make them available to the agent tools and automations you configure yourself. All reading happens locally on your device.</string>
+    <string name="health_rationale_items_title">Data types read</string>
+    <string name="health_rationale_items">Steps, distance, active and total calories burned, basal metabolic rate, floors climbed and elevation gained, heart rate, resting heart rate, heart rate variability, respiratory rate, oxygen saturation, sleep, weight, height, body fat, lean body mass, bone mass, body water mass, body temperature, basal body temperature, blood pressure, blood glucose, hydration and VO2 max — the health and fitness data types supported by Health Connect. Only the permissions you actually grant on this device are requested.</string>
+    <string name="health_rationale_storage_title">Storage and sharing</string>
+    <string name="health_rationale_storage">Operit AI does not upload health data to any server operated by the project: this project runs no cloud service and hosts none of your data. Data is processed locally on your device, unless you deliberately send it through a model, automation or third-party service you configured yourself, in which case it goes directly to that provider under their terms.</string>
+    <string name="health_rationale_revoke">You can revoke any of these permissions at any time under App permissions in Health Connect; once revoked, Operit AI can no longer read the corresponding data.</string>
+    <string name="health_rationale_settings_hint">On Android 14 and above you can also manage access under Settings → Security &amp; privacy → Privacy → Health Connect → App permissions.</string>
     <string name="agreement_wait">Please wait... (%1$d)</string>
     <string name="market_agreement_title">Plugin Market Agreement and Community Rules</string>
     <string name="market_agreement_subtitle">Please read and agree to this agreement before entering the plugin market. The market is for sharing and discovering plugins; authors are encouraged to open source through a public GitHub repository.</string>

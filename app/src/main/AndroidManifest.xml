@@ -133,6 +133,10 @@
     <queries>
         <!-- 允许查询和绑定到无障碍服务提供者应用 -->
         <package android:name="com.ai.assistance.operit.provider" />
+
+        <!-- Health Connect：Android 11+ 包可见性限制下，必须显式声明才能
+             查询/绑定 Health Connect，否则 getSdkStatus() 恒为 SDK_UNAVAILABLE -->
+        <package android:name="com.google.android.apps.healthdata" />
     </queries>
 
     <application
@@ -277,7 +281,35 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
-        
+
+        <!-- Health Connect 权限用途说明（隐私政策）入口。
+             官方要求：请求健康数据权限的应用必须提供一个展示隐私政策的 Activity，
+             否则 Health Connect 的授权界面在校验失败后会直接 finish()，
+             表现为「跳转到授权页、点允许没有任何反应、设置里仍显示未授权」。
+             参考 https://developer.android.com/health-and-fitness/guides/health-connect/develop/get-started -->
+        <activity
+            android:name=".ui.health.HealthConnectPermissionsRationaleActivity"
+            android:exported="true"
+            android:label="@string/health_rationale_title">
+            <!-- Android 13 及以下（APK 版 Health Connect）：用户点击隐私政策链接时进入 -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Android 14 及以上（系统内置 Health Connect）：
+             授权界面通过该别名校验「查看权限用途」入口是否存在 -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".ui.health.HealthConnectPermissionsRationaleActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="true"
