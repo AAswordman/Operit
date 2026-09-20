@@ -70,6 +70,66 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
+    <!-- ==========================================================================
+         系统健康 / 步数读取权限
+         ==========================================================================
+         目标：让 Operit 在**不依赖 root、不依赖 Shizuku、不申请运行时权限**的前提下，
+         通过各厂商系统自带的健康/步数接口读取步数数据。
+
+         说明：
+         1) 下列厂商私有权限（MIUI / HyperOS 等）保护级别为 normal，属于"安装时授予"
+            （install-time grant）。只要在清单中声明，安装后即自动获得，不会弹窗、
+            无需用户手动授权，也无法通过 `pm grant` 事后补授。
+         2) android.permission.health.* 系列为 Android 14+ Health Connect 标准权限，
+            与 Home Assistant 官方应用保持一致；这些是 dangerous 权限，需要用户在
+            Health Connect 界面中显式授权，声明它们不会带来安装期副作用。
+         3) 声明这些权限对其他厂商设备无副作用：设备上不存在对应权限时会被忽略。
+         ========================================================================== -->
+
+    <!-- MIUI / HyperOS：系统步数 Provider (content://com.miui.providers.steps/item)
+         小米官方《计步器接口适配说明》要求同时声明以下两条权限：
+         https://dev.mi.com/xiaomihyperos/documentation/detail?pId=1603
+         - miui.permission.READ_STEPS: protectionLevel=normal，安装时自动授予，无弹窗
+         - android.permission.ACTIVITY_RECOGNITION: 标准计步传感器权限（dangerous），
+           官方文档指明读取 Provider 时需具备；声明不会自动授予，仅在用户主动授权后
+           生效，因此不改变"默认零运行时权限即可读取"的行为 -->
+    <uses-permission android:name="miui.permission.READ_STEPS" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+
+    <!-- Health Connect（Android 14+）标准健康数据读取权限，与 Home Assistant 对齐 -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />
+    <uses-permission android:name="android.permission.health.READ_ELEVATION_GAINED" />
+    <uses-permission android:name="android.permission.health.READ_FLOORS_CLIMBED" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY" />
+    <uses-permission android:name="android.permission.health.READ_RESPIRATORY_RATE" />
+    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+    <uses-permission android:name="android.permission.health.READ_HEIGHT" />
+    <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
+    <uses-permission android:name="android.permission.health.READ_LEAN_BODY_MASS" />
+    <uses-permission android:name="android.permission.health.READ_BONE_MASS" />
+    <uses-permission android:name="android.permission.health.READ_BODY_WATER_MASS" />
+    <uses-permission android:name="android.permission.health.READ_BODY_TEMPERATURE" />
+    <uses-permission android:name="android.permission.health.READ_BASAL_BODY_TEMPERATURE" />
+    <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />
+    <uses-permission android:name="android.permission.health.READ_BLOOD_GLUCOSE" />
+    <uses-permission android:name="android.permission.health.READ_HYDRATION" />
+    <uses-permission android:name="android.permission.health.READ_VO2_MAX" />
+    <!-- 步数传感器（标准 Android / GMS），声明以兼容依赖传感器计步的设备 -->
+    <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
+    <!-- 身体传感器（心率等），部分机型读取健康数据时需要 -->
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
+
+
     <queries>
         <!-- 允许查询和绑定到无障碍服务提供者应用 -->
         <package android:name="com.ai.assistance.operit.provider" />
@@ -108,6 +168,14 @@
         <meta-data
             android:name="com.google.firebase.ml.kit.analytics.collection.enabled"
             android:value="false" />
+
+        <!-- 三星 Samsung Health：官方文档规定以 meta-data 形式声明所需数据类型，
+             再配合 HealthPermissionManager 运行时授权。此处声明步数读取，
+             在没有集成 Samsung Health SDK 的设备上该声明无副作用。
+             参考 https://developer.samsung.com/health/android/data/guide/hello-health-data.html -->
+        <meta-data
+            android:name="com.samsung.android.health.permission.read"
+            android:value="com.samsung.health.step_count;com.samsung.shealth.step_daily_trend" />
 
         <activity 
             android:name="live.pw.renderX.LatexView"
