@@ -63,7 +63,7 @@ exports.subagent_run = subagent_run;
     ]
 }
 */
-require("../../../types/quickjs-runtime.js");
+const subagent_i18n_js_1 = require("../shared/subagent_i18n.js");
 const EnhancedAIService = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
 const FunctionType = Java.com.ai.assistance.operit.data.model.FunctionType;
 const SystemPromptConfig = Java.com.ai.assistance.operit.core.config.SystemPromptConfig;
@@ -359,14 +359,15 @@ function buildDelegatedTaskMessage(task, contextText, targetPaths, maxToolCalls)
     return lines.join("\n");
 }
 function internalToolUpdateText(toolName) {
+    const text = (0, subagent_i18n_js_1.resolveSubagentI18n)();
     const raw = asText(toolName).trim();
     if (!raw || raw === "package_proxy") {
-        return "已触发内部工具";
+        return text.toolTriggeredGeneric;
     }
     const shortName = raw.includes(":")
         ? raw.substring(raw.lastIndexOf(":") + 1).trim()
         : raw;
-    return shortName ? `已调用 ${shortName}` : "已触发内部工具";
+    return shortName ? text.toolCalledPrefix(shortName) : text.toolTriggeredGeneric;
 }
 async function runSubagent(params) {
     const runId = createRunId();
@@ -376,15 +377,16 @@ async function runSubagent(params) {
         const contextText = asText(params.context_text).trim();
         const targetPaths = parseTargetPaths(params);
         const maxToolCalls = parseMaxToolCalls(params);
-        emitIntermediate(stageUpdateXml(runId, "accepted", "已接受任务"));
-        emitIntermediate(stageUpdateXml(runId, "planning", targetPaths.length > 0 ? "正在分析目标文件" : "正在分析委托任务"));
+        const text = (0, subagent_i18n_js_1.resolveSubagentI18n)();
+        emitIntermediate(stageUpdateXml(runId, "accepted", text.stageAccepted));
+        emitIntermediate(stageUpdateXml(runId, "planning", targetPaths.length > 0 ? text.stagePlanningTargets : text.stagePlanningTask));
         const context = getAppContext();
         if (!context) {
-            throw new Error("无法获取应用上下文");
+            throw new Error(text.errorNoAppContext);
         }
         const enhancedAIService = EnhancedAIService.getInstance(context);
         const settings = await resolveExecutionSettings(enhancedAIService);
-        emitIntermediate(stageUpdateXml(runId, "executing", "正在执行委托任务"));
+        emitIntermediate(stageUpdateXml(runId, "executing", text.stageExecuting));
         const raw = await sendMessage(enhancedAIService, {
             message: buildDelegatedTaskMessage(task, contextText, targetPaths, maxToolCalls),
             chatHistory: [],
@@ -398,15 +400,15 @@ async function runSubagent(params) {
                 }));
             },
         });
-        emitIntermediate(stageUpdateXml(runId, "summarizing", "正在汇总结果"));
+        emitIntermediate(stageUpdateXml(runId, "summarizing", text.stageSummarizing));
         const summary = clipText(extractFinalNonToolAssistantContent(raw), 320);
         if (!summary) {
-            throw new Error("子代理未返回总结文本");
+            throw new Error(text.errorNoSummary);
         }
         return finalXml(runId, true, toolCount, summary);
     }
     catch (error) {
-        return finalXml(runId, false, toolCount, clipText(`执行失败：${toErrorText(error)}`, 220));
+        return finalXml(runId, false, toolCount, clipText((0, subagent_i18n_js_1.resolveSubagentI18n)().errorExecutionFailedPrefix(toErrorText(error)), 220));
     }
 }
 async function subagent_run(params) {
@@ -415,6 +417,6 @@ async function subagent_run(params) {
     }
     catch (error) {
         const runId = createRunId();
-        return finalXml(runId, false, 0, clipText(`执行失败：${toErrorText(error)}`, 220));
+        return finalXml(runId, false, 0, clipText((0, subagent_i18n_js_1.resolveSubagentI18n)().errorExecutionFailedPrefix(toErrorText(error)), 220));
     }
 }
