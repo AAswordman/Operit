@@ -3186,6 +3186,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="chat_pending_queue_title">Cola de envío (%1$d)</string>
     <string name="chat_queue_add_message">Agregar a la cola de envío</string>
     <string name="chat_queue_added">Agregado a la cola de envío</string>
+    <string name="chat_continue_generation">Continuar generación</string>
     <string name="chat_use_default_config_continue">Continuar con la configuración predeterminada</string>
     <string name="chat_default_config_incomplete">La configuración predeterminada está incompleta, complete la información necesaria</string>
     <string name="chat_locked_cannot_delete">Este chat está bloqueado, no se puede eliminar</string>

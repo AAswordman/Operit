@@ -1524,6 +1524,7 @@ private fun ChatInputBottomBar(
     }
 
     val userMessage by actualViewModel.userMessage.collectAsState()
+    val chatHistory by actualViewModel.chatHistory.collectAsState()
     val attachments by actualViewModel.attachments.collectAsState()
     val attachmentPanelState by actualViewModel.attachmentPanelState.collectAsState()
     val replyToMessage by actualViewModel.replyToMessage.collectAsState()
@@ -1563,6 +1564,24 @@ private fun ChatInputBottomBar(
     val waifuMergeBuffer = remember(currentChatId) { mutableStateListOf<String>() }
     val latestQueueBlocked = rememberUpdatedState(isQueueBlocked)
     val latestCurrentChatId = rememberUpdatedState(currentChatId)
+
+    fun isContinueGenerationAvailable(): Boolean =
+        !currentChatId.isNullOrBlank() &&
+            chatHistory.any { message ->
+                (message.sender == "user" || message.sender == "ai") &&
+                    message.content.isNotBlank()
+            } &&
+            !isQueueBlocked &&
+            pendingQueueMessages.isEmpty() &&
+            waifuMergeBuffer.isEmpty()
+
+    val continueGenerationEnabled = isContinueGenerationAvailable()
+    val continueGeneration: () -> Unit = {
+        if (isContinueGenerationAvailable()) {
+            actualViewModel.continueGeneration()
+            onRequestAutoScrollToBottom()
+        }
+    }
 
     fun buildChatInputHookContext(
         eventName: String,
@@ -1877,6 +1896,8 @@ private fun ChatInputBottomBar(
                 onUserMessageChange = { value -> handleUserMessageChange(value) },
                 enableEnterToSend = enableEnterToSend,
                 onSendMessage = sendMessage,
+                onContinueGeneration = continueGeneration,
+                continueGenerationEnabled = continueGenerationEnabled,
                 onQueueMessage = { enqueueDraftToPendingQueue() },
                 onCancelMessage = actualViewModel::cancelCurrentMessage,
                 isLoading = isLoading,
@@ -1973,6 +1994,8 @@ private fun ChatInputBottomBar(
                 onUserMessageChange = { value -> handleUserMessageChange(value) },
                 enableEnterToSend = enableEnterToSend,
                 onSendMessage = sendMessage,
+                onContinueGeneration = continueGeneration,
+                continueGenerationEnabled = continueGenerationEnabled,
                 onQueueMessage = { enqueueDraftToPendingQueue() },
                 onCancelMessage = actualViewModel::cancelCurrentMessage,
                 isLoading = isLoading,
