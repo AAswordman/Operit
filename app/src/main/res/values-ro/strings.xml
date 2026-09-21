@@ -8347,4 +8347,14 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_trends">Analiza tendințelor</string>
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+
+    <!-- 健康数据读取说明（Health Connect 权限用途） -->
+    <string name="health_rationale_title">Cum folosește Operit AI datele tale de sănătate</string>
+    <string name="health_rationale_intro">Operit AI citește date de sănătate și fitness prin Health Connect al sistemului pentru a afișa pe dispozitiv valori precum pașii și frecvența cardiacă și pentru a le pune la dispoziția instrumentelor de agent și automatizărilor pe care le configurezi singur. Toată citirea se face local, pe dispozitivul tău.</string>
+    <string name="health_rationale_items_title">Tipuri de date citite</string>
+    <string name="health_rationale_items">Pași, distanță, calorii active și total consumate, rata metabolică bazală, etaje urcate și altitudine acumulată, frecvența cardiacă, frecvența cardiacă în repaus, variabilitatea frecvenței cardiace, frecvența respiratorie, saturația de oxigen, somn, greutate, înălțime, grăsime corporală, masă slabă, masă osoasă, apă corporală, temperatura corpului, temperatura corporală bazală, tensiunea arterială, glicemia, hidratarea și VO2 max — tipurile de date de sănătate și fitness acceptate de Health Connect. Sunt solicitate doar permisiunile pe care le acorzi efectiv pe acest dispozitiv.</string>
+    <string name="health_rationale_storage_title">Stocare și partajare</string>
+    <string name="health_rationale_storage">Operit AI nu încarcă date de sănătate pe niciun server operat de proiect: acest proiect nu rulează servicii cloud și nu găzduiește datele tale. Datele sunt prelucrate local pe dispozitivul tău, dacă nu le trimiți în mod deliberat printr-un model, o automatizare sau un serviciu terț pe care l-ai configurat singur; în acest caz, ele ajung direct la furnizorul respectiv, conform termenilor acestuia.</string>
+    <string name="health_rationale_revoke">Poți revoca oricând oricare dintre aceste permisiuni din Permisiuni pentru aplicații în Health Connect; după revocare, Operit AI nu mai poate citi datele corespunzătoare.</string>
+    <string name="health_rationale_settings_hint">Pe Android 14 și versiunile ulterioare poți gestiona accesul și din Setări → Securitate și confidențialitate → Confidențialitate → Health Connect → Permisiuni pentru aplicații.</string>
 </resources>
