@@ -751,6 +751,12 @@
     <string name="theme_select_image">Alege o imagine</string>
     <string name="theme_bg_opacity">Opacitatea fundalului: %1$d%%</string>
     <string name="theme_reset">Researează la tema implicită</string>
+    <string name="theme_apply_to_all_character_cards">Aplică la toate cărțile de personaj</string>
+    <string name="theme_apply_to_all_character_cards_title">Aplici la toate cărțile de personaj?</string>
+    <string name="theme_apply_to_all_character_cards_message">Opțiunea curentă va suprascrie toate cărțile de personaj și nu poate fi anulată. Continui?</string>
+    <string name="theme_apply_to_all_character_cards_confirm">Continuă</string>
+    <string name="theme_applied_to_all_character_cards">Aplicat la toate cărțile de personaj</string>
+    <string name="theme_apply_to_all_character_cards_failed">Nu s-a putut aplica tema la toate cărțile de personaj</string>
     <string name="theme_saved">Setările au fost salvate</string>
     <string name="theme_video_too_large">Fișierul video este prea mare, ceea ce poate duce la încetinirea sau blocarea aplicației. Vă rugăm să alegeți un fișier mai mic de30MBvideoclipul.</string>
     <string name="theme_video_saved">Videoclipul de fundal a fost salvat</string>

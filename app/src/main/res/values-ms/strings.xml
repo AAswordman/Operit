@@ -649,6 +649,12 @@
     <string name="theme_select_image">Pilih Gambar</string>
     <string name="theme_bg_opacity">Kelegapan latar belakang: %1$d%%</string>
     <string name="theme_reset">Tetapkan Semula ke Tema Lalai</string>
+    <string name="theme_apply_to_all_character_cards">Gunakan pada semua kad watak</string>
+    <string name="theme_apply_to_all_character_cards_title">Gunakan pada semua kad watak?</string>
+    <string name="theme_apply_to_all_character_cards_message">Pilihan semasa akan menimpa semua kad watak dan tidak boleh dibuat asal. Teruskan?</string>
+    <string name="theme_apply_to_all_character_cards_confirm">Teruskan</string>
+    <string name="theme_applied_to_all_character_cards">Telah digunakan pada semua kad watak</string>
+    <string name="theme_apply_to_all_character_cards_failed">Gagal menggunakan tema pada semua kad watak</string>
     <string name="theme_saved">Tetapan telah disimpan</string>
     <string name="theme_video_too_large">Fail video terlalu besar, mungkin menyebabkan aplikasi tersekat atau terhenti. Sila pilih video kurang daripada 30MB.</string>
     <string name="theme_video_saved">Video latar belakang telah disimpan</string>
