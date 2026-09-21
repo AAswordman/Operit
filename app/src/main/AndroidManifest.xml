@@ -96,6 +96,17 @@
     <uses-permission android:name="miui.permission.READ_STEPS" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
+    <!-- vivo / iQOO（OriginOS / Funtouch）：系统步数 Provider
+         (content://com.vivo.assistant.step.provider)
+         该 Provider 由 com.vivo.assistant.services.scene.sport.SportStepContentProvider
+         实现（uid 1000，系统应用），注册表项保护的读取权限为
+         com.vivo.assistant.StepProvider，protectionLevel=normal —— 与 MIUI 同构，
+         清单声明后安装时自动授予，无弹窗、无需运行时授权。
+         已在 vivo V2303A (Android 16) 上实测：未声明该权限的进程访问 Provider 会被
+         框架直接拒绝（SecurityException: requires com.vivo.assistant.StepProvider），
+         而声明后 granted=true 且可正常读取步数。 -->
+    <uses-permission android:name="com.vivo.assistant.StepProvider" />
+
     <!-- Health Connect（Android 14+）标准健康数据读取权限，与 Home Assistant 对齐 -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
