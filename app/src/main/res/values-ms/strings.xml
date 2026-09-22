@@ -7548,6 +7548,15 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_pricing_per_request">Harga setiap permintaan</string>
     <string name="token_stats_pricing_save_failed">Gagal menyimpan gantian harga</string>
     <string name="token_stats_pricing_delete_failed">Gagal memadam gantian harga</string>
+    <string name="token_stats_delete_configuration">Padam</string>
+    <string name="token_stats_delete_configuration_title">Padam statistik konfigurasi ini</string>
+    <string name="token_stats_delete_configuration_message">Penggunaan, kos dan gantian harga untuk “%1$s” akan dipadam daripada statistik. Tindakan ini tidak boleh dibuat asal. Konfigurasi model itu sendiri tidak dipadam.</string>
+    <string name="token_stats_delete_configuration_failed">Gagal memadam statistik konfigurasi</string>
+    <string name="token_stats_clear_invalid_configurations">Kosongkan config tidak sah</string>
+    <string name="token_stats_clear_invalid_title">Kosongkan konfigurasi tidak sah</string>
+    <string name="token_stats_clear_invalid_message">%1$d rekod statistik yang konfigurasinya sudah dipadam akan dibuang, termasuk penggunaan dan kos. Tindakan ini tidak boleh dibuat asal.</string>
+    <string name="token_stats_clear_invalid_none">Tiada konfigurasi tidak sah untuk dikosongkan</string>
+    <string name="token_stats_clear_invalid_done">%1$d konfigurasi tidak sah telah dikosongkan</string>
     <string name="token_stats_chart_prev_bucket">Bucket masa sebelumnya</string>
     <string name="token_stats_chart_next_bucket">Bucket masa seterusnya</string>
     <string name="token_stats_chart_bucket_of">Bucket %1$d / %2$d</string>

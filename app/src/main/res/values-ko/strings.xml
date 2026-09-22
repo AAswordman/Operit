@@ -7398,6 +7398,15 @@
     <string name="token_stats_pricing_per_request">요청당 가격</string>
     <string name="token_stats_pricing_save_failed">가격 덮어쓰기 저장 실패</string>
     <string name="token_stats_pricing_delete_failed">가격 덮어쓰기 삭제 실패</string>
+    <string name="token_stats_delete_configuration">삭제</string>
+    <string name="token_stats_delete_configuration_title">이 구성의 통계 삭제</string>
+    <string name="token_stats_delete_configuration_message">「%1$s」의 사용량, 비용, 가격 덮어쓰기가 통계에서 삭제됩니다. 되돌릴 수 없습니다. 모델 구성 자체는 삭제되지 않습니다.</string>
+    <string name="token_stats_delete_configuration_failed">구성 통계를 삭제하지 못했습니다</string>
+    <string name="token_stats_clear_invalid_configurations">무효 구성 지우기</string>
+    <string name="token_stats_clear_invalid_title">무효 구성 지우기</string>
+    <string name="token_stats_clear_invalid_message">이미 삭제된 모델 구성에 해당하는 통계 기록 %1$d개를 사용량과 비용을 포함해 삭제합니다. 되돌릴 수 없습니다.</string>
+    <string name="token_stats_clear_invalid_none">지울 무효 구성이 없습니다</string>
+    <string name="token_stats_clear_invalid_done">무효 구성 %1$d개를 지웠습니다</string>
     <string name="token_stats_chart_prev_bucket">이전 시간 버킷</string>
     <string name="token_stats_chart_next_bucket">다음 시간 버킷</string>
     <string name="token_stats_chart_bucket_of">버킷 %1$d / %2$d</string>

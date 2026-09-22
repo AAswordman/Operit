@@ -310,6 +310,9 @@ private fun TokenStatsPageContent(
                     priceSettings = state.priceSettings,
                     onSavePrice = viewModel::savePrice,
                     onDeletePrice = viewModel::deletePrice,
+                    orphanedConfigCount = state.orphanedConfigCount,
+                    onDeleteConfigurationUsage = viewModel::deleteUsageForConfiguration,
+                    onClearInvalidConfigurations = viewModel::clearOrphanedConfigurations,
                 )
             }
         }
@@ -382,8 +385,13 @@ private fun TokenStatsModelDetailsSection(
     priceSettings: List<TokenStatsPriceSetting>,
     onSavePrice: (TokenStatsPriceDraft) -> Unit,
     onDeletePrice: (TokenStatsPriceSetting) -> Unit,
+    orphanedConfigCount: Int,
+    onDeleteConfigurationUsage: (String) -> Unit,
+    onClearInvalidConfigurations: () -> Unit,
 ) {
     var priceEditor by remember { mutableStateOf<PriceEditorTarget?>(null) }
+    var pendingDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var showClearInvalid by remember { mutableStateOf(false) }
     TokenStatsConfigurationCardsSection(
         configurations = models.flatMap(TokenStatsDisplayModelBreakdown::identities),
         currency = currency,
@@ -394,6 +402,11 @@ private fun TokenStatsModelDetailsSection(
             priceEditor = PriceEditorTarget(existing, draft, configurationName)
         },
         onResetConfigurationPrice = onDeletePrice,
+        orphanedConfigCount = orphanedConfigCount,
+        onClearInvalidConfigurations = { showClearInvalid = true },
+        onDeleteConfigurationUsage = { configId, configurationName ->
+            pendingDelete = configId to configurationName
+        },
     )
     priceEditor?.let { target ->
         PriceSettingsDialog(
@@ -403,6 +416,64 @@ private fun TokenStatsModelDetailsSection(
             onSave = onSavePrice,
             onDelete = target.existing?.let { setting -> { onDeletePrice(setting) } },
             onDismiss = { priceEditor = null },
+        )
+    }
+    pendingDelete?.let { (configId, configurationName) ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(stringResource(R.string.token_stats_delete_configuration_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.token_stats_delete_configuration_message,
+                        configurationName,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingDelete = null
+                        onDeleteConfigurationUsage(configId)
+                    },
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+    if (showClearInvalid) {
+        AlertDialog(
+            onDismissRequest = { showClearInvalid = false },
+            title = { Text(stringResource(R.string.token_stats_clear_invalid_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.token_stats_clear_invalid_message,
+                        orphanedConfigCount,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showClearInvalid = false
+                        onClearInvalidConfigurations()
+                    },
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearInvalid = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
         )
     }
 }

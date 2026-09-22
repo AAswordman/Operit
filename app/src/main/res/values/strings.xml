@@ -3831,6 +3831,15 @@
     <string name="token_stats_pricing_per_request">每次请求价格</string>
     <string name="token_stats_pricing_save_failed">价格覆盖保存失败</string>
     <string name="token_stats_pricing_delete_failed">价格覆盖删除失败</string>
+    <string name="token_stats_delete_configuration">删除</string>
+    <string name="token_stats_delete_configuration_title">删除这条配置统计</string>
+    <string name="token_stats_delete_configuration_message">将删除「%1$s」在统计中的用量、费用和定价覆盖，不能恢复。模型配置本身不会被删除。</string>
+    <string name="token_stats_delete_configuration_failed">删除配置统计失败</string>
+    <string name="token_stats_clear_invalid_configurations">清除无效配置</string>
+    <string name="token_stats_clear_invalid_title">清除无效配置</string>
+    <string name="token_stats_clear_invalid_message">将清除 %1$d 条已从模型配置中删除的统计记录，包括用量和费用，不能恢复。</string>
+    <string name="token_stats_clear_invalid_none">没有可清除的无效配置</string>
+    <string name="token_stats_clear_invalid_done">已清除 %1$d 条无效配置</string>
     <string name="token_stats_chart_prev_bucket">上一个时间桶</string>
     <string name="token_stats_chart_next_bucket">下一个时间桶</string>
     <string name="token_stats_chart_bucket_of">第 %1$d / %2$d 桶</string>

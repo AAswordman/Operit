@@ -3904,6 +3904,15 @@
     <string name="token_stats_pricing_per_request">Price per request</string>
     <string name="token_stats_pricing_save_failed">Failed to save price override</string>
     <string name="token_stats_pricing_delete_failed">Failed to delete price override</string>
+    <string name="token_stats_delete_configuration">Delete</string>
+    <string name="token_stats_delete_configuration_title">Delete this configuration\'s stats</string>
+    <string name="token_stats_delete_configuration_message">This removes usage, cost, and price overrides for \"%1$s\" from statistics. This cannot be undone. The model configuration itself is not deleted.</string>
+    <string name="token_stats_delete_configuration_failed">Failed to delete configuration statistics</string>
+    <string name="token_stats_clear_invalid_configurations">Clear invalid configs</string>
+    <string name="token_stats_clear_invalid_title">Clear invalid configurations</string>
+    <string name="token_stats_clear_invalid_message">This will remove %1$d statistic records whose model configurations were already deleted, including usage and cost. This cannot be undone.</string>
+    <string name="token_stats_clear_invalid_none">No invalid configurations to clear</string>
+    <string name="token_stats_clear_invalid_done">Cleared %1$d invalid configurations</string>
     <string name="token_stats_chart_prev_bucket">Previous time bucket</string>
     <string name="token_stats_chart_next_bucket">Next time bucket</string>
     <string name="token_stats_chart_bucket_of">Bucket %1$d of %2$d</string>

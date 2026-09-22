@@ -7619,6 +7619,15 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_pricing_per_request">Precio por solicitud</string>
     <string name="token_stats_pricing_save_failed">Error al guardar la anulación de precio</string>
     <string name="token_stats_pricing_delete_failed">Error al eliminar la anulación de precio</string>
+    <string name="token_stats_delete_configuration">Eliminar</string>
+    <string name="token_stats_delete_configuration_title">Eliminar las estadísticas de esta configuración</string>
+    <string name="token_stats_delete_configuration_message">Se eliminarán el uso, el coste y las anulaciones de precio de «%1$s» en las estadísticas. No se puede deshacer. La configuración del modelo no se elimina.</string>
+    <string name="token_stats_delete_configuration_failed">Error al eliminar las estadísticas de la configuración</string>
+    <string name="token_stats_clear_invalid_configurations">Borrar configs. inválidas</string>
+    <string name="token_stats_clear_invalid_title">Borrar configuraciones inválidas</string>
+    <string name="token_stats_clear_invalid_message">Se eliminarán %1$d registros estadísticos cuyas configuraciones de modelo ya se borraron, incluido el uso y el coste. No se puede deshacer.</string>
+    <string name="token_stats_clear_invalid_none">No hay configuraciones inválidas que borrar</string>
+    <string name="token_stats_clear_invalid_done">Se borraron %1$d configuraciones inválidas</string>
     <string name="token_stats_chart_prev_bucket">Intervalo de tiempo anterior</string>
     <string name="token_stats_chart_next_bucket">Siguiente intervalo de tiempo</string>
     <string name="token_stats_chart_bucket_of">Intervalo %1$d / %2$d</string>

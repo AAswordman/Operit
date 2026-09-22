@@ -7551,6 +7551,15 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_stats_pricing_per_request">Harga per permintaan</string>
     <string name="token_stats_pricing_save_failed">Gagal menyimpan override harga</string>
     <string name="token_stats_pricing_delete_failed">Gagal menghapus override harga</string>
+    <string name="token_stats_delete_configuration">Hapus</string>
+    <string name="token_stats_delete_configuration_title">Hapus statistik konfigurasi ini</string>
+    <string name="token_stats_delete_configuration_message">Penggunaan, biaya, dan override harga untuk “%1$s” akan dihapus dari statistik. Tindakan ini tidak dapat dibatalkan. Konfigurasi model itu sendiri tidak dihapus.</string>
+    <string name="token_stats_delete_configuration_failed">Gagal menghapus statistik konfigurasi</string>
+    <string name="token_stats_clear_invalid_configurations">Hapus config tidak valid</string>
+    <string name="token_stats_clear_invalid_title">Hapus konfigurasi tidak valid</string>
+    <string name="token_stats_clear_invalid_message">%1$d catatan statistik yang konfigurasinya sudah dihapus akan dihapus, termasuk penggunaan dan biaya. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="token_stats_clear_invalid_none">Tidak ada konfigurasi tidak valid untuk dihapus</string>
+    <string name="token_stats_clear_invalid_done">%1$d konfigurasi tidak valid telah dihapus</string>
     <string name="token_stats_chart_prev_bucket">Bucket waktu sebelumnya</string>
     <string name="token_stats_chart_next_bucket">Bucket waktu berikutnya</string>
     <string name="token_stats_chart_bucket_of">Bucket %1$d / %2$d</string>

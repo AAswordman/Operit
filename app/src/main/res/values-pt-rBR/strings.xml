@@ -7389,6 +7389,15 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_stats_pricing_per_request">Preço por solicitação</string>
     <string name="token_stats_pricing_save_failed">Falha ao salvar substituição de preço</string>
     <string name="token_stats_pricing_delete_failed">Falha ao excluir substituição de preço</string>
+    <string name="token_stats_delete_configuration">Excluir</string>
+    <string name="token_stats_delete_configuration_title">Excluir as estatísticas desta configuração</string>
+    <string name="token_stats_delete_configuration_message">O uso, o custo e as substituições de preço de “%1$s” serão removidos das estatísticas. Isso não pode ser desfeito. A configuração do modelo em si não é excluída.</string>
+    <string name="token_stats_delete_configuration_failed">Falha ao excluir as estatísticas da configuração</string>
+    <string name="token_stats_clear_invalid_configurations">Limpar configs inválidas</string>
+    <string name="token_stats_clear_invalid_title">Limpar configurações inválidas</string>
+    <string name="token_stats_clear_invalid_message">Serão removidos %1$d registros estatísticos cujas configurações de modelo já foram excluídas, incluindo uso e custo. Isso não pode ser desfeito.</string>
+    <string name="token_stats_clear_invalid_none">Não há configurações inválidas para limpar</string>
+    <string name="token_stats_clear_invalid_done">%1$d configurações inválidas foram limpas</string>
     <string name="token_stats_chart_prev_bucket">Intervalo de tempo anterior</string>
     <string name="token_stats_chart_next_bucket">Próximo intervalo de tempo</string>
     <string name="token_stats_chart_bucket_of">Intervalo %1$d / %2$d</string>

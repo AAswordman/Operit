@@ -8146,6 +8146,15 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_pricing_per_request">Preț per cerere</string>
     <string name="token_stats_pricing_save_failed">Salvarea suprascrierii prețului a eșuat</string>
     <string name="token_stats_pricing_delete_failed">Ștergerea suprascrierii prețului a eșuat</string>
+    <string name="token_stats_delete_configuration">Ștergeți</string>
+    <string name="token_stats_delete_configuration_title">Ștergeți statisticile acestei configurații</string>
+    <string name="token_stats_delete_configuration_message">Utilizarea, costul și suprascrierile de preț pentru „%1$s” vor fi eliminate din statistici. Acțiunea nu poate fi anulată. Configurația modelului în sine nu este ștearsă.</string>
+    <string name="token_stats_delete_configuration_failed">Ștergerea statisticilor configurației a eșuat</string>
+    <string name="token_stats_clear_invalid_configurations">Ștergeți config. invalide</string>
+    <string name="token_stats_clear_invalid_title">Ștergeți configurațiile invalide</string>
+    <string name="token_stats_clear_invalid_message">Vor fi eliminate %1$d înregistrări statistice ale căror configurații de model au fost deja șterse, inclusiv utilizarea și costul. Acțiunea nu poate fi anulată.</string>
+    <string name="token_stats_clear_invalid_none">Nu există configurații invalide de șters</string>
+    <string name="token_stats_clear_invalid_done">Au fost șterse %1$d configurații invalide</string>
     <string name="token_stats_chart_prev_bucket">Interval de timp anterior</string>
     <string name="token_stats_chart_next_bucket">Interval de timp următor</string>
     <string name="token_stats_chart_bucket_of">Intervalul %1$d / %2$d</string>

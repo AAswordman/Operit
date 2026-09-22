@@ -16,6 +16,7 @@ import com.ai.assistance.operit.data.stats.TokenStatsDisplayModelBreakdown
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
 import com.ai.assistance.operit.data.stats.TokenStatsPriceDraft
 import com.ai.assistance.operit.data.stats.TokenStatsLifetimeOverview
+import com.ai.assistance.operit.data.stats.TokenStatsOrphanedConfigs
 import com.ai.assistance.operit.data.stats.TokenStatsPriceSetting
 import com.ai.assistance.operit.data.stats.TokenStatsQueryParams
 import com.ai.assistance.operit.data.stats.TokenStatsQueryService
@@ -24,6 +25,7 @@ import com.ai.assistance.operit.data.stats.TokenStatsSettingsManager
 import com.ai.assistance.operit.data.stats.TokenStatsSettingsStore
 import com.ai.assistance.operit.data.stats.TokenStatsTimeRange
 import com.ai.assistance.operit.data.stats.TokenStatsTimeRanges
+import com.ai.assistance.operit.data.stats.TokenUsageRepository
 import com.ai.assistance.operit.util.AppLogger
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
@@ -35,6 +37,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -60,6 +63,7 @@ data class TokenStatsUiState(
     val knownModelNames: Map<String, String> = emptyMap(),
     val configurationNames: Map<String, String> = emptyMap(),
     val priceSettings: List<TokenStatsPriceSetting> = emptyList(),
+    val orphanedConfigCount: Int = 0,
     val activity: TokenActivityUiState = TokenActivityUiState(),
 )
 
@@ -80,6 +84,7 @@ class TokenUsageStatisticsViewModel(
     private val appContext = context.applicationContext
     private val manager = TokenStatsSettingsManager(appContext)
     private val modelConfigManager = ModelConfigManager(appContext)
+    private val usageRepository = TokenUsageRepository.getInstance(appContext)
     private val tag = "TokenUsageStatisticsViewModel"
 
     private val _state = MutableStateFlow(TokenStatsUiState())
@@ -229,12 +234,18 @@ class TokenUsageStatisticsViewModel(
                             }
                         }
                     }
+                    val orphanedCountDeferred = async(Dispatchers.IO) {
+                        val recorded = usageRepository.recordedConfigurationIds()
+                        val active = modelConfigManager.configListFlow.first()
+                        TokenStatsOrphanedConfigs.orphanedConfigIds(recorded, active).size
+                    }
                     QueryLoadResult(
                         lifetime = lifetimeDeferred.await(),
                         range = rangeData,
                         available = availableDeferred.await() ?: rangeData,
                         prices = pricesDeferred.await(),
                         configurationNames = configurationNamesDeferred.await(),
+                        orphanedConfigCount = orphanedCountDeferred.await(),
                         activity = TokenActivityAggregator.rangeData(activityDeferred.await(), range),
                     )
                 }
@@ -258,6 +269,7 @@ class TokenUsageStatisticsViewModel(
                         knownModelNames = knownModelNames.toMap(),
                         configurationNames = result.configurationNames,
                         priceSettings = result.prices,
+                        orphanedConfigCount = result.orphanedConfigCount,
                         activity = it.activity.copy(loading = false, rangeData = result.activity),
                         refreshVersion = it.refreshVersion + 1L,
                     )
@@ -404,6 +416,54 @@ class TokenUsageStatisticsViewModel(
         }
     }
 
+    fun deleteUsageForConfiguration(configId: String) {
+        val trimmedId = configId.trim()
+        if (trimmedId.isEmpty()) return
+        viewModelScope.launch(dispatcher) {
+            try {
+                usageRepository.deleteUsageForConfigIds(listOf(trimmedId))
+                load()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e(tag, "删除配置统计失败: $trimmedId", e)
+                _actionMessage.value = TokenStatsActionMessage(
+                    stringResolver(R.string.token_stats_delete_configuration_failed),
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun clearOrphanedConfigurations() {
+        viewModelScope.launch(dispatcher) {
+            try {
+                val recorded = usageRepository.recordedConfigurationIds()
+                val active = modelConfigManager.configListFlow.first()
+                val orphaned = TokenStatsOrphanedConfigs.orphanedConfigIds(recorded, active)
+                if (orphaned.isEmpty()) {
+                    _actionMessage.value = TokenStatsActionMessage(
+                        stringResolver(R.string.token_stats_clear_invalid_none),
+                    )
+                    return@launch
+                }
+                usageRepository.deleteUsageForConfigIds(orphaned)
+                load()
+                _actionMessage.value = TokenStatsActionMessage(
+                    appContext.getString(R.string.token_stats_clear_invalid_done, orphaned.size),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e(tag, "清除无效配置统计失败", e)
+                _actionMessage.value = TokenStatsActionMessage(
+                    stringResolver(R.string.token_stats_delete_configuration_failed),
+                    isError = true,
+                )
+            }
+        }
+    }
+
     class Factory(context: Context) : ViewModelProvider.Factory {
         private val appContext = context.applicationContext
 
@@ -423,6 +483,7 @@ private data class QueryLoadResult(
     val available: TokenStatsRangeData?,
     val prices: List<TokenStatsPriceSetting>,
     val configurationNames: Map<String, String>,
+    val orphanedConfigCount: Int,
     val activity: TokenActivityRangeData,
 )
 

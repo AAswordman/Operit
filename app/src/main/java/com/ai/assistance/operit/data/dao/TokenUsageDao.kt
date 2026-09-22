@@ -88,6 +88,18 @@ abstract class TokenUsageDao {
     )
     abstract suspend fun deleteEmptyStatsModels(): Int
 
+    @Query("DELETE FROM token_usage_records WHERE configId = :configId")
+    abstract suspend fun deleteRecordsByConfigId(configId: String): Int
+
+    @Query("DELETE FROM token_stats_models WHERE configId = :configId")
+    abstract suspend fun deleteStatsModelsByConfigId(configId: String): Int
+
+    @Query("SELECT DISTINCT configId FROM token_usage_records WHERE configId != ''")
+    abstract suspend fun getDistinctUsageConfigIds(): List<String>
+
+    @Query("SELECT DISTINCT configId FROM token_stats_models WHERE configId != ''")
+    abstract suspend fun getDistinctStatsModelConfigIds(): List<String>
+
     @Query(
         """
         SELECT

@@ -269,6 +269,15 @@
     <string name="token_stats_metric_requests">リクエスト</string>
     <string name="token_stats_metric_tokens">トークン</string>
     <string name="token_stats_pricing_configuration">設定上の料金</string>
+    <string name="token_stats_delete_configuration">削除</string>
+    <string name="token_stats_delete_configuration_title">この設定の統計を削除</string>
+    <string name="token_stats_delete_configuration_message">「%1$s」の使用量、費用、料金上書きが統計から削除されます。元に戻せません。モデル設定自体は削除されません。</string>
+    <string name="token_stats_delete_configuration_failed">設定の統計を削除できませんでした</string>
+    <string name="token_stats_clear_invalid_configurations">無効な設定を消去</string>
+    <string name="token_stats_clear_invalid_title">無効な設定を消去</string>
+    <string name="token_stats_clear_invalid_message">すでに削除されたモデル設定に対応する統計記録 %1$d 件を、使用量と費用を含めて削除します。元に戻せません。</string>
+    <string name="token_stats_clear_invalid_none">消去できる無効な設定はありません</string>
+    <string name="token_stats_clear_invalid_done">無効な設定を %1$d 件消去しました</string>
     <string name="provider_opencode">OpenCode</string>
     <string name="provider_minimax">MiniMax</string>
     <string name="token_activity_title">利用状況</string>

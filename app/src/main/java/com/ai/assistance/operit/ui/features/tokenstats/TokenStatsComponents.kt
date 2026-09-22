@@ -907,6 +907,9 @@ internal fun TokenStatsConfigurationCardsSection(
     priceSettings: List<TokenStatsPriceSetting>,
     onEditPrice: (TokenStatsPriceSetting?, TokenStatsPriceDraft, String?) -> Unit,
     onResetConfigurationPrice: (TokenStatsPriceSetting) -> Unit,
+    orphanedConfigCount: Int = 0,
+    onClearInvalidConfigurations: () -> Unit = {},
+    onDeleteConfigurationUsage: (String, String) -> Unit = { _, _ -> },
 ) {
     val colors = LocalTokenStatsColors.current
     var configurationsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -936,6 +939,14 @@ internal fun TokenStatsConfigurationCardsSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,
                 ) {
+                    if (orphanedConfigCount > 0) {
+                        TextButton(onClick = onClearInvalidConfigurations) {
+                            Text(
+                                text = stringResource(R.string.token_stats_clear_invalid_configurations),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
                     Text(
                         text = stringResource(
                             R.string.token_stats_configuration_count,
@@ -991,6 +1002,7 @@ internal fun TokenStatsConfigurationCardsSection(
                         },
                         onEditPrice = onEditPrice,
                         onResetConfigurationPrice = onResetConfigurationPrice,
+                        onDeleteConfigurationUsage = onDeleteConfigurationUsage,
                     )
                 }
             }
@@ -1009,6 +1021,7 @@ private fun TokenStatsConfigurationRow(
     onToggleExpanded: () -> Unit,
     onEditPrice: (TokenStatsPriceSetting?, TokenStatsPriceDraft, String?) -> Unit,
     onResetConfigurationPrice: (TokenStatsPriceSetting) -> Unit,
+    onDeleteConfigurationUsage: (String, String) -> Unit,
 ) {
     val colors = LocalTokenStatsColors.current
     Column(
@@ -1229,6 +1242,18 @@ private fun TokenStatsConfigurationRow(
                             text = stringResource(R.string.reset_to_default),
                             style = MaterialTheme.typography.labelSmall,
                         )
+                    }
+                    if (identity.configId.isNotBlank()) {
+                        TextButton(
+                            onClick = {
+                                onDeleteConfigurationUsage(identity.configId, configurationName)
+                            },
+                        ) {
+                            Text(
+                                text = stringResource(R.string.token_stats_delete_configuration),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
                     }
                 }
             }
