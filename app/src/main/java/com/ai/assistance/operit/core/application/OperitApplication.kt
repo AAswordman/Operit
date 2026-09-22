@@ -171,6 +171,8 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
         launchCleanOnExitCleanup()
         AppLogger.d(TAG, "【启动计时】cleanOnExit 清理任务已提交（异步IO） - ${System.currentTimeMillis() - startTime}ms")
+        launchExternalCodeMediaShield()
+        AppLogger.d(TAG, "【启动计时】开发目录媒体隔离任务已提交（异步IO） - ${System.currentTimeMillis() - startTime}ms")
 
         val defaultProfileName = applicationContext.getString(R.string.default_profile)
         initUserPreferencesManager(applicationContext, defaultProfileName)
@@ -419,6 +421,16 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
                 WorkManager.initialize(applicationContext, workManagerConfiguration)
             } catch (_: IllegalStateException) {
 
+            }
+        }
+    }
+
+    private fun launchExternalCodeMediaShield() {
+        applicationScope.launch {
+            try {
+                OperitPaths.ensureExternalCodeMediaShield()
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "写入开发目录 .nomedia 失败", e)
             }
         }
     }

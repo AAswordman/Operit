@@ -16,6 +16,11 @@ object OperitPaths {
     private const val TEST_DIR_NAME = "test"
     private const val WEBSESSION_DIR_NAME = "websession"
     private const val USERSCRIPTS_DIR_NAME = "userscripts"
+    private const val DEV_PACKAGE_DIR_NAME = "dev_package"
+    private const val SKILLS_DIR_NAME = "skills"
+    private const val SANDBOX_DEV_SKILL_DIR_NAME = "SandboxPackage_DEV"
+    private const val TYPES_DIR_NAME = "types"
+    private const val NO_MEDIA_FILE_NAME = ".nomedia"
 
     const val SHERPA_NCNN_MODELS_DIR_NAME = ".sherpa_ncnn_models"
     const val VECTOR_INDEX_DIR_NAME = ".vector_index"
@@ -88,6 +93,26 @@ object OperitPaths {
         return ensureDir(File(webSessionDir(), USERSCRIPTS_DIR_NAME))
     }
 
+    fun devPackageDir(): File {
+        return ensureDir(File(operitRootDir(), DEV_PACKAGE_DIR_NAME))
+    }
+
+    /**
+     * `.ts` 在系统媒体库里会被当成视频流。
+     * 开发目录和宿主类型目录放在公共下载目录下，启动时补上 `.nomedia`，避免相册扫进去。
+     */
+    fun ensureExternalCodeMediaShield() {
+        ensureNoMedia(devPackageDir())
+        val skillTypesDir =
+            File(
+                File(File(operitRootDir(), SKILLS_DIR_NAME), SANDBOX_DEV_SKILL_DIR_NAME),
+                TYPES_DIR_NAME
+            )
+        if (skillTypesDir.isDirectory) {
+            ensureNoMedia(skillTypesDir)
+        }
+    }
+
     fun sherpaNcnnModelsDir(context: Context): File {
         return ensureDir(File(context.filesDir, SHERPA_NCNN_MODELS_DIR_NAME))
     }
@@ -155,5 +180,13 @@ object OperitPaths {
             dir.mkdirs()
         }
         return dir
+    }
+
+    private fun ensureNoMedia(dir: File) {
+        ensureDir(dir)
+        val marker = File(dir, NO_MEDIA_FILE_NAME)
+        if (!marker.exists()) {
+            marker.createNewFile()
+        }
     }
 }
