@@ -20,6 +20,7 @@ import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.core.chat.AIMessageManager
+import com.ai.assistance.operit.core.chat.ContextWindowBreakdown
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
@@ -307,6 +308,12 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     val inputTokenCount: StateFlow<Long> by lazy { tokenStatsDelegate.cumulativeInputTokensFlow }
     val outputTokenCount: StateFlow<Long> by lazy { tokenStatsDelegate.cumulativeOutputTokensFlow }
     val perRequestTokenCount: StateFlow<Pair<Long, Long>?> by lazy { tokenStatsDelegate.perRequestTokenCountFlow }
+
+    private val _contextWindowBreakdown = MutableStateFlow<ContextWindowBreakdown?>(null)
+    val contextWindowBreakdown: StateFlow<ContextWindowBreakdown?> = _contextWindowBreakdown.asStateFlow()
+    private val _isLoadingContextWindowBreakdown = MutableStateFlow(false)
+    val isLoadingContextWindowBreakdown: StateFlow<Boolean> = _isLoadingContextWindowBreakdown.asStateFlow()
+    private var contextWindowBreakdownJob: Job? = null
 
 
 
@@ -3191,9 +3198,35 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     fun enqueueSelectedMessagesForMemoryAutoSave(messages: List<ChatMessage>) {
         messageCoordinationDelegate.enqueueSelectedMessagesForMemoryAutoSave(messages)
     }
-
     fun manuallySummarizeConversation() {
         messageCoordinationDelegate.manuallySummarizeConversation()
     }
+
+    fun loadContextWindowBreakdown() {
+        if (!::messageCoordinationDelegate.isInitialized) {
+            return
+        }
+        contextWindowBreakdownJob?.cancel()
+        contextWindowBreakdownJob =
+            viewModelScope.launch {
+                _isLoadingContextWindowBreakdown.value = true
+                _contextWindowBreakdown.value = null
+                try {
+                    val breakdown =
+                        withContext(Dispatchers.IO) {
+                            messageCoordinationDelegate.loadContextWindowBreakdown()
+                        }
+                    _contextWindowBreakdown.value = breakdown
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.e("ChatViewModel", "加载上下文拆分失败", e)
+                    _contextWindowBreakdown.value = null
+                } finally {
+                    _isLoadingContextWindowBreakdown.value = false
+                }
+            }
+    }
+
 
 }

@@ -552,6 +552,46 @@ object AIMessageManager {
         memorySpaceIdOverride: String? = null,
         publishEstimate: Boolean = true
     ): Long {
+        return calculateStableContextWindowSnapshot(
+            enhancedAiService = enhancedAiService,
+            chatId = chatId,
+            messageContent = messageContent,
+            chatHistory = chatHistory,
+            workspacePath = workspacePath,
+            workspaceEnv = workspaceEnv,
+            promptFunctionType = promptFunctionType,
+            roleCardId = roleCardId,
+            currentRoleName = currentRoleName,
+            splitHistoryByRole = splitHistoryByRole,
+            groupOrchestrationMode = groupOrchestrationMode,
+            groupParticipantNamesText = groupParticipantNamesText,
+            proxySenderName = proxySenderName,
+            chatModelConfigIdOverride = chatModelConfigIdOverride,
+            chatModelIndexOverride = chatModelIndexOverride,
+            memorySpaceIdOverride = memorySpaceIdOverride,
+            publishEstimate = publishEstimate
+        ).windowTokens
+    }
+
+    suspend fun calculateStableContextWindowSnapshot(
+        enhancedAiService: EnhancedAIService,
+        chatId: String? = null,
+        messageContent: String = "",
+        chatHistory: List<ChatMessage>,
+        workspacePath: String? = null,
+        workspaceEnv: String? = null,
+        promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT,
+        roleCardId: String? = null,
+        currentRoleName: String? = null,
+        splitHistoryByRole: Boolean = true,
+        groupOrchestrationMode: Boolean = false,
+        groupParticipantNamesText: String? = null,
+        proxySenderName: String? = null,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null,
+        memorySpaceIdOverride: String? = null,
+        publishEstimate: Boolean = false
+    ): RequestWindowSnapshot {
         val memory =
             getMemoryFromMessages(
                 messages = chatHistory,
@@ -565,24 +605,22 @@ object AIMessageManager {
         val memoryForRequest =
             limitMediaLinksInChatHistory(memoryAfterImageLimit, maxMediaHistoryUserTurns)
 
-        val windowSize =
-            enhancedAiService.estimateRequestWindowFromMemory(
-                message = messageContent,
-                chatHistory = memoryForRequest,
-                chatId = chatId,
-                workspacePath = workspacePath,
-                workspaceEnv = workspaceEnv,
-                promptFunctionType = promptFunctionType,
-                roleCardId = roleCardId,
-                enableGroupOrchestrationHint = groupOrchestrationMode,
-                groupParticipantNamesText = groupParticipantNamesText,
-                proxySenderName = proxySenderName,
-                chatModelConfigIdOverride = chatModelConfigIdOverride,
-                chatModelIndexOverride = chatModelIndexOverride,
-                memorySpaceIdOverride = memorySpaceIdOverride,
-                publishEstimate = publishEstimate
-            )
-        return windowSize
+        return enhancedAiService.estimateRequestWindowSnapshotFromMemory(
+            message = messageContent,
+            chatHistory = memoryForRequest,
+            chatId = chatId,
+            workspacePath = workspacePath,
+            workspaceEnv = workspaceEnv,
+            promptFunctionType = promptFunctionType,
+            roleCardId = roleCardId,
+            enableGroupOrchestrationHint = groupOrchestrationMode,
+            groupParticipantNamesText = groupParticipantNamesText,
+            proxySenderName = proxySenderName,
+            chatModelConfigIdOverride = chatModelConfigIdOverride,
+            chatModelIndexOverride = chatModelIndexOverride,
+            memorySpaceIdOverride = memorySpaceIdOverride,
+            publishEstimate = publishEstimate
+        )
     }
 
     private fun limitMediaLinksInChatHistory(

@@ -5,6 +5,8 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.core.chat.AIMessageManager
+import com.ai.assistance.operit.core.chat.ContextWindowBreakdown
+import com.ai.assistance.operit.core.chat.ContextWindowBreakdownEstimator
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.config.FunctionalPrompts
@@ -199,6 +201,48 @@ class MessageCoordinationDelegate(
             chatModelIndexOverride = chatModelIndexOverride,
             memorySpaceIdOverride = memorySpaceIdOverride,
             publishEstimate = false
+        )
+    }
+
+    suspend fun loadContextWindowBreakdown(
+        chatId: String? = null
+    ): ContextWindowBreakdown? {
+        val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return null
+        val service = resolveWindowEstimateService(targetChatId) ?: return null
+        val roleCardId = resolveRoleCardId(targetChatId, null)
+        val currentChat = chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == targetChatId }
+        val currentRoleName =
+            runCatching { characterCardManager.getCharacterCardFlow(roleCardId).first().name }
+                .getOrNull()
+        val groupParticipantNamesText = buildBoundGroupParticipantNamesText(targetChatId)
+        val snapshot =
+            AIMessageManager.calculateStableContextWindowSnapshot(
+                enhancedAiService = service,
+                chatId = targetChatId,
+                chatHistory = chatHistoryDelegate.getRuntimeChatHistory(targetChatId),
+                workspacePath = currentChat?.workspace,
+                workspaceEnv = currentChat?.workspaceEnv,
+                promptFunctionType = currentPromptFunctionType,
+                roleCardId = roleCardId,
+                currentRoleName = currentRoleName,
+                splitHistoryByRole = true,
+                groupOrchestrationMode = isGroupChatSession(targetChatId),
+                groupParticipantNamesText = groupParticipantNamesText,
+                chatModelConfigIdOverride = currentChatModelConfigIdOverride,
+                chatModelIndexOverride = currentChatModelIndexOverride,
+                memorySpaceIdOverride =
+                    currentMemorySpaceIdOverride
+                        ?: roleCardId.let { resolveRoleCardMemoryProfileOverride(it) },
+                publishEstimate = false
+            )
+        val settings = resolveChatContextSettingsForRequest(currentChatModelConfigIdOverride)
+        val maxWindowTokens =
+            (settings.effectiveContextLength * 1024f).toLong().coerceAtLeast(0L)
+        return ContextWindowBreakdownEstimator.fromSnapshot(
+            snapshot = snapshot,
+            maxWindowTokens = maxWindowTokens,
+            autoSummaryThreshold = settings.summaryTokenThreshold,
+            enableSummary = settings.enableSummary
         )
     }
 
