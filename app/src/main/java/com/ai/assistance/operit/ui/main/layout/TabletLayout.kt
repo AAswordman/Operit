@@ -3,6 +3,7 @@ package com.ai.assistance.operit.ui.main.layout
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.ai.assistance.operit.ui.common.NavItem
@@ -96,6 +100,11 @@ fun TabletLayout(
                         label = "sidebarWidth"
                 )
 
+        val density = LocalDensity.current
+        val edgeSwipeWidthPx = with(density) { 24.dp.toPx() }
+        val sidebarSwipeThresholdPx = with(density) { 40.dp.toPx() }
+        val edgeGestureStartLimitPx = edgeSwipeWidthPx + LocalViewConfiguration.current.touchSlop
+
         // 使用Box作为顶层容器，这样可以允许子元素重叠
         Box(modifier = Modifier.fillMaxSize()) {
                 // 计算主内容区域的宽度（屏幕宽度减去侧边栏宽度），轻微调整动画时间
@@ -119,8 +128,56 @@ fun TabletLayout(
                 // 侧边栏区域，使用动画宽度，无圆角以完全遮住背景
                 Surface(
                         modifier =
-                                Modifier.width(animatedSidebarWidth)
+                                        Modifier.width(animatedSidebarWidth)
                                         .fillMaxHeight()
+                                        // 手势绑定在侧栏本身，避免主内容的横向手势被拦截。
+                                        .pointerInput(
+                                                isTabletSidebarExpanded,
+                                                edgeGestureStartLimitPx,
+                                                sidebarSwipeThresholdPx
+                                        ) {
+                                                var totalDragPx = 0f
+                                                var gestureEligible = false
+                                                var gestureHandled = false
+
+                                                detectHorizontalDragGestures(
+                                                        onDragStart = { startOffset ->
+                                                                totalDragPx = 0f
+                                                                gestureHandled = false
+                                                                gestureEligible =
+                                                                        isTabletSidebarExpanded ||
+                                                                                startOffset.x <=
+                                                                                        edgeGestureStartLimitPx
+                                                        },
+                                                        onHorizontalDrag = { _, dragAmount ->
+                                                                if (gestureEligible && !gestureHandled) {
+                                                                        totalDragPx += dragAmount
+                                                                        val shouldToggle =
+                                                                                if (isTabletSidebarExpanded) {
+                                                                                        totalDragPx <=
+                                                                                                -sidebarSwipeThresholdPx
+                                                                                } else {
+                                                                                        totalDragPx >=
+                                                                                                sidebarSwipeThresholdPx
+                                                                                }
+                                                                        if (shouldToggle) {
+                                                                                gestureHandled = true
+                                                                                onToggleSidebar()
+                                                                        }
+                                                                }
+                                                        },
+                                                        onDragEnd = {
+                                                                totalDragPx = 0f
+                                                                gestureEligible = false
+                                                                gestureHandled = false
+                                                        },
+                                                        onDragCancel = {
+                                                                totalDragPx = 0f
+                                                                gestureEligible = false
+                                                                gestureHandled = false
+                                                        }
+                                                )
+                                        }
                                         .waterGlass(
                                                 enabled = drawerAppearance.waterGlassEnabled,
                                                 shape = MaterialTheme.shapes.medium,
