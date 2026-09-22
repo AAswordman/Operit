@@ -7518,4 +7518,14 @@
     <string name="token_activity_chart_tap_hint">차트를 탭하여 자세한 데이터 보기</string>
     <string name="token_activity_total_tokens">누적 토큰</string>
     <string name="token_activity_peak_tokens">최대 토큰</string>
+
+    <!-- 健康数据读取说明（Health Connect 权限用途） -->
+    <string name="health_rationale_title">Operit AI가 건강 데이터를 사용하는 방법</string>
+    <string name="health_rationale_intro">Operit AI는 시스템 Health Connect를 통해 건강 및 피트니스 데이터를 읽어 기기에서 걸음 수, 심박수 등의 지표를 표시하고, 사용자가 직접 구성한 에이전트 도구와 자동화에서 사용할 수 있도록 합니다. 모든 읽기는 기기에서 로컬로 수행됩니다.</string>
+    <string name="health_rationale_items_title">읽는 데이터 유형</string>
+    <string name="health_rationale_items">걸음 수, 거리, 활동 및 총 소모 칼로리, 기초 대사율, 오른 층수와 상승 고도, 심박수, 안정 시 심박수, 심박 변이도, 호흡수, 산소 포화도, 수면, 체중, 키, 체지방, 제지방량, 골량, 체수분, 체온, 기초 체온, 혈압, 혈당, 수분 섭취량, 최대 산소 섭취량(VO2 max) 등 Health Connect가 지원하는 건강 및 피트니스 데이터 유형입니다. 이 기기에서 실제로 허용한 권한만 요청합니다.</string>
+    <string name="health_rationale_storage_title">저장 및 공유</string>
+    <string name="health_rationale_storage">Operit AI는 프로젝트가 운영하는 어떤 서버로도 건강 데이터를 업로드하지 않습니다. 이 프로젝트는 클라우드 서비스를 운영하지 않으며 사용자의 데이터를 보관하지 않습니다. 데이터는 기기에서 로컬로 처리되며, 사용자가 직접 구성한 모델, 자동화 또는 제3자 서비스를 통해 의도적으로 전송하는 경우에는 해당 제공업체의 약관에 따라 해당 제공업체로 직접 전송됩니다.</string>
+    <string name="health_rationale_revoke">Health Connect의 앱 권한에서 언제든지 이러한 권한을 취소할 수 있으며, 취소하면 Operit AI는 해당 데이터를 더 이상 읽을 수 없습니다.</string>
+    <string name="health_rationale_settings_hint">Android 14 이상에서는 설정 → 보안 및 개인정보 보호 → 개인정보 보호 → Health Connect → 앱 권한에서도 접근을 관리할 수 있습니다.</string>
 </resources>
