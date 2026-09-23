@@ -174,38 +174,6 @@ internal fun CanvasExpandableHeaderRow(
 }
 
 @Composable
-internal fun CanvasIndentedGuide(
-    modifier: Modifier = Modifier,
-    lineColor: Color,
-    indentStart: Int = 10,
-) {
-    Canvas(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(start = indentStart.dp, top = 1.dp, bottom = 1.dp)
-    ) {
-        val strokeWidth = 1.dp.toPx()
-        val lineX = strokeWidth / 2f
-        drawRoundRect(
-            brush =
-                Brush.verticalGradient(
-                    colorStops =
-                        arrayOf(
-                            0f to Color.Transparent,
-                            0.16f to lineColor,
-                            0.84f to lineColor,
-                            1f to Color.Transparent,
-                        )
-                ),
-            topLeft = Offset(lineX, 0f),
-            size = Size(strokeWidth, size.height),
-            cornerRadius = CornerRadius(999f, 999f),
-        )
-    }
-}
-
-@Composable
 internal fun CanvasFontTextBlock(
     text: String,
     textColor: Color,

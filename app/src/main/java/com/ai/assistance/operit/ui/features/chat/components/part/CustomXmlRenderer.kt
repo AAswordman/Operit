@@ -21,12 +21,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -941,6 +944,9 @@ class CustomXmlRenderer(
                                             Modifier.heightIn(max = 300.dp)
                                         }
                                     )
+                                    // 引导线直接画在已放置的容器上。matchParentSize() 会把
+                                    // 内容的真实高度再打包成有限 Constraints，超过 262143px 即崩溃。
+                                    .drawIndentedThinkGuide(hierarchyLineColor)
                             val thinkContentModifier =
                                 Modifier.fillMaxWidth()
                                     .then(
@@ -961,11 +967,6 @@ class CustomXmlRenderer(
                             Box(
                                 modifier = thinkContainerModifier
                             ) {
-                                CanvasIndentedGuide(
-                                    modifier = Modifier.matchParentSize(),
-                                    lineColor = hierarchyLineColor,
-                                )
-
                                 Box(
                                     modifier = thinkContentModifier
                                 ) {
@@ -1025,6 +1026,29 @@ class CustomXmlRenderer(
                     }
                 }
             }
+    }
+
+    private fun Modifier.drawIndentedThinkGuide(lineColor: Color): Modifier = drawBehind {
+        val strokeWidth = 1.dp.toPx()
+        val lineX = 10.dp.toPx() + strokeWidth / 2f
+        val topInset = 1.dp.toPx()
+        val lineHeight = size.height - topInset * 2f
+        if (lineHeight <= 0f) return@drawBehind
+        drawRoundRect(
+            brush = Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0f to Color.Transparent,
+                    0.16f to lineColor,
+                    0.84f to lineColor,
+                    1f to Color.Transparent,
+                ),
+                startY = topInset,
+                endY = topInset + lineHeight,
+            ),
+            topLeft = Offset(lineX, topInset),
+            size = Size(strokeWidth, lineHeight),
+            cornerRadius = CornerRadius(999f, 999f),
+        )
     }
 
     private fun createThinkMarkdownCharStream(
