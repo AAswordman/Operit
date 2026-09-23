@@ -168,6 +168,9 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     var summaryCustomRulesInput by remember(currentConfig?.id) {
         mutableStateOf(currentConfig?.summaryCustomRules.orEmpty())
     }
+    var previousSummaryReviewEnabled by remember(currentConfig?.id) {
+        mutableStateOf(currentConfig?.enablePreviousSummaryReview ?: false)
+    }
     var dialogueReviewEnabled by remember(currentConfig?.id) {
         mutableStateOf(currentConfig?.enableSummaryDialogueReview ?: true)
     }
@@ -204,6 +207,9 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     }
     LaunchedEffect(currentConfig?.id, currentConfig?.summaryCustomRules) {
         summaryCustomRulesInput = currentConfig?.summaryCustomRules.orEmpty()
+    }
+    LaunchedEffect(currentConfig?.id, currentConfig?.enablePreviousSummaryReview) {
+        previousSummaryReviewEnabled = currentConfig?.enablePreviousSummaryReview ?: false
     }
     LaunchedEffect(currentConfig?.id, currentConfig?.enableSummaryDialogueReview) {
         dialogueReviewEnabled = currentConfig?.enableSummaryDialogueReview ?: true
@@ -268,6 +274,13 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
         currentConfig = currentConfig,
         summarySectionsInputProvider = { summarySectionsInput },
         useEnglish = useEnglish,
+        modelConfigManager = modelConfigManager,
+        errorSaveFailed = errorSaveFailed,
+        onSummaryErrorChange = { summaryError = it }
+    )
+    ContextSummaryPreviousReviewAutoSaveEffect(
+        currentConfig = currentConfig,
+        enabledProvider = { previousSummaryReviewEnabled },
         modelConfigManager = modelConfigManager,
         errorSaveFailed = errorSaveFailed,
         onSummaryErrorChange = { summaryError = it }
@@ -344,6 +357,8 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                     onSummaryCustomRulesInputChange = {
                         summaryCustomRulesInput = it
                     },
+                    previousSummaryReviewEnabled = previousSummaryReviewEnabled,
+                    onPreviousSummaryReviewEnabledChange = { previousSummaryReviewEnabled = it },
                     dialogueReviewEnabled = dialogueReviewEnabled,
                     onDialogueReviewEnabledChange = { dialogueReviewEnabled = it },
                     dialogueReviewTitleInput = dialogueReviewTitleInput,
@@ -642,6 +657,40 @@ private fun ContextSummarySectionsAutoSaveEffect(
 }
 
 @Composable
+private fun ContextSummaryPreviousReviewAutoSaveEffect(
+    currentConfig: ModelConfigData?,
+    enabledProvider: () -> Boolean,
+    modelConfigManager: ModelConfigManager,
+    errorSaveFailed: String,
+    onSummaryErrorChange: (String?) -> Unit
+) {
+    val latestConfig by rememberUpdatedState(currentConfig)
+
+    LaunchedEffect(currentConfig?.id) {
+        val configId = currentConfig?.id ?: return@LaunchedEffect
+        snapshotFlow { enabledProvider() }
+            .drop(1)
+            .debounce(300)
+            .distinctUntilChanged()
+            .collectLatest { enabled ->
+                val current = latestConfig ?: return@collectLatest
+                if (current.id != configId) return@collectLatest
+                if (current.enablePreviousSummaryReview == enabled) return@collectLatest
+                try {
+                    modelConfigManager.updatePreviousSummaryReviewSettings(
+                        configId = current.id,
+                        enabled = enabled
+                    )
+                    onSummaryErrorChange(null)
+                } catch (e: Exception) {
+                    AppLogger.w("ContextSummarySettings", "保存上一轮摘要回顾设置失败", e)
+                    onSummaryErrorChange(e.message ?: errorSaveFailed)
+                }
+            }
+    }
+}
+
+@Composable
 private fun ContextSummaryDialogueReviewAutoSaveEffect(
     currentConfig: ModelConfigData?,
     dialogueReviewInputProvider: () -> Pair<Boolean, String>,
@@ -699,6 +748,8 @@ private fun RenderContextSummaryConfigSections(
     onSummaryMessageCountThresholdInputChange: (String) -> Unit,
     summaryCustomRulesInput: String,
     onSummaryCustomRulesInputChange: (String) -> Unit,
+    previousSummaryReviewEnabled: Boolean,
+    onPreviousSummaryReviewEnabledChange: (Boolean) -> Unit,
     dialogueReviewEnabled: Boolean,
     onDialogueReviewEnabledChange: (Boolean) -> Unit,
     dialogueReviewTitleInput: String,
@@ -806,6 +857,14 @@ private fun RenderContextSummaryConfigSections(
         value = summaryCustomRulesInput,
         onValueChange = onSummaryCustomRulesInputChange,
         onOpenFullscreenEditor = onOpenFullscreenEditor
+    )
+    SettingsSwitchRow(
+        title = stringResource(id = R.string.settings_summary_previous_review),
+        subtitle = stringResource(id = R.string.settings_summary_previous_review_desc),
+        checked = previousSummaryReviewEnabled,
+        onCheckedChange = onPreviousSummaryReviewEnabledChange,
+        backgroundColor = componentBackgroundColor,
+        enabled = enableSummary
     )
     Spacer(modifier = Modifier.size(12.dp))
     SectionTitle(

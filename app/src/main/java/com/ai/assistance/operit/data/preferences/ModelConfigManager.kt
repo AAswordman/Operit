@@ -957,6 +957,15 @@ class ModelConfigManager(
         }
     }
 
+    suspend fun updatePreviousSummaryReviewSettings(
+            configId: String,
+            enabled: Boolean
+    ): ModelConfigData {
+        return updateConfigInternal(configId) {
+            it.copy(enablePreviousSummaryReview = enabled)
+        }
+    }
+
     suspend fun updateSummaryDialogueReviewSettings(
             configId: String,
             enabled: Boolean,
