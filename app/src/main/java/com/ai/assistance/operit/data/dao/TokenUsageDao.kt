@@ -88,6 +88,9 @@ abstract class TokenUsageDao {
     )
     abstract suspend fun deleteEmptyStatsModels(): Int
 
+    @Query("DELETE FROM token_usage_records")
+    abstract suspend fun clearUsageRecords()
+
     @Query(
         """
         SELECT

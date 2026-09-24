@@ -329,6 +329,7 @@ private fun TokenStatsPageContent(
                     }
                     ok
                 },
+                onResetUsage = viewModel::clearUsageRecords,
             )
         }
 

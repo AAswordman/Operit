@@ -103,4 +103,8 @@ class TokenUsageRepository private constructor(context: Context) {
     suspend fun record(record: TokenUsageRecordEntity) {
         withDao { dao -> dao.insertRecord(record) }
     }
+
+    suspend fun clearUsageRecords() {
+        withDao { dao -> dao.clearUsageRecords() }
+    }
 }
