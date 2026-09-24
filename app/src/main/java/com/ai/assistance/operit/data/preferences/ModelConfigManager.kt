@@ -935,41 +935,6 @@ class ModelConfigManager(
         }
     }
 
-    suspend fun updateSummarySettings(
-            configId: String,
-            enableSummary: Boolean,
-            summaryTokenThreshold: Float,
-            enableSummaryByMessageCount: Boolean,
-            summaryMessageCountThreshold: Int,
-            summaryCustomRules: String? = null,
-            summarySectionOverrides: List<SummarySectionOverride>? = null
-    ): ModelConfigData {
-        return updateConfigInternal(configId) { current ->
-            current.copy(
-                    enableSummary = enableSummary,
-                    summaryTokenThreshold = summaryTokenThreshold,
-                    enableSummaryByMessageCount = enableSummaryByMessageCount,
-                    summaryMessageCountThreshold = summaryMessageCountThreshold,
-                    summaryCustomRules = summaryCustomRules ?: current.summaryCustomRules,
-                    summarySectionOverrides =
-                        summarySectionOverrides ?: current.summarySectionOverrides
-            )
-        }
-    }
-
-    suspend fun updateSummaryDialogueReviewSettings(
-            configId: String,
-            enabled: Boolean,
-            title: String
-    ): ModelConfigData {
-        return updateConfigInternal(configId) {
-            it.copy(
-                    enableSummaryDialogueReview = enabled,
-                    summaryDialogueReviewTitle = title
-            )
-        }
-    }
-
     /**
      * 根据配置ID获取完整的模型参数列表（包括标准和自定义参数）
      * @param configId 配置ID

@@ -3325,7 +3325,6 @@
     <string name="chat_ai_service_not_initialized">AI服务未初始化</string>
     <string name="chat_summary_inserted">总结已插入</string>
     <string name="chat_summary_generation_failed">生成总结失败</string>
-    <string name="chat_insert_summary_failed">插入总结失败: %1$s</string>
     <string name="chat_invalid_message_index">无效的消息索引</string>
     <string name="chat_message_updated">消息已更新</string>
     <string name="chat_update_message_failed">更新消息失败: %1$s</string>
@@ -7415,9 +7414,16 @@
     <string name="skill_error_import_failed">导入失败: %1$s</string>
 
     <!-- Context Summary Settings -->
-    <string name="context_summary_note">文件读取限制与文本结果截断已改为固定系统常量。此页可直接调整当前绑定模型配置的上下文与总结参数，以及历史图片和音视频保留回合数。</string>
+    <string name="context_summary_note">文件读取限制与文本结果截断已改为固定系统常量。总结开关、阈值与提示词按角色卡配置，未绑定角色卡时使用全局默认；上下文长度在模型参数界面按模型配置调整。</string>
     <string name="context_summary_current_model_config">当前绑定模型配置：%1$s</string>
-    <string name="context_summary_bound_config_description">此页面的上下文与总结设置会直接写回当前对话绑定的模型配置。</string>
+    <string name="context_summary_bound_config_description">此页面的上下文长度设置会直接写回当前对话绑定的模型配置；总结设置改由角色卡或全局默认持有。</string>
+    <string name="context_summary_target_title">总结配置归属</string>
+    <string name="context_summary_target_desc">选择要配置的角色卡，或编辑全局默认总结配置</string>
+    <string name="context_summary_target_global_default">全局默认</string>
+    <string name="context_summary_target_global_default_desc">没有角色卡或角色卡跟随全局时使用</string>
+    <string name="context_summary_target_active_mark">当前会话</string>
+    <string name="context_summary_target_custom_switch">使用专属总结配置</string>
+    <string name="context_summary_target_custom_switch_desc">开启后该角色卡使用下方配置，关闭则跟随全局默认</string>
     <string name="context_validation_error_positive_number">%1$s 必须是大于 0 的有效数字</string>
     <string name="context_validation_error_positive_integer">%1$s 必须是大于 0 的有效整数</string>
     <string name="context_validation_error_non_negative_integer">%1$s 必须是大于等于 0 的有效整数</string>

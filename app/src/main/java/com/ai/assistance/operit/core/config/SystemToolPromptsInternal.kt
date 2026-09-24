@@ -2135,30 +2135,6 @@ object SystemToolPromptsInternal {
                                         required = false
                                     ),
                                     ToolParameterSchema(
-                                        name = "summary_token_threshold",
-                                        type = "number",
-                                        description = "optional, token-ratio threshold for context summary trigger (0~1)",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary",
-                                        type = "boolean",
-                                        description = "optional, enable context summary",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary_by_message_count",
-                                        type = "boolean",
-                                        description = "optional, enable summary trigger by message count",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "summary_message_count_threshold",
-                                        type = "integer",
-                                        description = "optional, message-count threshold for summary trigger",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
                                         name = "custom_parameters",
                                         type = "string",
                                         description = "optional, custom parameters JSON array string",
@@ -2313,30 +2289,6 @@ object SystemToolPromptsInternal {
                                         name = "enable_max_context_mode",
                                         type = "boolean",
                                         description = "optional, use max_context_length as active context",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "summary_token_threshold",
-                                        type = "number",
-                                        description = "optional, token-ratio threshold for context summary trigger (0~1)",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary",
-                                        type = "boolean",
-                                        description = "optional, enable context summary",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary_by_message_count",
-                                        type = "boolean",
-                                        description = "optional, enable summary trigger by message count",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "summary_message_count_threshold",
-                                        type = "integer",
-                                        description = "optional, message-count threshold for summary trigger",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -5127,30 +5079,6 @@ object SystemToolPromptsInternal {
                                         required = false
                                     ),
                                     ToolParameterSchema(
-                                        name = "summary_token_threshold",
-                                        type = "number",
-                                        description = "可选，上下文总结触发的 token 比例阈值（0~1）",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary",
-                                        type = "boolean",
-                                        description = "可选，是否启用上下文总结",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary_by_message_count",
-                                        type = "boolean",
-                                        description = "可选，是否启用按消息条数触发总结",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "summary_message_count_threshold",
-                                        type = "integer",
-                                        description = "可选，按消息条数触发总结的阈值",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
                                         name = "custom_parameters",
                                         type = "string",
                                         description = "可选，自定义参数 JSON 数组字符串",
@@ -5305,30 +5233,6 @@ object SystemToolPromptsInternal {
                                         name = "enable_max_context_mode",
                                         type = "boolean",
                                         description = "可选，是否启用最大上下文模式（启用后使用 max_context_length）",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "summary_token_threshold",
-                                        type = "number",
-                                        description = "可选，上下文总结触发的 token 比例阈值（0~1）",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary",
-                                        type = "boolean",
-                                        description = "可选，是否启用上下文总结",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "enable_summary_by_message_count",
-                                        type = "boolean",
-                                        description = "可选，是否启用按消息条数触发总结",
-                                        required = false
-                                    ),
-                                    ToolParameterSchema(
-                                        name = "summary_message_count_threshold",
-                                        type = "integer",
-                                        description = "可选，按消息条数触发总结的阈值",
                                         required = false
                                     ),
                                     ToolParameterSchema(

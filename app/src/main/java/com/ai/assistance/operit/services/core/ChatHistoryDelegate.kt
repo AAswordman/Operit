@@ -350,12 +350,18 @@ class ChatHistoryDelegate(
         return chatHistoryManager.loadRuntimeChatMessages(chatId)
     }
 
-    suspend fun loadMessagesForSummaryInsertion(
+    /**
+     * 插入总结的装载窗口：长按位置之前的全部消息，保留 summary 消息。
+     *
+     * summary 消息是 previousSummary 的来源，必须一并交给 AIMessageManager.summarizeMemory，
+     * 由它自己截取待总结消息，与自动总结的输入构造保持一致。
+     */
+    suspend fun loadRuntimeMessagesForSummaryInsertion(
         chatId: String,
         beforeTimestampExclusive: Long? = null,
         upToTimestampInclusive: Long? = null,
     ): List<ChatMessage> =
-        chatHistoryManager.loadMessagesAfterLatestSummaryInRange(
+        chatHistoryManager.loadRuntimeChatMessagesForSummaryInsertion(
             chatId = chatId,
             beforeTimestampExclusive = beforeTimestampExclusive,
             upToTimestampInclusive = upToTimestampInclusive,

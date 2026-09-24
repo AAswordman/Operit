@@ -41,6 +41,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.api.CodexAuthManager
+import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.model.ContextSummarySettings
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.CharacterCardManager
+import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.api.chat.llmprovider.ApiKeyPoolAvailabilityTester
 import com.ai.assistance.operit.api.chat.llmprovider.ChatConfigReadiness
@@ -802,7 +807,6 @@ fun ModelConfigScreen(
                     ContextSummarySettingsSection(
                         config = config,
                         configManager = configManager,
-                        scope = scope,
                         showNotification = { message -> showNotification(message) }
                     )
                 }
@@ -2113,22 +2117,110 @@ private fun CustomHeadersSettingsSection(
     }
 }
 
+private data class ConnectionTestItem(
+    val labelResId: Int,
+    val type: ModelConnectionTestType,
+    val outcome: ModelConnectionTestOutcome,
+    val error: String? = null
+) {
+    fun statusText(context: android.content.Context): String {
+        return when (outcome) {
+            ModelConnectionTestOutcome.PASSED ->
+                context.getString(
+                    when (type) {
+                        ModelConnectionTestType.IMAGE ->
+                            R.string.test_media_image_understood
+                        ModelConnectionTestType.AUDIO ->
+                            R.string.test_media_audio_understood
+                        ModelConnectionTestType.VIDEO ->
+                            R.string.test_media_video_understood
+                        else -> R.string.test_connection_success
+                    }
+                )
+            ModelConnectionTestOutcome.UNVERIFIED ->
+                context.getString(
+                    when (type) {
+                        ModelConnectionTestType.IMAGE ->
+                            R.string.test_media_image_unverified
+                        ModelConnectionTestType.AUDIO ->
+                            R.string.test_media_audio_unverified
+                        ModelConnectionTestType.VIDEO ->
+                            R.string.test_media_video_unverified
+                        else -> R.string.test_media_unverified
+                    }
+                )
+            ModelConnectionTestOutcome.FAILED ->
+                context.getString(
+                    R.string.test_connection_failed,
+                    error ?: ""
+                )
+        }
+    }
+}
+
+private fun ModelConnectionTestType.toLabelResId(): Int {
+    return when (this) {
+        ModelConnectionTestType.CHAT -> R.string.test_item_chat
+        ModelConnectionTestType.TOOL_CALL -> R.string.test_item_toolcall
+        ModelConnectionTestType.IMAGE -> R.string.test_item_image
+        ModelConnectionTestType.AUDIO -> R.string.test_item_audio
+        ModelConnectionTestType.VIDEO -> R.string.test_item_video
+    }
+}
+
+private fun formatFloatValue(value: Float): String {
+    return if (value % 1f == 0f) value.toInt().toString() else String.format("%.2f", value)
+}
+
+/**
+ * 上下文长度与总结设置。
+ *
+ * 上下文长度仍写在所选模型配置上（ModelConfigData 持有）；总结开关、阈值与条数在角色卡
+ * 绑定改造后不再属于模型配置，这里读写"当前会话生效的总结目标"：角色卡 CUSTOM 写卡内，
+ * FOLLOW_GLOBAL 或未绑定角色卡写全局默认。写入目标由 rememberSummaryTarget 决定，
+ * 展示与禁用品体见 SummaryTarget.editable。
+ */
 @Composable
 private fun ContextSummarySettingsSection(
     config: ModelConfigData,
     configManager: ModelConfigManager,
-    scope: CoroutineScope,
     showNotification: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    val activePromptManager = remember { ActivePromptManager.getInstance(context) }
+    val characterCardManager = remember { CharacterCardManager.getInstance(context) }
+    val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
+    val activeCardId by produceState<String?>(initialValue = null) {
+        activePromptManager.activePromptFlow.collect { prompt ->
+            value = (prompt as? ActivePrompt.CharacterCard)?.id
+        }
+    }
+    val summaryTarget =
+        rememberSummaryTarget(
+            selectedCardId = activeCardId,
+            characterCardManager = characterCardManager,
+            userPreferencesManager = userPreferencesManager
+        )
+    val summaryEditable = summaryTarget?.editable ?: false
     val latestConfig by rememberUpdatedState(config)
+    val latestTarget by rememberUpdatedState(summaryTarget)
+
     var contextLengthInput by remember(config.id) { mutableStateOf(formatFloatValue(config.contextLength)) }
     var maxContextLengthInput by remember(config.id) { mutableStateOf(formatFloatValue(config.maxContextLength)) }
     var contextError by remember { mutableStateOf<String?>(null) }
 
-    var enableSummary by remember(config.id) { mutableStateOf(config.enableSummary) }
-    var summaryTokenThresholdInput by remember(config.id) { mutableStateOf(formatFloatValue(config.summaryTokenThreshold)) }
-    var enableSummaryByMessageCount by remember(config.id) { mutableStateOf(config.enableSummaryByMessageCount) }
-    var summaryMessageCountThresholdInput by remember(config.id) { mutableStateOf(config.summaryMessageCountThreshold.toString()) }
+    var enableSummary by remember(config.id) {
+        mutableStateOf(summaryTarget?.settings?.enableSummary ?: false)
+    }
+    var summaryTokenThresholdInput by remember(config.id) {
+        mutableStateOf(summaryTarget?.settings?.summaryTokenThreshold?.let(::formatFloatValue) ?: "")
+    }
+    var enableSummaryByMessageCount by remember(config.id) {
+        mutableStateOf(summaryTarget?.settings?.enableSummaryByMessageCount ?: false)
+    }
+    var summaryMessageCountThresholdInput by remember(config.id) {
+        mutableStateOf(summaryTarget?.settings?.summaryMessageCountThreshold?.toString().orEmpty())
+    }
     var summaryError by remember { mutableStateOf<String?>(null) }
 
     var contextExpanded by rememberSaveable { mutableStateOf(false) }
@@ -2146,17 +2238,19 @@ private fun ContextSummarySettingsSection(
     LaunchedEffect(config.id, config.maxContextLength) {
         maxContextLengthInput = formatFloatValue(config.maxContextLength)
     }
-    LaunchedEffect(config.id, config.enableSummary) {
-        enableSummary = config.enableSummary
+    LaunchedEffect(config.id, summaryTarget?.settings?.enableSummary) {
+        enableSummary = summaryTarget?.settings?.enableSummary ?: false
     }
-    LaunchedEffect(config.id, config.summaryTokenThreshold) {
-        summaryTokenThresholdInput = formatFloatValue(config.summaryTokenThreshold)
+    LaunchedEffect(config.id, summaryTarget?.settings?.summaryTokenThreshold) {
+        summaryTokenThresholdInput =
+            summaryTarget?.settings?.summaryTokenThreshold?.let(::formatFloatValue).orEmpty()
     }
-    LaunchedEffect(config.id, config.enableSummaryByMessageCount) {
-        enableSummaryByMessageCount = config.enableSummaryByMessageCount
+    LaunchedEffect(config.id, summaryTarget?.settings?.enableSummaryByMessageCount) {
+        enableSummaryByMessageCount = summaryTarget?.settings?.enableSummaryByMessageCount ?: false
     }
-    LaunchedEffect(config.id, config.summaryMessageCountThreshold) {
-        summaryMessageCountThresholdInput = config.summaryMessageCountThreshold.toString()
+    LaunchedEffect(config.id, summaryTarget?.settings?.summaryMessageCountThreshold) {
+        summaryMessageCountThresholdInput =
+            summaryTarget?.settings?.summaryMessageCountThreshold?.toString().orEmpty()
     }
 
     LaunchedEffect(config.id) {
@@ -2216,60 +2310,58 @@ private fun ContextSummarySettingsSection(
             .debounce(700)
             .distinctUntilChanged()
             .collectLatest {
-                val current = latestConfig
-                if (!enableSummary) {
-                    if (current.enableSummary) {
-                        try {
-                            configManager.updateSummarySettings(
-                                configId = current.id,
-                                enableSummary = false,
-                                summaryTokenThreshold = current.summaryTokenThreshold,
-                                enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                                summaryMessageCountThreshold = current.summaryMessageCountThreshold
-                            )
-                            summaryError = null
-                        } catch (e: Exception) {
-                            summaryError = e.message ?: errorSaveFailed
-                        }
-                    }
-                    return@collectLatest
-                }
+                val target = latestTarget ?: return@collectLatest
+                // 角色卡跟随全局时展示的是全局配置，输入全部禁用，不发生写入
+                if (!target.editable) return@collectLatest
 
                 val threshold = summaryTokenThresholdInput.toFloatOrNull()
                 val messageCount = summaryMessageCountThresholdInput.toIntOrNull()
 
                 when {
-                    threshold == null || threshold <= 0f || threshold >= 1f -> {
+                    enableSummary && (threshold == null || threshold <= 0f || threshold >= 1f) -> {
                         summaryError = errorSummaryThresholdRange
                     }
 
-                    enableSummaryByMessageCount && (messageCount == null || messageCount <= 0) -> {
+                    enableSummary &&
+                            enableSummaryByMessageCount &&
+                            (messageCount == null || messageCount <= 0) -> {
                         summaryError = errorValidMessageCount
                     }
 
                     else -> {
-                        val nextMessageCount =
-                            if (enableSummaryByMessageCount) messageCount
-                                ?: current.summaryMessageCountThreshold
-                            else current.summaryMessageCountThreshold
-
-                        val isNoOp =
-                            current.enableSummary == enableSummary &&
-                                    current.summaryTokenThreshold == threshold &&
-                                    current.enableSummaryByMessageCount == enableSummaryByMessageCount &&
-                                    current.summaryMessageCountThreshold == nextMessageCount
-                        if (isNoOp) {
+                        val baseSettings = target.settings
+                        val settings =
+                            ContextSummarySettings(
+                                enableSummary = enableSummary,
+                                // 关闭总结时保留已存阈值：输入框此时可能留着未完成的编辑
+                                summaryTokenThreshold =
+                                    if (enableSummary) {
+                                        threshold ?: baseSettings.summaryTokenThreshold
+                                    } else {
+                                        baseSettings.summaryTokenThreshold
+                                    },
+                                enableSummaryByMessageCount = enableSummaryByMessageCount,
+                                summaryMessageCountThreshold =
+                                    if (enableSummaryByMessageCount) {
+                                        messageCount ?: baseSettings.summaryMessageCountThreshold
+                                    } else {
+                                        baseSettings.summaryMessageCountThreshold
+                                    },
+                                summaryCustomRules = baseSettings.summaryCustomRules,
+                                summarySectionOverrides = baseSettings.summarySectionOverrides,
+                                dialogueReviewEnabled = baseSettings.dialogueReviewEnabled,
+                                dialogueReviewTitle = baseSettings.dialogueReviewTitle
+                            )
+                        if (settings == baseSettings) {
                             summaryError = null
                             return@collectLatest
                         }
-
                         try {
-                            configManager.updateSummarySettings(
-                                configId = current.id,
-                                enableSummary = enableSummary,
-                                summaryTokenThreshold = threshold,
-                                enableSummaryByMessageCount = enableSummaryByMessageCount,
-                                summaryMessageCountThreshold = nextMessageCount
+                            saveSummarySettings(
+                                target = target,
+                                settings = settings,
+                                characterCardManager = characterCardManager,
+                                userPreferencesManager = userPreferencesManager
                             )
                             summaryError = null
                         } catch (e: Exception) {
@@ -2414,11 +2506,15 @@ private fun ContextSummarySettingsSection(
                     exit = shrinkVertically() + fadeOut()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // 总结配置已按角色卡/全局默认归属，说明此处改动写去哪里
+                        SettingsInfoBanner(text = stringResource(id = R.string.context_summary_note))
+
                         SettingsSwitchRow(
                             title = stringResource(id = R.string.settings_enable_summary),
                             subtitle = stringResource(id = R.string.settings_enable_summary_desc),
                             checked = enableSummary,
-                            onCheckedChange = { enableSummary = it }
+                            onCheckedChange = { enableSummary = it },
+                            enabled = summaryEditable
                         )
 
                         SettingsTextField(
@@ -2429,7 +2525,7 @@ private fun ContextSummarySettingsSection(
                                 summaryTokenThresholdInput = it
                                 summaryError = null
                             },
-                            enabled = enableSummary,
+                            enabled = summaryEditable && enableSummary,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Decimal,
                                 imeAction = ImeAction.Next
@@ -2441,7 +2537,7 @@ private fun ContextSummarySettingsSection(
                             subtitle = stringResource(id = R.string.settings_enable_summary_by_message_count_desc),
                             checked = enableSummaryByMessageCount,
                             onCheckedChange = { enableSummaryByMessageCount = it },
-                            enabled = enableSummary
+                            enabled = summaryEditable && enableSummary
                         )
 
                         SettingsTextField(
@@ -2453,7 +2549,7 @@ private fun ContextSummarySettingsSection(
                                 summaryError = null
                             },
                             unitText = stringResource(id = R.string.model_config_unit_items),
-                            enabled = enableSummary && enableSummaryByMessageCount,
+                            enabled = summaryEditable && enableSummary && enableSummaryByMessageCount,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number,
                                 imeAction = ImeAction.Done
@@ -2472,59 +2568,4 @@ private fun ContextSummarySettingsSection(
             }
         }
     }
-}
-
-private data class ConnectionTestItem(
-    val labelResId: Int,
-    val type: ModelConnectionTestType,
-    val outcome: ModelConnectionTestOutcome,
-    val error: String? = null
-) {
-    fun statusText(context: android.content.Context): String {
-        return when (outcome) {
-            ModelConnectionTestOutcome.PASSED ->
-                context.getString(
-                    when (type) {
-                        ModelConnectionTestType.IMAGE ->
-                            R.string.test_media_image_understood
-                        ModelConnectionTestType.AUDIO ->
-                            R.string.test_media_audio_understood
-                        ModelConnectionTestType.VIDEO ->
-                            R.string.test_media_video_understood
-                        else -> R.string.test_connection_success
-                    }
-                )
-            ModelConnectionTestOutcome.UNVERIFIED ->
-                context.getString(
-                    when (type) {
-                        ModelConnectionTestType.IMAGE ->
-                            R.string.test_media_image_unverified
-                        ModelConnectionTestType.AUDIO ->
-                            R.string.test_media_audio_unverified
-                        ModelConnectionTestType.VIDEO ->
-                            R.string.test_media_video_unverified
-                        else -> R.string.test_media_unverified
-                    }
-                )
-            ModelConnectionTestOutcome.FAILED ->
-                context.getString(
-                    R.string.test_connection_failed,
-                    error ?: ""
-                )
-        }
-    }
-}
-
-private fun ModelConnectionTestType.toLabelResId(): Int {
-    return when (this) {
-        ModelConnectionTestType.CHAT -> R.string.test_item_chat
-        ModelConnectionTestType.TOOL_CALL -> R.string.test_item_toolcall
-        ModelConnectionTestType.IMAGE -> R.string.test_item_image
-        ModelConnectionTestType.AUDIO -> R.string.test_item_audio
-        ModelConnectionTestType.VIDEO -> R.string.test_item_video
-    }
-}
-
-private fun formatFloatValue(value: Float): String {
-    return if (value % 1f == 0f) value.toInt().toString() else String.format("%.2f", value)
 }

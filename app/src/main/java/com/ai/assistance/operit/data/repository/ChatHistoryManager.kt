@@ -2376,42 +2376,6 @@ class ChatHistoryManager private constructor(private val context: Context) {
         }
     }
 
-    suspend fun loadMessagesAfterLatestSummaryInRange(
-        chatId: String,
-        beforeTimestampExclusive: Long? = null,
-        upToTimestampInclusive: Long? = null,
-    ): List<ChatMessage> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val latestSummaryTimestamp =
-                    when {
-                        beforeTimestampExclusive != null ->
-                            messageDao.getLatestSummaryTimestampBefore(
-                                chatId,
-                                beforeTimestampExclusive,
-                            )
-                        upToTimestampInclusive != null ->
-                            messageDao.getLatestSummaryTimestampUpTo(
-                                chatId,
-                                upToTimestampInclusive,
-                            )
-                        else -> messageDao.getLatestSummaryTimestamp(chatId)
-                    }
-                val messageEntities =
-                    chatContentDao.getMessagesForChatInRangeAsc(
-                        chatId = chatId,
-                        afterTimestampExclusive = latestSummaryTimestamp,
-                        beforeTimestampExclusive = beforeTimestampExclusive,
-                        upToTimestampInclusive = upToTimestampInclusive,
-                    )
-                hydrateMessages(chatId, messageEntities)
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "按总结窗口加载聊天消息失败", e)
-                emptyList()
-            }
-        }
-    }
-
     suspend fun hasUserMessage(chatId: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -2464,6 +2428,36 @@ class ChatHistoryManager private constructor(private val context: Context) {
                     )
                 }
             hydrateMessages(chatId, messageEntities)
+        }
+    }
+
+    /**
+     * 为插入总结加载长按位置之前的全部消息，保留 summary 消息。
+     *
+     * 插入总结必须和自动总结拿到同一份输入：AIMessageManager.summarizeMemory 依赖列表里
+     * 最后一条 summary 作为 previousSummary，再从其后截取待总结消息。历史上这里把窗口裁到
+     * 最近一次总结之后、并把 summary 过滤掉，previousSummary 恒为 null，模型拿不到可融合的
+     * 历史，只剩自定义规则可复述。因此本方法不做总结锚点裁切，交给 summarizeMemory 自己处理。
+     */
+    suspend fun loadRuntimeChatMessagesForSummaryInsertion(
+        chatId: String,
+        beforeTimestampExclusive: Long? = null,
+        upToTimestampInclusive: Long? = null,
+    ): List<ChatMessage> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val messageEntities =
+                    chatContentDao.getMessagesForChatInRangeAsc(
+                        chatId = chatId,
+                        afterTimestampExclusive = null,
+                        beforeTimestampExclusive = beforeTimestampExclusive,
+                        upToTimestampInclusive = upToTimestampInclusive
+                    )
+                hydrateMessages(chatId, messageEntities)
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "加载插入总结窗口的聊天消息失败", e)
+                emptyList()
+            }
         }
     }
 

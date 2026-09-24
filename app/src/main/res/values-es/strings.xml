@@ -3197,7 +3197,6 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="chat_ai_service_not_initialized">Servicio de IA no inicializado</string>
     <string name="chat_summary_inserted">Resumen insertado</string>
     <string name="chat_summary_generation_failed">Error al generar el resumen</string>
-    <string name="chat_insert_summary_failed">Error al insertar el resumen: %1$s</string>
     <string name="chat_invalid_message_index">Índice de mensaje no válido</string>
     <string name="chat_message_updated">Mensaje actualizado</string>
     <string name="chat_update_message_failed">Error al actualizar el mensaje: %1$s</string>

@@ -2702,7 +2702,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="chat_ai_service_not_initialized">Layanan AI belum diinisialisasi</string>
     <string name="chat_summary_inserted">Ringkasan telah disisipkan</string>
     <string name="chat_summary_generation_failed">Gagal membuat ringkasan</string>
-    <string name="chat_insert_summary_failed">Gagal menyisipkan ringkasan: %1$s</string>
     <string name="chat_invalid_message_index">Indeks pesan tidak valid</string>
     <string name="chat_message_updated">Pesan telah diperbarui</string>
     <string name="chat_update_message_failed">Gagal memperbarui pesan: %1$s</string>
