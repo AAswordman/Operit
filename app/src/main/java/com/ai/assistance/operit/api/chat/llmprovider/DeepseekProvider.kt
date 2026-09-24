@@ -91,8 +91,7 @@ class DeepseekProvider(
                         supportsVideo = supportsVideo,
                         enableToolCall = enableToolCall,
                         thinkingConfigurations = config.thinkingConfigurations,
-                        thinkingOptionId = config.thinkingOptionId,
-                        enableWebSearch = config.enableDeepSeekWebSearch
+                        thinkingOptionId = config.thinkingOptionId
                     )
             }
         }
@@ -1271,8 +1270,7 @@ private class DeepseekResponsesProvider(
     supportsVideo: Boolean,
     enableToolCall: Boolean,
     thinkingConfigurations: String,
-    thinkingOptionId: String,
-    private val enableWebSearch: Boolean
+    thinkingOptionId: String
 ) : OpenAIProvider(
     apiEndpoint = responsesApiEndpoint,
     apiKeyProvider = apiKeyProvider,
@@ -1350,17 +1348,6 @@ private class DeepseekResponsesProvider(
         return createJsonRequestBody(requestJson.toString())
     }
 
-    override fun customizeFinalRequestObject(
-        requestObject: JSONObject,
-        messagesArray: JSONArray,
-        toolsJson: String?
-    ) {
-        if (enableWebSearch) {
-            appendWebSearchTool(requestObject)
-        }
-        super.customizeFinalRequestObject(requestObject, messagesArray, toolsJson)
-    }
-
     override fun formatResponsesWebSearchDisplayXml(
         context: Context,
         item: JSONObject,
@@ -1389,21 +1376,6 @@ private class DeepseekResponsesProvider(
             status = status,
             sources = sources,
         )
-    }
-
-    private fun appendWebSearchTool(requestObject: JSONObject) {
-        val tools = requestObject.optJSONArray("tools") ?: JSONArray().also {
-            requestObject.put("tools", it)
-        }
-        for (index in 0 until tools.length()) {
-            val tool = tools.optJSONObject(index) ?: continue
-            if (tool.optString("type") == "web_search") {
-                requestObject.put("tool_choice", "auto")
-                return
-            }
-        }
-        tools.put(JSONObject().put("type", "web_search"))
-        requestObject.put("tool_choice", "auto")
     }
 
     private fun buildDeepseekSearchXml(

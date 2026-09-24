@@ -7555,8 +7555,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_stats_chart_next_bucket">Bucket waktu berikutnya</string>
     <string name="token_stats_chart_bucket_of">Bucket %1$d / %2$d</string>
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, total %4$s</string>
-    <string name="enable_deepseek_web_search">Aktifkan pencarian web DeepSeek</string>
-    <string name="enable_deepseek_web_search_desc">Saat menggunakan endpoint DeepSeek Responses, izinkan model menggunakan pencarian web sisi server.</string>
     <string name="enable_codex_web_search">Aktifkan pencarian web Codex</string>
     <string name="enable_codex_web_search_desc">Setelah masuk ke Codex, izinkan model menggunakan pencarian web sisi server.</string>
     <string name="search_query_label">Kueri</string>

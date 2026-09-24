@@ -7393,8 +7393,6 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_stats_chart_next_bucket">Próximo intervalo de tempo</string>
     <string name="token_stats_chart_bucket_of">Intervalo %1$d / %2$d</string>
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, total %4$s</string>
-    <string name="enable_deepseek_web_search">Ativar pesquisa na web DeepSeek</string>
-    <string name="enable_deepseek_web_search_desc">Ao usar o endpoint DeepSeek Responses, permite que o modelo use a pesquisa na web do servidor.</string>
     <string name="enable_codex_web_search">Ativar pesquisa na web Codex</string>
     <string name="enable_codex_web_search_desc">Após fazer login no Codex, permite que o modelo use a pesquisa na web do servidor.</string>
     <string name="search_query_label">Consulta</string>

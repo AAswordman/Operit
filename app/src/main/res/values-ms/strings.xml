@@ -7552,8 +7552,6 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_chart_next_bucket">Bucket masa seterusnya</string>
     <string name="token_stats_chart_bucket_of">Bucket %1$d / %2$d</string>
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, jumlah %4$s</string>
-    <string name="enable_deepseek_web_search">Dayakan carian web DeepSeek</string>
-    <string name="enable_deepseek_web_search_desc">Apabila menggunakan titik akhir DeepSeek Responses, benarkan model menggunakan carian web pelayan.</string>
     <string name="enable_codex_web_search">Dayakan carian web Codex</string>
     <string name="enable_codex_web_search_desc">Selepas log masuk ke Codex, benarkan model menggunakan carian web pelayan.</string>
     <string name="search_query_label">Pertanyaan</string>

@@ -4195,8 +4195,6 @@
     <string name="enable_direct_video_processing_desc">When enabled, video will be sent directly to the AI for processing instead of tool-based frame extraction/analysis</string>
     <string name="enable_google_search">Enable Google Search</string>
     <string name="enable_google_search_desc">When enabled, Gemini will use Google Search to enhance responses (may incur additional charges)</string>
-    <string name="enable_deepseek_web_search">Enable DeepSeek web search</string>
-    <string name="enable_deepseek_web_search_desc">When using a DeepSeek Responses endpoint, allow the model to use server-side web search.</string>
     <string name="enable_codex_web_search">Enable Codex web search</string>
     <string name="enable_codex_web_search_desc">When signed in to Codex, allow the model to use server-side web search.</string>
     <string name="enable_claude_1h_prompt_cache">Enable Claude 1-hour prompt cache</string>

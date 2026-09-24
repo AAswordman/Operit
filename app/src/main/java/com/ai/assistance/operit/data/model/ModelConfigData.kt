@@ -184,9 +184,6 @@ data class ModelConfigData(
         // Gemini特定配置
         val enableGoogleSearch: Boolean = false, // 是否启用Google Search Grounding (仅Gemini支持)
 
-        // DeepSeek特定配置
-        val enableDeepSeekWebSearch: Boolean = false, // 是否启用DeepSeek Responses服务端搜索
-
         // Codex特定配置
         val enableCodexWebSearch: Boolean = false, // 是否启用Codex认证登录下的服务端网络搜索
 

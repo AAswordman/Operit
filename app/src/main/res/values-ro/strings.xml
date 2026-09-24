@@ -8150,8 +8150,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_chart_next_bucket">Interval de timp următor</string>
     <string name="token_stats_chart_bucket_of">Intervalul %1$d / %2$d</string>
     <string name="token_stats_chart_summary">%1$s, %2$s, %3$s, total %4$s</string>
-    <string name="enable_deepseek_web_search">Activați căutarea web DeepSeek</string>
-    <string name="enable_deepseek_web_search_desc">Când utilizați punctul final DeepSeek Responses, permiteți modelului să folosească căutarea web pe server.</string>
     <string name="enable_codex_web_search">Activați căutarea web Codex</string>
     <string name="enable_codex_web_search_desc">După autentificarea la Codex, permiteți modelului să folosească căutarea web pe server.</string>
     <string name="search_query_label">Interogare</string>
