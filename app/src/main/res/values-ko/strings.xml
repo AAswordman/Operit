@@ -6546,7 +6546,8 @@
     <string name="enhanced_connecting_service">AI 서비스에 연결하는 중...</string>
     <string name="enhanced_receiving_response">AI 응답을 받는 중...</string>
     <string name="enhanced_error_with_message">오류: %1$s</string>
-    <string name="enhanced_pure_thinking_only_warning">경고: 주요 내용을 출력하고 생각만 하는 응답은 출력하지 마십시오.</string>
+    <string name="enhanced_pure_thinking_only_warning">경고: 이번 응답에는 생각만 있고 본문이 없습니다. 본문을 계속 출력하세요.</string>
+    <string name="enhanced_pure_thinking_output_limit_warning">경고: 이번 응답에는 생각만 있고 본문이 없습니다. 단일 출력의 최대 토큰 수에 도달했고 생각이 출력 한도를 모두 사용했습니다. 모델 매개변수에서 최대 생성 토큰 수를 높이세요. 이미 모델이나 제공업체의 상한이면 출력 한도가 더 높은 모델이나 제공업체로 바꾸세요.</string>
     <string name="enhanced_truncated_tool_call_warning">경고: 모델 출력 제한으로 인해 도구 호출이 잘렸습니다. 이번 라운드의 모든 도구 호출이 무효화되어 실행되지 않습니다. 단일 회전 출력을 줄이거나, 작업을 분할하거나, 더 적합한 모델/공급업체로 전환해 보세요.</string>
     <string name="status_warning_ai_error_summary">AI가 오류를 범했습니다.</string>
     <string name="status_warning_ai_error_detail_title">AI 오류 이유</string>

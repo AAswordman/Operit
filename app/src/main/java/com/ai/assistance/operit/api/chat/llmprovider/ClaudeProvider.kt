@@ -58,7 +58,7 @@ open class ClaudeProvider(
     private val JSON = "application/json".toMediaType()
     private val ANTHROPIC_VERSION = "2023-06-01" // Claude API版本
     private val PROMPT_CACHE_CONTROL_TYPE = "ephemeral"
-    private val DEFAULT_MAX_TOKENS = 4096
+    private val DEFAULT_MAX_TOKENS = 16384
     private val EMPTY_MESSAGE_TEXT = "[Empty]"
 
     // 当前活跃的Call对象，用于取消流式传输
@@ -93,6 +93,21 @@ open class ClaudeProvider(
     // 重置token计数
     override fun resetTokenCounts() {
         tokenCacheManager.resetTokenCounts()
+    }
+
+    @Volatile
+    private var outputStoppedByLimit = false
+
+    override val outputTruncatedByLimit: Boolean
+        get() = outputStoppedByLimit
+
+    private fun markOutputLimit(reason: String) {
+        val normalized = reason.trim()
+        if (normalized.equals("max_tokens", ignoreCase = true) ||
+            normalized.equals("length", ignoreCase = true)
+        ) {
+            outputStoppedByLimit = true
+        }
     }
 
     private fun logLargeString(tag: String, message: String, prefix: String = "") {
@@ -1314,6 +1329,7 @@ open class ClaudeProvider(
         val eventChannel = MutableSharedStream<TextStreamEvent>(replay = Int.MAX_VALUE)
         val responseStream = stream {
         isManuallyCancelled = false
+        outputStoppedByLimit = false
         tokenCacheManager.setOutputTokens(0)
 
         val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
@@ -1335,6 +1351,7 @@ open class ClaudeProvider(
         }
 
         fun parseAnthropicNonStreaming(jsonResponse: JSONObject): String {
+            markOutputLimit(jsonResponse.optString("stop_reason", ""))
             val content = jsonResponse.optJSONArray("content") ?: return ""
             if (content.length() <= 0) return ""
             val fullText = StringBuilder()
@@ -1394,6 +1411,7 @@ open class ClaudeProvider(
             val choices = jsonResponse.optJSONArray("choices") ?: return ""
             if (choices.length() <= 0) return ""
             val first = choices.optJSONObject(0) ?: return ""
+            markOutputLimit(first.optString("finish_reason", ""))
             val messageObj = first.optJSONObject("message")
             return messageObj?.optString("content", "") ?: ""
         }
@@ -1410,6 +1428,7 @@ open class ClaudeProvider(
             val currentAttempt = ++outboundAttempt
             var streamCompletionConfirmed = !stream
             val call = try {
+                outputStoppedByLimit = false
                 if (retryCount > 0) {
                     AppLogger.d(
                         "AIService",
@@ -1505,6 +1524,7 @@ open class ClaudeProvider(
                                         !finishReason.equals("null", ignoreCase = true) &&
                                         !finishReason.equals("none", ignoreCase = true)
                                 ) {
+                                    markOutputLimit(finishReason)
                                     streamCompletionConfirmed = true
                                 }
                                 applyAnthropicUsage(
@@ -1662,6 +1682,7 @@ open class ClaudeProvider(
                                         !finishReason.equals("null", ignoreCase = true) &&
                                         !finishReason.equals("none", ignoreCase = true)
                                 ) {
+                                    markOutputLimit(finishReason)
                                     streamCompletionConfirmed = true
                                 }
                                 applyAnthropicUsage(
@@ -1835,6 +1856,11 @@ open class ClaudeProvider(
                                     }
                                 }
                                 "message_delta" -> {
+                                    markOutputLimit(
+                                        jsonResponse.optJSONObject("delta")
+                                            ?.optString("stop_reason", "")
+                                            .orEmpty()
+                                    )
                                     applyAnthropicUsage(
                                         usage = jsonResponse.optJSONObject("usage"),
                                         onTokensUpdated = onTokensUpdated,
@@ -1957,6 +1983,7 @@ open class ClaudeProvider(
                                             !finishReason.equals("null", ignoreCase = true) &&
                                             !finishReason.equals("none", ignoreCase = true)
                                     ) {
+                                        markOutputLimit(finishReason)
                                         streamCompletionConfirmed = true
                                     }
                                     applyAnthropicUsage(

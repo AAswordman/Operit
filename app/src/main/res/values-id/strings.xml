@@ -6439,7 +6439,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="enhanced_connecting_service">Menghubungkan ke layanan AI...</string>
     <string name="enhanced_receiving_response">Menerima respons AI...</string>
     <string name="enhanced_error_with_message">Kesalahan: %1$s</string>
-    <string name="enhanced_pure_thinking_only_warning">Peringatan: Harap keluarkan konten utama, dilarang hanya mengeluarkan konten pemikiran.</string>
+    <string name="enhanced_pure_thinking_only_warning">Peringatan: Respons ini hanya berisi pemikiran dan tidak berisi konten utama. Lanjutkan dengan konten utama.</string>
+    <string name="enhanced_pure_thinking_output_limit_warning">Peringatan: Respons ini hanya berisi pemikiran dan tidak berisi konten utama. Batas token keluaran telah tercapai, dan pemikiran menggunakan seluruh kuota. Naikkan jumlah token maksimum di parameter model. Jika nilai itu sudah merupakan batas model atau penyedia, gunakan model atau penyedia dengan batas keluaran yang lebih tinggi.</string>
     <string name="enhanced_truncated_tool_call_warning">Peringatan: Terdeteksi output panggilan alat terpotong. Semua panggilan alat pada putaran ini telah dibatalkan dan tidak akan dieksekusi. Coba kurangi output sekali pakai, pecah tugas, atau ganti model/penyedia yang lebih sesuai dan coba lagi.</string>
     <string name="status_warning_ai_error_summary">AI membuat kesalahan</string>
 

@@ -7787,7 +7787,8 @@
     <string name="enhanced_connecting_service">正在连接AI服务...</string>
     <string name="enhanced_receiving_response">正在接收AI响应...</string>
     <string name="enhanced_error_with_message">错误: %1$s</string>
-    <string name="enhanced_pure_thinking_only_warning">警告：请输出正文内容，禁止仅输出思考内容。</string>
+    <string name="enhanced_pure_thinking_only_warning">警告：本次只返回了思考内容，没有返回正文。请继续输出正文。</string>
+    <string name="enhanced_pure_thinking_output_limit_warning">警告：本次只返回了思考内容，没有返回正文。单次输出已达到最大生成 Token 数，思考占用了全部额度。请在模型参数中调高“最大生成 Token 数”；如果该值已经是模型或服务商允许的上限，则需要更换输出上限更高的模型或服务商。</string>
     <string name="enhanced_truncated_tool_call_warning">警告：检测到工具调用输出被截断。本轮所有工具调用均已作废且不会执行。请尝试减少单次输出、拆分任务，或更换更合适的模型/供应商后重试。</string>
     <string name="status_warning_ai_error_summary">AI犯了一个错误</string>
     <string name="status_warning_ai_error_detail_title">AI错误原因</string>

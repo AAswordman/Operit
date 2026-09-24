@@ -122,7 +122,7 @@ data class ModelConfigData(
         val repetitionPenaltyEnabled: Boolean = false,
 
         // 模型参数值
-        val maxTokens: Int = 4096,
+        val maxTokens: Int = 16384,
         val temperature: Float = 1.0f,
         val topP: Float = 1.0f,
         val topK: Int = 0,

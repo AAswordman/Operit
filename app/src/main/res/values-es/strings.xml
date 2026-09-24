@@ -6930,7 +6930,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="enhanced_connecting_service">Conectando al servicio de IA...</string>
     <string name="enhanced_receiving_response">Recibiendo respuesta de la IA...</string>
     <string name="enhanced_error_with_message">Error: %1$s</string>
-    <string name="enhanced_pure_thinking_only_warning">Advertencia: por favor, genere contenido del cuerpo del texto; no está permitido generar solo contenido de pensamiento.</string>
+    <string name="enhanced_pure_thinking_only_warning">Advertencia: esta respuesta solo contiene pensamiento y no incluye el contenido principal. Continúe con el contenido principal.</string>
+    <string name="enhanced_pure_thinking_output_limit_warning">Advertencia: esta respuesta solo contiene pensamiento y no incluye el contenido principal. Se alcanzó el máximo de tokens de salida y el pensamiento usó todo el cupo. Aumente el máximo de tokens en los parámetros del modelo. Si ya está en el límite del modelo o del proveedor, cambie a uno con un límite de salida mayor.</string>
     <string name="enhanced_truncated_tool_call_warning">Advertencia: se detectó que la salida de la invocación de herramientas fue truncada. Todas las invocaciones de herramientas de esta ronda han sido invalidadas y no se ejecutarán. Intente reducir la salida única, dividir la tarea o cambiar a un modelo/proveedor más adecuado y vuelva a intentarlo.</string>
     <string name="status_warning_ai_error_summary">La IA cometió un error</string>
     <string name="status_warning_ai_error_detail_title">Motivo del error de la IA</string>

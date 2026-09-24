@@ -6479,7 +6479,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="enhanced_connecting_service">Menyambung ke perkhidmatan AI...</string>
     <string name="enhanced_receiving_response">Menerima respons AI...</string>
     <string name="enhanced_error_with_message">Ralat: %1$s</string>
-    <string name="enhanced_pure_thinking_only_warning">Amaran: Sila keluarkan kandungan teks, dilarang hanya mengeluarkan kandungan pemikiran.</string>
+    <string name="enhanced_pure_thinking_only_warning">Amaran: Respons ini hanya mengandungi pemikiran dan tiada kandungan utama. Sila teruskan dengan kandungan utama.</string>
+    <string name="enhanced_pure_thinking_output_limit_warning">Amaran: Respons ini hanya mengandungi pemikiran dan tiada kandungan utama. Had token output sekali telah dicapai, dan pemikiran menggunakan keseluruhan kuota. Tinggikan bilangan token maksimum dalam parameter model. Jika nilai itu sudah merupakan had model atau pembekal, tukar kepada model atau pembekal dengan had output yang lebih tinggi.</string>
     <string name="enhanced_truncated_tool_call_warning">Amaran: Pengeluaran panggilan alat dikesan dipotong. Semua panggilan alat dalam pusingan ini telah dibatalkan dan tidak akan dilaksanakan. Cuba kurangkan keluaran tunggal, pecahkan tugas, atau tukar kepada model/pembekal yang lebih sesuai dan cuba semula.</string>
     <string name="status_warning_ai_error_summary">AI melakukan kesilapan</string>
     <string name="status_warning_ai_error_detail_title">Sebab ralat AI</string>

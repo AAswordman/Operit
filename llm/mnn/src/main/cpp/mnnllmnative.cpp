@@ -779,10 +779,7 @@ static jboolean runStreamGenerationWithInputIds(
 
         llm->reset();
 
-        int maxNewTokens = maxTokens > 0 ? static_cast<int>(maxTokens) : 512;
-        if (maxNewTokens > 8192) {
-            maxNewTokens = 8192;
-        }
+        int maxNewTokens = maxTokens > 0 ? static_cast<int>(maxTokens) : 16384;
 
         int currentSize = 0;
 
@@ -1014,10 +1011,7 @@ static jboolean runStreamGenerationWithHistory(
 
         llm->reset();
 
-        int maxNewTokens = maxTokens > 0 ? static_cast<int>(maxTokens) : 512;
-        if (maxNewTokens > 8192) {
-            maxNewTokens = 8192;
-        }
+        int maxNewTokens = maxTokens > 0 ? static_cast<int>(maxTokens) : 16384;
 
         int currentSize = 0;
 

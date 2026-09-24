@@ -71,6 +71,19 @@ class LlamaProvider(
         _cachedInputTokenCount = 0L
     }
 
+    @Volatile
+    private var outputStoppedByLimit = false
+
+    override val outputTruncatedByLimit: Boolean
+        get() = outputStoppedByLimit
+
+    private fun requestedMaxTokens(parameters: List<ModelParameter<*>>): Int {
+        val parameter = parameters.find {
+            it.isEnabled && (it.id == "max_tokens" || it.apiName == "max_tokens")
+        } ?: return -1
+        return (parameter.currentValue as? Number)?.toInt() ?: -1
+    }
+
     private fun logLargeString(prefix: String, message: String) {
         val maxLogSize = 3000
         if (message.length <= maxLogSize) {
@@ -178,6 +191,7 @@ class LlamaProvider(
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> = stream {
         isCancelled = false
+        outputStoppedByLimit = false
 
         if (!LlamaSession.isAvailable()) {
             throw IOException("${context.getString(R.string.llama_error_prefix)}: ${LlamaSession.getUnavailableReason()}")
@@ -275,10 +289,8 @@ class LlamaProvider(
         _outputTokenCount = 0L
         onTokensUpdated(_inputTokenCount, 0L, 0L)
 
-        val requestedMaxNewTokens = modelParameters
-            .find { it.name == "max_tokens" }
-            ?.let { (it.currentValue as? Number)?.toInt() }
-            ?: -1
+        val requestedMaxNewTokens = requestedMaxTokens(modelParameters)
+        val effectiveMaxNewTokens = if (requestedMaxNewTokens > 0) requestedMaxNewTokens else 16384
 
         AppLogger.d(
             TAG,
@@ -294,7 +306,7 @@ class LlamaProvider(
             onUsageReported,
         )
         val success = withContext(Dispatchers.IO) {
-                s.generateStream(prompt, requestedMaxNewTokens) { token ->
+                s.generateStream(prompt, effectiveMaxNewTokens) { token ->
                     if (isCancelled) {
                         false
                     } else {
@@ -319,6 +331,9 @@ class LlamaProvider(
                 }
             }
 
+        if (!isCancelled && success && outputTokenCount >= effectiveMaxNewTokens) {
+            outputStoppedByLimit = true
+        }
         LocalGenerationEnd.end(
             cancelled = isCancelled,
             success = success,

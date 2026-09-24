@@ -7262,7 +7262,8 @@
     <string name="enhanced_connecting_service">Connecting to AI service...</string>
     <string name="enhanced_receiving_response">Receiving AI response...</string>
     <string name="enhanced_error_with_message">Error: %1$s</string>
-    <string name="enhanced_pure_thinking_only_warning">Warning: Please output main content and do not output thinking-only responses.</string>
+    <string name="enhanced_pure_thinking_only_warning">Warning: This response contains only thinking and no main content. Please continue with the main content.</string>
+    <string name="enhanced_pure_thinking_output_limit_warning">Warning: This response contains only thinking and no main content. The response reached the maximum output token limit, and thinking used the entire allowance. Increase Max Tokens in the model parameters. If it is already at the model or provider limit, switch to a model or provider with a higher output limit.</string>
     <string name="enhanced_truncated_tool_call_warning">Warning: A tool call was truncated by the model output limit. All tool calls in this round were invalidated and will not be executed. Try reducing single-turn output, splitting the task, or switching to a more suitable model/provider.</string>
     <string name="status_warning_ai_error_summary">The AI made an error</string>
     <string name="status_warning_ai_error_detail_title">AI Error Reason</string>

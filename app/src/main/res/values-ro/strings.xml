@@ -7467,7 +7467,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="enhanced_connecting_service">Se conecteazăAIServicii...</string>
     <string name="enhanced_receiving_response">Se recepționeazăAIRăspuns...</string>
     <string name="enhanced_error_with_message">Eroare: %1$s</string>
-    <string name="enhanced_pure_thinking_only_warning">Avertisment: Vă rugăm să introduceți conținutul principal; nu este permisă introducerea exclusivă a gândurilor personale.</string>
+    <string name="enhanced_pure_thinking_only_warning">Avertisment: acest răspuns conține doar gândire și nu conține textul principal. Continuați cu textul principal.</string>
+    <string name="enhanced_pure_thinking_output_limit_warning">Avertisment: acest răspuns conține doar gândire și nu conține textul principal. S-a atins limita de tokeni pentru o singură ieșire, iar gândirea a folosit întreaga cotă. Măriți numărul maxim de tokeni generați în parametrii modelului. Dacă valoarea este deja limita modelului sau a furnizorului, folosiți un model sau un furnizor cu o limită de ieșire mai mare.</string>
     <string name="enhanced_truncated_tool_call_warning">Avertisment: s-a detectat că ieșirea apelurilor de instrumente a fost trunchiată. Toate apelurile de instrumente din această rundă au fost anulate și nu vor fi executate. Vă rugăm să încercați să reduceți ieșirea pe apel, să împărțiți sarcina sau să utilizați un model mai adecvat./Încercați din nou după ce ați selectat furnizorul.</string>
     <string name="status_warning_ai_error_summary">AIAm făcut o greșeală</string>
     <string name="status_warning_ai_error_detail_title">AICauza erorii</string>
