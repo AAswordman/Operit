@@ -7,22 +7,27 @@ import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.ApiKeyFormatValidator
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.model.ContextSummarySettings
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelConfigDefaults
+import com.ai.assistance.operit.data.model.SummarySettingsResolver
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
+import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -63,6 +68,7 @@ class ApiConfigDelegate(
     private val functionalConfigManager = FunctionalConfigManager(context)
     private val characterCardManager = CharacterCardManager.getInstance(context)
     private val activePromptManager = ActivePromptManager.getInstance(context)
+    private val userPreferencesManager = UserPreferencesManager.getInstance(context)
     private val configScope =
             CoroutineScope(SupervisorJob(coroutineScope.coroutineContext[Job]) + Dispatchers.IO)
 
@@ -107,21 +113,6 @@ class ApiConfigDelegate(
             kotlinx.coroutines.flow.SharingStarted.Eagerly,
             ModelConfigDefaults.DEFAULT_CONTEXT_LENGTH
     )
-
-    private val _summaryTokenThreshold =
-            MutableStateFlow(ModelConfigDefaults.DEFAULT_SUMMARY_TOKEN_THRESHOLD)
-    val summaryTokenThreshold: StateFlow<Float> = _summaryTokenThreshold.asStateFlow()
-
-    private val _enableSummary = MutableStateFlow(ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY)
-    val enableSummary: StateFlow<Boolean> = _enableSummary.asStateFlow()
-
-    private val _enableSummaryByMessageCount =
-            MutableStateFlow(ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT)
-    val enableSummaryByMessageCount: StateFlow<Boolean> = _enableSummaryByMessageCount.asStateFlow()
-
-    private val _summaryMessageCountThreshold =
-            MutableStateFlow(ModelConfigDefaults.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD)
-    val summaryMessageCountThreshold: StateFlow<Int> = _summaryMessageCountThreshold.asStateFlow()
 
     private val _enableTools = MutableStateFlow(ApiPreferences.DEFAULT_ENABLE_TOOLS)
     val enableTools: StateFlow<Boolean> = _enableTools.asStateFlow()
@@ -274,41 +265,76 @@ class ApiConfigDelegate(
                     ModelConfigDefaults.DEFAULT_CONTEXT_LENGTH
                 )
 
+    /**
+     * 某个活跃目标对应的总结配置流：角色卡为 CUSTOM 时跟随卡内 summary，
+     * 其余情况回落到全局默认。命令式的 resolveSummarySettings 与本流共用同一实现，
+     * 保证两条解析路径不会漂移。判定本身在 SummarySettingsResolver 中，可单测。
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun summarySettingsFlowForPrompt(prompt: ActivePrompt): Flow<ContextSummarySettings> {
+        val cardSettingsFlow: Flow<ContextSummarySettings?> =
+            when (prompt) {
+                is ActivePrompt.CharacterCard ->
+                    characterCardManager.getCharacterCardFlow(prompt.id).map { card ->
+                        if (SummarySettingsResolver.usesCardSettings(prompt, card)) {
+                            card.summary
+                        } else {
+                            null
+                        }
+                    }
+
+                is ActivePrompt.CharacterGroup -> flowOf(null)
+            }
+        return cardSettingsFlow.flatMapLatest { cardSettings ->
+            if (cardSettings != null) flowOf(cardSettings)
+            else userPreferencesManager.globalContextSummaryFlow
+        }
+    }
+
+    /**
+     * 当前会话生效的总结配置流，供界面展示使用。
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val effectiveSummarySettings: StateFlow<ContextSummarySettings> =
+        activePromptManager.activePromptFlow
+            .flatMapLatest { prompt -> summarySettingsFlowForPrompt(prompt) }
+            .stateIn(configScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, ContextSummarySettings())
+
     val effectiveSummaryTokenThreshold: StateFlow<Float> =
-            effectiveChatConfig
-                .map { config -> config.summaryTokenThreshold }
-                .stateIn(
-                    configScope,
-                    kotlinx.coroutines.flow.SharingStarted.Eagerly,
-                    ModelConfigDefaults.DEFAULT_SUMMARY_TOKEN_THRESHOLD
-                )
+        effectiveSummarySettings
+            .map { settings -> settings.summaryTokenThreshold }
+            .stateIn(
+                configScope,
+                kotlinx.coroutines.flow.SharingStarted.Eagerly,
+                ContextSummarySettings.DEFAULT_SUMMARY_TOKEN_THRESHOLD
+            )
 
     val effectiveEnableSummary: StateFlow<Boolean> =
-            effectiveChatConfig
-                .map { config -> config.enableSummary }
-                .stateIn(
-                    configScope,
-                    kotlinx.coroutines.flow.SharingStarted.Eagerly,
-                    ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY
-                )
+        effectiveSummarySettings
+            .map { settings -> settings.enableSummary }
+            .stateIn(
+                configScope,
+                kotlinx.coroutines.flow.SharingStarted.Eagerly,
+                ContextSummarySettings.DEFAULT_ENABLE_SUMMARY
+            )
 
     val effectiveEnableSummaryByMessageCount: StateFlow<Boolean> =
-            effectiveChatConfig
-                .map { config -> config.enableSummaryByMessageCount }
-                .stateIn(
-                    configScope,
-                    kotlinx.coroutines.flow.SharingStarted.Eagerly,
-                    ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT
-                )
+        effectiveSummarySettings
+            .map { settings -> settings.enableSummaryByMessageCount }
+            .stateIn(
+                configScope,
+                kotlinx.coroutines.flow.SharingStarted.Eagerly,
+                ContextSummarySettings.DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT
+            )
 
     val effectiveSummaryMessageCountThreshold: StateFlow<Int> =
-            effectiveChatConfig
-                .map { config -> config.summaryMessageCountThreshold }
-                .stateIn(
-                    configScope,
-                    kotlinx.coroutines.flow.SharingStarted.Eagerly,
-                    ModelConfigDefaults.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD
-                )
+        effectiveSummarySettings
+            .map { settings -> settings.summaryMessageCountThreshold }
+            .stateIn(
+                configScope,
+                kotlinx.coroutines.flow.SharingStarted.Eagerly,
+                ContextSummarySettings.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD
+            )
 
     init {
         configScope.launch {
@@ -382,13 +408,29 @@ class ApiConfigDelegate(
         _contextLength.value = config.contextLength
         _maxContextLength.value = config.maxContextLength
         _enableMaxContextMode.value = config.enableMaxContextMode
-        _summaryTokenThreshold.value = config.summaryTokenThreshold
-        _enableSummary.value = config.enableSummary
-        _enableSummaryByMessageCount.value = config.enableSummaryByMessageCount
-        _summaryMessageCountThreshold.value = config.summaryMessageCountThreshold
     }
 
-    private fun buildChatContextSettings(configId: String, config: ModelConfigData): ChatContextSettings {
+    /**
+     * 解析当前会话生效的上下文总结配置，全仓唯一入口。
+     *
+     * 总结配置过去挂在模型上，并且设置界面、提示词读取、触发阈值分别从全局 CHAT 映射与
+     * 角色卡绑定模型两处不同链路解析，导致界面修改在运行时被忽略。现在统一收敛到本入口：
+     * 角色卡 CUSTOM 用卡内 summary，FOLLOW_GLOBAL、群聊会话与卡片读取失败时用全局默认，
+     * 三条链路从此同源，切换角色卡即时改变总结行为。
+     *
+     * 与 configIdOverride 解耦：这里回答"用哪份总结配置"，configIdOverride 继续回答
+     * "用哪个对话模型"，互不影响。
+     */
+    suspend fun resolveSummarySettings(): ContextSummarySettings {
+        val activePrompt = activePromptManager.activePromptFlow.first()
+        return summarySettingsFlowForPrompt(activePrompt).first()
+    }
+
+    private fun buildChatContextSettings(
+        configId: String,
+        config: ModelConfigData,
+        summarySettings: ContextSummarySettings
+    ): ChatContextSettings {
         val effectiveContextLength =
             if (config.enableMaxContextMode) config.maxContextLength else config.contextLength
         return ChatContextSettings(
@@ -397,10 +439,10 @@ class ApiConfigDelegate(
             maxContextLength = config.maxContextLength,
             enableMaxContextMode = config.enableMaxContextMode,
             effectiveContextLength = effectiveContextLength,
-            summaryTokenThreshold = config.summaryTokenThreshold,
-            enableSummary = config.enableSummary,
-            enableSummaryByMessageCount = config.enableSummaryByMessageCount,
-            summaryMessageCountThreshold = config.summaryMessageCountThreshold
+            summaryTokenThreshold = summarySettings.summaryTokenThreshold,
+            enableSummary = summarySettings.enableSummary,
+            enableSummaryByMessageCount = summarySettings.enableSummaryByMessageCount,
+            summaryMessageCountThreshold = summarySettings.summaryMessageCountThreshold
         )
     }
 
@@ -410,7 +452,9 @@ class ApiConfigDelegate(
         val config = requireNotNull(modelConfigManager.getModelConfig(configId)) {
             "Model config not found: $configId"
         }
-        return buildChatContextSettings(configId, config)
+        // 上下文容量仍来自模型配置，总结配置统一来自角色卡或全局默认，两条来源各自独立解析。
+        val summarySettings = resolveSummarySettings()
+        return buildChatContextSettings(configId, config, summarySettings)
     }
 
     private suspend fun resolveEditableChatConfigId(): String {
@@ -687,18 +731,35 @@ class ApiConfigDelegate(
             )
         }
     }
-    fun updateSummaryTokenThreshold(threshold: Float) {
+    /**
+     * 修改当前生效的总结配置：角色卡 CUSTOM 写卡内 summary，其余情况写全局默认。
+     * 与 resolveSummarySettings 同源，聊天快速设置栏的编辑落在正在生效的那份配置上，
+     * 不再写入模型配置后被运行时忽略。
+     */
+    private fun updateActiveSummarySettings(
+        transform: (ContextSummarySettings) -> ContextSummarySettings
+    ) {
         configScope.launch {
-            val configId = resolveEditableChatConfigId()
-            val current = modelConfigManager.getModelConfig(configId) ?: return@launch
-            modelConfigManager.updateSummarySettings(
-                    configId = configId,
-                    enableSummary = current.enableSummary,
-                    summaryTokenThreshold = threshold,
-                    enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                    summaryMessageCountThreshold = current.summaryMessageCountThreshold
-            )
+            val activePrompt = activePromptManager.activePromptFlow.first()
+            val card =
+                (activePrompt as? ActivePrompt.CharacterCard)?.let { prompt ->
+                    runCatching { characterCardManager.getCharacterCard(prompt.id) }.getOrNull()
+                }
+            val customCard = card?.takeIf { SummarySettingsResolver.usesCardSettings(activePrompt, it) }
+            if (customCard != null) {
+                characterCardManager.updateCharacterCardSummarySettings(
+                    customCard.id,
+                    transform(customCard.summary)
+                )
+            } else {
+                val current = userPreferencesManager.globalContextSummaryFlow.first()
+                userPreferencesManager.saveGlobalContextSummary(transform(current))
+            }
         }
+    }
+
+    fun updateSummaryTokenThreshold(threshold: Float) {
+        updateActiveSummarySettings { it.copy(summaryTokenThreshold = threshold) }
     }
 
     fun updateMaxContextLength(length: Float) {
@@ -729,49 +790,19 @@ class ApiConfigDelegate(
     }
     /** 切换启用总结功能 */
     fun toggleEnableSummary() {
-        configScope.launch {
-            val configId = resolveEditableChatConfigId()
-            val current = modelConfigManager.getModelConfig(configId) ?: return@launch
-            val newValue = !current.enableSummary
-            modelConfigManager.updateSummarySettings(
-                    configId = configId,
-                    enableSummary = newValue,
-                    summaryTokenThreshold = current.summaryTokenThreshold,
-                    enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                    summaryMessageCountThreshold = current.summaryMessageCountThreshold
-            )
-        }
+        updateActiveSummarySettings { it.copy(enableSummary = !it.enableSummary) }
     }
 
     /** 切换按消息数量启用总结 */
     fun toggleEnableSummaryByMessageCount() {
-        configScope.launch {
-            val configId = resolveEditableChatConfigId()
-            val current = modelConfigManager.getModelConfig(configId) ?: return@launch
-            val newValue = !current.enableSummaryByMessageCount
-            modelConfigManager.updateSummarySettings(
-                    configId = configId,
-                    enableSummary = current.enableSummary,
-                    summaryTokenThreshold = current.summaryTokenThreshold,
-                    enableSummaryByMessageCount = newValue,
-                    summaryMessageCountThreshold = current.summaryMessageCountThreshold
-            )
+        updateActiveSummarySettings {
+            it.copy(enableSummaryByMessageCount = !it.enableSummaryByMessageCount)
         }
     }
 
     /** 更新总结消息数量阈值 */
     fun updateSummaryMessageCountThreshold(threshold: Int) {
-        configScope.launch {
-            val configId = resolveEditableChatConfigId()
-            val current = modelConfigManager.getModelConfig(configId) ?: return@launch
-            modelConfigManager.updateSummarySettings(
-                    configId = configId,
-                    enableSummary = current.enableSummary,
-                    summaryTokenThreshold = current.summaryTokenThreshold,
-                    enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                    summaryMessageCountThreshold = threshold
-            )
-        }
+        updateActiveSummarySettings { it.copy(summaryMessageCountThreshold = threshold) }
     }
 
     /** 切换工具启用/禁用 */

@@ -2219,16 +2219,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
         applyBoolean("enable_max_context_mode") { config, value ->
             config.copy(enableMaxContextMode = value)
         }
-        applyFloat("summary_token_threshold") { config, value ->
-            config.copy(summaryTokenThreshold = value.coerceIn(0f, 1f))
-        }
-        applyBoolean("enable_summary") { config, value -> config.copy(enableSummary = value) }
-        applyBoolean("enable_summary_by_message_count") { config, value ->
-            config.copy(enableSummaryByMessageCount = value)
-        }
-        applyInt("summary_message_count_threshold") { config, value ->
-            config.copy(summaryMessageCountThreshold = value.coerceAtLeast(1))
-        }
         applyString("custom_parameters") { config, value ->
             val json = value.ifBlank { "[]" }
             try {
@@ -2327,10 +2317,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
             contextLength = config.contextLength,
             maxContextLength = config.maxContextLength,
             enableMaxContextMode = config.enableMaxContextMode,
-            summaryTokenThreshold = config.summaryTokenThreshold,
-            enableSummary = config.enableSummary,
-            enableSummaryByMessageCount = config.enableSummaryByMessageCount,
-            summaryMessageCountThreshold = config.summaryMessageCountThreshold,
             mnnForwardType = config.mnnForwardType,
             mnnThreadCount = config.mnnThreadCount,
             llamaThreadCount = config.llamaThreadCount,
