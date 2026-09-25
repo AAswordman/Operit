@@ -4987,16 +4987,9 @@
     <!-- Voice Assistant Widget -->
     <string name="voice_assistant_widget_description">Quick launch Operit voice assistant</string>
     <string name="voice_assistant_widget_title">Voice Assistant</string>
-    <string name="toolpkg_widget_host_label">Custom Widget</string>
-    <string name="toolpkg_widget_host_description">Add it and bind it to a widget page registered by a plugin</string>
-    <string name="toolpkg_widget_unconfigured_title">Custom Widget</string>
-    <string name="toolpkg_widget_unconfigured_subtitle">Tap to choose a registered widget page</string>
-    <string name="toolpkg_widget_open_label">Tap to open</string>
-    <string name="toolpkg_widget_picker_title">Choose widget</string>
-    <string name="toolpkg_widget_picker_cancel">Cancel</string>
-    <string name="toolpkg_widget_picker_empty_title">No widgets available yet</string>
-    <string name="toolpkg_widget_picker_empty_body">Enable a ToolPkg that registers a desktop widget, then add it again.</string>
-    <string name="toolpkg_widget_picker_selecting">Configuring…</string>
+    <string name="toolpkg_floating_window_title">Plugin overlay</string>
+    <string name="toolpkg_floating_window_description">Keeps visible ToolPkg overlay content running</string>
+    <string name="toolpkg_floating_window_running">A ToolPkg overlay is running</string>
 
     <!-- Persona Card Generation Screen -->
     <string name="persona_card_generation_title">Character Card to Edit</string>

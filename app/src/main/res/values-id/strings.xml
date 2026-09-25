@@ -7006,16 +7006,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="github_login_external_waiting">Browser telah dibuka, silakan kembali ke aplikasi setelah menyelesaikan otorisasi.</string>
     <string name="artifact_publication_pending_review_waiting_schedule">Sedang ditinjau, harap tunggu jadwal rilis</string>
     <string name="artifact_publication_approved_waiting_schedule">Disetujui, harap tunggu jadwal rilis</string>
-    <string name="toolpkg_widget_host_label">Widget Kustom</string>
-    <string name="toolpkg_widget_host_description">Setelah ditambahkan, dapat diikat ke halaman widget yang didaftarkan oleh plugin</string>
-    <string name="toolpkg_widget_unconfigured_title">Widget Kustom</string>
-    <string name="toolpkg_widget_unconfigured_subtitle">Klik untuk memilih halaman widget yang sudah terdaftar</string>
-    <string name="toolpkg_widget_open_label">Klik untuk Membuka</string>
-    <string name="toolpkg_widget_picker_title">Pilih Widget Desktop</string>
-    <string name="toolpkg_widget_picker_cancel">Batal</string>
-    <string name="toolpkg_widget_picker_empty_title">Belum ada widget yang tersedia</string>
-    <string name="toolpkg_widget_picker_empty_body">Aktifkan ToolPkg yang mendaftarkan desktop widget terlebih dahulu, lalu kembali untuk menambahkan.</string>
-    <string name="toolpkg_widget_picker_selecting">Sedang mengonfigurasi…</string>
     <string name="chat_message_locator_favorites_filter">Hanya Lihat Pesan Favorit</string>
     <string name="attachment_package">Paket</string>
     <string name="attachment_package_select_title">Pilih Paket</string>
