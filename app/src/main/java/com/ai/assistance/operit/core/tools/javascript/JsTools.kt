@@ -954,6 +954,14 @@ fun getJsToolsDefinition(): String {
                 readEnvironmentVariable: (key) => {
                     return toolCall("read_environment_variable", { key: String(key ?? "") });
                 },
+                getToolPermissionMode: () => {
+                    return toolCall("get_tool_permission_mode", {});
+                },
+                setToolPermissionMode: (permissionLevel) => {
+                    return toolCall("set_tool_permission_mode", {
+                        permission_level: String(permissionLevel ?? "")
+                    });
+                },
                 writeEnvironmentVariable: (key, value) => {
                     const params = { key: String(key ?? "") };
                     if (value !== undefined && value !== null) params.value = String(value);

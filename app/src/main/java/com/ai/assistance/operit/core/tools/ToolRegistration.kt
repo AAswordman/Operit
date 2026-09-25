@@ -493,6 +493,30 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     )
 
     handler.registerTool(
+            name = "get_tool_permission_mode",
+            descriptionGenerator = { _ ->
+                "Read the global tool permission mode"
+            },
+            executor = { tool ->
+                val softwareSettingsTools = ToolGetter.getSoftwareSettingsModifyTools(context)
+                runBlocking(Dispatchers.IO) { softwareSettingsTools.getToolPermissionMode(tool) }
+            }
+    )
+
+    handler.registerTool(
+            name = "set_tool_permission_mode",
+            descriptionGenerator = { tool ->
+                val permissionLevel =
+                        tool.parameters.find { it.name == "permission_level" }?.value ?: ""
+                "Set the global tool permission mode: $permissionLevel"
+            },
+            executor = { tool ->
+                val softwareSettingsTools = ToolGetter.getSoftwareSettingsModifyTools(context)
+                runBlocking(Dispatchers.IO) { softwareSettingsTools.setToolPermissionMode(tool) }
+            }
+    )
+
+    handler.registerTool(
             name = "write_environment_variable",
             descriptionGenerator = { tool ->
                 val key = tool.parameters.find { it.name == "key" }?.value ?: ""

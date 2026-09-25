@@ -44,6 +44,7 @@ import com.ai.assistance.operit.core.tools.SpeechSttHttpConfigResultItem
 import com.ai.assistance.operit.core.tools.SpeechTtsHttpConfigResultItem
 import com.ai.assistance.operit.core.tools.SpeechTtsVitsPackageConfigResultItem
 import com.ai.assistance.operit.core.tools.StringResultData
+import com.ai.assistance.operit.core.tools.ToolPermissionModeResultData
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
 import com.ai.assistance.operit.core.tools.javascript.JsExecutionTraceRecorder
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
@@ -66,6 +67,8 @@ import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.SpeechServiceProfilesPreferences
 import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingStateRegistry
 import com.ai.assistance.operit.ui.features.startup.screens.PluginStatus
+import com.ai.assistance.operit.ui.permissions.PermissionLevel
+import com.ai.assistance.operit.ui.permissions.ToolPermissionSystem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -170,6 +173,62 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
                         cleared = value.trim().isEmpty()
                     ),
                 error = e.message ?: "Failed to write environment variable: $key"
+            )
+        }
+    }
+
+    suspend fun getToolPermissionMode(tool: AITool): ToolResult {
+        return try {
+            val current =
+                ToolPermissionSystem
+                    .getInstance(context)
+                    .masterSwitchFlow
+                    .first()
+            ToolResult(
+                toolName = tool.name,
+                success = true,
+                result = ToolPermissionModeResultData(permissionLevel = current.name)
+            )
+        } catch (e: Exception) {
+            ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = ToolPermissionModeResultData(permissionLevel = PermissionLevel.ASK.name),
+                error = e.message ?: "Failed to read global tool permission mode"
+            )
+        }
+    }
+
+    suspend fun setToolPermissionMode(tool: AITool): ToolResult {
+        val rawMode = tool.parameters.find { it.name == "permission_level" }?.value?.trim().orEmpty()
+        val target = ToolPermissionModeSupport.parse(rawMode)
+        if (target == null) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = ToolPermissionModeResultData(permissionLevel = PermissionLevel.ASK.name),
+                error = "Invalid permission_level: expected ALLOW, ASK, or FORBID"
+            )
+        }
+
+        return try {
+            val permissionSystem = ToolPermissionSystem.getInstance(context)
+            val previous = permissionSystem.masterSwitchFlow.first()
+            permissionSystem.saveMasterSwitch(target)
+            val current = permissionSystem.masterSwitchFlow.first()
+            ToolResult(
+                toolName = tool.name,
+                success = current == target,
+                result =
+                    ToolPermissionModeSupport.result(current, previous),
+                error = if (current == target) null else "Permission mode was not updated"
+            )
+        } catch (e: Exception) {
+            ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = ToolPermissionModeResultData(permissionLevel = PermissionLevel.ASK.name),
+                error = e.message ?: "Failed to set global tool permission mode"
             )
         }
     }

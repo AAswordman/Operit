@@ -1766,6 +1766,24 @@ object SystemToolPromptsInternal {
                                 )
                         ),
                         ToolPrompt(
+                            name = "get_tool_permission_mode",
+                            description = "Read the global tool permission mode: ALLOW, ASK, or FORBID.",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "set_tool_permission_mode",
+                            description = "Set the global tool permission mode. Only ALLOW, ASK, or FORBID are accepted; after FORBID, the user must restore it from Settings.",
+                            parametersStructured =
+                                listOf(
+                                    ToolParameterSchema(
+                                        name = "permission_level",
+                                        type = "string",
+                                        description = "permission mode: ALLOW, ASK, or FORBID",
+                                        required = true
+                                    )
+                                )
+                        ),
+                        ToolPrompt(
                             name = "write_environment_variable",
                             description = "Write an environment variable by key; empty value clears it.",
                             parametersStructured =
@@ -4753,6 +4771,24 @@ object SystemToolPromptsInternal {
                                         name = "key",
                                         type = "string",
                                         description = "环境变量名",
+                                        required = true
+                                    )
+                                )
+                        ),
+                        ToolPrompt(
+                            name = "get_tool_permission_mode",
+                            description = "读取全局工具权限模式：ALLOW、ASK 或 FORBID。",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "set_tool_permission_mode",
+                            description = "设置全局工具权限模式，只接受 ALLOW、ASK 或 FORBID；设置为 FORBID 后必须由用户从设置页恢复。",
+                            parametersStructured =
+                                listOf(
+                                    ToolParameterSchema(
+                                        name = "permission_level",
+                                        type = "string",
+                                        description = "权限模式：ALLOW、ASK 或 FORBID",
                                         required = true
                                     )
                                 )
