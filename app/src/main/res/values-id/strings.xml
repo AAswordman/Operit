@@ -3391,6 +3391,20 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="connection_test_success">Koneksi berhasil</string>
     <string name="connection_test_failed">Koneksi gagal: %1$s</string>
     <string name="no_config_selected">Tidak ada konfigurasi yang dipilih</string>
+    <string name="model_config_manage_organization">Kelola grup dan urutan konfigurasi</string>
+    <string name="model_config_current_group">Grup saat ini: %1$s</string>
+    <string name="model_config_new_group">Grup konfigurasi baru</string>
+    <string name="model_config_toggle_group">Ciutkan atau perluas grup konfigurasi</string>
+    <string name="model_config_group_item_count">%1$s (%2$d)</string>
+    <string name="model_config_add_to_group">Buat konfigurasi di dalam grup</string>
+    <string name="model_config_rename_group">Ganti nama grup konfigurasi</string>
+    <string name="model_config_delete_group">Hapus grup konfigurasi</string>
+    <string name="model_config_delete_group_confirmation">Hapus grup konfigurasi “%1$s”? Konfigurasinya akan dipindahkan ke Tidak dikelompokkan. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="model_config_drag_group">Tekan lama untuk mengurutkan ulang grup</string>
+    <string name="model_config_drag_config">Tekan lama untuk mengurutkan ulang konfigurasi</string>
+    <string name="model_config_current_selection">Pilihan saat ini: %1$s</string>
+    <string name="model_config_save_group_order_failed">Gagal menyimpan urutan grup</string>
+    <string name="model_config_save_order_failed">Gagal menyimpan urutan konfigurasi</string>
     <string name="default_config_warning">Harap ubah API Key pada konfigurasi default, jika tidak akan dianggap tidak menggunakan konfigurasi sendiri</string>
     <string name="config_deleted">Konfigurasi telah dihapus</string>
     <string name="new_model_config">Konfigurasi Model Baru</string>
@@ -7671,4 +7685,6 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_activity_chart_tap_hint">Ketuk grafik untuk melihat data detail</string>
     <string name="token_activity_total_tokens">Total Token</string>
     <string name="token_activity_peak_tokens">Token puncak</string>
+    <string name="model_config_group_empty">Tidak ada konfigurasi model di “%1$s”</string>
+    <string name="model_config_name_with_group">%1$s (%2$s)</string>
 </resources>

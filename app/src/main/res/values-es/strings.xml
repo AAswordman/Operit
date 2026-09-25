@@ -1180,6 +1180,20 @@
     <string name="connection_test_success">Conexión Exitosa</string>
     <string name="connection_test_failed">Conexión Fallida: %1$s</string>
     <string name="no_config_selected">No se Seleccionó Configuración</string>
+    <string name="model_config_manage_organization">Gestionar grupos y orden de configuraciones</string>
+    <string name="model_config_current_group">Grupo actual: %1$s</string>
+    <string name="model_config_new_group">Nuevo grupo de configuraciones</string>
+    <string name="model_config_toggle_group">Contraer o expandir el grupo de configuraciones</string>
+    <string name="model_config_group_item_count">%1$s (%2$d)</string>
+    <string name="model_config_add_to_group">Crear una configuración en el grupo</string>
+    <string name="model_config_rename_group">Cambiar el nombre del grupo de configuraciones</string>
+    <string name="model_config_delete_group">Eliminar el grupo de configuraciones</string>
+    <string name="model_config_delete_group_confirmation">¿Eliminar el grupo de configuraciones «%1$s»? Sus configuraciones se moverán a Sin grupo. Esta acción no se puede deshacer.</string>
+    <string name="model_config_drag_group">Mantén pulsado para reordenar el grupo</string>
+    <string name="model_config_drag_config">Mantén pulsado para reordenar la configuración</string>
+    <string name="model_config_current_selection">Selección actual: %1$s</string>
+    <string name="model_config_save_group_order_failed">No se pudo guardar el orden de los grupos</string>
+    <string name="model_config_save_order_failed">No se pudo guardar el orden de las configuraciones</string>
     <string name="default_config_warning">Por favor modifique la API Key de la configuración predeterminada, de lo contrario se considerará como no usar su propia configuración</string>
     <string name="config_deleted">Configuración Eliminada</string>
     <string name="new_model_config">Nueva Configuración de Modelo</string>
@@ -7820,4 +7834,6 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_trends">Análisis de tendencias</string>
     <string name="token_stats_settings">Configuración de estadísticas</string>
     <string name="token_stats_custom_range_confirm">Aceptar</string>
+    <string name="model_config_group_empty">No hay configuraciones de modelo en «%1$s»</string>
+    <string name="model_config_name_with_group">%1$s (%2$s)</string>
 </resources>

@@ -297,4 +297,21 @@
     <string name="test_media_unverified">接続できましたが、確認できませんでした</string>
     <string name="test_result_expand">展開</string>
     <string name="test_result_collapse">折りたたむ</string>
+    <string name="model_config_manage_organization">設定グループと順序を管理</string>
+    <string name="model_config_current_group">現在のグループ：%1$s</string>
+    <string name="model_config_new_group">新しい設定グループ</string>
+    <string name="model_config_toggle_group">設定グループを折りたたむ／展開する</string>
+    <string name="model_config_group_item_count">%1$s（%2$d）</string>
+    <string name="model_config_add_to_group">グループ内に設定を作成</string>
+    <string name="model_config_rename_group">設定グループ名を変更</string>
+    <string name="model_config_delete_group">設定グループを削除</string>
+    <string name="model_config_delete_group_confirmation">設定グループ「%1$s」を削除しますか？グループ内の設定は未分類に移動されます。この操作は元に戻せません。</string>
+    <string name="model_config_drag_group">長押ししてグループを並べ替え</string>
+    <string name="model_config_drag_config">長押しして設定を並べ替え</string>
+    <string name="model_config_current_selection">現在の選択：%1$s</string>
+    <string name="model_config_save_group_order_failed">グループの順序を保存できませんでした</string>
+    <string name="model_config_save_order_failed">設定の順序を保存できませんでした</string>
+    <string name="ungrouped">未分類</string>
+    <string name="model_config_group_empty">「%1$s」にはモデル設定がありません</string>
+    <string name="model_config_name_with_group">%1$s（%2$s）</string>
 </resources>

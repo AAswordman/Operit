@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -52,6 +54,8 @@ import com.ai.assistance.operit.ui.features.settings.components.ExpandableStatus
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.model.ModelConfigGroup
+import com.ai.assistance.operit.data.model.ModelConfigSummary
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.features.settings.DebouncedModelConfigAutoSaveEffect
@@ -88,6 +92,12 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private data class HeaderPreset(val nameResId: Int, val headers: Map<String, String>)
+private data class ConfigOrganizerRow(
+    val key: String,
+    val groupId: String?,
+    val config: ModelConfigSummary? = null,
+    val group: ModelConfigGroup? = null
+)
 
 enum class ModelConfigEntryMode {
     STANDARD,
@@ -180,8 +190,18 @@ fun ModelConfigScreen(
 
     // 配置状态
     val configList = configManager.configListFlow.collectAsState(initial = listOf("default")).value
+    val configSummaries by configManager.configSummariesFlow.collectAsState(initial = emptyList())
+    val configGroups by configManager.configGroupsFlow.collectAsState(initial = emptyList())
+    var selectedGroupId by remember { mutableStateOf<String?>(null) }
+    val visibleConfigIds = remember(configList, configSummaries, selectedGroupId) {
+        val groupedIds = configSummaries
+            .filter { it.groupId == selectedGroupId }
+            .map { it.id }
+            .toSet()
+        configList.filter { it in groupedIds }
+    }
     // 进入页面时默认选中“对话功能”当前绑定的模型配置
-    var selectedConfigId by remember { mutableStateOf(ModelConfigManager.DEFAULT_CONFIG_ID) }
+    var selectedConfigId by remember { mutableStateOf("") }
     val selectedConfig = remember { mutableStateOf<ModelConfigData?>(null) }
     val keyAvailabilityTester =
         remember(selectedConfigId) {
@@ -194,11 +214,10 @@ fun ModelConfigScreen(
     val configNameMap = remember { mutableStateMapOf<String, String>() }
 
     // UI状态
-    var showAddConfigDialog by remember { mutableStateOf(false) }
     var showRenameConfigDialog by remember { mutableStateOf(false) }
+    var showConfigOrganizer by remember { mutableStateOf(false) }
     var showSaveSuccessMessage by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    var newConfigName by remember { mutableStateOf("") }
     var renameConfigName by remember { mutableStateOf("") }
     var confirmMessage by remember { mutableStateOf("") }
 
@@ -212,15 +231,34 @@ fun ModelConfigScreen(
         onDispose { keyAvailabilityTester.close() }
     }
 
-    // 初始化配置，并默认定位到“对话功能模型”所使用的配置
+    // Enter the screen with a configuration from the persisted group.
     LaunchedEffect(Unit) {
         val chatConfigId = functionalConfigManager.getConfigIdForFunction(FunctionType.CHAT)
-        val availableConfigIds = configManager.configListFlow.first()
+        val restoredGroupId = configManager.selectedConfigGroupFlow.first()
+        val summaries = configManager.configSummariesFlow.first()
+        val groupedConfigIds =
+            summaries.filter { it.groupId == restoredGroupId }.mapTo(linkedSetOf()) { it.id }
+
+        selectedGroupId = restoredGroupId
         selectedConfigId =
-            availableConfigIds.firstOrNull { it == chatConfigId }
-                ?: availableConfigIds.firstOrNull()
-                ?: ModelConfigManager.DEFAULT_CONFIG_ID
+            chatConfigId.takeIf { it in groupedConfigIds }
+                ?: groupedConfigIds.firstOrNull()
+                ?: ""
         hasInitializedSelection = true
+    }
+
+    LaunchedEffect(hasInitializedSelection) {
+        if (!hasInitializedSelection) return@LaunchedEffect
+        configManager.selectedConfigGroupFlow.collectLatest { selectedGroupId = it }
+    }
+
+    // Keep the selected configuration inside the active group after imports, moves, or deletions.
+    LaunchedEffect(hasInitializedSelection, selectedGroupId, visibleConfigIds) {
+        if (!hasInitializedSelection) return@LaunchedEffect
+        when {
+            visibleConfigIds.isEmpty() -> selectedConfigId = ""
+            selectedConfigId !in visibleConfigIds -> selectedConfigId = visibleConfigIds.first()
+        }
     }
 
     // 加载所有配置名称
@@ -235,6 +273,7 @@ fun ModelConfigScreen(
     LaunchedEffect(selectedConfigId) {
         testResults = null
         selectedConfig.value = null
+        if (selectedConfigId.isEmpty()) return@LaunchedEffect
         configManager.getModelConfigFlow(selectedConfigId).collect { config ->
             selectedConfig.value = config
         }
@@ -264,6 +303,7 @@ fun ModelConfigScreen(
             }
 
             val targetConfigId = selectedConfigId
+            if (targetConfigId.isEmpty()) return@RegisterRouteBackGuard false
             isCompletingOnboarding = true
             try {
                 saveCoordinator.flushAll(showSuccess = false)
@@ -409,39 +449,43 @@ fun ModelConfigScreen(
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
 
-                            OutlinedButton(
-                                onClick = { showAddConfigDialog = true },
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                modifier = Modifier.height(28.dp),
-                                colors =
-                                    ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.primary
+                            IconButton(
+                                    onClick = { showConfigOrganizer = true },
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Folder,
+                                        contentDescription = stringResource(
+                                            R.string.model_config_manage_organization
+                                        ),
+                                        modifier = Modifier.size(24.dp)
                                     )
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(2.dp))
-                                Text(
-                                    stringResource(R.string.new_action),
-                                    fontSize = 12.sp,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
+                                }
                         }
-
+                        val selectedGroupName =
+                            configGroups.firstOrNull { it.id == selectedGroupId }?.name
+                                ?: stringResource(R.string.ungrouped)
                         val selectedConfigName =
                             configNameMap[selectedConfigId]
-                                ?: stringResource(R.string.default_profile)
+                                ?: stringResource(R.string.no_config_selected)
+
+                        Text(
+                            text = stringResource(
+                                R.string.model_config_current_group,
+                                selectedGroupName
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
 
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { isDropdownExpanded = true },
+                                .clickable(enabled = visibleConfigIds.isNotEmpty()) {
+                                    isDropdownExpanded = true
+                                },
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             tonalElevation = 0.5.dp,
@@ -483,7 +527,9 @@ fun ModelConfigScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (selectedConfigId != "default") {
+                            if (selectedConfigId.isNotEmpty() &&
+                                selectedConfigId != ModelConfigManager.DEFAULT_CONFIG_ID
+                            ) {
                                 TextButton(
                                     onClick = {
                                         renameConfigName = selectedConfig.value?.name ?: ""
@@ -525,10 +571,11 @@ fun ModelConfigScreen(
                                                     }
                                                 }
 
-                                                selectedConfigId = configManager.configListFlow
+                                                selectedConfigId = configManager.configSummariesFlow
                                                     .first()
-                                                    .firstOrNull()
-                                                    ?: ModelConfigManager.DEFAULT_CONFIG_ID
+                                                    .firstOrNull { it.groupId == selectedGroupId }
+                                                    ?.id
+                                                    ?: ""
                                                 showNotification(context.getString(R.string.config_deleted))
                                             } catch (e: Exception) {
                                                 AppLogger.e(
@@ -628,6 +675,7 @@ fun ModelConfigScreen(
                                         }
                                     }
                                 },
+                                enabled = selectedConfigId.isNotEmpty() || isTestingConnection,
                                 modifier = Modifier.height(36.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp)
                             ) {
@@ -734,7 +782,7 @@ fun ModelConfigScreen(
                         modifier = Modifier.width(280.dp),
                         properties = PopupProperties(focusable = true)
                     ) {
-                        configList.forEach { configId ->
+                        visibleConfigIds.forEach { configId ->
                             val configName =
                                 configNameMap[configId] ?: stringResource(R.string.unnamed_profile)
                             val isSelected = configId == selectedConfigId
@@ -776,7 +824,7 @@ fun ModelConfigScreen(
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
 
-                            if (configId != configList.last()) {
+                            if (configId != visibleConfigIds.lastOrNull()) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 8.dp),
                                     thickness = 0.5.dp
@@ -879,77 +927,21 @@ fun ModelConfigScreen(
             }
         }
 
-        // 新建配置对话框
-        if (showAddConfigDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    showAddConfigDialog = false
-                    newConfigName = ""
+        if (showConfigOrganizer) {
+            ConfigOrganizerDialog(
+                summaries = configSummaries,
+                groups = configGroups,
+                selectedGroupId = selectedGroupId,
+                onGroupConfirmed = {
+                    selectedGroupId = it
+                    scope.launch { configManager.setSelectedConfigGroup(it) }
                 },
-                title = {
-                    Text(
-                        stringResource(R.string.new_model_config),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            stringResource(R.string.new_model_config_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = newConfigName,
-                            onValueChange = { newConfigName = it },
-                            label = {
-                                Text(
-                                    stringResource(R.string.model_config_name),
-                                    fontSize = 12.sp
-                                )
-                            },
-                            placeholder = {
-                                Text(
-                                    stringResource(R.string.model_config_name_placeholder),
-                                    fontSize = 12.sp
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            singleLine = true
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            if (newConfigName.isNotBlank()) {
-                                scope.launch {
-                                    val configId = configManager.createConfig(newConfigName)
-                                    selectedConfigId = configId
-                                    showAddConfigDialog = false
-                                    newConfigName = ""
-                                    showNotification(context.getString(R.string.new_config_created))
-                                }
-                            }
-                        },
-                        shape = RoundedCornerShape(8.dp)
-                    ) { Text(stringResource(R.string.create_action), fontSize = 13.sp) }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showAddConfigDialog = false
-                            newConfigName = ""
-                        }
-                    ) { Text(stringResource(R.string.cancel_action), fontSize = 13.sp) }
-                },
-                shape = RoundedCornerShape(12.dp)
+                configManager = configManager,
+                onSelectConfig = { selectedConfigId = it },
+                onDismiss = { showConfigOrganizer = false },
+                showNotification = ::showNotification
             )
         }
-
         // 重命名配置对话框
         if (showRenameConfigDialog) {
             AlertDialog(
@@ -1543,6 +1535,384 @@ private fun ThinkingCompactActionsEditor(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ConfigOrganizerDialog(
+    summaries: List<ModelConfigSummary>,
+    groups: List<ModelConfigGroup>,
+    selectedGroupId: String?,
+    onGroupConfirmed: (String?) -> Unit,
+    configManager: ModelConfigManager,
+    onSelectConfig: (String) -> Unit,
+    onDismiss: () -> Unit,
+    showNotification: (String) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val ungroupedName = stringResource(R.string.ungrouped)
+    val saveGroupOrderFailed = stringResource(R.string.model_config_save_group_order_failed)
+    val saveConfigOrderFailed = stringResource(R.string.model_config_save_order_failed)
+    var rows by remember { mutableStateOf(emptyList<ConfigOrganizerRow>()) }
+    var orderedGroups by remember(groups) { mutableStateOf(groups) }
+    var collapsedGroupIds by remember { mutableStateOf<Set<String?>>(emptySet()) }
+    var pendingGroupId by remember(selectedGroupId) { mutableStateOf(selectedGroupId) }
+    var editingGroup by remember { mutableStateOf<ModelConfigGroup?>(null) }
+    var targetGroupForConfig by remember { mutableStateOf<String?>(null) }
+    var creatingConfig by remember { mutableStateOf(false) }
+    var showNameDialog by remember { mutableStateOf(false) }
+    var groupPendingDeletion by remember { mutableStateOf<ModelConfigGroup?>(null) }
+    var nameInput by remember { mutableStateOf("") }
+
+    fun buildRows(): List<ConfigOrganizerRow> = buildList {
+        add(ConfigOrganizerRow("group:ungrouped", null))
+        if (null !in collapsedGroupIds) {
+            summaries.filter { it.groupId == null }.forEach {
+                add(ConfigOrganizerRow("config:${it.id}", null, config = it))
+            }
+        }
+        orderedGroups.forEach { group ->
+            add(ConfigOrganizerRow("group:${group.id}", group.id, group = group))
+            if (group.id !in collapsedGroupIds) {
+                summaries.filter { it.groupId == group.id }.forEach {
+                    add(ConfigOrganizerRow("config:${it.id}", group.id, config = it))
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(summaries, orderedGroups) { rows = buildRows() }
+    val lazyListState = rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        val moving = rows.getOrNull(from.index) ?: return@rememberReorderableLazyListState
+        val target = rows.getOrNull(to.index) ?: return@rememberReorderableLazyListState
+        if (moving.config == null) {
+            val movingGroup = moving.group ?: return@rememberReorderableLazyListState
+            val targetGroup = target.group ?: return@rememberReorderableLazyListState
+            val reordered = orderedGroups.toMutableList().apply {
+                val fromGroupIndex = indexOfFirst { it.id == movingGroup.id }
+                val toGroupIndex = indexOfFirst { it.id == targetGroup.id }
+                if (fromGroupIndex >= 0 && toGroupIndex >= 0) {
+                    add(toGroupIndex, removeAt(fromGroupIndex))
+                }
+            }
+            orderedGroups = reordered
+            scope.launch {
+                runCatching { configManager.reorderConfigGroups(reordered.map { it.id }) }
+                    .onFailure { showNotification(it.message ?: saveGroupOrderFailed) }
+            }
+            return@rememberReorderableLazyListState
+        }
+
+        val updated = rows.toMutableList().apply {
+            removeAt(from.index)
+            val targetPosition = indexOfFirst { it.key == target.key }
+            // The reorderable library reports the item whose center was crossed. When
+            // moving downward, the dragged row must be inserted after that target;
+            // otherwise it is placed back before the target and can never reach the
+            // end of the list.
+            val insertionIndex = when {
+                target.config == null -> targetPosition + 1
+                from.index < to.index -> targetPosition + 1
+                else -> targetPosition
+            }
+            add(insertionIndex.coerceIn(0, size), moving)
+        }
+        rows = updated
+        var currentGroupId: String? = null
+        val visiblePlacements = buildList {
+            updated.forEach { row ->
+                if (row.config == null) currentGroupId = row.groupId
+                else add(row.config.id to currentGroupId)
+            }
+        }
+        val visibleIds = visiblePlacements.map { it.first }.toSet()
+        val placements = visiblePlacements + summaries
+            .filterNot { it.id in visibleIds }
+            .map { it.id to it.groupId }
+        scope.launch {
+            runCatching { configManager.updateConfigOrganization(orderedGroups, placements) }
+                .onFailure { showNotification(it.message ?: saveConfigOrderFailed) }
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 620.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(R.string.model_config_manage_organization),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = {
+                            editingGroup = null
+                            targetGroupForConfig = null
+                            creatingConfig = false
+                            nameInput = ""
+                            showNameDialog = true
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.CreateNewFolder,
+                            contentDescription = stringResource(R.string.model_config_new_group)
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = stringResource(R.string.close)
+                        )
+                    }
+                }
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    itemsIndexed(rows, key = { _, row -> row.key }) { _, row ->
+                        if (row.config == null) {
+                            ReorderableItem(reorderableState, key = row.key) { isDragging ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        when {
+                                            isDragging -> MaterialTheme.colorScheme.surfaceVariant
+                                            pendingGroupId == row.groupId -> MaterialTheme.colorScheme.primaryContainer
+                                            else -> MaterialTheme.colorScheme.surface
+                                        }
+                                    )
+                                    .clickable { pendingGroupId = row.groupId }
+                                    .padding(top = 10.dp, bottom = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (row.groupId in collapsedGroupIds) Icons.Default.KeyboardArrowRight
+                                    else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = stringResource(R.string.model_config_toggle_group),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable {
+                                            collapsedGroupIds = if (row.groupId in collapsedGroupIds) {
+                                                collapsedGroupIds - row.groupId
+                                            } else {
+                                                collapsedGroupIds + row.groupId
+                                            }
+                                            rows = buildRows()
+                                        }
+                                )
+                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(22.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(
+                                        R.string.model_config_group_item_count,
+                                        row.group?.name ?: ungroupedName,
+                                        summaries.count { it.groupId == row.groupId }
+                                    ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        editingGroup = null
+                                        targetGroupForConfig = row.groupId
+                                        creatingConfig = true
+                                        nameInput = ""
+                                        showNameDialog = true
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) { Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = stringResource(
+                                            R.string.model_config_add_to_group
+                                        ),
+                                        modifier = Modifier.size(18.dp)
+                                    ) }
+                                row.group?.let { group ->
+                                    IconButton(
+                                        onClick = {
+                                            editingGroup = group
+                                            targetGroupForConfig = null
+                                            creatingConfig = false
+                                            nameInput = group.name
+                                            showNameDialog = true
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = stringResource(
+                                                R.string.model_config_rename_group
+                                            ),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { groupPendingDeletion = group },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = stringResource(
+                                                R.string.model_config_delete_group
+                                            ),
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                row.group?.let {
+                                    Icon(
+                                        Icons.Default.DragHandle,
+                                        contentDescription = stringResource(R.string.model_config_drag_group),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(36.dp).longPressDraggableHandle().padding(8.dp)
+                                    )
+                                }
+                            }
+                            }
+                        } else {
+                            ReorderableItem(reorderableState, key = row.key) { isDragging ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            if (isDragging) MaterialTheme.colorScheme.surfaceVariant
+                                            else MaterialTheme.colorScheme.surface
+                                        )
+                                        .clickable { pendingGroupId = row.groupId }
+                                        .padding(start = 28.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(row.config.name, modifier = Modifier.weight(1f))
+                                    Icon(
+                                        Icons.Default.DragHandle,
+                                        contentDescription = stringResource(R.string.model_config_drag_config),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(36.dp).longPressDraggableHandle().padding(8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                val pendingGroupName =
+                    orderedGroups.firstOrNull { it.id == pendingGroupId }?.name ?: ungroupedName
+                Text(
+                    stringResource(R.string.model_config_current_selection, pendingGroupName),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 10.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel_action))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val groupConfigs = summaries.filter { it.groupId == pendingGroupId }
+                            onGroupConfirmed(pendingGroupId)
+                            val firstConfigId = groupConfigs.firstOrNull()?.id
+                            if (firstConfigId != null) onSelectConfig(firstConfigId)
+                            onDismiss()
+                        }
+                    ) { Text(stringResource(R.string.confirm_action)) }
+                }
+            }
+        }
+    }
+
+    groupPendingDeletion?.let { group ->
+        AlertDialog(
+            onDismissRequest = { groupPendingDeletion = null },
+            title = { Text(stringResource(R.string.model_config_delete_group)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.model_config_delete_group_confirmation,
+                        group.name,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        groupPendingDeletion = null
+                        scope.launch { configManager.deleteConfigGroup(group.id) }
+                    }
+                ) {
+                    Text(stringResource(R.string.confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { groupPendingDeletion = null }) {
+                    Text(stringResource(R.string.cancel_action))
+                }
+            }
+        )
+    }
+
+    if (showNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showNameDialog = false },
+            title = {
+                Text(
+                    when {
+                        editingGroup != null ->
+                            stringResource(R.string.model_config_rename_group)
+                        creatingConfig -> stringResource(R.string.new_model_config)
+                        else -> stringResource(R.string.model_config_new_group)
+                    }
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = nameInput,
+                    onValueChange = { nameInput = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.model_config_name)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = nameInput.isNotBlank(),
+                    onClick = {
+                        scope.launch {
+                            when {
+                                editingGroup != null -> configManager.renameConfigGroup(editingGroup!!.id, nameInput)
+                                creatingConfig -> {
+                                    val id = configManager.createConfig(nameInput, targetGroupForConfig)
+                                    onSelectConfig(id)
+                                }
+                                else -> configManager.createConfigGroup(nameInput)
+                            }
+                            showNameDialog = false
+                        }
+                    }
+                ) { Text(stringResource(R.string.confirm_action)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNameDialog = false }) {
+                    Text(stringResource(R.string.cancel_action))
+                }
+            }
+        )
     }
 }
 
