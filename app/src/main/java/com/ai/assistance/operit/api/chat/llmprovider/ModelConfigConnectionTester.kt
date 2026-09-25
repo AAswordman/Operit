@@ -129,7 +129,7 @@ object ModelConfigConnectionTester {
                         ModelConnectionTestItem(
                             type = type,
                             outcome = ModelConnectionTestOutcome.FAILED,
-                            error = e.message ?: "Test failed: ${e::class.simpleName}"
+                            error = e.message
                         )
                     }
                 items.add(item)
@@ -271,8 +271,8 @@ object ModelConfigConnectionTester {
             runCatching { service.cancelStreaming() }
             throw e
         } catch (e: Exception) {
-            Log.e("ModelConfigTester","Connection test failed: ${e::class.simpleName}",e)
             if (items.none { it.type == ModelConnectionTestType.CHAT }) {
+                Log.e("ModelConfigTester", "test failed", e)
                 items.add(
                     ModelConnectionTestItem(
                         type = ModelConnectionTestType.CHAT,
