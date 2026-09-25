@@ -930,8 +930,18 @@ class EnhancedAIService private constructor(private val context: Context) {
         val stream = options.stream
         val disableWarning = options.disableWarning
         val onNonFatalError: suspend (error: String) -> Unit = { error ->
+            if (!isSubTask) {
+                withContext(Dispatchers.Main) {
+                    _inputProcessingState.value =
+                        InputProcessingState.Connecting(
+                            context.getString(R.string.enhanced_retrying_request)
+                        )
+                }
+            }
             options.onNonFatalError(error)
-            callbacks?.onNonFatalError(error)
+            if (error.isNotBlank()) {
+                callbacks?.onNonFatalError(error)
+            }
         }
         val onTokenLimitExceeded: (suspend () -> Unit)? =
             if (options.onTokenLimitExceeded != null || callbacks != null) {

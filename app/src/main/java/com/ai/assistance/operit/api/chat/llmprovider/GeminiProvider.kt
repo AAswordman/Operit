@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.api.chat.keypool.*
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
@@ -36,6 +37,9 @@ import java.net.URL
 import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.*
@@ -187,6 +191,7 @@ open class GeminiProvider(
     class HttpStatusException(
         message: String,
         override val statusCode: Int,
+        override val retryAfterMs: Long? = null,
         cause: Throwable? = null
     ) : IOException(message, cause), HttpStatusCodeException
 
@@ -1121,7 +1126,10 @@ open class GeminiProvider(
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
         onRetryAccepted: suspend () -> Unit,
-        buildRetryMessage: (String, Int) -> String
+        buildRetryMessage: (String, Int) -> String,
+        attemptNumber: Int,
+        watchdog: FirstTokenWatchdog? = null,
+        stream: Boolean = true,
     ): Int {
         if (exception is UserCancellationException || exception is kotlinx.coroutines.CancellationException) {
             throw exception
@@ -1133,31 +1141,29 @@ open class GeminiProvider(
             logError("请求被用户取消，停止重试。", exception)
             throw UserCancellationException(context.getString(R.string.gemini_error_request_cancelled), exception)
         }
-
-        val errorText = resolveRetryErrorText(context, exception)
-
-        if (!enableRetry) {
-            throw IOException(errorText, exception)
-        }
-
-        val newRetryCount = retryCount + 1
-        if (newRetryCount > maxRetries) {
-            logError("$errorText 且达到最大重试次数($maxRetries)", exception)
-            throw IOException(
-                context.getString(R.string.gemini_error_connection_timeout, maxRetries, errorText),
-                exception
+        watchdog?.cancel()
+        currentApiKeySession()?.reportOutcome(
+            ApiKeyAttemptReport(
+                success = false,
+                errorClass = ApiKeyFailureClassifier.classify(exception),
+                httpStatus = ApiKeyFailureClassifier.httpStatus(exception),
+                retryAfterMs = ApiKeyFailureClassifier.retryAfterMs(exception),
+                model = modelName,
+                stream = stream,
+                attemptIndex = attemptNumber,
             )
-        }
-
-        // A terminal failure must retain its streamed text; only a replacement request discards it.
-        onRetryAccepted()
-        val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
-        AppLogger.w(TAG, "$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, TAG)) {
-            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
-        }
-        delay(retryDelayMs)
-        return newRetryCount
+        )
+        handleKeyAwareRetry(
+            context = context,
+            exception = exception,
+            enableRetry = enableRetry,
+            onNonFatalError = onNonFatalError,
+            onRetryAccepted = onRetryAccepted,
+            buildRetryMessage = buildRetryMessage,
+            logTag = TAG,
+            attemptNumber = attemptNumber,
+        )
+        return retryCount + 1
     }
 
     /** 发送消息到Gemini API */
@@ -1178,6 +1184,7 @@ open class GeminiProvider(
     ): Stream<String> {
         val eventChannel = MutableSharedStream<TextStreamEvent>(replay = Int.MAX_VALUE)
         val responseStream = stream {
+        val streamScope = this
         isManuallyCancelled = false
         val requestId = System.currentTimeMillis().toString()
         // 重置输出token计数（保留输入历史缓存）
@@ -1190,9 +1197,12 @@ open class GeminiProvider(
 
         AppLogger.d(TAG, "发送消息到Gemini API, 模型: $modelName")
 
-        val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+        val session = apiKeyProvider.createRequestSession(modelName, stream)
+        val maxRetries = (session.maxAttempts() - 1).coerceAtLeast(0)
         var retryCount = 0
         var lastException: Exception? = null
+        val watchdog = FirstTokenWatchdog(CoroutineScope(currentCoroutineContext() + SupervisorJob()))
+        withContext(ApiKeyRequestElement(session)) {
 
         // 用于保存已接收到的内容，以便在重试时使用
         val receivedContent = StringBuilder()
@@ -1209,8 +1219,14 @@ open class GeminiProvider(
             eventChannel.emit(TextStreamEvent(TextStreamEventType.ROLLBACK, id))
         }
 
-        // 捕获stream collector的引用
-        val streamCollector = this
+        val streamCollector = object : StreamCollector<String> {
+            override suspend fun emit(value: String) {
+                if (value.isNotEmpty()) {
+                    watchdog.markFirstToken()
+                }
+                streamScope.emit(value)
+            }
+        }
 
         // 状态更新函数 - 在Stream中我们使用emit来传递连接状态
         val emitConnectionStatus: (String) -> Unit = { status ->
@@ -1246,6 +1262,7 @@ open class GeminiProvider(
 
                 val call = client.newCall(request)
                 activeCall = call
+                watchdog.start(call)
 
                 emitConnectionStatus(context.getString(R.string.gemini_connecting))
 
@@ -1263,13 +1280,11 @@ open class GeminiProvider(
                             val errorBody = response.body?.string() ?: context.getString(R.string.gemini_error_no_error_details)
                             logError("API请求失败: ${response.code}, $errorBody")
                             // 状态码错误保留状态码信息，随后进入统一重试循环。
-                            if (response.code in 400..499) {
-                                throw HttpStatusException(
-                                    context.getString(R.string.gemini_error_api_request_failed, response.code, errorBody),
-                                    statusCode = response.code
-                                )
-                            }
-                            throw IOException(context.getString(R.string.gemini_error_api_request_failed, response.code, errorBody))
+                            throw HttpStatusException(
+                                context.getString(R.string.gemini_error_api_request_failed, response.code, errorBody),
+                                statusCode = response.code,
+                                retryAfterMs = parseRetryAfterMs(response),
+                            )
                         }
 
                         // 根据stream参数处理响应
@@ -1313,13 +1328,28 @@ open class GeminiProvider(
                 if (isManuallyCancelled) {
                     throw UserCancellationException(context.getString(R.string.gemini_error_request_cancelled))
                 }
+                watchdog.cancel()
+                currentApiKeySession()?.reportOutcome(
+                    ApiKeyAttemptReport(
+                        success = true,
+                        errorClass = ApiKeyErrorClass.NONE,
+                        ttftMs = watchdog.ttftMs(),
+                        tokensPerSec = watchdog.tokensPerSec(tokenCacheManager.outputTokenCount),
+                        inputTokens = tokenCacheManager.totalInputTokenCount,
+                        outputTokens = tokenCacheManager.outputTokenCount,
+                        cachedInputTokens = tokenCacheManager.cachedInputTokenCount,
+                        model = modelName,
+                        stream = stream,
+                        attemptIndex = retryCount + 1,
+                    )
+                )
                 onUsageFinalized?.invoke(retryCount + 1)
-                return@stream
+                return@withContext
             } catch (e: Exception) {
                 lastException = e
                 retryCount = handleRetryableError(
                     context = context,
-                    exception = e,
+                    exception = if (watchdog.timedOut) FirstTokenTimeoutException(e.message ?: "", e) else e,
                     retryCount = retryCount,
                     maxRetries = maxRetries,
                     enableRetry = enableRetry,
@@ -1328,6 +1358,9 @@ open class GeminiProvider(
                     buildRetryMessage = { errorText, retryNumber ->
                         context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
                     },
+                    attemptNumber = retryCount + 1,
+                    watchdog = watchdog,
+                    stream = stream,
                 )
             }
         }
@@ -1341,6 +1374,7 @@ open class GeminiProvider(
             ),
             lastException
         )
+        }
         }
         return responseStream.withEventChannel(eventChannel)
     }

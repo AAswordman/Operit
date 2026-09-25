@@ -88,6 +88,40 @@ class ChatConfigReadinessTest {
     }
 
     @Test
+    fun localHttpProviderIgnoresStaleKeyPoolFlag() {
+        assertReady(
+            remoteConfig(
+                ApiProviderType.LMSTUDIO,
+                apiKey = "",
+                endpoint = "http://localhost:1234/v1/chat/completions",
+            ).copy(useMultipleApiKeys = true)
+        )
+        assertReady(
+            remoteConfig(
+                ApiProviderType.OLLAMA,
+                apiKey = "",
+                endpoint = "http://localhost:11434/v1/chat/completions",
+            ).copy(useMultipleApiKeys = true)
+        )
+    }
+
+    @Test
+    fun localProvidersDoNotSupportApiKeyPool() {
+        listOf(
+            ApiProviderType.OPENAI_CODEX,
+            ApiProviderType.LMSTUDIO,
+            ApiProviderType.OLLAMA,
+            ApiProviderType.OPENAI_LOCAL,
+            ApiProviderType.MNN,
+            ApiProviderType.LLAMA_CPP,
+        ).forEach { provider ->
+            assertEquals(false, provider.supportsApiKeyPool())
+        }
+        assertTrue(ApiProviderType.OPENAI.supportsApiKeyPool())
+        assertTrue(ApiProviderType.GOOGLE.supportsApiKeyPool())
+    }
+
+    @Test
     fun registeredPluginOwnsItsConfigurationRequirements() {
         val config =
             ModelConfigData(

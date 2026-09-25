@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.api.chat.keypool.*
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
@@ -36,6 +37,9 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -120,6 +124,7 @@ open class OpenAIProvider(
     class HttpStatusException(
         message: String,
         override val statusCode: Int,
+        override val retryAfterMs: Long? = null,
         cause: Throwable? = null
     ) : IOException(message, cause), HttpStatusCodeException
 
@@ -1525,12 +1530,20 @@ open class OpenAIProvider(
         private val receivedContent: StringBuilder,
         private val emit: suspend (String) -> Unit,
         private val eventChannel: com.ai.assistance.operit.util.stream.MutableSharedStream<TextStreamEvent>,
-        private val onTokensUpdated: suspend (Long, Long, Long) -> Unit
+        private val onTokensUpdated: suspend (Long, Long, Long) -> Unit,
+        private val onFirstOutput: () -> Unit = {}
     ) {
         private val savepointLengths = mutableMapOf<String, Int>()
 
+        private fun markFirstOutputIfNeeded() {
+            if (receivedContent.isEmpty()) {
+                onFirstOutput()
+            }
+        }
+
         suspend fun emitContent(content: String) {
             if (content.isNotNullOrEmpty()) {
+                markFirstOutputIfNeeded()
                 emit(content)
                 receivedContent.append(content)
                 tokenCacheManager.addOutputTokens(ChatUtils.estimateTokenCount(content))
@@ -1544,6 +1557,7 @@ open class OpenAIProvider(
 
         suspend fun emitThinkContent(thinkContent: String, tag: String = "think") {
             if (thinkContent.isNotNullOrEmpty()) {
+                markFirstOutputIfNeeded()
                 val wrapped = "<$tag>$thinkContent</$tag>"
                 emit(wrapped)
                 receivedContent.append(wrapped)
@@ -1645,38 +1659,38 @@ open class OpenAIProvider(
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
         onRetryAccepted: suspend () -> Unit,
-        buildRetryMessage: (String, Int) -> String
+        buildRetryMessage: (String, Int) -> String,
+        attemptNumber: Int,
+        watchdog: FirstTokenWatchdog? = null,
+        stream: Boolean = true,
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
             throw exception
         }
         checkCancellation(context, exception)
-
-        val errorText = resolveRetryErrorText(context, exception)
-
-        if (!enableRetry) {
-            throw IOException(errorText, exception)
-        }
-
-        val newRetryCount = retryCount + 1
-        if (newRetryCount > maxRetries) {
-            AppLogger.e("AIService", "【发送消息】$errorText 且达到最大重试次数($maxRetries)", exception)
-            throw IOException(
-                context.getString(R.string.openai_error_connection_timeout, maxRetries, errorText),
-                exception
+        watchdog?.cancel()
+        currentApiKeySession()?.reportOutcome(
+            ApiKeyAttemptReport(
+                success = false,
+                errorClass = ApiKeyFailureClassifier.classify(exception),
+                httpStatus = ApiKeyFailureClassifier.httpStatus(exception),
+                retryAfterMs = ApiKeyFailureClassifier.retryAfterMs(exception),
+                model = modelName,
+                stream = stream,
+                attemptIndex = attemptNumber,
             )
-        }
-
-        // A terminal failure must retain its streamed text; only a replacement request discards it.
-        onRetryAccepted()
-        val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
-        AppLogger.w("AIService", "【发送消息】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
-            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
-        }
-        delay(retryDelayMs)
-
-        return newRetryCount
+        )
+        handleKeyAwareRetry(
+            context = context,
+            exception = exception,
+            enableRetry = enableRetry,
+            onNonFatalError = onNonFatalError,
+            onRetryAccepted = onRetryAccepted,
+            buildRetryMessage = buildRetryMessage,
+            logTag = "AIService",
+            attemptNumber = attemptNumber,
+        )
+        return retryCount + 1
     }
 
     protected fun wrapPackageToolCallsWithProxy(toolCalls: JSONArray): JSONArray {
@@ -3235,13 +3249,16 @@ open class OpenAIProvider(
                 "【发送消息】开始处理sendMessage请求，历史记录数量: ${chatHistory.size}，最后一条长度: ${chatHistory.lastOrNull()?.content?.length ?: 0}"
             )
 
-            val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+            val session = apiKeyProvider.createRequestSession(modelName, stream)
+            val maxRetries = (session.maxAttempts() - 1).coerceAtLeast(0)
             var retryCount = 0
             var lastException: Exception? = null
+            val watchdog = FirstTokenWatchdog(CoroutineScope(currentCoroutineContext() + SupervisorJob()))
+            withContext(ApiKeyRequestElement(session)) {
 
             // 用于保存当前 attempt 已接收到的内容；一旦需要重试，会整体回滚到请求起点
             val receivedContent = StringBuilder()
-            val emitter = StreamEmitter(receivedContent, ::emit, eventChannel, onTokensUpdated)
+            val emitter = StreamEmitter(receivedContent, ::emit, eventChannel, onTokensUpdated) { watchdog.markFirstToken() }
             val requestSavepointId = "attempt_${UUID.randomUUID().toString().replace("-", "")}"
             emitter.emitSavepoint(requestSavepointId)
 
@@ -3291,6 +3308,7 @@ open class OpenAIProvider(
                 // 创建Call对象并保存到activeCall中，以便可以取消
                 val call = client.newCall(request)
                 activeCall = call
+                watchdog.start(call)
 
                 AppLogger.d("AIService", "[req=$requestTraceId] 【发送消息】正在建立连接到服务器...")
 
@@ -3316,13 +3334,11 @@ open class OpenAIProvider(
                                 "【发送消息】API请求失败，状态码: ${response.code}，错误信息: $errorBody"
                             )
                             // 状态码错误保留状态码信息，随后进入统一重试循环。
-                            if (response.code in 400..499) {
-                                throw HttpStatusException(
-                                    context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
-                                    statusCode = response.code
-                                )
-                            }
-                            throw IOException(context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody))
+                            throw HttpStatusException(
+                                context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
+                                statusCode = response.code,
+                                retryAfterMs = parseRetryAfterMs(response),
+                            )
                         }
 
                         AppLogger.d(
@@ -3461,17 +3477,32 @@ open class OpenAIProvider(
 
                 // 成功处理后返回
                 checkCancellation(context)
+                watchdog.cancel()
+                currentApiKeySession()?.reportOutcome(
+                    ApiKeyAttemptReport(
+                        success = true,
+                        errorClass = ApiKeyErrorClass.NONE,
+                        ttftMs = watchdog.ttftMs(),
+                        tokensPerSec = watchdog.tokensPerSec(tokenCacheManager.outputTokenCount),
+                        inputTokens = tokenCacheManager.totalInputTokenCount,
+                        outputTokens = tokenCacheManager.outputTokenCount,
+                        cachedInputTokens = tokenCacheManager.cachedInputTokenCount,
+                        model = modelName,
+                        stream = stream,
+                        attemptIndex = attemptNumber,
+                    )
+                )
                 onUsageFinalized?.invoke(attemptNumber)
                 AppLogger.d(
                     "AIService",
                     "【发送消息】请求成功完成，输入token: ${tokenCacheManager.totalInputTokenCount}(缓存:${tokenCacheManager.cachedInputTokenCount})，输出token: ${tokenCacheManager.outputTokenCount}"
                 )
-                return@stream
+                return@withContext
             } catch (e: Exception) {
                 lastException = e
                 retryCount = handleRetryableError(
                     context = context,
-                    exception = e,
+                    exception = if (watchdog.timedOut) FirstTokenTimeoutException(e.message ?: "", e) else e,
                     retryCount = retryCount,
                     maxRetries = maxRetries,
                     enableRetry = enableRetry,
@@ -3480,6 +3511,9 @@ open class OpenAIProvider(
                     buildRetryMessage = { errorText, retryNumber ->
                         "【${context.getString(R.string.openai_retry_with_count, errorText, retryNumber)}】"
                     },
+                    attemptNumber = retryCount + 1,
+                    watchdog = watchdog,
+                    stream = stream,
                 )
             }
             }
@@ -3503,6 +3537,7 @@ open class OpenAIProvider(
                 ),
                 lastException
             )
+            }
         }
         return responseStream.withEventChannel(eventChannel)
     }

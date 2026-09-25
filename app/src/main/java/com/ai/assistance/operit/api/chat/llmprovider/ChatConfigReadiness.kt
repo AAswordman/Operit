@@ -83,7 +83,7 @@ object ChatConfigReadiness {
                 ApiProviderConfigs.requiresApiKey(providerType, config.apiEndpoint)
         val hasUsableKey = ApiKeyFormatValidator.hasUsableKey(config)
 
-        if (config.useMultipleApiKeys && !hasUsableKey) {
+        if (config.useMultipleApiKeys && providerType.supportsApiKeyPool() && !hasUsableKey) {
             val issue =
                 if (hasConfiguredKey) {
                     ChatConfigReadinessIssue.API_KEY_INVALID

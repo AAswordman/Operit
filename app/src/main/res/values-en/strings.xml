@@ -4918,8 +4918,43 @@
     <!-- Advanced Settings Section -->
     <string name="advanced_settings">Advanced Settings</string>
     <string name="use_api_key_pool">Use API Key Pool</string>
+    <string name="api_key_pool_title">API Key Pool</string>
+    <string name="api_key_pool_empty_title">No keys yet</string>
+    <string name="api_key_pool_add_short">Add key</string>
+    <string name="api_key_pool_import_short">Import</string>
+    <string name="api_key_pool_export_short">Export</string>
+    <string name="api_key_pool_test_short">Test</string>
+    <string name="api_key_pool_status_available">Available</string>
+    <string name="api_key_pool_status_unavailable">Unavailable</string>
+    <string name="api_key_pool_status_untested">Untested</string>
+    <string name="api_key_pool_status_disabled">Disabled</string>
+    <string name="api_key_pool_disable">Disable</string>
+    <string name="api_key_pool_enable">Enable</string>
+    <string name="api_key_pool_saved">API key pool saved</string>
+    <string name="api_key_pool_enabled">API key pool enabled</string>
+    <string name="api_key_pool_disabled">API key pool disabled</string>
+    <string name="api_key_pool_import_keys">Import keys</string>
+    <string name="api_key_pool_delete_keys">Delete keys</string>
+    <string name="api_key_pool_selected_count">Selected %1$d / %2$d</string>
+    <string name="api_key_pool_filter_all">All</string>
+    <string name="api_key_pool_filter_untested">Untested</string>
+    <string name="api_key_pool_export_n">Export %1$d</string>
+    <string name="api_key_pool_delete_n">Delete %1$d</string>
+    <string name="api_key_pool_delete_hint">Deleted keys cannot be restored. The main API key is not removed.</string>
+    <string name="api_key_pool_deleted_count">Deleted %1$d keys</string>
+    <string name="api_key_pool_reorder">Reorder</string>
+    <string name="api_key_pool_info_title">Key pool info</string>
+    <string name="api_key_pool_info_subtitle">Last 24 hours · current order</string>
+    <string name="api_key_pool_info_recent">Recent</string>
+    <string name="api_key_pool_info_never">Not used yet</string>
+    <string name="api_key_pool_info_line_success">%1$s · success · 24h %2$d/%3$d</string>
+    <string name="api_key_pool_info_line_failure_status">%1$s · %2$d failed · 24h %3$d/%4$d</string>
+    <string name="api_key_pool_info_line_failure">%1$s · failed · 24h %2$d/%3$d</string>
+    <string name="api_key_pool_info_just_now">Just now</string>
+    <string name="api_key_pool_info_minutes_ago">%1$d min ago</string>
+    <string name="api_key_pool_info_days_ago">%1$d d ago</string>
     <string name="api_key_pool_desc">Enable to manage multiple API keys with automatic rotation</string>
-    <string name="api_key_pool_empty">API key pool is empty, click the button below to add keys</string>
+    <string name="api_key_pool_empty">No keys yet</string>
     <string name="add_api_key">Add API Key</string>
     <string name="edit_api_key">Edit API Key</string>
     <string name="delete_api_key">Delete API Key</string>
@@ -4943,8 +4978,9 @@
     <string name="clear_api_key_pool_confirm_message">Delete all %1$d keys? This cannot be undone.</string>
     <string name="api_key_pool_cleared">Key pool cleared</string>
 
-    <string name="api_key_pool_test_progress">Available: %1$d, Unavailable: %2$d, Untested: %3$d</string>
+    <string name="api_key_pool_test_progress">Available: %1$d, Unavailable: %2$d, Untested: %3$d, Disabled: %4$d</string>
     <string name="api_key_pool_test_run_progress">Test progress: %1$d / %2$d</string>
+    <string name="api_key_pool_test_run_completed">Test completed: %1$d / %2$d</string>
     <string name="api_key_pool_test_start">Start testing</string>
     <string name="api_key_pool_test_continue">Continue testing</string>
     <string name="api_key_pool_test_pause">Pause</string>
@@ -7259,6 +7295,7 @@
     <!-- EnhancedAIService -->
     <string name="enhanced_processing_input">Processing input...</string>
     <string name="enhanced_processing_message">Processing message...</string>
+    <string name="enhanced_retrying_request">Retrying request...</string>
     <string name="enhanced_connecting_service">Connecting to AI service...</string>
     <string name="enhanced_receiving_response">Receiving AI response...</string>
     <string name="enhanced_error_with_message">Error: %1$s</string>
@@ -8518,4 +8555,6 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <string name="api_key_pool_exhausted">Tried %1$d key(s) in the pool (%2$d quota, %3$d rate-limited). Last error: %4$s</string>
+    <string name="api_key_first_token_timeout">Timed out waiting for the first token, switching keys</string>
 </resources>
