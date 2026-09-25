@@ -23,13 +23,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.PackageFileImportSupport
+import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.ChatHistory
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -192,20 +200,37 @@ fun SharedIncomingContentHandler(
     onHandleSharedText: (String, String?) -> Unit,
     onClearSharedFiles: () -> Unit,
     onClearSharedText: () -> Unit,
+    onShowMessage: (String) -> Unit = {},
+    onImportSharedPackages: (suspend (List<Uri>) -> String)? = null,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var pendingSharedFilesForSelection by remember { mutableStateOf<List<Uri>?>(null) }
     var pendingSharedFileTextForSelection by remember { mutableStateOf<String?>(null) }
     var pendingSharedTextForSelection by remember { mutableStateOf<String?>(null) }
+    var pendingSharedFilesForPackageChoice by remember { mutableStateOf<List<Uri>?>(null) }
+    var pendingSharedFileTextForPackageChoice by remember { mutableStateOf<String?>(null) }
+    var packageImportBusy by remember { mutableStateOf(false) }
 
     LaunchedEffect(sharedFiles, sharedFileText) {
         if (!sharedFiles.isNullOrEmpty()) {
-            pendingSharedFilesForSelection = sharedFiles
-            pendingSharedFileTextForSelection = sharedFileText
+            val canImportAsPackage = PackageFileImportSupport.areAllShareImportable(context, sharedFiles)
+            if (canImportAsPackage) {
+                pendingSharedFilesForPackageChoice = sharedFiles
+                pendingSharedFileTextForPackageChoice = sharedFileText
+                pendingSharedFilesForSelection = null
+                pendingSharedFileTextForSelection = null
+            } else {
+                pendingSharedFilesForPackageChoice = null
+                pendingSharedFileTextForPackageChoice = null
+                pendingSharedFilesForSelection = sharedFiles
+                pendingSharedFileTextForSelection = sharedFileText
+            }
         }
     }
 
-    LaunchedEffect(sharedText, pendingSharedFilesForSelection) {
-        if (pendingSharedFilesForSelection != null) {
+    LaunchedEffect(sharedText, pendingSharedFilesForSelection, pendingSharedFilesForPackageChoice) {
+        if (pendingSharedFilesForSelection != null || pendingSharedFilesForPackageChoice != null) {
             return@LaunchedEffect
         }
 
@@ -224,6 +249,53 @@ fun SharedIncomingContentHandler(
             .take(5)
     }
 
+    fun consumePendingSharedPackages() {
+        val uris = pendingSharedFilesForPackageChoice ?: return
+        if (packageImportBusy) {
+            return
+        }
+        packageImportBusy = true
+        pendingSharedFilesForPackageChoice = null
+        pendingSharedFileTextForPackageChoice = null
+        onClearSharedFiles()
+        scope.launch {
+            val message = if (onImportSharedPackages != null) {
+                onImportSharedPackages(uris)
+            } else {
+                withContext(Dispatchers.IO) {
+                    val packageManager = PackageManager.getInstance(
+                        context,
+                        AIToolHandler.getInstance(context)
+                    )
+                    val summary = PackageFileImportSupport.importSharedUris(context, packageManager, uris)
+                    when {
+                        summary.failureCount == 0 ->
+                            context.getString(R.string.package_share_import_success, summary.successCount)
+                        summary.successCount == 0 ->
+                            summary.firstError
+                                ?: context.getString(R.string.package_share_import_failed)
+                        else ->
+                            context.getString(
+                                R.string.package_share_import_partial,
+                                summary.successCount,
+                                summary.failureCount
+                            )
+                    }
+                }
+            }
+            packageImportBusy = false
+            onShowMessage(message)
+        }
+    }
+
+    fun movePackageChoiceToChatSelection() {
+        val uris = pendingSharedFilesForPackageChoice ?: return
+        pendingSharedFilesForSelection = uris
+        pendingSharedFileTextForSelection = pendingSharedFileTextForPackageChoice
+        pendingSharedFilesForPackageChoice = null
+        pendingSharedFileTextForPackageChoice = null
+    }
+
     fun consumePendingSharedFiles(targetChatId: String?) {
         val uris = pendingSharedFilesForSelection ?: return
         val text = pendingSharedFileTextForSelection?.trim()
@@ -240,6 +312,19 @@ fun SharedIncomingContentHandler(
         pendingSharedTextForSelection = null
         onClearSharedText()
         onHandleSharedText(text, targetChatId)
+    }
+
+    pendingSharedFilesForPackageChoice?.let { sharedUris ->
+        SharedPackageImportChoiceDialog(
+            fileCount = sharedUris.size,
+            onImportAsPackage = { consumePendingSharedPackages() },
+            onAttachToChat = { movePackageChoiceToChatSelection() },
+            onDismiss = {
+                pendingSharedFilesForPackageChoice = null
+                pendingSharedFileTextForPackageChoice = null
+                onClearSharedFiles()
+            }
+        )
     }
 
     pendingSharedFilesForSelection?.let { sharedUris ->

@@ -2521,6 +2521,11 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         return "Android/data/${context.packageName}/files/packages"
     }
 
+    /** 外部包真实目录，加号新建模板会写到这里。 */
+    fun getExternalPackagesDirectory(): File {
+        return externalPackagesDir
+    }
+
     fun getPluginConfigDirPath(pluginId: String): String {
         val candidate = pluginId.trim()
         if (candidate.isBlank()) {
