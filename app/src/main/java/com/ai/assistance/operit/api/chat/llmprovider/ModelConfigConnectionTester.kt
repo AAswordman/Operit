@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
+import android.util.Log
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ToolParameterSchema
 import com.ai.assistance.operit.data.model.ToolPrompt
@@ -271,11 +272,12 @@ object ModelConfigConnectionTester {
             throw e
         } catch (e: Exception) {
             if (items.none { it.type == ModelConnectionTestType.CHAT }) {
+                Log.e("ModelConfigTester","test failed",e)
                 items.add(
                     ModelConnectionTestItem(
                         type = ModelConnectionTestType.CHAT,
                         outcome = ModelConnectionTestOutcome.FAILED,
-                        error = e.message ?: "Unknown error"
+                        error = e.message ?: "Connection failed: ${e::class.simpleName} (no message)"
                     )
                 )
             }
