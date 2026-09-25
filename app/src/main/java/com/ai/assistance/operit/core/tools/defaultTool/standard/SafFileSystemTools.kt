@@ -29,6 +29,7 @@ import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -60,6 +61,12 @@ class SafFileSystemTools(
         // Collapse multiple slashes
         while (p.contains("//")) p = p.replace("//", "/")
         return p
+    }
+
+    private fun isSameOrDescendantPath(sourcePath: String, destinationPath: String): Boolean {
+        val source = normalizeAbsolutePath(sourcePath)
+        val destination = normalizeAbsolutePath(destinationPath)
+        return source == "/" || destination == source || destination.startsWith("$source/")
     }
 
     private suspend fun resolveTreeUriFromEnvironment(environment: String?): Uri? {
@@ -221,7 +228,7 @@ class SafFileSystemTools(
                             val parts = splitParentAndNameForAbsolutePath(path)
                             if (parts != null && extractSafBookmarkNameOrNull(environment) != null) {
                                 val (parentPath, name) = parts
-                                val parentUri = resolveSafPathToDocumentUriOrNull(parentPath, environment)
+                                val parentUri = resolveOrCreateDirectoryUri(parentPath, environment)
                                     ?: return@withContext ToolResult(
                                         toolName = tool.name,
                                         success = false,
@@ -291,17 +298,102 @@ class SafFileSystemTools(
         }
         val sourceIsContent = isContentUri(sourcePath)
         val destIsContent = isContentUri(destPath)
-        if (!sourceIsContent && !destIsContent) {
+        val resolvedSourceUri =
+            if (sourceIsContent) {
+                resolveSourceDocumentUriOrNull(sourcePath)
+            } else {
+                resolveSafPathToDocumentUriOrNull(sourcePath, environment)
+            }
+        if (resolvedSourceUri == null) {
             return ToolResult(
                 toolName = tool.name,
                 success = false,
-                result = FileOperationData(operation = "copy", env = envLabel, path = sourcePath, successful = false, details = "Repository copy requires at least one content:// path"),
-                error = "Repository copy requires at least one content:// path"
+                result = FileOperationData(operation = "copy", env = envLabel, path = sourcePath, successful = false, details = "Invalid repository path"),
+                error = "Invalid repository path: $sourcePath"
             )
         }
 
         return withContext(Dispatchers.IO) {
             try {
+                if (!sourceIsContent && !destIsContent) {
+                    val destParts = splitParentAndNameForAbsolutePath(destPath)
+                        ?: return@withContext ToolResult(
+                            toolName = tool.name,
+                            success = false,
+                            result = FileOperationData(operation = "copy", env = envLabel, path = destPath, successful = false, details = "Invalid repository path"),
+                            error = "Invalid repository path: $destPath"
+                        )
+                    val parentUri = resolveOrCreateDirectoryUri(destParts.first, environment)
+                        ?: return@withContext ToolResult(
+                            toolName = tool.name,
+                            success = false,
+                            result = FileOperationData(operation = "copy", env = envLabel, path = destPath, successful = false, details = "Invalid repository path"),
+                            error = "Invalid repository path: ${destParts.first}"
+                        )
+                    val sourceMime = queryMimeType(resolvedSourceUri)
+                        ?: if (isDirectoryUri(resolvedSourceUri)) {
+                            DocumentsContract.Document.MIME_TYPE_DIR
+                        } else {
+                            "application/octet-stream"
+                        }
+                    if (sourceMime == DocumentsContract.Document.MIME_TYPE_DIR) {
+                        if (isSameOrDescendantPath(sourcePath, destPath)) {
+                            return@withContext ToolResult(
+                                toolName = tool.name,
+                                success = false,
+                                result = FileOperationData(operation = "copy", env = envLabel, path = destPath, successful = false, details = "Cannot copy a directory into itself or its subdirectory"),
+                                error = "Cannot copy a directory into itself or its subdirectory"
+                            )
+                        }
+                        if (!recursive) {
+                            return@withContext ToolResult(
+                                toolName = tool.name,
+                                success = false,
+                                result = FileOperationData(operation = "copy", env = envLabel, path = sourcePath, successful = false, details = "Recursive flag is required to copy a directory"),
+                                error = "Recursive flag is required to copy a directory"
+                            )
+                        }
+                        val created = createChildDocumentOrNull(parentUri, destParts.second, sourceMime)
+                            ?: return@withContext ToolResult(
+                                toolName = tool.name,
+                                success = false,
+                                result = FileOperationData(operation = "copy", env = envLabel, path = destPath, successful = false, details = "Failed to create destination directory"),
+                                error = "Failed to create destination directory"
+                            )
+                        try {
+                            copyDirectoryContents(resolvedSourceUri, created)
+                        } catch (error: Exception) {
+                            // 复制中途失败时清掉半成品，避免重试生成重名副本。
+                            runCatching { deleteRecursive(created) }
+                            throw error
+                        }
+                        return@withContext ToolResult(
+                            toolName = tool.name,
+                            success = true,
+                            result = FileOperationData(operation = "copy", env = envLabel, path = sourcePath, successful = true, details = "Successfully copied $sourcePath to $destPath"),
+                            error = ""
+                        )
+                    }
+                    val created = createChildDocumentOrNull(parentUri, destParts.second, sourceMime)
+                        ?: return@withContext ToolResult(
+                            toolName = tool.name,
+                            success = false,
+                            result = FileOperationData(operation = "copy", env = envLabel, path = destPath, successful = false, details = "Failed to create destination file"),
+                            error = "Failed to create destination file"
+                        )
+                    try {
+                        copyStreams(resolvedSourceUri, created)
+                    } catch (error: Exception) {
+                        runCatching { deleteRecursive(created) }
+                        throw error
+                    }
+                    return@withContext ToolResult(
+                        toolName = tool.name,
+                        success = true,
+                        result = FileOperationData(operation = "copy", env = envLabel, path = sourcePath, successful = true, details = "Successfully copied $sourcePath to $destPath"),
+                        error = ""
+                    )
+                }
                 if (sourceIsContent && !destIsContent) {
                     val sourceUri = Uri.parse(sourcePath)
                     val sourceDocUri = resolveSourceDocumentUriOrNull(sourcePath)
@@ -521,6 +613,8 @@ class SafFileSystemTools(
                     result = FileOperationData(operation = "copy", env = envLabel, path = sourcePath, successful = true, details = "Successfully copied $sourcePath to $destPath"),
                     error = ""
                 )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (e: Exception) {
                 ToolResult(
                     toolName = tool.name,
@@ -547,12 +641,26 @@ class SafFileSystemTools(
         }
         val sourceIsContent = isContentUri(sourcePath)
         val destIsContent = isContentUri(destPath)
-        if (!sourceIsContent && !destIsContent) {
+        val sourceUriForMove =
+            if (sourceIsContent) {
+                runCatching { Uri.parse(sourcePath) }.getOrNull()
+            } else {
+                resolveSafPathToDocumentUriOrNull(sourcePath, environment)
+            }
+        val destUriForMove =
+            if (destIsContent) {
+                runCatching { Uri.parse(destPath) }.getOrNull()
+            } else {
+                null
+            }
+        if (sourceUriForMove == null && destUriForMove == null &&
+            resolveSafPathToDocumentUriOrNull(sourcePath, environment) == null
+        ) {
             return ToolResult(
                 toolName = tool.name,
                 success = false,
-                result = FileOperationData(operation = "move", env = envLabel, path = sourcePath, successful = false, details = "Repository move requires at least one content:// path"),
-                error = "Repository move requires at least one content:// path"
+                result = FileOperationData(operation = "move", env = envLabel, path = sourcePath, successful = false, details = "Invalid repository path"),
+                error = "Invalid repository path: $sourcePath"
             )
         }
 
@@ -574,11 +682,16 @@ class SafFileSystemTools(
                         deleteRecursive(sourceUri)
                     }
                     else -> {
-                        val f = java.io.File(sourcePath)
-                        if (f.isDirectory) {
-                            f.deleteRecursively()
+                        val sourceUri = resolveSafPathToDocumentUriOrNull(sourcePath, environment)
+                        if (sourceUri != null) {
+                            deleteRecursive(sourceUri)
                         } else {
-                            f.delete()
+                            val f = java.io.File(sourcePath)
+                            if (f.isDirectory) {
+                                f.deleteRecursively()
+                            } else {
+                                f.delete()
+                            }
                         }
                     }
                 }
@@ -589,6 +702,8 @@ class SafFileSystemTools(
                     result = FileOperationData(operation = "move", env = envLabel, path = sourcePath, successful = true, details = "Successfully moved $sourcePath to $destPath"),
                     error = ""
                 )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (e: Exception) {
                 ToolResult(
                     toolName = tool.name,
@@ -605,7 +720,9 @@ class SafFileSystemTools(
         val authority = uri.authority ?: return null
         val treeId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
         val treeUri = DocumentsContract.buildTreeDocumentUri(authority, treeId)
-        val docId = if (DocumentsContract.isTreeUri(uri)) treeId else runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull() ?: treeId
+        val docId =
+            runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull()
+                ?: treeId
         return DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
     }
 
@@ -631,12 +748,62 @@ class SafFileSystemTools(
     private fun isDirectoryUri(uri: Uri): Boolean {
         val docUri = toTreeDocumentUri(uri) ?: uri
         val mime = queryMimeType(docUri)
-        return mime == DocumentsContract.Document.MIME_TYPE_DIR || DocumentsContract.isTreeUri(uri)
+        return mime == DocumentsContract.Document.MIME_TYPE_DIR
     }
 
     private fun openInputStreamOrNull(uri: Uri) = runCatching { contentResolver.openInputStream(uri) }.getOrNull()
 
     private fun openOutputStreamOrNull(uri: Uri, mode: String) = runCatching { contentResolver.openOutputStream(uri, mode) }.getOrNull()
+
+    private fun copyDirectoryContents(srcDirUri: Uri, dstDirUri: Uri) {
+        val childrenQuery = resolveChildrenQueryUri(srcDirUri)
+            ?: throw IllegalStateException("Repository directory copy requires a tree-backed document uri")
+        val treeUri = toTreeUriOrNull(srcDirUri)
+            ?: throw IllegalStateException("Repository directory copy requires a tree-backed document uri")
+        val dstDirDocUri = ensureDirectoryDocumentUriOrNull(dstDirUri)
+            ?: throw IllegalStateException("Destination is not a directory")
+
+        contentResolver.query(
+            childrenQuery.first,
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE
+            ),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            val idIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+            val nameIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val mimeIdx = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+            while (cursor.moveToNext()) {
+                if (idIdx < 0 || cursor.isNull(idIdx)) continue
+                val childId = cursor.getString(idIdx)
+                val childName = if (nameIdx >= 0 && !cursor.isNull(nameIdx)) cursor.getString(nameIdx) else null
+                if (childName.isNullOrBlank()) continue
+                val childMime = if (mimeIdx >= 0 && !cursor.isNull(mimeIdx)) cursor.getString(mimeIdx) else null
+                val childUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, childId)
+                if (childMime == DocumentsContract.Document.MIME_TYPE_DIR) {
+                    val createdDir = DocumentsContract.createDocument(
+                        contentResolver,
+                        dstDirDocUri,
+                        DocumentsContract.Document.MIME_TYPE_DIR,
+                        childName
+                    ) ?: throw IllegalStateException("Failed to create directory: $childName")
+                    copyDirectoryContents(childUri, createdDir)
+                } else {
+                    val createdFile = DocumentsContract.createDocument(
+                        contentResolver,
+                        dstDirDocUri,
+                        childMime ?: "application/octet-stream",
+                        childName
+                    ) ?: throw IllegalStateException("Failed to create file: $childName")
+                    copyStreams(childUri, createdFile)
+                }
+            }
+        } ?: throw IllegalStateException("Failed to query child documents")
+    }
 
     private fun copyStreams(src: Uri, dst: Uri) {
         openInputStreamOrNull(src).use { input ->
@@ -657,7 +824,22 @@ class SafFileSystemTools(
     private fun ensureDirectoryDocumentUriOrNull(uri: Uri): Uri? {
         val docUri = toTreeDocumentUri(uri) ?: return null
         val mime = queryMimeType(docUri)
-        return if (mime == DocumentsContract.Document.MIME_TYPE_DIR || DocumentsContract.isTreeUri(uri)) docUri else null
+        return if (mime == DocumentsContract.Document.MIME_TYPE_DIR) docUri else null
+    }
+
+    private suspend fun resolveOrCreateDirectoryUri(
+        path: String,
+        environment: String?,
+    ): Uri? {
+        val abs = normalizeAbsolutePath(path)
+        resolveSafPathToDocumentUriOrNull(abs, environment)?.let { existing ->
+            return if (isDirectoryUri(existing)) existing else null
+        }
+        if (abs == "/") return null
+        val parts = splitParentAndNameForAbsolutePath(abs) ?: return null
+        val parentUri = resolveOrCreateDirectoryUri(parts.first, environment) ?: return null
+        createChildDocumentOrNull(parentUri, parts.second, DocumentsContract.Document.MIME_TYPE_DIR)
+        return resolveSafPathToDocumentUriOrNull(abs, environment)?.takeIf { isDirectoryUri(it) }
     }
 
     private fun createChildDocumentOrNull(parentDirUri: Uri, name: String, mimeType: String): Uri? {
@@ -886,7 +1068,7 @@ class SafFileSystemTools(
                             val parts = splitParentAndNameForAbsolutePath(path)
                             if (parts != null && extractSafBookmarkNameOrNull(environment) != null) {
                                 val (parentPath, name) = parts
-                                val parentUri = resolveSafPathToDocumentUriOrNull(parentPath, environment)
+                                val parentUri = resolveOrCreateDirectoryUri(parentPath, environment)
                                     ?: return@withContext ToolResult(
                                         toolName = tool.name,
                                         success = false,
@@ -1323,8 +1505,8 @@ class SafFileSystemTools(
 
         return withContext(Dispatchers.IO) {
             try {
-                val deletedCount = contentResolver.delete(uri, null, null)
-                if (deletedCount > 0) {
+                val deleted = DocumentsContract.deleteDocument(contentResolver, uri)
+                if (deleted) {
                     ToolResult(
                         toolName = tool.name,
                         success = true,
