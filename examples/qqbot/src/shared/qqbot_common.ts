@@ -89,7 +89,9 @@ export type HiddenTerminalCommandResultLike = {
 export type QQBotActionResult = {
     success?: boolean;
     error?: string;
+    warning?: string;
     packageVersion?: string;
+    listenerEnabled?: boolean;
     status?: JsonValue;
     service?: JsonValue;
     config?: JsonValue;
@@ -239,9 +241,10 @@ export type QQBotAutoReplyLoopResult = QQBotActionResult & {
     queueRemainingCount?: number;
 };
 
-export const PACKAGE_VERSION = "0.3.0";
+export const PACKAGE_VERSION = "0.3.1";
 export const DEFAULT_TIMEOUT_MS = 20000;
 export const DEFAULT_SERVICE_WAIT_MS = 8000;
+export const LISTENER_TOGGLE_IPC_TIMEOUT_MS = 45000;
 export const DEFAULT_RECEIVE_LIMIT = 20;
 export const MAX_RECEIVE_LIMIT = 100;
 export const SERVICE_POLL_INTERVAL_MS = 200;
