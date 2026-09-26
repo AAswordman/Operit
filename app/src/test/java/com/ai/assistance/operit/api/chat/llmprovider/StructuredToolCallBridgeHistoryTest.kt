@@ -2,11 +2,14 @@ package com.ai.assistance.operit.api.chat.llmprovider
 
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
+import com.ai.assistance.operit.util.AppLogger
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -15,6 +18,22 @@ import org.junit.Test
  * opened by the message right before its run. See issue #1027.
  */
 class StructuredToolCallBridgeHistoryTest {
+    private var previousSystemLogEnabled = true
+    private var previousFileLogEnabled = true
+
+    @Before
+    fun disableAndroidLogging() {
+        previousSystemLogEnabled = AppLogger.enableSystemLog
+        previousFileLogEnabled = AppLogger.enableFileLogging
+        AppLogger.enableSystemLog = false
+        AppLogger.enableFileLogging = false
+    }
+
+    @After
+    fun restoreAndroidLogging() {
+        AppLogger.enableSystemLog = previousSystemLogEnabled
+        AppLogger.enableFileLogging = previousFileLogEnabled
+    }
 
     @Test
     fun `unanswered calls are closed before the trailing tool result text`() {
@@ -43,7 +62,7 @@ class StructuredToolCallBridgeHistoryTest {
             ),
             placeholder
         )
-        assertFalse(placeholder.contains("用户取消"))
+        assertTrue(placeholder.contains("这不是用户取消"))
         assertEquals("The second read was skipped.", messages.at(4).getString("content"))
         assertToolResultsFollowTheirCalls(messages)
     }

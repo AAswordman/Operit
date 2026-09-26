@@ -23,10 +23,10 @@ import com.ai.assistance.operit.R
 data class ParameterDefinition<T : Any>(
     val id: String,
     val name: String,
-    @StringRes val nameResId: Int = 0,
+    @param:StringRes val nameResId: Int = 0,
     val apiName: String,
     val description: String,
-    @StringRes val descriptionResId: Int = 0,
+    @param:StringRes val descriptionResId: Int = 0,
     val defaultValue: T,
     val valueType: ParameterValueType,
     val category: ParameterCategory,

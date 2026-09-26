@@ -69,7 +69,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 // ViewModel factory helper
 inline fun <VM : ViewModel> viewModelFactory(crossinline f: () -> VM) =
     object : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(aClass: Class<T>):T = f() as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = f() as T
     }
 
 @OptIn(ExperimentalMaterial3Api::class)

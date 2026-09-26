@@ -50,6 +50,7 @@ internal object ToolPkgRuntimeMonitor {
         val logs: List<LogEntry>
     )
 
+    @ConsistentCopyVisibility
     data class CallHandle internal constructor(val callId: String)
 
     private data class ActiveCall(
