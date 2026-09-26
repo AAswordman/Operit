@@ -97,7 +97,7 @@ class UnifiedMarketBrowseViewModel(
     private val _sortOption = MutableStateFlow(MarketSortOption.UPDATED)
     val sortOption: StateFlow<MarketSortOption> = _sortOption.asStateFlow()
 
-    private val _featuredOnly = MutableStateFlow(true)
+    private val _featuredOnly = MutableStateFlow(false)
     val featuredOnly: StateFlow<Boolean> = _featuredOnly.asStateFlow()
 
     private val _entries = MutableStateFlow<List<MarketV2Entry>>(emptyList())
