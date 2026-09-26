@@ -53,3 +53,4 @@ Target branch: dev
 - [06 全部分段关闭时的自由格式提示词](06_all_sections_disabled_freeform_prompt.md)
 - [07 插入总结与自动总结同路径](07_insert_summary_shares_auto_summary_path.md)
 - [08 插入总结保留 previousSummary](08_insert_summary_preserves_previous_summary.md)
+- [09 维护者评审修复：存量迁移与健壮性](09_review_fixes_migration_and_robustness.md)

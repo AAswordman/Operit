@@ -145,6 +145,7 @@ abstract class ChatContentDao {
     @Query(
         MESSAGE_CONTENT_ROW_QUERY +
             " WHERE chatId = :chatId" +
+            " AND (:fromTimestampInclusive IS NULL OR timestamp >= :fromTimestampInclusive)" +
             " AND (:afterTimestampExclusive IS NULL OR timestamp > :afterTimestampExclusive)" +
             " AND (:beforeTimestampExclusive IS NULL OR timestamp < :beforeTimestampExclusive)" +
             " AND (:upToTimestampInclusive IS NULL OR timestamp <= :upToTimestampInclusive)" +
@@ -152,6 +153,7 @@ abstract class ChatContentDao {
     )
     protected abstract suspend fun queryMessagesForChatInRangeAsc(
         chatId: String,
+        fromTimestampInclusive: Long?,
         afterTimestampExclusive: Long?,
         beforeTimestampExclusive: Long?,
         upToTimestampInclusive: Long?,
@@ -329,6 +331,7 @@ abstract class ChatContentDao {
     @Transaction
     open suspend fun getMessagesForChatInRangeAsc(
         chatId: String,
+        fromTimestampInclusive: Long? = null,
         afterTimestampExclusive: Long?,
         beforeTimestampExclusive: Long?,
         upToTimestampInclusive: Long?,
@@ -336,6 +339,7 @@ abstract class ChatContentDao {
         materializeMessages(
             queryMessagesForChatInRangeAsc(
                 chatId,
+                fromTimestampInclusive,
                 afterTimestampExclusive,
                 beforeTimestampExclusive,
                 upToTimestampInclusive,

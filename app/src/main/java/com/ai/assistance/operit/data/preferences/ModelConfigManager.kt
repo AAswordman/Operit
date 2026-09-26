@@ -517,6 +517,17 @@ class ModelConfigManager(
         }
     }
 
+    /**
+     * 读取指定模型配置的原始 JSON，供总结配置迁移取回已从 ModelConfigData 删除的旧字段。
+     *
+     * 迁移必须读原始 JSON 而不能解析成当前的 ModelConfigData：summary 字段已从该类删除，
+     * 解析成当前类型会直接把旧配置丢掉。键仍在 Manager 内部拼接，不把 DataStore 结构暴露给调用方。
+     */
+    internal suspend fun readLegacySummaryJson(configId: String): String? {
+        val configKey = stringPreferencesKey("config_${configId}")
+        return configDataStore.data.first()[configKey]
+    }
+
     // 将配置保存到DataStore
     private suspend fun saveConfigToDataStore(config: ModelConfigData) {
         val configKey = stringPreferencesKey("config_${config.id}")

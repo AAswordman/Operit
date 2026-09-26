@@ -871,6 +871,11 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
             val beforeTimestamp = if (message.sender == "ai") message.timestamp else null
             val afterTimestamp = if (message.sender == "user") message.timestamp else null
+            // 窗口下界锚到目标消息之前最近一条 summary（含该条）：长会话从会话起点无界装载会把
+            // 整段历史 hydrate 进内存，锚定后窗口与自动总结同形；无 summary 时为 null，仍从会话起点开始。
+            // 这里只裁下界，不加条数上限，上限会连 summary 之后的内容一起丢掉。
+            val summaryAnchor =
+                chatHistoryDelegate.getLatestSummaryTimestampUpTo(currentChatId, message.timestamp)
             // 窗口保留 summary 消息：AIMessageManager.summarizeMemory 靠它还原 previousSummary，
             // 与自动总结的输入构造保持同一条路径
             val summaryWindow =
@@ -878,6 +883,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                     chatId = currentChatId,
                     beforeTimestampExclusive = afterTimestamp,
                     upToTimestampInclusive = beforeTimestamp,
+                    fromTimestampInclusive = summaryAnchor,
                 )
 
             if (summaryWindow.none { it.sender == "user" || it.sender == "ai" }) {

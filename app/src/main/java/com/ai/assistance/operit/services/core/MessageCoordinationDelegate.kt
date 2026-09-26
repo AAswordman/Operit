@@ -2077,6 +2077,8 @@ class MessageCoordinationDelegate(
                 dialogueReviewEnabled = settings.dialogueReviewEnabled,
                 dialogueReviewTitle = settings.dialogueReviewTitle
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppLogger.w(TAG, "读取总结配置失败", e)
             ConversationSummaryConfig()

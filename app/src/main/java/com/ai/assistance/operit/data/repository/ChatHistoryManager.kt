@@ -40,6 +40,7 @@ import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 import java.io.BufferedWriter
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -2432,28 +2433,51 @@ class ChatHistoryManager private constructor(private val context: Context) {
     }
 
     /**
+     * 目标时间戳之前（含该时间戳）最近一条 summary 的时间戳。
+     *
+     * 插入总结用它作为窗口下界：从会话起点无界装载会把整段历史 hydrate 进内存，
+     * 锚到最近一条 summary 后窗口与自动总结同形，previousSummary 也仍能还原。
+     * 返回 null 表示会话里还没有总结，此时窗口从会话起点开始。
+     */
+    suspend fun getLatestSummaryTimestampUpTo(
+        chatId: String,
+        upToTimestampInclusive: Long
+    ): Long? =
+        withContext(Dispatchers.IO) {
+            messageDao.getLatestSummaryTimestampUpTo(chatId, upToTimestampInclusive)
+        }
+
+    /**
      * 为插入总结加载长按位置之前的全部消息，保留 summary 消息。
      *
      * 插入总结必须和自动总结拿到同一份输入：AIMessageManager.summarizeMemory 依赖列表里
      * 最后一条 summary 作为 previousSummary，再从其后截取待总结消息。历史上这里把窗口裁到
      * 最近一次总结之后、并把 summary 过滤掉，previousSummary 恒为 null，模型拿不到可融合的
      * 历史，只剩自定义规则可复述。因此本方法不做总结锚点裁切，交给 summarizeMemory 自己处理。
+     *
+     * fromTimestampInclusive 传目标消息之前最近一条 summary 的时间戳（含该条）：长会话里从会话
+     * 起点无界装载会把整段历史 hydrate 进内存，锚到最近一条 summary 后窗口与 loadRuntimeChatMessagesUpTo
+     * 同形，previousSummary 仍能还原。为 null 表示会话里还没有总结，从会话起点装载。
      */
     suspend fun loadRuntimeChatMessagesForSummaryInsertion(
         chatId: String,
         beforeTimestampExclusive: Long? = null,
         upToTimestampInclusive: Long? = null,
+        fromTimestampInclusive: Long? = null,
     ): List<ChatMessage> {
         return withContext(Dispatchers.IO) {
             try {
                 val messageEntities =
                     chatContentDao.getMessagesForChatInRangeAsc(
                         chatId = chatId,
+                        fromTimestampInclusive = fromTimestampInclusive,
                         afterTimestampExclusive = null,
                         beforeTimestampExclusive = beforeTimestampExclusive,
                         upToTimestampInclusive = upToTimestampInclusive
                     )
                 hydrateMessages(chatId, messageEntities)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "加载插入总结窗口的聊天消息失败", e)
                 emptyList()

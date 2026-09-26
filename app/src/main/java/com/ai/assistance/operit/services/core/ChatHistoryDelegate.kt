@@ -351,20 +351,31 @@ class ChatHistoryDelegate(
     }
 
     /**
+     * 目标时间戳之前（含该时间戳）最近一条 summary 的时间戳，用作插入总结窗口的下界。
+     * 返回 null 表示会话里还没有总结，窗口从会话起点开始。
+     */
+    suspend fun getLatestSummaryTimestampUpTo(chatId: String, upToTimestampInclusive: Long): Long? =
+        chatHistoryManager.getLatestSummaryTimestampUpTo(chatId, upToTimestampInclusive)
+
+    /**
      * 插入总结的装载窗口：长按位置之前的全部消息，保留 summary 消息。
      *
      * summary 消息是 previousSummary 的来源，必须一并交给 AIMessageManager.summarizeMemory，
      * 由它自己截取待总结消息，与自动总结的输入构造保持一致。
+     *
+     * fromTimestampInclusive 取目标消息之前最近一条 summary（含该条），避免长会话从会话起点无界装载。
      */
     suspend fun loadRuntimeMessagesForSummaryInsertion(
         chatId: String,
         beforeTimestampExclusive: Long? = null,
         upToTimestampInclusive: Long? = null,
+        fromTimestampInclusive: Long? = null,
     ): List<ChatMessage> =
         chatHistoryManager.loadRuntimeChatMessagesForSummaryInsertion(
             chatId = chatId,
             beforeTimestampExclusive = beforeTimestampExclusive,
             upToTimestampInclusive = upToTimestampInclusive,
+            fromTimestampInclusive = fromTimestampInclusive,
         )
 
     suspend fun loadChatMessageLocatorPreviews(
