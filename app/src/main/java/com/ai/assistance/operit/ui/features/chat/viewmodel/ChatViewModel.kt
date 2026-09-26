@@ -873,12 +873,14 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 val beforeTimestamp = if (message.sender == "ai") message.timestamp else null
                 val afterTimestamp = if (message.sender == "user") message.timestamp else null
                 val messagesToSummarize =
-                    chatHistoryDelegate
-                        .loadMessagesForSummaryInsertion(
-                            chatId = currentChatId,
-                            beforeTimestampExclusive = afterTimestamp,
-                            upToTimestampInclusive = beforeTimestamp,
-                        ).filter { it.sender == "user" || it.sender == "ai" }
+                    withContext(Dispatchers.IO) {
+                        chatHistoryDelegate
+                            .loadMessagesForSummaryInsertion(
+                                chatId = currentChatId,
+                                beforeTimestampExclusive = afterTimestamp,
+                                upToTimestampInclusive = beforeTimestamp,
+                            ).filter { it.sender == "user" || it.sender == "ai" }
+                    }
 
                 if (messagesToSummarize.isEmpty()) {
                     uiStateDelegate.showToast(context.getString(R.string.chat_no_messages_to_summarize))
@@ -899,25 +901,30 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 // 检查是否是群聊
                 val currentChat = chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == currentChatId }
                 val isGroupChat = currentChat?.characterGroupId != null
-                val summaryConfig = messageCoordinationDelegate.readSummaryConfig()
+                val summaryConfig = withContext(Dispatchers.IO) {
+                    messageCoordinationDelegate.readSummaryConfig()
+                }
 
-                val summaryMessage = AIMessageManager.summarizeMemory(
-                    enhancedAiService!!,
-                    messagesToSummarize,
-                    autoContinue = false,
-                    isGroupChat = isGroupChat,
-                    summaryConfig = summaryConfig
-                )
+                val summaryMessage = withContext(Dispatchers.IO) {
+                    AIMessageManager.summarizeMemory(
+                        enhancedAiService!!,
+                        messagesToSummarize,
+                        autoContinue = false,
+                        isGroupChat = isGroupChat,
+                        summaryConfig = summaryConfig
+                    )
+                }
 
                 if (summaryMessage != null) {
                     // 插入总结消息
-                    chatHistoryDelegate.addSummaryMessage(
-                        summaryMessage = summaryMessage,
-                        beforeTimestamp = beforeTimestamp,
-                        afterTimestamp = afterTimestamp,
-                    )
-
-                    messageCoordinationDelegate.refreshStableContextWindow(chatId = currentChatId)
+                    withContext(Dispatchers.IO) {
+                        chatHistoryDelegate.addSummaryMessage(
+                            summaryMessage = summaryMessage,
+                            beforeTimestamp = beforeTimestamp,
+                            afterTimestamp = afterTimestamp,
+                        )
+                    }
+                    messageCoordinationDelegate.scheduleStableContextWindowRefresh(chatId = currentChatId)
 
                     uiStateDelegate.showToast(context.getString(R.string.chat_summary_inserted))
                 } else {
@@ -1112,8 +1119,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
                 // 直接在数据库中更新该条消息
                 chatHistoryDelegate.addMessageToChat(editedMessage)
-
-                messageCoordinationDelegate.refreshStableContextWindow(chatId = currentChatId.value)
+                // 变更历史后异步刷新窗口，不阻塞编辑操作
+                messageCoordinationDelegate.scheduleStableContextWindowRefresh(chatId = currentChatId.value)
 
                 // 显示成功提示
                 uiStateDelegate.showToast(context.getString(R.string.chat_message_updated))
@@ -1153,7 +1160,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                     return@launch
                 }
                 chatHistoryDelegate.selectMessageVariant(targetMessage.timestamp, targetVariantIndex)
-                messageCoordinationDelegate.refreshStableContextWindow(chatId = currentChatId.value)
+                messageCoordinationDelegate.scheduleStableContextWindowRefresh(chatId = currentChatId.value)
             } catch (e: Exception) {
                 AppLogger.e(TAG, "切换回答版本失败", e)
                 uiStateDelegate.showErrorMessage(
@@ -1186,7 +1193,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                     timestamp = targetMessage.timestamp,
                     variantIndex = targetMessage.selectedVariantIndex,
                 )
-                messageCoordinationDelegate.refreshStableContextWindow(chatId = currentChatId.value)
+                messageCoordinationDelegate.scheduleStableContextWindowRefresh(chatId = currentChatId.value)
             } catch (e: Exception) {
                 AppLogger.e(TAG, "删除当前消息候选失败", e)
                 uiStateDelegate.showErrorMessage(
