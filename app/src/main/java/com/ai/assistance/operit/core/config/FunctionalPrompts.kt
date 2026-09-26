@@ -115,6 +115,52 @@ object FunctionalPrompts {
         return if (useEnglish) SUMMARY_PROMPT_EN else SUMMARY_PROMPT
     }
 
+    /**
+     * 所有分段都被关闭时使用的自由格式总结指令。
+     *
+     * 历史上全关后只输出分隔线与模板原文的"格式要求"清单，而清单通篇要求
+     * "必须使用上述固定格式"，与上方已被清空的正文自相矛盾：模型拿到空壳后
+     * 只能自由发挥成默认多段结构，并把末尾追加的自定义规则当成待总结的内容。
+     * 现在全关时整体换成可执行的自由格式指令，不再输出那段矛盾的格式要求清单。
+     */
+    private const val SUMMARY_ALL_SECTIONS_DISABLED_CN = """
+        **所有固定分段均已被关闭，改用自由格式输出：**
+        1. 不要使用【】分段标题，不要使用等号分隔线，也不要输出"格式要求""内容要求"之类的清单。
+        2. 直接输出若干连贯段落，完整概括上一次的摘要与最近的对话内容，涵盖核心任务与进度、关键信息与上下文、互动与设定、结论与下一步等你认为必要的内容。
+        3. 保持专业、清晰、客观；摘要必须自包含，重要的证据、路径、命令与原话可直接引用，篇幅自行决定。
+    """
+
+    private const val SUMMARY_ALL_SECTIONS_DISABLED_EN = """
+        **All fixed sections are disabled. Use free-form output instead:**
+        1. Do not use bracketed section headers, separator lines, or "Formatting/Content requirements" lists.
+        2. Write coherent paragraphs covering the core task and progress, key information and context, interactions and setup, conclusions and next steps, as you see fit.
+        3. Stay professional, clear and objective; keep the summary self-contained, quote evidence, paths, commands or original wording when needed, and decide the length yourself.
+    """
+
+    /**
+     * 存在被关闭的分段时追加的锁定约束。
+     *
+     * 模板原文的格式要求写死了"必须使用上述固定格式"，用户只关一部分分段时，
+     * 模型会据此把关掉的分段补回来。这里显式声明只允许输出保留的分段。
+     */
+    private const val SUMMARY_SECTION_LOCK_HINT_CN =
+        "**分段锁定：只允许输出上方列出的分段，严禁新增、改写或补回任何未列出的分段标题。**"
+
+    private const val SUMMARY_SECTION_LOCK_HINT_EN =
+        "**Section lock: output only the sections listed above. Do not add, rewrite, or restore any unlisted section header.**"
+
+    /**
+     * 自定义总结规则的指令头。
+     *
+     * 历史上规则文本裸拼在提示词末尾，没有任何标识，模型会把它当作待总结的
+     * 对话内容写进摘要。带指令头后明确这是必须遵守的规则而非内容。
+     */
+    private const val SUMMARY_GLOBAL_RULES_HEADER_CN =
+        "**额外规则（必须严格遵守，优先级高于上述通用要求）：**"
+
+    private const val SUMMARY_GLOBAL_RULES_HEADER_EN =
+        "**Additional rules (must be followed strictly and take precedence over the generic requirements above):**"
+
     private val summarySectionIds = listOf("core_task", "interaction", "progress", "key_info")
 
     private fun summarySectionTitles(useEnglish: Boolean): List<String> {
@@ -163,6 +209,13 @@ object FunctionalPrompts {
         return summaryPromptTemplate(useEnglish).sections.map { it.config }
     }
 
+    /**
+     * 把界面编辑态解析成展示用的分段列表。
+     *
+     * 覆盖字段的规范化契约：title 与 instruction 为 null 表示跟随默认；
+     * title 去空白后为空同样表示跟随默认；instruction 去空白后为空表示
+     * "该分段只保留标题、不输出指令正文"，这是用户清空指令时的明确意图。
+     */
     fun resolveSummarySections(
         overrides: List<SummarySectionOverride>,
         useEnglish: Boolean
@@ -173,36 +226,39 @@ object FunctionalPrompts {
             defaultSection.copy(
                 enabled = override.enabled ?: defaultSection.enabled,
                 title = override.title?.trim()?.takeIf { it.isNotBlank() } ?: defaultSection.title,
-                instruction =
-                    override.instruction?.trim()?.takeIf { it.isNotBlank() }
-                        ?: defaultSection.instruction
+                instruction = override.instruction?.trim() ?: defaultSection.instruction
             )
         }
     }
 
+    /**
+     * 把界面编辑态转成持久化的分段覆盖，规范化后全量持久化。
+     *
+     * 历史上只持久化与默认不同的字段，enabled 与默认一致即丢弃，导致"把某个分段关掉后
+     * 再动其他分段"时会把它悄悄带回提示词，用户看到开关不生效。现在 enabled 恒写入，
+     * title 与 instruction 去首尾空白后按下列规则持久化：
+     * - 与默认一致或空白的 title 写 null，语义是跟随默认标题
+     * - 与默认一致的 instruction 写 null；清空后的空串会原样持久化，渲染时只输出标题
+     * 写 null 而非默认文本还有一个原因：渲染侧对 title 与 instruction 全为 null 的分段
+     * 直接拼接模板原文，保证未编辑过的分段生成的提示词逐字不变。
+     */
     fun buildSummarySectionOverrides(
         sections: List<SummarySectionConfig>,
         useEnglish: Boolean
     ): List<SummarySectionOverride> {
         val sectionsById = sections.associateBy { it.id.trim() }
-        return legacyPromptSections(useEnglish).mapNotNull { defaultSection ->
-            val section = sectionsById[defaultSection.id] ?: return@mapNotNull null
-            val enabled = section.enabled.takeIf { it != defaultSection.enabled }
-            val title = section.title.trim().takeIf { it.isNotBlank() && it != defaultSection.title }
-            val instruction =
-                section.instruction.trim().takeIf {
-                    it.isNotBlank() && it != defaultSection.instruction
-                }
-            if (enabled == null && title == null && instruction == null) {
-                null
-            } else {
-                SummarySectionOverride(
-                    id = defaultSection.id,
-                    enabled = enabled,
-                    title = title,
-                    instruction = instruction
-                )
-            }
+        return legacyPromptSections(useEnglish).map { defaultSection ->
+            val section = sectionsById[defaultSection.id]
+            SummarySectionOverride(
+                id = defaultSection.id,
+                enabled = section?.enabled ?: defaultSection.enabled,
+                title =
+                    section?.title?.trim()?.takeIf {
+                        it.isNotBlank() && it != defaultSection.title
+                    },
+                instruction =
+                    section?.instruction?.trim()?.takeIf { it != defaultSection.instruction }
+            )
         }
     }
 
@@ -216,8 +272,10 @@ object FunctionalPrompts {
             prompt = applySummarySectionOverrides(summaryConfig.sectionOverrides, useEnglish)
         }
         val promptWithPreviousSummary = appendPreviousSummary(prompt, previousSummary, useEnglish)
+        val rulesHeader =
+            if (useEnglish) SUMMARY_GLOBAL_RULES_HEADER_EN else SUMMARY_GLOBAL_RULES_HEADER_CN
         return summaryConfig.globalRules?.trim()?.takeIf { it.isNotBlank() }?.let { rules ->
-            "$promptWithPreviousSummary\n\n$rules"
+            "$promptWithPreviousSummary\n\n$rulesHeader\n$rules"
         } ?: promptWithPreviousSummary
     }
 
@@ -227,22 +285,55 @@ object FunctionalPrompts {
     ): String {
         val template = summaryPromptTemplate(useEnglish)
         val overridesById = overrides.associateBy { it.id.trim() }
+        // enabled 为 null 视为启用，与逐段渲染的判定保持同一口径
+        var hasEnabledSection = false
+        var hasDisabledSection = false
+        template.sections.forEach { section ->
+            if (overridesById[section.config.id]?.enabled == false) {
+                hasDisabledSection = true
+            } else {
+                hasEnabledSection = true
+            }
+        }
+
+        if (!hasEnabledSection) {
+            // 全关时模板原文的格式要求清单与"上方无任何分段"矛盾，整体换成可执行的自由格式指令
+            val freeFormInstruction =
+                if (useEnglish) SUMMARY_ALL_SECTIONS_DISABLED_EN else SUMMARY_ALL_SECTIONS_DISABLED_CN
+            return buildString {
+                append(template.prefix)
+                append(freeFormInstruction.trimIndent())
+            }
+        }
+
+        val lockHint =
+            if (useEnglish) SUMMARY_SECTION_LOCK_HINT_EN else SUMMARY_SECTION_LOCK_HINT_CN
         return buildString {
             append(template.prefix)
             template.sections.forEach { section ->
                 val override = overridesById[section.config.id]
                 if (override?.enabled != false) {
+                    // title 为空表示跟随默认标题；instruction 为 null 表示跟随默认指令，
+                    // 空串表示用户主动清空，只输出标题不输出指令正文。
                     val title = override?.title?.trim()?.takeIf { it.isNotBlank() }
-                    val instruction = override?.instruction?.trim()?.takeIf { it.isNotBlank() }
+                    val instruction = override?.instruction?.trim()
                     if (title == null && instruction == null) {
                         append(section.block)
                     } else {
                         append(summarySectionHeader(title ?: section.config.title, useEnglish))
-                        append('\n')
-                        append(instruction ?: section.config.instruction)
+                        val body = instruction ?: section.config.instruction
+                        if (body.isNotBlank()) {
+                            append('\n')
+                            append(body)
+                        }
                         append("\n\n")
                     }
                 }
+            }
+            // 只有确实关掉了分段才追加锁定约束：未做任何编辑的用户提示词仍与模板逐字一致
+            if (hasDisabledSection) {
+                append("\n\n")
+                append(lockHint)
             }
             append(template.suffix)
         }

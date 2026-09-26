@@ -2816,7 +2816,6 @@
     <string name="chat_ai_service_not_initialized">AI 서비스가 초기화되지 않았습니다.</string>
     <string name="chat_summary_inserted">요약 삽입됨</string>
     <string name="chat_summary_generation_failed">요약 생성 실패</string>
-    <string name="chat_insert_summary_failed">요약 삽입 실패: %1$s</string>
     <string name="chat_invalid_message_index">잘못된 메시지 색인</string>
     <string name="chat_message_updated">메시지가 업데이트되었습니다.</string>
     <string name="chat_update_message_failed">메시지 업데이트 실패: %1$s</string>

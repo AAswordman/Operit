@@ -3145,7 +3145,6 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_ai_service_not_initialized">AIServiciul nu a fost inițializat</string>
     <string name="chat_summary_inserted">Rezumatul a fost inserat</string>
     <string name="chat_summary_generation_failed">Eșec la generarea rezumatului</string>
-    <string name="chat_insert_summary_failed">Eșec la inserarea rezumatului: %1$s</string>
     <string name="chat_invalid_message_index">Indexul mesajelor nevalide</string>
     <string name="chat_message_updated">Știrea a fost actualizată</string>
     <string name="chat_update_message_failed">Actualizarea nu a reușit: %1$s</string>

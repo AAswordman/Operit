@@ -22,14 +22,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.Button
@@ -79,17 +77,20 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.config.FunctionalPrompts
-import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.model.CharacterCard
+import com.ai.assistance.operit.data.model.CharacterCardSummaryBindingMode
+import com.ai.assistance.operit.data.model.ContextSummarySettings
 import com.ai.assistance.operit.data.model.SummarySectionConfig
 import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
-import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
-import com.ai.assistance.operit.data.preferences.ModelConfigManager
+import com.ai.assistance.operit.data.preferences.CharacterCardManager
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -102,8 +103,6 @@ import kotlinx.coroutines.launch
 fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     val context = LocalContext.current
     val apiPreferences = remember { ApiPreferences.getInstance(context) }
-    val functionalConfigManager = remember { FunctionalConfigManager(context) }
-    val modelConfigManager = remember { ModelConfigManager(context) }
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -131,96 +130,94 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
         maxMediaHistoryUserTurnsInput = apiPreferences.maxMediaHistoryUserTurnsFlow.first().toString()
     }
 
-    val functionMappings by
-        functionalConfigManager.functionConfigMappingWithIndexFlow.collectAsState(initial = emptyMap())
-    val currentChatConfigMapping = functionMappings[FunctionType.CHAT] ?: FunctionConfigMapping()
-    val currentChatConfigId = currentChatConfigMapping.configId
+    val characterCardManager = remember { CharacterCardManager.getInstance(context) }
+    val activePromptManager = remember { ActivePromptManager.getInstance(context) }
+    val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
 
-    val currentConfig by produceState<ModelConfigData?>(initialValue = null, key1 = currentChatConfigId) {
-        if (currentChatConfigId.isBlank()) {
-            value = null
-            return@produceState
+    // 总结配置归属：null 表示全局默认，否则角色卡 id。初始定位到当前会话使用的角色卡。
+    var selectedCardId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        val activePrompt = activePromptManager.activePromptFlow.first()
+        selectedCardId = (activePrompt as? ActivePrompt.CharacterCard)?.id
+    }
+    val characterCards by produceState<List<CharacterCard>>(initialValue = emptyList()) {
+        characterCardManager.characterCardListFlow.collect { ids ->
+            value = ids.mapNotNull { id ->
+                runCatching { characterCardManager.getCharacterCard(id) }.getOrNull()
+            }
         }
-        modelConfigManager.getModelConfigFlow(currentChatConfigId).collect { config ->
-            value = config
+    }
+    val activeCardId by produceState<String?>(initialValue = null) {
+        activePromptManager.activePromptFlow.collect { prompt ->
+            value = (prompt as? ActivePrompt.CharacterCard)?.id
         }
     }
-    var contextLengthInput by remember(currentConfig?.id) {
-        mutableStateOf(formatFloatValue(currentConfig?.contextLength))
-    }
-    var maxContextLengthInput by remember(currentConfig?.id) {
-        mutableStateOf(formatFloatValue(currentConfig?.maxContextLength))
-    }
-    var contextError by remember { mutableStateOf<String?>(null) }
+    // 目标为角色卡且跟随全局时，展示的是全局默认配置，编辑区禁用，避免误以为在改卡内配置。
+    val summaryTarget =
+        rememberSummaryTarget(
+            selectedCardId = selectedCardId,
+            characterCardManager = characterCardManager,
+            userPreferencesManager = userPreferencesManager
+        )
+    val summaryEditable = summaryTarget?.editable ?: false
 
-    var enableSummary by remember(currentConfig?.id) {
-        mutableStateOf(currentConfig?.enableSummary ?: false)
+    var enableSummary by remember(selectedCardId) {
+        mutableStateOf(summaryTarget?.settings?.enableSummary ?: false)
     }
-    var summaryTokenThresholdInput by remember(currentConfig?.id) {
-        mutableStateOf(formatFloatValue(currentConfig?.summaryTokenThreshold))
+    var summaryTokenThresholdInput by remember(selectedCardId) {
+        mutableStateOf(formatFloatValue(summaryTarget?.settings?.summaryTokenThreshold))
     }
-    var enableSummaryByMessageCount by remember(currentConfig?.id) {
-        mutableStateOf(currentConfig?.enableSummaryByMessageCount ?: false)
+    var enableSummaryByMessageCount by remember(selectedCardId) {
+        mutableStateOf(summaryTarget?.settings?.enableSummaryByMessageCount ?: false)
     }
-    var summaryMessageCountThresholdInput by remember(currentConfig?.id) {
-        mutableStateOf(currentConfig?.summaryMessageCountThreshold?.toString().orEmpty())
+    var summaryMessageCountThresholdInput by remember(selectedCardId) {
+        mutableStateOf(summaryTarget?.settings?.summaryMessageCountThreshold?.toString().orEmpty())
     }
-    var summaryCustomRulesInput by remember(currentConfig?.id) {
-        mutableStateOf(currentConfig?.summaryCustomRules.orEmpty())
+    var summaryCustomRulesInput by remember(selectedCardId) {
+        mutableStateOf(summaryTarget?.settings?.summaryCustomRules.orEmpty())
     }
-    var dialogueReviewEnabled by remember(currentConfig?.id) {
-        mutableStateOf(currentConfig?.enableSummaryDialogueReview ?: true)
+    var dialogueReviewEnabled by remember(selectedCardId) {
+        mutableStateOf(summaryTarget?.settings?.dialogueReviewEnabled ?: true)
     }
-    var dialogueReviewTitleInput by remember(currentConfig?.id) {
-        mutableStateOf(currentConfig?.summaryDialogueReviewTitle.orEmpty())
+    var dialogueReviewTitleInput by remember(selectedCardId) {
+        mutableStateOf(summaryTarget?.settings?.dialogueReviewTitle.orEmpty())
     }
     val useEnglish = !LocaleUtils.usesChineseContent(context)
-    var summarySectionsInput by remember(currentConfig?.id) {
+    var summarySectionsInput by remember(selectedCardId) {
         mutableStateOf(emptyList<SummarySectionConfig>())
     }
-    var fullscreenTextEditor by remember(currentConfig?.id) {
-        mutableStateOf<FullscreenTextEditorRequest?>(null)
-    }
+    var fullscreenTextEditor by remember { mutableStateOf<FullscreenTextEditorRequest?>(null) }
     var summaryError by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(currentConfig?.id, currentConfig?.contextLength) {
-        contextLengthInput = formatFloatValue(currentConfig?.contextLength)
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.enableSummary) {
+        enableSummary = summaryTarget?.settings?.enableSummary ?: false
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.maxContextLength) {
-        maxContextLengthInput = formatFloatValue(currentConfig?.maxContextLength)
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.summaryTokenThreshold) {
+        summaryTokenThresholdInput = formatFloatValue(summaryTarget?.settings?.summaryTokenThreshold)
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.enableSummary) {
-        enableSummary = currentConfig?.enableSummary ?: false
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.enableSummaryByMessageCount) {
+        enableSummaryByMessageCount = summaryTarget?.settings?.enableSummaryByMessageCount ?: false
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.summaryTokenThreshold) {
-        summaryTokenThresholdInput = formatFloatValue(currentConfig?.summaryTokenThreshold)
-    }
-    LaunchedEffect(currentConfig?.id, currentConfig?.enableSummaryByMessageCount) {
-        enableSummaryByMessageCount = currentConfig?.enableSummaryByMessageCount ?: false
-    }
-    LaunchedEffect(currentConfig?.id, currentConfig?.summaryMessageCountThreshold) {
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.summaryMessageCountThreshold) {
         summaryMessageCountThresholdInput =
-            currentConfig?.summaryMessageCountThreshold?.toString().orEmpty()
+            summaryTarget?.settings?.summaryMessageCountThreshold?.toString().orEmpty()
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.summaryCustomRules) {
-        summaryCustomRulesInput = currentConfig?.summaryCustomRules.orEmpty()
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.summaryCustomRules) {
+        summaryCustomRulesInput = summaryTarget?.settings?.summaryCustomRules.orEmpty()
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.enableSummaryDialogueReview) {
-        dialogueReviewEnabled = currentConfig?.enableSummaryDialogueReview ?: true
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.dialogueReviewEnabled) {
+        dialogueReviewEnabled = summaryTarget?.settings?.dialogueReviewEnabled ?: true
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.summaryDialogueReviewTitle) {
-        dialogueReviewTitleInput = currentConfig?.summaryDialogueReviewTitle.orEmpty()
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.dialogueReviewTitle) {
+        dialogueReviewTitleInput = summaryTarget?.settings?.dialogueReviewTitle.orEmpty()
     }
-    LaunchedEffect(currentConfig?.id, currentConfig?.summarySectionOverrides, useEnglish) {
+    LaunchedEffect(selectedCardId, summaryTarget?.settings?.summarySectionOverrides, useEnglish) {
         summarySectionsInput = FunctionalPrompts.resolveSummarySections(
-            currentConfig?.summarySectionOverrides.orEmpty(),
+            summaryTarget?.settings?.summarySectionOverrides.orEmpty(),
             useEnglish
         )
     }
 
-    val errorValidContextLength = stringResource(id = R.string.model_config_error_valid_context_length)
-    val errorValidMaxContextLength =
-        stringResource(id = R.string.model_config_error_valid_max_context_length)
     val errorSaveFailed = stringResource(id = R.string.model_config_error_save_failed)
     val errorSummaryThresholdRange =
         stringResource(id = R.string.model_config_error_summary_threshold_range)
@@ -229,29 +226,35 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     var showSaveSuccessMessage by remember { mutableStateOf(false) }
     var historyError by remember { mutableStateOf<String?>(null) }
 
-    val currentConfigDisplayName = remember(currentConfig, currentChatConfigId) {
-        buildBoundConfigDisplayName(currentConfig, currentChatConfigId)
-    }
-
-    ContextSummaryAutoSaveEffects(
-        currentConfig = currentConfig,
-        contextInputsProvider = { contextLengthInput to maxContextLengthInput },
-        summaryInputsProvider = {
-            listOf(
-                enableSummary,
-                summaryTokenThresholdInput,
-                enableSummaryByMessageCount,
-                summaryMessageCountThresholdInput
+    SummarySettingsAutoSaveEffect(
+        target = summaryTarget,
+        inputsProvider = {
+            SummarySettingsInputs(
+                enableSummary = enableSummary,
+                summaryTokenThresholdInput = summaryTokenThresholdInput,
+                enableSummaryByMessageCount = enableSummaryByMessageCount,
+                summaryMessageCountThresholdInput = summaryMessageCountThresholdInput,
+                summaryCustomRulesInput = summaryCustomRulesInput,
+                dialogueReviewEnabled = dialogueReviewEnabled,
+                dialogueReviewTitleInput = dialogueReviewTitleInput,
+                summarySectionsInput = summarySectionsInput
             )
         },
-        modelConfigManager = modelConfigManager,
-        errorValidContextLength = errorValidContextLength,
-        errorValidMaxContextLength = errorValidMaxContextLength,
-        errorSaveFailed = errorSaveFailed,
+        useEnglish = useEnglish,
         errorSummaryThresholdRange = errorSummaryThresholdRange,
         errorValidMessageCount = errorValidMessageCount,
-        onContextErrorChange = { contextError = it },
-        onSummaryErrorChange = { summaryError = it }
+        errorSaveFailed = errorSaveFailed,
+        onSummaryErrorChange = { summaryError = it },
+        onSave = { settings ->
+            summaryTarget?.let { target ->
+                saveSummarySettings(
+                    target = target,
+                    settings = settings,
+                    characterCardManager = characterCardManager,
+                    userPreferencesManager = userPreferencesManager
+                )
+            }
+        }
     )
     HistoryRetentionAutoSaveEffects(
         historyInputsProvider = {
@@ -263,21 +266,6 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
         apiPreferences = apiPreferences,
         errorSaveFailed = errorSaveFailed,
         onHistoryErrorChange = { historyError = it }
-    )
-    ContextSummarySectionsAutoSaveEffect(
-        currentConfig = currentConfig,
-        summarySectionsInputProvider = { summarySectionsInput },
-        useEnglish = useEnglish,
-        modelConfigManager = modelConfigManager,
-        errorSaveFailed = errorSaveFailed,
-        onSummaryErrorChange = { summaryError = it }
-    )
-    ContextSummaryDialogueReviewAutoSaveEffect(
-        currentConfig = currentConfig,
-        dialogueReviewInputProvider = { dialogueReviewEnabled to dialogueReviewTitleInput },
-        modelConfigManager = modelConfigManager,
-        errorSaveFailed = errorSaveFailed,
-        onSummaryErrorChange = { summaryError = it }
     )
 
     CustomScaffold() { paddingValues ->
@@ -294,38 +282,45 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.size(12.dp))
 
-                SectionTitle(
-                    text = stringResource(id = R.string.model_config),
-                    icon = Icons.Default.Link
-                )
-                BoundModelConfigCard(
-                    configDisplayName = currentConfigDisplayName,
-                    backgroundColor = componentBackgroundColor
-                )
-                Spacer(modifier = Modifier.size(12.dp))
-
-                // 自定义总结规则自动保存
-                ContextSummaryCustomRulesAutoSaveEffect(
-                    currentConfig = currentConfig,
-                    summaryCustomRulesInputProvider = { summaryCustomRulesInput },
-                    modelConfigManager = modelConfigManager,
-                    errorSaveFailed = errorSaveFailed,
-                    onSummaryErrorChange = { summaryError = it }
-                )
+                // 总结配置归属选择器：切换角色卡即切换该卡专属的总结提示词与阈值
+                val summaryTargetSection: @Composable () -> Unit = {
+                    SummaryTargetSelectorCard(
+                        selectedCardId = selectedCardId,
+                        characterCards = characterCards,
+                        activeCardId = activeCardId,
+                        backgroundColor = componentBackgroundColor,
+                        onSelect = { selectedCardId = it }
+                    )
+                    // 仅角色卡目标展示专属开关：全局默认本身就是可编辑目标
+                    val target = summaryTarget
+                    if (target != null && target.cardId != null) {
+                        SettingsSwitchRow(
+                            title =
+                                stringResource(id = R.string.context_summary_target_custom_switch),
+                            subtitle =
+                                stringResource(
+                                    id = R.string.context_summary_target_custom_switch_desc
+                                ),
+                            checked = target.editable,
+                            onCheckedChange = { enabled ->
+                                val cardId = selectedCardId
+                                if (cardId != null) {
+                                    scope.launch {
+                                        characterCardManager.updateCharacterCardSummaryBinding(
+                                            cardId,
+                                            enabled
+                                        )
+                                    }
+                                }
+                            },
+                            backgroundColor = componentBackgroundColor
+                        )
+                    }
+                }
 
                 RenderContextSummaryConfigSections(
                     componentBackgroundColor = componentBackgroundColor,
-                    contextLengthInput = contextLengthInput,
-                    onContextLengthInputChange = {
-                        contextLengthInput = it
-                        contextError = null
-                    },
-                    maxContextLengthInput = maxContextLengthInput,
-                    onMaxContextLengthInputChange = {
-                        maxContextLengthInput = it
-                        contextError = null
-                    },
-                    contextError = contextError,
+                    summaryEditable = summaryEditable,
                     enableSummary = enableSummary,
                     onEnableSummaryChange = { enableSummary = it },
                     summaryTokenThresholdInput = summaryTokenThresholdInput,
@@ -357,6 +352,7 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                             onValueChange = onValueChange
                         )
                     },
+                    summaryTargetSection = summaryTargetSection,
                     summaryError = summaryError
                 )
 
@@ -398,125 +394,174 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     }
 }
 
+/** 总结配置归属目标：null 为全局默认，其余为角色卡。 */
+internal data class SummaryTarget(
+    val cardId: String?,
+    val cardName: String,
+    val settings: ContextSummarySettings,
+    val bindingMode: String,
+    val editable: Boolean
+)
+
+/**
+ * 观察某个归属目标（角色卡 id，null 为全局默认）的总结配置。
+ *
+ * 角色卡跟随全局时展示的是全局配置，editable 为 false，界面据此禁用输入，
+ * 避免用户误以为在改卡内配置。模型参数界面与总结设置界面共用这一份观察逻辑。
+ */
 @Composable
-private fun ContextSummaryAutoSaveEffects(
-    currentConfig: ModelConfigData?,
-    contextInputsProvider: () -> Pair<String, String>,
-    summaryInputsProvider: () -> List<Any>,
-    modelConfigManager: ModelConfigManager,
-    errorValidContextLength: String,
-    errorValidMaxContextLength: String,
-    errorSaveFailed: String,
+internal fun rememberSummaryTarget(
+    selectedCardId: String?,
+    characterCardManager: CharacterCardManager,
+    userPreferencesManager: UserPreferencesManager
+): SummaryTarget? {
+    val context = LocalContext.current
+    val target by produceState<SummaryTarget?>(initialValue = null, selectedCardId) {
+        val cardId = selectedCardId
+        if (cardId == null) {
+            userPreferencesManager.globalContextSummaryFlow.collect { settings ->
+                value =
+                    SummaryTarget(
+                        cardId = null,
+                        cardName = context.getString(R.string.context_summary_target_global_default),
+                        settings = settings,
+                        bindingMode = "",
+                        editable = true
+                    )
+            }
+        } else {
+            kotlinx.coroutines.flow.combine(
+                characterCardManager.getCharacterCardFlow(cardId),
+                userPreferencesManager.globalContextSummaryFlow
+            ) { card, global ->
+                val custom =
+                    CharacterCardSummaryBindingMode.normalize(card.summaryBindingMode) ==
+                        CharacterCardSummaryBindingMode.CUSTOM
+                SummaryTarget(
+                    cardId = card.id,
+                    cardName = card.name,
+                    settings = if (custom) card.summary else global,
+                    bindingMode = card.summaryBindingMode,
+                    editable = custom
+                )
+            }.collect { value = it }
+        }
+    }
+    return target
+}
+
+/**
+ * 把总结配置写入目标归属：角色卡写卡内，全局默认写用户偏好。
+ * 写入口径只有这一处，多个界面共用避免漂移。
+ */
+internal suspend fun saveSummarySettings(
+    target: SummaryTarget,
+    settings: ContextSummarySettings,
+    characterCardManager: CharacterCardManager,
+    userPreferencesManager: UserPreferencesManager
+) {
+    val cardId = target.cardId
+    if (cardId == null) {
+        userPreferencesManager.saveGlobalContextSummary(settings)
+    } else {
+        characterCardManager.updateCharacterCardSummarySettings(cardId, settings)
+    }
+}
+
+/** 总结设置界面的全部输入态，供自动保存组装完整配置对象。 */
+private data class SummarySettingsInputs(
+    val enableSummary: Boolean,
+    val summaryTokenThresholdInput: String,
+    val enableSummaryByMessageCount: Boolean,
+    val summaryMessageCountThresholdInput: String,
+    val summaryCustomRulesInput: String,
+    val dialogueReviewEnabled: Boolean,
+    val dialogueReviewTitleInput: String,
+    val summarySectionsInput: List<SummarySectionConfig>
+)
+
+/**
+ * 总结配置自动保存。
+ *
+ * 历史实现把开关、阈值、分段、规则、对话回顾拆成多个 effect，各自按字段读改写模型配置，
+ * 多个 effect 竞态时会用旧快照互相覆盖，用户看到改动丢失。现在统一成一个 effect：
+ * 任一输入变化后把全部输入组装成完整的 ContextSummarySettings，一次性写入当前归属目标，
+ * 不再有中间态与跨字段覆盖。
+ */
+@Composable
+private fun SummarySettingsAutoSaveEffect(
+    target: SummaryTarget?,
+    inputsProvider: () -> SummarySettingsInputs,
+    useEnglish: Boolean,
     errorSummaryThresholdRange: String,
     errorValidMessageCount: String,
-    onContextErrorChange: (String?) -> Unit,
-    onSummaryErrorChange: (String?) -> Unit
+    errorSaveFailed: String,
+    onSummaryErrorChange: (String?) -> Unit,
+    onSave: suspend (ContextSummarySettings) -> Unit
 ) {
-    val latestConfig by rememberUpdatedState(currentConfig)
+    val latestTarget by rememberUpdatedState(target)
 
-    LaunchedEffect(currentConfig?.id) {
-        val configId = currentConfig?.id ?: return@LaunchedEffect
-        snapshotFlow { contextInputsProvider() }
+    LaunchedEffect(target?.cardId) {
+        snapshotFlow { inputsProvider() }
             .drop(1)
             .debounce(700)
             .distinctUntilChanged()
-            .collectLatest { (contextText, maxText) ->
-                val contextValue = contextText.toFloatOrNull()
-                val maxValue = maxText.toFloatOrNull()
+            .collectLatest { inputs ->
+                val current = latestTarget ?: return@collectLatest
+                // 角色卡跟随全局时界面展示的是全局配置，输入全部禁用，不发生写入
+                if (!current.editable) return@collectLatest
+
+                val threshold = inputs.summaryTokenThresholdInput.toFloatOrNull()
+                val messageCount = inputs.summaryMessageCountThresholdInput.toIntOrNull()
+                val baseSettings = current.settings
                 when {
-                    contextValue == null || contextValue <= 0f ->
-                        onContextErrorChange(errorValidContextLength)
-                    maxValue == null || maxValue <= 0f ->
-                        onContextErrorChange(errorValidMaxContextLength)
-                    else -> {
-                        val current = latestConfig ?: return@collectLatest
-                        if (current.id != configId) return@collectLatest
-                        if (current.contextLength == contextValue && current.maxContextLength == maxValue) {
-                            onContextErrorChange(null)
-                            return@collectLatest
-                        }
-                        try {
-                            modelConfigManager.updateContextSettings(
-                                configId = current.id,
-                                contextLength = contextValue,
-                                maxContextLength = maxValue,
-                                enableMaxContextMode = current.enableMaxContextMode
-                            )
-                            onContextErrorChange(null)
-                        } catch (e: Exception) {
-                            onContextErrorChange(e.message ?: errorSaveFailed)
-                        }
-                    }
-                }
-            }
-    }
-
-    LaunchedEffect(currentConfig?.id) {
-        val configId = currentConfig?.id ?: return@LaunchedEffect
-        snapshotFlow { summaryInputsProvider() }
-            .drop(1)
-            .debounce(700)
-            .distinctUntilChanged()
-            .collectLatest {
-                val current = latestConfig ?: return@collectLatest
-                if (current.id != configId) return@collectLatest
-
-                val enableSummary = it[0] as Boolean
-                val summaryTokenThresholdInput = it[1] as String
-                val enableSummaryByMessageCount = it[2] as Boolean
-                val summaryMessageCountThresholdInput = it[3] as String
-
-                if (!enableSummary) {
-                    if (current.enableSummary) {
-                        try {
-                            modelConfigManager.updateSummarySettings(
-                                configId = current.id,
-                                enableSummary = false,
-                                summaryTokenThreshold = current.summaryTokenThreshold,
-                                enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                                summaryMessageCountThreshold = current.summaryMessageCountThreshold
-                            )
-                            onSummaryErrorChange(null)
-                        } catch (e: Exception) {
-                            onSummaryErrorChange(e.message ?: errorSaveFailed)
-                        }
-                    }
-                    return@collectLatest
-                }
-
-                val threshold = summaryTokenThresholdInput.toFloatOrNull()
-                val messageCount = summaryMessageCountThresholdInput.toIntOrNull()
-                when {
-                    threshold == null || threshold <= 0f || threshold >= 1f ->
+                    inputs.enableSummary &&
+                        (threshold == null || threshold <= 0f || threshold >= 1f) ->
                         onSummaryErrorChange(errorSummaryThresholdRange)
-                    enableSummaryByMessageCount && (messageCount == null || messageCount <= 0) ->
+                    inputs.enableSummary &&
+                        inputs.enableSummaryByMessageCount &&
+                        (messageCount == null || messageCount <= 0) ->
                         onSummaryErrorChange(errorValidMessageCount)
                     else -> {
-                        val nextMessageCount =
-                            if (enableSummaryByMessageCount) {
-                                messageCount ?: current.summaryMessageCountThreshold
-                            } else {
-                                current.summaryMessageCountThreshold
-                            }
-                        val isNoOp =
-                            current.enableSummary == enableSummary &&
-                                current.summaryTokenThreshold == threshold &&
-                                current.enableSummaryByMessageCount == enableSummaryByMessageCount &&
-                                current.summaryMessageCountThreshold == nextMessageCount
-                        if (isNoOp) {
+                        val settings =
+                            ContextSummarySettings(
+                                enableSummary = inputs.enableSummary,
+                                // 关闭总结时保留已存阈值：输入框此时可能留着未完成的编辑
+                                summaryTokenThreshold =
+                                    if (inputs.enableSummary) {
+                                        threshold ?: baseSettings.summaryTokenThreshold
+                                    } else {
+                                        baseSettings.summaryTokenThreshold
+                                    },
+                                enableSummaryByMessageCount = inputs.enableSummaryByMessageCount,
+                                summaryMessageCountThreshold =
+                                    if (inputs.enableSummaryByMessageCount) {
+                                        messageCount ?: baseSettings.summaryMessageCountThreshold
+                                    } else {
+                                        baseSettings.summaryMessageCountThreshold
+                                    },
+                                summaryCustomRules = inputs.summaryCustomRulesInput,
+                                summarySectionOverrides =
+                                    FunctionalPrompts.buildSummarySectionOverrides(
+                                        inputs.summarySectionsInput,
+                                        useEnglish
+                                    ),
+                                dialogueReviewEnabled = inputs.dialogueReviewEnabled,
+                                dialogueReviewTitle = inputs.dialogueReviewTitleInput.trim()
+                            )
+                        if (settings == baseSettings) {
                             onSummaryErrorChange(null)
                             return@collectLatest
                         }
                         try {
-                            modelConfigManager.updateSummarySettings(
-                                configId = current.id,
-                                enableSummary = enableSummary,
-                                summaryTokenThreshold = threshold,
-                                enableSummaryByMessageCount = enableSummaryByMessageCount,
-                                summaryMessageCountThreshold = nextMessageCount
-                            )
+                            onSave(settings)
                             onSummaryErrorChange(null)
+                        } catch (e: CancellationException) {
+                            // collectLatest 会在下一次输入时取消上一轮保存，取消不是保存失败，
+                            // 必须透传，否则快速连续输入会误报「保存失败」。
+                            throw e
                         } catch (e: Exception) {
+                            AppLogger.w("ContextSummarySettings", "保存总结配置失败", e)
                             onSummaryErrorChange(e.message ?: errorSaveFailed)
                         }
                     }
@@ -565,130 +610,9 @@ private fun HistoryRetentionAutoSaveEffects(
 }
 
 @Composable
-private fun ContextSummaryCustomRulesAutoSaveEffect(
-    currentConfig: ModelConfigData?,
-    summaryCustomRulesInputProvider: () -> String,
-    modelConfigManager: ModelConfigManager,
-    errorSaveFailed: String,
-    onSummaryErrorChange: (String?) -> Unit
-) {
-    val latestConfig by rememberUpdatedState(currentConfig)
-
-    LaunchedEffect(currentConfig?.id) {
-        val configId = currentConfig?.id ?: return@LaunchedEffect
-        snapshotFlow { summaryCustomRulesInputProvider() }
-            .drop(1)
-            .debounce(700)
-            .distinctUntilChanged()
-            .collectLatest { rulesText ->
-                val current = latestConfig ?: return@collectLatest
-                if (current.id != configId) return@collectLatest
-                if (current.summaryCustomRules == rulesText) return@collectLatest
-                try {
-                    modelConfigManager.updateSummarySettings(
-                        configId = current.id,
-                        enableSummary = current.enableSummary,
-                        summaryTokenThreshold = current.summaryTokenThreshold,
-                        enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                        summaryMessageCountThreshold = current.summaryMessageCountThreshold,
-                        summaryCustomRules = rulesText
-                    )
-                    onSummaryErrorChange(null)
-                } catch (e: Exception) {
-                    onSummaryErrorChange(e.message ?: errorSaveFailed)
-                }
-            }
-    }
-}
-
-@Composable
-private fun ContextSummarySectionsAutoSaveEffect(
-    currentConfig: ModelConfigData?,
-    summarySectionsInputProvider: () -> List<SummarySectionConfig>,
-    useEnglish: Boolean,
-    modelConfigManager: ModelConfigManager,
-    errorSaveFailed: String,
-    onSummaryErrorChange: (String?) -> Unit
-) {
-    val latestConfig by rememberUpdatedState(currentConfig)
-
-    LaunchedEffect(currentConfig?.id) {
-        val configId = currentConfig?.id ?: return@LaunchedEffect
-        snapshotFlow { summarySectionsInputProvider() }
-            .drop(1)
-            .debounce(700)
-            .distinctUntilChanged()
-            .collectLatest { sections ->
-                val current = latestConfig ?: return@collectLatest
-                if (current.id != configId) return@collectLatest
-                val overrides =
-                    FunctionalPrompts.buildSummarySectionOverrides(sections, useEnglish)
-                if (current.summarySectionOverrides == overrides) return@collectLatest
-                try {
-                    modelConfigManager.updateSummarySettings(
-                        configId = current.id,
-                        enableSummary = current.enableSummary,
-                        summaryTokenThreshold = current.summaryTokenThreshold,
-                        enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                        summaryMessageCountThreshold = current.summaryMessageCountThreshold,
-                        summarySectionOverrides = overrides
-                    )
-                    onSummaryErrorChange(null)
-                } catch (e: Exception) {
-                    onSummaryErrorChange(e.message ?: errorSaveFailed)
-                }
-            }
-    }
-}
-
-@Composable
-private fun ContextSummaryDialogueReviewAutoSaveEffect(
-    currentConfig: ModelConfigData?,
-    dialogueReviewInputProvider: () -> Pair<Boolean, String>,
-    modelConfigManager: ModelConfigManager,
-    errorSaveFailed: String,
-    onSummaryErrorChange: (String?) -> Unit
-) {
-    val latestConfig by rememberUpdatedState(currentConfig)
-
-    LaunchedEffect(currentConfig?.id) {
-        val configId = currentConfig?.id ?: return@LaunchedEffect
-        snapshotFlow { dialogueReviewInputProvider() }
-            .drop(1)
-            .debounce(700)
-            .distinctUntilChanged()
-            .collectLatest { (enabled, title) ->
-                val current = latestConfig ?: return@collectLatest
-                if (current.id != configId) return@collectLatest
-                val normalizedTitle = title.trim()
-                if (current.enableSummaryDialogueReview == enabled &&
-                    current.summaryDialogueReviewTitle == normalizedTitle
-                ) {
-                    return@collectLatest
-                }
-                try {
-                    modelConfigManager.updateSummaryDialogueReviewSettings(
-                        configId = current.id,
-                        enabled = enabled,
-                        title = normalizedTitle
-                    )
-                    onSummaryErrorChange(null)
-                } catch (e: Exception) {
-                    AppLogger.w("ContextSummarySettings", "保存对话回顾设置失败", e)
-                    onSummaryErrorChange(e.message ?: errorSaveFailed)
-                }
-            }
-    }
-}
-
-@Composable
 private fun RenderContextSummaryConfigSections(
     componentBackgroundColor: Color,
-    contextLengthInput: String,
-    onContextLengthInputChange: (String) -> Unit,
-    maxContextLengthInput: String,
-    onMaxContextLengthInputChange: (String) -> Unit,
-    contextError: String?,
+    summaryEditable: Boolean,
     enableSummary: Boolean,
     onEnableSummaryChange: (Boolean) -> Unit,
     summaryTokenThresholdInput: String,
@@ -705,59 +629,23 @@ private fun RenderContextSummaryConfigSections(
     onDialogueReviewTitleChange: (String) -> Unit,
     summarySectionsInput: List<SummarySectionConfig>,
     onSummarySectionsInputChange: (List<SummarySectionConfig>) -> Unit,
+    summaryTargetSection: @Composable () -> Unit,
     onOpenFullscreenEditor: (String, String, (String) -> Unit) -> Unit,
     summaryError: String?
 ) {
     SectionTitle(
-        text = stringResource(id = R.string.settings_context_title),
-        icon = Icons.Default.Analytics
-    )
-    SettingsInfoBanner(
-        text = stringResource(id = R.string.settings_context_card_content),
-        backgroundColor = componentBackgroundColor
-    )
-    SettingsInputField(
-        title = stringResource(id = R.string.settings_context_length),
-        subtitle = stringResource(id = R.string.settings_context_length_subtitle),
-        value = contextLengthInput,
-        onValueChange = onContextLengthInputChange,
-        unitText = "K",
-        backgroundColor = componentBackgroundColor,
-        allowDecimal = true,
-        keyboardOptions =
-            KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
-    )
-    SettingsInputField(
-        title = stringResource(id = R.string.settings_max_context_length),
-        subtitle = stringResource(id = R.string.settings_max_context_length_subtitle),
-        value = maxContextLengthInput,
-        onValueChange = onMaxContextLengthInputChange,
-        unitText = "K",
-        backgroundColor = componentBackgroundColor,
-        allowDecimal = true,
-        keyboardOptions =
-            KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done)
-    )
-    contextError?.let {
-        Text(
-            text = it,
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-    }
-
-    Spacer(modifier = Modifier.size(8.dp))
-    SectionTitle(
         text = stringResource(id = R.string.settings_summary_title),
         icon = Icons.Default.Summarize
     )
+    // 归属选择器与专属开关放在总结设置标题之下：先决定改哪份配置，再改内容
+    summaryTargetSection()
     SettingsSwitchRow(
         title = stringResource(id = R.string.settings_enable_summary),
         subtitle = stringResource(id = R.string.settings_enable_summary_desc),
         checked = enableSummary,
         onCheckedChange = onEnableSummaryChange,
-        backgroundColor = componentBackgroundColor
+        backgroundColor = componentBackgroundColor,
+        enabled = summaryEditable
     )
     SettingsInputField(
         title = stringResource(id = R.string.settings_summary_threshold),
@@ -765,7 +653,7 @@ private fun RenderContextSummaryConfigSections(
         value = summaryTokenThresholdInput,
         onValueChange = onSummaryTokenThresholdInputChange,
         backgroundColor = componentBackgroundColor,
-        enabled = enableSummary,
+        enabled = summaryEditable && enableSummary,
         allowDecimal = true,
         keyboardOptions =
             KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
@@ -776,7 +664,7 @@ private fun RenderContextSummaryConfigSections(
         checked = enableSummaryByMessageCount,
         onCheckedChange = onEnableSummaryByMessageCountChange,
         backgroundColor = componentBackgroundColor,
-        enabled = enableSummary
+        enabled = summaryEditable && enableSummary
     )
     SettingsInputField(
         title = stringResource(id = R.string.settings_summary_message_count_threshold),
@@ -785,7 +673,7 @@ private fun RenderContextSummaryConfigSections(
         onValueChange = onSummaryMessageCountThresholdInputChange,
         unitText = stringResource(id = R.string.model_config_unit_items),
         backgroundColor = componentBackgroundColor,
-        enabled = enableSummary && enableSummaryByMessageCount
+        enabled = summaryEditable && enableSummary && enableSummaryByMessageCount
     )
     summaryError?.let {
         Text(
@@ -802,7 +690,7 @@ private fun RenderContextSummaryConfigSections(
         title = globalRulesTitle,
         subtitle = stringResource(id = R.string.settings_summary_custom_rules_desc),
         backgroundColor = componentBackgroundColor,
-        enabled = enableSummary,
+        enabled = summaryEditable && enableSummary,
         value = summaryCustomRulesInput,
         onValueChange = onSummaryCustomRulesInputChange,
         onOpenFullscreenEditor = onOpenFullscreenEditor
@@ -823,7 +711,7 @@ private fun RenderContextSummaryConfigSections(
                 )
             },
             backgroundColor = componentBackgroundColor,
-            enabled = enableSummary,
+            enabled = summaryEditable && enableSummary,
             onOpenFullscreenEditor = onOpenFullscreenEditor
         )
     }
@@ -833,7 +721,7 @@ private fun RenderContextSummaryConfigSections(
         title = dialogueReviewTitleInput,
         onTitleChange = onDialogueReviewTitleChange,
         backgroundColor = componentBackgroundColor,
-        summaryEnabled = enableSummary
+        summaryEnabled = summaryEditable && enableSummary
     )
 }
 
@@ -1123,37 +1011,147 @@ private fun formatFloatValue(value: Float?): String {
     return if (value % 1f == 0f) value.toInt().toString() else value.toString()
 }
 
-private fun buildBoundConfigDisplayName(config: ModelConfigData?, fallbackConfigId: String): String {
-    val effectiveConfig = config ?: return fallbackConfigId.ifBlank { FunctionalConfigManager.DEFAULT_CONFIG_ID }
-    return if (effectiveConfig.name.isBlank()) {
-        effectiveConfig.id
-    } else {
-        effectiveConfig.name
-    }
-}
-
+/**
+ * 总结配置归属选择器。
+ *
+ * 总结配置从模型迁移到角色卡后，本卡片决定当前编辑哪份配置：全局默认或某张角色卡的
+ * 专属配置。当前会话使用的角色卡带标记，方便用户直奔常用目标。
+ */
 @Composable
-private fun BoundModelConfigCard(configDisplayName: String, backgroundColor: Color) {
+private fun SummaryTargetSelectorCard(
+    selectedCardId: String?,
+    characterCards: List<CharacterCard>,
+    activeCardId: String?,
+    backgroundColor: Color,
+    onSelect: (String?) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    val selectedName =
+        if (selectedCardId == null) {
+            stringResource(id = R.string.context_summary_target_global_default)
+        } else {
+            characterCards.firstOrNull { it.id == selectedCardId }?.name ?: selectedCardId
+        }
+
     Column(
         modifier =
             Modifier.fillMaxWidth()
                 .padding(bottom = 4.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(backgroundColor)
+                .clickable { showDialog = true }
                 .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Text(
-            text = stringResource(id = R.string.context_summary_current_model_config, configDisplayName),
+            text = stringResource(id = R.string.context_summary_target_title),
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary
+            fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.size(2.dp))
         Text(
-            text = stringResource(id = R.string.context_summary_bound_config_description),
+            text = stringResource(id = R.string.context_summary_target_desc),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(modifier = Modifier.size(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = selectedName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = stringResource(id = R.string.model_config_expand),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .heightIn(max = 420.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.context_summary_target_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.size(12.dp))
+                    SummaryTargetOptionRow(
+                        name = stringResource(id = R.string.context_summary_target_global_default),
+                        subtitle =
+                            stringResource(id = R.string.context_summary_target_global_default_desc),
+                        selected = selectedCardId == null,
+                        onClick = {
+                            onSelect(null)
+                            showDialog = false
+                        }
+                    )
+                    characterCards.forEach { card ->
+                        SummaryTargetOptionRow(
+                            name = card.name,
+                            subtitle =
+                                if (card.id == activeCardId) {
+                                    stringResource(id = R.string.context_summary_target_active_mark)
+                                } else {
+                                    null
+                                },
+                            selected = card.id == selectedCardId,
+                            onClick = {
+                                onSelect(card.id)
+                                showDialog = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryTargetOptionRow(
+    name: String,
+    subtitle: String?,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = name, style = MaterialTheme.typography.bodyMedium)
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 

@@ -29,9 +29,6 @@ import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
-import com.ai.assistance.operit.data.preferences.ModelConfigManager
-import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
-import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.services.ChatServiceUiBridge
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ChatUtils
@@ -1850,7 +1847,38 @@ class MessageCoordinationDelegate(
     }
 
     /**
+     * 长按消息插入总结的入口，与自动总结走同一条链路。
+     *
+     * 历史上界面层自己调用 AIMessageManager.summarizeMemory 并自行维护输入状态机，
+     * 与自动总结在多处不一致，表现为界面改动在插入总结路径上不生效。现在只保留
+     * 调用方裁好的消息范围与插入位置，其余环节全部复用 summarizeHistory：
+     * 同一份 readSummaryConfig、带全参数的 refreshStableContextWindow、_isSummarizing
+     * 并发保护与输入状态机。
+     *
+     * autoContinue 恒为 false：插入总结只把历史压缩成一条总结消息，绝不能让模型
+     * 顺着这条链路再生成回复消息。
+     */
+    suspend fun insertSummaryAtMessage(
+        chatId: String,
+        beforeTimestamp: Long?,
+        afterTimestamp: Long?,
+        summaryMessages: List<ChatMessage>
+    ): Boolean {
+        return summarizeHistory(
+            autoContinue = false,
+            chatIdOverride = chatId,
+            summaryMessages = summaryMessages,
+            insertBeforeTimestamp = beforeTimestamp,
+            insertAfterTimestamp = afterTimestamp
+        )
+    }
+
+    /**
      * 执行历史总结并自动继续对话的核心逻辑
+     *
+     * summaryMessages、insertBeforeTimestamp、insertAfterTimestamp 由长按消息插入总结传入：
+     * 待总结消息与插入位置都按用户长按的那条消息裁好，替代默认的全量运行时历史与
+     * findProperSummaryPosition 自动定位。不传时行为与自动总结完全一致。
      */
     private suspend fun summarizeHistory(
         autoContinue: Boolean = true,
@@ -1862,7 +1890,10 @@ class MessageCoordinationDelegate(
         roleCardIdOverride: String? = null,
         isGroupChat: Boolean = false,
         isGroupOrchestrationTurn: Boolean = false,
-        groupParticipantNamesText: String? = null
+        groupParticipantNamesText: String? = null,
+        summaryMessages: List<ChatMessage>? = null,
+        insertBeforeTimestamp: Long? = null,
+        insertAfterTimestamp: Long? = null
     ): Boolean {
         if (_isSummarizing.value) {
             AppLogger.d(TAG, "已在总结中，忽略本次请求")
@@ -1897,19 +1928,22 @@ class MessageCoordinationDelegate(
             }
 
             val currentMessages =
-                currentChatId?.let { chatHistoryDelegate.getRuntimeChatHistory(it) }.orEmpty()
+                summaryMessages
+                    ?: currentChatId?.let { chatHistoryDelegate.getRuntimeChatHistory(it) }.orEmpty()
             if (currentMessages.isEmpty()) {
                 AppLogger.d(TAG, "历史记录为空，无需总结")
                 return false
             }
 
-            val summaryInsertReferenceMessages = currentMessages
-            val insertPosition =
-                chatHistoryDelegate.findProperSummaryPosition(summaryInsertReferenceMessages)
-            val beforeTimestamp =
-                summaryInsertReferenceMessages.getOrNull(insertPosition - 1)?.timestamp
-            val afterTimestamp =
-                summaryInsertReferenceMessages.getOrNull(insertPosition)?.timestamp
+            var insertBefore = insertBeforeTimestamp
+            var insertAfter = insertAfterTimestamp
+            if (insertBefore == null && insertAfter == null) {
+                val summaryInsertReferenceMessages = currentMessages
+                val insertPosition =
+                    chatHistoryDelegate.findProperSummaryPosition(summaryInsertReferenceMessages)
+                insertBefore = summaryInsertReferenceMessages.getOrNull(insertPosition - 1)?.timestamp
+                insertAfter = summaryInsertReferenceMessages.getOrNull(insertPosition)?.timestamp
+            }
             val summaryConfig = readSummaryConfig()
             val summaryMessage =
                 AIMessageManager.summarizeMemory(
@@ -1923,8 +1957,8 @@ class MessageCoordinationDelegate(
             if (summaryMessage != null) {
                 chatHistoryDelegate.addSummaryMessage(
                     summaryMessage = summaryMessage,
-                    beforeTimestamp = beforeTimestamp,
-                    afterTimestamp = afterTimestamp,
+                    beforeTimestamp = insertBefore,
+                    afterTimestamp = insertAfter,
                     chatIdOverride = currentChatId,
                 )
 
@@ -2027,24 +2061,24 @@ class MessageCoordinationDelegate(
         this.uiBridge = uiBridge
     }
 
-    /** 从当前聊天绑定的模型配置中读取总结配置。 */
+    /**
+     * 读取当前会话生效的总结配置，供 generateSummary 生成提示词使用。
+     *
+     * 历史上这里从全局 CHAT 模型配置读取，与触发阈值走的 effectiveChatConfigId 不是同一来源，
+     * 角色卡固定对话模型时界面修改会被忽略。现在统一走 ApiConfigDelegate.resolveSummarySettings，
+     * 与 shouldGenerateSummary 的阈值来源保持同源。
+     */
     suspend fun readSummaryConfig(): ConversationSummaryConfig {
         return try {
-            val functionalConfigManager = FunctionalConfigManager(context)
-            val modelConfigManager = ModelConfigManager(context)
-            val functionMappings = functionalConfigManager.functionConfigMappingWithIndexFlow.first()
-            val chatMapping = functionMappings[FunctionType.CHAT] ?: FunctionConfigMapping()
-            if (chatMapping.configId.isNotBlank()) {
-                val config = modelConfigManager.getModelConfigFlow(chatMapping.configId).first()
-                ConversationSummaryConfig(
-                    globalRules = config.summaryCustomRules.takeIf { it.isNotBlank() },
-                    sectionOverrides = config.summarySectionOverrides,
-                    dialogueReviewEnabled = config.enableSummaryDialogueReview,
-                    dialogueReviewTitle = config.summaryDialogueReviewTitle
-                )
-            } else {
-                ConversationSummaryConfig()
-            }
+            val settings = apiConfigDelegate.resolveSummarySettings()
+            ConversationSummaryConfig(
+                globalRules = settings.summaryCustomRules.takeIf { it.isNotBlank() },
+                sectionOverrides = settings.summarySectionOverrides,
+                dialogueReviewEnabled = settings.dialogueReviewEnabled,
+                dialogueReviewTitle = settings.dialogueReviewTitle
+            )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppLogger.w(TAG, "读取总结配置失败", e)
             ConversationSummaryConfig()

@@ -3418,7 +3418,6 @@
     <string name="chat_ai_service_not_initialized">AI service is not initialized</string>
     <string name="chat_summary_inserted">Summary inserted</string>
     <string name="chat_summary_generation_failed">Failed to generate summary</string>
-    <string name="chat_insert_summary_failed">Failed to insert summary: %1$s</string>
     <string name="chat_invalid_message_index">Invalid message index</string>
     <string name="chat_message_updated">Message updated</string>
     <string name="chat_update_message_failed">Failed to update message: %1$s</string>
@@ -6899,7 +6898,7 @@
     <string name="skill_error_import_failed">Import failed: %1$s</string>
 
     <!-- Context Summary Settings -->
-    <string name="context_summary_note">File read limits and text result truncation are now fixed system constants. This page directly adjusts the context and summary settings of the bound model config, along with image and audio/video history retention turns.</string>
+    <string name="context_summary_note">File read limits and text result truncation are now fixed system constants. Summary switch, thresholds and prompts follow the character card, falling back to the global default when no card is bound; context length is adjusted per model config in the model parameters screen.</string>
     <string name="context_summary_current_model_config">Current bound model config: %1$s</string>
     <string name="context_summary_bound_config_description">The context and summary settings on this page are written directly back to the model config bound to the current chat.</string>
     <string name="context_validation_error_positive_number">%1$s must be a valid number greater than 0</string>

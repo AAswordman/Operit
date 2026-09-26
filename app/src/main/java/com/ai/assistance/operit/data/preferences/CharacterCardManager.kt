@@ -7,7 +7,9 @@ import com.ai.assistance.operit.data.backup.OperitBackupDirs
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.model.CharacterCardSummaryBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardToolAccessConfig
+import com.ai.assistance.operit.data.model.ContextSummarySettings
 import com.ai.assistance.operit.data.model.PromptTag
 import com.ai.assistance.operit.data.model.TagType
 import com.ai.assistance.operit.data.model.TavernCharacterCard
@@ -180,6 +182,8 @@ class CharacterCardManager private constructor(private val context: Context) {
             val chatModelIndexKey = intPreferencesKey("character_card_${id}_chat_model_index")
             val memoryProfileBindingModeKey = stringPreferencesKey("character_card_${id}_memory_profile_binding_mode")
             val memoryProfileIdKey = stringPreferencesKey("character_card_${id}_memory_profile_id")
+            val summaryBindingModeKey = stringPreferencesKey("character_card_${id}_summary_binding_mode")
+            val summarySettingsKey = stringPreferencesKey("character_card_${id}_summary_json")
             val toolAccessConfigKey = stringPreferencesKey("character_card_${id}_tool_access_config_json")
             val isDefaultKey = booleanPreferencesKey("character_card_${id}_is_default")
             val createdAtKey = longPreferencesKey("character_card_${id}_created_at")
@@ -199,6 +203,8 @@ class CharacterCardManager private constructor(private val context: Context) {
             preferences[chatModelIndexKey] = 0
             preferences[memoryProfileBindingModeKey] = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL
             preferences.remove(memoryProfileIdKey)
+            preferences[summaryBindingModeKey] = CharacterCardSummaryBindingMode.FOLLOW_GLOBAL
+            preferences.remove(summarySettingsKey)
             preferences.remove(toolAccessConfigKey)
             preferences[isDefaultKey] = true
             preferences[createdAtKey] = System.currentTimeMillis()
@@ -300,6 +306,38 @@ class CharacterCardManager private constructor(private val context: Context) {
         }
         preferences[key] = toolAccessConfigJson.encodeToString(normalizedConfig)
     }
+
+    private val summarySettingsJson = Json { ignoreUnknownKeys = true }
+
+    private fun summarySettingsKey(id: String) =
+        stringPreferencesKey("character_card_${id}_summary_json")
+
+    private fun parseSummarySettings(raw: String?): ContextSummarySettings {
+        if (raw.isNullOrBlank()) {
+            return ContextSummarySettings()
+        }
+        return runCatching {
+            summarySettingsJson.decodeFromString<ContextSummarySettings>(raw)
+        }.getOrElse {
+            // 解析失败时退回默认配置：与旧的 ModelConfigData.summary 字段缺失时的行为一致，
+            // 保证损坏数据不会导致总结功能不可用。
+            AppLogger.e("CharacterCardManager", "解析角色卡上下文总结配置失败", it)
+            ContextSummarySettings()
+        }
+    }
+
+    private fun writeSummarySettings(
+        preferences: MutablePreferences,
+        id: String,
+        settings: ContextSummarySettings
+    ) {
+        val key = summarySettingsKey(id)
+        if (settings == ContextSummarySettings()) {
+            preferences.remove(key)
+            return
+        }
+        preferences[key] = summarySettingsJson.encodeToString(settings)
+    }
     
     // 从Preferences中获取角色卡
     private fun getCharacterCardFromPreferences(preferences: Preferences, id: String): CharacterCard {
@@ -317,6 +355,8 @@ class CharacterCardManager private constructor(private val context: Context) {
         val chatModelIndexKey = intPreferencesKey("character_card_${id}_chat_model_index")
         val memoryProfileBindingModeKey = stringPreferencesKey("character_card_${id}_memory_profile_binding_mode")
         val memoryProfileIdKey = stringPreferencesKey("character_card_${id}_memory_profile_id")
+        val summaryBindingModeKey = stringPreferencesKey("character_card_${id}_summary_binding_mode")
+        val summarySettingsKey = stringPreferencesKey("character_card_${id}_summary_json")
         val toolAccessConfigKey = toolAccessConfigKey(id)
         val isDefaultKey = booleanPreferencesKey("character_card_${id}_is_default")
         val createdAtKey = longPreferencesKey("character_card_${id}_created_at")
@@ -338,6 +378,8 @@ class CharacterCardManager private constructor(private val context: Context) {
             chatModelIndex = (preferences[chatModelIndexKey] ?: 0).coerceAtLeast(0),
             memoryProfileBindingMode = CharacterCardMemoryProfileBindingMode.normalize(preferences[memoryProfileBindingModeKey]),
             memoryProfileId = preferences[memoryProfileIdKey],
+            summaryBindingMode = CharacterCardSummaryBindingMode.normalize(preferences[summaryBindingModeKey]),
+            summary = parseSummarySettings(preferences[summarySettingsKey]),
             toolAccessConfig = parseToolAccessConfig(preferences[toolAccessConfigKey]),
             isDefault = (id == DEFAULT_CHARACTER_CARD_ID) || (preferences[isDefaultKey] ?: false),
             createdAt = preferences[createdAtKey] ?: System.currentTimeMillis(),
@@ -452,6 +494,9 @@ class CharacterCardManager private constructor(private val context: Context) {
             } else {
                 preferences[memoryProfileIdKey] = newCard.memoryProfileId
             }
+            preferences[stringPreferencesKey("character_card_${id}_summary_binding_mode")] =
+                CharacterCardSummaryBindingMode.normalize(newCard.summaryBindingMode)
+            writeSummarySettings(preferences, id, newCard.summary)
             writeToolAccessConfig(preferences, id, newCard.toolAccessConfig)
             preferences[booleanPreferencesKey("character_card_${id}_is_default")] = newCard.isDefault
             preferences[longPreferencesKey("character_card_${id}_created_at")] = newCard.createdAt
@@ -509,6 +554,9 @@ class CharacterCardManager private constructor(private val context: Context) {
             } else {
                 preferences[memoryProfileIdKey] = card.memoryProfileId
             }
+            preferences[stringPreferencesKey("character_card_${card.id}_summary_binding_mode")] =
+                CharacterCardSummaryBindingMode.normalize(card.summaryBindingMode)
+            writeSummarySettings(preferences, card.id, card.summary)
             writeToolAccessConfig(preferences, card.id, card.toolAccessConfig)
             
             // 更新修改时间
@@ -519,6 +567,40 @@ class CharacterCardManager private constructor(private val context: Context) {
         }
     }
     
+    /**
+     * 更新指定角色卡的专属上下文总结配置。
+     *
+     * 聊天快速设置栏与总结设置界面都通过本方法写入当前生效的卡内配置，
+     * 避免逐字段更新产生中间态。
+     */
+    suspend fun updateCharacterCardSummarySettings(
+        cardId: String,
+        settings: ContextSummarySettings
+    ) {
+        val card = getCharacterCard(cardId)
+        updateCharacterCard(card.copy(summary = settings))
+    }
+
+    /**
+     * 更新指定角色卡的上下文总结绑定模式。
+     *
+     * CUSTOM 时角色卡持有专属总结配置；FOLLOW_GLOBAL 时使用全局默认。
+     * 设置界面通过本方法切换，避免界面直接拼接 DataStore 键。
+     */
+    suspend fun updateCharacterCardSummaryBinding(cardId: String, custom: Boolean) {
+        val card = getCharacterCard(cardId)
+        val mode =
+            if (custom) {
+                CharacterCardSummaryBindingMode.CUSTOM
+            } else {
+                CharacterCardSummaryBindingMode.FOLLOW_GLOBAL
+            }
+        if (CharacterCardSummaryBindingMode.normalize(card.summaryBindingMode) == mode) {
+            return
+        }
+        updateCharacterCard(card.copy(summaryBindingMode = mode))
+    }
+
     // 删除角色卡
     suspend fun deleteCharacterCard(id: String) {
         if (id == DEFAULT_CHARACTER_CARD_ID) return
@@ -555,6 +637,8 @@ class CharacterCardManager private constructor(private val context: Context) {
                 "character_card_${id}_chat_model_index",
                 "character_card_${id}_memory_profile_binding_mode",
                 "character_card_${id}_memory_profile_id",
+                "character_card_${id}_summary_binding_mode",
+                "character_card_${id}_summary_json",
                 "character_card_${id}_tool_access_config_json",
                 "character_card_${id}_is_default",
                 "character_card_${id}_created_at",
@@ -722,6 +806,8 @@ class CharacterCardManager private constructor(private val context: Context) {
         val chatModelIndex: Int = 0,
         val memoryProfileBindingMode: String = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL,
         val memoryProfileId: String? = null,
+        val summaryBindingMode: String = CharacterCardSummaryBindingMode.FOLLOW_GLOBAL,
+        val summary: ContextSummarySettings? = null,
         val toolAccessConfig: CharacterCardToolAccessConfig? = null,
         val isDefault: Boolean = false,
         val createdAt: Long = System.currentTimeMillis(),
@@ -744,6 +830,8 @@ class CharacterCardManager private constructor(private val context: Context) {
                 chatModelIndex = chatModelIndex.coerceAtLeast(0),
                 memoryProfileBindingMode = CharacterCardMemoryProfileBindingMode.normalize(memoryProfileBindingMode),
                 memoryProfileId = memoryProfileId?.takeIf { it.isNotBlank() },
+                summaryBindingMode = CharacterCardSummaryBindingMode.normalize(summaryBindingMode),
+                summary = summary ?: ContextSummarySettings(),
                 toolAccessConfig = toolAccessConfig?.normalized() ?: CharacterCardToolAccessConfig(),
                 isDefault = isDefault,
                 createdAt = createdAt,
@@ -914,6 +1002,9 @@ class CharacterCardManager private constructor(private val context: Context) {
             } else {
                 preferences[memoryProfileIdKey] = card.memoryProfileId
             }
+            preferences[stringPreferencesKey("character_card_${id}_summary_binding_mode")] =
+                CharacterCardSummaryBindingMode.normalize(card.summaryBindingMode)
+            writeSummarySettings(preferences, id, card.summary)
             writeToolAccessConfig(preferences, id, card.toolAccessConfig)
             preferences[booleanPreferencesKey("character_card_${id}_is_default")] = card.isDefault
             preferences[longPreferencesKey("character_card_${id}_created_at")] = card.createdAt
@@ -1029,6 +1120,8 @@ class CharacterCardManager private constructor(private val context: Context) {
                     chatModelIndex = operitPayload.chatModelIndex.coerceAtLeast(0),
                     memoryProfileBindingMode = CharacterCardMemoryProfileBindingMode.normalize(operitPayload.memoryProfileBindingMode),
                     memoryProfileId = operitPayload.memoryProfileId?.takeIf { it.isNotBlank() },
+                    summaryBindingMode = CharacterCardSummaryBindingMode.normalize(operitPayload.summaryBindingMode),
+                    summary = operitPayload.summary ?: ContextSummarySettings(),
                     toolAccessConfig = operitPayload.toolAccessConfig?.normalized() ?: CharacterCardToolAccessConfig(),
                     isDefault = false,
                     createdAt = System.currentTimeMillis(),
@@ -1097,6 +1190,8 @@ class CharacterCardManager private constructor(private val context: Context) {
                     chatModelIndex = card.chatModelIndex.coerceAtLeast(0),
                     memoryProfileBindingMode = CharacterCardMemoryProfileBindingMode.normalize(card.memoryProfileBindingMode),
                     memoryProfileId = card.memoryProfileId?.takeIf { it.isNotBlank() },
+                    summaryBindingMode = CharacterCardSummaryBindingMode.normalize(card.summaryBindingMode),
+                    summary = card.summary,
                     toolAccessConfig = card.toolAccessConfig.normalized()
                 )
             )

@@ -2829,7 +2829,6 @@
     <string name="chat_ai_service_not_initialized">Perkhidmatan AI belum dimulakan</string>
     <string name="chat_summary_inserted">Ringkasan telah dimasukkan</string>
     <string name="chat_summary_generation_failed">Gagal menjana ringkasan</string>
-    <string name="chat_insert_summary_failed">Gagal memasukkan ringkasan: %1$s</string>
     <string name="chat_invalid_message_index">Indeks mesej tidak sah</string>
     <string name="chat_message_updated">Mesej telah dikemas kini</string>
     <string name="chat_update_message_failed">Gagal mengemas kini mesej: %1$s</string>
