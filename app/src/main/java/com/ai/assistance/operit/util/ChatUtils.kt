@@ -62,7 +62,7 @@ object ChatUtils {
 
     fun isGeminiProviderModel(providerModel: String): Boolean {
         return when (providerModel.substringBefore(":").uppercase()) {
-            "GOOGLE", "GEMINI_GENERIC" -> true
+            "GOOGLE", "GEMINI_GENERIC", "ANTIGRAVITY", "VERTEX_AI" -> true
             else -> false
         }
     }

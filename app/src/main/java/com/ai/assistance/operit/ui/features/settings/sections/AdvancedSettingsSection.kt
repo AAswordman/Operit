@@ -58,6 +58,9 @@ fun AdvancedSettingsSection(
     val context = LocalContext.current
     val isCodexProvider =
         ApiProviderType.fromProviderTypeId(config.apiProviderTypeId) == ApiProviderType.OPENAI_CODEX
+    val isOAuthProvider = isCodexProvider ||
+        ApiProviderType.fromProviderTypeId(config.apiProviderTypeId) == ApiProviderType.ANTIGRAVITY ||
+        ApiProviderType.fromProviderTypeId(config.apiProviderTypeId) == ApiProviderType.VERTEX_AI
 
     var useApiKeyPool by remember(config.id) { mutableStateOf(config.useMultipleApiKeys) }
     var apiKeyPool by remember(config.id) { mutableStateOf(config.apiKeyPool) }
@@ -337,7 +340,7 @@ fun AdvancedSettingsSection(
                 }
             }
 
-            if (!isCodexProvider) {
+            if (!isOAuthProvider) {
                 // API Key Pool Toggle
                 Row(
                 modifier = Modifier

@@ -1197,6 +1197,7 @@
     <string name="actual_request_url">URL de solicitud real: %s</string>
     <string name="endpoint_completion_hint">Sugerencia: Si ingresas una URL base, el sistema completará automáticamente la ruta. Para desactivar, agrega # al final de la URL.</string>
     <string name="api_key_placeholder_default">No hay clave establecida. Escríbela aquí o usa el grupo de claves API</string>
+    <string name="api_key_optional_local">Los servicios locales normalmente no requieren una clave</string>
     <string name="api_key_placeholder_custom">Ingresa clave API</string>
     <string name="model_name_placeholder">ej.: gpt-4, claude-3-opus-20240229...</string>
     <string name="get_models_list">Obtener Lista de Modelos</string>
@@ -1223,34 +1224,34 @@
     <string name="close">Cerrar</string>
     
     <!-- API Provider names -->
-    <string name="provider_openai">ChatGPT API</string>
-    <string name="provider_xai">SpaceXAI (Grok)</string>
-    <string name="provider_openai_responses">ChatGPT Responses API</string>
-    <string name="provider_openai_responses_generic">OpenAI Responses (Genérico)</string>
-    <string name="provider_openai_generic">OpenAI genérico</string>
-    <string name="provider_anthropic">Anthropic (Serie Claude)</string>
-    <string name="provider_anthropic_generic">Anthropic genérico</string>
-    <string name="provider_google">Google (Serie Gemini)</string>
-    <string name="provider_gemini_generic">Gemini genérico</string>
-    <string name="provider_baidu">Baidu (Serie ERNIE)</string>
-    <string name="provider_aliyun">Alibaba Cloud (Serie Qwen)</string>
-    <string name="provider_xunfei">iFLYTEK (Serie Spark)</string>
-    <string name="provider_zhipu">Zhipu AI (Serie ChatGLM)</string>
-    <string name="provider_baichuan">Modelos Baichuan</string>
-    <string name="provider_moonshot">Moonshot AI</string>
-    <string name="provider_deepseek">Modelos Deepseek</string>
-    <string name="provider_mistral">Mistral AI (Codestral)</string>
-    <string name="provider_siliconflow">SiliconFlow</string>
-    <string name="provider_iflow">iFlow</string>
-    <string name="provider_openrouter">OpenRouter (Hub Multi-modelo)</string>
-    <string name="provider_opencode">OpenCode</string>
-    <string name="provider_infiniai">InfiniAI</string>
-    <string name="provider_lmstudio">LM Studio (modelo local)</string>
-    <string name="provider_ollama">Ollama (modelo local)</string>
-    <string name="provider_openai_local">OpenAI compatible (modelo local)</string>
-    <string name="provider_novita">Novita AI</string>
-    <string name="provider_minimax">MiniMax</string>
-    <string name="provider_other">Otros proveedores</string>
+    <string name="provider_openai">ChatGPT (OpenAI)</string>
+    <string name="provider_xai">Grok (SpaceXAI)</string>
+    <string name="provider_openai_responses">ChatGPT Responses (OpenAI)</string>
+    <string name="provider_openai_responses_generic">OpenAI Responses (Generic)</string>
+    <string name="provider_openai_generic">OpenAI (Generic)</string>
+    <string name="provider_anthropic">Claude (Anthropic)</string>
+    <string name="provider_anthropic_generic">Claude (Generic)</string>
+    <string name="provider_google">Gemini (Google)</string>
+    <string name="provider_gemini_generic">Gemini (Generic)</string>
+    <string name="provider_baidu">ERNIE (Baidu)</string>
+    <string name="provider_aliyun">Qwen (Alibaba Cloud)</string>
+    <string name="provider_xunfei">Spark (iFLYTEK)</string>
+    <string name="provider_zhipu">GLM (Zhipu)</string>
+    <string name="provider_baichuan">Baichuan (Baichuan)</string>
+    <string name="provider_moonshot">Kimi (Moonshot)</string>
+    <string name="provider_deepseek">DeepSeek (DeepSeek)</string>
+    <string name="provider_mistral">Mistral (Mistral AI)</string>
+    <string name="provider_siliconflow">SiliconFlow (SiliconFlow)</string>
+    <string name="provider_iflow">iFlow (Xingchen Qianxun)</string>
+    <string name="provider_openrouter">OpenRouter (OpenRouter)</string>
+    <string name="provider_opencode">OpenCode (Anomaly Innovations)</string>
+    <string name="provider_infiniai">Infini-AI (Infini-AI)</string>
+    <string name="provider_lmstudio">LM Studio (Local)</string>
+    <string name="provider_ollama">Ollama (Local)</string>
+    <string name="provider_openai_local">OpenAI (Local)</string>
+    <string name="provider_novita">Novita (Novita AI)</string>
+    <string name="provider_minimax">MiniMax (MiniMax)</string>
+    <string name="provider_other">Other (Custom)</string>
     <string name="select_api_provider_title">Seleccionar Proveedor API</string>
     <string name="search_providers">Buscar proveedores</string>
     <!-- ModelParametersSection strings -->
@@ -1382,8 +1383,8 @@
     <string name="thinking_quality">Intensidad de pensamiento</string>
     <string name="thinking_quality_desc">Solo funciona en el modo de pensamiento. Los valores disponibles siguen el mapeo real del modelo y del proveedor actuales.</string>
     
-    <string name="provider_doubao">Doubao (Modelo Volcano)</string>
-    <string name="provider_nvidia">NVIDIA (API Catalog)</string>
+    <string name="provider_doubao">Doubao (Volcengine)</string>
+    <string name="provider_nvidia">NIM (NVIDIA)</string>
 
     <string name="speech_services_stt_type_openai">OpenAI STT (Remoto)</string>
     <string name="speech_services_stt_type_deepgram">Deepgram STT (Remoto)</string>
@@ -3792,11 +3793,11 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="models_selected_suffix"> seleccionado(s)</string>
     <string name="model_name_multiple_hint"> (se pueden separar varios modelos con comas)</string>
     <string name="auto_save_failed">Error al guardar automáticamente</string>
-    <string name="provider_nous_portal">Nous Portal</string>
-    <string name="provider_alipay_bailing">Modelo Bailing de Alipay</string>
-    <string name="provider_mnn">Inferencia local MNN</string>
-    <string name="provider_llama_cpp">Inferencia local llama.cpp</string>
-    <string name="provider_ppinfra">Paiyun</string>
+    <string name="provider_nous_portal">Nous Portal (Nous Research)</string>
+    <string name="provider_alipay_bailing">Bailing (Alipay)</string>
+    <string name="provider_mnn">MNN (Local)</string>
+    <string name="provider_llama_cpp">llama.cpp (Local)</string>
+    <string name="provider_ppinfra">PPInfra (PPIO)</string>
     <string name="reset">Restablecer</string>
     <string name="collapsed">Contraído</string>
     <string name="expanded">Expandido</string>
@@ -7218,7 +7219,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     </plurals>
     <string name="pin_chat">Fijar chat</string>
     <string name="unpin_chat">Desfijar chat</string>
-    <string name="provider_mimo">Xiaomi MiMo</string>
+    <string name="provider_mimo">MiMo (Xiaomi)</string>
     <string name="waifu_merge_send">Combinar y enviar</string>
     <string name="waifu_merge_send_desc">Al enviar varios mensajes cortos consecutivos, se combinan en uno después de una pausa y se envían a la IA</string>
     <string name="waifu_merge_send_delay">Intervalo de combinación</string>
@@ -7537,7 +7538,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="artifact_publish_github_release">GitHub Release</string>
     <string name="artifact_publish_github_release_asset">Activo de Release</string>
     <string name="markdown_link_not_openable">Este enlace apunta a una referencia dentro del documento y no se puede abrir</string>
-    <string name="provider_openai_codex">Codex</string>
+    <string name="provider_openai_codex">Codex (OpenAI)</string>
+    <string name="provider_antigravity">Antigravity (Google)</string>
     <string name="onboarding_config_codex_login_required">Inicia sesión primero en Codex</string>
     <string name="codex_login_title">Iniciar sesión en Codex</string>
     <string name="codex_login_starting">Preparando el inicio de sesión de Codex...</string>
@@ -7820,4 +7822,30 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_trends">Análisis de tendencias</string>
     <string name="token_stats_settings">Configuración de estadísticas</string>
     <string name="token_stats_custom_range_confirm">Aceptar</string>
+    <string name="provider_section_generic_compatible">Compatibilidad genérica</string>
+    <string name="provider_section_proprietary">Proveedores dedicados</string>
+    <string name="provider_section_aggregation">Agregación de modelos</string>
+    <string name="provider_section_local">Modelos locales</string>
+
+    <string name="provider_vertex">Vertex AI (Google)</string>
+    <string name="onboarding_config_vertex_login_required">Sign in to Vertex AI first</string>
+    <string name="onboarding_config_vertex_project_missing">Enter the Vertex AI project ID</string>
+    <string name="vertex_login_title">Sign in to Vertex AI</string>
+    <string name="vertex_login_starting">Preparing Vertex AI sign-in...</string>
+    <string name="vertex_login_waiting">Complete Google sign-in in the browser</string>
+    <string name="vertex_login_action">Sign in with Google</string>
+    <string name="vertex_login_success">Vertex AI sign-in succeeded</string>
+    <string name="vertex_login_failed">Vertex AI sign-in failed: %1$s</string>
+    <string name="vertex_logout_action">Sign out of Vertex AI</string>
+    <string name="vertex_logout_success">Signed out of Vertex AI</string>
+    <string name="vertex_auth_title">Vertex AI account</string>
+    <string name="vertex_auth_not_logged_in">Sign in with Google to use Vertex AI</string>
+    <string name="vertex_auth_account">Account: %1$s</string>
+    <string name="vertex_project_id">Project ID</string>
+    <string name="vertex_project_id_desc">Enter the GCP project ID. Sign-in does not discover it</string>
+    <string name="vertex_location">Location</string>
+    <string name="vertex_location_desc">Defaults to global. A region such as us-central1 also works</string>
+    <string name="vertex_direct_media_processing_desc">Send images directly to Vertex AI</string>
+
+    <string name="google_oauth_experimental_notice">Función experimental: el inicio de sesión y la integración de modelos de Antigravity y Vertex AI siguen en validación y pueden ser inestables.</string>
 </resources>

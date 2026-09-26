@@ -36,7 +36,10 @@ class ProviderRegionWarningTypeTest {
     fun `known overseas official providers keep the overseas warning`() {
         listOf(
             ApiProviderType.OPENAI,
+            ApiProviderType.OPENAI_CODEX,
             ApiProviderType.GOOGLE,
+            ApiProviderType.ANTIGRAVITY,
+            ApiProviderType.VERTEX_AI,
             ApiProviderType.ANTHROPIC,
             ApiProviderType.MISTRAL,
             ApiProviderType.NVIDIA,

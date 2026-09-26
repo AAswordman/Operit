@@ -63,7 +63,7 @@ object ModelThinkingConfigDefaults {
                   },
                   {
                     "id": "gemini-25-thinking-budget",
-                    "providers": ["GOOGLE", "GEMINI_GENERIC"],
+                    "providers": ["GOOGLE", "GEMINI_GENERIC", "ANTIGRAVITY", "VERTEX_AI"],
                     "match": {"modelPrefix": ["gemini-2.5"]},
                     "control": "levels",
                     "parameterLabel": "thinkingBudget",
@@ -84,7 +84,7 @@ object ModelThinkingConfigDefaults {
                   },
                   {
                     "id": "gemini-thinking-level",
-                    "providers": ["GOOGLE", "GEMINI_GENERIC"],
+                    "providers": ["GOOGLE", "GEMINI_GENERIC", "ANTIGRAVITY", "VERTEX_AI"],
                     "match": {"modelRegex": ["(?:^|/)gemini-(?:[3-9]|[1-9][0-9])(?:[.-]|$)"]},
                     "control": "levels",
                     "parameterLabel": "thinkingLevel",

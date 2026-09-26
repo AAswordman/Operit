@@ -43,6 +43,63 @@ class ChatConfigReadinessTest {
     }
 
     @Test
+    fun antigravityWithoutOAuthLogin_isRejected() {
+        assertIssue(
+            ChatConfigReadinessIssue.ANTIGRAVITY_LOGIN_REQUIRED,
+            remoteConfig(
+                ApiProviderType.ANTIGRAVITY,
+                apiKey = "",
+                endpoint = "https://cloudcode-pa.googleapis.com",
+            ),
+        )
+    }
+
+    @Test
+    fun vertexWithoutOAuthLogin_isRejected() {
+        assertIssue(
+            ChatConfigReadinessIssue.VERTEX_LOGIN_REQUIRED,
+            remoteConfig(ApiProviderType.VERTEX_AI, apiKey = "", endpoint = "")
+                .copy(vertexProjectId = "my-project", vertexLocation = "global"),
+        )
+    }
+
+    @Test
+    fun vertexWithoutProject_isRejected() {
+        assertIssue(
+            ChatConfigReadinessIssue.VERTEX_PROJECT_MISSING,
+            remoteConfig(ApiProviderType.VERTEX_AI, apiKey = "", endpoint = ""),
+            vertexAuthenticated = true,
+        )
+    }
+
+    @Test
+    fun vertexWithLoginAndProject_doesNotRequireApiKey() {
+        val result = ChatConfigReadiness.evaluate(
+            config = remoteConfig(ApiProviderType.VERTEX_AI, apiKey = "", endpoint = "")
+                .copy(vertexProjectId = "my-project", vertexLocation = "global"),
+            modelIndex = 0,
+            registeredPluginProviderIds = emptySet(),
+            vertexAuthenticated = true,
+        )
+        assertTrue(result.isReady)
+    }
+
+    @Test
+    fun antigravityWithOAuthLogin_doesNotRequireApiKey() {
+        val result = ChatConfigReadiness.evaluate(
+            config = remoteConfig(
+                ApiProviderType.ANTIGRAVITY,
+                apiKey = "",
+                endpoint = "https://cloudcode-pa.googleapis.com",
+            ),
+            modelIndex = 0,
+            registeredPluginProviderIds = emptySet(),
+            antigravityAuthenticated = true,
+        )
+        assertTrue(result.isReady)
+    }
+
+    @Test
     fun codexWithOAuthLogin_doesNotRequireApiKey() {
         val result = ChatConfigReadiness.evaluate(
             config = remoteConfig(
@@ -158,13 +215,18 @@ class ChatConfigReadinessTest {
         )
     }
 
-    private fun assertIssue(expected: ChatConfigReadinessIssue, config: ModelConfigData) {
+    private fun assertIssue(
+        expected: ChatConfigReadinessIssue,
+        config: ModelConfigData,
+        vertexAuthenticated: Boolean = false,
+    ) {
         assertEquals(
             expected,
             ChatConfigReadiness.evaluate(
                 config = config,
                 modelIndex = 0,
-                registeredPluginProviderIds = emptySet()
+                registeredPluginProviderIds = emptySet(),
+                vertexAuthenticated = vertexAuthenticated,
             ).issue
         )
     }

@@ -36,7 +36,7 @@ import org.json.JSONObject
 private val Context.modelConfigDataStore: DataStore<Preferences> by
         versionedPreferencesDataStore(
                 name = "model_configs",
-                currentVersion = 4,
+                currentVersion = 5,
         ) { appContext ->
             preferenceSchemaMigration { version, preferences ->
                 when (version) {
@@ -44,6 +44,7 @@ private val Context.modelConfigDataStore: DataStore<Preferences> by
                     1 -> ModelConfigManager.migratePreferencesFromVersionOne(preferences)
                     2 -> ModelConfigManager.migratePreferencesFromVersionTwo(preferences)
                     3 -> ModelConfigManager.migratePreferencesFromVersionThree(preferences)
+                    4 -> ModelConfigManager.migratePreferencesFromVersionFour(preferences)
                     else -> missingPreferencesSchemaMigration(version)
                 }
             }
@@ -315,6 +316,33 @@ class ModelConfigManager(
             }
         }
 
+        internal fun migratePreferencesFromVersionFour(preferences: MutablePreferences) {
+            val configIds = preferences[CONFIG_LIST_KEY]?.let { json.decodeFromString<List<String>>(it) }
+                    ?: emptyList()
+            configIds.forEach { configId ->
+                val configKey = stringPreferencesKey("config_${configId}")
+                val configJson = preferences[configKey] ?: return@forEach
+                val config = json.decodeFromString<ModelConfigData>(configJson)
+                val migrated = migrateLegacyVertexConfig(config)
+                if (migrated != config) {
+                    preferences[configKey] = json.encodeToString(migrated)
+                }
+            }
+        }
+
+        // 升级和旧配置导入共用一次转换，运行时不再拆分复合端点。
+        internal fun migrateLegacyVertexConfig(config: ModelConfigData): ModelConfigData {
+            if (ApiProviderType.fromProviderTypeId(config.apiProviderTypeId) != ApiProviderType.VERTEX_AI ||
+                config.apiEndpoint.isBlank()
+            ) return config
+            if (config.vertexProjectId.isNotBlank()) return config.copy(apiEndpoint = "")
+            return config.copy(
+                vertexProjectId = config.apiEndpoint.substringBefore('|').trim(),
+                vertexLocation = config.apiEndpoint.substringAfter('|', "global").trim().ifBlank { "global" },
+                apiEndpoint = "",
+            )
+        }
+
         private fun isDeepSeekProvider(providerTypeId: String): Boolean =
                 providerTypeId.equals(ApiProviderType.DEEPSEEK.name, ignoreCase = true)
 
@@ -487,7 +515,7 @@ class ModelConfigManager(
     suspend fun saveModelConfig(config: ModelConfigData) {
         val configKey = stringPreferencesKey("config_${config.id}")
         configDataStore.edit { preferences ->
-            preferences[configKey] = json.encodeToString(config)
+            preferences[configKey] = json.encodeToString(migrateLegacyVertexConfig(config))
         }
     }
 
@@ -521,7 +549,7 @@ class ModelConfigManager(
     private suspend fun saveConfigToDataStore(config: ModelConfigData) {
         val configKey = stringPreferencesKey("config_${config.id}")
         configDataStore.edit { preferences ->
-            preferences[configKey] = json.encodeToString(config)
+            preferences[configKey] = json.encodeToString(migrateLegacyVertexConfig(config))
         }
     }
 
@@ -732,12 +760,16 @@ class ModelConfigManager(
             enableDeepSeekWebSearch: Boolean,
             enableCodexWebSearch: Boolean,
             enableClaude1hPromptCache: Boolean,
-            enableToolCall: Boolean
+            enableToolCall: Boolean,
+            vertexProjectId: String,
+            vertexLocation: String,
     ): ModelConfigData {
         return updateConfigInternal(configId) {
             it.copy(
                     apiKey = apiKey,
-                    apiEndpoint = apiEndpoint,
+                    apiEndpoint = if (apiProviderType == ApiProviderType.VERTEX_AI) "" else apiEndpoint,
+                    vertexProjectId = vertexProjectId.trim(),
+                    vertexLocation = vertexLocation.trim().ifBlank { "global" },
                     modelName = modelName,
                     apiProviderType = apiProviderType,
                     apiProviderTypeId = apiProviderTypeId,

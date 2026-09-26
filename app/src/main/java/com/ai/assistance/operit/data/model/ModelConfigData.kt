@@ -5,44 +5,46 @@ import kotlinx.serialization.Serializable
 /** API提供商类型枚举 */
 @Serializable
 enum class ApiProviderType {
-        OPENAI, // OpenAI (GPT系列)
-        XAI, // xAI (Grok)
-        OPENAI_RESPONSES, // OpenAI Responses API
-        OPENAI_CODEX, // Codex（ChatGPT OAuth）
-        OPENAI_RESPONSES_GENERIC, // OpenAI Responses通用（自定义端点）
-        OPENAI_GENERIC, // OpenAI通用（自定义端点）
-        ANTHROPIC, // Anthropic (Claude系列)
-        ANTHROPIC_GENERIC, // Anthropic通用（自定义端点）
-        GOOGLE, // Google (Gemini系列)
-        GEMINI_GENERIC, // Gemini通用（自定义端点）
-        BAIDU, // 百度 (文心一言系列)
-        ALIYUN, // 阿里云 (通义千问系列)
-        XUNFEI, // 讯飞 (星火认知系列)
-        ZHIPU, // 智谱AI (ChatGLM系列)
-        BAICHUAN, // 百川大模型
-        MOONSHOT, // 月之暗面大模型
-        MIMO, // Xiaomi MiMo
-        DEEPSEEK, // Deepseek大模型
-        MISTRAL, // Mistral AI (Codestral等)
-        SILICONFLOW, // 硅基流动
-        IFLOW, // iFlow
-        OPENROUTER, // OpenRouter (多模型聚合)
-        OPENCODE, // OpenCode Zen/Go (按基础路径选择服务，按模型ID选择协议)
+        OPENAI, // ChatGPT（OpenAI）
+        XAI, // Grok（SpaceXAI）
+        OPENAI_RESPONSES, // ChatGPT Responses（OpenAI）
+        OPENAI_CODEX, // Codex（OpenAI）
+        ANTIGRAVITY, // Antigravity（Google）
+        VERTEX_AI, // Vertex AI（Google）
+        OPENAI_RESPONSES_GENERIC, // OpenAI Responses（通用）
+        OPENAI_GENERIC, // OpenAI（通用）
+        ANTHROPIC, // Claude（Anthropic）
+        ANTHROPIC_GENERIC, // Claude（通用）
+        GOOGLE, // Gemini（Google）
+        GEMINI_GENERIC, // Gemini（通用）
+        BAIDU, // 文心一言（百度）
+        ALIYUN, // 千问（阿里云）
+        XUNFEI, // 星火（科大讯飞）
+        ZHIPU, // GLM（智谱）
+        BAICHUAN, // 百川（百川智能）
+        MOONSHOT, // Kimi（月之暗面）
+        MIMO, // MiMo（小米）
+        DEEPSEEK, // DeepSeek（深度求索）
+        MISTRAL, // Mistral（Mistral AI）
+        SILICONFLOW, // 硅基流动（硅基流动）
+        IFLOW, // 心流（星辰千寻）
+        OPENROUTER, // OpenRouter（OpenRouter）
+        OPENCODE, // OpenCode（Anomaly Innovations）
         FOUR_ROUTER, // 4Router
-        NOUS_PORTAL, // Nous Portal / Inference API
-        INFINIAI, // 无问芯穹
-        ALIPAY_BAILING, // 支付宝百灵大模型
-        DOUBAO, // 豆包（火山模型）
-        NVIDIA, // NVIDIA API Catalog / NIM
-        LMSTUDIO, // LM Studio本地模型服务
-        OLLAMA, // Ollama 本地/私有部署服务（OpenAI兼容）
-        OPENAI_LOCAL, // OpenAI兼容本地模型服务
-        MNN, // MNN本地推理引擎
-        LLAMA_CPP, // llama.cpp 本地推理引擎
-        PPINFRA, // 派欧云
-        NOVITA, // Novita AI
-        MINIMAX, // MiniMax
-        OTHER; // 其他提供商（自定义端点）
+        NOUS_PORTAL, // Nous Portal（Nous Research）
+        INFINIAI, // 无问芯穹（无问芯穹）
+        ALIPAY_BAILING, // 百灵（支付宝）
+        DOUBAO, // 豆包（火山引擎）
+        NVIDIA, // NIM（NVIDIA）
+        LMSTUDIO, // LM Studio（本地模型）
+        OLLAMA, // Ollama（本地模型）
+        OPENAI_LOCAL, // OpenAI（本地模型）
+        MNN, // MNN（本地推理）
+        LLAMA_CPP, // llama.cpp（本地推理）
+        PPINFRA, // 派欧云（PPIO）
+        NOVITA, // Novita（Novita AI）
+        MINIMAX, // MiniMax（MiniMax）
+        OTHER; // 其他（自定义）
 
         companion object {
                 fun fromProviderTypeId(providerTypeId: String): ApiProviderType? {
@@ -198,7 +200,10 @@ data class ModelConfigData(
 
         // 请求频率限制配置
         val requestLimitPerMinute: Int = 0, // 每分钟最大请求次数，0表示不限流
-        val maxConcurrentRequests: Int = 0 // 最大并发请求数，0表示不限制
+        val maxConcurrentRequests: Int = 0, // 最大并发请求数，0表示不限制
+        // Vertex 项目和区域独立存储，apiEndpoint 只表示服务端点。
+        val vertexProjectId: String = "",
+        val vertexLocation: String = "global",
 )
 
 /** 简化版的模型配置数据，用于列表显示 */

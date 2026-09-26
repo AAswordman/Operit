@@ -3854,6 +3854,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="endpoint_completion_hint">Sfat: Dacă introduceți elementul de bazăURL, sistemul va completa automat calea. Dacă doriți să dezactivați această funcție, vă rugăm săURLAdăugare la sfârșit#Nr.</string>
     <string name="api_key">APICheie</string>
     <string name="api_key_placeholder_default">Nicio cheie setată. Introdu-o aici sau utilizează rezervorul de chei API</string>
+    <string name="api_key_optional_local">Serviciile locale de obicei nu necesită o cheie</string>
     <string name="api_key_placeholder_custom">IntroducereAPICheie</string>
     <string name="model_name">Denumirea modelului</string>
     <string name="model_name_placeholder">De exemplu: gpt-4, claude-3-opus-20240229...</string>
@@ -3898,41 +3899,41 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="model_name_multiple_hint"> (Se pot separa mai multe modele cu virgulă)</string>
     <string name="auto_save_failed">Salvarea automată a eșuat</string>
     <!-- API Provider names -->
-    <string name="provider_openai">ChatGPT API</string>
-    <string name="provider_xai">SpaceXAI (Grok)</string>
-    <string name="provider_openai_responses">ChatGPT Responses API</string>
-    <string name="provider_openai_responses_generic">OpenAI ResponsesGeneralități</string>
-    <string name="provider_anthropic">Anthropic (ClaudeSerie)</string>
-    <string name="provider_anthropic_generic">AnthropicGeneralități</string>
-    <string name="provider_google">Google (GeminiSerie)</string>
-    <string name="provider_gemini_generic">GeminiGeneralități</string>
-    <string name="provider_baidu">Baidu (Seria „Wenxin Yiyuan”)</string>
-    <string name="provider_aliyun">Alibaba Cloud (Seria „O mie de întrebări despre sensul general”)</string>
-    <string name="provider_xunfei">iFlytek (Seria „Scânteia cunoașterii”)</string>
-    <string name="provider_zhipu">ZhipuAI (ChatGLMSerie)</string>
-    <string name="provider_baichuan">Modelul Baichuan</string>
-    <string name="provider_moonshot">Modelul mare „Fața ascunsă a Lunii”</string>
-    <string name="provider_mimo">Xiaomi MiMo</string>
-    <string name="provider_deepseek">DeepseekModele mari</string>
-    <string name="provider_mistral">Mistral AI (Codestral)</string>
-    <string name="provider_siliconflow">Fluxul pe bază de siliciu</string>
-    <string name="provider_iflow">iFlow</string>
-    <string name="provider_openrouter">OpenRouter (Agregarea mai multor modele)</string>
-    <string name="provider_opencode">OpenCode</string>
+    <string name="provider_openai">ChatGPT (OpenAI)</string>
+    <string name="provider_xai">Grok (SpaceXAI)</string>
+    <string name="provider_openai_responses">ChatGPT Responses (OpenAI)</string>
+    <string name="provider_openai_responses_generic">OpenAI Responses (Generic)</string>
+    <string name="provider_anthropic">Claude (Anthropic)</string>
+    <string name="provider_anthropic_generic">Claude (Generic)</string>
+    <string name="provider_google">Gemini (Google)</string>
+    <string name="provider_gemini_generic">Gemini (Generic)</string>
+    <string name="provider_baidu">ERNIE (Baidu)</string>
+    <string name="provider_aliyun">Qwen (Alibaba Cloud)</string>
+    <string name="provider_xunfei">Spark (iFLYTEK)</string>
+    <string name="provider_zhipu">GLM (Zhipu)</string>
+    <string name="provider_baichuan">Baichuan (Baichuan)</string>
+    <string name="provider_moonshot">Kimi (Moonshot)</string>
+    <string name="provider_mimo">MiMo (Xiaomi)</string>
+    <string name="provider_deepseek">DeepSeek (DeepSeek)</string>
+    <string name="provider_mistral">Mistral (Mistral AI)</string>
+    <string name="provider_siliconflow">SiliconFlow (SiliconFlow)</string>
+    <string name="provider_iflow">iFlow (Xingchen Qianxun)</string>
+    <string name="provider_openrouter">OpenRouter (OpenRouter)</string>
+    <string name="provider_opencode">OpenCode (Anomaly Innovations)</string>
     <string name="provider_4router">4Router</string>
-    <string name="provider_nous_portal">Nous Portal</string>
-    <string name="provider_infiniai">Fără întrebări despre cerul stelar</string>
-    <string name="provider_alipay_bailing">Modelul mare Bailing de la Alipay</string>
-    <string name="provider_lmstudio">LM Studio(Model local)</string>
-    <string name="provider_ollama">Ollama(Model local)</string>
-    <string name="provider_openai_local">OpenAICompatibil (model local)</string>
-    <string name="provider_mnn">MNN Raționament local</string>
-    <string name="provider_llama_cpp">llama.cpp Raționament local</string>
-    <string name="provider_ppinfra">Paiou Cloud</string>
-    <string name="provider_novita">Novita AI</string>
-    <string name="provider_minimax">MiniMax</string>
-    <string name="provider_openai_generic">OpenAIGeneralități</string>
-    <string name="provider_other">Alți furnizori</string>
+    <string name="provider_nous_portal">Nous Portal (Nous Research)</string>
+    <string name="provider_infiniai">Infini-AI (Infini-AI)</string>
+    <string name="provider_alipay_bailing">Bailing (Alipay)</string>
+    <string name="provider_lmstudio">LM Studio (Local)</string>
+    <string name="provider_ollama">Ollama (Local)</string>
+    <string name="provider_openai_local">OpenAI (Local)</string>
+    <string name="provider_mnn">MNN (Local)</string>
+    <string name="provider_llama_cpp">llama.cpp (Local)</string>
+    <string name="provider_ppinfra">PPInfra (PPIO)</string>
+    <string name="provider_novita">Novita (Novita AI)</string>
+    <string name="provider_minimax">MiniMax (MiniMax)</string>
+    <string name="provider_openai_generic">OpenAI (Generic)</string>
+    <string name="provider_other">Other (Custom)</string>
     <string name="select_api_provider_title">AlegereAPIFurnizor</string>
     <string name="search_providers">Furnizori de servicii de căutare</string>
     <!-- ModelParametersSection strings -->
@@ -5917,8 +5918,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="backup_memory_import_strategy_create_new_desc">Chiar dacăUUIDAceleași elemente creează, de asemenea, noi amintiri (ceea ce poate duce la repetări)</string>
     <string name="backup_confirm">Confirmare</string>
     <string name="backup_cancel">Anulare</string>
-    <string name="provider_doubao">Pâine cu fasole (model vulcanic)</string>
-    <string name="provider_nvidia">NVIDIA(API Catalog)</string>
+    <string name="provider_doubao">Doubao (Volcengine)</string>
+    <string name="provider_nvidia">NIM (NVIDIA)</string>
 
     <!-- Help Screen - Mirror Selection Dialog -->
     <string name="help_loading_message">Se încarcă manualul de utilizare...</string>
@@ -8064,7 +8065,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="notification_kind_entry_curated">Selectat în selecția de top</string>
     <string name="markdown_link_not_openable">Acest link indică o referință din interiorul documentului și nu poate fi deschis</string>
 
-    <string name="provider_openai_codex">Codex</string>
+    <string name="provider_openai_codex">Codex (OpenAI)</string>
+    <string name="provider_antigravity">Antigravity (Google)</string>
     <string name="onboarding_config_codex_login_required">Conectați-vă mai întâi la Codex</string>
     <string name="codex_login_title">Conectare Codex</string>
     <string name="codex_login_starting">Se pregătește conectarea Codex...</string>
@@ -8347,4 +8349,30 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_trends">Analiza tendințelor</string>
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="provider_section_generic_compatible">Compatibilitate generică</string>
+    <string name="provider_section_proprietary">Furnizori dedicați</string>
+    <string name="provider_section_aggregation">Agregare de modele</string>
+    <string name="provider_section_local">Modele locale</string>
+
+    <string name="provider_vertex">Vertex AI (Google)</string>
+    <string name="onboarding_config_vertex_login_required">Sign in to Vertex AI first</string>
+    <string name="onboarding_config_vertex_project_missing">Enter the Vertex AI project ID</string>
+    <string name="vertex_login_title">Sign in to Vertex AI</string>
+    <string name="vertex_login_starting">Preparing Vertex AI sign-in...</string>
+    <string name="vertex_login_waiting">Complete Google sign-in in the browser</string>
+    <string name="vertex_login_action">Sign in with Google</string>
+    <string name="vertex_login_success">Vertex AI sign-in succeeded</string>
+    <string name="vertex_login_failed">Vertex AI sign-in failed: %1$s</string>
+    <string name="vertex_logout_action">Sign out of Vertex AI</string>
+    <string name="vertex_logout_success">Signed out of Vertex AI</string>
+    <string name="vertex_auth_title">Vertex AI account</string>
+    <string name="vertex_auth_not_logged_in">Sign in with Google to use Vertex AI</string>
+    <string name="vertex_auth_account">Account: %1$s</string>
+    <string name="vertex_project_id">Project ID</string>
+    <string name="vertex_project_id_desc">Enter the GCP project ID. Sign-in does not discover it</string>
+    <string name="vertex_location">Location</string>
+    <string name="vertex_location_desc">Defaults to global. A region such as us-central1 also works</string>
+    <string name="vertex_direct_media_processing_desc">Send images directly to Vertex AI</string>
+
+    <string name="google_oauth_experimental_notice">Experimental: autentificarea și integrarea modelelor Antigravity și Vertex AI sunt încă în curs de validare și pot fi instabile.</string>
 </resources>
