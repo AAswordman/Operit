@@ -8,14 +8,14 @@ object ChatUtils {
     // getMemoryFromMessages 会对每条 AI 消息调用 removeThinkingContent。
     // 每次 toRegex() 都会走 ICU Pattern.compile，长会话会把主线程卡死。
     private val thinkContentPattern =
-        Regex("<think(?:ing)?>.*?(</think(?:ing)?>|\\z)", RegexOption.DOT_MATCHES_ALL)
+        Regex("<(?:operit_thinking|think(?:ing)?)>.*?(</(?:operit_thinking|think(?:ing)?)>|\\z)", RegexOption.DOT_MATCHES_ALL)
     private val searchContentPattern =
         Regex(
             "<search\\b[\\s\\S]*?(</search>|\\z)",
             setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
         )
     private val thinkCapturePattern =
-        Regex("<think(?:ing)?>([\\s\\S]*?)</think(?:ing)?>", RegexOption.DOT_MATCHES_ALL)
+        Regex("<(?:operit_thinking|think(?:ing)?)>([\\s\\S]*?)</(?:operit_thinking|think(?:ing)?)>", RegexOption.DOT_MATCHES_ALL)
 
     fun stripGeminiThoughtSignatureMeta(content: String): String {
         return ChatMarkupRegex.removeGeminiThoughtSignatureMeta(content)
@@ -93,6 +93,7 @@ object ChatUtils {
 
     private fun containsThinkOrSearchMarkup(content: String): Boolean {
         return content.contains("<think", ignoreCase = true) ||
+            content.contains("<operit_thinking", ignoreCase = true) ||
             content.contains("<search", ignoreCase = true)
     }
 

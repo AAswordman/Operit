@@ -1814,7 +1814,7 @@ open class GeminiProvider(
             // 确保思考模式正确结束
             if (responseState.isInThinkingMode) {
                 logDebug("流结束时仍在思考模式，添加结束标签")
-                streamCollector.emit("</think>")
+                streamCollector.emit("</operit_thinking>")
                 responseState.isInThinkingMode = false
             }
             
@@ -1887,7 +1887,7 @@ open class GeminiProvider(
             // 确保思考模式正确结束
             if (responseState.isInThinkingMode) {
                 logDebug("非流式响应结束时仍在思考模式，添加结束标签")
-                streamCollector.emit("</think>")
+                streamCollector.emit("</operit_thinking>")
                 responseState.isInThinkingMode = false
             }
         } catch (e: CancellationException) {
@@ -2073,7 +2073,7 @@ open class GeminiProvider(
                      val b64 = inlineData.optString("data", "")
                      if (mimeType.startsWith("image/", ignoreCase = true) && b64.isNotEmpty()) {
                          if (responseState.isInThinkingMode) {
-                             contentBuilder.append("</think>")
+                             contentBuilder.append("</operit_thinking>")
                              responseState.isInThinkingMode = false
                          }
                          val bytes = try {
@@ -2097,7 +2097,7 @@ open class GeminiProvider(
                     if (toolName.isNotEmpty()) {
                         // 工具调用必须在思考模式之外，如果当前在思考中，先关闭
                         if (responseState.isInThinkingMode) {
-                            contentBuilder.append("</think>")
+                            contentBuilder.append("</operit_thinking>")
                             responseState.isInThinkingMode = false
                             logDebug("检测到工具调用，提前结束思考模式")
                         }
@@ -2142,12 +2142,12 @@ open class GeminiProvider(
                     // 处理思考模式状态切换
                     if (isThought && includeThoughtsInOutput && !responseState.isInThinkingMode) {
                         // 开始思考模式
-                        contentBuilder.append("<think>")
+                        contentBuilder.append("<operit_thinking>")
                         responseState.isInThinkingMode = true
                         logDebug("开始思考模式")
                     } else if (!isThought && responseState.isInThinkingMode) {
                         // 结束思考模式
-                        contentBuilder.append("</think>")
+                        contentBuilder.append("</operit_thinking>")
                         responseState.isInThinkingMode = false
                         logDebug("结束思考模式")
                     }

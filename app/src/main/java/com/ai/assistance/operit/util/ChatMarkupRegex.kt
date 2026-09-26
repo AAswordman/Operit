@@ -125,12 +125,12 @@ object ChatMarkupRegex {
     )
 
     val thinkTag = Regex(
-        "<think(?:ing)?\\b[\\s\\S]*?</think(?:ing)?>",
+        "<(?:operit_thinking|think(?:ing)?)\\b[\\s\\S]*?</(?:operit_thinking|think(?:ing)?)>",
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
     )
 
     val thinkSelfClosingTag = Regex(
-        "<think(?:ing)?\\b[^>]*/>",
+        "<(?:operit_thinking|think(?:ing)?)\\b[^>]*/>",
         RegexOption.IGNORE_CASE
     )
 

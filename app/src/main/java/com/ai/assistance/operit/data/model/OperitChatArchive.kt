@@ -13,7 +13,7 @@ data class OperitChatArchive(
 ) {
     companion object {
         const val ARCHIVE_TYPE = "operit_chat_archive"
-        const val CURRENT_FORMAT_VERSION = 2
+        const val CURRENT_FORMAT_VERSION = 3
     }
 }
 
@@ -95,10 +95,10 @@ data class OperitArchivedMessage(
     val variants: List<OperitArchivedMessageVariant> = emptyList(),
 )
 
-@Serializable
+@Serializable(with = ArchivedMessageVariantSerializer::class)
 data class OperitArchivedMessageVariant(
     val variantIndex: Int,
-    val content: String,
+    val sections: List<MessageSection>,
     val roleName: String = "",
     val provider: String = "",
     val modelName: String = "",
@@ -115,7 +115,8 @@ data class OperitArchivedMessageVariant(
             chatId = chatId,
             messageTimestamp = messageTimestamp,
             variantIndex = variantIndex,
-            content = content,
+            sections = MessageSectionStorage.encode(sections),
+            searchText = MessageSectionCodec.searchText(sections),
             roleName = roleName,
             provider = provider,
             modelName = modelName,
@@ -133,7 +134,7 @@ data class OperitArchivedMessageVariant(
         fun fromEntity(entity: MessageVariantEntity): OperitArchivedMessageVariant {
             return OperitArchivedMessageVariant(
                 variantIndex = entity.variantIndex,
-                content = entity.content,
+                sections = MessageSectionStorage.decode(entity.sections, entity.searchText),
                 roleName = entity.roleName,
                 provider = entity.provider,
                 modelName = entity.modelName,

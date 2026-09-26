@@ -21,7 +21,7 @@ import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.util.UUID
 
-private const val APP_DATABASE_VERSION = 21
+private const val APP_DATABASE_VERSION = 22
 
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
@@ -237,6 +237,8 @@ abstract class AppDatabase : RoomDatabase() {
             }
 
         /** v20 -> v21: token statistics schema and Room-declared message indexes. */
+        internal val MIGRATION_21_22 = MessageSectionsMigration
+
         internal val MIGRATION_20_21 =
             object : Migration(20, 21) {
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -533,7 +535,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_17_18,
                     MIGRATION_18_19,
                     MIGRATION_19_20,
-                    MIGRATION_20_21
+                    MIGRATION_20_21,
+                    MIGRATION_21_22
                 )
                 .build()
 

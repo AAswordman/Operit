@@ -1565,6 +1565,14 @@
     <string name="data_recovery_database_repair_plan">Repair actions to be executed</string>
     <string name="data_recovery_database_repair_rebuild_indexes">Rebuild SQLite indexes</string>
     <string name="data_recovery_database_repair_run_migrations">Run the released Room database migrations</string>
+    <string name="data_recovery_database_upgrade_action">Upgrade database</string>
+    <string name="data_recovery_database_upgrade_running">Stopping the main app and upgrading the database</string>
+    <string name="data_recovery_database_upgrade_completed">Database upgrade complete; verification passed</string>
+    <string name="data_recovery_database_upgrade_confirm_title">Upgrade Room database</string>
+    <string name="data_recovery_database_upgrade_confirm_message">Database version %1$d can be upgraded to version %2$d. The main app and its foreground services will be stopped first; the current database files will be preserved before migration.</string>
+    <string name="data_recovery_database_upgrade_confirm_action">Upgrade</string>
+    <string name="data_recovery_database_main_process_running_details">The main application process is still running: PID %1$d, process %2$s, importance %3$d. The upgrade will request this process to stop first.</string>
+    <string name="data_recovery_database_main_process_stop_failed">The main application process did not exit within the time limit; the database was not modified</string>
     <string name="data_recovery_database_no_supported_repair">The current report has no repair operation that can be executed safely</string>
     <string name="data_recovery_database_summary_healthy">Configuration and database checks passed</string>
     <string name="data_recovery_database_summary_repairable">Configuration or database issues can be repaired</string>

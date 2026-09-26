@@ -1,8 +1,6 @@
 package com.ai.assistance.operit.data.recovery
 
-import android.app.ActivityManager
 import android.content.Context
-import android.os.Process
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -84,12 +82,6 @@ object PreferencesHealthManager {
         val sourceArchive: File,
         cause: Throwable
     ) : IllegalStateException(cause.message, cause)
-
-    private enum class MainProcessState {
-        RUNNING,
-        NOT_RUNNING,
-        UNKNOWN
-    }
 
     private sealed interface CopyValidation {
         data object Readable : CopyValidation
@@ -280,7 +272,9 @@ object PreferencesHealthManager {
             )
         }
 
-        if (hasRepairableIssue && mainProcessState(appContext) != MainProcessState.NOT_RUNNING) {
+        if (hasRepairableIssue &&
+            MainProcessController.inspect(appContext).state != MainProcessController.State.NOT_RUNNING
+        ) {
             hasBlockingFailure = true
         }
 
@@ -436,30 +430,14 @@ object PreferencesHealthManager {
         return canonicalFile.parentFile == canonicalDirectory && canonicalFile.name == file.name
     }
 
-    private fun mainProcessState(context: Context): MainProcessState {
-        val activityManager =
-            context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
-                ?: return MainProcessState.UNKNOWN
-        val processes = activityManager.runningAppProcesses ?: return MainProcessState.UNKNOWN
-        return if (
-            processes.any { process ->
-                process.pid != Process.myPid() && process.processName == context.packageName
-            }
-        ) {
-            MainProcessState.RUNNING
-        } else {
-            MainProcessState.NOT_RUNNING
-        }
-    }
-
     private fun requireMainProcessStopped(context: Context) {
-        when (mainProcessState(context.applicationContext)) {
-            MainProcessState.NOT_RUNNING -> Unit
-            MainProcessState.RUNNING ->
+        when (MainProcessController.inspect(context.applicationContext).state) {
+            MainProcessController.State.NOT_RUNNING -> Unit
+            MainProcessController.State.RUNNING ->
                 throw IllegalStateException(
                     context.getString(R.string.data_recovery_database_main_process_running)
                 )
-            MainProcessState.UNKNOWN ->
+            MainProcessController.State.UNKNOWN ->
                 throw IllegalStateException(
                     context.getString(R.string.data_recovery_database_main_process_unknown)
                 )

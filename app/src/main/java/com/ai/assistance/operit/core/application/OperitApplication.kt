@@ -290,6 +290,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             val dbStartTime = System.currentTimeMillis()
             // 简单访问数据库以触发初始化
             database.openHelper.writableDatabase
+            com.ai.assistance.operit.data.db.MessageSectionBackfill.run(database)
             AppLogger.d(TAG, "【启动计时】数据库预加载完成（异步） - ${System.currentTimeMillis() - dbStartTime}ms")
         }
 

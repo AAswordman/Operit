@@ -76,6 +76,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.recovery.PreferencesHealthManager
 import com.ai.assistance.operit.data.recovery.RoomDatabaseHealthManager
+import com.ai.assistance.operit.data.db.AppDatabase
+import com.ai.assistance.operit.data.recovery.MainProcessController
 import com.ai.assistance.operit.ui.common.OperitUtilityTheme
 import com.ai.assistance.operit.util.LocaleUtils
 
@@ -103,6 +105,23 @@ private fun DataRecoveryScreen() {
     val state by viewModel.state.collectAsState()
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var showHealthRepairConfirmation by remember { mutableStateOf(false) }
+    var showDatabaseUpgradeConfirmation by remember { mutableStateOf(false) }
+    val databaseReport = state.databaseHealthReport
+    val configurationReport = state.configurationHealthReport
+
+    androidx.compose.runtime.LaunchedEffect(
+        databaseReport?.databaseVersion,
+        databaseReport?.canRunRoomMigrations,
+        state.databaseUpgradeCompleted
+    ) {
+        if (
+            databaseReport?.canRunRoomMigrations == true &&
+            !state.isRunning &&
+            !state.databaseUpgradeCompleted
+        ) {
+            showDatabaseUpgradeConfirmation = true
+        }
+    }
 
     val snapshotPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -179,7 +198,10 @@ private fun DataRecoveryScreen() {
                     }
                     if (state.restoreCompleted) {
                         Spacer(modifier = Modifier.height(10.dp))
-                        FilledTonalButton(onClick = { restartMainApp(context) }) {
+                        FilledTonalButton(
+                            onClick = { restartMainApp(context) },
+                            enabled = !state.isRunning
+                        ) {
                             Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(stringResource(R.string.data_recovery_start_main_app))
@@ -276,6 +298,20 @@ private fun DataRecoveryScreen() {
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(stringResource(R.string.data_recovery_database_check_action))
                         }
+                        if (databaseReport?.canRunRoomMigrations == true) {
+                            OutlinedButton(
+                                onClick = { showDatabaseUpgradeConfirmation = true },
+                                enabled = !state.isRunning
+                            ) {
+                                Icon(
+                                    Icons.Default.Restore,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.data_recovery_database_upgrade_action))
+                            }
+                        }
                         Button(
                             onClick = { showHealthRepairConfirmation = true },
                             enabled =
@@ -293,15 +329,17 @@ private fun DataRecoveryScreen() {
                         }
                     }
 
-                    val configurationReport = state.configurationHealthReport
-                    val databaseReport = state.databaseHealthReport
                     if (configurationReport != null && databaseReport != null) {
                         Spacer(modifier = Modifier.height(12.dp))
                         ConfigurationAndDatabaseHealthReport(
                             configurationReport = configurationReport,
                             databaseReport = databaseReport
                         )
-                        if (configurationReport.canRepair || databaseReport.canRepair) {
+                        if (
+                            configurationReport.canRepair ||
+                                databaseReport.canRepair ||
+                                databaseReport.canRunRoomMigrations
+                        ) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = stringResource(R.string.data_recovery_database_repair_plan),
@@ -315,6 +353,19 @@ private fun DataRecoveryScreen() {
                                             stringResource(
                                                 R.string.data_recovery_configuration_repair_reset_files,
                                                 configurationReport.repairableFileNames.size
+                                            ),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            if (
+                                databaseReport.canRunRoomMigrations &&
+                                    RoomDatabaseHealthManager.RepairAction.RUN_ROOM_MIGRATIONS !in databaseReport.repairActions
+                            ) {
+                                Text(
+                                    text =
+                                        "• " +
+                                            stringResource(
+                                                R.string.data_recovery_database_repair_run_migrations
                                             ),
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -375,9 +426,12 @@ private fun DataRecoveryScreen() {
                         }
                     }
 
-                    if (state.healthRepairCompleted) {
+                    if (state.healthRepairCompleted || state.databaseUpgradeCompleted) {
                         Spacer(modifier = Modifier.height(10.dp))
-                        FilledTonalButton(onClick = { restartMainApp(context) }) {
+                        FilledTonalButton(
+                            onClick = { restartMainApp(context) },
+                            enabled = !state.isRunning
+                        ) {
                             Icon(
                                 Icons.Default.RestartAlt,
                                 contentDescription = null,
@@ -422,7 +476,6 @@ private fun DataRecoveryScreen() {
             }
         )
     }
-
     if (showHealthRepairConfirmation) {
         AlertDialog(
             onDismissRequest = { showHealthRepairConfirmation = false },
@@ -440,6 +493,38 @@ private fun DataRecoveryScreen() {
             },
             dismissButton = {
                 TextButton(onClick = { showHealthRepairConfirmation = false }) {
+                    Text(stringResource(R.string.data_recovery_cancel_action))
+                }
+            }
+        )
+    }
+
+    if (showDatabaseUpgradeConfirmation) {
+        val currentVersion = databaseReport?.databaseVersion ?: 0
+        AlertDialog(
+            onDismissRequest = { showDatabaseUpgradeConfirmation = false },
+            title = { Text(stringResource(R.string.data_recovery_database_upgrade_confirm_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.data_recovery_database_upgrade_confirm_message,
+                        currentVersion,
+                        AppDatabase.DATABASE_VERSION
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDatabaseUpgradeConfirmation = false
+                        viewModel.migrateDatabase()
+                    }
+                ) {
+                    Text(stringResource(R.string.data_recovery_database_upgrade_confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatabaseUpgradeConfirmation = false }) {
                     Text(stringResource(R.string.data_recovery_cancel_action))
                 }
             }
@@ -715,6 +800,14 @@ private fun ResultRow(values: List<String>, header: Boolean) {
 }
 
 private fun restartMainApp(context: Context) {
+    if (!MainProcessController.stopAndWait(context)) {
+        Toast.makeText(
+            context,
+            context.getString(R.string.data_recovery_database_main_process_stop_failed),
+            Toast.LENGTH_LONG
+        ).show()
+        return
+    }
     val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
     if (intent == null) {
         Toast.makeText(context, context.getString(R.string.data_recovery_launch_failed), Toast.LENGTH_LONG).show()

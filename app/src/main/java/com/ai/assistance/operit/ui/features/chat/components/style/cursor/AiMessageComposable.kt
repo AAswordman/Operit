@@ -197,7 +197,7 @@ fun AiMessageComposable(
                 // 对于已完成的静态消息，使用新的字符串渲染器以提高性能
                 // 共享相同的state，避免重新计算nodes等状态
                 StreamMarkdownRenderer(
-                    content = message.content,
+                    content = message.displayContent(),
                     textColor = textColor,
                     backgroundColor = backgroundColor,
                     onLinkClick = rememberedOnLinkClick,

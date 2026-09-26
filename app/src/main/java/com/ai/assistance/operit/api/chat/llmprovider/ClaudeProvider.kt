@@ -1346,13 +1346,13 @@ open class ClaudeProvider(
                         if (text.isNotEmpty()) fullText.append(text)
                     }
                     // A provider endpoint can still send thinking blocks when thinking is disabled. Do not
-                    // expose those blocks or turn them into visible <think> markup in that mode.
+                    // expose those blocks or turn them into visible <operit_thinking> markup in that mode.
                     "thinking" -> if (enableThinking) {
                         val thinking = block.optString("thinking", "")
                         if (thinking.isNotEmpty()) {
-                            fullText.append("\n<think>")
+                            fullText.append("\n<operit_thinking>")
                             fullText.append(thinking)
-                            fullText.append("</think>\n")
+                            fullText.append("</operit_thinking>\n")
                         }
                     }
                     "redacted_thinking" -> {
@@ -1730,7 +1730,7 @@ open class ClaudeProvider(
                                             // Keep response parsing aligned with the request flag;
                                             // otherwise an unsolicited thinking block leaks to the UI.
                                             "thinking" -> if (enableThinking) {
-                                                val thinkingStartTag = "\n<think>"
+                                                val thinkingStartTag = "\n<operit_thinking>"
                                                 emittedAny = true
                                                 emit(thinkingStartTag)
                                                 receivedContent.append(thinkingStartTag)
@@ -1828,7 +1828,7 @@ open class ClaudeProvider(
                                         currentToolParser = null
                                         currentToolTagName = null
                                     } else if (isInThinkingBlock) {
-                                        val thinkingEndTag = "</think>\n"
+                                        val thinkingEndTag = "</operit_thinking>\n"
                                         emit(thinkingEndTag)
                                         receivedContent.append(thinkingEndTag)
                                         isInThinkingBlock = false
@@ -1869,7 +1869,7 @@ open class ClaudeProvider(
                                         currentToolTagName = null
                                     }
                                     if (isInThinkingBlock) {
-                                        val thinkingEndTag = "</think>\n"
+                                        val thinkingEndTag = "</operit_thinking>\n"
                                         emit(thinkingEndTag)
                                         receivedContent.append(thinkingEndTag)
                                         isInThinkingBlock = false

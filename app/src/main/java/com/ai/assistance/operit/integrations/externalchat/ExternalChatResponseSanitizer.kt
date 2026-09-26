@@ -90,7 +90,8 @@ object ExternalChatResponseSanitizer {
             ChatMarkupRegex.normalizeToolLikeTagName(ChatMarkupRegex.extractOpeningTagName(xml))
         return normalizedTagName == "status" ||
             normalizedTagName == "tool" ||
-            normalizedTagName == "tool_result"
+            normalizedTagName == "tool_result" ||
+            normalizedTagName == "meta"
     }
 
     private fun sanitizeResidualWhitespace(content: String): String? {

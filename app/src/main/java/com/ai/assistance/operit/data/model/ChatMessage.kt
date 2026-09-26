@@ -6,10 +6,11 @@ import com.ai.assistance.operit.util.stream.Stream
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
-@Serializable
+@Serializable(with = ChatMessageSerializer::class)
 data class ChatMessage(
         val sender: String, // "user" or "ai"
         var content: String = "",
+        var sections: List<MessageSection> = emptyList(),
         val timestamp: Long = ChatMessageTimestampAllocator.next(),
         val roleName: String = "", // 角色名字字段
         val selectedVariantIndex: Int = 0, // 当前选中的回答版本，0 表示原始回答
@@ -33,6 +34,22 @@ data class ChatMessage(
 ) : Parcelable {
     init {
         ChatMessageTimestampAllocator.observe(timestamp)
+        if (sections.isEmpty() && content.isNotEmpty()) {
+            sections = MessageSectionCodec.parse(content)
+        }
+    }
+
+    /** 编辑和流式更新仍会修改 content，保存前必须消除旧片段快照。 */
+    fun resolvedSections(): List<MessageSection> {
+        return if (MessageSectionCodec.render(sections) == content) sections
+        else MessageSectionCodec.parse(content)
+    }
+
+    fun displaySections(): List<MessageSection> =
+        resolvedSections().filterNot { it is MessageSection.Protocol }
+
+    fun displayContent(): String {
+        return MessageSectionCodec.render(displaySections())
     }
 
     constructor(

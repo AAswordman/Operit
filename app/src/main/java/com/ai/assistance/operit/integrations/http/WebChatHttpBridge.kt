@@ -2001,7 +2001,7 @@ class WebChatHttpBridge(
 
             if (
                 structuredRenderPreferences.showThinkingProcess &&
-                (tagName == "think" || tagName == "thinking")
+                (tagName == "think" || tagName == "thinking" || tagName == "operit_thinking")
             ) {
                 var nextIndex = index + 1
                 var toolCount = 0
@@ -2024,7 +2024,7 @@ class WebChatHttpBridge(
                         continue
                     }
 
-                    val isThinkAgain = nextTagName == "think" || nextTagName == "thinking"
+                    val isThinkAgain = nextTagName == "think" || nextTagName == "thinking" || nextTagName == "operit_thinking"
                     val isToolRelated = nextTagName == "tool" || nextTagName == "tool_result"
                     val isSearchRelated = nextTagName == "search"
                     if (!isThinkAgain && !isToolRelated && !isSearchRelated) {
