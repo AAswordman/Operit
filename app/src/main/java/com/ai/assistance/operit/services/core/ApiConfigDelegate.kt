@@ -6,6 +6,7 @@ import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.ApiKeyFormatValidator
 import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.ContextSummarySettings
 import com.ai.assistance.operit.data.model.FunctionType
@@ -732,28 +733,42 @@ class ApiConfigDelegate(
         }
     }
     /**
+     * 解析当前生效的总结配置所属角色卡：绑定模式为 CUSTOM 时返回该卡，返回 null 表示当前写全局默认。
+     */
+    private suspend fun resolveActiveSummaryCard(): CharacterCard? {
+        val activePrompt = activePromptManager.activePromptFlow.first()
+        val card =
+            (activePrompt as? ActivePrompt.CharacterCard)?.let { prompt ->
+                runCatching { characterCardManager.getCharacterCard(prompt.id) }.getOrNull()
+            }
+        return card?.takeIf { SummarySettingsResolver.usesCardSettings(activePrompt, it) }
+    }
+
+    /**
      * 修改当前生效的总结配置：角色卡 CUSTOM 写卡内 summary，其余情况写全局默认。
      * 与 resolveSummarySettings 同源，聊天快速设置栏的编辑落在正在生效的那份配置上，
      * 不再写入模型配置后被运行时忽略。
+     *
+     * 这是 read-modify-write：解析目标与真正写入之间用户可能切了角色卡，那样本次编辑属于上一个目标，
+     * 写到新目标上就会串改刚切过去的配置。因此写入前再解析一次并比对目标，不一致就放弃本次写入。
      */
     private fun updateActiveSummarySettings(
         transform: (ContextSummarySettings) -> ContextSummarySettings
     ) {
         configScope.launch {
-            val activePrompt = activePromptManager.activePromptFlow.first()
-            val card =
-                (activePrompt as? ActivePrompt.CharacterCard)?.let { prompt ->
-                    runCatching { characterCardManager.getCharacterCard(prompt.id) }.getOrNull()
-                }
-            val customCard = card?.takeIf { SummarySettingsResolver.usesCardSettings(activePrompt, it) }
-            if (customCard != null) {
-                characterCardManager.updateCharacterCardSummarySettings(
-                    customCard.id,
-                    transform(customCard.summary)
-                )
-            } else {
+            val targetCard = resolveActiveSummaryCard()
+            if (resolveActiveSummaryCard()?.id != targetCard?.id) {
+                AppLogger.w(TAG, "生效总结配置目标在写入前已切换，放弃本次写入")
+                return@launch
+            }
+            if (targetCard == null) {
                 val current = userPreferencesManager.globalContextSummaryFlow.first()
                 userPreferencesManager.saveGlobalContextSummary(transform(current))
+            } else {
+                characterCardManager.updateCharacterCardSummarySettings(
+                    targetCard.id,
+                    transform(targetCard.summary)
+                )
             }
         }
     }

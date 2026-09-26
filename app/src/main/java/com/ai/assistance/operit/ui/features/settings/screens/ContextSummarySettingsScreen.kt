@@ -90,6 +90,7 @@ import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -555,6 +556,10 @@ private fun SummarySettingsAutoSaveEffect(
                         try {
                             onSave(settings)
                             onSummaryErrorChange(null)
+                        } catch (e: CancellationException) {
+                            // collectLatest 会在下一次输入时取消上一轮保存，取消不是保存失败，
+                            // 必须透传，否则快速连续输入会误报「保存失败」。
+                            throw e
                         } catch (e: Exception) {
                             AppLogger.w("ContextSummarySettings", "保存总结配置失败", e)
                             onSummaryErrorChange(e.message ?: errorSaveFailed)
