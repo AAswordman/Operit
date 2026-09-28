@@ -7820,4 +7820,14 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_trends">Análisis de tendencias</string>
     <string name="token_stats_settings">Configuración de estadísticas</string>
     <string name="token_stats_custom_range_confirm">Aceptar</string>
+
+    <!-- 健康数据读取说明（Health Connect 权限用途） -->
+    <string name="health_rationale_title">Cómo usa Operit AI tus datos de salud</string>
+    <string name="health_rationale_intro">Operit AI lee datos de salud y actividad física a través de Health Connect del sistema para mostrar métricas como pasos y frecuencia cardíaca en tu dispositivo, y para ponerlas a disposición de las herramientas de agente y automatizaciones que configures. Toda la lectura se realiza localmente en tu dispositivo.</string>
+    <string name="health_rationale_items_title">Tipos de datos leídos</string>
+    <string name="health_rationale_items">Pasos, distancia, calorías activas y totales quemadas, tasa metabólica basal, pisos subidos y desnivel ascendido, frecuencia cardíaca, frecuencia cardíaca en reposo, variabilidad de la frecuencia cardíaca, frecuencia respiratoria, saturación de oxígeno, sueño, peso, altura, grasa corporal, masa magra, masa ósea, agua corporal, temperatura corporal, temperatura corporal basal, presión arterial, glucosa en sangre, hidratación y VO2 máx: los tipos de datos de salud y actividad física compatibles con Health Connect. Solo se solicitan los permisos que concedas realmente en este dispositivo.</string>
+    <string name="health_rationale_storage_title">Almacenamiento y uso compartido</string>
+    <string name="health_rationale_storage">Operit AI no sube datos de salud a ningún servidor operado por el proyecto: este proyecto no ejecuta servicios en la nube ni aloja tus datos. Los datos se procesan localmente en tu dispositivo, salvo que los envíes deliberadamente a través de un modelo, automatización o servicio de terceros que hayas configurado, en cuyo caso se envían directamente a ese proveedor bajo sus términos.</string>
+    <string name="health_rationale_revoke">Puedes revocar cualquiera de estos permisos en cualquier momento en Permisos de aplicaciones dentro de Health Connect; una vez revocados, Operit AI ya no podrá leer los datos correspondientes.</string>
+    <string name="health_rationale_settings_hint">En Android 14 y versiones posteriores también puedes gestionar el acceso en Ajustes → Seguridad y privacidad → Privacidad → Health Connect → Permisos de aplicaciones.</string>
 </resources>

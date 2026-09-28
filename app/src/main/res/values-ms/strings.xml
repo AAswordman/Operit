@@ -7749,4 +7749,14 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_trends">Analisis trend</string>
     <string name="token_stats_settings">Tetapan statistik</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+
+    <!-- 健康数据读取说明（Health Connect 权限用途） -->
+    <string name="health_rationale_title">Bagaimana Operit AI menggunakan data kesihatan anda</string>
+    <string name="health_rationale_intro">Operit AI membaca data kesihatan dan kecergasan melalui Health Connect sistem untuk memaparkan metrik seperti langkah dan kadar denyutan jantung pada peranti anda, serta menyediakannya kepada alat ejen dan automasi yang anda konfigurasikan sendiri. Semua pembacaan berlaku secara setempat pada peranti anda.</string>
+    <string name="health_rationale_items_title">Jenis data yang dibaca</string>
+    <string name="health_rationale_items">Langkah, jarak, kalori aktif dan jumlah kalori terbakar, kadar metabolisme basal, tingkat yang dinaiki dan kenaikan ketinggian, kadar denyutan jantung, kadar denyutan jantung rehat, kebolehubahan kadar denyutan jantung, kadar pernafasan, ketepuan oksigen, tidur, berat badan, tinggi badan, lemak badan, jisim badan tanpa lemak, jisim tulang, air badan, suhu badan, suhu badan basal, tekanan darah, glukosa darah, penghidratan dan VO2 maks — jenis data kesihatan dan kecergasan yang disokong Health Connect. Hanya kebenaran yang anda benar-benar berikan pada peranti ini akan diminta.</string>
+    <string name="health_rationale_storage_title">Penyimpanan dan perkongsian</string>
+    <string name="health_rationale_storage">Operit AI tidak memuat naik data kesihatan ke mana-mana pelayan yang dikendalikan oleh projek: projek ini tidak menjalankan perkhidmatan awan dan tidak menyimpan data anda. Data diproses secara setempat pada peranti anda, melainkan anda sengaja menghantarnya melalui model, automasi atau perkhidmatan pihak ketiga yang anda konfigurasikan sendiri; dalam kes itu ia dihantar terus kepada penyedia tersebut di bawah terma mereka.</string>
+    <string name="health_rationale_revoke">Anda boleh menarik balik mana-mana kebenaran ini pada bila-bila masa di Kebenaran aplikasi dalam Health Connect; selepas ditarik balik, Operit AI tidak lagi boleh membaca data berkenaan.</string>
+    <string name="health_rationale_settings_hint">Pada Android 14 ke atas anda juga boleh mengurus akses di Tetapan → Keselamatan &amp; privasi → Privasi → Health Connect → Kebenaran aplikasi.</string>
 </resources>
