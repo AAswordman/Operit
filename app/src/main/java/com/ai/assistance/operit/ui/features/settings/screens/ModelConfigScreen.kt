@@ -341,7 +341,7 @@ fun ModelConfigScreen(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                AppLogger.e("ModelConfigScreen", "首次引导配置保存或绑定失败", e)
+                AppLogger.e("ModelConfigScreen", "Failed to save or bind first-run config", e)
                 showOnboardingError(
                     context.getString(R.string.onboarding_config_apply_failed)
                 )
@@ -519,7 +519,7 @@ fun ModelConfigScreen(
                                                     } catch (e: Exception) {
                                                         AppLogger.e(
                                                             "ModelConfigScreen",
-                                                            "刷新删除配置影响的服务失败: $functionType",
+                                                            "Failed to refresh service affected by deleted config: $functionType",
                                                             e,
                                                         )
                                                     }
@@ -533,7 +533,7 @@ fun ModelConfigScreen(
                                             } catch (e: Exception) {
                                                 AppLogger.e(
                                                     "ModelConfigScreen",
-                                                    "删除模型配置失败: $deletingConfigId",
+                                                    "Failed to delete model config: $deletingConfigId",
                                                     e,
                                                 )
                                                 showNotification(context.getString(R.string.save_failed))
@@ -1066,20 +1066,35 @@ private data class ThinkingOptionEditor(
     val editorKey: String = UUID.randomUUID().toString()
 )
 
-private val thinkingControlChoices =
-    listOf("levels" to "多档滑块", "toggle_only" to "仅开关")
+@Composable
+private fun thinkingControlChoices() =
+    listOf("levels" to stringResource(R.string.thinking_config_control_levels), "toggle_only" to stringResource(R.string.thinking_config_control_toggle_only))
 
-private val thinkingMatchFieldChoices =
+private val thinkingMatchFieldKeys =
     listOf(
-        "modelContains" to "模型包含",
-        "modelPrefix" to "模型前缀",
-        "modelSuffix" to "模型后缀",
-        "modelRegex" to "模型正则",
-        "firstSegment" to "斜杠前段",
-        "lastSegmentPrefix" to "后段前缀",
-        "lastSegmentContains" to "后段包含",
-        "lastSegmentRegex" to "后段正则",
-        "endpointSuffix" to "端点后缀"
+        "modelContains",
+        "modelPrefix",
+        "modelSuffix",
+        "modelRegex",
+        "firstSegment",
+        "lastSegmentPrefix",
+        "lastSegmentContains",
+        "lastSegmentRegex",
+        "endpointSuffix"
+    )
+
+@Composable
+private fun thinkingMatchFieldChoices() =
+    listOf(
+        "modelContains" to stringResource(R.string.thinking_config_match_model_contains),
+        "modelPrefix" to stringResource(R.string.thinking_config_match_model_prefix),
+        "modelSuffix" to stringResource(R.string.thinking_config_match_model_suffix),
+        "modelRegex" to stringResource(R.string.thinking_config_match_model_regex),
+        "firstSegment" to stringResource(R.string.thinking_config_match_first_segment),
+        "lastSegmentPrefix" to stringResource(R.string.thinking_config_match_last_segment_prefix),
+        "lastSegmentContains" to stringResource(R.string.thinking_config_match_last_segment_contains),
+        "lastSegmentRegex" to stringResource(R.string.thinking_config_match_last_segment_regex),
+        "endpointSuffix" to stringResource(R.string.thinking_config_match_endpoint_suffix)
     )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -1108,8 +1123,8 @@ private fun ThinkingConfigurationsSection(
     val saveMutex = remember(config.id) { Mutex() }
     val enabledRuleCount = rules.count { it.enabled }
     val controlSummary = rules.map { rule ->
-        thinkingControlChoices.firstOrNull { it.first == rule.control }?.second ?: rule.control
-    }.distinct().joinToString(" / ").ifEmpty { "未配置" }
+        thinkingControlChoices().firstOrNull { it.first == rule.control }?.second ?: rule.control
+    }.distinct().joinToString(" / ").ifEmpty { stringResource(R.string.thinking_config_not_configured) }
 
 
     val latestRules by rememberUpdatedState(rules)
@@ -1164,14 +1179,14 @@ private fun ThinkingConfigurationsSection(
                 }
                 Icon(
                     imageVector = if (sectionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (sectionExpanded) "收起" else "展开",
+                    contentDescription = if (sectionExpanded) stringResource(R.string.thinking_config_collapse) else stringResource(R.string.thinking_config_expand),
                     modifier = Modifier.size(24.dp)
                 )
             }
             AnimatedVisibility(visible = sectionExpanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "$enabledRuleCount/${rules.size} 条启用 · $controlSummary",
+                        text = stringResource(R.string.thinking_config_enabled_count, enabledRuleCount, rules.size, controlSummary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1185,7 +1200,7 @@ private fun ThinkingConfigurationsSection(
                             shape = RoundedCornerShape(10.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
                         ) {
-                            Text("当前模型配置没有思考规则。", modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.thinking_config_no_rules), modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     } else {
                         rules.forEachIndexed { index, rule ->
@@ -1228,7 +1243,7 @@ private fun ThinkingConfigurationsSection(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("添加思考配置")
+                        Text(stringResource(R.string.thinking_config_add_rule))
                     }
                 }
             }
@@ -1246,7 +1261,7 @@ private fun ThinkingConfigurationsSection(
             },
             title = {
                 Text(
-                    if (isNewRule) "新建思考配置" else thinkingRulePreviewTitle(currentEditingRule)
+                    if (isNewRule) stringResource(R.string.thinking_config_new_rule) else thinkingRulePreviewTitle(currentEditingRule)
                 )
             },
             text = {
@@ -1307,13 +1322,14 @@ private fun ThinkingConfigurationsSection(
     }
 }
 
+@Composable
 private fun thinkingRulePreviewTitle(rule: ThinkingRuleEditor): String {
     return rule.matchValues
         .split(',')
         .map { it.trim() }
         .filter { it.isNotEmpty() }
         .joinToString("、")
-        .ifEmpty { "所有模型" }
+        .ifEmpty { stringResource(R.string.thinking_config_all_models) }
 }
 
 @Composable
@@ -1325,9 +1341,9 @@ private fun ThinkingRulePreviewCard(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
 ) {
-    val controlText = thinkingControlChoices.firstOrNull { it.first == rule.control }?.second ?: rule.control
-    val detail = if (rule.control == "levels") "${rule.options.size} 档" else "开关"
-    val parameterText = rule.parameterLabel.trim().ifEmpty { "未设置请求路径" }
+    val controlText = thinkingControlChoices().firstOrNull { it.first == rule.control }?.second ?: rule.control
+    val detail = if (rule.control == "levels") stringResource(R.string.thinking_config_level_count, rule.options.size) else stringResource(R.string.thinking_config_toggle)
+    val parameterText = rule.parameterLabel.trim().ifEmpty { stringResource(R.string.thinking_config_no_request_path) }
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
@@ -1394,14 +1410,14 @@ private fun ThinkingRulePreviewCard(
             }
             Icon(
                 imageVector = if (rule.enabled) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                contentDescription = if (rule.enabled) "已启用" else "已停用",
+                contentDescription = if (rule.enabled) stringResource(R.string.thinking_config_enabled) else stringResource(R.string.thinking_config_disabled),
                 tint = if (rule.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "编辑",
+                contentDescription = stringResource(R.string.thinking_config_edit),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
@@ -1412,26 +1428,26 @@ private fun ThinkingRulePreviewCard(
 @Composable
 private fun ThinkingRuleEditForm(rule: ThinkingRuleEditor, onRuleChange: (ThinkingRuleEditor) -> Unit) {
     SettingsSwitchRow(
-        title = "启用此配置",
-        subtitle = "匹配到模型时写入思考参数",
+        title = stringResource(R.string.thinking_config_enable_this_config),
+        subtitle = stringResource(R.string.thinking_config_write_when_model_matches),
         checked = rule.enabled,
         onCheckedChange = { onRuleChange(rule.copy(enabled = it)) }
     )
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ThinkingChoiceField(value = rule.control, label = "控件", choices = thinkingControlChoices, onValueChange = { onRuleChange(rule.copy(control = it)) }, modifier = Modifier.weight(1f))
-        ThinkingChoiceField(value = rule.matchField, label = "匹配方式", choices = thinkingMatchFieldChoices, onValueChange = { onRuleChange(rule.copy(matchField = it)) }, modifier = Modifier.weight(1f))
+        ThinkingChoiceField(value = rule.control, label = stringResource(R.string.thinking_config_control), choices = thinkingControlChoices(), onValueChange = { onRuleChange(rule.copy(control = it)) }, modifier = Modifier.weight(1f))
+        ThinkingChoiceField(value = rule.matchField, label = stringResource(R.string.thinking_config_match_method), choices = thinkingMatchFieldChoices(), onValueChange = { onRuleChange(rule.copy(matchField = it)) }, modifier = Modifier.weight(1f))
     }
-    SettingsTextField(title = "匹配模型", subtitle = "多个值用逗号分隔", value = rule.matchValues, onValueChange = { onRuleChange(rule.copy(matchValues = it)) }, placeholder = "glm-, deepseek, gemini-2.5")
-    SettingsTextField(title = "默认请求路径", value = rule.parameterLabel, onValueChange = { onRuleChange(rule.copy(parameterLabel = it)) }, placeholder = "reasoning_effort 或 thinking.type")
-    SettingsSwitchRow(title = "始终开启思考", subtitle = "即使滑块关闭，也写入开启参数", checked = rule.required, onCheckedChange = { onRuleChange(rule.copy(required = it)) })
-    ThinkingCollapsibleEditor(title = "开启 / 关闭时写入", subtitle = "按请求路径写入固定值", initiallyExpanded = false) {
+    SettingsTextField(title = stringResource(R.string.thinking_config_match_model), subtitle = stringResource(R.string.thinking_config_multiple_values_comma), value = rule.matchValues, onValueChange = { onRuleChange(rule.copy(matchValues = it)) }, placeholder = "glm-, deepseek, gemini-2.5")
+    SettingsTextField(title = stringResource(R.string.thinking_config_default_request_path), value = rule.parameterLabel, onValueChange = { onRuleChange(rule.copy(parameterLabel = it)) }, placeholder = "reasoning_effort or thinking.type")
+    SettingsSwitchRow(title = stringResource(R.string.thinking_config_always_enable_thinking), subtitle = stringResource(R.string.thinking_config_write_enable_even_off), checked = rule.required, onCheckedChange = { onRuleChange(rule.copy(required = it)) })
+    ThinkingCollapsibleEditor(title = stringResource(R.string.thinking_config_write_on_toggle), subtitle = stringResource(R.string.thinking_config_write_fixed_by_path), initiallyExpanded = false) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ThinkingCompactActionsEditor(title = "开启时写入", actions = rule.enabledActions, onActionsChange = { onRuleChange(rule.copy(enabledActions = it)) })
-            ThinkingCompactActionsEditor(title = "关闭时写入", actions = rule.disabledActions, onActionsChange = { onRuleChange(rule.copy(disabledActions = it)) })
+            ThinkingCompactActionsEditor(title = stringResource(R.string.thinking_config_write_when_enabled), actions = rule.enabledActions, onActionsChange = { onRuleChange(rule.copy(enabledActions = it)) })
+            ThinkingCompactActionsEditor(title = stringResource(R.string.thinking_config_write_when_disabled), actions = rule.disabledActions, onActionsChange = { onRuleChange(rule.copy(disabledActions = it)) })
         }
     }
     if (rule.control == "levels") {
-        ThinkingCollapsibleEditor(title = "滑块档位", subtitle = "${rule.options.size} 个档位，决定滑块长度", initiallyExpanded = false) {
+        ThinkingCollapsibleEditor(title = stringResource(R.string.thinking_config_slider_levels), subtitle = stringResource(R.string.thinking_config_levels_determine_slider, rule.options.size), initiallyExpanded = false) {
             ThinkingCompactOptionsEditor(options = rule.options, defaultPath = rule.parameterLabel, onOptionsChange = { onRuleChange(rule.copy(options = it)) })
         }
     }
@@ -1447,7 +1463,7 @@ private fun ThinkingCollapsibleEditor(title: String, subtitle: String, initially
                     Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = if (expanded) "收起" else "展开", modifier = Modifier.size(20.dp))
+                Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = if (expanded) stringResource(R.string.thinking_config_collapse) else stringResource(R.string.thinking_config_expand), modifier = Modifier.size(20.dp))
             }
             AnimatedVisibility(visible = expanded) { Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) { content() } }
         }
@@ -1516,30 +1532,30 @@ private fun ThinkingCompactActionsEditor(
             TextButton(onClick = { onActionsChange(actions + ThinkingActionEditor()) }) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("添加")
+                Text(stringResource(R.string.thinking_config_add))
             }
         }
         if (actions.isEmpty()) {
-            Text("未配置", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.thinking_config_not_configured), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         actions.forEachIndexed { index, action ->
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     SettingsTextField(
-                        title = "路径",
+                        title = stringResource(R.string.thinking_config_path),
                         value = action.path,
                         onValueChange = { path -> onActionsChange(actions.toMutableList().also { it[index] = action.copy(path = path) }) },
-                        placeholder = "请求参数路径"
+                        placeholder = stringResource(R.string.thinking_config_request_param_path)
                     )
                     SettingsTextField(
-                        title = "值",
+                        title = stringResource(R.string.thinking_config_value),
                         value = action.value,
                         onValueChange = { value -> onActionsChange(actions.toMutableList().also { it[index] = action.copy(value = value) }) },
-                        placeholder = "写入值"
+                        placeholder = stringResource(R.string.thinking_config_write_value)
                     )
                 }
                 IconButton(onClick = { onActionsChange(actions.toMutableList().also { it.removeAt(index) }) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.thinking_config_delete), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -1563,11 +1579,11 @@ private fun ThinkingCompactOptionsEditor(
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("滑块档位", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.thinking_config_slider_levels), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
             TextButton(onClick = { onOptionsChange(options + ThinkingOptionEditor(path = defaultPath)) }) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("添加档位")
+                Text(stringResource(R.string.thinking_config_add_level))
             }
         }
         LazyColumn(
@@ -1620,7 +1636,7 @@ private fun ThinkingCompactOptionsEditor(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.DragHandle,
-                                    contentDescription = "拖动排序",
+                                    contentDescription = stringResource(R.string.thinking_config_drag_to_reorder),
                                     modifier = Modifier
                                         .size(24.dp)
                                         .longPressDraggableHandle(),
@@ -1634,7 +1650,7 @@ private fun ThinkingCompactOptionsEditor(
                                         .padding(vertical = 6.dp)
                                 ) {
                                     Text(
-                                        "档位 ${index + 1}",
+                                        stringResource(R.string.thinking_config_level_n, index + 1),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1652,7 +1668,7 @@ private fun ThinkingCompactOptionsEditor(
                                     onClick = { onOptionsChange(options.toMutableList().also { it.removeAt(index) }) },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "删除", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.thinking_config_delete), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
                                 }
                                 IconButton(
                                     onClick = { expanded = !expanded },
@@ -1660,7 +1676,7 @@ private fun ThinkingCompactOptionsEditor(
                                 ) {
                                     Icon(
                                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = if (expanded) "收起" else "展开",
+                                        contentDescription = if (expanded) stringResource(R.string.thinking_config_collapse) else stringResource(R.string.thinking_config_expand),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -1671,22 +1687,22 @@ private fun ThinkingCompactOptionsEditor(
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     SettingsTextField(
-                                        title = "显示名",
+                                        title = stringResource(R.string.thinking_config_display_name),
                                         value = option.label,
                                         onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(label = value) }) },
-                                        placeholder = "例如：高"
+                                        placeholder = stringResource(R.string.thinking_config_placeholder_high_zh)
                                     )
                                     SettingsTextField(
-                                        title = "写入路径",
+                                        title = stringResource(R.string.thinking_config_write_path),
                                         value = option.path,
                                         onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(path = value) }) },
                                         placeholder = defaultPath
                                     )
                                     SettingsTextField(
-                                        title = "写入值",
+                                        title = stringResource(R.string.thinking_config_write_value),
                                         value = option.value,
                                         onValueChange = { value -> onOptionsChange(options.toMutableList().also { it[index] = option.copy(value = value) }) },
-                                        placeholder = "例如：high"
+                                        placeholder = stringResource(R.string.thinking_config_placeholder_high)
                                     )
                                 }
                             }
@@ -1798,7 +1814,7 @@ private fun JSONObject.toThinkingRuleEditor(index: Int): ThinkingRuleEditor {
 
 private fun JSONObject.firstThinkingMatchPair(): Pair<String, List<String>> {
     val match = optJSONObject("match") ?: JSONObject()
-    thinkingMatchFieldChoices.forEach { (field, _) ->
+    thinkingMatchFieldKeys.forEach { field ->
         val values = match.stringArrayValues(field) + stringArrayValues(field)
         if (values.isNotEmpty()) return field to values
     }
