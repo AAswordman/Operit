@@ -13,6 +13,9 @@ import com.ai.assistance.operit.util.OperitPaths
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 
 /**
@@ -25,6 +28,41 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
     companion object {
         private const val TAG = "MCPToolExecutor"
         private const val REPLACEMENT_CHARACTER = '\uFFFD'
+
+        /**
+         * Hard ceiling for one MCP tool invocation as seen by the caller.
+         *
+         * The transport already bounds itself (the bridge socket read timeout for toolcall is
+         * 60s), but this is the last line of defence: it guarantees the blocking
+         * [invoke] boundary always returns instead of wedging a Dispatchers.Default thread.
+         * Slightly larger than the socket timeout so the socket layer gets to produce the
+         * more precise error first.
+         */
+        private const val TOOL_CALL_TIMEOUT_MS = 70_000L
+
+        /** Timeout for the connect/spawn step, which may need to boot a whole MCP process. */
+        private const val CONNECT_TIMEOUT_MS = 180_000L
+
+        /**
+         * Per-server cache of tool definitions.
+         *
+         * Previously every single tool call performed a `listtools` round trip just to read the
+         * inputSchema of the tool being called (see [getToolInfo]). That tripled the number of
+         * socket round trips per call and, because all of them serialise on the bridge's shared
+         * control connection, made concurrent calls pile up against each other.
+         *
+         * Kept static so [MCPManager] can invalidate it whenever a runtime is re-registered.
+         */
+        private val toolSchemaCache = ConcurrentHashMap<String, List<McpRuntimeTool>>()
+
+        /** Drop the cached tool definitions for a server (or all servers when null). */
+        fun invalidateToolSchemaCache(serverName: String? = null) {
+            if (serverName == null) {
+                toolSchemaCache.clear()
+            } else {
+                toolSchemaCache.remove(serverName)
+            }
+        }
     }
 
     private data class ArgumentIntegrityViolation(
@@ -276,7 +314,13 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
         val serverName = toolNameParts[0]
         val actualToolName = toolNameParts.subList(1, toolNameParts.size).joinToString(":")
 
-        val mcpClient = mcpManager.getOrCreateSession(serverName)
+        val mcpClient =
+                try {
+                    runBlocking { withTimeout(CONNECT_TIMEOUT_MS) { mcpManager.getOrCreateSession(serverName) } }
+                } catch (e: TimeoutCancellationException) {
+                    AppLogger.e(TAG, "连接 MCP 服务超时: $serverName")
+                    null
+                }
         if (mcpClient == null) {
             val detailedReason = mcpManager.getLastConnectionFailureReason(serverName)
             return ToolResult(
@@ -291,17 +335,11 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
             )
         }
 
-        // 在调用工具前，检查服务是否处于激活状态
-        val isActive = kotlinx.coroutines.runBlocking { mcpClient.isActive() }
-        if (!isActive) {
-            return ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = StringResultData(""),
-                    error =
-                            "MCP service '$serverName' is not activated. Please use the 'use_package' tool with the package name '$serverName' to activate it first."
-            )
-        }
+        // NOTE: the previous `mcpClient.isActive()` pre-check has been removed. It cost a full
+        // `list` round trip (enumerating every registered service) on *every* tool call, and it
+        // went through the bridge's shared control connection. `callTool` already reconnects and
+        // spawns on demand, so the check was pure overhead on the hot path. The "not activated"
+        // diagnostic is preserved below by mapping a failed connect to the same guidance.
 
         AppLogger.d(TAG, "准备调用MCP工具: $serverName:$actualToolName")
 
@@ -317,8 +355,10 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
         // The synchronous ToolExecutor boundary delegates the actual transport call to a coroutine.
         val result =
                 try {
-                    val response = kotlinx.coroutines.runBlocking {
-                        mcpClient.callTool(actualToolName, convertedParameters)
+                    val response = runBlocking {
+                        withTimeout(TOOL_CALL_TIMEOUT_MS) {
+                            mcpClient.callTool(actualToolName, convertedParameters)
+                        }
                     }
 
                     if (response.success) {
@@ -346,6 +386,19 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
                                 error = errorMessage
                         )
                     }
+                } catch (e: TimeoutCancellationException) {
+                    val errorMessage =
+                            "MCP tool '$actualToolName' on server '$serverName' did not return " +
+                                    "within ${TOOL_CALL_TIMEOUT_MS / 1000}s and was abandoned. " +
+                                    "The service process may still be running the tool (for example a " +
+                                    "shell command waiting on a prompt); it was not force-killed."
+                    AppLogger.e(TAG, errorMessage)
+                    ToolResult(
+                            toolName = tool.name,
+                            success = false,
+                            result = StringResultData(""),
+                            error = errorMessage
+                    )
                 } catch (e: Exception) {
                     val errorMessage = "Exception occurred while calling tool: ${e.message}"
                     AppLogger.e(TAG, "调用MCP工具时发生异常: $errorMessage", e)
@@ -360,13 +413,27 @@ class MCPToolExecutor(private val context: Context, private val mcpManager: MCPM
         return result
     }
 
-    /** 尝试获取工具的参数类型信息 */
+    /**
+     * 获取指定工具的定义信息。
+     *
+     * 结果按服务器缓存：工具定义在一次连接生命周期内不会变化，而每次工具调用都去
+     * `listtools` 会额外增加一次经由桥接器共享控制连接的往返，在并发调用时互相排队。
+     * 缓存会在服务器重新注册（[MCPManager.registerRuntime]）时失效。
+     */
     private fun getToolInfo(serverName: String, toolName: String): McpRuntimeTool? {
+        toolSchemaCache[serverName]?.let { cached ->
+            return cached.find { it.name == toolName }
+        }
+
         try {
             val client = mcpManager.getOrCreateSession(serverName) ?: return null
-            val tools = kotlinx.coroutines.runBlocking { client.listTools() }
+            val tools = runBlocking { withTimeout(CONNECT_TIMEOUT_MS) { client.listTools() } }
+            toolSchemaCache[serverName] = tools
 
             return tools.find { it.name == toolName }
+        } catch (e: TimeoutCancellationException) {
+            AppLogger.w(TAG, "获取工具信息超时: $serverName")
+            return null
         } catch (e: Exception) {
             AppLogger.w(TAG, "获取工具信息失败: ${e.message}")
             return null
@@ -509,6 +576,8 @@ class MCPManager(private val context: Context) {
     fun registerRuntime(pluginId: String, descriptor: McpRuntimeDescriptor) {
         val previous = runtimeDescriptorCache.put(pluginId, descriptor)
         connectionFailureReasons.remove(pluginId)
+        // The runtime behind this plugin changed, so its tool definitions may have changed too.
+        MCPToolExecutor.invalidateToolSchemaCache(pluginId)
         if (previous != null && previous != descriptor) {
             sessionCache.remove(pluginId)?.let { oldSession ->
                 kotlinx.coroutines.runBlocking { oldSession.close() }
@@ -593,6 +662,7 @@ class MCPManager(private val context: Context) {
         serverConfigCache.remove(serverName)
         runtimeDescriptorCache.remove(serverName)
         connectionFailureReasons.remove(serverName)
+        MCPToolExecutor.invalidateToolSchemaCache(serverName)
         sessionCache.remove(serverName)?.let { session ->
             kotlinx.coroutines.runBlocking { session.close() }
         }
@@ -606,5 +676,6 @@ class MCPManager(private val context: Context) {
         sessionCache.clear()
         runtimeDescriptorCache.clear()
         serverConfigCache.clear()
+        MCPToolExecutor.invalidateToolSchemaCache()
     }
 }
