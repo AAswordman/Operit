@@ -638,7 +638,8 @@ internal object ToolPkgMainRegistrationScriptParser {
                     listModelsHandler = parseHandler("listModels"),
                     sendMessageHandler = parseHandler("sendMessage"),
                     testConnectionHandler = parseHandler("testConnection"),
-                    calculateInputTokensHandler = parseHandler("calculateInputTokens")
+                    calculateInputTokensHandler = parseHandler("calculateInputTokens"),
+                    auth = com.ai.assistance.operit.core.auth.ProviderOAuthConfigJson.parse(item.opt("auth"))
                 )
             )
         }

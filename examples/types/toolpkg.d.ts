@@ -700,11 +700,43 @@ export namespace ToolPkg {
         locale?: string;
     }
 
+    /**
+     * Host-managed public-client authorization-code flow with S256 PKCE.
+     * Probe ToolPkg.supportsAiProviderAuth("oauth2") before registering on older hosts.
+     * No client secrets, implicit grants or embedded login pages are accepted.
+     */
+    export interface AiProviderOAuth2Config {
+        type: "oauth2";
+        clientId: string;
+        authorizationEndpoint: string;
+        tokenEndpoint: string;
+        scopes?: string[];
+        authorizationParameters?: { [key: string]: string };
+        /** 0 (default) allocates an ephemeral IPv4 loopback port. */
+        redirectPort?: number;
+        /** Prefer the default IP literal. localhost is available for pre-registered native clients. */
+        redirectHost?: "127.0.0.1" | "localhost";
+        /** Defaults to /oauth/callback. */
+        redirectPath?: string;
+        /** When specified, the authorization response must contain an identical iss value. */
+        issuer?: string;
+    }
+
+    export interface AiProviderRequestAuth extends JsonObject {
+        type: "oauth2";
+        accessToken: string;
+        tokenType: "Bearer";
+    }
+
     export interface AiProviderBaseEventPayload extends JsonObject {
         providerId: string;
         providerDisplayName?: string;
         providerDescription?: string;
         config: AiProviderConfig;
+        /** Request-scoped credential. Absent for key-based providers and local token estimation.
+         * Never persist/log this object. Refresh tokens are not exposed to provider handlers.
+         */
+        auth?: AiProviderRequestAuth;
     }
 
     export interface AiProviderListModelsEvent
@@ -968,6 +1000,8 @@ export namespace ToolPkg {
         id: string;
         displayName?: string;
         description?: string;
+        /** Omit to retain existing API key behavior. */
+        auth?: AiProviderOAuth2Config;
         listModels: { function: AiProviderListModelsHandler };
         sendMessage: { function: AiProviderSendMessageHandler };
         testConnection: { function: AiProviderTestConnectionHandler };
@@ -1092,6 +1126,8 @@ export namespace ToolPkg {
         registerSummaryGenerateHook(definition: SummaryGenerateHookRegistration): void;
         /** @since ToolPkg API 1.0.0 */
         registerAiProvider(definition: AiProviderRegistration): void;
+        /** Capability probe; check typeof on hosts predating provider OAuth support. */
+        supportsAiProviderAuth(type: string): boolean;
         readResource(key: string, outputFileName?: string, internal?: boolean): Promise<string>;
         getConfigDir(pluginId?: string): string;
         ipc: IpcApi;
