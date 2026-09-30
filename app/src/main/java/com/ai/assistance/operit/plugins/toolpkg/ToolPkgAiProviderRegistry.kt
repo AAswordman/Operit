@@ -65,7 +65,8 @@ internal object ToolPkgAiProviderRegistry {
                             calculateInputTokensFunctionName =
                                 provider.calculateInputTokensHandler.function,
                             calculateInputTokensFunctionSource =
-                                provider.calculateInputTokensHandler.functionSource
+                                provider.calculateInputTokensHandler.functionSource,
+                            auth = provider.auth
                         )
                     }
                 }

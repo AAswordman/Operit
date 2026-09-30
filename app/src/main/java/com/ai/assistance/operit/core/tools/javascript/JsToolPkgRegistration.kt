@@ -663,6 +663,12 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
                 requireNative('registerToolPkgAiProvider')(JSON.stringify(normalized));
             };
 
+            // OAuth packages must probe this capability before registering. Older hosts otherwise
+            // ignore unknown registration fields and would silently treat an OAuth provider as key-based.
+            api.supportsAiProviderAuth = function(type) {
+                return type === 'oauth2';
+            };
+
             installGlobal('ToolPkg', api);
         })();
     """.trimIndent()
