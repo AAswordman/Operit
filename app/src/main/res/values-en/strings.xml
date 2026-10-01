@@ -3831,6 +3831,10 @@
     <string name="settings_reset_model_confirmation">Reset Model Confirmation</string>
     <string name="settings_reset_model_warning">This will clear token and request count statistics for %1$s. This action cannot be undone.</string>
     <string name="settings_token_stats_reset_failed">Failed to reset statistics. Please try again.</string>
+    <string name="token_stats_reset_usage">Reset Usage</string>
+    <string name="token_stats_reset_usage_desc">Clear all token usage records. Pricing and the exchange rate stay unchanged</string>
+    <string name="token_stats_usage_reset_confirm_wait">Confirm (%1$d)</string>
+    <string name="token_stats_usage_reset_failed">Failed to reset usage. Please try again.</string>
     <string name="settings_reset">Reset</string>
     <string name="settings_edit_pricing">Edit Pricing</string>
     <string name="settings_input_tokens">Input Tokens</string>

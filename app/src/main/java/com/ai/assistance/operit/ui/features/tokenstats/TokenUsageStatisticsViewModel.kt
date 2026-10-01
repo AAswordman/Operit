@@ -21,6 +21,7 @@ import com.ai.assistance.operit.data.stats.TokenStatsQueryParams
 import com.ai.assistance.operit.data.stats.TokenStatsQueryService
 import com.ai.assistance.operit.data.stats.TokenStatsRangeData
 import com.ai.assistance.operit.data.stats.TokenStatsSettingsManager
+import com.ai.assistance.operit.data.stats.TokenUsageRepository
 import com.ai.assistance.operit.data.stats.TokenStatsSettingsStore
 import com.ai.assistance.operit.data.stats.TokenStatsTimeRange
 import com.ai.assistance.operit.data.stats.TokenStatsTimeRanges
@@ -79,6 +80,7 @@ class TokenUsageStatisticsViewModel(
 ) : ViewModel() {
     private val appContext = context.applicationContext
     private val manager = TokenStatsSettingsManager(appContext)
+    private val usageRepository = TokenUsageRepository.getInstance(appContext)
     private val modelConfigManager = ModelConfigManager(appContext)
     private val tag = "TokenUsageStatisticsViewModel"
 
@@ -378,6 +380,23 @@ class TokenUsageStatisticsViewModel(
             } catch (e: Exception) {
                 _actionMessage.value = TokenStatsActionMessage(
                     stringResolver(R.string.token_stats_pricing_save_failed),
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun clearUsageRecords() {
+        viewModelScope.launch(dispatcher) {
+            try {
+                usageRepository.clearUsageRecords()
+                load()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e(tag, "清空 Token 使用量失败", e)
+                _actionMessage.value = TokenStatsActionMessage(
+                    stringResolver(R.string.token_stats_usage_reset_failed),
                     isError = true,
                 )
             }
