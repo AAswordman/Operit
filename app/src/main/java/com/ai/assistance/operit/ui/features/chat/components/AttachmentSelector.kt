@@ -107,9 +107,9 @@ fun AttachmentSelectorPanel(
 
     var showPackageDialog by remember { mutableStateOf(false) }
 
-    // 文件/图片选择器启动器
+    // 图片和文件统一使用 ACTION_OPEN_DOCUMENT，避免部分厂商 Photo Picker 的临时 URI 授权失效
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             coroutineScope.launch {
@@ -122,9 +122,8 @@ fun AttachmentSelectorPanel(
             }
         }
     }
-
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             coroutineScope.launch {
@@ -177,7 +176,7 @@ fun AttachmentSelectorPanel(
                                 AttachmentPanelItem(
                                         icon = Icons.Default.Image,
                                         label = context.getString(R.string.attachment_photo),
-                                        onClick = { imagePickerLauncher.launch("image/*") }
+                                        onClick = { imagePickerLauncher.launch(arrayOf("image/*")) }
                                 ),
                                 AttachmentPanelItem(
                                         icon = Icons.Default.PhotoCamera,
@@ -195,7 +194,7 @@ fun AttachmentSelectorPanel(
                                 AttachmentPanelItem(
                                         icon = Icons.Default.Description,
                                         label = context.getString(R.string.attachment_file),
-                                        onClick = { filePickerLauncher.launch("*/*") }
+                                        onClick = { filePickerLauncher.launch(arrayOf("*/*")) }
                                 ),
                                 AttachmentPanelItem(
                                         icon = Icons.Default.ScreenshotMonitor,
@@ -348,8 +347,9 @@ fun AttachmentSelectorPopupPanel(
 
     var showPackageDialog by remember { mutableStateOf(false) }
 
+    // 图片和文件统一使用 ACTION_OPEN_DOCUMENT，避免部分厂商 Photo Picker 的临时 URI 授权失效
     val imagePickerLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetMultipleContents()
+            contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             coroutineScope.launch {
@@ -364,7 +364,7 @@ fun AttachmentSelectorPopupPanel(
     }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetMultipleContents()
+            contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             coroutineScope.launch {
@@ -383,7 +383,7 @@ fun AttachmentSelectorPopupPanel(
                     AttachmentPanelItem(
                             icon = Icons.Default.Image,
                             label = context.getString(R.string.attachment_photo),
-                            onClick = { imagePickerLauncher.launch("image/*") }
+                            onClick = { imagePickerLauncher.launch(arrayOf("image/*")) }
                     ),
                     AttachmentPanelItem(
                             icon = Icons.Default.PhotoCamera,
@@ -401,7 +401,7 @@ fun AttachmentSelectorPopupPanel(
                     AttachmentPanelItem(
                             icon = Icons.Default.Description,
                             label = context.getString(R.string.attachment_file),
-                            onClick = { filePickerLauncher.launch("*/*") }
+                            onClick = { filePickerLauncher.launch(arrayOf("*/*")) }
                     ),
                     AttachmentPanelItem(
                             icon = Icons.Default.ScreenshotMonitor,

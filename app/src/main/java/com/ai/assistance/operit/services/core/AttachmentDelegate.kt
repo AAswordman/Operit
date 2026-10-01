@@ -327,17 +327,28 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
                     }
 
                     val tempFile = java.io.File.createTempFile("attachment_", ".$fileExtension", externalDir)
+                    try {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        if (inputStream == null) {
+                            tempFile.delete()
+                            return@withContext null
+                        }
 
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        tempFile.outputStream().use { output -> input.copyTo(output) }
+                        inputStream.use { input ->
+                            tempFile.outputStream().use { output -> input.copyTo(output) }
+                        }
+
+                        if (tempFile.exists() && tempFile.length() > 0) {
+                            AppLogger.d(TAG, "Successfully created temp image file: ${tempFile.absolutePath}")
+                            return@withContext tempFile
+                        }
+
+                        tempFile.delete()
+                        return@withContext null
+                    } catch (e: Exception) {
+                        tempFile.delete()
+                        throw e
                     }
-
-                    if (tempFile.exists() && tempFile.length() > 0) {
-                        AppLogger.d(TAG, "Successfully created temp image file: ${tempFile.absolutePath}")
-                        return@withContext tempFile
-                    }
-
-                    return@withContext null
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "Failed to create temp file", e)
                     return@withContext null
