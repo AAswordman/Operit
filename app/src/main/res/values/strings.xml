@@ -901,6 +901,8 @@
     <string name="settings_summary_message_count_threshold_subtitle">触发总结的新消息数量(1-20条)</string>
     <string name="settings_summary_custom_rules">自定义总结规则</string>
     <string name="settings_summary_custom_rules_desc">总结对话时发送的额外规则，留空为不添加</string>
+    <string name="settings_summary_previous_review">总结上一轮摘要</string>
+    <string name="settings_summary_previous_review_desc">在新摘要末尾压缩上一轮摘要。摘要通常很长且不走缓存，会增加额度消耗</string>
     <string name="settings_summary_structure">总结结构</string>
     <string name="settings_summary_section_enabled_desc">关闭后生成摘要时不输出该板块</string>
     <string name="settings_summary_section_title">板块标题</string>

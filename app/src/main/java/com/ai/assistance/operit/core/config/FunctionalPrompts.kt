@@ -215,7 +215,13 @@ object FunctionalPrompts {
         if (summaryConfig.sectionOverrides.isNotEmpty()) {
             prompt = applySummarySectionOverrides(summaryConfig.sectionOverrides, useEnglish)
         }
-        val promptWithPreviousSummary = appendPreviousSummary(prompt, previousSummary, useEnglish)
+        val promptWithPreviousSummary =
+            appendPreviousSummary(
+                prompt,
+                previousSummary,
+                useEnglish,
+                summaryConfig.previousSummaryReviewEnabled
+            )
         return summaryConfig.globalRules?.trim()?.takeIf { it.isNotBlank() }?.let { rules ->
             "$promptWithPreviousSummary\n\n$rules"
         } ?: promptWithPreviousSummary
@@ -266,10 +272,25 @@ object FunctionalPrompts {
     private fun appendPreviousSummary(
         prompt: String,
         previousSummary: String?,
-        useEnglish: Boolean
+        useEnglish: Boolean,
+        reviewPreviousSummary: Boolean
     ): String {
         if (previousSummary.isNullOrBlank()) return prompt
-        return prompt +
+        val reviewInstruction =
+            if (!reviewPreviousSummary) {
+                ""
+            } else if (useEnglish) {
+                """
+
+                Also add a fixed section at the end, titled exactly [Previous Summary Review]. Compress the previous summary itself: keep its task status, constraints, and unfinished items in a short form. Do not copy it verbatim, and do not omit the section.
+                """.trimIndent()
+            } else {
+                """
+
+                另外在摘要末尾增加一个固定板块，标题必须是【上一轮摘要回顾】。这个板块只压缩上一轮摘要本身，简要保留其中的任务状态、约束和未完成事项，不要逐字复制整篇，也不要省略这个板块。
+                """.trimIndent()
+            }
+        return prompt + reviewInstruction +
             if (useEnglish) {
                 """
 
