@@ -46,6 +46,7 @@ import com.ai.assistance.operit.data.model.getValidModelIndex
 import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.skill.SkillRepository
@@ -90,12 +91,16 @@ fun CharacterCardDialog(
     var fixedMemoryProfileId by remember(characterCard.id) {
         mutableStateOf(characterCard.memoryProfileId ?: "")
     }
+    var defaultWorkspaceName by remember(characterCard.id) {
+        mutableStateOf(characterCard.defaultWorkspaceName ?: "")
+    }
     var toolAccessConfig by remember(characterCard.id) {
         mutableStateOf(characterCard.toolAccessConfig.normalized())
     }
     var showFixedConfigPickerDialog by remember(characterCard.id) { mutableStateOf(false) }
     var popupExpandedFixedConfigId by remember(characterCard.id) { mutableStateOf<String?>(null) }
     var showFixedMemoryProfilePickerDialog by remember(characterCard.id) { mutableStateOf(false) }
+    var showDefaultWorkspacePickerDialog by remember(characterCard.id) { mutableStateOf(false) }
     var showToolAccessDialog by remember(characterCard.id) { mutableStateOf(false) }
     var showAdvanced by remember { mutableStateOf(false) }
     
@@ -133,6 +138,8 @@ fun CharacterCardDialog(
     }
     val avatarUri by userPreferencesManager.getAiAvatarForCharacterCardFlow(characterCard.id)
         .collectAsState(initial = null)
+    val apiPreferences = remember { ApiPreferences.getInstance(context) }
+    val workspaceBookmarks by apiPreferences.safBookmarksFlow.collectAsState(initial = emptyList())
 
     LaunchedEffect(Unit) {
         configSummaries = modelConfigManager.getAllConfigSummaries()
@@ -173,6 +180,17 @@ fun CharacterCardDialog(
             }
         } else {
             showFixedMemoryProfilePickerDialog = false
+        }
+    }
+
+    LaunchedEffect(workspaceBookmarks) {
+        // 书签列表初始为空，等 DataStore 真正发出内容后再判断，避免打开对话框就清掉有效选择
+        if (
+            defaultWorkspaceName.isNotBlank() &&
+            workspaceBookmarks.isNotEmpty() &&
+            workspaceBookmarks.none { it.name == defaultWorkspaceName }
+        ) {
+            defaultWorkspaceName = ""
         }
     }
 
@@ -776,6 +794,68 @@ fun CharacterCardDialog(
                             )
                         }
 
+                        val selectedWorkspaceBookmark =
+                            workspaceBookmarks.find { it.name == defaultWorkspaceName }
+
+                        Text(
+                            text = stringResource(R.string.character_card_workspace_binding),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDefaultWorkspacePickerDialog = true },
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(
+                                width = 0.8.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.character_card_workspace_default),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = selectedWorkspaceBookmark?.name
+                                            ?: stringResource(R.string.character_card_workspace_none),
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        CharacterCardDefaultWorkspacePickerDialog(
+                            visible = showDefaultWorkspacePickerDialog,
+                            bookmarks = workspaceBookmarks,
+                            selectedName = defaultWorkspaceName,
+                            onSelect = { workspaceName ->
+                                defaultWorkspaceName = workspaceName
+                                showDefaultWorkspacePickerDialog = false
+                            },
+                            onDismiss = { showDefaultWorkspacePickerDialog = false }
+                        )
+
                         Text(
                             text = stringResource(R.string.character_card_tool_access_title),
                             fontSize = 11.sp,
@@ -971,6 +1051,7 @@ fun CharacterCardDialog(
                                     } else {
                                         null
                                     },
+                                    defaultWorkspaceName = defaultWorkspaceName.trim().takeIf { it.isNotEmpty() },
                                     toolAccessConfig = finalToolAccessConfig
                                 )
                             )
@@ -1645,6 +1726,149 @@ private fun CharacterCardFixedMemoryProfilePickerDialog(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CharacterCardDefaultWorkspacePickerDialog(
+    visible: Boolean,
+    bookmarks: List<ApiPreferences.SafBookmark>,
+    selectedName: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (!visible) return
+
+    val scrollState = rememberScrollState()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.character_card_workspace_select),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp)
+                        .verticalScroll(scrollState)
+                ) {
+                    CharacterCardWorkspacePickerEntry(
+                        title = stringResource(R.string.character_card_workspace_none),
+                        isSelected = selectedName.isBlank(),
+                        onClick = { onSelect("") }
+                    )
+
+                    bookmarks.forEach { bookmark ->
+                        CharacterCardWorkspacePickerEntry(
+                            title = bookmark.name,
+                            isSelected = bookmark.name == selectedName,
+                            onClick = { onSelect(bookmark.name) }
+                        )
+                    }
+
+                    if (bookmarks.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.character_card_workspace_empty_hint),
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel), fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CharacterCardWorkspacePickerEntry(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(6.dp),
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        border = BorderStroke(
+            width = if (isSelected) 0.dp else 0.5.dp,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
