@@ -1202,8 +1202,153 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                     toolPkgApi.wasm = wasmApi;
                 }
 
+                function ensureToolPkgHostApi() {
+                    var toolPkgApi = root.ToolPkg && typeof root.ToolPkg === 'object'
+                        ? root.ToolPkg
+                        : {};
+                    if (root.ToolPkg !== toolPkgApi) {
+                        root.ToolPkg = toolPkgApi;
+                    }
+                    var hostApi = toolPkgApi.host && typeof toolPkgApi.host === 'object'
+                        ? toolPkgApi.host
+                        : {};
+                    hostApi.call = function(capability, payload) {
+                        var normalizedCapability = text(capability).trim();
+                        if (!normalizedCapability) {
+                            return Promise.reject(new Error('ToolPkg.host capability is required'));
+                        }
+                        if (
+                            !packageTarget ||
+                            typeof NativeInterface === 'undefined' ||
+                            !NativeInterface ||
+                            typeof NativeInterface.invokeToolPkgHostBridgeAsync !== 'function'
+                        ) {
+                            return Promise.reject(new Error('ToolPkg host bridge is unavailable'));
+                        }
+                        var payloadJson;
+                        try {
+                            payloadJson = serializeOrThrow(payload === undefined ? {} : payload);
+                        } catch (error) {
+                            try {
+                                NativeInterface.logErrorForCall(
+                                    callId,
+                                    'ToolPkg.host payload serialization failed: ' +
+                                        text(error && error.message ? error.message : error)
+                                );
+                            } catch (_hostPayloadLogError) {}
+                            return Promise.reject(error);
+                        }
+                        return new Promise(function(resolve, reject) {
+                            var callbackId =
+                                '__operit_toolpkg_host_' +
+                                Date.now() +
+                                '_' +
+                                Math.random().toString(36).slice(2, 10);
+                            root[callbackId] = function(resultJson, isError) {
+                                try {
+                                    delete root[callbackId];
+                                } catch (_deleteHostCallbackError) {
+                                    root[callbackId] = undefined;
+                                }
+                                if (isError) {
+                                    reject(new Error(text(resultJson).trim() || 'ToolPkg host bridge call failed'));
+                                    return;
+                                }
+                                var parsed;
+                                try {
+                                    parsed = JSON.parse(text(resultJson) || 'null');
+                                } catch (error) {
+                                    reject(
+                                        new Error(
+                                            'ToolPkg host bridge returned invalid JSON: ' +
+                                                text(error && error.message ? error.message : error)
+                                        )
+                                    );
+                                    return;
+                                }
+                                if (parsed && parsed.success === true) {
+                                    resolve(parsed.data);
+                                    return;
+                                }
+                                reject(
+                                    new Error(
+                                        parsed && typeof parsed.message === 'string' && parsed.message.trim().length > 0
+                                            ? parsed.message.trim()
+                                            : 'ToolPkg host bridge call failed'
+                                    )
+                                );
+                            };
+                            try {
+                                NativeInterface.invokeToolPkgHostBridgeAsync(
+                                    callbackId,
+                                    callId,
+                                    packageTarget,
+                                    normalizedCapability,
+                                    payloadJson
+                                );
+                            } catch (error) {
+                                try {
+                                    delete root[callbackId];
+                                } catch (_deleteHostInvokeError) {
+                                    root[callbackId] = undefined;
+                                }
+                                reject(error);
+                            }
+                        });
+                    };
+                    toolPkgApi.host = hostApi;
+                }
+
+                function ensureToolPkgFloatingWindowApi() {
+                    var toolPkgApi = root.ToolPkg && typeof root.ToolPkg === 'object'
+                        ? root.ToolPkg
+                        : {};
+                    if (root.ToolPkg !== toolPkgApi) {
+                        root.ToolPkg = toolPkgApi;
+                    }
+                    var hostApi = toolPkgApi.host && typeof toolPkgApi.host === 'object'
+                        ? toolPkgApi.host
+                        : {};
+                    var floatingApi =
+                        toolPkgApi.floatingWindow && typeof toolPkgApi.floatingWindow === 'object'
+                            ? toolPkgApi.floatingWindow
+                            : {};
+                    function command(operation, windowId, value) {
+                        var normalizedWindowId = text(windowId).trim();
+                        if (!normalizedWindowId) {
+                            return Promise.reject(new Error('ToolPkg floating window id is required'));
+                        }
+                        var payload = {
+                            operation: operation,
+                            windowId: normalizedWindowId,
+                        };
+                        if (operation === 'show' && value !== undefined) {
+                            payload.routeArgs = value;
+                        }
+                        if (operation === 'update' && value !== undefined) {
+                            payload.patch = value;
+                        }
+                        return hostApi.call('toolpkg.floating_window.v4', payload);
+                    }
+                    floatingApi.show = function(windowId, routeArgs) {
+                        return command('show', windowId, routeArgs);
+                    };
+                    floatingApi.hide = function(windowId) {
+                        return command('hide', windowId);
+                    };
+                    floatingApi.get = function(windowId) {
+                        return command('get', windowId);
+                    };
+                    floatingApi.update = function(windowId, patch) {
+                        return command('update', windowId, patch);
+                    };
+                    toolPkgApi.floatingWindow = floatingApi;
+                }
+
                 ensureToolPkgIpcApi();
                 ensureToolPkgWasmApi();
+                ensureToolPkgHostApi();
+                ensureToolPkgFloatingWindowApi();
 
                 function canSerializeAsPlainObject(value) {
                     if (!value || typeof value !== 'object') {

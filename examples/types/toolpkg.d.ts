@@ -838,17 +838,105 @@ export namespace ToolPkg {
         order?: number;
     }
 
-    export interface DesktopWidgetRegistration {
+    export type FloatingWindowRefreshHandler = () => HookReturn;
+
+    export type FloatingWindowFollowPlacement = "above" | "below" | "start" | "end" | "center";
+
+    export interface FloatingWindowFollow {
+        windowId: string;
+        placement: FloatingWindowFollowPlacement;
+        offsetDp?: {
+            x?: number;
+            y?: number;
+        };
+    }
+
+    export interface FloatingWindowContentLayout {
+        mode: "fixed";
+        widthDp: number;
+        heightDp: number;
+        scaleMode: "fit";
+    }
+
+    export type FloatingWindowAnimationEasing =
+        | "linear"
+        | "accelerate"
+        | "decelerate"
+        | "accelerateDecelerate"
+        | "overshoot";
+
+    export interface FloatingWindowAnimation {
+        scaleX?: number;
+        scaleY?: number;
+        alpha?: number;
+        translationXDp?: number;
+        translationYDp?: number;
+        durationMs?: number;
+        easing?: FloatingWindowAnimationEasing;
+        pivotX?: number;
+        pivotY?: number;
+    }
+
+    export interface FloatingWindowFeedback {
+        soundResource?: string | null;
+        animation?: FloatingWindowAnimation | null;
+    }
+
+    export interface FloatingWindowRegistration {
         id: string;
-        route?: string;
-        routeId?: string;
-        render?: string;
-        renderRouteId?: string;
+        contentRoute: string;
         title?: LocalizedText;
-        subtitle?: LocalizedText;
         description?: LocalizedText;
         icon?: string;
-        order?: number;
+        widthDp?: number;
+        heightDp?: number;
+        draggable?: boolean;
+        resizable?: boolean;
+        snapMode?: "none" | "quarter";
+        contentLayout: FloatingWindowContentLayout;
+        follow?: FloatingWindowFollow;
+        pressFeedback?: FloatingWindowFeedback;
+        releaseFeedback?: FloatingWindowFeedback;
+        refreshIntervalMs?: number;
+        onRefresh?: FloatingWindowRefreshHandler;
+    }
+
+    export type FloatingWindowStatus = "visible" | "hidden" | "disabled" | "error";
+
+    export interface FloatingWindowState extends JsonObject {
+        schemaVersion: number;
+        windowId: string;
+        contentRoute: string;
+        status: FloatingWindowStatus;
+        widthDp?: number;
+        heightDp?: number;
+        widthPx?: number;
+        heightPx?: number;
+        screenWidthPx?: number;
+        screenHeightPx?: number;
+        draggable?: boolean;
+        resizable?: boolean;
+        alpha?: number;
+        x?: number;
+        y?: number;
+        snapMode?: "none" | "quarter";
+        contentLayout: FloatingWindowContentLayout;
+        follow?: FloatingWindowFollow | null;
+        soundEnabled?: boolean;
+        soundVolume?: number;
+        pressFeedback: FloatingWindowFeedback;
+        releaseFeedback: FloatingWindowFeedback;
+        instanceId?: string;
+        updatedAtMs: string;
+        errorCode?: string;
+        errorMessage?: string;
+    }
+
+    export interface FloatingWindowApi {
+        show(windowId: string, routeArgs?: JsonObject): Promise<FloatingWindowState>;
+        hide(windowId: string): Promise<FloatingWindowState>;
+        get(windowId: string): Promise<FloatingWindowState>;
+        update(windowId: string, patch?: JsonObject): Promise<FloatingWindowState>;
     }
 
     export interface AppLifecycleHookRegistration {
@@ -1005,6 +1093,17 @@ export namespace ToolPkg {
         ): Promise<TResult>;
     }
 
+    export interface HostBridgeResponse extends JsonObject {
+        schemaVersion: number;
+    }
+
+    export interface HostBridgeApi {
+        call<TPayload extends JsonObject, TResult extends HostBridgeResponse>(
+            capability: string,
+            payload: TPayload
+        ): Promise<TResult>;
+    }
+
     export type WasmValueType = "i32" | "i64" | "f32" | "f64";
 
     export interface WasmI32Arg {
@@ -1053,8 +1152,7 @@ export namespace ToolPkg {
         /** @since ToolPkg API 1.0.0 */
         registerNavigationEntry(definition: NavigationEntryRegistration): void;
         /** @since ToolPkg API 1.0.0 */
-        registerDesktopWidget(definition: DesktopWidgetRegistration): void;
-        /** @since ToolPkg API 1.0.0 */
+        registerFloatingWindow(definition: FloatingWindowRegistration): void;
         registerAppLifecycleHook(definition: AppLifecycleHookRegistration): void;
         /** @since ToolPkg API 1.0.0 */
         registerMessageProcessingPlugin(definition: MessageProcessingPluginRegistration): void;
@@ -1095,6 +1193,8 @@ export namespace ToolPkg {
         readResource(key: string, outputFileName?: string, internal?: boolean): Promise<string>;
         getConfigDir(pluginId?: string): string;
         ipc: IpcApi;
+        host: HostBridgeApi;
+        floatingWindow: FloatingWindowApi;
         wasm: WasmApi;
     }
 }
@@ -1106,7 +1206,7 @@ declare global {
 
     function registerToolPkgNavigationEntry(definition: ToolPkg.NavigationEntryRegistration): void;
 
-    function registerToolPkgDesktopWidget(definition: ToolPkg.DesktopWidgetRegistration): void;
+    function registerToolPkgFloatingWindow(definition: ToolPkg.FloatingWindowRegistration): void;
 
     function registerToolPkgAppLifecycleHook(definition: ToolPkg.AppLifecycleHookRegistration): void;
 

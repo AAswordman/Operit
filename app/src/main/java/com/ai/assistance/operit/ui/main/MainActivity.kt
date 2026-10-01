@@ -61,7 +61,6 @@ import com.ai.assistance.operit.data.mcp.MCPRepository
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.res.stringResource
-import com.ai.assistance.operit.widget.ToolPkgDesktopWidgetHost
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
@@ -247,19 +246,6 @@ class MainActivity : ComponentActivity() {
             pendingShortcutRequestId = System.currentTimeMillis()
             currentMainNavItem = NavItem.Settings
             AppLogger.d(TAG, "Shortcut requested opening settings")
-            return true
-        }
-
-        val pendingWidgetRouteId =
-            intent?.getStringExtra(ToolPkgDesktopWidgetHost.EXTRA_OPEN_ROUTE_ID)?.trim().orEmpty()
-        if (pendingWidgetRouteId.isNotBlank()) {
-            pendingRouteId = pendingWidgetRouteId
-            pendingRouteArgs =
-                parseRouteArgsJson(
-                    intent?.getStringExtra(ToolPkgDesktopWidgetHost.EXTRA_OPEN_ROUTE_ARGS_JSON)
-                )
-            pendingRouteRequestId = System.currentTimeMillis()
-            AppLogger.d(TAG, "Shortcut requested opening route: $pendingWidgetRouteId")
             return true
         }
 

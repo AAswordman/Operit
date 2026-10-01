@@ -206,6 +206,7 @@ sendIntermediateResult({ state, chatId });
 - `system.md`
 - `tasker.md`
 - `tool-types.md`
+- `host-capabilities.md`
 - `toolpkg.md`
 - `ui.md`
 - `workflow.md`

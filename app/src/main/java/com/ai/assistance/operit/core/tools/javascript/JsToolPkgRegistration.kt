@@ -11,7 +11,7 @@ internal data class ToolPkgMainRegistrationCapture(
     val toolboxUiModules: List<String>,
     val uiRoutes: List<String>,
     val navigationEntries: List<String>,
-    val desktopWidgets: List<String>,
+    val floatingWindows: List<String>,
     val appLifecycleHooks: List<String>,
     val messageProcessingPlugins: List<String>,
     val xmlRenderPlugins: List<String>,
@@ -40,7 +40,7 @@ private enum class RegistrationBucket(
     TOOLBOX_UI,
     UI_ROUTE,
     NAVIGATION_ENTRY,
-    DESKTOP_WIDGET,
+    FLOATING_WINDOW,
     APP_LIFECYCLE,
     MESSAGE_PROCESSING,
     XML_RENDER,
@@ -82,7 +82,7 @@ internal class JsToolPkgRegistrationSession {
     fun appendToolboxUiModule(specJson: String) = append(RegistrationBucket.TOOLBOX_UI, specJson)
     fun appendUiRoute(specJson: String) = append(RegistrationBucket.UI_ROUTE, specJson)
     fun appendNavigationEntry(specJson: String) = append(RegistrationBucket.NAVIGATION_ENTRY, specJson)
-    fun appendDesktopWidget(specJson: String) = append(RegistrationBucket.DESKTOP_WIDGET, specJson)
+    fun appendFloatingWindow(specJson: String) = append(RegistrationBucket.FLOATING_WINDOW, specJson)
     fun appendAppLifecycleHook(specJson: String) = append(RegistrationBucket.APP_LIFECYCLE, specJson)
     fun appendMessageProcessingPlugin(specJson: String) =
         append(RegistrationBucket.MESSAGE_PROCESSING, specJson)
@@ -153,7 +153,7 @@ internal class JsToolPkgRegistrationSession {
                 toolboxUiModules = read(RegistrationBucket.TOOLBOX_UI),
                 uiRoutes = read(RegistrationBucket.UI_ROUTE),
                 navigationEntries = read(RegistrationBucket.NAVIGATION_ENTRY),
-                desktopWidgets = read(RegistrationBucket.DESKTOP_WIDGET),
+                floatingWindows = read(RegistrationBucket.FLOATING_WINDOW),
                 appLifecycleHooks = read(RegistrationBucket.APP_LIFECYCLE),
                 messageProcessingPlugins = read(RegistrationBucket.MESSAGE_PROCESSING),
                 xmlRenderPlugins = read(RegistrationBucket.XML_RENDER),
@@ -503,6 +503,34 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
                 return params;
             }
 
+            function normalizeFloatingWindowDefinition(definition, label) {
+                if (!definition || typeof definition !== 'object' || Array.isArray(definition)) {
+                    throw new Error(label + ' expects an object');
+                }
+                var normalized = copyObject(definition, 'onRefresh');
+                var contentRoute = typeof definition.contentRoute === 'string'
+                    ? definition.contentRoute.trim()
+                    : '';
+                if (!contentRoute) {
+                    throw new Error(label + ' requires contentRoute');
+                }
+                normalized.contentRoute = contentRoute;
+                if (definition.onRefresh !== undefined) {
+                    if (typeof definition.onRefresh !== 'function') {
+                        throw new Error(label + '.onRefresh must be a function reference');
+                    }
+                    var functionRef = resolveDurableFunctionRef(
+                        definition.onRefresh,
+                        definition,
+                        label + '.onRefresh'
+                    );
+                    normalized.onRefresh = functionRef.name;
+                    if (functionRef.source) {
+                        normalized.function_source = functionRef.source;
+                    }
+                }
+                return normalized;
+            }
             function resolveCurrentToolPkgTarget() {
                 var params = resolveCurrentCallParams();
                 if (!params) {
@@ -615,9 +643,13 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
                         JSON.stringify(normalized)
                     );
                 },
-                registerDesktopWidget: function(definition) {
-                    requireNative('registerToolPkgDesktopWidget')(
-                        JSON.stringify(copyObject(definition, ''))
+                registerFloatingWindow: function(definition) {
+                    var normalized = normalizeFloatingWindowDefinition(
+                        definition,
+                        'registerToolPkgFloatingWindow'
+                    );
+                    requireNative('registerToolPkgFloatingWindow')(
+                        JSON.stringify(normalized)
                     );
                 },
                 readResource: readToolPkgResource,

@@ -4,11 +4,13 @@ import type {
   ComposeBorder,
   ComposeChildren,
   ComposeColor,
+  ComposeContentAlignment,
   ComposeCommonProps,
   ComposeNodeFactory,
   ComposePadding,
   ComposeShape,
   ComposeTextFieldStyle,
+  ComposeTextAlign,
   ComposeTextOverflow,
   ComposeTextStyle,
   ComposeCanvasCommand,
@@ -37,7 +39,7 @@ export interface ComposeGeneratedRowProps extends ComposeCommonProps {
 
 export interface ComposeGeneratedBoxProps extends ComposeCommonProps {
   content?: ComposeChildren;
-  contentAlignment?: ComposeAlignment;
+  contentAlignment?: ComposeContentAlignment;
   propagateMinConstraints?: boolean;
   zIndex?: number;
 }
@@ -69,11 +71,13 @@ export interface ComposeGeneratedTextProps extends ComposeCommonProps {
   fontFamily?: string;
   fontSize?: number;
   fontWeight?: string;
+  lineHeight?: number;
   maxLines?: number;
   overflow?: ComposeTextOverflow;
   softWrap?: boolean;
   style?: ComposeTextStyle;
   text: string;
+  textAlign?: ComposeTextAlign;
   zIndex?: number;
 }
 
@@ -185,6 +189,15 @@ export interface ComposeGeneratedLinearProgressIndicatorProps extends ComposeCom
 export interface ComposeGeneratedCircularProgressIndicatorProps extends ComposeCommonProps {
   color?: ComposeColor;
   strokeWidth?: number;
+  zIndex?: number;
+}
+
+export interface ComposeGeneratedSliderProps extends ComposeCommonProps {
+  enabled?: boolean;
+  onValueChange: (value: number) => void;
+  onValueChangeFinished?: () => void | Promise<void>;
+  steps?: number;
+  value: number;
   zIndex?: number;
 }
 
@@ -556,7 +569,7 @@ export interface ComposeGeneratedProvideTextStyleProps extends ComposeCommonProp
 
 export interface ComposeGeneratedPullToRefreshBoxProps extends ComposeCommonProps {
   content?: ComposeChildren;
-  contentAlignment?: ComposeAlignment;
+  contentAlignment?: ComposeContentAlignment;
   indicator?: ComposeChildren;
   isRefreshing: boolean;
   onRefresh: () => void | Promise<void>;
@@ -701,7 +714,7 @@ export interface ComposeGeneratedWideNavigationRailItemProps extends ComposeComm
 
 export interface ComposeGeneratedBoxWithConstraintsProps extends ComposeCommonProps {
   content?: ComposeChildren;
-  contentAlignment?: ComposeAlignment;
+  contentAlignment?: ComposeContentAlignment;
   propagateMinConstraints?: boolean;
   zIndex?: number;
 }
@@ -709,11 +722,14 @@ export interface ComposeGeneratedBoxWithConstraintsProps extends ComposeCommonPr
 export interface ComposeGeneratedBasicTextProps extends ComposeCommonProps {
   fontFamily?: string;
   fontSize?: number;
+  lineHeight?: number;
   maxLines?: number;
+  onTextLayout?: () => void | Promise<void>;
   overflow?: ComposeTextOverflow;
   softWrap?: boolean;
   style?: ComposeTextStyle;
   text: string;
+  textAlign?: ComposeTextAlign;
   zIndex?: number;
 }
 
@@ -724,7 +740,7 @@ export interface ComposeGeneratedDisableSelectionProps extends ComposeCommonProp
 
 export interface ComposeGeneratedImageProps extends ComposeCommonProps {
   alpha?: number;
-  contentAlignment?: ComposeAlignment;
+  contentAlignment?: ComposeContentAlignment;
   contentDescription?: string;
   contentScale?: ComposeContentScale;
   fileUri?: string;
@@ -766,6 +782,7 @@ export interface ComposeMaterial3GeneratedUiFactoryRegistry {
   Icon: ComposeNodeFactory<ComposeGeneratedIconProps>;
   LinearProgressIndicator: ComposeNodeFactory<ComposeGeneratedLinearProgressIndicatorProps>;
   CircularProgressIndicator: ComposeNodeFactory<ComposeGeneratedCircularProgressIndicatorProps>;
+  Slider: ComposeNodeFactory<ComposeGeneratedSliderProps>;
   SnackbarHost: ComposeNodeFactory<ComposeGeneratedSnackbarHostProps>;
   AssistChip: ComposeNodeFactory<ComposeGeneratedAssistChipProps>;
   Badge: ComposeNodeFactory<ComposeGeneratedBadgeProps>;
@@ -833,4 +850,3 @@ export interface ComposeMaterial3GeneratedUiFactoryRegistry {
   SelectionContainer: ComposeNodeFactory<ComposeGeneratedSelectionContainerProps>;
   Canvas: ComposeNodeFactory<ComposeGeneratedCanvasProps>;
 }
-

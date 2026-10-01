@@ -23,6 +23,7 @@ internal val composeDslGeneratedNodeRendererRegistry: Map<String, ComposeDslNode
     normalizeToken("Icon") to { node, onAction, nodePath, modifierResolver -> renderIconNode(node, onAction, nodePath, modifierResolver) },
     normalizeToken("LinearProgressIndicator") to { node, onAction, nodePath, modifierResolver -> renderLinearProgressIndicatorNode(node, onAction, nodePath, modifierResolver) },
     normalizeToken("CircularProgressIndicator") to { node, onAction, nodePath, modifierResolver -> renderCircularProgressIndicatorNode(node, onAction, nodePath, modifierResolver) },
+    normalizeToken("Slider") to { node, onAction, nodePath, modifierResolver -> renderSliderNode(node, onAction, nodePath, modifierResolver) },
     normalizeToken("SnackbarHost") to { node, onAction, nodePath, modifierResolver -> renderSnackbarHostNode(node, onAction, nodePath, modifierResolver) },
     normalizeToken("AssistChip") to { node, onAction, nodePath, modifierResolver -> renderAssistChipNode(node, onAction, nodePath, modifierResolver) },
     normalizeToken("Badge") to { node, onAction, nodePath, modifierResolver -> renderBadgeNode(node, onAction, nodePath, modifierResolver) },

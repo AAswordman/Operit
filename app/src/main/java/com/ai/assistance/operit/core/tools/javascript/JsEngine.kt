@@ -91,6 +91,7 @@ class JsEngine(private val context: Context) {
         val envOverrides: Map<String, String>,
         val packageChatId: String?,
         val toolPkgApiVersion: ToolPkgApiVersion?,
+        val toolPkgPackageName: String?,
         val toolPkgLogSnapshot: JsToolPkgExecutionContext.LogSnapshot,
         val runtimeMonitorCall: ToolPkgRuntimeMonitor.CallHandle?,
         val runtimeFailureMessage: AtomicReference<String?>,
@@ -355,6 +356,15 @@ class JsEngine(private val context: Context) {
                     ?.trim()
                     ?.ifBlank { null },
             toolPkgApiVersion = toolPkgApiVersion,
+            toolPkgPackageName =
+                listOf(
+                    params["__operit_ui_package_name"],
+                    params["toolPkgId"],
+                    params["containerPackageName"],
+                    params["__operit_toolpkg_subpackage_id"]
+                ).asSequence()
+                    .mapNotNull { it?.toString()?.trim() }
+                    .firstOrNull { it.isNotBlank() },
             toolPkgLogSnapshot = toolPkgExecutionContext.capture(script, functionName, params),
             runtimeMonitorCall = runtimeMonitorCall,
             runtimeFailureMessage = AtomicReference(null),
@@ -1779,6 +1789,57 @@ class JsEngine(private val context: Context) {
         }
 
         @JavascriptInterface
+        fun invokeToolPkgHostBridgeAsync(
+            callbackId: String,
+            callId: String,
+            packageTarget: String,
+            capability: String,
+            payloadJson: String
+        ) {
+            val normalizedCallback = callbackId.trim()
+            val normalizedCallId = callId.trim()
+            if (normalizedCallback.isEmpty() || normalizedCallId.isEmpty()) {
+                return
+            }
+            val session = resolveExecutionSession(normalizedCallId)
+            val authorizedPackageName = session?.toolPkgPackageName?.trim().orEmpty()
+            if (authorizedPackageName.isBlank() || authorizedPackageName != packageTarget.trim()) {
+                sendToolPkgIpcResult(
+                    normalizedCallback,
+                    "ToolPkg host bridge caller identity is invalid",
+                    true
+                )
+                return
+            }
+            Thread {
+                try {
+                    val resultJson =
+                        JsNativeInterfaceDelegates.invokeToolPkgHostBridge(
+                            context = context,
+                            packageManager = packageManager,
+                            packageName = authorizedPackageName,
+                            capability = capability,
+                            payloadJson = payloadJson
+                        )
+                    sendToolPkgIpcResult(normalizedCallback, resultJson, false)
+                } catch (error: Throwable) {
+                    AppLogger.e(
+                        TAG,
+                        "ToolPkg host bridge async invoke failed: ${error.message}",
+                        error
+                    )
+                    sendToolPkgIpcResult(
+                        normalizedCallback,
+                        error.message?.trim().orEmpty().ifBlank {
+                            "ToolPkg host bridge async invoke failed"
+                        },
+                        true
+                    )
+                }
+            }.start()
+        }
+
+        @JavascriptInterface
         fun measureComposeText(payloadJson: String): String {
             return JsNativeInterfaceDelegates.measureComposeText(
                 context = context,
@@ -1909,8 +1970,8 @@ class JsEngine(private val context: Context) {
         }
 
         @JavascriptInterface
-        fun registerToolPkgDesktopWidget(specJson: String) {
-            toolPkgRegistrationSession.appendDesktopWidget(specJson)
+        fun registerToolPkgFloatingWindow(specJson: String) {
+            toolPkgRegistrationSession.appendFloatingWindow(specJson)
         }
 
         @JavascriptInterface

@@ -88,6 +88,7 @@ windows_control.toolpkg (ZIP 压缩包)
     "en": "Windows one-click setup and control bundle"
   },
   "logo": "package_logo",
+  "required_host_capabilities": [],
   "subpackages": [
     {
       "id": "windows_control",
@@ -172,6 +173,7 @@ windows_control.toolpkg (ZIP 压缩包)
 | `display_name` | LocalizedText | 否 | 包的显示名称，支持多语言 |
 | `description` | LocalizedText | 否 | 包的描述信息，支持多语言 |
 | `logo` | string | 否 | 包 Logo 对应的 `resources[].key`；支持 SVG、PNG、JPEG 和 WebP |
+| `required_host_capabilities` | string[] | 否 | 包调用宿主扩展桥接时必须声明的 capability 名称 |
 | `subpackages` | array | 否 | 子包列表，每个子包是一个独立的工具集 |
 | `resources` | array | 否 | 资源文件列表，可以是任意类型的文件 |
 | `wasm_modules` | array | 否 | 企业核心算法模块列表，当前用于声明和校验 `.wasm` 产物 |
@@ -230,7 +232,11 @@ Operit 的 ToolPkg API 支持关系如下：
 | `min_version` | string | 否 | 被依赖包允许的最低版本，格式为 `major.minor.patch` |
 | `max_version` | string | 否 | 被依赖包允许的最高版本，格式为 `major.minor.patch` |
 
-发布 ToolPkg 时仅使用归档中已有的 `manifest.logo` 资源。市场条目可以展示该资源对应的 Logo。
+ToolPkg 宿主扩展 capability 的声明、调用、版本、错误和 DTO 规范见
+[ToolPkg 宿主能力开发规范](./doc-src/package-dev/host-capabilities.md)。
+
+发布 ToolPkg 时仅使用归档中已有的 `manifest.logo` 资源。客户端不会上传或托管
+Logo，也不会在市场发布、更新或新版本请求中发送 Logo 字段。
 
 #### 压缩发布
 
@@ -427,17 +433,50 @@ function registerToolPkg() {
     }
   });
 
-  ToolPkg.registerDesktopWidget({
-    id: "windows_dashboard_widget",
-    route: "toolpkg:com.example.windows_bundle:ui:windows_dashboard",
-    render: "toolpkg:com.example.windows_bundle:ui:windows_dashboard_widget",
+  ToolPkg.registerFloatingWindow({
+    id: "windows_dashboard",
+    contentRoute: "toolpkg:com.example.windows_bundle:ui:windows_dashboard",
     title: {
-      zh: "Windows 面板小组件",
-      en: "Windows Widget"
+      zh: "Windows 面板",
+      en: "Windows Dashboard"
     },
-    subtitle: {
-      zh: "点击打开面板",
-      en: "Tap to open dashboard"
+    widthDp: 320,
+    heightDp: 420,
+    draggable: true,
+    resizable: true,
+    snapMode: "quarter",
+    contentLayout: {
+      mode: "fixed",
+      widthDp: 320,
+      heightDp: 420,
+      scaleMode: "fit"
+    },
+    follow: {
+      windowId: "anchor_window",
+      placement: "above",
+      offsetDp: { x: 0, y: 0 }
+    },
+    pressFeedback: {
+      soundResource: "press_sound",
+      animation: {
+        scaleX: 1.05,
+        scaleY: 0.9,
+        durationMs: 90,
+        easing: "overshoot",
+        pivotX: 0.5,
+        pivotY: 1
+      }
+    },
+    releaseFeedback: {
+      soundResource: "release_sound",
+      animation: {
+        scaleX: 1,
+        scaleY: 1,
+        durationMs: 220,
+        easing: "overshoot",
+        pivotX: 0.5,
+        pivotY: 1
+      }
     }
   });
 
@@ -558,14 +597,20 @@ exports.onMessageMenuItem = onMessageMenuItem;
 | `ToolPkg.registerNavigationEntry` | `title` | 否 | 导航入口标题（支持 `LocalizedText`） |
 | `ToolPkg.registerNavigationEntry` | `icon` | 否 | 图标名 |
 | `ToolPkg.registerNavigationEntry` | `order` | 否 | 同一 surface 内排序值，越小越靠前 |
-| `ToolPkg.registerDesktopWidget` | `id` | 是 | 小组件唯一标识 |
-| `ToolPkg.registerDesktopWidget` | `route` / `routeId` | 是 | 已注册路由 ID |
-| `ToolPkg.registerDesktopWidget` | `render` / `renderRouteId` | 否 | 小组件渲染所使用的 UI route；默认等于 `route` |
-| `ToolPkg.registerDesktopWidget` | `title` | 否 | 小组件标题（支持 `LocalizedText`） |
-| `ToolPkg.registerDesktopWidget` | `subtitle` | 否 | 小组件副标题（支持 `LocalizedText`） |
-| `ToolPkg.registerDesktopWidget` | `description` | 否 | 小组件配置说明（支持 `LocalizedText`） |
-| `ToolPkg.registerDesktopWidget` | `icon` | 否 | 图标名，供宿主配置页等场景使用 |
-| `ToolPkg.registerDesktopWidget` | `order` | 否 | 排序值，越小越靠前 |
+| `ToolPkg.registerFloatingWindow` | `id` | 是 | 浮窗唯一标识 |
+| `ToolPkg.registerFloatingWindow` | `contentRoute` | 是 | 同一 ToolPkg 已注册的 `compose_dsl` 路由 |
+| `ToolPkg.registerFloatingWindow` | `title` | 否 | 浮窗标题（支持 `LocalizedText`） |
+| `ToolPkg.registerFloatingWindow` | `description` | 否 | 浮窗描述（支持 `LocalizedText`） |
+| `ToolPkg.registerFloatingWindow` | `widthDp` / `heightDp` | 否 | 初始尺寸 |
+| `ToolPkg.registerFloatingWindow` | `draggable` | 否 | 是否允许拖动 |
+| `ToolPkg.registerFloatingWindow` | `resizable` | 否 | 是否允许调整尺寸 |
+| `ToolPkg.registerFloatingWindow` | `snapMode` | 否 | `quarter` 边缘吸附或 `none` 自由定位，默认 `quarter` |
+| `ToolPkg.registerFloatingWindow` | `contentLayout` | 是 | 固定设计视口及单次 `fit` 缩放方式 |
+| `ToolPkg.registerFloatingWindow` | `follow` | 否 | 同一 ToolPkg 内的锚定窗口、相对方向和二维偏移 |
+| `ToolPkg.registerFloatingWindow` | `pressFeedback` | 否 | 按下时的音效资源 key 和动画 |
+| `ToolPkg.registerFloatingWindow` | `releaseFeedback` | 否 | 松开时的音效资源 key 和动画 |
+| `ToolPkg.registerFloatingWindow` | `refreshIntervalMs` | 否 | 刷新函数周期，0 表示关闭 |
+| `ToolPkg.registerFloatingWindow` | `onRefresh` | 否 | 长驻浮窗的刷新函数 |
 | `ToolPkg.registerAppLifecycleHook` | `id` | 是 | 生命周期钩子唯一标识 |
 | `ToolPkg.registerAppLifecycleHook` | `event` | 是 | 生命周期事件名（见下方完整列表） |
 | `ToolPkg.registerAppLifecycleHook` | `function` | 是 | 函数引用（支持箭头函数） |
@@ -1167,6 +1212,8 @@ exports.default = Screen;
 - `Dialog`：自定义内容弹窗，需要 ToolPkg API `1.0.1`
 - `AiChat`：嵌入当前主聊天的消息列表和输入区，不包含工作区
 - `AdaptiveSidePanel`：宽屏可拖拽分栏、窄屏覆盖层的自适应侧栏
+
+`Text` 和 `BasicText` 支持 `textAlign: "start" | "center" | "end" | "left" | "right" | "justify"` 与 `lineHeight`。当文本需要在固定宽度内逐行对齐时，同时给节点设置 `fillMaxWidth: true`。Canvas 的 `text` 和 `drawText` 命令也支持同名 `textAlign` 属性；描边宽度可传 `{ value, unit: "dp" }` 以随固定设计视口缩放。
 
 `AdaptiveSidePanel` 的第二个参数是主内容，`side` 是侧栏内容。两者都必须恰好传入一个节点；`open` 与 `onOpenChanged` 由插件状态管理。默认在 600dp 以上使用分栏，侧栏初始宽度为 360dp，最小宽度为 280dp，主内容至少保留 320dp。
 

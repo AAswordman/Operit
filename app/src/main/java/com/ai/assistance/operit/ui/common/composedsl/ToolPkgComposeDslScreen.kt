@@ -150,6 +150,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit.Companion.Unspecified
@@ -2654,7 +2655,8 @@ private data class CanvasCommand(
     val color: Color,
     val brush: Brush?,
     val alpha: Float?,
-    val strokeWidth: Float
+    val strokeWidth: Any?,
+    val textAlign: TextAlign?
 )
 
 private fun canvasNumberFromValue(value: Any?): Float? {
@@ -2709,7 +2711,6 @@ private fun parseCanvasCommands(raw: Any?): List<CanvasCommand> {
                 ?: values["unit"]?.toString()?.trim()?.lowercase(Locale.ROOT)
                 ?: "fraction"
         val alpha = canvasNumberFromValue(values["alpha"])
-        val strokeWidth = canvasNumberFromValue(values["strokeWidth"]) ?: 1f
         val resolvedColor = resolveColorValue(values["color"])
         val color = resolvedColor ?: Color.Unspecified
         val brush = parseCanvasBrush(values["brush"])
@@ -2720,7 +2721,8 @@ private fun parseCanvasCommands(raw: Any?): List<CanvasCommand> {
             color = color,
             brush = brush,
             alpha = alpha,
-            strokeWidth = strokeWidth
+            strokeWidth = values["strokeWidth"],
+            textAlign = textAlignFromToken(values["textAlign"]?.toString())
         )
     }
 }
@@ -2808,11 +2810,20 @@ private fun renderCanvasNode(
             }
         }
 
+        fun resolveStrokeWidth(value: Any?): Float {
+            val numeric = canvasNumberFromValue(value) ?: 1f
+            return when (canvasUnitFromValue(value)) {
+                "dp" -> numeric.dp.toPx()
+                "fraction" -> numeric * minOf(widthPx, heightPx)
+                else -> numeric
+            }
+        }
+
         fun drawCommands() {
             commands.forEach { command ->
             val values = command.values
             val unit = command.unit
-            val strokeWidth = command.strokeWidth
+            val strokeWidth = resolveStrokeWidth(command.strokeWidth)
             val color = if (command.alpha != null) command.color.copy(alpha = command.alpha) else command.color
             val brush = command.brush
             val brushAlpha = command.alpha ?: 1f
@@ -2980,7 +2991,11 @@ private fun renderCanvasNode(
                             if (overflowToken == "ellipsis") TextOverflow.Ellipsis else TextOverflow.Clip
                         val layout = textMeasurer.measure(
                             text = AnnotatedString(text),
-                            style = TextStyle(color = color, fontSize = fontSize.sp),
+                            style = TextStyle(
+                                color = color,
+                                fontSize = fontSize.sp,
+                                textAlign = command.textAlign ?: TextAlign.Unspecified
+                            ),
                             maxLines = maxLines,
                             overflow = overflow,
                             constraints = if (minWidth != null || maxWidth != null || minHeight != null || maxHeight != null) {
@@ -3019,7 +3034,11 @@ private fun renderCanvasNode(
                             if (overflowToken == "ellipsis") TextOverflow.Ellipsis else TextOverflow.Clip
                         val layout = textMeasurer.measure(
                             text = AnnotatedString(text),
-                            style = TextStyle(color = color, fontSize = fontSize.sp),
+                            style = TextStyle(
+                                color = color,
+                                fontSize = fontSize.sp,
+                                textAlign = command.textAlign ?: TextAlign.Unspecified
+                            ),
                             maxLines = maxLines,
                             overflow = overflow,
                             constraints = if (minWidth != null || maxWidth != null || minHeight != null || maxHeight != null) {
@@ -3505,8 +3524,13 @@ private fun applySingleModifierOp(
             modifier.rotate(value)
         }
         "scale" -> {
-            val value = op.args.getOrNull(0).floatArg() ?: return modifier
-            modifier.scale(value)
+            val scaleX = op.args.getOrNull(0).floatArg() ?: return modifier
+            val scaleY = op.args.getOrNull(1).floatArg()
+            if (scaleY != null) {
+                modifier.scale(scaleX, scaleY)
+            } else {
+                modifier.scale(scaleX)
+            }
         }
         "zindex" -> {
             val value = op.args.getOrNull(0).floatArg() ?: return modifier
@@ -4461,6 +4485,24 @@ internal fun horizontalAlignmentFromToken(raw: String?): Alignment.Horizontal {
     }
 }
 
+internal fun textAlignFromToken(raw: String?): TextAlign? {
+    val token = normalizeToken(raw.orEmpty())
+    if (token.isBlank()) return null
+    return when (token) {
+        "start" -> TextAlign.Start
+        "center" -> TextAlign.Center
+        "end" -> TextAlign.End
+        "left" -> TextAlign.Left
+        "right" -> TextAlign.Right
+        "justify" -> TextAlign.Justify
+        else -> throw IllegalArgumentException("Unsupported textAlign token: $raw")
+    }
+}
+
+internal fun Map<String, Any?>.textAlignOrNull(key: String): TextAlign? {
+    return textAlignFromToken(stringOrNull(key))
+}
+
 internal fun Map<String, Any?>.verticalAlignment(key: String): Alignment.Vertical {
     return verticalAlignmentFromToken(stringOrNull(key))
 }
@@ -4623,8 +4665,14 @@ internal fun Map<String, Any?>.resolvedTextStyle(
     floatOrNull("fontSize")?.let { fontSize ->
         nextStyle = nextStyle.copy(fontSize = fontSize.sp)
     }
+    floatOrNull("lineHeight")?.let { lineHeight ->
+        nextStyle = nextStyle.copy(lineHeight = lineHeight.sp)
+    }
     fontFamilyOrNull("fontFamily")?.let { fontFamily ->
         nextStyle = nextStyle.copy(fontFamily = fontFamily)
+    }
+    textAlignOrNull("textAlign")?.let { textAlign ->
+        nextStyle = nextStyle.copy(textAlign = textAlign)
     }
     if (includeColor) {
         colorOrNull("color")?.let { color ->
