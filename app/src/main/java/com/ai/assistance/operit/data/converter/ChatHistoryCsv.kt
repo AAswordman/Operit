@@ -3,13 +3,15 @@ package com.ai.assistance.operit.data.converter
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.OperitArchivedChat
 import com.ai.assistance.operit.data.model.OperitArchivedMessageVariant
+import java.io.Reader
 import java.io.Writer
 import java.time.format.DateTimeFormatter
 
 /**
- * Versioned CSV representation for Operit chat history exports.
+ * Operit 完整聊天记录导出的版本化 CSV 表示。
  *
- * A chat is represented by one chat row, followed by its message rows and optional variant rows.
+ * 每个会话由一条会话行、消息行以及可选的变体行组成。
+ * 内容直接写入目标 Writer，避免为大消息额外创建转义后的字符串副本。
  */
 object ChatHistoryCsv {
     const val FORMAT_VERSION = "1"
@@ -156,6 +158,7 @@ object ChatHistoryCsv {
         writeRow(writer, row)
     }
 
+    /** 写入一行兼容 RFC 4180 的 CSV，避免创建转义后的字段副本。 */
     fun writeRow(writer: Writer, values: List<String?>) {
         values.forEachIndexed { index, value ->
             if (index > 0) {
@@ -194,5 +197,97 @@ object ChatHistoryCsv {
             writer.write(value, plainStart, value.length - plainStart)
         }
         writer.write('"'.code)
+    }
+
+    /** 支持带引号多行字段的小型 RFC 4180 流式读取器。 */
+    class RowReader(private val reader: Reader) {
+        private var pendingCharacter = NO_PENDING_CHARACTER
+
+        fun nextRow(): List<String>? {
+            val fields = ArrayList<String>()
+            val field = StringBuilder()
+            var inQuotes = false
+            var fieldStarted = false
+            var sawCharacter = false
+
+            while (true) {
+                val code = readCharacter()
+                if (code < 0) {
+                    if (inQuotes) {
+                        throw IllegalArgumentException("Unterminated quoted CSV field")
+                    }
+                    if (!sawCharacter && fields.isEmpty() && field.isEmpty()) {
+                        return null
+                    }
+                    fields += field.toString()
+                    return fields
+                }
+
+                sawCharacter = true
+                val character = code.toChar()
+                if (inQuotes) {
+                    if (character == '"') {
+                        val nextCode = readCharacter()
+                        if (nextCode == '"'.code) {
+                            field.append('"')
+                        } else {
+                            inQuotes = false
+                            pendingCharacter = nextCode
+                        }
+                    } else {
+                        field.append(character)
+                    }
+                    continue
+                }
+
+                when (character) {
+                    '"' -> {
+                        if (fieldStarted || field.isNotEmpty()) {
+                            throw IllegalArgumentException("Unexpected quote in CSV field")
+                        }
+                        inQuotes = true
+                        fieldStarted = true
+                    }
+
+                    ',' -> {
+                        fields += field.toString()
+                        field.setLength(0)
+                        fieldStarted = false
+                    }
+
+                    '\n' -> {
+                        fields += field.toString()
+                        return fields
+                    }
+
+                    '\r' -> {
+                        val nextCode = readCharacter()
+                        if (nextCode >= 0 && nextCode != '\n'.code) {
+                            pendingCharacter = nextCode
+                        }
+                        fields += field.toString()
+                        return fields
+                    }
+
+                    else -> {
+                        field.append(character)
+                        fieldStarted = true
+                    }
+                }
+            }
+        }
+
+        private fun readCharacter(): Int {
+            if (pendingCharacter != NO_PENDING_CHARACTER) {
+                val result = pendingCharacter
+                pendingCharacter = NO_PENDING_CHARACTER
+                return result
+            }
+            return reader.read()
+        }
+
+        private companion object {
+            const val NO_PENDING_CHARACTER = -2
+        }
     }
 }

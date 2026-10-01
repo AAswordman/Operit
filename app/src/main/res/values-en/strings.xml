@@ -1524,7 +1524,7 @@
     <string name="title_activity_crash_report">Application Error</string>
     <string name="title_activity_data_recovery">Data Recovery</string>
     <string name="shortcut_data_recovery">Data Recovery</string>
-    <string name="data_recovery_raw_snapshot_section">Raw snapshot</string>
+
     <string name="data_recovery_raw_snapshot_description">Export packages internal files, shared_prefs, datastore, databases, and the Android/data package directory. Import replaces the current app data.</string>
     <string name="data_recovery_export_snapshot">Export snapshot</string>
     <string name="data_recovery_import_snapshot">Import snapshot</string>
@@ -3338,8 +3338,8 @@
     <string name="version_update">Version Update</string>
     <string name="mcp_no_zip_selected">No ZIP file selected</string>
     <string name="mcp_uninstall_failed">Uninstall failed</string>
-    <string name="chatgpt_parse_error">Failed to parse ChatGPT format: %1$s</string>
-    <string name="chatgpt_import_from">Import from ChatGPT</string>
+
+
     <string name="uiautomation_execute">Execute</string>
     <string name="uiautomation_complete">Complete</string>
     <string name="message_list_empty">Message list cannot be empty</string>
@@ -5584,10 +5584,10 @@
     <string name="backup_import_format_hint">Please select the chat history format to import:</string>
     <string name="backup_format_operit">Operit JSON (Recommended)</string>
     <string name="backup_format_operit_desc">Native format of this app, preserves variants and all other data</string>
-    <string name="backup_format_chatgpt">ChatGPT</string>
-    <string name="backup_format_chatgpt_desc">OpenAI ChatGPT conversations.json export format</string>
-    <string name="backup_format_chatbox">ChatBox</string>
-    <string name="backup_format_chatbox_desc">ChatBox desktop application export format</string>
+
+
+
+
     <string name="backup_format_generic_json">Generic JSON</string>
     <string name="backup_format_generic_json_desc">Standard role-content JSON structure (supports Claude, LibreChat, etc.)</string>
     
@@ -5911,7 +5911,7 @@
     <string name="autoglm_api_key_placeholder">Paste your Zhipu API Key here</string>
     <string name="autoglm_one_click_button">One-Click AutoGLM Config</string>
     <string name="autoglm_status_running">Running one-click configuration, please wait...</string>
-    <string name="autoglm_status_success">AutoGLM one-click configuration completed:\nModel: %1$s\nAPI Key: %2$s\nToolkit: AutoGLM\n\nYou can now use AutoGLM mode in the chat interface.</string>
+    <string name="autoglm_status_success">AutoGLM one-click configuration completed:\n- AutoGLM UI controller model configuration was created or updated (autoglm-phone, Zhipu)\n- The "UI Controller" feature was switched to this configuration\n- Automatic_ui_base was disabled and Automatic_ui_subagent was enabled\n\nYou can now use AutoGLM mode in the chat interface.</string>
     <string name="autoglm_status_error">One-click configuration failed: %1$s</string>
     <string name="autoglm_error_empty_api_key">Please fill in the Zhipu API Key first.</string>
 
@@ -6815,7 +6815,7 @@
 
     <string name="provider_error_response_empty">API response is empty</string>
     <string name="provider_error_parsing_failed">Failed to parse response</string>
-    <string name="provider_error_retry_message">%1$s, retrying (%2$d)...</string>
+    <string name="provider_error_retry_message">%1$s, retrying (%2$d), waiting %3$d sec...</string>
     <string name="provider_error_timeout">Connection timeout</string>
     <string name="provider_error_unknown_host">Unknown host</string>
     <string name="provider_error_network_interrupted">Network interrupted</string>
@@ -7210,17 +7210,17 @@
     <string name="export_model">(Model: %1$s)</string>
 
     <!-- ChatBoxConverter -->
-    <string name="chatbox_unsupported_format">Unsupported ChatBox format</string>
-    <string name="chatbox_unsupported_format_detail">Please import JSON exported by ChatBox (Settings > General Settings > Data Backup > Export Selected Data)</string>
-    <string name="chatbox_parse_error">Failed to parse ChatBox format: %1$s</string>
-    <string name="chatbox_invalid_export_file">Invalid ChatBox export file</string>
-    <string name="chatbox_invalid_export_hint">Please use "Export Selected Data" in ChatBox Settings > General Settings > Data Backup to export JSON</string>
-    <string name="chatbox_import_group">Imported from ChatBox</string>
-    <string name="chatbox_message_generation_failed">Message generation failed: %1$s</string>
-    <string name="chatbox_image_not_saved">This message originally contained images but was not saved</string>
-    <string name="chatbox_role_user">User</string>
-    <string name="chatbox_role_assistant">Assistant</string>
-    <string name="chatbox_role_system">System</string>
+
+
+
+
+
+
+
+
+
+
+
     <string name="role_assistant">Assistant</string>
     <string name="role_system">System</string>
     <string name="role_model">Model</string>
@@ -8542,6 +8542,40 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">Structured table format that preserves chat metadata, messages, and response variants and can be imported again</string>
+    <string name="data_recovery_raw_snapshot_section">Raw snapshot</string>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <!-- 已移除实验性提示 -->

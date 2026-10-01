@@ -1330,9 +1330,8 @@ fun ChatBackupSettingsScreen() {
                                 operationState = ChatHistoryOperation.IMPORTED
                                 val formatName = when (selectedImportFormat) {
                                     ChatFormat.OPERIT -> context.getString(R.string.backup_format_operit)
-                                    ChatFormat.CHATGPT -> context.getString(R.string.backup_format_chatgpt)
-                                    ChatFormat.CHATBOX -> context.getString(R.string.backup_format_chatbox)
                                     ChatFormat.MARKDOWN -> context.getString(R.string.backup_format_markdown)
+                                    ChatFormat.CSV -> context.getString(R.string.backup_format_csv)
                                     ChatFormat.GENERIC_JSON -> context.getString(R.string.backup_format_generic_json)
                                     ChatFormat.CLAUDE -> context.getString(R.string.backup_format_claude)
                                     else -> context.getString(R.string.backup_format_unknown)

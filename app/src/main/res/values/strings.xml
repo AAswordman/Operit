@@ -6051,9 +6051,9 @@
     <string name="backup_format_markdown_desc">轻量级标记格式，便于阅读和编辑</string>
     <string name="backup_format_html">HTML</string>
     <string name="backup_format_html_desc">网页格式，适合在浏览器中查看</string>
-    <string name="backup_format_txt">纯文本</string>
+    <string name="backup_format_txt">TXT</string>
     <string name="backup_format_txt_desc">简单的文本格式，便于分享</string>
-    <string name="backup_format_csv">CSV</string>
+
     <string name="backup_format_csv_desc">表格格式，适合数据清洗和迁移</string>
     
     <!-- 导入格式选择 -->
@@ -6061,10 +6061,10 @@
     <string name="backup_import_format_hint">请选择要导入的聊天记录格式：</string>
     <string name="backup_format_operit">Operit JSON（推荐）</string>
     <string name="backup_format_operit_desc">本应用的原生格式，完整保留消息切换等所有数据</string>
-    <string name="backup_format_chatgpt">ChatGPT</string>
-    <string name="backup_format_chatgpt_desc">OpenAI ChatGPT conversations.json 导出格式</string>
-    <string name="backup_format_chatbox">ChatBox</string>
-    <string name="backup_format_chatbox_desc">ChatBox 桌面应用导出格式</string>
+
+
+
+
     <string name="backup_format_generic_json">通用 JSON</string>
     <string name="backup_format_generic_json_desc">标准 role-content 结构的 JSON（支持 Claude、LibreChat 等）</string>
     
@@ -6927,8 +6927,8 @@
     <string name="version_update">版本更新</string>
     <string name="mcp_no_zip_selected">未选择ZIP文件</string>
     <string name="mcp_uninstall_failed">卸载失败</string>
-    <string name="chatgpt_parse_error">解析 ChatGPT 格式失败: %1$s</string>
-    <string name="chatgpt_import_from">从 ChatGPT 导入</string>
+
+
     <string name="uiautomation_execute">执行</string>
     <string name="uiautomation_complete">完成</string>
     <string name="message_list_empty">消息列表不能为空</string>
@@ -7331,7 +7331,7 @@
 
     <string name="provider_error_response_empty">API响应为空</string>
     <string name="provider_error_parsing_failed">解析响应失败</string>
-    <string name="provider_error_retry_message">%1$s，正在进行第 %2$d 次重试...</string>
+    <string name="provider_error_retry_message">%1$s，正在进行第 %2$d 次重试，等待 %3$d 秒...</string>
     <string name="provider_error_timeout">连接超时</string>
     <string name="provider_error_unknown_host">无法解析主机</string>
     <string name="provider_error_network_interrupted">网络中断</string>
@@ -7735,17 +7735,17 @@
     <string name="export_model">（模型: %1$s）</string>
 
     <!-- ChatBoxConverter (新增) -->
-    <string name="chatbox_unsupported_format">不支持的 ChatBox 格式</string>
-    <string name="chatbox_unsupported_format_detail">请导入 ChatBox 导出的 JSON（设置 > 常规设置 > 数据备份 > 导出勾选数据）</string>
-    <string name="chatbox_parse_error">解析 ChatBox 格式失败: %1$s</string>
-    <string name="chatbox_invalid_export_file">不是有效的 ChatBox 导出文件</string>
-    <string name="chatbox_invalid_export_hint">请在 ChatBox 的 设置 > 常规设置 > 数据备份 中使用"导出勾选数据"导出 JSON</string>
-    <string name="chatbox_import_group">从 ChatBox 导入</string>
-    <string name="chatbox_message_generation_failed">消息生成失败: %1$s</string>
-    <string name="chatbox_image_not_saved">该消息原本包含图片，但未被保存</string>
-    <string name="chatbox_role_user">用户</string>
-    <string name="chatbox_role_assistant">助手</string>
-    <string name="chatbox_role_system">系统</string>
+
+
+
+
+
+
+
+
+
+
+
     <string name="role_assistant">助手</string>
     <string name="role_system">系统</string>
     <string name="role_model">模型</string>
@@ -8507,6 +8507,39 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <string name="backup_format_csv">CSV</string>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     <string name="provider_antigravity">Antigravity（Google）</string>
     <string name="onboarding_config_antigravity_login_required">请先登录 Antigravity</string>

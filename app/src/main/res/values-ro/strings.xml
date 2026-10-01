@@ -5748,10 +5748,10 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="backup_import_format_hint">Vă rugăm să selectați formatul în care doriți să importați istoricul conversațiilor:</string>
     <string name="backup_format_operit">Operit JSON(Recomandat)</string>
     <string name="backup_format_operit_desc">Formatul nativ al acestei aplicații, care păstrează integral toate datele, inclusiv comutarea mesajelor</string>
-    <string name="backup_format_chatgpt">ChatGPT</string>
-    <string name="backup_format_chatgpt_desc">OpenAI ChatGPT conversations.json Formate de export</string>
-    <string name="backup_format_chatbox">ChatBox</string>
-    <string name="backup_format_chatbox_desc">ChatBox Formate de export pentru aplicațiile desktop</string>
+
+
+
+
     <string name="backup_format_generic_json">Generalități JSON</string>
     <string name="backup_format_generic_json_desc">Standard role-content structural JSON(Suport Claude,LibreChat etc.)</string>
 
@@ -6613,8 +6613,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="version_update">Actualizare de versiune</string>
     <string name="mcp_no_zip_selected">Nu s-a selectat nimicZIPDocument</string>
     <string name="mcp_uninstall_failed">Eșecul dezinstalării</string>
-    <string name="chatgpt_parse_error">Analiză ChatGPT Eroare de formatare: %1$s</string>
-    <string name="chatgpt_import_from">De la ChatGPT Import</string>
+
+
     <string name="uiautomation_execute">Executare</string>
     <string name="uiautomation_complete">Finalizat</string>
     <string name="message_list_empty">Lista de mesaje nu poate fi goală</string>
@@ -7010,7 +7010,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
 
     <string name="provider_error_response_empty">APIRăspunsul este gol</string>
     <string name="provider_error_parsing_failed">Eșecul analizării răspunsului</string>
-    <string name="provider_error_retry_message">%1$s, se află la a %2$d A doua încercare...</string>
+    <string name="provider_error_retry_message">%1$s, reîncercarea %2$d; se așteaptă %3$d s...</string>
     <string name="provider_error_timeout">Timpul de așteptare pentru conectare a expirat</string>
     <string name="provider_error_unknown_host">Nu se poate identifica numele de gazdă</string>
     <string name="provider_error_network_interrupted">Întrerupere a conexiunii la internet</string>
@@ -7413,17 +7413,17 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="export_model">(Model: %1$s)</string>
 
     <!-- ChatBoxConverter (新增) -->
-    <string name="chatbox_unsupported_format">Nu este acceptat ChatBox Format</string>
-    <string name="chatbox_unsupported_format_detail">Vă rugăm să importați ChatBox Exportat JSON(Setări &gt; Setări generale &gt; Backupul datelor &gt; (Exportați datele selectate)</string>
-    <string name="chatbox_parse_error">Analiză ChatBox Eroare de formatare: %1$s</string>
-    <string name="chatbox_invalid_export_file">Nu este valabil ChatBox Exportare fișiere</string>
-    <string name="chatbox_invalid_export_hint">Vă rugăm să ChatBox Setări &gt; Setări generale &gt; Exportarea datelor prin opțiunea „Exportare date selectate” JSON</string>
-    <string name="chatbox_import_group">De la ChatBox Import</string>
-    <string name="chatbox_message_generation_failed">Eroare la generarea mesajului: %1$s</string>
-    <string name="chatbox_image_not_saved">Mesajul conținea inițial o imagine, dar aceasta nu a fost salvată</string>
-    <string name="chatbox_role_user">Utilizator</string>
-    <string name="chatbox_role_assistant">asistent</string>
-    <string name="chatbox_role_system">Sistem</string>
+
+
+
+
+
+
+
+
+
+
+
     <string name="role_assistant">asistent</string>
     <string name="role_system">Sistem</string>
     <string name="role_model">Model</string>
@@ -8349,6 +8349,40 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_trends">Analiza tendințelor</string>
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">Structured table format that preserves chat metadata, messages, and response variants and can be imported again</string>
+    <string name="data_recovery_raw_snapshot_section">Instantaneu brut</string>
+    <string name="data_recovery_raw_snapshot_description">Exportul va împacheta directoarele interne files, shared_prefs, datastore, databases și Android/data; importul va suprascrie datele curente.</string>
+    <string name="data_recovery_export_snapshot">Exportă instantaneu</string>
+    <string name="data_recovery_import_snapshot">Importă instantaneu</string>
+    <string name="data_recovery_start_main_app">Pornește aplicația principală</string>
+    <string name="data_recovery_file_management">Gestionarea fișierelor</string>
+    <string name="data_recovery_file_management_description">Această pagină nu deschide direct un manager de fișiere. Pentru a consulta sau exporta manual fișierele interne, deschide MT Manager, adaugă „depozitul de stocare locală”, selectează depozitul de date Operit și gestionează-l acolo. provider: %1$s</string>
+    <string name="data_recovery_sql_executor">Executor SQL</string>
+    <string name="data_recovery_messages_size">dimensiunea messages</string>
+    <string name="data_recovery_variants_size">dimensiunea variants</string>
+    <string name="data_recovery_chats_fields">câmpurile chats</string>
+    <string name="data_recovery_sql_label">SQL</string>
+    <string name="data_recovery_execute">Execută</string>
+    <string name="data_recovery_import_snapshot_title">Importă instantaneul brut</string>
+    <string name="data_recovery_import_snapshot_message">Importul va suprascrie datele curente ale aplicației. Importați acest instantaneu?</string>
+    <string name="data_recovery_import_action">Importă</string>
+    <string name="data_recovery_cancel_action">Anulează</string>
+    <string name="data_recovery_started">Procesul de recuperare a fost pornit</string>
+    <string name="data_recovery_affected_rows">Rânduri afectate: %1$d</string>
+    <string name="data_recovery_query_result">Rezultatul interogării: %1$d rânduri</string>
+    <string name="data_recovery_sql_empty">SQL-ul este gol</string>
+    <string name="data_recovery_sql_running">Se execută SQL</string>
+    <string name="data_recovery_query_completed">Interogare finalizată: %1$d rânduri</string>
+    <string name="data_recovery_sql_completed">Execuția SQL a fost finalizată</string>
+    <string name="data_recovery_export_running">Se exportă instantaneul brut</string>
+    <string name="data_recovery_export_completed">Exportul instantaneului brut a fost finalizat</string>
+    <string name="data_recovery_restore_running">Se importă instantaneul brut</string>
+    <string name="data_recovery_restore_completed">Importul instantaneului brut a fost finalizat. Reporniți aplicația pentru aplicare.</string>
+    <string name="data_recovery_export_progress">Export: %1$s</string>
+    <string name="data_recovery_restore_progress">Import: %1$s</string>
+    <string name="data_recovery_progress_percent"> %1$d%%</string>
+    <string name="data_recovery_launch_failed">Aplicația principală nu poate fi pornită</string>
     <string name="provider_section_generic_compatible">Compatibilitate generică</string>
     <string name="provider_section_proprietary">Furnizori dedicați</string>
     <string name="provider_section_aggregation">Agregare de modele</string>

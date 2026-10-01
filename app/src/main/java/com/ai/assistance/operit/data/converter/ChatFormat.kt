@@ -7,12 +7,6 @@ enum class ChatFormat {
     /** Operit 原生格式 */
     OPERIT,
     
-    /** ChatGPT conversations.json 格式 */
-    CHATGPT,
-    
-    /** ChatBox 导出格式 */
-    CHATBOX,
-    
     /** Claude 导出格式 */
     CLAUDE,
     
