@@ -9,7 +9,7 @@ enum class ApiProviderType {
         XAI, // Grok（SpaceXAI）
         OPENAI_RESPONSES, // ChatGPT Responses（OpenAI）
         OPENAI_CODEX, // Codex（OpenAI）
-        ANTIGRAVITY, // Antigravity（Google）
+        ANTIGRAVITY, // Antigravity（Google）
         OPENAI_RESPONSES_GENERIC, // OpenAI Responses（通用）
         OPENAI_GENERIC, // OpenAI（通用）
         ANTHROPIC, // Claude（Anthropic）
@@ -91,11 +91,26 @@ data class ConversationSummaryConfig(
         val dialogueReviewTitle: String = ""
 )
 
+
+@Serializable
+data class ModelConfigGroup(
+        val id: String,
+        val name: String
+)
+
+@Serializable
+data class ModelConfigExport(
+        val groups: List<ModelConfigGroup> = emptyList(),
+        val configs: List<ModelConfigData> = emptyList()
+)
+
 /** 表示完整的模型配置，包括API设置和模型参数 */
 @Serializable
 data class ModelConfigData(
         val id: String,
         val name: String,
+        val groupId: String? = null,
+        val modelOrder: List<String> = emptyList(),
 
         // API设置
         val apiKey: String = "",
@@ -199,7 +214,7 @@ data class ModelConfigData(
 
         // 请求频率限制配置
         val requestLimitPerMinute: Int = 0, // 每分钟最大请求次数，0表示不限流
-        val maxConcurrentRequests: Int = 0, // 最大并发请求数，0表示不限制
+        val maxConcurrentRequests: Int = 0, // 最大并发请求数，0表示不限制
 )
 
 /** 简化版的模型配置数据，用于列表显示 */
@@ -207,6 +222,7 @@ data class ModelConfigData(
 data class ModelConfigSummary(
         val id: String,
         val name: String,
+        val groupId: String? = null,
         val modelName: String = "",
         val apiEndpoint: String = "",
         val apiProviderType: ApiProviderType = ApiProviderType.DEEPSEEK,
@@ -215,6 +231,17 @@ data class ModelConfigSummary(
         val thinkingOptionId: String = "",
         val modelIndex: Int = 0 // 当modelName包含多个模型（逗号分隔）时，选择第几个模型（从0开始）
 )
+
+
+data class ModelConfigSelection(
+        val allConfigs: List<ModelConfigSummary> = emptyList(),
+        val groups: List<ModelConfigGroup> = emptyList(),
+        val selectedGroupId: String? = null
+) {
+    val selectedGroup: ModelConfigGroup? = groups.firstOrNull { it.id == selectedGroupId }
+    val availableConfigs: List<ModelConfigSummary> =
+            allConfigs.filter { it.groupId == selectedGroupId }
+}
 
 /** 从逗号分隔的模型名称字符串中根据索引获取具体模型 */
 fun getModelByIndex(modelName: String, index: Int): String {
@@ -227,6 +254,20 @@ fun getModelByIndex(modelName: String, index: Int): String {
 fun getModelList(modelName: String): List<String> {
     if (modelName.isEmpty()) return emptyList()
     return modelName.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+}
+
+
+fun applySavedModelOrder(models: List<String>, savedOrder: List<String>): List<String> {
+    val availableModels = models.distinct()
+    val availableSet = availableModels.toSet()
+    return buildList {
+        savedOrder.distinct().forEach { model ->
+            if (model in availableSet) add(model)
+        }
+        availableModels.forEach { model ->
+            if (model !in this) add(model)
+        }
+    }
 }
 
 /** 

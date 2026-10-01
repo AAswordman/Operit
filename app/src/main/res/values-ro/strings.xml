@@ -8358,4 +8358,20 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Se finalizează autorizarea și se încarcă detaliile contului…</string>
     <string name="antigravity_login_timed_out">Au trecut 15 minute de așteptare pentru autorizarea Google. Reîncepe autentificarea.</string>
+    <string name="model_config_manage_organization">Gestionează grupurile și ordinea configurațiilor</string>
+    <string name="model_config_current_group">Grupul curent: %1$s</string>
+    <string name="model_config_new_group">Grup nou de configurații</string>
+    <string name="model_config_toggle_group">Restrânge sau extinde grupul de configurații</string>
+    <string name="model_config_group_item_count">%1$s (%2$d)</string>
+    <string name="model_config_add_to_group">Creează o configurație în grup</string>
+    <string name="model_config_rename_group">Redenumește grupul de configurații</string>
+    <string name="model_config_delete_group">Șterge grupul de configurații</string>
+    <string name="model_config_delete_group_confirmation">Ștergi grupul de configurații „%1$s”? Configurațiile vor fi mutate în Negrupate. Această acțiune nu poate fi anulată.</string>
+    <string name="model_config_drag_group">Apasă lung pentru a reordona grupul</string>
+    <string name="model_config_drag_config">Apasă lung pentru a reordona configurația</string>
+    <string name="model_config_current_selection">Selecția actuală: %1$s</string>
+    <string name="model_config_save_group_order_failed">Salvarea ordinii grupurilor a eșuat</string>
+    <string name="model_config_save_order_failed">Salvarea ordinii configurațiilor a eșuat</string>
+    <string name="model_config_group_empty">Nu există configurații de model în „%1$s”</string>
+    <string name="model_config_name_with_group">%1$s (%2$s)</string>
 </resources>

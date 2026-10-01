@@ -56,6 +56,7 @@ import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.model.ModelConfigSelection
 import com.ai.assistance.operit.data.model.ModelConfigSummary
 import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
@@ -160,8 +161,9 @@ fun ClassicChatSettingsBar(
     val modelConfigManager = remember { ModelConfigManager(context) }
     val configMappingWithIndex by
             functionalConfigManager.functionConfigMappingWithIndexFlow.collectAsState(initial = emptyMap())
-    val configSummaries by
-            modelConfigManager.configSummariesFlow.collectAsState(initial = emptyList())
+    val configSelection by
+            modelConfigManager.configSelectionFlow.collectAsState(initial = ModelConfigSelection())
+    val configSummaries = configSelection.allConfigs
     val currentConfigMapping =
             configMappingWithIndex[FunctionType.CHAT] ?: FunctionConfigMapping(FunctionalConfigManager.DEFAULT_CONFIG_ID, 0)
     val isModelSelectionLockedByCharacterCard = !characterCardBoundChatModelConfigId.isNullOrBlank()
@@ -217,6 +219,15 @@ fun ClassicChatSettingsBar(
     val currentProfileName =
         preferenceProfiles.find { it.id == effectiveCurrentProfileId }?.name ?: stringResource(R.string.not_selected)
     val currentConfig = configSummaries.find { it.id == effectiveCurrentConfigMapping.configId }
+    val selectedGroupName =
+        configSelection.selectedGroup?.name ?: stringResource(R.string.ungrouped)
+    val boundConfigGroupName =
+        if (currentConfig != null && currentConfig.groupId != configSelection.selectedGroupId) {
+            configSelection.groups.firstOrNull { it.id == currentConfig.groupId }?.name
+                ?: stringResource(R.string.ungrouped)
+        } else {
+            null
+        }
     val currentModelName =
         currentConfig?.let { config ->
             val validIndex = getValidModelIndex(config.modelName, effectiveCurrentConfigMapping.modelIndex)
@@ -564,6 +575,9 @@ fun ClassicChatSettingsBar(
                             ModelSelectorItem(
                                 configSummaries = configSummaries,
                                 currentConfigMapping = effectiveCurrentConfigMapping,
+                                selectedGroupName = selectedGroupName,
+                                availableConfigs = configSelection.availableConfigs,
+                                boundConfigGroupName = boundConfigGroupName,
                                 onSelectModel = onSelectModel,
                                 expanded = showModelDropdown,
                                     onExpandedChange = { showModelDropdown = it },
@@ -1459,6 +1473,9 @@ private fun MemorySelectorItem(
 private fun ModelSelectorItem(
     configSummaries: List<ModelConfigSummary>,
     currentConfigMapping: FunctionConfigMapping,
+    selectedGroupName: String,
+    availableConfigs: List<ModelConfigSummary>,
+    boundConfigGroupName: String?,
     onSelectModel: (String, Int) -> Unit,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
@@ -1475,16 +1492,25 @@ private fun ModelSelectorItem(
     }
 
     val currentConfig = configSummaries.find { it.id == currentConfigMapping.configId }
-    var expandedConfigId by remember { mutableStateOf<String?>(null) } // 用于记录当前展开的配置的模型列表
+    var expandedConfigId by remember(availableConfigs) { mutableStateOf<String?>(null) } // 用于记录当前展开的配置的模型列表
 
     val currentModelName = currentConfig?.let { config ->
         val validIndex = getValidModelIndex(config.modelName, currentConfigMapping.modelIndex)
         getModelByIndex(config.modelName, validIndex)
     } ?: stringResource(R.string.not_selected)
+    val selectedModelName = currentModelName.ifEmpty { stringResource(R.string.not_selected) }
+    val displayModelName = if (boundConfigGroupName != null) {
+        stringResource(R.string.model_config_name_with_group, selectedModelName, boundConfigGroupName)
+    } else {
+        selectedModelName
+    }
+
     val effectiveExpanded = expanded
     val expandStateDesc =
             if (effectiveExpanded) stringResource(R.string.expanded) else stringResource(R.string.collapsed)
-    val accessibilityDesc = "${stringResource(R.string.model)}: $currentModelName, $expandStateDesc"
+    val accessibilityDesc =
+        stringResource(R.string.model_config_current_group, selectedGroupName) + ", " +
+            stringResource(R.string.model) + ": " + displayModelName + ", " + expandStateDesc
     
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1531,42 +1557,36 @@ private fun ModelSelectorItem(
                     modifier = Modifier.size(16.dp)
                 )
             }
-            Row(
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.model) + ":",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = stringResource(R.string.model_config_current_group, selectedGroupName),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.clearAndSetSemantics {}
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                // 只显示选中的模型名称
-                currentConfig?.let { config ->
-                    val validIndex = getValidModelIndex(config.modelName, currentConfigMapping.modelIndex)
-                    val selectedModel = getModelByIndex(config.modelName, validIndex)
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = selectedModel.ifEmpty { stringResource(R.string.not_selected) },
+                        text = stringResource(R.string.model) + ":",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.clearAndSetSemantics {}
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = displayModelName,
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.primary,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .clearAndSetSemantics {}
+                        modifier = Modifier.weight(1f).clearAndSetSemantics {}
                     )
-                } ?: Text(
-                    text = stringResource(R.string.not_selected),
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f, fill = false).clearAndSetSemantics {}
-                )
+                }
             }
             Icon(
                 imageVector = if (effectiveExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
@@ -1585,7 +1605,15 @@ private fun ModelSelectorItem(
                                     )
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                configSummaries.forEach { config ->
+                if (availableConfigs.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.model_config_group_empty, selectedGroupName),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                availableConfigs.forEach { config ->
                     val isSelected = config.id == currentConfigMapping.configId
                     val modelList = getModelList(config.modelName)
                     val hasMultipleModels = modelList.size > 1
@@ -1726,7 +1754,7 @@ private fun ModelSelectorItem(
                             }
                         }
                     }
-                    if (configSummaries.last() != config) {
+                    if (availableConfigs.last() != config) {
                         Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
