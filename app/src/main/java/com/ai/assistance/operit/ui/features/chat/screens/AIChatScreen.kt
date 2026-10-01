@@ -383,7 +383,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         onHandleSharedFiles = actualViewModel::handleSharedFiles,
         onHandleSharedText = actualViewModel::handleSharedText,
         onClearSharedFiles = SharedFileHandler::clearSharedFiles,
-        onClearSharedText = SharedFileHandler::clearSharedText
+        onClearSharedText = SharedFileHandler::clearSharedText,
+        onShowMessage = actualViewModel::showToast
     )
 
     val pendingChatDraft by PendingChatDraftHandler.pendingDraft.collectAsState()
