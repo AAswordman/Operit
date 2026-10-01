@@ -44,6 +44,7 @@ class XaiProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -67,7 +68,7 @@ class XaiProvider(
             apiEndpoint = configuredApiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
 
         return createJsonRequestBody(requestJson.toString())

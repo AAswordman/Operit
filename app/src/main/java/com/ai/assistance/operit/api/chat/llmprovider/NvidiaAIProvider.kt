@@ -51,6 +51,7 @@ class NvidiaAIProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -73,7 +74,7 @@ class NvidiaAIProvider(
             apiEndpoint = configuredApiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
 
         return createJsonRequestBody(jsonObject.toString())
