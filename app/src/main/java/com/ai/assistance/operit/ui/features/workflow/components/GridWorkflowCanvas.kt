@@ -32,11 +32,13 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.workflow.NodeExecutionState
 import com.ai.assistance.operit.data.model.ConditionNode
 import com.ai.assistance.operit.data.model.ExecuteNode
@@ -248,7 +250,7 @@ fun GridWorkflowCanvas(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(Color(0xFF0D1214))
             .onGloballyPositioned { coordinates ->
                 viewportSize = coordinates.size
             }
@@ -278,7 +280,7 @@ fun GridWorkflowCanvas(
             val scaledCellSize = cellSizePx * scale
             if (scaledCellSize <= 0f) return@Canvas
 
-            val gridDotColor = Color(0xFF888888)
+            val gridDotColor = Color(0xFF52616A).copy(alpha = 0.62f)
             val startX = ((panOffset.x % scaledCellSize) + scaledCellSize) % scaledCellSize
             val startY = ((panOffset.y % scaledCellSize) + scaledCellSize) % scaledCellSize
             val points = mutableListOf<Offset>()
@@ -297,7 +299,7 @@ fun GridWorkflowCanvas(
                 points = points,
                 pointMode = PointMode.Points,
                 color = gridDotColor,
-                strokeWidth = 6f * scale,
+                strokeWidth = (3f * scale).coerceAtLeast(1.5f),
                 cap = StrokeCap.Round
             )
         }
@@ -329,7 +331,7 @@ fun GridWorkflowCanvas(
                 }
 
                 // 绘制网格点背景
-                val gridDotColor = Color(0xFF888888) // 更深、对比度更高的颜色
+                val gridDotColor = Color(0xFF52616A).copy(alpha = 0.62f)
                 val points = mutableListOf<Offset>()
                 var x = 0f
                 while (x <= width) {
@@ -345,7 +347,7 @@ fun GridWorkflowCanvas(
                     points = points,
                     pointMode = PointMode.Points,
                     color = gridDotColor,
-                    strokeWidth = 6f, // 增大点的尺寸
+                    strokeWidth = 3f, // 保持点阵轻量，避免遮住节点和连线
                     cap = StrokeCap.Round
                 )
 
@@ -744,6 +746,27 @@ fun GridWorkflowCanvas(
             }
         }
         
+        if (nodes.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(R.string.workflow_empty_start_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color(0xFFE5E7EB)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.workflow_empty_start_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9AA6AE)
+                )
+            }
+        }
+
         // 缩放指示器
         if (scale != 1f || panOffset != Offset.Zero) {
             Card(
@@ -751,7 +774,7 @@ fun GridWorkflowCanvas(
                     .align(Alignment.TopEnd)
                     .padding(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xE0FFFFFF)
+                    containerColor = Color(0xE61F2A30)
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 shape = RoundedCornerShape(8.dp)
@@ -761,7 +784,7 @@ fun GridWorkflowCanvas(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 14.sp,
-                        color = Color(0xFF1A73E8)
+                        color = Color(0xFF9EDCFF)
                     )
                 )
             }

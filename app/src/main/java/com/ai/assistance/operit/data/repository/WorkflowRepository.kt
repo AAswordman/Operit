@@ -332,6 +332,7 @@ class WorkflowRepository(private val context: Context) {
             }
             Result.success(workflow)
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             AppLogger.e(TAG, "Failed to get workflow by id: $id", e)
             Result.failure(e)
         }
@@ -357,6 +358,73 @@ class WorkflowRepository(private val context: Context) {
         }
     }
     
+    /**
+     * 将工作流 JSON 导入为一个新的工作流。
+     * 导入副本不会复用顶层 ID，也不会恢复旧的执行统计，避免覆盖现有文件或误启用旧调度。
+     */
+    suspend fun importWorkflowJson(content: String): Result<Workflow> = withContext(Dispatchers.IO) {
+        try {
+            val element = json.parseToJsonElement(content)
+            val workflowObject = element as? JsonObject
+                ?: throw WorkflowStorageException(
+                    context.getString(R.string.workflow_import_invalid_root)
+                )
+            val sourceWorkflow = json.decodeFromJsonElement(Workflow.serializer(), workflowObject)
+            val nodeIds = sourceWorkflow.nodes.map { it.id }
+            require(sourceWorkflow.id.isNotBlank()) {
+                context.getString(R.string.workflow_import_missing_id)
+            }
+            require(nodeIds.size == nodeIds.toSet().size) {
+                context.getString(R.string.workflow_import_duplicate_node_ids)
+            }
+            require(sourceWorkflow.connections.all { connection ->
+                connection.sourceNodeId in nodeIds && connection.targetNodeId in nodeIds
+            }) {
+                context.getString(R.string.workflow_import_invalid_connections)
+            }
+
+            val now = System.currentTimeMillis()
+            val importedWorkflow = sourceWorkflow.copy(
+                id = UUID.randomUUID().toString(),
+                createdAt = now,
+                updatedAt = now,
+                enabled = false,
+                lastExecutionTime = null,
+                lastExecutionStatus = null,
+                totalExecutions = 0,
+                successfulExecutions = 0,
+                failedExecutions = 0
+            )
+
+            withWorkflowStoreLock {
+                val file = getWorkflowFile(importedWorkflow.id)
+                writeTextAtomically(file, json.encodeToString(importedWorkflow))
+            }
+            notifyWorkflowsChanged()
+            Result.success(importedWorkflow)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            AppLogger.e(TAG, "Failed to import workflow JSON", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 导出工作流定义 JSON，不包含独立保存的执行日志。
+     */
+    suspend fun exportWorkflowJson(id: String): Result<String> = withContext(Dispatchers.IO) {
+        getWorkflowById(id).fold(
+            onSuccess = { workflow ->
+                if (workflow == null) {
+                    Result.failure(Exception(context.getString(R.string.workflow_not_found)))
+                } else {
+                    Result.success(json.encodeToString(workflow))
+                }
+            },
+            onFailure = { Result.failure(it) }
+        )
+    }
+
     /**
      * 创建工作流
      */
