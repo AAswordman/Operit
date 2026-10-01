@@ -45,6 +45,12 @@ class RemoteMcpRuntimeSession(
             socketTimeoutMillis = REMOTE_RESULT_TIMEOUT_MILLIS
         }
         install(SSE)
+        if (descriptor.connectionType == "httpStream") {
+            installMcpHttpResponseGuard(
+                pendingRequestIds = { requireClient().responseHandlers.keys },
+                logWarning = { message -> Log.w(TAG, "Remote MCP plugin $pluginId (httpStream): $message") }
+            )
+        }
     }
 
     private var client: Client? = null
@@ -74,8 +80,8 @@ class RemoteMcpRuntimeSession(
                     version = "mcp-runtime"
                 )
             )
-            mcpClient.connect(transport)
             client = mcpClient
+            mcpClient.connect(transport)
             connected = true
             true
         } catch (e: Exception) {
