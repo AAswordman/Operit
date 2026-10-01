@@ -341,9 +341,10 @@
 const codeRunner = (function () {
     const CARGO_MIRROR_ENV = 'export CARGO_REGISTRIES_CRATES_IO_REPLACE_WITH="ustc" && export CARGO_REGISTRIES_USTC_INDEX="https://mirrors.ustc.edu.cn/crates.io-index"';
     const CODE_RUNNER_HIDDEN_EXECUTOR_KEY = "code_runner_hidden_executor";
+    const CODE_RUNNER_COMMAND_TIMEOUT_MS = 120000;
     const NODE_WORKSPACE_DIR = "$HOME/.code_runner/node";
     // Use a persistent hidden executor so commands share one login context without shell wrapping.
-    async function executeTerminalCommand(command, timeoutMs) {
+    async function executeTerminalCommand(command, timeoutMs = CODE_RUNNER_COMMAND_TIMEOUT_MS) {
         const options = {
             executorKey: CODE_RUNNER_HIDDEN_EXECUTOR_KEY
         };
