@@ -32,7 +32,7 @@ fun MarketBrowseControls(
     onSortOptionChanged: (MarketSortOption) -> Unit,
     @StringRes searchPlaceholderRes: Int,
     sortOptions: List<MarketSortOption> = MarketSortOption.entries,
-    featuredOnly: Boolean = true,
+    featuredOnly: Boolean = false,
     onFeaturedOnlyChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -51,13 +51,6 @@ fun MarketBrowseControls(
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        sortOptions.forEach { option ->
-            FilterChip(
-                selected = sortOption == option,
-                onClick = { onSortOptionChanged(option) },
-                label = { Text(stringResource(option.labelRes)) }
-            )
-        }
         FilterChip(
             selected = featuredOnly,
             onClick = { onFeaturedOnlyChanged(!featuredOnly) },
@@ -72,6 +65,13 @@ fun MarketBrowseControls(
             },
             label = { Text(stringResource(R.string.market_filter_featured_only)) }
         )
+        sortOptions.forEach { option ->
+            FilterChip(
+                selected = sortOption == option,
+                onClick = { onSortOptionChanged(option) },
+                label = { Text(stringResource(option.labelRes)) }
+            )
+        }
     }
 }
 
