@@ -1766,7 +1766,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                 return
             }
 
-            // 禁止“纯思考输出”：移除 thinking 后正文为空时，发出专用告警并回传给 AI 继续生成
+            // 禁止“纯思考输出”：移除 thinking 后正文为空时，发出专用告警并回传给 AI 继续生成。
+            // 这条路径不能伪装成 TOOL_RESULT：思考轮必须先写入历史，警告按用户消息续写。
+            // 否则 DeepSeek 无法回传 reasoning_content，未闭合的 tool_calls 也会被冲掉。
             val contentWithoutThinking = ChatUtils.removeThinkingContent(content)
             if (contentWithoutThinking.isEmpty()) {
                 if (disableWarning) {
@@ -1785,50 +1787,30 @@ class EnhancedAIService private constructor(private val context: Context) {
                     )
                     return
                 }
-                val pureThinkingWarning =
-                        ConversationMarkupManager.createWarningStatus(
-                                this@EnhancedAIService.context.getString(
-                                        R.string.enhanced_pure_thinking_only_warning
-                                )
-                        )
-                val pureThinkingWarningDisplayContent = "\n$pureThinkingWarning"
-                context.roundManager.appendContent(pureThinkingWarningDisplayContent)
-                collector.emit(pureThinkingWarningDisplayContent)
-                try {
-                    context.conversationHistory.add(
-                        PromptTurn(kind = PromptTurnKind.TOOL_RESULT, content = pureThinkingWarning)
-                    )
-                } catch (e: Exception) {
-                    AppLogger.e(TAG, "添加纯思考告警到历史记录失败", e)
-                    return
-                }
-                AppLogger.w(TAG, "检测到纯思考输出（removeThinking后正文为空），已回传告警给AI继续生成")
-                handleToolInvocation(
-                        toolInvocations = emptyList(),
-                        context = context,
-                        functionType = functionType,
-                        promptFunctionType = promptFunctionType,
-                        collector = collector,
-                        enableThinking = enableThinking,
-                        enableMemoryAutoUpdate = enableMemoryAutoUpdate,
-                        onNonFatalError = onNonFatalError,
-                        onTokenLimitExceeded = onTokenLimitExceeded,
-                        maxTokens = maxTokens,
-                        tokenUsageThreshold = tokenUsageThreshold,
-                        isSubTask = isSubTask,
-                        characterName = characterName,
-                        avatarUri = avatarUri,
-                        roleCardId = roleCardId,
-                        chatId = chatId,
-                        onToolInvocation = onToolInvocation,
-                        notifyReplyOverride = notifyReplyOverride,
-                        chatModelConfigIdOverride = chatModelConfigIdOverride,
-                        chatModelIndexOverride = chatModelIndexOverride,
-                        memorySpaceIdOverride = memorySpaceIdOverride,
-                        stream = stream,
-                        enableGroupOrchestrationHint = enableGroupOrchestrationHint,
-                        toolResultOverrideMessage = pureThinkingWarning,
-                        disableWarning = disableWarning
+                continueAfterPureThinkingOutput(
+                    context = context,
+                    functionType = functionType,
+                    promptFunctionType = promptFunctionType,
+                    collector = collector,
+                    enableThinking = enableThinking,
+                    enableMemoryAutoUpdate = enableMemoryAutoUpdate,
+                    onNonFatalError = onNonFatalError,
+                    onTokenLimitExceeded = onTokenLimitExceeded,
+                    maxTokens = maxTokens,
+                    tokenUsageThreshold = tokenUsageThreshold,
+                    isSubTask = isSubTask,
+                    characterName = characterName,
+                    avatarUri = avatarUri,
+                    roleCardId = roleCardId,
+                    chatId = chatId,
+                    onToolInvocation = onToolInvocation,
+                    notifyReplyOverride = notifyReplyOverride,
+                    chatModelConfigIdOverride = chatModelConfigIdOverride,
+                    chatModelIndexOverride = chatModelIndexOverride,
+                    memorySpaceIdOverride = memorySpaceIdOverride,
+                    stream = stream,
+                    enableGroupOrchestrationHint = enableGroupOrchestrationHint,
+                    disableWarning = disableWarning
                 )
                 return
             }
@@ -2068,6 +2050,84 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
     }
 
+    private suspend fun continueAfterPureThinkingOutput(
+        context: MessageExecutionContext,
+        functionType: FunctionType,
+        promptFunctionType: PromptFunctionType,
+        collector: StreamCollector<String>,
+        enableThinking: Boolean,
+        enableMemoryAutoUpdate: Boolean,
+        onNonFatalError: suspend (error: String) -> Unit,
+        onTokenLimitExceeded: (suspend () -> Unit)?,
+        maxTokens: Int,
+        tokenUsageThreshold: Double,
+        isSubTask: Boolean,
+        characterName: String?,
+        avatarUri: String?,
+        roleCardId: String?,
+        chatId: String?,
+        onToolInvocation: (suspend (String) -> Unit)?,
+        notifyReplyOverride: Boolean?,
+        chatModelConfigIdOverride: String?,
+        chatModelIndexOverride: Int?,
+        memorySpaceIdOverride: String?,
+        stream: Boolean,
+        enableGroupOrchestrationHint: Boolean,
+        disableWarning: Boolean
+    ) {
+        val assistantTurnContent = context.roundManager.getCurrentRoundContent()
+        val pureThinkingWarning =
+            ConversationMarkupManager.createWarningStatus(
+                this@EnhancedAIService.context.getString(
+                    R.string.enhanced_pure_thinking_only_warning
+                )
+            )
+        val pureThinkingWarningDisplayContent = "\n$pureThinkingWarning"
+        context.roundManager.appendContent(pureThinkingWarningDisplayContent)
+        collector.emit(pureThinkingWarningDisplayContent)
+        try {
+            if (assistantTurnContent.isNotBlank()) {
+                context.conversationHistory.add(
+                    PromptTurn(
+                        kind = PromptTurnKind.ASSISTANT,
+                        content = assistantTurnContent
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "添加纯思考助手消息到历史记录失败", e)
+            return
+        }
+        AppLogger.w(TAG, "检测到纯思考输出（removeThinking后正文为空），已保留思考轮并以用户消息回传告警")
+        processToolResults(
+            results = emptyList(),
+            context = context,
+            functionType = functionType,
+            promptFunctionType = promptFunctionType,
+            collector = collector,
+            enableThinking = enableThinking,
+            enableMemoryAutoUpdate = enableMemoryAutoUpdate,
+            onNonFatalError = onNonFatalError,
+            onTokenLimitExceeded = onTokenLimitExceeded,
+            maxTokens = maxTokens,
+            tokenUsageThreshold = tokenUsageThreshold,
+            isSubTask = isSubTask,
+            characterName = characterName,
+            avatarUri = avatarUri,
+            roleCardId = roleCardId,
+            chatId = chatId,
+            onToolInvocation = onToolInvocation,
+            notifyReplyOverride = notifyReplyOverride,
+            chatModelConfigIdOverride = chatModelConfigIdOverride,
+            chatModelIndexOverride = chatModelIndexOverride,
+            memorySpaceIdOverride = memorySpaceIdOverride,
+            stream = stream,
+            enableGroupOrchestrationHint = enableGroupOrchestrationHint,
+            continuationUserMessage = pureThinkingWarning,
+            disableWarning = disableWarning
+        )
+    }
+
     /** Handle tool invocation processing - simplified version without callbacks */
     private suspend fun handleToolInvocation(
         toolInvocations: List<ToolInvocation>,
@@ -2214,21 +2274,32 @@ class EnhancedAIService private constructor(private val context: Context) {
             stream: Boolean = true,
             enableGroupOrchestrationHint: Boolean = false,
             toolResultMessageOverride: String? = null,
+            continuationUserMessage: String? = null,
             disableWarning: Boolean = false
     ) {
         val startTime = messageTimingNow()
+        val continuationMessage = continuationUserMessage?.takeIf { it.isNotBlank() }
         val toolNames = results.joinToString(", ") { it.toolName }
         val toolResultMessage =
-            toolResultMessageOverride ?: ConversationMarkupManager.buildToolResultMessage(results)
+            continuationMessage
+                ?: toolResultMessageOverride
+                ?: ConversationMarkupManager.buildToolResultMessage(results)
 
         if (toolResultMessage.isBlank()) {
             AppLogger.w(TAG, "工具结果消息为空，跳过后续AI请求")
             return
         }
 
-        val displayToolNames = if (toolNames.isNotBlank()) toolNames else "warning"
+        val displayToolNames =
+            when {
+                toolNames.isNotBlank() -> toolNames
+                continuationMessage != null -> "user"
+                else -> "warning"
+            }
         if (results.isNotEmpty()) {
             AppLogger.d(TAG, "开始处理工具结果: $toolNames, 成功: ${results.all { it.success }}")
+        } else if (continuationMessage != null) {
+            AppLogger.d(TAG, "开始处理用户续写覆盖消息，长度: ${toolResultMessage.length}")
         } else {
             AppLogger.d(TAG, "开始处理0工具覆盖消息，长度: ${toolResultMessage.length}")
         }
@@ -2245,13 +2316,19 @@ class EnhancedAIService private constructor(private val context: Context) {
             return
         }
 
-        // Add tool result to conversation history
         context.conversationHistory.add(
-            PromptTurn(
-                kind = PromptTurnKind.TOOL_RESULT,
-                content = toolResultMessage,
-                toolName = toolNames.ifBlank { null }
-            )
+            if (continuationMessage != null) {
+                PromptTurn(
+                    kind = PromptTurnKind.USER,
+                    content = continuationMessage
+                )
+            } else {
+                PromptTurn(
+                    kind = PromptTurnKind.TOOL_RESULT,
+                    content = toolResultMessage,
+                    toolName = toolNames.ifBlank { null }
+                )
+            }
         )
 
         val normalizedChatHistory =
