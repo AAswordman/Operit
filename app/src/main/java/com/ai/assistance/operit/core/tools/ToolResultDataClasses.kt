@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.core.tools
 
+import com.ai.assistance.operit.core.performance.PerformanceEntityKind
+import com.ai.assistance.operit.core.performance.PerformanceEntitySample
+import com.ai.assistance.operit.core.performance.PerformanceSnapshot
 import com.ai.assistance.operit.api.voice.HttpTtsResponsePipelineStep
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.EncodeDefault
@@ -749,6 +752,105 @@ data class AppUsageTimeResultData(
         if (seconds > 0 || parts.isEmpty()) parts.add("${seconds}s")
         return parts.joinToString(" ")
     }
+}
+
+/** 单个性能实体的对外指标。 */
+@Serializable
+data class PerformanceMetricsEntityData(
+        val id: String,
+        val kind: String,
+        val displayName: String,
+        val cpuPercent: Double,
+        val memoryKb: Long,
+        val rxBytesPerSec: Long? = null,
+        val txBytesPerSec: Long? = null,
+        val detail: String? = null
+)
+
+/** 性能查询中的设备级指标。 */
+@Serializable
+data class PerformanceMetricsDeviceData(
+        val cpuPercent: Double?,
+        val totalMemMb: Long,
+        val availMemMb: Long,
+        val rxBytesPerSec: Long?,
+        val txBytesPerSec: Long?
+)
+
+/** get_performance_metrics 工具返回的结构化结果。 */
+@Serializable
+data class PerformanceMetricsResultData(
+        val scope: String,
+        val requestedPluginId: String? = null,
+        val pluginFound: Boolean? = null,
+        val sampledAtMs: Long,
+        val sampleAgeMs: Long,
+        val sampleValid: Boolean,
+        val cpuCoreCount: Int,
+        val device: PerformanceMetricsDeviceData,
+        val app: PerformanceMetricsEntityData?,
+        val plugins: List<PerformanceMetricsEntityData>,
+        val terminals: List<PerformanceMetricsEntityData>
+) : ToolResultData() {
+    override fun toString(): String {
+        val target = requestedPluginId?.let { "plugin $it" } ?: "software"
+        val pluginState = pluginFound?.let { ", found=$it" }.orEmpty()
+        return "Performance metrics for $target: valid=$sampleValid, age=${sampleAgeMs}ms$pluginState"
+    }
+
+    companion object {
+        fun from(snapshot: PerformanceSnapshot, requestedPluginId: String?): PerformanceMetricsResultData {
+            val normalizedPluginId = requestedPluginId?.trim()?.takeIf { it.isNotEmpty() }
+            val allPlugins = snapshot.entities.filter { it.kind == PerformanceEntityKind.PLUGIN }
+            val selectedPlugin = normalizedPluginId?.let { id ->
+                allPlugins.firstOrNull { it.id == id }
+            }
+            val visiblePlugins = if (normalizedPluginId == null) {
+                allPlugins
+            } else {
+                listOfNotNull(selectedPlugin)
+            }
+            val visibleTerminals = if (normalizedPluginId == null) {
+                snapshot.entities.filter { it.kind == PerformanceEntityKind.TERMINAL }
+            } else {
+                emptyList()
+            }
+
+            return PerformanceMetricsResultData(
+                    scope = if (normalizedPluginId == null) "software" else "plugin",
+                    requestedPluginId = normalizedPluginId,
+                    pluginFound = normalizedPluginId?.let { selectedPlugin != null },
+                    sampledAtMs = snapshot.timestampMs,
+                    sampleAgeMs = (System.currentTimeMillis() - snapshot.timestampMs).coerceAtLeast(0L),
+                    sampleValid = snapshot.deltaValid,
+                    cpuCoreCount = snapshot.cpuCoreCount,
+                    device = PerformanceMetricsDeviceData(
+                            cpuPercent = snapshot.deviceCpuPercent,
+                            totalMemMb = snapshot.deviceTotalMemMb,
+                            availMemMb = snapshot.deviceAvailMemMb,
+                            rxBytesPerSec = snapshot.deviceRxBytesPerSec,
+                            txBytesPerSec = snapshot.deviceTxBytesPerSec
+                    ),
+                    app = snapshot.entities.firstOrNull { it.kind == PerformanceEntityKind.APP }
+                            ?.toPerformanceMetricsData(),
+                    plugins = visiblePlugins.map { it.toPerformanceMetricsData() },
+                    terminals = visibleTerminals.map { it.toPerformanceMetricsData() }
+            )
+        }
+    }
+}
+
+private fun PerformanceEntitySample.toPerformanceMetricsData(): PerformanceMetricsEntityData {
+    return PerformanceMetricsEntityData(
+            id = id,
+            kind = kind.name,
+            displayName = displayName,
+            cpuPercent = cpuPercent,
+            memoryKb = memoryKb,
+            rxBytesPerSec = rxBytesPerSec,
+            txBytesPerSec = txBytesPerSec,
+            detail = detail
+    )
 }
 
 /** Bluetooth adapter state. */

@@ -635,6 +635,17 @@ fun getJsToolsDefinition(): String {
                     }
                     return toolCall("get_app_usage_time", params);
                 },
+                // 获取软件和插件的当前性能指标
+                getPerformanceMetrics: (options = {}) => {
+                    const params = {};
+                    if (options && typeof options === "object" && !Array.isArray(options)) {
+                        if (options.pluginId !== undefined && options.pluginId !== null) {
+                            const pluginId = String(options.pluginId).trim();
+                            if (pluginId) params.plugin_id = pluginId;
+                        }
+                    }
+                    return toolCall("get_performance_metrics", params);
+                },
                 // 获取设备位置
                 getLocation: (highAccuracy = false, timeout = 10, includeAddress = true) =>
                     toolCall("get_device_location", {
