@@ -1451,7 +1451,7 @@ class ChatHistoryManager private constructor(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 val chat = chatDao.getChatById(chatId)
-                chat != null && chat.locked != true
+                chat != null && chat.locked != true && currentChatIdFlow.first() != chatId
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to check whether chat $chatId can be deleted", e)
                 false
@@ -1464,23 +1464,20 @@ class ChatHistoryManager private constructor(private val context: Context) {
         chatMutex(chatId).withLock {
             try {
                 val chat = chatDao.getChatById(chatId)
-                if (chat?.locked == true) {
+                if (chat == null) {
+                    return false
+                }
+                val currentChatId = currentChatIdFlow.first()
+                if (chat.locked == true) {
                     AppLogger.w(TAG, "Chat $chatId is locked; skip deletion")
                     return false
                 }
-                if (chat == null) {
+                if (currentChatId == chatId) {
+                    AppLogger.w(TAG, "Chat $chatId is the current chat; skip deletion")
                     return false
                 }
                 // 删除聊天实体（级联删除所有消息）
                 chatDao.deleteChat(chatId)
-
-                // 如果删除的是当前聊天，清除当前聊天ID
-                val currentChatId = currentChatIdFlow.first()
-                if (currentChatId == chatId) {
-                    context.currentChatIdDataStore.edit { preferences ->
-                        preferences.remove(PreferencesKeys.CURRENT_CHAT_ID)
-                    }
-                }
                 return true
             } catch (e: Exception) {
                 throw e
