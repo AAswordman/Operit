@@ -469,6 +469,20 @@ class StandardChatManagerTool(private val context: Context) {
         }
     }
 
+    private fun toolChatCore(slot: ChatRuntimeSlot = ChatRuntimeSlot.MAIN): ChatServiceCore {
+        return chatRuntimeHolder.getCore(slot)
+    }
+
+    private fun resolveAgentInputState(chatId: String): InputProcessingState {
+        val mainState = toolChatCore(ChatRuntimeSlot.MAIN).inputProcessingStateByChatId.value[chatId]
+        if (mainState != null && mainState !is InputProcessingState.Idle) {
+            return mainState
+        }
+        val floatingState =
+            toolChatCore(ChatRuntimeSlot.FLOATING).inputProcessingStateByChatId.value[chatId]
+        return floatingState ?: mainState ?: InputProcessingState.Idle
+    }
+
     /** 角色卡名到角色卡ID的映射，同名时取第一张，与 findCharacterCardByName 的选取一致 */
     private suspend fun buildCharacterCardIdsByName(chats: List<ChatHistory>): Map<String, String> {
         if (chats.none { !it.characterCardName.isNullOrBlank() }) {
@@ -734,18 +748,7 @@ class StandardChatManagerTool(private val context: Context) {
                 )
             }
 
-            val connected = ensureServiceConnected()
-            val chatService = chatCore
-            if (!connected || chatService == null) {
-                return ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = AgentStatusResultData(chatId = chatId, state = "unknown"),
-                    error = "Chat service not connected"
-                )
-            }
-
-            val state = chatService.inputProcessingStateByChatId.value[chatId] ?: InputProcessingState.Idle
+            val state = resolveAgentInputState(chatId)
             var stateKey = "idle"
             var message: String? = null
             var isIdle = false
@@ -1353,21 +1356,7 @@ class StandardChatManagerTool(private val context: Context) {
      */
     suspend fun createNewChat(tool: AITool): ToolResult {
         return try {
-            if (!ensureServiceConnected()) {
-                return ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = ChatCreationResultData(chatId = ""),
-                    error = "Service not connected"
-                )
-            }
-
-            val core = chatCore ?: return ToolResult(
-                toolName = tool.name,
-                success = false,
-                result = ChatCreationResultData(chatId = ""),
-                error = "ChatServiceCore not initialized"
-            )
+            val core = toolChatCore()
 
             // 获取创建前的 chat list
             val previousChatIds = core.chatHistories.value.map { it.id }.toSet()
@@ -1589,21 +1578,7 @@ class StandardChatManagerTool(private val context: Context) {
      */
     suspend fun switchChat(tool: AITool): ToolResult {
         return try {
-            if (!ensureServiceConnected()) {
-                return ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = ChatSwitchResultData(chatId = "", chatTitle = ""),
-                    error = "Service not connected"
-                )
-            }
-
-            val core = chatCore ?: return ToolResult(
-                toolName = tool.name,
-                success = false,
-                result = ChatSwitchResultData(chatId = "", chatTitle = ""),
-                error = "ChatServiceCore not initialized"
-            )
+            val core = toolChatCore()
 
             val chatId = tool.parameters.find { it.name == "chat_id" }?.value
             if (chatId.isNullOrBlank()) {
@@ -1627,7 +1602,7 @@ class StandardChatManagerTool(private val context: Context) {
             }
 
             // 切换对话
-            core.switchChatLocal(chatId)
+            core.switchChat(chatId)
             
             // 等待切换完成（最多等待1秒）
             var attempts = 0
