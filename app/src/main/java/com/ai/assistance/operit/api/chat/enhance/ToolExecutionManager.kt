@@ -454,41 +454,29 @@ object ToolExecutionManager {
             return Pair(true, null)
         }
 
-        // 检查是否强制拒绝权限（deny_tool标记）
-        val hasPromptForPermission = !invocation.rawText.contains("deny_tool")
+        // 所有模型生成的工具调用都必须经过统一权限检查，参数文本不能改变权限路径。
+        val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+        val permissionResult = toolPermissionSystem.checkToolPermission(permissionTool)
 
-        if (hasPromptForPermission) {
-            // 检查权限，如果需要则弹出权限请求界面
-            val toolPermissionSystem = toolHandler.getToolPermissionSystem()
-            val permissionResult = toolPermissionSystem.checkToolPermission(permissionTool)
-
-            if (!permissionResult.isGranted) {
-                val errorMessage =
-                    androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
-                val errorResult =
-                    ToolResult(
-                        toolName = resolvedTarget.displayName,
-                        success = false,
-                        result = StringResultData(""),
-                        error = errorMessage
-                    )
-                toolHandler.notifyToolPermissionChecked(
-                    permissionTool,
-                    granted = false,
-                    reason = errorMessage
+        if (!permissionResult.isGranted) {
+            val errorMessage =
+                androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
+            val errorResult =
+                ToolResult(
+                    toolName = resolvedTarget.displayName,
+                    success = false,
+                    result = StringResultData(""),
+                    error = errorMessage
                 )
-                return Pair(false, errorResult)
-            }
-
-            toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
-            return Pair(true, null)
+            toolHandler.notifyToolPermissionChecked(
+                permissionTool,
+                granted = false,
+                reason = errorMessage
+            )
+            return Pair(false, errorResult)
         }
 
-        toolHandler.notifyToolPermissionChecked(
-            permissionTool,
-            granted = true,
-            reason = "Permission check bypassed by deny_tool tag."
-        )
+        toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
         return Pair(true, null)
     }
 
