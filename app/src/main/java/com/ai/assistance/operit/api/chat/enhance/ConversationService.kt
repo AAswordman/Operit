@@ -36,6 +36,12 @@ import com.ai.assistance.operit.core.avatar.impl.factory.AvatarModelFactoryImpl
 import com.ai.assistance.operit.data.repository.AvatarRepository
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.util.stream.Stream
+import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
+import com.ai.assistance.operit.util.stream.TextStreamEventType
+import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.util.streamnative.NativeXmlSplitter
 import com.github.difflib.DiffUtils
@@ -276,11 +282,19 @@ class ConversationService(
                             recordTokenUsage = recordTokenUsage,
                     )
 
-            // 收集流中的所有内容
-            stream.collect { content ->
-                contentBuilder.append(content)
-                updateStageIfNeeded()
-            }
+            // 重试会发出回滚事件。这里按保存点截断，避免半截内容和完整重写拼进同一条摘要。
+            collectRevisableContent(
+                stream = stream,
+                onChunk = { content ->
+                    contentBuilder.append(content)
+                    updateStageIfNeeded()
+                },
+                onRollback = { content ->
+                    contentBuilder.setLength(0)
+                    contentBuilder.append(content)
+                    updateStageIfNeeded()
+                },
+            )
 
             ToolProgressBus.update(
                 ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
@@ -379,6 +393,44 @@ class ConversationService(
         } catch (e: Exception) {
             AppLogger.e(TAG, "生成对话标题时出错", e)
             ""
+        }
+    }
+
+    private suspend fun collectRevisableContent(
+        stream: Stream<String>,
+        onChunk: (String) -> Unit,
+        onRollback: (String) -> Unit,
+    ) {
+        val carrier = stream as? TextStreamEventCarrier
+        if (carrier == null) {
+            stream.collect(onChunk)
+            return
+        }
+
+        val tracker = TextStreamRevisionTracker()
+        val revisionMutex = Mutex()
+        coroutineScope {
+            val revisionJob = launch {
+                carrier.eventChannel.collect { event ->
+                    revisionMutex.withLock {
+                        when (event.eventType) {
+                            TextStreamEventType.SAVEPOINT -> tracker.savepoint(event.id)
+                            TextStreamEventType.ROLLBACK ->
+                                tracker.rollback(event.id)?.toString()?.let(onRollback)
+                        }
+                    }
+                }
+            }
+            try {
+                stream.collect { chunk ->
+                    revisionMutex.withLock {
+                        tracker.append(chunk)
+                        onChunk(chunk)
+                    }
+                }
+            } finally {
+                revisionJob.cancel()
+            }
         }
     }
 
@@ -1125,9 +1177,14 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
                 recordTokenUsage = recordTokenUsage,
             )
             
-            stream.collect { content ->
-                contentBuilder.append(content)
-            }
+            collectRevisableContent(
+                stream = stream,
+                onChunk = { contentBuilder.append(it) },
+                onRollback = { content ->
+                    contentBuilder.setLength(0)
+                    contentBuilder.append(content)
+                },
+            )
             
             return contentBuilder.toString().trim()
         } catch (e: Exception) {
@@ -1184,9 +1241,14 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
                 modelParameters = modelParameters,
             )
             
-            stream.collect { content ->
-                contentBuilder.append(content)
-            }
+            collectRevisableContent(
+                stream = stream,
+                onChunk = { contentBuilder.append(it) },
+                onRollback = { content ->
+                    contentBuilder.setLength(0)
+                    contentBuilder.append(content)
+                },
+            )
             
             val result = ChatUtils.removeThinkingContent(contentBuilder.toString().trim())
             
