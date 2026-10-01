@@ -3314,6 +3314,7 @@
     <string name="chat_pending_queue_title">待发送队列（%1$d）</string>
     <string name="chat_queue_add_message">加入发送队列</string>
     <string name="chat_queue_added">已加入发送队列</string>
+    <string name="chat_continue_generation">继续生成</string>
     <string name="chat_use_default_config_continue">使用默认配置继续</string>
     <string name="chat_default_config_incomplete">默认配置不完整，请填写必要信息</string>
     <string name="chat_locked_cannot_delete">该聊天已锁定，无法删除</string>

@@ -2644,6 +2644,7 @@
     <string name="chat_pending_queue_title">Barisan menunggu penghantaran (%1$d)</string>
     <string name="chat_queue_add_message">Tambahkan ke barisan penghantaran</string>
     <string name="chat_queue_added">Telah ditambahkan ke barisan penghantaran</string>
+    <string name="chat_continue_generation">Teruskan penjanaan</string>
     <string name="chat_use_default_config_continue">Guna konfigurasi lalai untuk teruskan</string>
     <string name="chat_default_config_incomplete">Konfigurasi lalai tidak lengkap, sila isi maklumat yang diperlukan</string>
     <string name="chat_locked_cannot_delete">Sembang ini telah dikunci, tidak boleh dipadam</string>

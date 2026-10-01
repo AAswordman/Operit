@@ -2691,6 +2691,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="chat_pending_queue_title">Antrian Tertunda (%1$d)</string>
     <string name="chat_queue_add_message">Tambahkan ke antrian pengiriman</string>
     <string name="chat_queue_added">Ditambahkan ke antrian pengiriman</string>
+    <string name="chat_continue_generation">Lanjutkan pembuatan</string>
     <string name="chat_use_default_config_continue">Lanjutkan dengan konfigurasi default</string>
     <string name="chat_default_config_incomplete">Konfigurasi default tidak lengkap, harap isi informasi yang diperlukan</string>
     <string name="chat_locked_cannot_delete">Obrolan ini terkunci, tidak dapat dihapus</string>

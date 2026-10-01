@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ScreenshotMonitor
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
@@ -87,6 +88,8 @@ import androidx.core.content.FileProvider
 @Composable
 fun AttachmentSelectorPanel(
         visible: Boolean,
+        onContinueGeneration: () -> Unit,
+        continueGenerationEnabled: Boolean,
         onAttachImage: (String) -> Unit,
         onAttachFile: (String) -> Unit,
         onAttachScreenContent: () -> Unit,
@@ -171,6 +174,14 @@ fun AttachmentSelectorPanel(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                ContinueGenerationAction(
+                        onContinueGeneration = onContinueGeneration,
+                        enabled = continueGenerationEnabled,
+                        onDismiss = onDismiss
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 val panelItems =
                         listOf(
@@ -327,6 +338,8 @@ fun AttachmentSelectorPanel(
 fun AttachmentSelectorPopupPanel(
         visible: Boolean,
         containerColor: Color,
+        onContinueGeneration: () -> Unit,
+        continueGenerationEnabled: Boolean,
         onAttachImage: (String) -> Unit,
         onAttachFile: (String) -> Unit,
         onAttachScreenContent: () -> Unit,
@@ -474,6 +487,12 @@ fun AttachmentSelectorPopupPanel(
                                         .padding(vertical = 4.dp)
                                         .verticalScroll(rememberScrollState())
                 ) {
+                    ContinueGenerationAction(
+                            onContinueGeneration = onContinueGeneration,
+                            enabled = continueGenerationEnabled,
+                            onDismiss = onDismiss
+                    )
+                    HorizontalDivider()
                     panelItems.forEach { item ->
                         Row(
                                 modifier =
@@ -512,6 +531,39 @@ fun AttachmentSelectorPopupPanel(
             onDismiss()
         }
     )
+}
+
+@Composable
+private fun ContinueGenerationAction(
+        onContinueGeneration: () -> Unit,
+        enabled: Boolean,
+        onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    TextButton(
+            onClick = {
+                onContinueGeneration()
+                onDismiss()
+            },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+    ) {
+        Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                    text = context.getString(R.string.chat_continue_generation),
+                    style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
 }
 
 private data class AttachmentPanelItem(

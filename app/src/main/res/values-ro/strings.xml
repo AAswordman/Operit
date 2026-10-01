@@ -3134,6 +3134,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_pending_queue_title">Coada de mesaje de trimis (%1$d)</string>
     <string name="chat_queue_add_message">Adăugare în coada de trimitere</string>
     <string name="chat_queue_added">A fost adăugat în coada de trimitere</string>
+    <string name="chat_continue_generation">Continuați generarea</string>
     <string name="chat_use_default_config_continue">Continuați cu configurația implicită</string>
     <string name="chat_default_config_incomplete">Configurația implicită este incompletă; vă rugăm să completați informațiile necesare</string>
     <string name="chat_locked_cannot_delete">Această conversație a fost blocată și nu poate fi ștersă</string>

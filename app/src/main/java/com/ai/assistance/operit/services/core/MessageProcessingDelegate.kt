@@ -696,7 +696,7 @@ class MessageProcessingDelegate(
             maxTokens: Int,
             tokenUsageThreshold: Double,
             replyToMessage: ChatMessage? = null, // 新增回复消息参数
-            isAutoContinuation: Boolean = false, // 标识是否为自动续写
+            sendMode: MessageSendMode = MessageSendMode.USER,
             enableSummary: Boolean = true,
             chatModelConfigIdOverride: String? = null,
             chatModelIndexOverride: Int? = null,
@@ -706,12 +706,12 @@ class MessageProcessingDelegate(
             groupParticipantNamesText: String? = null,
             turnOptions: ChatTurnOptions = ChatTurnOptions()
     ) {
-        val rawMessageText = messageTextOverride ?: _userMessage.value.text
-        // 群组编排模式下，允许空消息（后续成员不需要用户消息）
-        if (rawMessageText.isBlank() && attachments.isEmpty() && !isAutoContinuation && !isGroupOrchestrationTurn) {
+        val rawMessageText = if (sendMode.isContinuation) "" else messageTextOverride ?: _userMessage.value.text
+        // Group participants and continuations can request a response without new user input.
+        if (rawMessageText.isBlank() && attachments.isEmpty() && !sendMode.isContinuation && !isGroupOrchestrationTurn) {
             AppLogger.d(
                 TAG,
-                "sendUserMessage忽略: 空消息且无附件, chatId=$chatId, autoContinuation=$isAutoContinuation"
+                "sendUserMessage ignored: empty input, chatId=$chatId, sendMode=$sendMode"
             )
             return
         }
@@ -729,7 +729,7 @@ class MessageProcessingDelegate(
         val originalMessageText = rawMessageText.trim()
         var messageText = originalMessageText
         
-        if (messageTextOverride == null) {
+        if (messageTextOverride == null && !sendMode.isContinuation) {
             clearUserMessageDraft(chatId)
         }
         resetCurrentTurnToolInvocationCount(chatId)
@@ -747,7 +747,7 @@ class MessageProcessingDelegate(
             val effectiveHideUserMessage = effectivePersistTurn && turnOptions.hideUserMessage
             // 检查这是否是聊天中的第一条用户消息（忽略AI的开场白）
             val isFirstMessage = !hasUserMessage(chatId)
-            val titleFallback = if (effectivePersistTurn && isFirstMessage && chatId != null) {
+            val titleFallback = if (effectivePersistTurn && isFirstMessage && !sendMode.isContinuation) {
                 fallbackConversationTitle(originalMessageText, attachments).also { fallbackTitle ->
                     updateChatTitle(chatId, fallbackTitle)
                 }
@@ -777,9 +777,8 @@ class MessageProcessingDelegate(
 
             // 1. 使用 AIMessageManager 构建最终消息
             val buildUserMessageStartTime = messageTimingNow()
-            val finalMessageContent = if (prebuiltMessageContent != null) {
-                prebuiltMessageContent
-            } else {
+            // Manual continuation must not synthesize user input from hooks or workspace tags.
+            val finalMessageContent = sendMode.buildMessageContent(prebuiltMessageContent) {
                 AIMessageManager.buildUserMessageContent(
                     context = context,
                     messageText = messageText,
@@ -810,17 +809,13 @@ class MessageProcessingDelegate(
                 details = "chatId=$chatId, attachments=${attachments.size}, finalLength=${finalMessageContent.length}, prebuilt=${prebuiltMessageContent != null}"
             )
 
-            // 自动继续且原本消息为空时，不添加到聊天历史（虽然会发送"继续"给AI）
-            // 群组编排模式下，空消息也不添加到聊天历史
             val shouldAddUserMessageToChat =
-                effectivePersistTurn &&
-                !suppressUserMessageInHistory &&
-                !(isAutoContinuation &&
-                        originalMessageText.isBlank() &&
-                        attachments.isEmpty()) &&
-                !(isGroupOrchestrationTurn &&
-                        originalMessageText.isBlank() &&
-                        attachments.isEmpty())
+                sendMode.shouldAddUserMessage(
+                    persistTurn = effectivePersistTurn,
+                    suppressUserMessageInHistory = suppressUserMessageInHistory,
+                    isGroupOrchestrationTurn = isGroupOrchestrationTurn,
+                    hasContent = originalMessageText.isNotBlank() || attachments.isNotEmpty(),
+                )
             var userMessageAdded = false
             var userMessage = ChatMessage(
                 sender = "user",
@@ -1122,7 +1117,8 @@ class MessageProcessingDelegate(
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
                     memorySpaceIdOverride = memorySpaceIdOverride,
-                    disableWarning = turnOptions.disableWarning
+                    disableWarning = turnOptions.disableWarning,
+                    historyOnly = sendMode == MessageSendMode.CONTINUE,
                 )
                 // AIMessageManager 已返回可重放的共享流，这里直接复用，避免在 viewModelScope 上再包一层。
                 val sharedCharStream = responseStream
