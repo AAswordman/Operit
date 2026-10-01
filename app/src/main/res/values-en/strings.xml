@@ -1342,7 +1342,7 @@
     <string name="shizuku_wizard_permission_notice">Note: If you don\'t see the authorization dialog, check:</string>
     <string name="shizuku_wizard_permission_notice_details">1. Whether the Shizuku service is running\n2. Try restarting the Shizuku service\n3. Confirm you\'ve allowed overlay display permission</string>
     <string name="shizuku_wizard_grant_permission">Grant Shizuku Permission</string>
-    <string name="shizuku_wizard_success_message">Congratulations! Shizuku is fully set up. You can now use debugging permission features.</string>
+    <string name="shizuku_wizard_success_message">Shizuku is ready and can be used alongside accessibility in Admin mode.</string>
     <string name="shizuku_wizard_update_available">New Version Available</string>
     <string name="shizuku_wizard_update_message">The app has a newer version of Shizuku built in. We recommend updating for better compatibility and features.</string>
     <string name="shizuku_wizard_current_version">Current version: %1$s</string>
@@ -1451,12 +1451,12 @@
     <string name="permission_level_root">Root Permission</string>
     <string name="permission_level_standard_desc">Basic application permissions, no special system authorization required</string>
     <string name="permission_level_accessibility_desc">Added accessibility service support, can simulate screen operations</string>
-    <string name="permission_level_admin_desc">Added device administrator permissions, can access more system functions</string>
+    <string name="permission_level_admin_desc">Combines independently authorized accessibility and Shizuku services; uses standard operations when unavailable</string>
     <string name="permission_level_debugger_desc">Provides ADB-level system access through Shizuku</string>
     <string name="permission_level_root_desc">Superuser permissions, can execute any system operations</string>
     <string name="permission_level_standard_full_desc">Standard Permissions: Basic application permissions, no special privileges required</string>
     <string name="permission_level_accessibility_full_desc">Accessibility Permissions: Allows the app to simulate user operations, requires enabling accessibility services</string>
-    <string name="permission_level_admin_full_desc">Admin Permissions: Allows the app to access more system functions, such as location services</string>
+    <string name="permission_level_admin_full_desc">Admin mode: authorize accessibility and Shizuku separately. Operations use the currently available backend, with standard file and shell operations when enhanced access is unavailable.</string>
     <string name="permission_level_debugger_full_desc">Debug Permissions: Allows advanced operations through ADB debugging functions, requires Shizuku service</string>
     <string name="permission_level_root_full_desc">Root Permissions: Allows the app to run as superuser, requires a rooted device</string>
     
@@ -6835,7 +6835,7 @@
     <string name="openai_connection_test_failed">Connection test failed: %1$s</string>
 
     <!-- Phone Agent -->
-    <string name="phone_agent_need_debug_permission">Requires Debug/Admin/Root permission and experimental virtual screen enabled to use virtual screen automation.</string>
+    <string name="phone_agent_need_debug_permission">Virtual screen automation requires Admin or Root mode, authorized Shizuku or Root access, and experimental virtual screens enabled.</string>
     <string name="phone_agent_shizuku_unavailable">Shizuku is not available, cannot start virtual screen.</string>
     <string name="phone_agent_virtual_screen_service_start_failed">Virtual screen service failed to start.</string>
     <string name="phone_agent_virtual_screen_create_failed">Failed to create virtual screen.</string>

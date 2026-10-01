@@ -1128,7 +1128,7 @@
     <string name="shizuku_wizard_permission_notice">참고: 인증 대화상자가 표시되지 않으면 다음을 확인하세요.</string>
     <string name="shizuku_wizard_permission_notice_details">1. Shizuku 서비스가 실행 중인지 확인합니다\n2. Shizuku 서비스를 다시 시작해 봅니다\n3. 오버레이 표시 권한을 허용했는지 확인합니다</string>
     <string name="shizuku_wizard_grant_permission">Shizuku 권한 부여</string>
-    <string name="shizuku_wizard_success_message">축하합니다! Shizuku가 완전히 설정되었습니다. 이제 디버깅 권한 기능을 사용할 수 있습니다.</string>
+    <string name="shizuku_wizard_success_message">Shizuku가 준비되었으며 관리자 모드에서 접근성과 함께 사용할 수 있습니다.</string>
     <string name="shizuku_wizard_update_available">새 버전 출시</string>
     <string name="shizuku_wizard_update_message">앱에는 최신 버전의 Shizuku가 내장되어 있습니다. 더 나은 호환성과 기능을 위해 업데이트하는 것이 좋습니다.</string>
     <string name="shizuku_wizard_current_version">현재 버전: %1$s</string>
@@ -1229,12 +1229,12 @@
     <string name="permission_level_root">루트 권한</string>
     <string name="permission_level_standard_desc">기본 애플리케이션 권한, 특별한 시스템 인증이 필요하지 않습니다.</string>
     <string name="permission_level_accessibility_desc">접근성 서비스 지원 추가, 화면 조작 시뮬레이션 가능</string>
-    <string name="permission_level_admin_desc">장치 관리자 권한이 추가되어 더 많은 시스템 기능에 액세스할 수 있습니다.</string>
+    <string name="permission_level_admin_desc">별도로 허용한 접근성 서비스와 Shizuku를 함께 사용하며, 사용할 수 없으면 표준 작업을 사용합니다</string>
     <string name="permission_level_debugger_desc">Shizuku를 통해 ADB 수준의 시스템 액세스 제공</string>
     <string name="permission_level_root_desc">수퍼유저 권한, 모든 시스템 작업 실행 가능</string>
     <string name="permission_level_standard_full_desc">표준 권한: 기본 애플리케이션 권한, 특별한 권한이 필요하지 않습니다.</string>
     <string name="permission_level_accessibility_full_desc">접근성 권한: 앱이 사용자 작업을 시뮬레이션할 수 있도록 허용하고 접근성 서비스 활성화가 필요합니다.</string>
-    <string name="permission_level_admin_full_desc">관리자 권한: 앱이 위치 서비스와 같은 더 많은 시스템 기능에 액세스하도록 허용합니다.</string>
+    <string name="permission_level_admin_full_desc">관리자 모드: 접근성과 Shizuku를 각각 허용합니다. 작업은 현재 사용할 수 있는 서비스를 사용하며, 추가 권한이 없으면 표준 파일 및 셸 작업을 사용합니다.</string>
     <string name="permission_level_debugger_full_desc">디버그 권한: ADB 디버깅 기능을 통해 고급 작업을 허용하며 Shizuku 서비스가 필요합니다.</string>
     <string name="permission_level_root_full_desc">루트 권한: 앱이 수퍼유저로 실행되도록 허용하고 루팅된 기기가 필요합니다.</string>
     <string name="root_access_granted">앱이 루트 액세스 권한을 얻었으며 권한 있는 명령을 실행할 수 있습니다.</string>
@@ -6164,7 +6164,7 @@
     <string name="openai_error_parse_response_failed">응답 구문 분석 실패: %1$s</string>
     <string name="openai_connection_success">연결 성공!</string>
     <string name="openai_connection_test_failed">연결 테스트 실패: %1$s</string>
-    <string name="phone_agent_need_debug_permission">가상 화면 자동화를 사용하려면 디버그/관리자/루트 권한과 실험적 가상 화면 활성화가 필요합니다.</string>
+    <string name="phone_agent_need_debug_permission">가상 화면 자동화에는 관리자 또는 루트 모드, 허용된 Shizuku 또는 루트 접근 및 실험적 가상 화면 활성화가 필요합니다.</string>
     <string name="phone_agent_shizuku_unavailable">Shizuku를 사용할 수 없어 가상 화면을 시작할 수 없습니다.</string>
     <string name="phone_agent_virtual_screen_service_start_failed">Virtual Screen 서비스를 시작하지 못했습니다.</string>
     <string name="phone_agent_virtual_screen_create_failed">가상 화면 생성에 실패했습니다.</string>

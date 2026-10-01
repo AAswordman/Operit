@@ -1264,7 +1264,7 @@
     <string name="shizuku_wizard_permission_notice">Atenție: Dacă nu apare fereastra pop-up de autorizare, vă rugăm să verificați:</string>
     <string name="shizuku_wizard_permission_notice_details">1. ShizukuServiciul este în funcțiune?\n2. RepornireShizukuÎncercați din nou după ce ați efectuat operațiunea\n3. Confirmă permisiunea de afișare a ferestrelor plutitoare</string>
     <string name="shizuku_wizard_grant_permission">AcordareShizukuDrepturi</string>
-    <string name="shizuku_wizard_success_message">Felicitări!ShizukuConfigurarea este finalizată; acum puteți utiliza funcțiile cu drepturi de depanare.</string>
+    <string name="shizuku_wizard_success_message">Shizuku este pregătit și poate fi utilizat împreună cu accesibilitatea în modul administrator.</string>
     <string name="shizuku_wizard_update_available">Descoperă noua versiune</string>
     <string name="shizuku_wizard_update_message">Aplicația include o versiune actualizată aShizuku, vă recomandăm să efectuați actualizarea pentru a beneficia de o compatibilitate și funcționalitate îmbunătățite.</string>
     <string name="shizuku_wizard_current_version">Versiunea actuală:%1$s</string>
@@ -1373,12 +1373,12 @@
     <string name="permission_level_root">RootDrepturi</string>
     <string name="permission_level_standard_desc">Drepturi de execuție de bază pentru aplicație, fără a fi necesară o autorizare specială din partea sistemului</string>
     <string name="permission_level_accessibility_desc">S-au adăugat servicii de accesibilitate, care permit simularea operațiunilor de pe ecran</string>
-    <string name="permission_level_admin_desc">Adăugarea drepturilor de administrator de dispozitiv vă permite accesul la mai multe funcții ale sistemului</string>
+    <string name="permission_level_admin_desc">Combină serviciile de accesibilitate și Shizuku cu autorizări independente; utilizează operațiile standard când nu sunt disponibile</string>
     <string name="permission_level_debugger_desc">PrinShizukuOferăADBAcces la sistem la nivel de</string>
     <string name="permission_level_root_desc">Privilegii de superutilizator, care permit efectuarea oricărei operațiuni de sistem</string>
     <string name="permission_level_standard_full_desc">Autorizații standard: autorizații de bază pentru rularea aplicației, fără a fi necesare autorizații speciale</string>
     <string name="permission_level_accessibility_full_desc">Permisiuni pentru accesibilitate: permit aplicației să simuleze acțiunile utilizatorului; este necesar să activați serviciul de accesibilitate</string>
-    <string name="permission_level_admin_full_desc">Drepturi de administrator: permit aplicației să acceseze mai multe funcții ale sistemului, cum ar fi serviciile de localizare etc.</string>
+    <string name="permission_level_admin_full_desc">Mod administrator: autorizați accesibilitatea și Shizuku separat. Operațiile folosesc serviciul disponibil sau operațiile standard pentru fișiere și shell.</string>
     <string name="permission_level_debugger_full_desc">Drepturi de depanare: Permite accesulADBPentru a efectua operațiuni avansate folosind funcția de depanare, este necesarShizukuServicii</string>
     <string name="permission_level_root_full_desc">RootPermisiuni: permite aplicației să ruleze cu drepturi de superutilizator; este necesar ca dispozitivul să fieRoot</string>
 
@@ -7030,7 +7030,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="openai_connection_test_failed">Testul de conexiune a eșuat: %1$s</string>
 
     <!-- Phone Agent -->
-    <string name="phone_agent_need_debug_permission">Este necesară depanarea/Administrator/Root Trebuie să aveți permisiunile necesare și să activați ecranul virtual experimental pentru a putea utiliza automatizarea ecranului virtual.</string>
+    <string name="phone_agent_need_debug_permission">Automatizarea ecranului virtual necesită modul administrator sau Root, acces autorizat la Shizuku sau Root și ecrane virtuale experimentale activate.</string>
     <string name="phone_agent_shizuku_unavailable">Shizuku Indisponibil, ecranul virtual nu poate fi pornit.</string>
     <string name="phone_agent_virtual_screen_service_start_failed">Pornirea serviciului de ecran virtual a eșuat.</string>
     <string name="phone_agent_virtual_screen_create_failed">Crearea ecranului virtual a eșuat.</string>

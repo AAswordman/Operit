@@ -656,6 +656,16 @@ open class AccessibilityUITools(context: Context) : StandardUITools(context) {
         }
     }
 
+    protected fun accessibilityKeyAction(keyCode: String): Int? = when (keyCode) {
+        "KEYCODE_BACK" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
+        "KEYCODE_HOME" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME
+        "KEYCODE_RECENTS" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS
+        "KEYCODE_NOTIFICATIONS" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS
+        "KEYCODE_QUICK_SETTINGS" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS
+        "KEYCODE_POWER_DIALOG" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG
+        else -> null
+    }
+
     /** 模拟按键操作 */
     override suspend fun pressKey(tool: AITool): ToolResult {
         val keyCode = tool.parameters.find { it.name == "key_code" }?.value
@@ -671,15 +681,7 @@ open class AccessibilityUITools(context: Context) : StandardUITools(context) {
 
         try {
             // 将字符串keyCode转换为AccessibilityService中的常量
-            val keyAction = when (keyCode) {
-                "KEYCODE_BACK" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
-                "KEYCODE_HOME" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME
-                "KEYCODE_RECENTS" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS
-                "KEYCODE_NOTIFICATIONS" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS
-                "KEYCODE_QUICK_SETTINGS" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS
-                "KEYCODE_POWER_DIALOG" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_POWER_DIALOG
-                        else -> null
-                    }
+            val keyAction = accessibilityKeyAction(keyCode)
 
             if (keyAction != null) {
                 // 通过UIHierarchyManager请求远程服务执行操作

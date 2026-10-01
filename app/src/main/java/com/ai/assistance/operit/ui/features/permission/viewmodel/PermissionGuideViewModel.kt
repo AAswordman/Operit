@@ -12,7 +12,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -121,7 +120,6 @@ class PermissionGuideViewModel : ViewModel() {
                 // 保存到偏好设置
                 try {
                     androidPermissionPreferences.savePreferredPermissionLevel(level)
-                    AndroidShellExecutor.clearPreferredPermissionLevelCache()
                     AppLogger.d(TAG, "Preferred permission level switched to: $level")
 
                     // 更新完成状态

@@ -21,8 +21,9 @@ import com.ai.assistance.operit.core.tools.mcp.MCPToolExecutor
 import com.ai.assistance.operit.core.tools.skill.SkillManager
 import com.ai.assistance.operit.data.security.PluginDenylistRepository
 import com.ai.assistance.operit.data.preferences.SkillVisibilityPreferences
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
+
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.model.Workflow
@@ -3542,11 +3543,8 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             AndroidPermissionLevel.STANDARD
         }
 
-        val shizukuAvailable = try {
-            ShizukuAuthorizer.isShizukuServiceRunning() && ShizukuAuthorizer.hasShizukuPermission()
-        } catch (_: Exception) {
-            false
-        }
+        val capabilities = PermissionCapabilityResolver.shellSnapshot(context, level)
+        val shizukuAvailable = capabilities.canUseShizuku
 
         val experimentalEnabled = try {
             DisplayPreferencesManager.getInstance(context).isExperimentalVirtualDisplayEnabled()
@@ -3554,14 +3552,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             true
         }
 
-        val adbOrHigher = when (level) {
-            AndroidPermissionLevel.DEBUGGER,
-            AndroidPermissionLevel.ADMIN,
-            AndroidPermissionLevel.ROOT -> true
-            else -> false
-        }
-
-        val virtualDisplayCapable = adbOrHigher && experimentalEnabled && (level != AndroidPermissionLevel.DEBUGGER || shizukuAvailable)
+        val virtualDisplayCapable = capabilities.hasPrivilegedShell && experimentalEnabled
 
         return mapOf(
             "platform.name" to "android",

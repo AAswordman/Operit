@@ -8,13 +8,17 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
 private val Context.androidPermissionDataStore: DataStore<Preferences> by
-        preferencesDataStore(name = "android_permission_preferences")
+        preferencesDataStore(
+            name = "android_permission_preferences",
+            produceMigrations = { listOf(AndroidPermissionModeMigration()) }
+        )
 
 enum class RootCommandExecutionMode {
     AUTO,
@@ -93,6 +97,7 @@ class AndroidPermissionPreferences(private val context: Context) {
         context.androidPermissionDataStore.edit { preferences ->
             preferences[PREFERRED_PERMISSION_LEVEL] = permissionLevel.name
         }
+        PermissionCapabilityResolver.invalidateSession()
     }
 
     suspend fun saveRootExecutionMode(mode: RootCommandExecutionMode) {
@@ -100,6 +105,7 @@ class AndroidPermissionPreferences(private val context: Context) {
         context.androidPermissionDataStore.edit { preferences ->
             preferences[ROOT_EXECUTION_MODE] = mode.name
         }
+        PermissionCapabilityResolver.invalidateSession()
     }
 
     suspend fun saveCustomSuCommand(command: String) {
@@ -108,6 +114,7 @@ class AndroidPermissionPreferences(private val context: Context) {
         context.androidPermissionDataStore.edit { preferences ->
             preferences[CUSTOM_SU_COMMAND] = normalized
         }
+        PermissionCapabilityResolver.invalidateSession()
     }
 
     /**
@@ -168,6 +175,7 @@ class AndroidPermissionPreferences(private val context: Context) {
         context.androidPermissionDataStore.edit { preferences ->
             preferences.remove(PREFERRED_PERMISSION_LEVEL)
         }
+        PermissionCapabilityResolver.invalidateSession()
     }
 
     suspend fun resetRootExecutionSettings() {
@@ -176,5 +184,6 @@ class AndroidPermissionPreferences(private val context: Context) {
             preferences.remove(ROOT_EXECUTION_MODE)
             preferences.remove(CUSTOM_SU_COMMAND)
         }
+        PermissionCapabilityResolver.invalidateSession()
     }
 }

@@ -1049,7 +1049,7 @@
     <string name="permission_level_root">Izin Root</string>
     <string name="permission_level_standard_desc">Izin dasar untuk menjalankan aplikasi, tidak memerlukan otorisasi khusus sistem</string>
     <string name="permission_level_accessibility_desc">Menambahkan dukungan layanan aksesibilitas, dapat meniru operasi layar</string>
-    <string name="permission_level_admin_desc">Menambahkan izin administrator perangkat, dapat mengakses lebih banyak fungsi sistem</string>
+    <string name="permission_level_admin_desc">Menggabungkan layanan aksesibilitas dan Shizuku yang diotorisasi secara terpisah; menggunakan operasi standar jika tidak tersedia</string>
     <string name="permission_level_debugger_desc">Menyediakan akses sistem tingkat ADB melalui Shizuku</string>
 
     <string name="tone_prompt_desc">Atur nada dan cara ekspresi balasan AI</string>
@@ -1345,7 +1345,7 @@
     <string name="permission_level_root_desc">Hak akses pengguna super, dapat menjalankan operasi sistem apa pun</string>
     <string name="permission_level_standard_full_desc">Izin standar: izin dasar untuk menjalankan aplikasi, tidak memerlukan izin khusus</string>
     <string name="permission_level_accessibility_full_desc">Izin aksesibilitas: memungkinkan aplikasi meniru tindakan pengguna, memerlukan pengaktifan layanan aksesibilitas</string>
-    <string name="permission_level_admin_full_desc">Izin administrator: memungkinkan aplikasi mengakses lebih banyak fungsi sistem, seperti layanan lokasi, dll.</string>
+    <string name="permission_level_admin_full_desc">Mode administrator: otorisasi aksesibilitas dan Shizuku secara terpisah. Operasi menggunakan layanan yang tersedia atau operasi file dan shell standar.</string>
     <string name="permission_level_debugger_full_desc">Izin debug: memungkinkan operasi lanjutan melalui fungsi debug ADB, memerlukan layanan Shizuku</string>
     <string name="permission_level_root_full_desc">Izin Root: memungkinkan aplikasi berjalan sebagai pengguna super, memerlukan perangkat yang sudah di-Root</string>
     <string name="root_access_granted">Aplikasi telah mendapatkan izin Root, dapat menjalankan perintah istimewa</string>
@@ -1400,7 +1400,7 @@
     <string name="shizuku_wizard_permission_notice">Perhatian: Jika tidak melihat popup pemberian izin, periksa:</string>
     <string name="shizuku_wizard_permission_notice_details">1. Apakah layanan Shizuku sedang berjalan\n2. Coba lagi setelah memulai ulang layanan Shizuku\n3. Pastikan izin tampilan jendela mengambang diizinkan</string>
     <string name="shizuku_wizard_grant_permission">Berikan Izin Shizuku</string>
-    <string name="shizuku_wizard_success_message">Selamat! Shizuku telah diatur sepenuhnya, Anda sekarang dapat menggunakan fitur izin debug.</string>
+    <string name="shizuku_wizard_success_message">Shizuku siap digunakan bersama aksesibilitas dalam mode administrator.</string>
     <string name="shizuku_wizard_update_available">Versi Baru Ditemukan</string>
     <string name="shizuku_wizard_update_message">Aplikasi ini memiliki versi Shizuku yang lebih baru yang terbundle, disarankan untuk memperbarui demi kompatibilitas dan fungsionalitas yang lebih baik.</string>
     <string name="shizuku_wizard_current_version">Versi Saat Ini: %1$s</string>
@@ -6052,7 +6052,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="openai_error_parse_response_failed">Gagal mem-parsing respons: %1$s</string>
     <string name="openai_connection_success">Koneksi berhasil!</string>
     <string name="openai_connection_test_failed">Tes koneksi gagal: %1$s</string>
-    <string name="phone_agent_need_debug_permission">Diperlukan izin debug/admin/Root dan mengaktifkan layar virtual eksperimental untuk menggunakan otomatisasi layar virtual.</string>
+    <string name="phone_agent_need_debug_permission">Otomatisasi layar virtual memerlukan mode administrator atau Root, akses Shizuku atau Root yang diotorisasi, dan layar virtual eksperimental yang diaktifkan.</string>
     <string name="phone_agent_shizuku_unavailable">Shizuku tidak tersedia, tidak dapat memulai layar virtual.</string>
     <string name="phone_agent_virtual_screen_service_start_failed">Gagal memulai layanan layar virtual.</string>
     <string name="phone_agent_virtual_screen_create_failed">Gagal membuat layar virtual.</string>

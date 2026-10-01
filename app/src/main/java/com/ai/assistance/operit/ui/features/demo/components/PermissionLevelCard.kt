@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,9 +47,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilities
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
+import com.ai.assistance.operit.ui.features.demo.permissions.SystemPermission
+import com.ai.assistance.operit.ui.features.demo.permissions.SystemPermissionStatus
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.launch
 
@@ -60,6 +61,7 @@ fun PermissionLevelCard(
         hasStoragePermission: Boolean,
         hasOverlayPermission: Boolean,
         hasBatteryOptimizationExemption: Boolean,
+        systemPermissions: SystemPermissionStatus,
         hasAccessibilityServiceEnabled: Boolean,
         hasLocationPermission: Boolean,
         isShizukuInstalled: Boolean,
@@ -73,6 +75,7 @@ fun PermissionLevelCard(
         onStoragePermissionClick: () -> Unit,
         onOverlayPermissionClick: () -> Unit,
         onBatteryOptimizationClick: () -> Unit,
+        onSystemPermissionClick: (SystemPermission) -> Unit,
         onAccessibilityClick: () -> Unit,
         onInstallAccessibilityProviderClick: () -> Unit, // 新增：安装提供者App的回调
         onLocationPermissionClick: () -> Unit,
@@ -111,7 +114,7 @@ fun PermissionLevelCard(
             )
 
     // 当组件首次加载时，同步显示级别和实际级别
-    LaunchedEffect(Unit) {
+    LaunchedEffect(preferredPermissionLevel.value) {
         displayedPermissionLevel = preferredPermissionLevel.value ?: AndroidPermissionLevel.STANDARD
         onPermissionLevelChange(displayedPermissionLevel)
     }
@@ -153,11 +156,9 @@ fun PermissionLevelCard(
                 val icon =
                         when (displayedPermissionLevel) {
                             AndroidPermissionLevel.STANDARD -> Icons.Default.Shield
-                            AndroidPermissionLevel.ACCESSIBILITY -> Icons.Default.Shield
                             AndroidPermissionLevel.ADMIN -> Icons.Default.Shield
-                            AndroidPermissionLevel.DEBUGGER -> Icons.Default.Shield
                             AndroidPermissionLevel.ROOT -> Icons.Default.Lock
-                            null -> Icons.Default.Shield // 默认使用标准图标
+
                         }
 
                 Icon(
@@ -200,7 +201,16 @@ fun PermissionLevelCard(
                     },
                     label = "Permission Description Animation"
             ) { level ->
-                PermissionLevelVisualDescription(level ?: AndroidPermissionLevel.STANDARD)
+                PermissionLevelVisualDescription(
+                    level,
+                    PermissionCapabilities(
+                        mode = level,
+                        shizukuRunning = isShizukuRunning,
+                        shizukuGranted = hasShizukuPermission,
+                        accessibilityAvailable = isAccessibilityProviderInstalled && hasAccessibilityServiceEnabled,
+                        rootAvailable = hasRootAccess
+                    )
+                )
             }
 
             // 显示状态指示条 - 更紧凑的状态条
@@ -214,7 +224,6 @@ fun PermissionLevelCard(
                                     androidPermissionPreferences.savePreferredPermissionLevel(
                                             displayedPermissionLevel
                                     )
-                                    AndroidShellExecutor.clearPreferredPermissionLevelCache()
                                     AppLogger.d(
                                             "PermissionLevelCard",
                                             "Preferred permission level switched to: $displayedPermissionLevel"
@@ -314,41 +323,14 @@ fun PermissionLevelCard(
                                             hasOverlayPermission = hasOverlayPermission,
                                             hasBatteryOptimizationExemption =
                                                     hasBatteryOptimizationExemption,
+                                            systemPermissions = systemPermissions,
                                             hasLocationPermission = hasLocationPermission,
                                             isOperitTerminalInstalled = isOperitTerminalInstalled,
                                             onStoragePermissionClick = onStoragePermissionClick,
                                             onOverlayPermissionClick = onOverlayPermissionClick,
                                             onBatteryOptimizationClick = onBatteryOptimizationClick,
+                                            onSystemPermissionClick = onSystemPermissionClick,
                                             onLocationPermissionClick = onLocationPermissionClick,
-                                            onOperitTerminalClick = onOperitTerminalClick
-                                    )
-                                }
-                        )
-                    }
-                    AndroidPermissionLevel.ACCESSIBILITY -> {
-                        PermissionSectionContainer(
-                                isActive =
-                                        preferredPermissionLevel.value ==
-                                                AndroidPermissionLevel.ACCESSIBILITY,
-                                isCurrentlyDisplayed = true,
-                                content = {
-                                    AccessibilityPermissionSection(
-                                            hasStoragePermission = hasStoragePermission,
-                                            hasOverlayPermission = hasOverlayPermission,
-                                            hasBatteryOptimizationExemption =
-                                                    hasBatteryOptimizationExemption,
-                                            hasLocationPermission = hasLocationPermission,
-                                            isAccessibilityProviderInstalled = isAccessibilityProviderInstalled,
-                                            hasAccessibilityServiceEnabled =
-                                                    hasAccessibilityServiceEnabled,
-                                            isAccessibilityUpdateNeeded = isAccessibilityUpdateNeeded,
-                                            isOperitTerminalInstalled = isOperitTerminalInstalled,
-                                            onStoragePermissionClick = onStoragePermissionClick,
-                                            onOverlayPermissionClick = onOverlayPermissionClick,
-                                            onBatteryOptimizationClick = onBatteryOptimizationClick,
-                                            onLocationPermissionClick = onLocationPermissionClick,
-                                            onAccessibilityClick = onAccessibilityClick,
-                                            onInstallAccessibilityProviderClick = onInstallAccessibilityProviderClick,
                                             onOperitTerminalClick = onOperitTerminalClick
                                     )
                                 }
@@ -362,44 +344,28 @@ fun PermissionLevelCard(
                                 isCurrentlyDisplayed = true,
                                 content = {
                                     AdminPermissionSection(
-                                            hasStoragePermission = hasStoragePermission,
-                                            hasOverlayPermission = hasOverlayPermission,
-                                            hasBatteryOptimizationExemption =
-                                                    hasBatteryOptimizationExemption,
-                                            hasLocationPermission = hasLocationPermission,
-                                            isOperitTerminalInstalled = isOperitTerminalInstalled,
-                                            onStoragePermissionClick = onStoragePermissionClick,
-                                            onOverlayPermissionClick = onOverlayPermissionClick,
-                                            onBatteryOptimizationClick = onBatteryOptimizationClick,
-                                            onLocationPermissionClick = onLocationPermissionClick,
-                                            onOperitTerminalClick = onOperitTerminalClick
-                                    )
-                                }
-                        )
-                    }
-                    AndroidPermissionLevel.DEBUGGER -> {
-                        PermissionSectionContainer(
-                                isActive =
-                                        preferredPermissionLevel.value ==
-                                                AndroidPermissionLevel.DEBUGGER,
-                                isCurrentlyDisplayed = true,
-                                content = {
-                                    DebuggerPermissionSection(
-                                            hasStoragePermission = hasStoragePermission,
-                                            hasOverlayPermission = hasOverlayPermission,
-                                            hasBatteryOptimizationExemption =
-                                                    hasBatteryOptimizationExemption,
-                                            hasLocationPermission = hasLocationPermission,
-                                            isOperitTerminalInstalled = isOperitTerminalInstalled,
+                                            isAccessibilityProviderInstalled = isAccessibilityProviderInstalled,
+                                            hasAccessibilityServiceEnabled = hasAccessibilityServiceEnabled,
+                                            isAccessibilityUpdateNeeded = isAccessibilityUpdateNeeded,
                                             isShizukuInstalled = isShizukuInstalled,
                                             isShizukuRunning = isShizukuRunning,
                                             hasShizukuPermission = hasShizukuPermission,
+                                            onAccessibilityClick = onAccessibilityClick,
+                                            onInstallAccessibilityProviderClick = onInstallAccessibilityProviderClick,
+                                            onShizukuClick = onShizukuClick,
+                                            hasStoragePermission = hasStoragePermission,
+                                            hasOverlayPermission = hasOverlayPermission,
+                                            hasBatteryOptimizationExemption =
+                                                    hasBatteryOptimizationExemption,
+                                            systemPermissions = systemPermissions,
+                                            hasLocationPermission = hasLocationPermission,
+                                            isOperitTerminalInstalled = isOperitTerminalInstalled,
                                             onStoragePermissionClick = onStoragePermissionClick,
                                             onOverlayPermissionClick = onOverlayPermissionClick,
                                             onBatteryOptimizationClick = onBatteryOptimizationClick,
+                                            onSystemPermissionClick = onSystemPermissionClick,
                                             onLocationPermissionClick = onLocationPermissionClick,
-                                            onOperitTerminalClick = onOperitTerminalClick,
-                                            onShizukuClick = onShizukuClick
+                                            onOperitTerminalClick = onOperitTerminalClick
                                     )
                                 }
                         )
@@ -416,6 +382,7 @@ fun PermissionLevelCard(
                                             hasOverlayPermission = hasOverlayPermission,
                                             hasBatteryOptimizationExemption =
                                                     hasBatteryOptimizationExemption,
+                                            systemPermissions = systemPermissions,
                                             hasLocationPermission = hasLocationPermission,
                                             isOperitTerminalInstalled = isOperitTerminalInstalled,
                                             isDeviceRooted = isDeviceRooted,
@@ -423,6 +390,7 @@ fun PermissionLevelCard(
                                             onStoragePermissionClick = onStoragePermissionClick,
                                             onOverlayPermissionClick = onOverlayPermissionClick,
                                             onBatteryOptimizationClick = onBatteryOptimizationClick,
+                                            onSystemPermissionClick = onSystemPermissionClick,
                                             onLocationPermissionClick = onLocationPermissionClick,
                                             onOperitTerminalClick = onOperitTerminalClick,
                                             onRootClick = onRootClick
@@ -444,9 +412,10 @@ private fun PermissionLevelSelector(
 ) {
     val levels = AndroidPermissionLevel.values()
 
-    ScrollableTabRow(
+    // 使用固定等分的标签栏，让当前权限级别数量始终填满可用宽度。
+    TabRow(
+            modifier = Modifier.fillMaxWidth(),
             selectedTabIndex = currentLevel.ordinal,
-            edgePadding = 0.dp,
             divider = {},
             contentColor = MaterialTheme.colorScheme.primary,
             containerColor = Color.Transparent,
@@ -477,7 +446,11 @@ private fun PermissionLevelSelector(
                     onClick = { onLevelSelected(level) },
                     text = {
                         Text(
-                                text = level.name,
+                                text = stringResource(when (level) {
+                                    AndroidPermissionLevel.STANDARD -> R.string.permission_level_standard
+                                    AndroidPermissionLevel.ADMIN -> R.string.permission_level_admin
+                                    AndroidPermissionLevel.ROOT -> R.string.permission_level_root
+                                }),
                                 fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color =
@@ -532,6 +505,11 @@ private fun PermissionSectionContainer(
 // 重新设计权限项，使其更现代和直观
 @Composable
 fun PermissionStatusItem(title: String, isGranted: Boolean, onClick: () -> Unit) {
+    PermissionStatusItem(title, isGranted, onClick, statusLabel = null)
+}
+
+@Composable
+private fun PermissionStatusItem(title: String, isGranted: Boolean, onClick: () -> Unit, statusLabel: String?) {
     val contentColor =
             if (isGranted) {
                 MaterialTheme.colorScheme.primary
@@ -551,7 +529,7 @@ fun PermissionStatusItem(title: String, isGranted: Boolean, onClick: () -> Unit)
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             // 状态指示点
             Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(contentColor))
 
@@ -561,12 +539,45 @@ fun PermissionStatusItem(title: String, isGranted: Boolean, onClick: () -> Unit)
             Text(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
             )
         }
 
         // 状态文本
-        Text(text = statusText, style = MaterialTheme.typography.bodySmall, color = contentColor)
+        Text(
+                text = statusLabel ?: statusText,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+                modifier = Modifier.padding(start = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun SystemPermissionRows(
+        status: SystemPermissionStatus,
+        onClick: (SystemPermission) -> Unit
+) {
+    val entries = listOf(
+        SystemPermission.NOTIFICATIONS to R.string.system_permission_notifications,
+        SystemPermission.APP_LIST to R.string.system_permission_app_list,
+        SystemPermission.USAGE_ACCESS to R.string.system_permission_usage_access,
+        SystemPermission.WRITE_SETTINGS to R.string.system_permission_write_settings
+    )
+    entries.forEach { (permission, title) ->
+        PermissionStatusItem(
+            title = stringResource(title),
+            isGranted = status.isAvailable(permission),
+            onClick = { onClick(permission) },
+            statusLabel = if (permission == SystemPermission.APP_LIST) {
+                stringResource(if (status.appList) R.string.status_available else R.string.status_unavailable)
+            } else null
+        )
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        )
     }
 }
 
@@ -575,11 +586,13 @@ private fun StandardPermissionSection(
         hasStoragePermission: Boolean,
         hasOverlayPermission: Boolean,
         hasBatteryOptimizationExemption: Boolean,
+        systemPermissions: SystemPermissionStatus,
         hasLocationPermission: Boolean,
         isOperitTerminalInstalled: Boolean,
         onStoragePermissionClick: () -> Unit,
         onOverlayPermissionClick: () -> Unit,
         onBatteryOptimizationClick: () -> Unit,
+        onSystemPermissionClick: (SystemPermission) -> Unit,
         onLocationPermissionClick: () -> Unit,
         onOperitTerminalClick: () -> Unit
 ) {
@@ -632,6 +645,8 @@ private fun StandardPermissionSection(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                 )
 
+                SystemPermissionRows(systemPermissions, onSystemPermissionClick)
+
                 PermissionStatusItem(
                         title = stringResource(R.string.location_permission),
                         isGranted = hasLocationPermission,
@@ -654,10 +669,11 @@ private fun StandardPermissionSection(
 }
 
 @Composable
-private fun AccessibilityPermissionSection(
+private fun AdminPermissionSection(
         hasStoragePermission: Boolean,
         hasOverlayPermission: Boolean,
         hasBatteryOptimizationExemption: Boolean,
+        systemPermissions: SystemPermissionStatus,
         hasLocationPermission: Boolean,
         isAccessibilityProviderInstalled: Boolean, // 新增
         hasAccessibilityServiceEnabled: Boolean,
@@ -666,10 +682,15 @@ private fun AccessibilityPermissionSection(
         onStoragePermissionClick: () -> Unit,
         onOverlayPermissionClick: () -> Unit,
         onBatteryOptimizationClick: () -> Unit,
+        onSystemPermissionClick: (SystemPermission) -> Unit,
         onLocationPermissionClick: () -> Unit,
         onAccessibilityClick: () -> Unit,
         onInstallAccessibilityProviderClick: () -> Unit, // 新增
-        onOperitTerminalClick: () -> Unit
+        onOperitTerminalClick: () -> Unit,
+        isShizukuInstalled: Boolean,
+        isShizukuRunning: Boolean,
+        hasShizukuPermission: Boolean,
+        onShizukuClick: () -> Unit
 ) {
     Column {
         Text(
@@ -718,6 +739,8 @@ private fun AccessibilityPermissionSection(
                         thickness = 0.5.dp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                 )
+
+                SystemPermissionRows(systemPermissions, onSystemPermissionClick)
 
                 PermissionStatusItem(
                         title = stringResource(R.string.location_permission),
@@ -818,153 +841,24 @@ private fun AccessibilityPermissionSection(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AdminPermissionSection(
-        hasStoragePermission: Boolean,
-        hasOverlayPermission: Boolean,
-        hasBatteryOptimizationExemption: Boolean,
-        hasLocationPermission: Boolean,
-        isOperitTerminalInstalled: Boolean,
-        onStoragePermissionClick: () -> Unit,
-        onOverlayPermissionClick: () -> Unit,
-        onBatteryOptimizationClick: () -> Unit,
-        onLocationPermissionClick: () -> Unit,
-        onOperitTerminalClick: () -> Unit
-) {
-    Column {
-        Text(
-                text = stringResource(R.string.basic_permissions),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(bottom = 4.dp)
-        )
-
-        // 添加不支持使用的提示卡片 - 移至顶部
-        Surface(
-                color = Color(0xFFFFF8E1), // 浅琥珀色背景
-                shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, Color(0xFFFFB74D)) // 琥珀色边框
-        ) {
-            Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = Color(0xFFFF9800), // 琥珀色图标
-                        modifier = Modifier.size(20.dp)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                        text = stringResource(R.string.version_not_supported),
-                        style =
-                                MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Medium
-                                ),
-                        color = Color(0xFFE65100) // 深琥珀色文字
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                    modifier = Modifier.padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                PermissionStatusItem(
-                        title = stringResource(R.string.storage_permission),
-                        isGranted = hasStoragePermission,
-                        onClick = onStoragePermissionClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.overlay_permission),
-                        isGranted = hasOverlayPermission,
-                        onClick = onOverlayPermissionClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.battery_optimization),
-                        isGranted = hasBatteryOptimizationExemption,
-                        onClick = onBatteryOptimizationClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.location_permission),
-                        isGranted = hasLocationPermission,
-                        onClick = onLocationPermissionClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.operit_terminal),
-                        isGranted = isOperitTerminalInstalled,
-                        onClick = onOperitTerminalClick
-                )
-            }
-        }
-
         Spacer(modifier = Modifier.height(8.dp))
+        ShizukuPermissionSection(isShizukuInstalled, isShizukuRunning, hasShizukuPermission, onShizukuClick)
 
-        Text(
-                text = stringResource(R.string.admin_permission),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(bottom = 4.dp)
-        )
     }
 }
 
 @Composable
-private fun DebuggerPermissionSection(
-        hasStoragePermission: Boolean,
-        hasOverlayPermission: Boolean,
-        hasBatteryOptimizationExemption: Boolean,
-        hasLocationPermission: Boolean,
-        isOperitTerminalInstalled: Boolean,
-        isShizukuInstalled: Boolean,
-        isShizukuRunning: Boolean,
-        hasShizukuPermission: Boolean,
-        onStoragePermissionClick: () -> Unit,
-        onOverlayPermissionClick: () -> Unit,
-        onBatteryOptimizationClick: () -> Unit,
-        onLocationPermissionClick: () -> Unit,
-        onOperitTerminalClick: () -> Unit,
-        onShizukuClick: () -> Unit
+private fun ShizukuPermissionSection(
+    isShizukuInstalled: Boolean,
+    isShizukuRunning: Boolean,
+    hasShizukuPermission: Boolean,
+    onShizukuClick: () -> Unit
 ) {
     // 获取当前上下文
     val context = LocalContext.current
 
     // 检查Shizuku是否需要更新
-    val isShizukuUpdateNeeded = remember {
+    val isShizukuUpdateNeeded = remember(isShizukuInstalled, isShizukuRunning, hasShizukuPermission) {
         try {
             com.ai.assistance.operit.core.tools.system.ShizukuInstaller.isShizukuUpdateNeeded(
                     context
@@ -976,75 +870,7 @@ private fun DebuggerPermissionSection(
 
     Column {
         Text(
-                text = stringResource(R.string.basic_permissions),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(bottom = 4.dp)
-        )
-
-        Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                    modifier = Modifier.padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                PermissionStatusItem(
-                        title = stringResource(R.string.storage_permission),
-                        isGranted = hasStoragePermission,
-                        onClick = onStoragePermissionClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.overlay_permission),
-                        isGranted = hasOverlayPermission,
-                        onClick = onOverlayPermissionClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.battery_optimization),
-                        isGranted = hasBatteryOptimizationExemption,
-                        onClick = onBatteryOptimizationClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.location_permission),
-                        isGranted = hasLocationPermission,
-                        onClick = onLocationPermissionClick
-                )
-
-                HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-
-                PermissionStatusItem(
-                        title = stringResource(R.string.operit_terminal),
-                        isGranted = isOperitTerminalInstalled,
-                        onClick = onOperitTerminalClick
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-                text = stringResource(R.string.debug_permission),
+                text = stringResource(R.string.shizuku_service),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(bottom = 4.dp)
         )
@@ -1128,6 +954,7 @@ private fun RootPermissionSection(
         hasStoragePermission: Boolean,
         hasOverlayPermission: Boolean,
         hasBatteryOptimizationExemption: Boolean,
+        systemPermissions: SystemPermissionStatus,
         hasLocationPermission: Boolean,
         isOperitTerminalInstalled: Boolean,
         isDeviceRooted: Boolean,
@@ -1135,6 +962,7 @@ private fun RootPermissionSection(
         onStoragePermissionClick: () -> Unit,
         onOverlayPermissionClick: () -> Unit,
         onBatteryOptimizationClick: () -> Unit,
+        onSystemPermissionClick: (SystemPermission) -> Unit,
         onLocationPermissionClick: () -> Unit,
         onOperitTerminalClick: () -> Unit,
         onRootClick: () -> Unit
@@ -1186,6 +1014,8 @@ private fun RootPermissionSection(
                         thickness = 0.5.dp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                 )
+
+                SystemPermissionRows(systemPermissions, onSystemPermissionClick)
 
                 PermissionStatusItem(
                         title = stringResource(R.string.location_permission),
@@ -1266,37 +1096,16 @@ private fun RootPermissionSection(
     }
 }
 
-// 获取权限级别的描述
 @Composable
-private fun getPermissionLevelDescription(level: AndroidPermissionLevel): String {
-    return when (level) {
-        AndroidPermissionLevel.STANDARD ->
-                stringResource(id = R.string.permission_level_standard_full_desc)
-        AndroidPermissionLevel.ACCESSIBILITY ->
-                stringResource(id = R.string.permission_level_accessibility_full_desc)
-        AndroidPermissionLevel.ADMIN ->
-                stringResource(id = R.string.permission_level_admin_full_desc)
-        AndroidPermissionLevel.DEBUGGER ->
-                stringResource(id = R.string.permission_level_debugger_full_desc)
-        AndroidPermissionLevel.ROOT -> stringResource(id = R.string.permission_level_root_full_desc)
-    }
-}
-
-@Composable
-private fun PermissionLevelVisualDescription(level: AndroidPermissionLevel) {
+private fun PermissionLevelVisualDescription(level: AndroidPermissionLevel, capabilities: PermissionCapabilities) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
         // 根据不同权限级别显示不同的标题
         val title =
                 when (level) {
                     AndroidPermissionLevel.STANDARD ->
                             stringResource(R.string.permission_level_standard)
-                    AndroidPermissionLevel.ACCESSIBILITY ->
-                            stringResource(R.string.permission_level_accessibility)
                     AndroidPermissionLevel.ADMIN -> stringResource(R.string.permission_level_admin)
-                    AndroidPermissionLevel.DEBUGGER ->
-                            stringResource(R.string.permission_level_debugger)
                     AndroidPermissionLevel.ROOT -> stringResource(R.string.permission_level_root)
-                    null -> stringResource(R.string.permission_level_standard) // 默认标题
                 }
 
         Text(
@@ -1311,15 +1120,10 @@ private fun PermissionLevelVisualDescription(level: AndroidPermissionLevel) {
                 when (level) {
                     AndroidPermissionLevel.STANDARD ->
                             stringResource(R.string.permission_level_standard_desc)
-                    AndroidPermissionLevel.ACCESSIBILITY ->
-                            stringResource(R.string.permission_level_accessibility_desc)
                     AndroidPermissionLevel.ADMIN ->
                             stringResource(R.string.permission_level_admin_desc)
-                    AndroidPermissionLevel.DEBUGGER ->
-                            stringResource(R.string.permission_level_debugger_desc)
                     AndroidPermissionLevel.ROOT ->
                             stringResource(R.string.permission_level_root_desc)
-                    null -> stringResource(R.string.permission_level_standard_desc) // 默认描述
                 }
 
         Text(
@@ -1330,29 +1134,27 @@ private fun PermissionLevelVisualDescription(level: AndroidPermissionLevel) {
         )
 
         // 功能项网格
-        FeatureGrid(level)
+        FeatureGrid(capabilities)
     }
 }
 
 @Composable
-private fun FeatureGrid(level: AndroidPermissionLevel) {
+private fun FeatureGrid(capabilities: PermissionCapabilities) {
     val context = LocalContext.current
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // 在这里定义不同权限级别支持的功能
-        val features =
-                listOf(
-                        context.getString(R.string.feature_overlay_window) to isFeatureSupported(level, true, true, true, true, true),
-                        context.getString(R.string.feature_file_operations) to isFeatureSupported(level, true, true, true, true, true),
-                        "Android/data" to isFeatureSupported(level, false, false, true, true, true),
-                        "data/data" to isFeatureSupported(level, false, false, false, false, true),
-                        context.getString(R.string.feature_screen_auto_click) to isFeatureSupported(level, false, true, true, true, true),
-                        context.getString(R.string.feature_system_permission_modification) to isFeatureSupported(level, false, false, false, true, true),
-                        context.getString(R.string.feature_termux_support) to isFeatureSupported(level, true, true, true, true, true),
-                        context.getString(R.string.feature_run_js) to
-                                (level == AndroidPermissionLevel.DEBUGGER ||
-                                        level == AndroidPermissionLevel.ROOT),
-                        context.getString(R.string.feature_plugin_market_mcp) to isFeatureSupported(level, true, true, true, true, true)
-                )
+        val features = listOf(
+            context.getString(R.string.feature_overlay_window) to true,
+            context.getString(R.string.feature_file_operations) to true,
+            "Android/data" to capabilities.hasPrivilegedShell,
+            "data/data" to capabilities.canUseRoot,
+            context.getString(R.string.feature_screen_auto_click) to
+                (capabilities.canUseAccessibility || capabilities.hasPrivilegedShell),
+            context.getString(R.string.feature_system_permission_modification) to capabilities.hasPrivilegedShell,
+            context.getString(R.string.feature_termux_support) to true,
+            context.getString(R.string.feature_run_js) to true,
+            context.getString(R.string.feature_plugin_market_mcp) to true
+        )
 
         // 每行3个功能项
         val rows = features.chunked(3)
@@ -1372,35 +1174,6 @@ private fun FeatureGrid(level: AndroidPermissionLevel) {
                 repeat(3 - rowFeatures.size) { Box(modifier = Modifier.weight(1f)) }
             }
         }
-    }
-}
-
-/**
- * 判断特定功能在给定权限级别下是否支持
- *
- * @param level 当前权限级别
- * @param inStandard 在标准权限下是否支持
- * @param inAccessibility 在无障碍权限下是否支持
- * @param inAdmin 在管理员权限下是否支持
- * @param inDebugger 在调试权限下是否支持
- * @param inRoot 在Root权限下是否支持
- * @return 是否支持该功能
- */
-private fun isFeatureSupported(
-        level: AndroidPermissionLevel?,
-        inStandard: Boolean,
-        inAccessibility: Boolean,
-        inAdmin: Boolean,
-        inDebugger: Boolean,
-        inRoot: Boolean
-): Boolean {
-    return when (level) {
-        AndroidPermissionLevel.STANDARD -> inStandard
-        AndroidPermissionLevel.ACCESSIBILITY -> inAccessibility
-        AndroidPermissionLevel.ADMIN -> inAdmin
-        AndroidPermissionLevel.DEBUGGER -> inDebugger
-        AndroidPermissionLevel.ROOT -> inRoot
-        null -> inStandard
     }
 }
 

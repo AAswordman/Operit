@@ -18,8 +18,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
@@ -30,6 +33,7 @@ import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
 import com.ai.assistance.operit.core.tools.system.ShizukuInstaller
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import com.ai.assistance.operit.ui.features.demo.components.*
+import com.ai.assistance.operit.ui.features.demo.permissions.SystemPermissionSettings
 import com.ai.assistance.operit.ui.features.demo.viewmodel.ShizukuDemoViewModel
 import com.ai.assistance.operit.ui.features.demo.wizards.AccessibilityWizardCard
 import com.ai.assistance.operit.ui.features.demo.wizards.OperitTerminalWizardCard
@@ -38,6 +42,7 @@ import com.ai.assistance.operit.ui.features.demo.wizards.ShizukuWizardCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +63,7 @@ fun ShizukuDemoScreen(
 
     // Collect UI state from ViewModel
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     // 跟踪当前显示的权限级别
     var currentDisplayedPermissionLevel by remember {
@@ -87,6 +93,15 @@ fun ShizukuDemoScreen(
         ShizukuAuthorizer.addStateChangeListener(shizukuListener)
 
         onDispose { ShizukuAuthorizer.removeStateChangeListener(shizukuListener) }
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshSystemPermissions()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     // 预先加载一个空的UI状态，避免初始化时的卡顿
@@ -139,6 +154,7 @@ fun ShizukuDemoScreen(
                 hasStoragePermission = uiState.hasStoragePermission.value,
                 hasOverlayPermission = uiState.hasOverlayPermission.value,
                 hasBatteryOptimizationExemption = uiState.hasBatteryOptimizationExemption.value,
+                systemPermissions = uiState.systemPermissions.value,
                 hasAccessibilityServiceEnabled = uiState.hasAccessibilityServiceEnabled.value,
                 hasLocationPermission = uiState.hasLocationPermission.value,
                 isShizukuInstalled = uiState.isShizukuInstalled.value,
@@ -209,6 +225,11 @@ fun ShizukuDemoScreen(
                         context.startActivity(intent)
                     } catch (e: Exception) {
                                                     Toast.makeText(context, context.getString(R.string.cannot_open_battery_settings), Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onSystemPermissionClick = { permission ->
+                    if (!SystemPermissionSettings.open(context, permission)) {
+                        Toast.makeText(context, context.getString(R.string.shizuku_demo_permission_failed), Toast.LENGTH_SHORT).show()
                     }
                 },
                 onAccessibilityClick = {
@@ -283,7 +304,7 @@ fun ShizukuDemoScreen(
                 }
 
         val needShizukuSetupGuide =
-                currentDisplayedPermissionLevel == AndroidPermissionLevel.DEBUGGER &&
+                currentDisplayedPermissionLevel == AndroidPermissionLevel.ADMIN &&
                         ((!uiState.isShizukuInstalled.value ||
                                 !uiState.isShizukuRunning.value ||
                                 !uiState.hasShizukuPermission.value) ||
@@ -298,7 +319,7 @@ fun ShizukuDemoScreen(
                         (!uiState.hasRootAccess.value)
     
         val needAccessibilitySetupGuide =
-            currentDisplayedPermissionLevel == AndroidPermissionLevel.ACCESSIBILITY &&
+            currentDisplayedPermissionLevel == AndroidPermissionLevel.ADMIN &&
                     (!uiState.isAccessibilityProviderInstalled.value ||
                             !uiState.hasAccessibilityServiceEnabled.value ||
                             isAccessibilityUpdateNeeded)
@@ -396,7 +417,7 @@ fun ShizukuDemoScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Shizuku向导卡片 - 如果正在浏览DEBUGGER权限级别且Shizuku未完全设置则显示
+            // Shizuku向导卡片 - 在管理员模式下展示独立的 Shizuku 授权向导
             if (needShizukuSetupGuide) {
                 ShizukuWizardCard(
                         isShizukuInstalled = uiState.isShizukuInstalled.value,

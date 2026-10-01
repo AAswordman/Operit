@@ -7,17 +7,22 @@ import com.ai.assistance.operit.core.tools.NotificationData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.SystemSettingData
 import com.ai.assistance.operit.core.tools.defaultTool.accessbility.AccessibilitySystemOperationTools
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
 
 /** 调试级别的系统操作工具，继承无障碍版本, 并使用shell命令覆盖部分实现 */
-open class DebuggerSystemOperationTools(context: Context) :
+open class DebuggerSystemOperationTools(private val context: Context) :
     AccessibilitySystemOperationTools(context) {
 
     private val TAG = "DebuggerSystemTools"
 
     override suspend fun modifySystemSetting(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return super.modifySystemSetting(tool)
+        }
+
         val setting = tool.parameters.find { it.name == "setting" }?.value ?: ""
         val value = tool.parameters.find { it.name == "value" }?.value ?: ""
         val namespace = tool.parameters.find { it.name == "namespace" }?.value ?: "system"
@@ -75,6 +80,10 @@ open class DebuggerSystemOperationTools(context: Context) :
     }
 
     override suspend fun getSystemSetting(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return super.getSystemSetting(tool)
+        }
+
         val setting = tool.parameters.find { it.name == "setting" }?.value ?: ""
         val namespace = tool.parameters.find { it.name == "namespace" }?.value ?: "system"
 
@@ -135,6 +144,10 @@ open class DebuggerSystemOperationTools(context: Context) :
     }
 
     override suspend fun installApp(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return super.installApp(tool)
+        }
+
         val apkPath = tool.parameters.find { it.name == "path" }?.value ?: ""
 
         if (apkPath.isBlank()) {
@@ -205,6 +218,10 @@ open class DebuggerSystemOperationTools(context: Context) :
     }
 
     override suspend fun uninstallApp(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return super.uninstallApp(tool)
+        }
+
         val packageName = tool.parameters.find { it.name == "package_name" }?.value ?: ""
         val keepData = tool.parameters.find { it.name == "keep_data" }?.value?.toBoolean() ?: false
 
@@ -275,6 +292,10 @@ open class DebuggerSystemOperationTools(context: Context) :
     }
 
     override suspend fun startApp(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return super.startApp(tool)
+        }
+
         val packageName = tool.parameters.find { it.name == "package_name" }?.value ?: ""
         val activity = tool.parameters.find { it.name == "activity" }?.value ?: ""
 
@@ -361,6 +382,10 @@ open class DebuggerSystemOperationTools(context: Context) :
     }
 
     override suspend fun stopApp(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return super.stopApp(tool)
+        }
+
         val packageName = tool.parameters.find { it.name == "package_name" }?.value ?: ""
 
         if (packageName.isBlank()) {
@@ -410,6 +435,10 @@ open class DebuggerSystemOperationTools(context: Context) :
     }
 
     override suspend fun getNotifications(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return super.getNotifications(tool)
+        }
+
         val limit = tool.parameters.find { it.name == "limit" }?.value?.toIntOrNull() ?: 10
         val includeOngoing =
             tool.parameters.find { it.name == "include_ongoing" }?.value?.toBoolean() ?: false

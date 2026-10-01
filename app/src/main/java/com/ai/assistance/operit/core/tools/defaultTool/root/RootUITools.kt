@@ -9,6 +9,7 @@ import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.UIActionResultData
 import com.ai.assistance.operit.core.tools.UIPageResultData
 import com.ai.assistance.operit.core.tools.defaultTool.admin.AdminUITools
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.system.ShellIdentity
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
@@ -39,6 +40,8 @@ open class RootUITools(context: Context) : AdminUITools(context) {
 
     /** Performs a tap action using the 'input tap' shell command. */
     override suspend fun tap(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).canUseRoot) return super.tap(tool)
+
         val x = tool.parameters.find { it.name == "x" }?.value?.toIntOrNull()
         val y = tool.parameters.find { it.name == "y" }?.value?.toIntOrNull()
 
@@ -98,6 +101,8 @@ open class RootUITools(context: Context) : AdminUITools(context) {
     }
 
     override suspend fun longPress(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).canUseRoot) return super.longPress(tool)
+
         val x = tool.parameters.find { it.name == "x" }?.value?.toIntOrNull()
         val y = tool.parameters.find { it.name == "y" }?.value?.toIntOrNull()
 
@@ -160,6 +165,8 @@ open class RootUITools(context: Context) : AdminUITools(context) {
 
     /** Performs a swipe action using the 'input swipe' shell command. */
     override suspend fun swipe(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).canUseRoot) return super.swipe(tool)
+
         val startX = tool.parameters.find { it.name == "start_x" }?.value?.toIntOrNull()
         val startY = tool.parameters.find { it.name == "start_y" }?.value?.toIntOrNull()
         val endX = tool.parameters.find { it.name == "end_x" }?.value?.toIntOrNull()
@@ -223,6 +230,8 @@ open class RootUITools(context: Context) : AdminUITools(context) {
 
     /** Clicks a UI element by finding it via uiautomator dump. */
     override suspend fun clickElement(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).canUseRoot) return super.clickElement(tool)
+
         val resourceId = tool.parameters.find { it.name == "resourceId" }?.value
         val className = tool.parameters.find { it.name == "className" }?.value
         val contentDesc = tool.parameters.find { it.name == "contentDesc" }?.value
@@ -256,6 +265,8 @@ open class RootUITools(context: Context) : AdminUITools(context) {
 
     /** Sets input text by clearing the field and pasting from the clipboard. */
     override suspend fun setInputText(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).canUseRoot) return super.setInputText(tool)
+
         val text = tool.parameters.find { it.name == "text" }?.value ?: ""
 
         try {
@@ -323,6 +334,8 @@ open class RootUITools(context: Context) : AdminUITools(context) {
 
     /** Executes a key press using the 'input keyevent' shell command. */
     override suspend fun pressKey(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).canUseRoot) return super.pressKey(tool)
+
         val keyCode = tool.parameters.find { it.name == "key_code" }?.value
             ?: return ToolResult(
                 toolName = tool.name,
@@ -360,6 +373,8 @@ open class RootUITools(context: Context) : AdminUITools(context) {
 
     /** Gets page info using uiautomator dump and dumpsys. */
     override suspend fun getPageInfo(tool: AITool): ToolResult {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).canUseRoot) return super.getPageInfo(tool)
+
         return try {
             val uiData = getUIDataFromShell(tool)
                 ?: return ToolResult(

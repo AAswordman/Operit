@@ -3,6 +3,7 @@ package com.ai.assistance.operit.core.tools.system.action
 import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.tools.permissions.PermissionBackend
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
 import com.ai.assistance.operit.core.tools.system.shell.ShellExecutorFactory
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +22,6 @@ import kotlinx.coroutines.flow.onEach
 class RootActionListener(private val context: Context) : ActionListener {
     companion object {
         private const val TAG = "RootActionListener"
-        private var rootAvailable: Boolean? = null
     }
 
     private val isListening = AtomicBoolean(false)
@@ -29,25 +29,20 @@ class RootActionListener(private val context: Context) : ActionListener {
     private var monitoringJob: Job? = null
     private var process: ShellProcess? = null
     private val shellExecutor by lazy { 
-        ShellExecutorFactory.getExecutor(context, AndroidPermissionLevel.ROOT) 
+        ShellExecutorFactory.getBackendExecutor(context, PermissionBackend.ROOT)
     }
 
     override fun getPermissionLevel(): AndroidPermissionLevel = AndroidPermissionLevel.ROOT
 
     override suspend fun isAvailable(): Boolean {
         try {
-            // 如果已经检查过，直接返回缓存结果
-            rootAvailable?.let { return it }
-
             // 检查Root权限
             val hasRoot = shellExecutor.isAvailable()
-            rootAvailable = hasRoot
             
             AppLogger.d(TAG, "Root权限检查: $hasRoot")
             return hasRoot
         } catch (e: Exception) {
             AppLogger.e(TAG, "检查Root权限时出错", e)
-            rootAvailable = false
             return false
         }
     }

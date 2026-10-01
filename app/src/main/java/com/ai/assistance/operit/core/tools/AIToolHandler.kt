@@ -4,6 +4,8 @@ import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.tools.mcp.MCPManager
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilitySession
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolInvocation
 import com.ai.assistance.operit.data.model.ToolParameter
@@ -175,6 +177,11 @@ class AIToolHandler private constructor(private val context: Context) {
         return toolPermissionSystem.refreshPermissionRequestState()
     }
 
+    /** 在新一轮对话开始时建立新的权限快照会话。 */
+    internal fun beginPermissionSession(): PermissionCapabilitySession {
+        return PermissionCapabilityResolver.beginSession()
+    }
+
     // 工具注册的唯一方法 - 提供完整信息的注册
     fun registerTool(
             name: String,
@@ -277,6 +284,7 @@ class AIToolHandler private constructor(private val context: Context) {
             packageManagerInstance = null
             defaultToolsRegistered.set(false)
         }
+        PermissionCapabilityResolver.invalidateSession()
     }
 
     /**

@@ -1093,7 +1093,7 @@
     <string name="shizuku_wizard_permission_notice">Nota: Se você não vir a janela pop-up de autorização, verifique:</string>
     <string name="shizuku_wizard_permission_notice_details">1. Se o serviço Shizuku está em execução\n2. Reinicie o serviço Shizuku e tente novamente\n3. Confirme se a permissão para exibir janelas flutuantes é permitida</string>
     <string name="shizuku_wizard_grant_permission">Conceda permissões a Shizuku</string>
-    <string name="shizuku_wizard_success_message">Parabéns! Shizuku está totalmente configurado e agora você pode usar o recurso de permissões de depuração.</string>
+    <string name="shizuku_wizard_success_message">Shizuku está pronto e pode ser usado junto com acessibilidade no modo administrador.</string>
     <string name="shizuku_wizard_update_available">nova versão encontrada</string>
     <string name="shizuku_wizard_update_message">Uma versão mais recente do Shizuku está integrada ao aplicativo e é recomendável atualizar para melhor compatibilidade e funcionalidade.</string>
     <string name="shizuku_wizard_current_version">Versão atual: %1$s</string>
@@ -1194,12 +1194,12 @@
     <string name="permission_level_root">Permissões de raiz</string>
     <string name="permission_level_standard_desc">Permissões básicas de execução de aplicativos, nenhuma autorização especial exigida pelo sistema</string>
     <string name="permission_level_accessibility_desc">Adicionado suporte de serviço de acessibilidade para simular operações de tela</string>
-    <string name="permission_level_admin_desc">Adicione permissões de administrador do dispositivo para acessar mais funções do sistema</string>
+    <string name="permission_level_admin_desc">Combina serviços de acessibilidade e Shizuku com autorizações independentes; usa operações padrão quando indisponíveis</string>
     <string name="permission_level_debugger_desc">Fornece acesso ao sistema em nível ADB via Shizuku</string>
     <string name="permission_level_root_desc">Direitos de superusuário, pode realizar qualquer operação do sistema</string>
     <string name="permission_level_standard_full_desc">Permissões padrão: permissões básicas de execução de aplicativos, sem necessidade de permissões especiais</string>
     <string name="permission_level_accessibility_full_desc">Permissão de acessibilidade: permite que o aplicativo simule as operações do usuário e que os serviços de acessibilidade precisem ser ativados</string>
-    <string name="permission_level_admin_full_desc">Permissões de administrador: permite que o aplicativo acesse mais recursos do sistema, como serviços de localização, etc.</string>
+    <string name="permission_level_admin_full_desc">Modo administrador: autorize acessibilidade e Shizuku separadamente. As operações usam o serviço disponível ou operações padrão de arquivos e shell.</string>
     <string name="permission_level_debugger_full_desc">Permissões de depuração: permite operações avançadas por meio da função de depuração ADB, requer serviço Shizuku</string>
     <string name="permission_level_root_full_desc">Permissões de root: permite que o aplicativo seja executado como superusuário, exigindo que o dispositivo esteja enraizado</string>
     <string name="root_access_granted">O aplicativo obteve permissão de Root e pode executar comandos privilegiados.</string>
@@ -5723,7 +5723,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="openai_error_parse_response_failed">Falha ao analisar a resposta: %1$s</string>
     <string name="openai_connection_success">Conexão bem-sucedida!</string>
     <string name="openai_connection_test_failed">Falha no teste de conexão: %1$s</string>
-    <string name="phone_agent_need_debug_permission">Requer permissões de depuração/administrador/root e telas virtuais experimentais habilitadas para usar automação de tela virtual.</string>
+    <string name="phone_agent_need_debug_permission">A automação de tela virtual requer modo administrador ou Root, acesso autorizado ao Shizuku ou Root e telas virtuais experimentais ativadas.</string>
     <string name="phone_agent_shizuku_unavailable">Shizuku não está disponível e não consegue iniciar a tela virtual.</string>
     <string name="phone_agent_virtual_screen_service_start_failed">O serviço de tela virtual falhou ao iniciar.</string>
     <string name="phone_agent_virtual_screen_create_failed">Falha na criação da tela virtual.</string>

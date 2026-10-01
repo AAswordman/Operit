@@ -897,8 +897,7 @@ open class DebuggerFileSystemTools(context: Context) : AccessibilityFileSystemTo
                             android.util.Base64.NO_WRAP
                     )
 
-            // 使用两种写入方法中的一种:
-            // 方法1: 使用base64命令解码并写入文件（大内容时分块，避免命令行过长）
+            // 使用 base64 写入；大内容分块，失败后不重新提交已写入的数据。
             val redirectOperator = if (append) ">>" else ">"
             val maxInlineBase64 = 32768
             val base64ChunkSize = 16384 // 4的倍数，保证base64解码边界正确
@@ -939,41 +938,17 @@ open class DebuggerFileSystemTools(context: Context) : AccessibilityFileSystemTo
 
             if (!writeResult.success) {
                 AppLogger.e(TAG, "Failed to write with base64 method: ${writeResult.stderr}")
-                if (content.length > maxInlineBase64) {
-                    return ToolResult(
-                            toolName = tool.name,
-                            success = false,
-                            result =
-                                    FileOperationData(
-                                            operation = if (append) "append" else "write",
-                                            path = path,
-                                            successful = false,
-                                            details =
-                                                    "Failed to write to file: ${writeResult.stderr}"
-                                    ),
-                            error = "Failed to write to file: ${writeResult.stderr}"
-                    )
-                }
-                // 方法2: 尝试直接写入，无需base64（仅适用于较小内容）
-                val fallbackResult =
-                        AndroidShellExecutor.executeShellCommand(
-                                "printf '%s' '$content' $redirectOperator '$path'"
-                        )
-                if (!fallbackResult.success) {
-                    return ToolResult(
-                            toolName = tool.name,
-                            success = false,
-                            result =
-                                    FileOperationData(
-                                            operation = if (append) "append" else "write",
-                                            path = path,
-                                            successful = false,
-                                            details =
-                                                    "Failed to write to file: ${fallbackResult.stderr}"
-                                    ),
-                            error = "Failed to write to file: ${fallbackResult.stderr}"
-                    )
-                }
+                return ToolResult(
+                        toolName = tool.name,
+                        success = false,
+                        result = FileOperationData(
+                                operation = if (append) "append" else "write",
+                                path = path,
+                                successful = false,
+                                details = "Failed to write to file: ${writeResult.stderr}"
+                        ),
+                        error = "Failed to write to file: ${writeResult.stderr}"
+                )
             }
 
             // 验证写入是否成功

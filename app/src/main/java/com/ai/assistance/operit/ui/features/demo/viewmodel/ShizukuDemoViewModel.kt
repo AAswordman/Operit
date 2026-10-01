@@ -83,6 +83,9 @@ class ShizukuDemoViewModel(application: Application) : AndroidViewModel(applicat
         checkRootStatus(context)
         stateManager.refreshStatus()
     }
+    fun refreshSystemPermissions() {
+        stateManager.refreshSystemPermissions()
+    }
 
     /** Check root status */
     fun checkRootStatus(context: Context) {
