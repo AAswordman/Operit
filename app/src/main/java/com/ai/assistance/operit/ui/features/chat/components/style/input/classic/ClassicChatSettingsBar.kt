@@ -24,7 +24,6 @@ import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,7 +48,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import android.widget.Toast
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityControl
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMapping
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
@@ -101,13 +99,9 @@ fun ClassicChatSettingsBar(
     thinkingOptionId: String,
     onThinkingOptionIdChange: (String) -> Unit,
     maxWindowSizeInK: Float,
-    baseContextLengthInK: Float,
-    maxContextLengthInK: Float,
     onContextLengthChange: (Float) -> Unit,
     enableMemoryAutoUpdate: Boolean,
     onToggleMemoryAutoUpdate: () -> Unit,
-    enableMaxContextMode: Boolean,
-    onToggleEnableMaxContextMode: () -> Unit,
     summaryTokenThreshold: Float,
     onSummaryTokenThresholdChange: (Float) -> Unit,
     onNavigateToMemoryBase: () -> Unit,
@@ -144,7 +138,6 @@ fun ClassicChatSettingsBar(
     var showPluginsSection by remember { mutableStateOf(false) }
     var showModelDropdown by remember { mutableStateOf(false) }
     var showMemoryDropdown by remember { mutableStateOf(false) }
-    var showThinkingDropdown by remember { mutableStateOf(false) }
     var showToolPromptManagerDialog by remember { mutableStateOf(false) }
     var showCharacterCardBindingSwitchConfirm by remember { mutableStateOf(false) }
     var pendingCharacterCardModelSelection by remember { mutableStateOf<Pair<String, Int>?>(null) }
@@ -395,7 +388,6 @@ fun ClassicChatSettingsBar(
                 }
                 showModelDropdown = false
                 showMemoryDropdown = false
-                showThinkingDropdown = false
                 showMemorySection = false
                 showModelSection = false
                 showToolsSection = false
@@ -422,7 +414,6 @@ fun ClassicChatSettingsBar(
                     showMenu = false
                     showModelDropdown = false // 关闭主菜单时也关闭模型菜单
                     showMemoryDropdown = false
-                    showThinkingDropdown = false
                     showMemorySection = false
                     showModelSection = false
                     showToolsSection = false
@@ -557,7 +548,6 @@ fun ClassicChatSettingsBar(
                                     showModelSection = it
                                     if (!it) {
                                         showModelDropdown = false
-                                        showThinkingDropdown = false
                                     }
                                 }
                             ) {
@@ -591,56 +581,18 @@ fun ClassicChatSettingsBar(
                                 onToggleThinkingMode = if (thinkingQualityMapping?.reasoningRequired == true) ({}) else onToggleThinkingMode,
                                 thinkingOptionId = thinkingOptionId,
                                 thinkingQualityMapping = thinkingQualityMapping,
-                                onThinkingOptionIdChange = { optionId ->
-                                    onThinkingOptionIdChange(optionId)
-                                },
+                                onThinkingOptionIdChange = onThinkingOptionIdChange,
                                 thinkingSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.THINKING].orEmpty(),
-                                expanded = showThinkingDropdown,
-                                onExpandedChange = { showThinkingDropdown = it },
-                                onInfoClick = {
-                                    infoPopupContent =
-                                        context.getString(R.string.thinking_settings) to context.getString(R.string.thinking_settings_desc)
-                                    showMenu = false
-                                },
-                                onThinkingModeInfoClick = {
-                                    infoPopupContent =
-                                        context.getString(R.string.thinking_mode) to context.getString(R.string.thinking_mode_desc)
-                                    showMenu = false
-                                },
                                 onThinkingQualityInfoClick = {
                                     infoPopupContent =
-                                        context.getString(R.string.thinking_quality) to context.getString(R.string.thinking_quality_desc)
+                                        context.getString(R.string.thinking_quality) to
+                                            context.getString(R.string.thinking_quality_desc)
                                     showMenu = false
                                 },
                                 onToggleInfoClick = { title, description ->
                                     infoPopupContent = title to description
                                     showMenu = false
-                                }
-                            )
-                            SettingItem(
-                                title = stringResource(R.string.max_mode_title),
-                                icon = if (enableMaxContextMode) Icons.Rounded.Whatshot else Icons.Outlined.Whatshot,
-                                iconTint = if (enableMaxContextMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                isChecked = enableMaxContextMode,
-                                onToggle = onToggleEnableMaxContextMode,
-                                onInfoClick = {
-                                    val normalLengthText = if (baseContextLengthInK % 1f == 0f) {
-                                        baseContextLengthInK.toInt().toString()
-                                    } else {
-                                        String.format("%.1f", baseContextLengthInK)
-                                    }
-                                    val maxLengthText = if (maxContextLengthInK % 1f == 0f) {
-                                        maxContextLengthInK.toInt().toString()
-                                    } else {
-                                        String.format("%.1f", maxContextLengthInK)
-                                    }
-                                    infoPopupContent = context.getString(R.string.max_mode_title) to context.getString(
-                                        R.string.max_mode_info,
-                                        normalLengthText,
-                                        maxLengthText
-                                    )
-                                    showMenu = false
-                                }
+                                },
                             )
                             }
 
@@ -1124,199 +1076,32 @@ private fun ThinkingSettingsItem(
     thinkingQualityMapping: ThinkingQualityMapping?,
     onThinkingOptionIdChange: (String) -> Unit,
     thinkingSlotToggles: List<InputMenuToggleDefinition>,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onInfoClick: () -> Unit,
-    onThinkingModeInfoClick: () -> Unit,
     onThinkingQualityInfoClick: () -> Unit,
-    onToggleInfoClick: (String, String) -> Unit
+    onToggleInfoClick: (String, String) -> Unit,
 ) {
-    val context = LocalContext.current
-
-    @Composable
-    fun ThinkingSubSettingItem(
-        title: String,
-        icon: ImageVector,
-        iconTint: Color,
-        isChecked: Boolean,
-        onToggle: () -> Unit,
-        onInfoClick: () -> Unit
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+            .padding(horizontal = 12.dp),
     ) {
-        Box(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(
-                        if (isChecked) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        else Color.Transparent
-                    )
-                    .toggleable(
-                        value = isChecked,
-                        onValueChange = { onToggle() },
-                        role = Role.Switch
-                    )
-                    .heightIn(min = 36.dp)
-                    .padding(horizontal = 8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(16.dp).clearAndSetSemantics {}
-                )
-                IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.Info,
-                        contentDescription = stringResource(R.string.details),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp).clearAndSetSemantics {}
-                )
-                Switch(
-                    checked = isChecked,
-                    onCheckedChange = null,
-                    modifier =
-                        Modifier.align(Alignment.CenterVertically)
-                            .scale(0.65f)
-                            .clearAndSetSemantics {},
-                    colors =
-                        SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                )
-            }
-        }
-    }
-
-    val expandStateDesc =
-            if (expanded) stringResource(R.string.expanded) else stringResource(R.string.collapsed)
-
-    val thinkingTypeText =
-            when {
-                enableThinkingMode -> stringResource(R.string.thinking_type_mode)
-                else -> stringResource(R.string.thinking_type_off)
-            }
-
-    val stateText = buildString {
-        append(stringResource(R.string.thinking_mode))
-        append(": ")
-        append(if (enableThinkingMode) context.getString(R.string.enabled) else context.getString(R.string.disabled))
-    }
-    val accessibilityDesc =
-            "${stringResource(R.string.thinking_settings)}: $thinkingTypeText, $stateText, $expandStateDesc"
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                    Modifier.fillMaxWidth()
-                            .heightIn(min = 36.dp)
-                            .semantics { contentDescription = accessibilityDesc }
-                            .clickable { onExpandedChange(!expanded) }
-                            .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Psychology,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp).clearAndSetSemantics {}
-            )
-            IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = stringResource(R.string.details),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-            Row(
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.thinking_settings) + ":",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.clearAndSetSemantics {}
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = thinkingTypeText,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f, fill = false).clearAndSetSemantics {}
-                )
-            }
-            Icon(
-                imageVector =
-                        if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        thinkingQualityMapping?.let { mapping ->
+            ThinkingQualitySlider(
+                label = stringResource(R.string.thinking_quality),
+                mapping = mapping,
+                enabled = enableThinkingMode || mapping.reasoningRequired,
+                onEnabledChange = if (mapping.reasoningRequired) ({}) else onToggleThinkingMode,
+                value = thinkingOptionId,
+                onValueChange = onThinkingOptionIdChange,
+                onInfoClick = onThinkingQualityInfoClick,
             )
         }
 
-        if (expanded) {
-            Column(
-                modifier =
-                        Modifier.fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                .padding(horizontal = 12.dp)
-            ) {
-                ThinkingSubSettingItem(
-                    title = stringResource(R.string.thinking_mode),
-                    icon =
-                        if (enableThinkingMode) Icons.Rounded.Psychology
-                        else Icons.Outlined.Psychology,
-                    iconTint =
-                        if (enableThinkingMode) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    isChecked = enableThinkingMode,
-                    onToggle = onToggleThinkingMode,
-                    onInfoClick = onThinkingModeInfoClick
-                )
-
-                if (enableThinkingMode) {
-                    thinkingQualityMapping
-                        ?.takeIf { it.control == ThinkingQualityControl.LEVELS }
-                        ?.let { mapping ->
-                            ThinkingQualitySlider(
-                                label = stringResource(R.string.thinking_quality),
-                                mapping = mapping,
-                                value = thinkingOptionId,
-                                onValueChange = onThinkingOptionIdChange,
-                                onInfoClick = onThinkingQualityInfoClick,
-                            )
-                        }
-                }
-
-                thinkingSlotToggles.forEach { toggle ->
-                    InputMenuToggleSettingItem(
-                        toggle = toggle,
-                        onInfoClick = onToggleInfoClick
-                    )
-                }
-            }
+        thinkingSlotToggles.forEach { toggle ->
+            InputMenuToggleSettingItem(
+                toggle = toggle,
+                onInfoClick = onToggleInfoClick,
+            )
         }
     }
 }

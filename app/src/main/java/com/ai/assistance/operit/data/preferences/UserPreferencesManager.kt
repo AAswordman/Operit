@@ -94,6 +94,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val USE_SYSTEM_THEME = booleanPreferencesKey("use_system_theme")
         private val CUSTOM_PRIMARY_COLOR = intPreferencesKey("custom_primary_color")
         private val CUSTOM_SECONDARY_COLOR = intPreferencesKey("custom_secondary_color")
+        private val THINKING_PARTICLE_COLOR = intPreferencesKey("thinking_particle_color")
         private val USE_CUSTOM_COLORS = booleanPreferencesKey("use_custom_colors")
         private val CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED =
             booleanPreferencesKey("character_theme_default_migration_completed")
@@ -838,7 +839,8 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     private fun getAllIntThemeKeys(): List<Preferences.Key<Int>> {
         return listOf(
-            CUSTOM_PRIMARY_COLOR, CUSTOM_SECONDARY_COLOR, CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR,
+            CUSTOM_PRIMARY_COLOR, CUSTOM_SECONDARY_COLOR, THINKING_PARTICLE_COLOR,
+            CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR,
             CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR, CUSTOM_APP_BAR_COLOR,
             CUSTOM_STATUS_BAR_COLOR, CHAT_HEADER_HISTORY_ICON_COLOR, CHAT_HEADER_PIP_ICON_COLOR,
             CURSOR_USER_BUBBLE_COLOR, BUBBLE_USER_BUBBLE_COLOR, BUBBLE_AI_BUBBLE_COLOR,

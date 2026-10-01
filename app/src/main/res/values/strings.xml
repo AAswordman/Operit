@@ -94,6 +94,7 @@
     <string name="colorpicker_select_navigation_drawer_accent">选择侧滑菜单强调色</string>
     <string name="colorpicker_select_history_icon">选择历史记录图标颜色</string>
     <string name="colorpicker_select_pip_icon">选择悬浮窗图标颜色</string>
+    <string name="colorpicker_select_thinking_particle">选择思考粒子颜色</string>
     <string name="colorpicker_select_cursor_user_bubble">选择命令式用户消息框颜色</string>
     <string name="colorpicker_select_bubble_user_bubble">选择对话式用户气泡颜色</string>
     <string name="colorpicker_select_bubble_ai_bubble">选择对话式AI气泡颜色</string>
@@ -4010,6 +4011,9 @@
     <string name="input_style_classic">经典样式</string>
     <string name="input_style_agent">Agent样式</string>
     <string name="input_style_agent_reserved">Agent样式正在开发中，当前仅预留入口</string>
+    <string name="theme_thinking_particle_color_title">思考粒子颜色</string>
+    <string name="theme_thinking_particle_color_desc">自定义开启思考时滑块粒子流动的颜色，默认使用白色</string>
+    <string name="theme_thinking_particle_color">粒子颜色</string>
     <string name="chat_style_bubble_show_avatar">显示头像</string>
     <string name="chat_style_bubble_show_avatar_desc">在气泡式聊天中显示用户和 AI 的头像</string>
     <string name="chat_style_bubble_wide_layout">更宽的气泡</string>

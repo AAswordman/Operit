@@ -119,6 +119,10 @@ data class ThemePreferenceValues(
                     "bubble_user_use_custom_font" to false,
                     "bubble_ai_use_custom_font" to false,
                 ),
+                ints = mapOf(
+                    // 思考粒子默认使用白色，作为每个主题独立的颜色配置。
+                    "thinking_particle_color" to 0xFFFFFFFF.toInt(),
+                ),
                 floats = mapOf(
                     "background_image_opacity" to 0.3f,
                     "background_blur_radius" to 10f,
@@ -161,6 +165,7 @@ data class ThemePreferenceSnapshot(
     val useCustomColors: Boolean get() = values.requiredBoolean("use_custom_colors")
     val customPrimaryColor: Int? get() = values.int("custom_primary_color")
     val customSecondaryColor: Int? get() = values.int("custom_secondary_color")
+    val thinkingParticleColor: Int get() = values.int("thinking_particle_color") ?: 0xFFFFFFFF.toInt()
     val onColorMode: String get() = values.requiredString("on_color_mode")
     val useBackgroundImage: Boolean get() = values.requiredBoolean("use_background_image")
     val backgroundImageUri: String? get() = values.string("background_image_uri")

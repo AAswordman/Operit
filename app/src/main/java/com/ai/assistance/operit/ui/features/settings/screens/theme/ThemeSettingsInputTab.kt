@@ -14,13 +14,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.settings.components.ChatStyleOption
+import com.ai.assistance.operit.ui.features.settings.components.ColorPickerDialog
+import com.ai.assistance.operit.ui.features.settings.components.ColorSelectionItem
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun ThemeSettingsInputTab(
@@ -34,6 +42,10 @@ internal fun ThemeSettingsInputTab(
     val chatInputFloating = values.requiredBoolean("chat_input_floating")
     val chatInputLiquidGlass = values.requiredBoolean("chat_input_liquid_glass")
     val chatInputWaterGlass = values.requiredBoolean("chat_input_water_glass")
+    val thinkingParticleColorInput =
+        values.int("thinking_particle_color") ?: Color.White.toArgb()
+    val recentColors by editorSession.recentColorsFlow.collectAsState(initial = emptyList())
+    var showThinkingParticleColorPicker by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -81,6 +93,28 @@ internal fun ThemeSettingsInputTab(
     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
+                text = stringResource(id = R.string.theme_thinking_particle_color_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            Text(
+                text = stringResource(id = R.string.theme_thinking_particle_color_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            ColorSelectionItem(
+                title = stringResource(id = R.string.theme_thinking_particle_color),
+                color = Color(thinkingParticleColorInput),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { showThinkingParticleColorPicker = true },
+            )
+        }
+    }
+
+    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
                 text = stringResource(id = R.string.theme_chat_input_transparent_title),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -116,6 +150,34 @@ internal fun ThemeSettingsInputTab(
                 )
             }
         }
+    }
+
+    if (showThinkingParticleColorPicker) {
+        ColorPickerDialog(
+            showColorPicker = true,
+            currentColorPickerMode = "thinkingParticle",
+            primaryColorInput = MaterialTheme.colorScheme.primary.toArgb(),
+            secondaryColorInput = MaterialTheme.colorScheme.secondary.toArgb(),
+            statusBarColorInput = MaterialTheme.colorScheme.surface.toArgb(),
+            appBarColorInput = MaterialTheme.colorScheme.surface.toArgb(),
+            navigationDrawerBackgroundColorInput = MaterialTheme.colorScheme.surface.toArgb(),
+            navigationDrawerAccentColorInput = MaterialTheme.colorScheme.primary.toArgb(),
+            historyIconColorInput = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+            pipIconColorInput = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+            cursorUserBubbleColorInput = MaterialTheme.colorScheme.primaryContainer.toArgb(),
+            bubbleUserBubbleColorInput = MaterialTheme.colorScheme.primaryContainer.toArgb(),
+            bubbleAiBubbleColorInput = MaterialTheme.colorScheme.surface.toArgb(),
+            bubbleUserTextColorInput = MaterialTheme.colorScheme.onPrimaryContainer.toArgb(),
+            bubbleAiTextColorInput = MaterialTheme.colorScheme.onSurface.toArgb(),
+            recentColors = recentColors,
+            thinkingParticleColorInput = thinkingParticleColorInput,
+            onColorSelected = { _, _, _, _, _, _, _, _, _, _, _, _, _ -> },
+            onSimpleColorSelected = { color ->
+                editorSession.setInt("thinking_particle_color", color)
+                shared.scope.launch { editorSession.addRecentColor(color) }
+            },
+            onDismiss = { showThinkingParticleColorPicker = false },
+        )
     }
 }
 
