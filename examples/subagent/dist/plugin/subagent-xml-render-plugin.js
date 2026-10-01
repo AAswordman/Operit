@@ -5,7 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onToolXmlRender = onToolXmlRender;
 exports.onToolResultXmlRender = onToolResultXmlRender;
-const subagent_status_ui_1 = __importDefault(require("../ui/subagent-status.ui"));
+const subagent_status_ui_js_1 = __importDefault(require("../ui/subagent-status.ui.js"));
+const subagent_i18n_js_1 = require("../shared/subagent_i18n.js");
 const SUBAGENT_TOOL_NAME = "subagent_run";
 function normalizePayload(input) {
     const record = input;
@@ -164,20 +165,20 @@ function countTargetPaths(raw) {
         return 0;
     }
 }
-function stageLabel(stage) {
+function stageLabel(stage, text) {
     switch (String(stage || "").trim().toLowerCase()) {
         case "accepted":
-            return "已接受";
+            return text.stageLabelAccepted;
         case "planning":
-            return "规划中";
+            return text.stageLabelPlanning;
         case "tool":
-            return "工具处理中";
+            return text.stageLabelTool;
         case "executing":
-            return "执行中";
+            return text.stageLabelExecuting;
         case "summarizing":
-            return "汇总中";
+            return text.stageLabelSummarizing;
         default:
-            return "进行中";
+            return text.stageLabelDefault;
     }
 }
 function stageTone(stage) {
@@ -249,51 +250,54 @@ function createComposeResult(state) {
     return {
         handled: true,
         composeDsl: {
-            screen: subagent_status_ui_1.default,
+            screen: subagent_status_ui_js_1.default,
             state,
             memo: {},
         },
     };
 }
 function buildToolStartState(info) {
+    const text = (0, subagent_i18n_js_1.resolveSubagentI18n)();
     const taskSummary = summarizeText(info.params.task, 96);
     const targetCount = countTargetPaths(info.params.target_paths_json);
     return {
-        title: "Subagent 已启动",
+        title: text.titleStarted,
         summary: taskSummary,
-        detail: targetCount > 0 ? `目标文件 ${targetCount} 个` : "",
-        badge: targetCount > 0 ? `目标 ${targetCount}` : "",
+        detail: targetCount > 0 ? text.detailTargetCount(targetCount) : "",
+        badge: targetCount > 0 ? text.badgeTargetCount(targetCount) : "",
         tone: "start",
         variant: "tool_start",
     };
 }
 function buildUpdateState(message) {
+    const text = (0, subagent_i18n_js_1.resolveSubagentI18n)();
     const detailParts = [];
     if (message.runId) {
-        detailParts.push(`运行 ${message.runId}`);
+        detailParts.push(text.detailRun(message.runId));
     }
     return {
-        title: `Subagent ${stageLabel(message.stage)}`,
+        title: `Subagent ${stageLabel(message.stage, text)}`,
         summary: message.text,
         detail: detailParts.join(" · "),
-        badge: message.count && message.count > 0 ? `工具 ${message.count}` : "",
+        badge: message.count && message.count > 0 ? text.badgeToolCount(message.count) : "",
         tone: stageTone(message.stage),
         variant: "update",
     };
 }
 function buildFinalState(message) {
+    const text = (0, subagent_i18n_js_1.resolveSubagentI18n)();
     const detailParts = [];
     if (message.runId) {
-        detailParts.push(`运行 ${message.runId}`);
+        detailParts.push(text.detailRun(message.runId));
     }
     if (message.toolCount && message.toolCount > 0) {
-        detailParts.push(`工具调用 ${message.toolCount} 次`);
+        detailParts.push(text.detailToolCalls(message.toolCount));
     }
     return {
-        title: message.success ? "Subagent 已完成" : "Subagent 失败",
+        title: message.success ? text.titleCompleted : text.titleFailed,
         summary: message.text,
         detail: detailParts.join(" · "),
-        badge: message.success ? "成功" : "失败",
+        badge: message.success ? text.badgeSuccess : text.badgeFailure,
         tone: message.success ? "success" : "failure",
         variant: "final",
     };
