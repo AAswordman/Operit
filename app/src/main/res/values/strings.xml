@@ -5834,6 +5834,11 @@
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">全局用户名字</string>
     <string name="system_display_settings">系统显示设置</string>
+    <string name="orientation_reload_policy">屏幕方向变化时</string>
+    <string name="orientation_reload_policy_description">选择页面在横竖屏切换后的处理方式</string>
+    <string name="orientation_reload_always">自动重新加载</string>
+    <string name="orientation_reload_ask">每次询问</string>
+    <string name="orientation_reload_never">不处理</string>
     <string name="show_fps_counter_description">在屏幕上显示帧率性能指标</string>
     <string name="enable_reply_notification">启用回复通知</string>
     <string name="enable_reply_notification_description">当AI回复时发送系统通知</string>

@@ -5525,6 +5525,11 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">Numele de utilizator global</string>
     <string name="system_display_settings">Setări de afișare ale sistemului</string>
+    <string name="orientation_reload_policy">La schimbarea orientării ecranului</string>
+    <string name="orientation_reload_policy_description">Alege ce se întâmplă cu pagina după rotirea ecranului</string>
+    <string name="orientation_reload_always">Reîncarcă automat</string>
+    <string name="orientation_reload_ask">Întreabă de fiecare dată</string>
+    <string name="orientation_reload_never">Nu face nimic</string>
     <string name="show_fps_counter_description">Afișarea indicatorilor de performanță privind rata de cadre pe ecran</string>
     <string name="enable_reply_notification">Activează notificările privind răspunsurile</string>
     <string name="enable_reply_notification_description">CândAITrimiterea unei notificări de sistem la răspuns</string>

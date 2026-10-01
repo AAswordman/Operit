@@ -4874,6 +4874,11 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="chat_message_token_speed_compact">%1$s t/s</string>
     <string name="global_user_name">Nombre de usuario global</string>
     <string name="system_display_settings">Configuración de pantalla del sistema</string>
+    <string name="orientation_reload_policy">Al cambiar la orientación de la pantalla</string>
+    <string name="orientation_reload_policy_description">Elige qué hacer con la página tras girar el dispositivo</string>
+    <string name="orientation_reload_always">Recargar automáticamente</string>
+    <string name="orientation_reload_ask">Preguntar siempre</string>
+    <string name="orientation_reload_never">No hacer nada</string>
     <string name="show_fps_counter_description">Mostrar métricas de rendimiento de FPS en la pantalla</string>
     <string name="enable_reply_notification">Habilitar notificación de respuesta</string>
     <string name="enable_reply_notification_description">Enviar una notificación del sistema cuando la IA responda</string>

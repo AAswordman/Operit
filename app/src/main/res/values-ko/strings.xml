@@ -4810,6 +4810,11 @@
     <string name="chat_message_timestamp_compact">시간: %1$s</string>
     <string name="global_user_name">전역 사용자 이름</string>
     <string name="system_display_settings">시스템 디스플레이 설정</string>
+    <string name="orientation_reload_policy">화면 방향이 바뀔 때</string>
+    <string name="orientation_reload_policy_description">화면을 회전한 후 페이지 처리 방법 선택</string>
+    <string name="orientation_reload_always">자동으로 다시 불러오기</string>
+    <string name="orientation_reload_ask">매번 묻기</string>
+    <string name="orientation_reload_never">아무 작업도 하지 않기</string>
     <string name="show_fps_counter_description">화면에 프레임 속도 성능 지표 표시</string>
     <string name="enable_reply_notification">답변 알림 활성화</string>
     <string name="enable_reply_notification_description">AI가 응답하면 시스템 알림 보내기</string>
