@@ -1097,160 +1097,161 @@ class WebChatHttpBridge(
         val pipeOutput = PipedOutputStream(pipeInput)
         val activeChatId = AtomicReference(chatId)
         val streamJob: Job = serviceScope.launch(Dispatchers.IO) {
-            pipeOutput.bufferedWriter(StandardCharsets.UTF_8).use { writer ->
-                try {
-                    val switched = switchAppChatContext(
-                        chatId = chatId,
-                        syncActivePromptFromBinding = core.currentChatId.value != chatId
-                    )
-                    if (!switched) {
-                        writeSseEvent(
-                            writer,
-                            WebChatStreamEvent(
-                                event = STREAM_EVENT_ERROR,
-                                chatId = chatId,
-                                error = "Failed to switch chat context"
-                            )
-                        )
-                        return@use
-                    }
-                    val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
-
-                    core.clearAttachments()
-                    val addedAttachments = core.getAttachmentDelegate().addAttachments(attachments)
-                    core.updateUserMessage(messageText)
-
-                    val optimisticTimestamp = System.currentTimeMillis()
-                    val optimisticUserMessage = WebChatMessage(
-                        id = "$chatId:user:$optimisticTimestamp",
-                        sender = "user",
-                        contentRaw = messageText,
-                        timestamp = optimisticTimestamp,
-                        displayContent = messageText,
-                        attachments = addedAttachments.map { attachment ->
-                            WebMessageAttachment(
-                                id = attachment.filePath,
-                                fileName = attachment.fileName,
-                                mimeType = attachment.mimeType,
-                                fileSize = attachment.fileSize,
-                                assetUrl = registerAsset(attachment.filePath, attachment.mimeType)
-                            )
-                        }
-                    )
-
+            val writer = pipeOutput.bufferedWriter(StandardCharsets.UTF_8)
+            try {
+                val switched = switchAppChatContext(
+                    chatId = chatId,
+                    syncActivePromptFromBinding = core.currentChatId.value != chatId
+                )
+                if (!switched) {
                     writeSseEvent(
                         writer,
                         WebChatStreamEvent(
-                            event = STREAM_EVENT_START,
-                            chatId = chatId
-                        )
-                    )
-                    writeSseEvent(
-                        writer,
-                        WebChatStreamEvent(
-                            event = STREAM_EVENT_USER_MESSAGE,
+                            event = STREAM_EVENT_ERROR,
                             chatId = chatId,
-                            message = optimisticUserMessage
+                            error = "Failed to switch chat context"
                         )
                     )
-
-                    core.sendUserMessage(preferActiveRoleCard = true)
-
-                    val responseStream: SharedStream<String>? =
-                        withTimeoutOrNull<SharedStream<String>>(STREAM_READY_TIMEOUT_MS) {
-                            var stream: SharedStream<String>? = null
-                            while (stream == null) {
-                                stream = core.getResponseStream(chatId)
-                                if (stream == null) {
-                                    delay(40)
-                                }
-                            }
-                            return@withTimeoutOrNull stream
-                        }
-
-                    if (responseStream == null) {
-                        writeSseEvent(
-                            writer,
-                            WebChatStreamEvent(
-                                event = STREAM_EVENT_ERROR,
-                                chatId = chatId,
-                                error = "Timed out while waiting for response stream"
-                            )
-                        )
-                        return@use
-                    }
-
-                    val streamToCollect = ExternalChatResponseSanitizer.sanitizeStream(
-                        responseStream,
-                        request.returnToolStatus
-                    )
-                    val assistantContent = StringBuilder()
-                    val streamingAssistantTimestamp = System.currentTimeMillis() + 1
-                    streamToCollect.collect { chunk ->
-                        if (chunk.isEmpty()) {
-                            return@collect
-                        }
-                        assistantContent.append(chunk)
-                        writeSseEvent(
-                            writer,
-                            WebChatStreamEvent(
-                                event = STREAM_EVENT_ASSISTANT_DELTA,
-                                chatId = chatId,
-                                delta = chunk,
-                                message = buildStreamingAssistantMessage(
-                                    chatId = chatId,
-                                    timestamp = streamingAssistantTimestamp,
-                                    content = assistantContent.toString(),
-                                    structuredRenderPreferences = structuredRenderPreferences
-                                )
-                            )
-                        )
-                    }
-
-                    when (val finalState = awaitFinalState(chatId)) {
-                        is InputProcessingState.Error -> {
-                            writeSseEvent(
-                                writer,
-                                WebChatStreamEvent(
-                                    event = STREAM_EVENT_ERROR,
-                                    chatId = chatId,
-                                    error = finalState.message
-                                )
-                            )
-                        }
-
-                        else -> {
-                            val finalMessage = latestAssistantMessage(chatId, request.returnToolStatus)
-                            writeSseEvent(
-                                writer,
-                                WebChatStreamEvent(
-                                    event = STREAM_EVENT_ASSISTANT_DONE,
-                                    chatId = chatId,
-                                    message = finalMessage
-                                )
-                            )
-                        }
-                    }
-                } catch (e: CancellationException) {
-                    core.cancelMessage(activeChatId.get())
-                    throw e
-                } catch (e: IOException) {
-                    AppLogger.i(TAG, "Web SSE client disconnected for chatId=$chatId")
-                    core.cancelMessage(activeChatId.get())
-                } catch (e: Exception) {
-                    AppLogger.e(TAG, "Web SSE stream failed for chatId=$chatId", e)
-                    runCatching {
-                        writeSseEvent(
-                            writer,
-                            WebChatStreamEvent(
-                                event = STREAM_EVENT_ERROR,
-                                chatId = chatId,
-                                error = e.message ?: "Unknown error"
-                            )
-                        )
-                    }
-                    core.cancelMessage(activeChatId.get())
+                    return@launch
                 }
+                val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
+
+                core.clearAttachments()
+                val addedAttachments = core.getAttachmentDelegate().addAttachments(attachments)
+                core.updateUserMessage(messageText)
+
+                val optimisticTimestamp = System.currentTimeMillis()
+                val optimisticUserMessage = WebChatMessage(
+                    id = "$chatId:user:$optimisticTimestamp",
+                    sender = "user",
+                    contentRaw = messageText,
+                    timestamp = optimisticTimestamp,
+                    displayContent = messageText,
+                    attachments = addedAttachments.map { attachment ->
+                        WebMessageAttachment(
+                            id = attachment.filePath,
+                            fileName = attachment.fileName,
+                            mimeType = attachment.mimeType,
+                            fileSize = attachment.fileSize,
+                            assetUrl = registerAsset(attachment.filePath, attachment.mimeType)
+                        )
+                    }
+                )
+
+                writeSseEvent(
+                    writer,
+                    WebChatStreamEvent(
+                        event = STREAM_EVENT_START,
+                        chatId = chatId
+                    )
+                )
+                writeSseEvent(
+                    writer,
+                    WebChatStreamEvent(
+                        event = STREAM_EVENT_USER_MESSAGE,
+                        chatId = chatId,
+                        message = optimisticUserMessage
+                    )
+                )
+
+                core.sendUserMessage(preferActiveRoleCard = true)
+
+                val responseStream: SharedStream<String>? =
+                    withTimeoutOrNull<SharedStream<String>>(STREAM_READY_TIMEOUT_MS) {
+                        var stream: SharedStream<String>? = null
+                        while (stream == null) {
+                            stream = core.getResponseStream(chatId)
+                            if (stream == null) {
+                                delay(40)
+                            }
+                        }
+                        return@withTimeoutOrNull stream
+                    }
+
+                if (responseStream == null) {
+                    writeSseEvent(
+                        writer,
+                        WebChatStreamEvent(
+                            event = STREAM_EVENT_ERROR,
+                            chatId = chatId,
+                            error = "Timed out while waiting for response stream"
+                        )
+                    )
+                    return@launch
+                }
+
+                val streamToCollect = ExternalChatResponseSanitizer.sanitizeStream(
+                    responseStream,
+                    request.returnToolStatus
+                )
+                val assistantContent = StringBuilder()
+                val streamingAssistantTimestamp = System.currentTimeMillis() + 1
+                streamToCollect.collect { chunk ->
+                    if (chunk.isEmpty()) {
+                        return@collect
+                    }
+                    assistantContent.append(chunk)
+                    writeSseEvent(
+                        writer,
+                        WebChatStreamEvent(
+                            event = STREAM_EVENT_ASSISTANT_DELTA,
+                            chatId = chatId,
+                            delta = chunk,
+                            message = buildStreamingAssistantMessage(
+                                chatId = chatId,
+                                timestamp = streamingAssistantTimestamp,
+                                content = assistantContent.toString(),
+                                structuredRenderPreferences = structuredRenderPreferences
+                            )
+                        )
+                    )
+                }
+
+                when (val finalState = awaitFinalState(chatId)) {
+                    is InputProcessingState.Error -> {
+                        writeSseEvent(
+                            writer,
+                            WebChatStreamEvent(
+                                event = STREAM_EVENT_ERROR,
+                                chatId = chatId,
+                                error = finalState.message
+                            )
+                        )
+                    }
+
+                    else -> {
+                        val finalMessage = latestAssistantMessage(chatId, request.returnToolStatus)
+                        writeSseEvent(
+                            writer,
+                            WebChatStreamEvent(
+                                event = STREAM_EVENT_ASSISTANT_DONE,
+                                chatId = chatId,
+                                message = finalMessage
+                            )
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                core.cancelMessage(activeChatId.get())
+                throw e
+            } catch (e: IOException) {
+                AppLogger.i(TAG, "Web SSE client disconnected for chatId=$chatId")
+                core.cancelMessage(activeChatId.get())
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Web SSE stream failed for chatId=$chatId", e)
+                runCatching {
+                    writeSseEvent(
+                        writer,
+                        WebChatStreamEvent(
+                            event = STREAM_EVENT_ERROR,
+                            chatId = chatId,
+                            error = e.message ?: "Unknown error"
+                        )
+                    )
+                }
+                core.cancelMessage(activeChatId.get())
+            } finally {
+                closeSseWriter(writer, "chatId=$chatId")
             }
         }
 
