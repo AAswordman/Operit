@@ -14,6 +14,7 @@ import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
+import com.ai.assistance.operit.core.chat.RequestWindowSnapshot
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
@@ -766,7 +767,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
     }
 
-    suspend fun estimateRequestWindowFromMemory(
+    suspend fun estimateRequestWindowSnapshotFromMemory(
         message: String,
         chatHistory: List<PromptTurn>,
         chatId: String? = null,
@@ -786,7 +787,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         memorySpaceIdOverride: String? = null,
         stream: Boolean = true,
         publishEstimate: Boolean = true
-    ): Long {
+    ): RequestWindowSnapshot {
         val modelConfig =
             getModelConfigForFunction(
                 functionType = functionType,
@@ -891,12 +892,62 @@ class EnhancedAIService private constructor(private val context: Context) {
                     previous.toolName == current.toolName
             }
 
-        return estimatePreparedRequestWindow(
-            serviceForFunction = serviceForFunction,
-            preparedHistory = requestHistory,
-            availableTools = availableTools,
-            publishEstimate = publishEstimate
+        val windowSize =
+            estimatePreparedRequestWindow(
+                serviceForFunction = serviceForFunction,
+                preparedHistory = requestHistory,
+                availableTools = availableTools,
+                publishEstimate = publishEstimate
+            )
+        return RequestWindowSnapshot(
+            windowTokens = windowSize,
+            history = requestHistory,
+            tools = availableTools
         )
+    }
+
+    suspend fun estimateRequestWindowFromMemory(
+        message: String,
+        chatHistory: List<PromptTurn>,
+        chatId: String? = null,
+        workspacePath: String? = null,
+        workspaceEnv: String? = null,
+        functionType: FunctionType = FunctionType.CHAT,
+        promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT,
+        enableThinking: Boolean = false,
+        customSystemPromptTemplate: String? = null,
+        roleCardId: String? = null,
+        enableGroupOrchestrationHint: Boolean = false,
+        groupParticipantNamesText: String? = null,
+        proxySenderName: String? = null,
+        isSubTask: Boolean = false,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null,
+        memorySpaceIdOverride: String? = null,
+        stream: Boolean = true,
+        publishEstimate: Boolean = true
+    ): Long {
+        return estimateRequestWindowSnapshotFromMemory(
+            message = message,
+            chatHistory = chatHistory,
+            chatId = chatId,
+            workspacePath = workspacePath,
+            workspaceEnv = workspaceEnv,
+            functionType = functionType,
+            promptFunctionType = promptFunctionType,
+            enableThinking = enableThinking,
+            customSystemPromptTemplate = customSystemPromptTemplate,
+            roleCardId = roleCardId,
+            enableGroupOrchestrationHint = enableGroupOrchestrationHint,
+            groupParticipantNamesText = groupParticipantNamesText,
+            proxySenderName = proxySenderName,
+            isSubTask = isSubTask,
+            chatModelConfigIdOverride = chatModelConfigIdOverride,
+            chatModelIndexOverride = chatModelIndexOverride,
+            memorySpaceIdOverride = memorySpaceIdOverride,
+            stream = stream,
+            publishEstimate = publishEstimate
+        ).windowTokens
     }
 
     /** Send a message to the AI service */
