@@ -1173,6 +1173,15 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
             )
         }
 
+        if (isSshFileSystemActive()) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = StringResultData(""),
+                error = "grep_code is not supported for SSH file systems"
+            )
+        }
+
         return grepCodeWithNativeRipgrep(
             toolName = tool.name,
             path = path,
@@ -1181,7 +1190,8 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
             caseInsensitive = caseInsensitive,
             contextLines = contextLines,
             maxResults = maxResults,
-            envLabel = "linux"
+            envLabel = "linux",
+            environment = "linux"
         )
     }
 
@@ -1209,6 +1219,15 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
                 success = false,
                 result = StringResultData(""),
                 error = "Intent parameter is required"
+            )
+        }
+
+        if (isSshFileSystemActive()) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = StringResultData(""),
+                error = "grep_context is not supported for SSH file systems"
             )
         }
 

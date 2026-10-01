@@ -132,6 +132,25 @@ open class StandardFileSystemTools(protected val context: Context) {
         return terminalManager.getFileSystemProvider()
     }
 
+    protected fun isSshFileSystemActive(): Boolean = sshFileManager.getFileSystemProvider() != null
+
+    private fun resolveNativeRipgrepSearchPath(path: String, environment: String?): String {
+        if (!PathMapper.isLinuxEnvironment(environment)) return path
+
+        val mappedPath = PathMapper.mapLinuxPath(context, path)
+        require(PathMapper.unmapLinuxPath(context, mappedPath) != null) {
+            "Linux search path escapes Ubuntu root"
+        }
+        return File(mappedPath).canonicalPath
+    }
+
+    private fun restoreNativeRipgrepResultPath(path: String, environment: String?): String =
+        if (PathMapper.isLinuxEnvironment(environment)) {
+            PathMapper.unmapLinuxPath(context, path) ?: path
+        } else {
+            path
+        }
+
     // Linux文件系统工具实例
     protected val linuxTools: LinuxFileSystemTools by lazy {
         LinuxFileSystemTools(context)
@@ -431,6 +450,7 @@ open class StandardFileSystemTools(protected val context: Context) {
             return Pair(emptyList(), 0)
         }
 
+        val nativeSearchPath = resolveNativeRipgrepSearchPath(searchPath, environment)
         val completedQueries = AtomicInteger(0)
         val executions =
             coroutineScope {
@@ -438,7 +458,7 @@ open class StandardFileSystemTools(protected val context: Context) {
                     async {
                         val (parsedBlocks, _) =
                             searchNativeRipgrepBlocks(
-                                path = searchPath,
+                                path = nativeSearchPath,
                                 patterns = listOf(query),
                                 filePattern = filePattern,
                                 caseInsensitive = true,
@@ -477,7 +497,7 @@ open class StandardFileSystemTools(protected val context: Context) {
                 if (remaining <= 0) return@forEach
                 val candidate =
                     GrepContextCandidate(
-                        filePath = block.filePath,
+                        filePath = restoreNativeRipgrepResultPath(block.filePath, environment),
                         lineNumber = block.firstMatchLine,
                         lineContent = block.lineContent,
                         matchContext = block.matchContext,
@@ -536,9 +556,11 @@ open class StandardFileSystemTools(protected val context: Context) {
         caseInsensitive: Boolean,
         contextLines: Int,
         maxResults: Int,
-        envLabel: String
+        envLabel: String,
+        environment: String? = null
     ): ToolResult {
         return try {
+            val nativeSearchPath = resolveNativeRipgrepSearchPath(path, environment)
             val effectiveMaxResults = maxResults.coerceAtLeast(0)
             if (effectiveMaxResults == 0) {
                 ToolProgressBus.update(toolName, 1f, "Search completed")
@@ -560,14 +582,16 @@ open class StandardFileSystemTools(protected val context: Context) {
             ToolProgressBus.update(toolName, 0.1f, "Running native ripgrep...")
             val (parsedBlocks, filesSearched) =
                 searchNativeRipgrepBlocks(
-                    path = path,
+                    path = nativeSearchPath,
                     patterns = listOf(pattern),
                     filePattern = filePattern,
                     caseInsensitive = caseInsensitive,
                     contextLines = contextLines,
                     maxResults = effectiveMaxResults
                 )
-            val limitedBlocks = parsedBlocks.take(effectiveMaxResults)
+            val limitedBlocks = parsedBlocks.take(effectiveMaxResults).map { block ->
+                block.copy(filePath = restoreNativeRipgrepResultPath(block.filePath, environment))
+            }
             val fileMatches = groupRipgrepBlocks(limitedBlocks)
             ToolProgressBus.update(toolName, 1f, "Search completed")
 
@@ -4663,7 +4687,8 @@ open class StandardFileSystemTools(protected val context: Context) {
             caseInsensitive = caseInsensitive,
             contextLines = contextLines,
             maxResults = maxResults,
-            envLabel = envLabel
+            envLabel = envLabel,
+            environment = environment
         )
     }
 
