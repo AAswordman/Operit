@@ -567,7 +567,7 @@ open class OpenAIProvider(
     }
 
     /**
-     * 解析服务器返回的内容，不再需要处理<think>标签
+     * 解析服务器返回的内容，不再需要处理<operit_thinking>标签
      */
     private fun parseResponse(content: String): String {
         return content
@@ -1542,7 +1542,7 @@ open class OpenAIProvider(
             }
         }
 
-        suspend fun emitThinkContent(thinkContent: String, tag: String = "think") {
+        suspend fun emitThinkContent(thinkContent: String, tag: String = "operit_thinking") {
             if (thinkContent.isNotNullOrEmpty()) {
                 val wrapped = "<$tag>$thinkContent</$tag>"
                 emit(wrapped)
@@ -2013,7 +2013,7 @@ open class OpenAIProvider(
         // 如果正在思考模式，收到工具调用时应先关闭思考标签
         if (state.isInReasoningMode) {
             state.isInReasoningMode = false
-            emitter.emitTag("</think>")
+            emitter.emitTag("</operit_thinking>")
             state.hasEmittedThinkStart = false
         }
 
@@ -2890,7 +2890,7 @@ open class OpenAIProvider(
             if (!state.isInReasoningMode) {
                 state.isInReasoningMode = true
                 if (!state.hasEmittedThinkStart) {
-                    emitter.emitTag("<think>")
+                    emitter.emitTag("<operit_thinking>")
                     state.hasEmittedThinkStart = true
                 }
             }
@@ -2901,7 +2901,7 @@ open class OpenAIProvider(
             // 如果之前在思考模式，现在切换到了常规内容，需要关闭思考标签
             if (state.isInReasoningMode) {
                 state.isInReasoningMode = false
-                emitter.emitTag("</think>")
+                emitter.emitTag("</operit_thinking>")
                 state.hasEmittedThinkStart = false
             }
 
@@ -2926,7 +2926,7 @@ open class OpenAIProvider(
             return
         }
         state.isInReasoningMode = false
-        emitter.emitTag("</think>")
+        emitter.emitTag("</operit_thinking>")
         state.hasEmittedThinkStart = false
     }
 
@@ -3129,7 +3129,7 @@ open class OpenAIProvider(
                     closeAllOpenToolCalls(state, emitter)
                     if (state.isInReasoningMode) {
                         state.isInReasoningMode = false
-                        emitter.emitTag("</think>")
+                        emitter.emitTag("</operit_thinking>")
                         state.hasEmittedThinkStart = false
                     }
                     state.streamCompletionConfirmed = true
@@ -3263,7 +3263,7 @@ open class OpenAIProvider(
                     "AIService",
                     "【发送消息】准备构建请求体，模型参数数量: ${modelParameters.size}，已启用参数: ${modelParameters.count { it.isEnabled }}"
                 )
-                // 直接传递原始历史记录给createRequestBody，让具体的Provider决定如何处理（例如Deepseek需要保留<think>标签）
+                // 直接传递原始历史记录给createRequestBody，让具体的Provider决定如何处理（例如Deepseek需要保留<operit_thinking>标签）
                 val requestBody = createRequestBody(
                     context,
                     currentHistory,

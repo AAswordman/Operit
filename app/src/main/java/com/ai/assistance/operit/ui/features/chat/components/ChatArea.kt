@@ -88,6 +88,8 @@ import com.ai.assistance.operit.data.model.AiReference
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
+import com.ai.assistance.operit.data.model.MessageSection
+import com.ai.assistance.operit.data.model.MessageSectionCodec
 
 import androidx.compose.ui.window.PopupProperties
 
@@ -128,6 +130,13 @@ import kotlinx.coroutines.withContext
  */
 internal fun cleanMessageContentForCopy(content: String): String {
     return content
+        .let { source ->
+            MessageSectionCodec.parse(source)
+                .filterIsInstance<MessageSection.Protocol>()
+                .fold(source) { current, section ->
+                    if (section.raw.isEmpty()) current else current.replace(section.raw, "")
+                }
+        }
         // Provider元数据必须保留在消息中供后续轮次使用，但不能暴露在复制内容中
         .let(ChatMarkupRegex::removeGeminiThoughtSignatureMeta)
         .let(ChatMarkupRegex::removeOpenAiResponsesProtocolMeta)

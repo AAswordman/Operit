@@ -70,7 +70,7 @@ class CustomXmlRenderer(
 ) : XmlContentRenderer {
     // 定义渲染器能够处理的内置标签集合
     private val builtInTags =
-            setOf("think", "thinking", "search", "tool", "status", "tool_result", "html", "mood", "font", "details", "detail", "meta")
+            setOf("think", "thinking", "operit_thinking", "search", "tool", "status", "tool_result", "html", "mood", "font", "details", "detail", "meta")
 
     private data class ToolRequestRenderState(
         val rawToolName: String,
@@ -124,7 +124,7 @@ class CustomXmlRenderer(
         val accessibilityDesc = when (tagName) {
             "tool" -> stringResource(R.string.tool_call_block)
             "tool_result" -> stringResource(R.string.tool_result_block)
-            "think", "thinking" -> stringResource(R.string.thinking_process_block)
+            "think", "thinking", "operit_thinking" -> stringResource(R.string.thinking_process_block)
             "search" -> stringResource(R.string.search_content_block)
             "status" -> stringResource(R.string.status_info_block)
             "html" -> stringResource(R.string.html_content_block)
@@ -135,7 +135,7 @@ class CustomXmlRenderer(
         }
         
         // 用 Box 包裹所有内容，添加无障碍描述
-        if (tagName == "think" || tagName == "thinking") {
+        if (tagName == "think" || tagName == "thinking" || tagName == "operit_thinking") {
             Box(modifier = modifier) {
                 RenderXmlContentInternal(trimmedContent, tagName, textColor, xmlStream, renderInstanceKey, Modifier)
             }
@@ -156,7 +156,7 @@ class CustomXmlRenderer(
         modifier: Modifier
     ) {
         val shouldSkipHiddenThink =
-            (tagName == "think" || tagName == "thinking") && !showThinkingProcess
+            (tagName == "think" || tagName == "thinking" || tagName == "operit_thinking") && !showThinkingProcess
         if (shouldSkipHiddenThink) {
             return
         }
@@ -197,7 +197,7 @@ class CustomXmlRenderer(
         // 根据新规则处理未闭合的标签
         val isClosed = isXmlFullyClosed(trimmedContent)
         if (!isClosed) {
-            if (resolvedTagName in builtInTags && resolvedTagName != "tool" && resolvedTagName != "think" && resolvedTagName != "thinking" && resolvedTagName != "search") {
+            if (resolvedTagName in builtInTags && resolvedTagName != "tool" && resolvedTagName != "think" && resolvedTagName != "thinking" && resolvedTagName != "operit_thinking" && resolvedTagName != "search") {
                 // 是内置标签但未闭合，则不显示任何内容，等待其闭合
                 return
             } else if (resolvedTagName !in builtInTags) {
@@ -209,8 +209,7 @@ class CustomXmlRenderer(
 
         // 标签已正确闭合，根据标签名分发到对应的渲染函数
         when (resolvedTagName) {
-            "think" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
-            "thinking" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
+            "think", "thinking", "operit_thinking" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
             "search" -> renderSearchContent(trimmedContent, Modifier, textColor)
             "tool" -> renderToolRequest(trimmedContent, Modifier, textColor, xmlStream)
             "tool_result" -> renderToolResult(trimmedContent, Modifier, textColor)
@@ -722,7 +721,7 @@ class CustomXmlRenderer(
         return "https://www.google.com/s2/favicons?sz=64&domain=$host"
     }
 
-    /** 渲染 <think> 和 <thinking> 标签内容 */
+    /** 渲染 think、thinking 和 operit_thinking 标签内容。 */
     @Composable
     private fun renderThinkContent(
         content: String,
@@ -730,8 +729,7 @@ class CustomXmlRenderer(
         textColor: Color,
         xmlStream: Stream<String>?
     ) {
-        val tagName =
-            if (content.contains("<thinking")) "thinking" else "think"
+        val tagName = extractRawTagName(content) ?: "operit_thinking"
 
         var expandThinkingProcess by rememberLocal(key = "expand_thinking_process_default", defaultValue = false)
         // 仅在"流仍然存在"且标签未闭合时，才判定为进行中。

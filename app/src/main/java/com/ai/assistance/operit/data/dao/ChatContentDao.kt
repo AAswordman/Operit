@@ -16,7 +16,8 @@ private const val MESSAGE_CONTENT_ROW_QUERY =
         messageId,
         chatId,
         sender,
-        SUBSTR(content, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS content,
+        SUBSTR(sections, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS sections,
+        SUBSTR(searchText, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS searchText,
         timestamp,
         orderIndex,
         roleName,
@@ -32,7 +33,8 @@ private const val MESSAGE_CONTENT_ROW_QUERY =
         completedAt,
         displayMode,
         isFavorite,
-        LENGTH(content) AS contentCharacterCount
+        LENGTH(sections) AS contentCharacterCount,
+        LENGTH(searchText) AS searchTextCharacterCount
     FROM messages
     """
 
@@ -43,7 +45,8 @@ private const val MESSAGE_VARIANT_CONTENT_ROW_QUERY =
         chatId,
         messageTimestamp,
         variantIndex,
-        SUBSTR(content, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS content,
+        SUBSTR(sections, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS sections,
+        SUBSTR(searchText, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS searchText,
         roleName,
         provider,
         modelName,
@@ -54,18 +57,21 @@ private const val MESSAGE_VARIANT_CONTENT_ROW_QUERY =
         outputDurationMs,
         waitDurationMs,
         completedAt,
-        LENGTH(content) AS contentCharacterCount
+        LENGTH(sections) AS contentCharacterCount,
+        LENGTH(searchText) AS searchTextCharacterCount
     FROM message_variants
     """
 
 data class MessageContentRow(
     @Embedded val message: MessageEntity,
     val contentCharacterCount: Long,
+    val searchTextCharacterCount: Long,
 )
 
 data class MessageVariantContentRow(
     @Embedded val variant: MessageVariantEntity,
     val contentCharacterCount: Long,
+    val searchTextCharacterCount: Long,
 )
 
 data class ChatContentCharacterCount(
@@ -189,7 +195,7 @@ abstract class ChatContentDao {
     ): MessageContentRow?
 
     @Query(
-        "SELECT SUBSTR(content, :startCharacter, :characterCount)" +
+        "SELECT SUBSTR(sections, :startCharacter, :characterCount)" +
             " FROM messages WHERE messageId = :messageId"
     )
     protected abstract suspend fun queryMessageContentChunk(
@@ -239,7 +245,7 @@ abstract class ChatContentDao {
     ): MessageVariantContentRow?
 
     @Query(
-        "SELECT SUBSTR(content, :startCharacter, :characterCount)" +
+        "SELECT SUBSTR(sections, :startCharacter, :characterCount)" +
             " FROM message_variants WHERE variantId = :variantId"
     )
     protected abstract suspend fun queryMessageVariantContentChunk(
@@ -255,8 +261,8 @@ abstract class ChatContentDao {
             COALESCE(
                 SUM(
                     CASE
-                        WHEN messages.selectedVariantIndex = 0 THEN LENGTH(messages.content)
-                        ELSE LENGTH(selectedVariant.content)
+                        WHEN messages.selectedVariantIndex = 0 THEN LENGTH(messages.searchText)
+                        ELSE LENGTH(selectedVariant.searchText)
                     END
                 ),
                 0
@@ -408,15 +414,34 @@ abstract class ChatContentDao {
             materializeVariant(it)
         }
 
+    @Query("SELECT SUBSTR(searchText, :startCharacter, :characterCount) FROM messages WHERE messageId = :id")
+    protected abstract suspend fun queryMessageSearchTextChunk(
+        id: Long, startCharacter: Long, characterCount: Int,
+    ): String?
+
+    @Query("SELECT SUBSTR(searchText, :startCharacter, :characterCount) FROM message_variants WHERE variantId = :id")
+    protected abstract suspend fun queryVariantSearchTextChunk(
+        id: Long, startCharacter: Long, characterCount: Int,
+    ): String?
+
     private suspend fun materializeMessages(rows: List<MessageContentRow>): List<MessageEntity> =
         rows.map { materializeMessage(it) }
 
     private suspend fun materializeMessage(row: MessageContentRow): MessageEntity {
-        if (row.contentCharacterCount <= CONTENT_CHUNK_CHARACTER_COUNT) {
-            return row.message
+        val searchText = StringBuilder(row.message.searchText)
+        if (row.searchTextCharacterCount > CONTENT_CHUNK_CHARACTER_COUNT) {
+            var searchStart = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
+            while (searchStart <= row.searchTextCharacterCount) {
+                val chunk = checkNotNull(queryMessageSearchTextChunk(
+                    row.message.messageId, searchStart, CONTENT_CHUNK_CHARACTER_COUNT,
+                ))
+                check(chunk.isNotEmpty()) { "Search text ended before its recorded length" }
+                searchText.append(chunk)
+                searchStart += CONTENT_CHUNK_CHARACTER_COUNT
+            }
         }
 
-        val content = StringBuilder(row.message.content)
+        val sections = StringBuilder(row.message.sections)
         var startCharacter = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
         while (startCharacter <= row.contentCharacterCount) {
             val chunk =
@@ -427,15 +452,15 @@ abstract class ChatContentDao {
                         CONTENT_CHUNK_CHARACTER_COUNT,
                     )
                 ) {
-                    "Message disappeared while reading content: messageId=${row.message.messageId}"
+                    "Message disappeared while reading sections: messageId=${row.message.messageId}"
                 }
             check(chunk.isNotEmpty()) {
-                "Message content ended before its recorded length: messageId=${row.message.messageId}"
+                "Message sections ended before its recorded length: messageId=${row.message.messageId}"
             }
-            content.append(chunk)
+            sections.append(chunk)
             startCharacter += CONTENT_CHUNK_CHARACTER_COUNT
         }
-        return row.message.copy(content = content.toString())
+        return row.message.copy(sections = sections.toString(), searchText = searchText.toString())
     }
 
     private suspend fun materializeVariants(
@@ -443,11 +468,18 @@ abstract class ChatContentDao {
     ): List<MessageVariantEntity> = rows.map { materializeVariant(it) }
 
     private suspend fun materializeVariant(row: MessageVariantContentRow): MessageVariantEntity {
-        if (row.contentCharacterCount <= CONTENT_CHUNK_CHARACTER_COUNT) {
-            return row.variant
+        val searchText = StringBuilder(row.variant.searchText)
+        var searchStart = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
+        while (searchStart <= row.searchTextCharacterCount) {
+            val chunk = checkNotNull(queryVariantSearchTextChunk(
+                row.variant.variantId, searchStart, CONTENT_CHUNK_CHARACTER_COUNT,
+            ))
+            check(chunk.isNotEmpty()) { "Search text ended before its recorded length" }
+            searchText.append(chunk)
+            searchStart += CONTENT_CHUNK_CHARACTER_COUNT
         }
 
-        val content = StringBuilder(row.variant.content)
+        val sections = StringBuilder(row.variant.sections)
         var startCharacter = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
         while (startCharacter <= row.contentCharacterCount) {
             val chunk =
@@ -458,14 +490,14 @@ abstract class ChatContentDao {
                         CONTENT_CHUNK_CHARACTER_COUNT,
                     )
                 ) {
-                    "Message variant disappeared while reading content: variantId=${row.variant.variantId}"
+                    "Message variant disappeared while reading sections: variantId=${row.variant.variantId}"
                 }
             check(chunk.isNotEmpty()) {
-                "Message variant content ended before its recorded length: variantId=${row.variant.variantId}"
+                "Message variant sections ended before its recorded length: variantId=${row.variant.variantId}"
             }
-            content.append(chunk)
+            sections.append(chunk)
             startCharacter += CONTENT_CHUNK_CHARACTER_COUNT
         }
-        return row.variant.copy(content = content.toString())
+        return row.variant.copy(sections = sections.toString(), searchText = searchText.toString())
     }
 }

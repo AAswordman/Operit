@@ -52,7 +52,7 @@ class ThinkToolsXmlNodeGrouper(
 
             val tag = extractXmlTagName(node.content)
 
-            if (showThinkingProcess && (tag == "think" || tag == "thinking")) {
+            if (showThinkingProcess && (tag == "think" || tag == "thinking" || tag == "operit_thinking")) {
                 var j = i + 1
                 var toolCount = 0
                 var searchCount = 0
@@ -71,7 +71,7 @@ class ThinkToolsXmlNodeGrouper(
                         j++
                         continue
                     }
-                    val isThinkAgain = nextTag == "think" || nextTag == "thinking"
+                    val isThinkAgain = nextTag == "think" || nextTag == "thinking" || nextTag == "operit_thinking"
                     val isToolRelated = nextTag == "tool" || nextTag == "tool_result"
                     val isSearchRelated = nextTag == "search"
                     if (!isThinkAgain && !isToolRelated && !isSearchRelated) break
@@ -260,7 +260,7 @@ class ThinkToolsXmlNodeGrouper(
                 MarkdownProcessorType.XML_BLOCK -> {
                     val tag = extractXmlTagName(node.content)
                     when (tag) {
-                        "think", "thinking" -> true
+                        "think", "thinking", "operit_thinking" -> true
                         "search" -> true
                         "meta" -> true
                         "tool", "tool_result" -> {

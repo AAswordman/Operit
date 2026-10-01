@@ -751,7 +751,7 @@ class ConversationService(
 
             // 根据标签类型分配角色
             when (normalizedTagName) {
-                "think", "thinking" -> {
+                "think", "thinking", "operit_thinking" -> {
                     // 保留完整的think标签（用于DeepSeek推理模式）
                     segments.add(PromptTurn(kind = PromptTurnKind.ASSISTANT, content = tagContent))
                 }
