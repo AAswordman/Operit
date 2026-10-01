@@ -8,6 +8,23 @@ import org.junit.Test
 
 class AppDatabaseMigrationTest {
     @Test
+    fun migration22To23AddsPeakDaySwitches() {
+        val executedSql = mutableListOf<String>()
+
+        AppDatabase.MIGRATION_22_23.migrate(recordingDatabase(executedSql))
+
+        val normalizedSql = executedSql.map { it.replace(Regex("\\s+"), " ").trim() }
+        assertSqlWasExecuted(
+            normalizedSql,
+            "ALTER TABLE token_stats_models ADD COLUMN `weekendOffPeakPricingEnabled` INTEGER",
+        )
+        assertSqlWasExecuted(
+            normalizedSql,
+            "ALTER TABLE token_stats_models ADD COLUMN `holidayOffPeakPricingEnabled` INTEGER",
+        )
+    }
+
+    @Test
     fun migration20To21CreatesMessageIndexesExpectedByRoom() {
         val executedSql = mutableListOf<String>()
 

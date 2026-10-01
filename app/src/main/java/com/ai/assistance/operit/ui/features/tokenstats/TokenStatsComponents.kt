@@ -1443,6 +1443,20 @@ private fun priceDraftForIdentity(
         cacheWritePricePerMillion = resolved.cacheWritePricePerMillion,
         outputPricePerMillion = resolved.outputPricePerMillion,
         pricePerRequest = resolved.pricePerRequest,
+        peakPricingEnabled = resolved.peakPricingEnabled,
+        weekendOffPeakPricingEnabled = resolved.weekendOffPeakPricingEnabled,
+        holidayOffPeakPricingEnabled = resolved.holidayOffPeakPricingEnabled,
+        peakSchedule = resolved.peakSchedule,
+        peakInputMultiplier = resolved.peakInputMultiplier,
+        peakCachedInputMultiplier = resolved.peakCachedInputMultiplier,
+        peakCacheWriteMultiplier = resolved.peakCacheWriteMultiplier,
+        peakOutputMultiplier = resolved.peakOutputMultiplier,
+        longContextPricingEnabled = resolved.longContextPricingEnabled,
+        longContextThreshold = resolved.longContextThreshold,
+        longContextInputMultiplier = resolved.longContextInputMultiplier,
+        longContextCachedInputMultiplier = resolved.longContextCachedInputMultiplier,
+        longContextCacheWriteMultiplier = resolved.longContextCacheWriteMultiplier,
+        longContextOutputMultiplier = resolved.longContextOutputMultiplier,
     )
 }
 
@@ -1460,6 +1474,29 @@ private fun mergePriceSettings(
             configuration?.cacheWritePricePerMillion ?: provider?.cacheWritePricePerMillion,
         outputPricePerMillion = configuration?.outputPricePerMillion ?: provider?.outputPricePerMillion,
         pricePerRequest = configuration?.pricePerRequest ?: provider?.pricePerRequest,
+        peakPricingEnabled = configuration?.peakPricingEnabled ?: provider?.peakPricingEnabled,
+        weekendOffPeakPricingEnabled =
+            configuration?.weekendOffPeakPricingEnabled ?: provider?.weekendOffPeakPricingEnabled,
+        holidayOffPeakPricingEnabled =
+            configuration?.holidayOffPeakPricingEnabled ?: provider?.holidayOffPeakPricingEnabled,
+        peakSchedule = configuration?.peakSchedule ?: provider?.peakSchedule,
+        peakInputMultiplier = configuration?.peakInputMultiplier ?: provider?.peakInputMultiplier,
+        peakCachedInputMultiplier =
+            configuration?.peakCachedInputMultiplier ?: provider?.peakCachedInputMultiplier,
+        peakCacheWriteMultiplier =
+            configuration?.peakCacheWriteMultiplier ?: provider?.peakCacheWriteMultiplier,
+        peakOutputMultiplier = configuration?.peakOutputMultiplier ?: provider?.peakOutputMultiplier,
+        longContextPricingEnabled =
+            configuration?.longContextPricingEnabled ?: provider?.longContextPricingEnabled,
+        longContextThreshold = configuration?.longContextThreshold ?: provider?.longContextThreshold,
+        longContextInputMultiplier =
+            configuration?.longContextInputMultiplier ?: provider?.longContextInputMultiplier,
+        longContextCachedInputMultiplier =
+            configuration?.longContextCachedInputMultiplier ?: provider?.longContextCachedInputMultiplier,
+        longContextCacheWriteMultiplier =
+            configuration?.longContextCacheWriteMultiplier ?: provider?.longContextCacheWriteMultiplier,
+        longContextOutputMultiplier =
+            configuration?.longContextOutputMultiplier ?: provider?.longContextOutputMultiplier,
     )
 
 private fun TokenStatsPriceSetting.toModelPriceSettings() =
@@ -1471,6 +1508,20 @@ private fun TokenStatsPriceSetting.toModelPriceSettings() =
         cacheWritePricePerMillion = cacheWritePricePerMillion,
         outputPricePerMillion = outputPricePerMillion,
         pricePerRequest = pricePerRequest,
+        peakPricingEnabled = peakPricingEnabled,
+        weekendOffPeakPricingEnabled = weekendOffPeakPricingEnabled,
+        holidayOffPeakPricingEnabled = holidayOffPeakPricingEnabled,
+        peakSchedule = peakSchedule,
+        peakInputMultiplier = peakInputMultiplier,
+        peakCachedInputMultiplier = peakCachedInputMultiplier,
+        peakCacheWriteMultiplier = peakCacheWriteMultiplier,
+        peakOutputMultiplier = peakOutputMultiplier,
+        longContextPricingEnabled = longContextPricingEnabled,
+        longContextThreshold = longContextThreshold,
+        longContextInputMultiplier = longContextInputMultiplier,
+        longContextCachedInputMultiplier = longContextCachedInputMultiplier,
+        longContextCacheWriteMultiplier = longContextCacheWriteMultiplier,
+        longContextOutputMultiplier = longContextOutputMultiplier,
     )
 
 private fun formatRateInput(rate: Double): String =

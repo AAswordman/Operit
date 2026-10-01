@@ -61,6 +61,46 @@ abstract class TokenUsageDao {
 
     @Query(
         """
+        SELECT * FROM token_usage_records
+        WHERE (:allModels OR (provider || ':' || model) IN (:providerModels))
+            AND (
+                (provider || ':' || model) IN (:requestLevelProviderModels)
+                OR (provider || ':' || model || char(31) || configId) IN (:requestLevelConfigIdentities)
+            )
+        ORDER BY occurredAtMs, id
+        """
+    )
+    abstract suspend fun getAllUsageRecordsForStats(
+        providerModels: List<String>,
+        allModels: Boolean,
+        requestLevelProviderModels: List<String>,
+        requestLevelConfigIdentities: List<String>,
+    ): List<TokenUsageRecordEntity>
+
+    @Query(
+        """
+        SELECT * FROM token_usage_records
+        WHERE occurredAtMs IS NOT NULL
+            AND occurredAtMs >= :startMs AND occurredAtMs < :endMs
+            AND (:allModels OR (provider || ':' || model) IN (:providerModels))
+            AND (
+                (provider || ':' || model) IN (:requestLevelProviderModels)
+                OR (provider || ':' || model || char(31) || configId) IN (:requestLevelConfigIdentities)
+            )
+        ORDER BY occurredAtMs, id
+        """
+    )
+    abstract suspend fun getUsageRecordsInRange(
+        startMs: Long,
+        endMs: Long,
+        providerModels: List<String>,
+        allModels: Boolean,
+        requestLevelProviderModels: List<String>,
+        requestLevelConfigIdentities: List<String>,
+    ): List<TokenUsageRecordEntity>
+
+    @Query(
+        """
         UPDATE token_stats_models
         SET billingMode = NULL,
             currency = NULL,
@@ -68,7 +108,21 @@ abstract class TokenUsageDao {
             cachedInputPricePerMillion = NULL,
             cacheWritePricePerMillion = NULL,
             outputPricePerMillion = NULL,
-            pricePerRequest = NULL
+            pricePerRequest = NULL,
+            peakPricingEnabled = NULL,
+            weekendOffPeakPricingEnabled = NULL,
+            holidayOffPeakPricingEnabled = NULL,
+            peakScheduleJson = NULL,
+            peakInputMultiplier = NULL,
+            peakCachedInputMultiplier = NULL,
+            peakCacheWriteMultiplier = NULL,
+            peakOutputMultiplier = NULL,
+            longContextPricingEnabled = NULL,
+            longContextThreshold = NULL,
+            longContextInputMultiplier = NULL,
+            longContextCachedInputMultiplier = NULL,
+            longContextCacheWriteMultiplier = NULL,
+            longContextOutputMultiplier = NULL
         WHERE configId = :configId AND provider = :provider AND model = :model
         """
     )
@@ -84,6 +138,20 @@ abstract class TokenUsageDao {
             AND cacheWritePricePerMillion IS NULL
             AND outputPricePerMillion IS NULL
             AND pricePerRequest IS NULL
+            AND peakPricingEnabled IS NULL
+            AND weekendOffPeakPricingEnabled IS NULL
+            AND holidayOffPeakPricingEnabled IS NULL
+            AND peakScheduleJson IS NULL
+            AND peakInputMultiplier IS NULL
+            AND peakCachedInputMultiplier IS NULL
+            AND peakCacheWriteMultiplier IS NULL
+            AND peakOutputMultiplier IS NULL
+            AND longContextPricingEnabled IS NULL
+            AND longContextThreshold IS NULL
+            AND longContextInputMultiplier IS NULL
+            AND longContextCachedInputMultiplier IS NULL
+            AND longContextCacheWriteMultiplier IS NULL
+            AND longContextOutputMultiplier IS NULL
         """
     )
     abstract suspend fun deleteEmptyStatsModels(): Int
@@ -147,7 +215,8 @@ abstract class TokenUsageDao {
             COALESCE(SUM(outputTokens), 0) AS outputTokens,
             COALESCE(SUM(CASE WHEN outputTokens IS NOT NULL THEN requestCount ELSE 0 END), 0) AS outputKnown
         FROM token_usage_records
-        WHERE occurredAtMs >= :startMs AND occurredAtMs < :endMs
+        WHERE occurredAtMs IS NOT NULL
+            AND occurredAtMs >= :startMs AND occurredAtMs < :endMs
             AND (:allModels OR (provider || ':' || model) IN (:providerModels))
         GROUP BY provider, model, configId
         ORDER BY provider, model, configId
@@ -177,7 +246,8 @@ abstract class TokenUsageDao {
                 ) + COALESCE(outputTokens, 0)
             ), 0) AS tokens
         FROM token_usage_records
-        WHERE occurredAtMs >= :startMs AND occurredAtMs < :endMs
+        WHERE occurredAtMs IS NOT NULL
+            AND occurredAtMs >= :startMs AND occurredAtMs < :endMs
             AND (:allModels OR (provider || ':' || model) IN (:providerModels))
         GROUP BY localDate, configId, provider, model
         ORDER BY localDate, provider, model, configId
