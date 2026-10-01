@@ -839,6 +839,12 @@
     <string name="theme_select_image">Select Image</string>
     <string name="theme_bg_opacity">Background opacity: %1$d%%</string>
     <string name="theme_reset">Reset to Default Theme</string>
+    <string name="theme_apply_to_all_character_cards">Apply to all character cards</string>
+    <string name="theme_apply_to_all_character_cards_title">Apply to all character cards?</string>
+    <string name="theme_apply_to_all_character_cards_message">The current theme will overwrite every character card and cannot be undone. Continue?</string>
+    <string name="theme_apply_to_all_character_cards_confirm">Continue</string>
+    <string name="theme_applied_to_all_character_cards">Applied to all character cards</string>
+    <string name="theme_apply_to_all_character_cards_failed">Failed to apply theme to all character cards</string>
     <string name="theme_saved">Settings saved</string>
     <string name="theme_select_target">Select theme target</string>
     <string name="theme_unsaved_title">Save theme changes?</string>

@@ -477,6 +477,12 @@
     <string name="theme_select_image">Pilih Gambar</string>
     <string name="theme_bg_opacity">Opasitas Latar Belakang: %1$d%%</string>
     <string name="theme_reset">Reset ke Tema Bawaan</string>
+    <string name="theme_apply_to_all_character_cards">Terapkan ke semua kartu karakter</string>
+    <string name="theme_apply_to_all_character_cards_title">Terapkan ke semua kartu karakter?</string>
+    <string name="theme_apply_to_all_character_cards_message">Pilihan saat ini akan menimpa semua kartu karakter dan tidak dapat dibatalkan. Lanjutkan?</string>
+    <string name="theme_apply_to_all_character_cards_confirm">Lanjutkan</string>
+    <string name="theme_applied_to_all_character_cards">Diterapkan ke semua kartu karakter</string>
+    <string name="theme_apply_to_all_character_cards_failed">Gagal menerapkan tema ke semua kartu karakter</string>
     <string name="theme_saved">Pengaturan telah disimpan</string>
     <string name="theme_video_too_large">File video terlalu besar, dapat menyebabkan aplikasi lag atau crash. Pilih video kurang dari 30MB.</string>
     <string name="theme_video_saved">Video latar belakang telah disimpan</string>
