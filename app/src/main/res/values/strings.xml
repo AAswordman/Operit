@@ -4452,8 +4452,8 @@
     <string name="waifu_custom_prompt_placeholder">例如：回复简短自然，不要卖萌，不要加语气词，不要写动作描写。</string>
     <string name="waifu_custom_prompt_tip">这段内容会作为 Waifu 模式的额外规则拼接到系统提示词中。</string>
     <string name="enable_emoticons">启用表情包</string>
-    <string name="emoticons_desc">在对话中插入情绪状态标签，增强表达效果</string>
-    <string name="available_emoticons">可用表情：crying, like_you, happy, surprised, miss_you, speechless, angry, confused, sad</string>
+    <string name="emoticons_desc">使用表情管理中添加的图片增强情绪表达</string>
+    <string name="available_emoticons">表情类别由表情管理中添加，AI 使用 &lt;emotion&gt;类别&lt;/emotion&gt; 标签发送表情包</string>
     <string name="enable_selfie_feature">启用自拍功能</string>
     <string name="selfie_feature_desc">允许AI生成角色自拍图片，需要配置外貌提示词</string>
     <string name="appearance_prompt">外貌提示词</string>
@@ -5358,11 +5358,11 @@
     <string name="category_delete_failed">删除失败，详情请看日志</string>
     <string name="category_already_exists">类别已存在</string>
     <string name="invalid_category_name">类别名称只能包含小写字母、数字和下划线</string>
-    <string name="emoji_reset_success">已重置为默认表情</string>
+    <string name="emoji_reset_success">已清空所有表情</string>
     <string name="emoji_reset_failed">重置失败: %1$s</string>
-    <string name="reset_to_default_emoji">重置为默认表情</string>
-    <string name="reset_emoji_warning">此操作将删除所有自定义表情，并恢复为默认表情。此操作不可撤销，确定要继续吗？</string>
-    <string name="confirm_reset_emoji">确定重置</string>
+    <string name="reset_to_default_emoji">清空所有表情</string>
+    <string name="reset_emoji_warning">此操作将删除当前角色的所有表情。此操作不可撤销，确定要继续吗？</string>
+    <string name="confirm_reset_emoji">确定清空</string>
     <string name="tap_button_add_emoji">点击右下角按钮添加表情</string>
     <string name="emoji_preview">表情预览</string>
     <string name="create_group">创建分组</string>

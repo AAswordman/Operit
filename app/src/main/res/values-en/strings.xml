@@ -4505,7 +4505,7 @@
     <string name="waifu_custom_prompt_tip">This content is appended to the system prompt as an extra Waifu-mode rule.</string>
     <string name="enable_emoticons">Enable Emoticons</string>
     <string name="emoticons_desc">Insert emotional state tags in conversations to enhance expression</string>
-    <string name="available_emoticons">Available emoticons: crying, like_you, happy, surprised, miss_you, speechless, angry, confused, sad</string>
+    <string name="available_emoticons">Categories come from Emoji Management; AI uses the &lt;emotion&gt;category&lt;/emotion&gt; tag to send an emoticon</string>
     <string name="enable_selfie_feature">Enable Selfie Feature</string>
     <string name="selfie_feature_desc">Allow AI to generate character selfie images, requires appearance prompt configuration</string>
     <string name="appearance_prompt">Appearance Prompt</string>

@@ -3612,7 +3612,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="waifu_custom_prompt_tip">Esse conteúdo será anexado ao prompt do sistema como regra extra do modo Waifu.</string>
     <string name="enable_emoticons">Habilitar emoticons</string>
     <string name="emoticons_desc">Insira tags de estado emocional em conversas para melhorar a expressão</string>
-    <string name="available_emoticons">Expressões disponíveis: chorando, like_you, feliz, surpreso, sinto sua falta, sem palavras, irritado, confuso, triste</string>
+    <string name="available_emoticons">As categorias são adicionadas no gerenciamento de emoticons; a IA usa a tag &lt;emotion&gt;category&lt;/emotion&gt; para enviar um emoticon</string>
     <string name="enable_selfie_feature">Ative a função selfie</string>
     <string name="selfie_feature_desc">Para permitir que a IA gere imagens de selfie de personagens, as palavras de aviso de aparência precisam ser configuradas.</string>
     <string name="appearance_prompt">Palavras-chave de aparência</string>

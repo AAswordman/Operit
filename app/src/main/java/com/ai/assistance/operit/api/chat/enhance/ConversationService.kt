@@ -590,7 +590,9 @@ class ConversationService(
                 )
 
                 // 构建waifu特殊规则
-                val waifuRulesText = if(waifuPreferences.enableWaifuModeFlow.first()) buildWaifuRulesText() else ""
+                val waifuRulesText = if (waifuPreferences.enableWaifuModeFlow.first()) {
+                    buildWaifuRulesText(useEnglish)
+                } else ""
                 // 语音头像模式：添加 <mood> 标签协议
                 val avatarMoodRulesText =
                     if (shouldInjectMoodRules(promptFunctionType)) {
@@ -971,7 +973,7 @@ class ConversationService(
      * 构建waifu模式的特殊规则文本
      * @return 格式化的waifu规则文本，如果没有规则则返回空字符串
      */
-    private suspend fun buildWaifuRulesText(): String {
+    private suspend fun buildWaifuRulesText(useEnglish: Boolean): String {
         val activePrompt = activePromptManager.getActivePrompt()
         val waifuEnableEmoticons = waifuPreferences.waifuEnableEmoticonsFlow.first()
         val waifuEnableSelfie = waifuPreferences.waifuEnableSelfieFlow.first()
@@ -983,7 +985,9 @@ class ConversationService(
             // 动态获取当前可用的表情分组
             val availableCategories = try {
                 customEmojiRepository.initializeBuiltinEmojis(activePrompt)
-                customEmojiRepository.getAllCategories(activePrompt).first()
+                customEmojiRepository.getAllCategories(activePrompt).first().filter { category ->
+                    customEmojiRepository.getEmojisForCategory(activePrompt, category).first().isNotEmpty()
+                }
             } catch (e: Exception) {
                 com.ai.assistance.operit.util.AppLogger.e("ConversationService", "获取表情分组失败", e)
                 emptyList()
@@ -991,10 +995,9 @@ class ConversationService(
             
             if (availableCategories.isNotEmpty()) {
                 val emotionListText = availableCategories.joinToString(", ")
-                waifuRules.add(FunctionalPrompts.waifuEmotionRule(emotionListText))
+                waifuRules.add(FunctionalPrompts.waifuEmotionRule(emotionListText, useEnglish))
             } else {
-                // 如果没有自定义表情，则不添加情绪规则，或明确告知没有可用表情
-                waifuRules.add(FunctionalPrompts.waifuNoCustomEmojiRule())
+                waifuRules.add(FunctionalPrompts.waifuNoCustomEmojiRule(useEnglish))
             }
         }
         
