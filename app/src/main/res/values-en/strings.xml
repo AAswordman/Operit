@@ -5506,6 +5506,8 @@
     <string name="backup_raw_snapshot_title">File Snapshot Backup (Experimental)</string>
     <string name="backup_raw_snapshot_subtitle">Archive/restore app data by file &amp; directory</string>
     <string name="backup_raw_snapshot_desc">This archives app data that is removed by Clear data: internal files/shared_prefs/datastore/databases and Android/data/package/files (the terminal Linux environment can be very large, so it is excluded by default). Restoring overwrites current data and requires an app restart. Some encrypted data may not work after device migration or reinstall.</string>
+    <string name="backup_raw_snapshot_include_logs">Include logs in snapshot</string>
+    <string name="backup_raw_snapshot_include_logs_desc">Logs help diagnose failures but may contain sensitive information. This only changes the export and does not delete device logs.</string>
     <string name="backup_raw_snapshot_backup_now">Backup now</string>
     <string name="backup_raw_snapshot_restore_from_file">Restore from file</string>
     <string name="backup_raw_snapshot_backing_up">Creating file snapshot backup...</string>
@@ -5530,6 +5532,7 @@
     <string name="backup_raw_snapshot_restore_confirm_message">This will overwrite current app data with the following backup:\n%1$s\n\nThis action cannot be undone. It is recommended to perform a backup before restoring.</string>
     <string name="backup_raw_snapshot_restore_confirm_action">Confirm restore</string>
     <string name="backup_raw_snapshot_restore_cancel_action">Cancel</string>
+    <string name="backup_raw_snapshot_restore_result_message">Snapshot restored: %1$d resource(s) restored, %2$d skipped. Restart the app to apply the restored data.</string>
     <string name="backup_chat_history">Chat History</string>
     <string name="backup_select_chat_records">Select chat records</string>
     <string name="backup_select_chat_records_hint">Choose the chat records to export.</string>
@@ -8542,6 +8545,8 @@
     <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
     <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
+    <string name="data_recovery_include_logs">Include logs in snapshot</string>
+    <string name="data_recovery_include_logs_description">Logs help diagnose failures but may contain sensitive information. This only changes the export and does not delete device logs.</string>
 
 
 <!-- 已移除实验性提示 -->
