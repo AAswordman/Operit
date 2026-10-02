@@ -144,10 +144,14 @@ class MemoryViewModel(
             try {
                 val query = _uiState.value.searchQuery
                 val config = _uiState.value.searchConfig
+                // Keep the search scoped to the folder the user is currently browsing,
+                // so the search field does not silently widen the scope.
+                val folderPath = _uiState.value.selectedFolderPath.takeIf { it.isNotBlank() }
                 val memories =
                     if (query.isBlank()) {
                         repository.searchMemories(
                             query = "",
+                            folderPath = folderPath,
                             scoreMode = config.scoreMode,
                             keywordWeight = config.keywordWeight,
                             tagWeight = config.tagWeight,
@@ -157,6 +161,7 @@ class MemoryViewModel(
                     } else {
                         repository.searchMemories(
                             query = query,
+                            folderPath = folderPath,
                             scoreMode = config.scoreMode,
                             keywordWeight = config.keywordWeight,
                             tagWeight = config.tagWeight,
