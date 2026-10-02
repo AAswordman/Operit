@@ -364,4 +364,32 @@
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">認証を完了し、アカウント情報を読み込んでいます…</string>
     <string name="antigravity_login_timed_out">Google 認証の待機が 15 分を超えました。ログインをやり直してください。</string>
+    <string name="chat_summarizing_memory">メモリを要約しています...</string>
+    <string name="chat_summarizing_generating">要約を生成しています...</string>
+    <string name="chat_compressing_history">履歴を圧縮しています...</string>
+    <string name="chat_processing_attachment">添付ファイルを処理しています...</string>
+    <string name="chat_fetching_screen_content">画面の内容を取得しています...</string>
+    <string name="chat_fetching_notifications">現在の通知を取得しています...</string>
+    <string name="chat_fetching_location">位置情報を取得しています...</string>
+    <string name="chat_attaching_memory_folders">メモリフォルダを添付しています...</string>
+    <string name="chat_processing_shared_files">共有ファイルを処理しています...</string>
+    <string name="message_processing">メッセージを処理しています...</string>
+    <string name="message_summarizing">メモリを要約しています...</string>
+    <string name="role_response_planner_planning">グループの発言順を計画しています...</string>
+    <string name="role_response_planner_member_replying">「%1$s」の返信を生成しています...</string>
+    <string name="conversation_summary_preparing">要約を準備しています...</string>
+    <string name="conversation_summary_writing_title">タイトルを作成しています...</string>
+    <string name="conversation_summary_core_task">主要タスクの状態をまとめています...</string>
+    <string name="conversation_summary_interaction">やり取りと設定をまとめています...</string>
+    <string name="conversation_summary_progress">会話の経緯と概要をまとめています...</string>
+    <string name="conversation_summary_key_info">重要な情報とコンテキストをまとめています...</string>
+    <string name="conversation_summary_finishing">仕上げています...</string>
+    <string name="conversation_summary_completed">要約が完了しました</string>
+    <string name="enhanced_processing_input">入力を処理しています...</string>
+    <string name="enhanced_processing_message">メッセージを処理しています...</string>
+    <string name="enhanced_connecting_service">AIサービスに接続しています...</string>
+    <string name="enhanced_receiving_response">AIの応答を受信しています...</string>
+    <string name="enhanced_receiving_tool_result">ツールの実行後にAIからの応答を受信しています...</string>
+    <string name="executing_tool">ツールを実行しています: %1$s</string>
+    <string name="processing_tool_result">ツールの結果を処理しています: %1$s</string>
 </resources>
