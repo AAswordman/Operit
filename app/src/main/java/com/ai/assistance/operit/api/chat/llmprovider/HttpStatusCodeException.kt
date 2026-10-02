@@ -2,8 +2,10 @@ package com.ai.assistance.operit.api.chat.llmprovider
 
 import com.ai.assistance.operit.util.AppLogger
 
-internal interface HttpStatusCodeException {
+interface HttpStatusCodeException {
     val statusCode: Int
+    val retryAfterMs: Long?
+        get() = null
 }
 
 internal suspend fun shouldSuppressKeyPoolRateLimitNotice(

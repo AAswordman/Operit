@@ -58,6 +58,7 @@ import com.ai.assistance.operit.ui.features.settings.DebouncedModelConfigAutoSav
 import com.ai.assistance.operit.ui.features.settings.ModelConfigSaveCoordinator
 import com.ai.assistance.operit.ui.features.settings.RegisterModelConfigSaveAction
 import com.ai.assistance.operit.ui.features.settings.rememberModelConfigSaveCoordinator
+import com.ai.assistance.operit.ui.features.settings.keypool.ApiKeyPoolSettingsSection
 import com.ai.assistance.operit.ui.features.settings.sections.AdvancedSettingsSection
 import com.ai.assistance.operit.ui.features.settings.sections.ModelApiSettingsSection
 import com.ai.assistance.operit.ui.features.settings.sections.ModelParametersSection
@@ -198,11 +199,9 @@ fun ModelConfigScreen(
     // UI状态
     var showAddConfigDialog by remember { mutableStateOf(false) }
     var showRenameConfigDialog by remember { mutableStateOf(false) }
-    var showSaveSuccessMessage by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
     var newConfigName by remember { mutableStateOf("") }
     var renameConfigName by remember { mutableStateOf("") }
-    var confirmMessage by remember { mutableStateOf("") }
 
     // 连接测试状态
     var isTestingConnection by remember { mutableStateOf(false) }
@@ -242,21 +241,16 @@ fun ModelConfigScreen(
         }
     }
 
-    // 显示通知消息
     fun showNotification(message: String) {
-        confirmMessage = message
-        showSaveSuccessMessage = true
-        scope.launch {
-            kotlinx.coroutines.delay(3000)
-            showSaveSuccessMessage = false
-        }
-    }
-
-    fun showOnboardingError(message: String) {
+        if (message.isBlank()) return
         scope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
             snackbarHostState.showSnackbar(message)
         }
+    }
+
+    fun showOnboardingError(message: String) {
+        showNotification(message)
     }
 
     if (entryMode == ModelConfigEntryMode.CHAT_ONBOARDING) {
@@ -316,7 +310,7 @@ fun ModelConfigScreen(
                             ChatConfigReadinessIssue.CODEX_LOGIN_REQUIRED ->
                                 R.string.onboarding_config_codex_login_required
                             ChatConfigReadinessIssue.ANTIGRAVITY_LOGIN_REQUIRED ->
-                                R.string.onboarding_config_antigravity_login_required
+                                R.string.onboarding_config_antigravity_login_required
                             ChatConfigReadinessIssue.API_KEY_MISSING ->
                                 R.string.onboarding_config_api_key_missing
                             ChatConfigReadinessIssue.API_KEY_INVALID ->
@@ -839,7 +833,7 @@ fun ModelConfigScreen(
                 }
 
                 item {
-                    AdvancedSettingsSection(
+                    ApiKeyPoolSettingsSection(
                         config = config,
                         configManager = configManager,
                         saveCoordinator = saveCoordinator,
@@ -847,39 +841,13 @@ fun ModelConfigScreen(
                         showNotification = { message -> showNotification(message) }
                     )
                 }
-            }
 
-            if (showSaveSuccessMessage) {
                 item {
-                    AnimatedVisibility(
-                        visible = showSaveSuccessMessage,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = confirmMessage,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
+                    AdvancedSettingsSection(
+                        config = config,
+                        configManager = configManager,
+                        showNotification = { message -> showNotification(message) }
+                    )
                 }
             }
         }

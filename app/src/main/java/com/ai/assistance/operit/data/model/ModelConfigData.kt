@@ -9,7 +9,7 @@ enum class ApiProviderType {
         XAI, // Grok（SpaceXAI）
         OPENAI_RESPONSES, // ChatGPT Responses（OpenAI）
         OPENAI_CODEX, // Codex（OpenAI）
-        ANTIGRAVITY, // Antigravity（Google）
+        ANTIGRAVITY, // Antigravity（Google）
         OPENAI_RESPONSES_GENERIC, // OpenAI Responses（通用）
         OPENAI_GENERIC, // OpenAI（通用）
         ANTHROPIC, // Claude（Anthropic）
@@ -55,6 +55,45 @@ enum class ApiProviderType {
                                 it.name.equals(normalized, ignoreCase = true)
                         }
                 }
+        }
+
+        private val apiKeyPoolSupportedProviders = setOf(
+                OPENAI,
+                XAI,
+                OPENAI_RESPONSES,
+                OPENAI_RESPONSES_GENERIC,
+                OPENAI_GENERIC,
+                ANTHROPIC,
+                ANTHROPIC_GENERIC,
+                GOOGLE,
+                GEMINI_GENERIC,
+                BAIDU,
+                ALIYUN,
+                XUNFEI,
+                ZHIPU,
+                BAICHUAN,
+                MOONSHOT,
+                MIMO,
+                DEEPSEEK,
+                MISTRAL,
+                SILICONFLOW,
+                IFLOW,
+                OPENROUTER,
+                OPENCODE,
+                FOUR_ROUTER,
+                NOUS_PORTAL,
+                INFINIAI,
+                ALIPAY_BAILING,
+                DOUBAO,
+                NVIDIA,
+                PPINFRA,
+                NOVITA,
+                MINIMAX,
+                OTHER,
+        )
+
+        fun supportsApiKeyPool(): Boolean {
+                return this in apiKeyPoolSupportedProviders
         }
 }
 
@@ -199,7 +238,7 @@ data class ModelConfigData(
 
         // 请求频率限制配置
         val requestLimitPerMinute: Int = 0, // 每分钟最大请求次数，0表示不限流
-        val maxConcurrentRequests: Int = 0, // 最大并发请求数，0表示不限制
+        val maxConcurrentRequests: Int = 0, // 最大并发请求数，0表示不限制
 )
 
 /** 简化版的模型配置数据，用于列表显示 */

@@ -29,7 +29,7 @@ object ChatConfigReadiness {
         setOf(
             ApiProviderType.OPENAI_RESPONSES_GENERIC,
             ApiProviderType.OPENAI_CODEX,
-            ApiProviderType.ANTIGRAVITY,
+            ApiProviderType.ANTIGRAVITY,
             ApiProviderType.OPENAI_GENERIC,
             ApiProviderType.ANTHROPIC_GENERIC,
             ApiProviderType.GEMINI_GENERIC,
@@ -62,7 +62,7 @@ object ChatConfigReadiness {
         }
         if (providerType == ApiProviderType.ANTIGRAVITY && !antigravityAuthenticated) {
             return ChatConfigReadinessResult(ChatConfigReadinessIssue.ANTIGRAVITY_LOGIN_REQUIRED)
-        }
+        }
         val validModelIndex = getValidModelIndex(config.modelName, modelIndex)
         if (getModelByIndex(config.modelName, validModelIndex).isBlank()) {
             return ChatConfigReadinessResult(ChatConfigReadinessIssue.MODEL_MISSING)
@@ -70,7 +70,7 @@ object ChatConfigReadiness {
 
         if (providerType == ApiProviderType.MNN || providerType == ApiProviderType.LLAMA_CPP) {
             return ChatConfigReadinessResult()
-        }
+        }
 
         val completedEndpoint = EndpointCompleter.completeEndpoint(config.apiEndpoint, providerType)
         if (!isHttpEndpoint(completedEndpoint)) {
@@ -91,7 +91,7 @@ object ChatConfigReadiness {
                 ApiProviderConfigs.requiresApiKey(providerType, config.apiEndpoint)
         val hasUsableKey = ApiKeyFormatValidator.hasUsableKey(config)
 
-        if (config.useMultipleApiKeys && !hasUsableKey) {
+        if (config.useMultipleApiKeys && providerType.supportsApiKeyPool() && !hasUsableKey) {
             val issue =
                 if (hasConfiguredKey) {
                     ChatConfigReadinessIssue.API_KEY_INVALID
