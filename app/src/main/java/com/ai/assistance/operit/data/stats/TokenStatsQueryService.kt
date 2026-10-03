@@ -148,11 +148,6 @@ object TokenStatsQueryService {
         params: TokenStatsQueryParams,
     ): TokenStatsTotals {
         val usageRow = normalizeLegacyCacheWriteUsage(this)
-        val pricingProviderModel = normalizeProviderModel(usageRow.providerModel)
-        val pricing = TokenPriceResolver.resolve(
-            pricingProviderModel,
-            prices.settingFor(pricingProviderModel, usageRow.configId),
-        )
         val input = component(usageRow.uncachedInputTokens, usageRow.uncachedInputKnown, usageRow.requests)
         val cached = component(usageRow.cachedInputTokens, usageRow.cachedInputKnown, usageRow.requests)
         val cacheWrite = component(usageRow.cacheWriteTokens, usageRow.cacheWriteKnown, usageRow.requests)
@@ -170,12 +165,25 @@ object TokenStatsQueryService {
             totalInput = totalInput,
             output = output,
             totalTokens = combineComponents(listOf(totalInput, output), usageRow.requests),
-            cost = TokenCostCalculator.currentCost(
-                usageRow,
-                pricing,
-                params.targetCurrency,
-                params.manualRate,
-            ),
+            cost = if (usageRow.configId == TokenUsageRepository.DETACHED_CONFIG_ID) {
+                TokenCostCalculator.zeroCost(
+                    targetCurrency = params.targetCurrency,
+                    usdToCnyRate = params.manualRate,
+                    contributionCount = usageRow.requests,
+                )
+            } else {
+                val pricingProviderModel = normalizeProviderModel(usageRow.providerModel)
+                val pricing = TokenPriceResolver.resolve(
+                    pricingProviderModel,
+                    prices.settingFor(pricingProviderModel, usageRow.configId),
+                )
+                TokenCostCalculator.currentCost(
+                    usageRow,
+                    pricing,
+                    params.targetCurrency,
+                    params.manualRate,
+                )
+            },
         )
     }
 

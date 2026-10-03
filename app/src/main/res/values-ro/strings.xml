@@ -8139,6 +8139,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_price_label">Preț unitar</string>
     <string name="token_stats_unknown_pricing">Preț necunoscut</string>
     <string name="token_stats_config_deleted">Configurație ștearsă</string>
+    <string name="token_stats_config_unassigned">Configurație neatribuită</string>
     <string name="token_stats_pricing_edit">Editați suprascrierea</string>
     <string name="token_stats_pricing_delete">Ștergeți</string>
     <string name="token_stats_pricing_input">Preț intrare (per milion)</string>

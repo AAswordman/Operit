@@ -8,6 +8,20 @@ object TokenCostCalculator {
     fun saturatedAdd(left: Long, right: Long): Long =
         if (right > 0L && left > Long.MAX_VALUE - right) Long.MAX_VALUE else left + right
 
+    fun zeroCost(
+        targetCurrency: PricingCurrency,
+        usdToCnyRate: Double,
+        contributionCount: Long,
+    ): TokenStatsCostSummary =
+        TokenStatsCostSummary(
+            currency = targetCurrency,
+            knownAmount = 0.0,
+            unknownContributionCount = 0L,
+            totalContributionCount = contributionCount,
+            rateUsed = usdToCnyRate,
+            originalCurrencyAmounts = emptyMap(),
+        )
+
     fun currentCost(
         row: TokenUsageModelAggregateRow,
         pricing: ResolvedTokenPricing,

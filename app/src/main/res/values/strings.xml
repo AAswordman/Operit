@@ -3822,6 +3822,7 @@
     <string name="token_stats_price_label">单价</string>
     <string name="token_stats_unknown_pricing">定价未知</string>
     <string name="token_stats_config_deleted">已删除的配置</string>
+    <string name="token_stats_config_unassigned">未指定配置</string>
     <string name="token_stats_pricing_edit">编辑覆盖</string>
     <string name="token_stats_pricing_delete">删除</string>
     <string name="token_stats_pricing_input">输入价格（每百万）</string>

@@ -7382,6 +7382,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_stats_price_label">Preço unitário</string>
     <string name="token_stats_unknown_pricing">Preço desconhecido</string>
     <string name="token_stats_config_deleted">Configuração excluída</string>
+    <string name="token_stats_config_unassigned">Configuração não atribuída</string>
     <string name="token_stats_pricing_edit">Editar substituição</string>
     <string name="token_stats_pricing_delete">Excluir</string>
     <string name="token_stats_pricing_input">Preço de entrada (por milhão)</string>

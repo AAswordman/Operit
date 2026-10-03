@@ -7544,6 +7544,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_stats_price_label">Harga satuan</string>
     <string name="token_stats_unknown_pricing">Harga tidak diketahui</string>
     <string name="token_stats_config_deleted">Konfigurasi yang dihapus</string>
+    <string name="token_stats_config_unassigned">Konfigurasi tanpa penetapan</string>
     <string name="token_stats_pricing_edit">Edit override</string>
     <string name="token_stats_pricing_delete">Hapus</string>
     <string name="token_stats_pricing_input">Harga input (per juta)</string>

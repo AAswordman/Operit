@@ -71,6 +71,7 @@ import com.ai.assistance.operit.data.model.normalizeProviderTypeId
 import com.ai.assistance.operit.data.stats.TokenActivityViewMode
 import com.ai.assistance.operit.data.stats.TokenPriceResolver
 import com.ai.assistance.operit.data.stats.TokenCostCalculator
+import com.ai.assistance.operit.data.stats.TokenUsageRepository
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayModelBreakdown
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
 import com.ai.assistance.operit.data.stats.TokenStatsGranularity
@@ -975,8 +976,14 @@ internal fun TokenStatsConfigurationCardsSection(
                         HorizontalDivider(color = colors.cardBorder)
                     }
                     val configurationName =
-                        configurationNames[identity.configId]
-                            ?: stringResource(R.string.token_stats_config_deleted)
+                        when {
+                            identity.configId == TokenUsageRepository.DETACHED_CONFIG_ID ->
+                                stringResource(R.string.token_stats_config_deleted)
+                            identity.configId.isBlank() ->
+                                stringResource(R.string.token_stats_config_unassigned)
+                            else -> configurationNames[identity.configId]
+                                ?: stringResource(R.string.token_stats_config_deleted)
+                        }
                     val identityKey = tokenStatsIdentityKey(identity)
                     TokenStatsConfigurationRow(
                         identity = identity,
@@ -1200,35 +1207,37 @@ private fun TokenStatsConfigurationRow(
                         maxLines = 1,
                     )
                 }
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    TextButton(
-                        onClick = {
-                            onEditPrice(
-                                priceOverride,
-                                priceDraftForIdentity(identity, priceSettings),
-                                configurationName,
+                if (identity.configId != TokenUsageRepository.DETACHED_CONFIG_ID) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        TextButton(
+                            onClick = {
+                                onEditPrice(
+                                    priceOverride,
+                                    priceDraftForIdentity(identity, priceSettings),
+                                    configurationName,
+                                )
+                            },
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    if (priceScope == TokenStatsPriceScope.CONFIG) {
+                                        R.string.token_stats_pricing_configuration
+                                    } else {
+                                        R.string.token_stats_pricing_model
+                                    },
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
                             )
-                        },
-                    ) {
-                        Text(
-                            text = stringResource(
-                                if (priceScope == TokenStatsPriceScope.CONFIG) {
-                                    R.string.token_stats_pricing_configuration
-                                } else {
-                                    R.string.token_stats_pricing_model
-                                },
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                    TextButton(
-                        enabled = priceOverride != null,
-                        onClick = { priceOverride?.let(onResetConfigurationPrice) },
-                    ) {
-                        Text(
-                            text = stringResource(R.string.reset_to_default),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
+                        }
+                        TextButton(
+                            enabled = priceOverride != null,
+                            onClick = { priceOverride?.let(onResetConfigurationPrice) },
+                        ) {
+                            Text(
+                                text = stringResource(R.string.reset_to_default),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
                     }
                 }
             }
