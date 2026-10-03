@@ -292,7 +292,7 @@ Operit 的 ToolPkg API 支持关系如下：
 
 **子包脚本格式**：
 - 子包脚本必须是标准的 JavaScript 文件
-- 必须包含 `METADATA` 注释块（参考 [SCRIPT_DEV_GUIDE.md](./SCRIPT_DEV_GUIDE.md)）
+- 必须包含 `METADATA` 注释块（参考 [SCRIPT_DEV_GUIDE.md](../../../SCRIPT_DEV_GUIDE.md)）
 - 脚本中定义的工具会被注册为 `<subpackage_id>:<tool_name>` 格式
 
 #### 3.2.4 WASM 模块
@@ -881,7 +881,7 @@ my_toolpkg/
 
 **步骤 3：编写子包脚本**
 
-子包脚本必须包含 `METADATA` 块，参考 [SCRIPT_DEV_GUIDE.md](./SCRIPT_DEV_GUIDE.md)。
+子包脚本必须包含 `METADATA` 块，参考 [SCRIPT_DEV_GUIDE.md](../../../SCRIPT_DEV_GUIDE.md)。
 
 **步骤 4：打包成 ZIP**
 
@@ -1001,6 +1001,22 @@ const WindowsControl = (function () {
 exports.windows_exec = WindowsControl.windows_exec;
 ```
 
+#### 参数类型与工具调用转换
+
+包工具调用会在进入 JavaScript 函数前，根据 `METADATA.tools[].parameters[]` 转换参数。`required` 默认值为 `true`；必填检查按参数名判断是否存在，空字符串仍算已提供。未提供的可选参数不会自动填入默认值，也不会出现在函数收到的参数对象中。
+
+| metadata `type` | JavaScript 中的值 | 当前转换行为 |
+| --- | --- | --- |
+| `string` | 字符串 | 保留原始文本，不去除首尾空白。 |
+| `number` | 数字 | 先去除首尾空白；没有小数点或指数标记时优先解析为整数，否则解析为浮点数。无法解析时，调用以参数类型错误失败。 |
+| `integer` | 数字 | 去除首尾空白后解析为有符号 64 位整数；无法解析时失败。 |
+| `boolean` | 布尔值 | 去除首尾空白后接受不区分大小写的 `true` / `false`，以及 `1` / `0`；其他值失败。 |
+| `array` | 数组 | 参数文本必须是有效 JSON 数组；嵌套对象和数组会递归转换。 |
+| `object` | 对象 | 参数文本必须是有效 JSON 对象；嵌套对象和数组会递归转换。 |
+| 其他值 | 字符串 | 当前实现不拒绝未知类型，按原始字符串传入。类型名会转小写，但不会先去除空白。 |
+
+metadata 未声明的额外参数也不会被拒绝：它们按字符串传入。缺少必填参数或类型转换失败时，宿主在调用 QuickJS 前返回失败结果，不执行工具函数。直接脚本执行入口传入的字符串参数不经过这条 metadata 转换路径；以上规则针对由 metadata 定义的包工具调用。
+
 ### 5.2 多语言支持
 
 子包脚本的 `METADATA` 中的所有文本字段都支持多语言：
@@ -1076,7 +1092,7 @@ items[0];     // 对
 
 详细规则见：
 
-- [README.md](../app/src/main/java/com/ai/assistance/operit/core/tools/javascript/README.md)
+- [README.md](../../../../app/src/main/java/com/ai/assistance/operit/core/tools/javascript/README.md)
 
 ## 6. UI 模块开发
 
@@ -1594,5 +1610,5 @@ ls -lh app/src/main/assets/packages/windows_control.toolpkg
 
 ## 12. 参考资料
 
-- [脚本开发指南](./SCRIPT_DEV_GUIDE.md)：了解如何编写子包脚本
-- [ToolPkg API 文档](./doc-src/toolpkg_developer_documentation/04_modules/toolpkg.md)：了解注册 API
+- [脚本开发指南](../../../SCRIPT_DEV_GUIDE.md)：了解如何编写子包脚本
+- [ToolPkg API 文档](../03_runtime/registry.md)：了解注册 API
