@@ -43,6 +43,7 @@ enum class ApiProviderType {
         PPINFRA, // 派欧云（PPIO）
         NOVITA, // Novita（Novita AI）
         MINIMAX, // MiniMax（MiniMax）
+        CHEAPER_INFERENCE, // Cheaper Inference（Cheaper Inference）
         OTHER; // 其他（自定义）
 
         companion object {

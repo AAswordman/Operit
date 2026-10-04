@@ -3405,6 +3405,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="provider_ppinfra">PPInfra (PPIO)</string>
     <string name="provider_novita">Novita (Novita AI)</string>
     <string name="provider_minimax">MiniMax (MiniMax)</string>
+    <string name="provider_cheaper_inference">Cheaper Inference</string>
     <string name="provider_openai_generic">OpenAI (Generic)</string>
     <string name="provider_other">Other (Custom)</string>
     <string name="select_api_provider_title">Escolha o provedor de API</string>

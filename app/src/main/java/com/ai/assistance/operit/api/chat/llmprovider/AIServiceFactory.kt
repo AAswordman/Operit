@@ -529,6 +529,7 @@ object AIServiceFactory {
             ApiProviderType.PPINFRA,
             ApiProviderType.NOVITA,
             ApiProviderType.MINIMAX,
+            ApiProviderType.CHEAPER_INFERENCE,
             ApiProviderType.OTHER ->
                 OpenAIProvider(
                     apiEndpoint = config.apiEndpoint,

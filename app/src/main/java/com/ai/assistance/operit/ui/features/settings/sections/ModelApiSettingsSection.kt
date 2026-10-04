@@ -142,7 +142,8 @@ private val modelAggregationProviderOrder =
         ApiProviderType.FOUR_ROUTER,
         ApiProviderType.NVIDIA,
         ApiProviderType.PPINFRA,
-        ApiProviderType.NOVITA
+        ApiProviderType.NOVITA,
+        ApiProviderType.CHEAPER_INFERENCE
     )
 
 private val localModelProviderOrder =
@@ -1778,6 +1779,7 @@ private fun getBuiltInProviderDisplayName(provider: ApiProviderType, context: an
         ApiProviderType.PPINFRA -> context.getString(R.string.provider_ppinfra)
         ApiProviderType.NOVITA -> context.getString(R.string.provider_novita)
         ApiProviderType.MINIMAX -> context.getString(R.string.provider_minimax)
+        ApiProviderType.CHEAPER_INFERENCE -> context.getString(R.string.provider_cheaper_inference)
         ApiProviderType.OTHER -> context.getString(R.string.provider_other)
     }
 }
@@ -2518,6 +2520,7 @@ private fun getProviderColor(providerTypeId: String): androidx.compose.ui.graphi
         ApiProviderType.PPINFRA -> MaterialTheme.colorScheme.primaryContainer
         ApiProviderType.NOVITA -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.75f)
         ApiProviderType.MINIMAX -> MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+        ApiProviderType.CHEAPER_INFERENCE -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.64f)
         ApiProviderType.OTHER -> MaterialTheme.colorScheme.surfaceVariant
     }
 }

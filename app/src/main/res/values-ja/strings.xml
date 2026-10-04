@@ -271,6 +271,7 @@
     <string name="token_stats_pricing_configuration">設定上の料金</string>
     <string name="provider_opencode">OpenCode (Anomaly Innovations)</string>
     <string name="provider_minimax">MiniMax (MiniMax)</string>
+    <string name="provider_cheaper_inference">Cheaper Inference</string>
     <string name="token_activity_title">利用状況</string>
     <string name="token_activity_current_streak_badge">%1$d日連続</string>
     <string name="token_activity_longest_streak_badge">最長%1$d日</string>

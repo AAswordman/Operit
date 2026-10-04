@@ -298,6 +298,11 @@ object ApiProviderConfigs {
             )
         ),
         ProviderApiConfig(
+            providerType = ApiProviderType.CHEAPER_INFERENCE,
+            defaultModelName = "gpt-5.4-mini",
+            defaultApiEndpoint = "https://api.cheaperinference.com/v1/chat/completions"
+        ),
+        ProviderApiConfig(
             providerType = ApiProviderType.OTHER,
             defaultModelName = "",
             defaultApiEndpoint = ""

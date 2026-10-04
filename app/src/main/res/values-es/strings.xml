@@ -1251,6 +1251,7 @@
     <string name="provider_openai_local">OpenAI (Local)</string>
     <string name="provider_novita">Novita (Novita AI)</string>
     <string name="provider_minimax">MiniMax (MiniMax)</string>
+    <string name="provider_cheaper_inference">Cheaper Inference</string>
     <string name="provider_other">Other (Custom)</string>
     <string name="select_api_provider_title">Seleccionar Proveedor API</string>
     <string name="search_providers">Buscar proveedores</string>
