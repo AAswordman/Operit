@@ -32,8 +32,8 @@
     {
       "name": "OPENAI_IMAGE_MODEL",
       "description": {
-        "zh": "默认绘图模型（可选；当 draw_image 未传 model 时使用）",
-        "en": "Default image model (optional; used when draw_image doesn't pass model)"
+        "zh": "默认绘图模型（可选；当 draw_image 未传 model 时使用），例如 gpt-image-2、gpt-image-2.5-flare、gpt-image-2.5-sunburst",
+        "en": "Default image model (optional; used when draw_image doesn't pass model), e.g. gpt-image-2, gpt-image-2.5-flare, gpt-image-2.5-sunburst"
       },
       "required": false
     }
@@ -49,6 +49,8 @@
         { "name": "prompt", "description": { "zh": "绘图或编辑提示词（英文或中文皆可）", "en": "Prompt for image generation or editing (Chinese or English)" }, "type": "string", "required": true },
         { "name": "model", "description": { "zh": "模型名称（可选；不传则使用环境变量 OPENAI_IMAGE_MODEL，再不行使用默认值）", "en": "Model name (optional; falls back to env OPENAI_IMAGE_MODEL, then default)" }, "type": "string", "required": false },
         { "name": "size", "description": { "zh": "图片尺寸，例如 '1024x1024'，可选", "en": "Image size, e.g. '1024x1024' (optional)" }, "type": "string", "required": false },
+        { "name": "quality", "description": { "zh": "图片质量（可选；不传则使用接口默认值）。GPT Image 支持 low / medium / high / auto，gpt-image-2.5 系列额外支持 xhigh / max", "en": "Image quality (optional; omitted means the API default). GPT Image supports low / medium / high / auto; the gpt-image-2.5 series also supports xhigh / max" }, "type": "string", "required": false },
+        { "name": "background", "description": { "zh": "背景（可选）：auto / opaque / transparent。transparent 需要模型支持透明背景（如 gpt-image-2.5 系列）", "en": "Background (optional): auto / opaque / transparent. transparent requires a model with transparent background support (e.g. the gpt-image-2.5 series)" }, "type": "string", "required": false },
         { "name": "image_urls", "description": { "zh": "参考图公网 URL 数组（可选；图生图用）。支持字符串数组、JSON 字符串或逗号分隔字符串", "en": "Public reference image URLs for image-to-image (optional). Accepts a string array, JSON string, or comma-separated string." }, "type": "array", "required": false },
         { "name": "image_paths", "description": { "zh": "参考图本地路径数组（可选；图生图用，直接 multipart 上传，不必先上床）。支持字符串数组、JSON 字符串或逗号分隔字符串", "en": "Local reference image paths for image-to-image (optional; uploaded as multipart, no image host required). Accepts a string array, JSON string, or comma-separated string." }, "type": "array", "required": false },
         { "name": "file_name", "description": { "zh": "自定义保存到本地的文件名（不含路径和扩展名）", "en": "Custom output file name (without path or extension)" }, "type": "string", "required": false },
@@ -195,6 +197,12 @@ const openaiDraw = (function () {
         }
         return raw;
     }
+    function putOptionalField(target, key, value) {
+        const trimmed = (value ?? "").trim();
+        if (trimmed) {
+            target[key] = trimmed;
+        }
+    }
     async function parseOpenAIImageResponse(content, effectiveModel, referenceCount) {
         let parsed;
         try {
@@ -298,9 +306,9 @@ const openaiDraw = (function () {
                     model: effectiveModel,
                     prompt: params.prompt
                 };
-                if (params.size && params.size.trim().length > 0) {
-                    formData.size = params.size.trim();
-                }
+                putOptionalField(formData, "size", params.size);
+                putOptionalField(formData, "quality", params.quality);
+                putOptionalField(formData, "background", params.background);
                 const response = await Tools.Net.uploadFile({
                     url: endpoint,
                     method: "POST",
@@ -325,14 +333,15 @@ const openaiDraw = (function () {
             }
         }
         const endpoint = getImageEndpoint(apiBaseUrl, "generations");
+        // 不发送 response_format：GPT Image 系列（gpt-image-1/2/2.5）会以 400 Unknown parameter 拒绝该参数，
+        // 且固定返回 b64_json；返回 url 的模型由 parseOpenAIImageResponse 下载保存。
         const body = {
             model: effectiveModel,
-            prompt: params.prompt,
-            response_format: "b64_json"
+            prompt: params.prompt
         };
-        if (params.size && params.size.trim().length > 0) {
-            body.size = params.size.trim();
-        }
+        putOptionalField(body, "size", params.size);
+        putOptionalField(body, "quality", params.quality);
+        putOptionalField(body, "background", params.background);
         const request = client
             .newRequest()
             .url(endpoint)
@@ -359,6 +368,8 @@ const openaiDraw = (function () {
             prompt,
             model: params.model,
             size: params.size,
+            quality: params.quality,
+            background: params.background,
             api_base_url: params.api_base_url,
             image_urls: params.image_urls,
             image_paths: params.image_paths
