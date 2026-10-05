@@ -87,6 +87,15 @@ abstract class TokenUsageDao {
         """
     )
     abstract suspend fun deleteEmptyStatsModels(): Int
+    @Query("UPDATE token_usage_records SET configId = :detachedConfigId WHERE configId = :configId")
+    abstract suspend fun detachRecordsFromConfig(
+        configId: String,
+        detachedConfigId: String,
+    ): Int
+
+    @Query("DELETE FROM token_stats_models WHERE configId = :configId")
+    abstract suspend fun deleteStatsModelsByConfigId(configId: String): Int
+
 
     @Query(
         """

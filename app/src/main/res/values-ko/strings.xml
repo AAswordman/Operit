@@ -7391,6 +7391,7 @@
     <string name="token_stats_price_label">단가</string>
     <string name="token_stats_unknown_pricing">가격 정보 없음</string>
     <string name="token_stats_config_deleted">삭제된 구성</string>
+    <string name="token_stats_config_unassigned">지정되지 않은 구성</string>
     <string name="token_stats_pricing_edit">덮어쓰기 편집</string>
     <string name="token_stats_pricing_delete">삭제</string>
     <string name="token_stats_pricing_input">입력 가격(백만 개당)</string>

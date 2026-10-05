@@ -12,6 +12,7 @@ import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
 import com.ai.assistance.operit.data.model.CustomParameterData
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.stats.TokenUsageRepository
 import com.ai.assistance.operit.data.model.ModelConfigDefaults
 import com.ai.assistance.operit.data.model.ModelConfigSummary
 import com.ai.assistance.operit.data.model.ModelParameter
@@ -55,6 +56,7 @@ class ModelConfigManager(
 ) {
 
     private val configDataStore = configDataStore
+    private val tokenUsageRepository = TokenUsageRepository.getInstance(context.applicationContext)
 
     // 提供context访问器
     val appContext: Context
@@ -644,6 +646,14 @@ class ModelConfigManager(
             preferences.remove(stringPreferencesKey("config_${configId}"))
             // 更新配置列表
             preferences[CONFIG_LIST_KEY] = json.encodeToString(configList)
+        }
+        // 统计库故障不能回滚模型配置删除；历史用量在下次修复后仍可处理。
+        try {
+            tokenUsageRepository.detachUsageFromConfig(configId)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.e("ModelConfigManager", "Failed to detach token usage for deleted config", e)
         }
         return mappingRepair.affectedFunctions
     }

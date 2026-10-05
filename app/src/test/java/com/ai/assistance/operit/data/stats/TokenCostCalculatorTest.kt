@@ -8,6 +8,20 @@ import org.junit.Test
 
 class TokenCostCalculatorTest {
     @Test
+    fun `detached configuration cost is zero but contributions remain counted`() {
+        val result =
+            TokenCostCalculator.zeroCost(
+                targetCurrency = PricingCurrency.CNY,
+                usdToCnyRate = 7.0,
+                contributionCount = 3L,
+            )
+
+        assertEquals(0.0, result.knownAmount, 0.0)
+        assertEquals(0L, result.unknownContributionCount)
+        assertEquals(3L, result.totalContributionCount)
+    }
+
+    @Test
     fun `token cost uses current split prices`() {
         val result =
             TokenCostCalculator.currentCost(

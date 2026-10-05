@@ -46,6 +46,7 @@ class ModelConfigSummariesFlowTest {
         }
 
         val context = Mockito.mock(Context::class.java)
+        Mockito.`when`(context.applicationContext).thenReturn(context)
         val manager = ModelConfigManager(context, dataStore)
         val emissions = Channel<List<ModelConfigSummary>>(Channel.UNLIMITED)
         val collector = launch {

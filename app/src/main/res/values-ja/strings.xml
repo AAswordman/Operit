@@ -269,6 +269,7 @@
     <string name="token_stats_metric_requests">リクエスト</string>
     <string name="token_stats_metric_tokens">トークン</string>
     <string name="token_stats_pricing_configuration">設定上の料金</string>
+    <string name="token_stats_config_unassigned">未指定の設定</string>
     <string name="provider_opencode">OpenCode (Anomaly Innovations)</string>
     <string name="provider_minimax">MiniMax (MiniMax)</string>
     <string name="token_activity_title">利用状況</string>
