@@ -4,7 +4,7 @@
 
 import {
     SleepResultData, SystemSettingData, AppOperationData, AppListData,
-    AppUsageTimeResultData, DeviceInfoResultData, NotificationData, LocationData,
+    AppUsageTimeResultData, PerformanceMetricsResultData, DeviceInfoResultData, NotificationData, LocationData,
     BluetoothStateData, BluetoothBondedDevicesData, BluetoothScanResultData, BluetoothSessionData,
     BluetoothTransferData, BluetoothReadData, BluetoothBleServicesData, BluetoothBleNotificationData,
     ADBResultData, IntentResultData, TerminalCommandResultData, TerminalStreamEventData, HiddenTerminalCommandResultData,
@@ -111,6 +111,13 @@ export namespace System {
         limit?: number | string;
         includeSystemApps?: boolean;
     }): Promise<AppUsageTimeResultData>;
+    /**
+     * 获取 Operit 当前软件性能指标；传入 pluginId 时只返回指定插件及其上下文。
+     * @param options 查询选项；pluginId 使用 ToolPkg containerPackageName
+     */
+    function getPerformanceMetrics(options?: {
+        pluginId?: string;
+    }): Promise<PerformanceMetricsResultData>;
 
     /**
      * Get device location

@@ -26,6 +26,7 @@
 - 用户提到功能模型绑定、模型配置新增/删除/修改、模型连接测试
 - 用户提到角色卡的新增、编辑、删除、激活、酒馆 JSON 导入或导出
 - 用户提到 TTS/STT 语音服务不会配置、参数太多不会填、语音播报/语音识别不可用
+- 用户要求查看 Operit 软件整体或某个 ToolPkg 插件的 CPU、内存、网络性能指标
 - 问题核心是“配置和部署链路”，而不是普通问答
 
 【MCP：安装与排查】
@@ -504,6 +505,12 @@
 - `set_speech_services_config`: update TTS/STT config fields (partial update supported).
 - `test_tts_playback`: play one test utterance with the current TTS config (supports temporary rate/pitch overrides).
 
+[Performance metrics]
+1) Use `get_performance_metrics` when the user asks for current Operit performance.
+2) Omit `plugin_id` to inspect the whole software, including device context, the main process, all ToolPkg plugins, and terminal sessions.
+3) Pass the plugin's `containerPackageName` as `plugin_id` to inspect one ToolPkg plugin. Do not use its display name as the identifier.
+4) Treat `sampleValid` and `sampleAgeMs` as part of the measurement quality. Do not present an invalid or stale sample as a precise current value.
+
 [Multimodal input rules]
 1) Meaning of capability switches:
 - Switches like Tool Call / image / audio / video in model config are software-side capability markers, not proof of real model capability.
@@ -529,6 +536,24 @@
       }
       parameters: []
       advice: true
+    },
+    {
+      name: "get_performance_metrics"
+      description: {
+        zh: '''读取 Operit 当前性能分析指标。不传 plugin_id 时返回软件整体的设备、主进程、插件和终端指标；传入 ToolPkg 的 containerPackageName 时返回指定插件及其上下文。'''
+        en: '''Read current Operit performance metrics. Without plugin_id, return device, main-process, plugin, and terminal metrics for the whole software; with a ToolPkg containerPackageName, return the selected plugin and its context.'''
+      }
+      parameters: [
+        {
+          name: "plugin_id"
+          description: {
+            zh: "可选，ToolPkg 的 containerPackageName；不传时查询整个软件"
+            en: "Optional ToolPkg containerPackageName; omit it to query the whole software"
+          }
+          type: string
+          required: false
+        }
+      ]
     },
     {
       name: "how_make_skill"
@@ -2381,10 +2406,34 @@ async function operit_editor(params: { query?: string }) {
     const { query } = params ?? {};
     complete({
       success: true,
-      message: "配置排查手册已加载（MCP/Skill/Sandbox Package/沙盒包调试烧录/功能模型与模型配置/TTS-STT语音服务），将按配置链路执行排查。",
+      message: "配置排查手册已加载（MCP/Skill/Sandbox Package/沙盒包调试烧录/功能模型与模型配置/TTS-STT语音服务/性能分析），将按配置链路执行排查。",
       data: {
         query: query ?? ""
       }
+    });
+  } catch (error: unknown) {
+    complete({
+      success: false,
+      message: get_error_message(error)
+    });
+  }
+}
+
+async function get_performance_metrics(params?: { plugin_id?: string }) {
+  try {
+    const pluginId = params?.plugin_id?.trim();
+    const result = await Tools.System.getPerformanceMetrics(
+      pluginId ? { pluginId } : {}
+    );
+    const target = pluginId ? `plugin ${pluginId}` : "the whole software";
+    const message =
+      pluginId && result.pluginFound === false
+        ? `Performance metrics collected, but plugin was not found: ${pluginId}.`
+        : `Performance metrics collected for ${target}.`;
+    complete({
+      success: true,
+      message,
+      data: result
     });
   } catch (error: unknown) {
     complete({
@@ -4390,6 +4439,7 @@ async function ping_mcp(params?: { package_name?: string }) {
 
   return {
     operit_editor,
+    get_performance_metrics,
     how_make_skill,
     list_sandbox_packages,
     set_sandbox_package_enabled,
@@ -4426,6 +4476,7 @@ async function ping_mcp(params?: { package_name?: string }) {
 })();
 
 exports.operit_editor = operitEditorPackage.operit_editor;
+exports.get_performance_metrics = operitEditorPackage.get_performance_metrics;
 exports.how_make_skill = operitEditorPackage.how_make_skill;
 exports.list_sandbox_packages = operitEditorPackage.list_sandbox_packages;
 exports.set_sandbox_package_enabled = operitEditorPackage.set_sandbox_package_enabled;

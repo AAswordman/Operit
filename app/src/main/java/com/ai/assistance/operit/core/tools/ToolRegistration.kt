@@ -2,6 +2,7 @@ package com.ai.assistance.operit.core.tools
 
 import android.content.Context
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.performance.PerformanceMonitorManager
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
@@ -2270,6 +2271,41 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
 
     // 系统操作工具
     val systemOperationTools = ToolGetter.getSystemOperationTools(context)
+
+    handler.registerTool(
+            name = "get_performance_metrics",
+            descriptionGenerator = { tool ->
+                val pluginId = tool.parameters.find { it.name == "plugin_id" }?.value?.trim()
+                if (pluginId.isNullOrBlank()) {
+                    "Get current Operit performance metrics"
+                } else {
+                    "Get current performance metrics for plugin $pluginId"
+                }
+            },
+            executor = { tool ->
+                val pluginId =
+                        tool.parameters.find { it.name == "plugin_id" }?.value?.trim()
+                                ?.takeIf { it.isNotEmpty() }
+                try {
+                    val snapshot =
+                            runBlocking(Dispatchers.IO) {
+                                PerformanceMonitorManager.captureForTool(context)
+                            }
+                    ToolResult(
+                            toolName = tool.name,
+                            success = true,
+                            result = PerformanceMetricsResultData.from(snapshot, pluginId)
+                    )
+                } catch (error: Exception) {
+                    ToolResult(
+                            toolName = tool.name,
+                            success = false,
+                            result = StringResultData(""),
+                            error = "Failed to get performance metrics: ${error.message ?: error::class.simpleName}"
+                    )
+                }
+            }
+    )
 
     handler.registerTool(
             name = "toast",

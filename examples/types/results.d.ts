@@ -341,6 +341,43 @@ export interface AppUsageTimeResultData {
     toString(): string;
 }
 
+/** 性能查询中的单个实体指标。 */
+export interface PerformanceMetricsEntityData {
+    id: string;
+    kind: 'APP' | 'PLUGIN' | 'TERMINAL';
+    displayName: string;
+    cpuPercent: number;
+    memoryKb: number;
+    rxBytesPerSec?: number;
+    txBytesPerSec?: number;
+    detail?: string;
+}
+
+/** 性能查询中的设备级指标。 */
+export interface PerformanceMetricsDeviceData {
+    cpuPercent?: number;
+    totalMemMb: number;
+    availMemMb: number;
+    rxBytesPerSec?: number;
+    txBytesPerSec?: number;
+}
+
+/** getPerformanceMetrics 返回的性能指标结果。 */
+export interface PerformanceMetricsResultData {
+    scope: 'software' | 'plugin';
+    requestedPluginId?: string;
+    pluginFound?: boolean;
+    sampledAtMs: number;
+    sampleAgeMs: number;
+    sampleValid: boolean;
+    cpuCoreCount: number;
+    device: PerformanceMetricsDeviceData;
+    app: PerformanceMetricsEntityData | null;
+    plugins: PerformanceMetricsEntityData[];
+    terminals: PerformanceMetricsEntityData[];
+    toString(): string;
+}
+
 /**
  * Bluetooth adapter state
  */

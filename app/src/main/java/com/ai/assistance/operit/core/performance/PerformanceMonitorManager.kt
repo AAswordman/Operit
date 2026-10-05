@@ -21,8 +21,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 /** 采样实体的类别；软件=主进程，插件=ToolPkg 容器，终端=PTY 会话进程树。 */
 enum class PerformanceEntityKind { APP, PLUGIN, TERMINAL }
@@ -48,6 +50,7 @@ data class PerformanceEntitySample(
 /** 一次完整采样；历史窗口内的最小单元，界面三个分析页都从同一份快照序列取数。 */
 data class PerformanceSnapshot(
     val timestampMs: Long,
+    val deltaValid: Boolean,
     val cpuCoreCount: Int,
     val deviceCpuPercent: Double?,
     val deviceTotalMemMb: Long,
@@ -82,6 +85,7 @@ object PerformanceMonitorManager {
 
     private const val TAG = "PerfMonitor"
     private const val SAMPLE_INTERVAL_MS = 1_000L
+    private const val TOOL_CAPTURE_TIMEOUT_MS = 3_500L
     private const val MAX_HISTORY = 180
     // Linux USER_HZ：Android/bionic 内核固定为 100，/proc/*/stat 的 utime/stime 以它为计时单位
     private const val CLOCK_TICKS_PER_SECOND = 100L
@@ -135,18 +139,25 @@ object PerformanceMonitorManager {
 
     fun start(context: Context) {
         synchronized(stateMutex) {
-            if (running) {
+            if (!startLocked(context)) {
                 return
             }
-            appContext = context.applicationContext
-            running = true
-            paused = false
-            samplingJob =
-                scope.launch {
-                    samplingLoop()
-                }
             publishState()
         }
+    }
+
+    private fun startLocked(context: Context): Boolean {
+        if (running) {
+            return false
+        }
+        appContext = context.applicationContext
+        running = true
+        paused = false
+        samplingJob =
+            scope.launch {
+                samplingLoop()
+            }
+        return true
     }
 
     fun stop() {
@@ -157,6 +168,45 @@ object PerformanceMonitorManager {
             samplingJob = null
             appContext = null
             publishState()
+        }
+    }
+
+    /** 为宿主工具获取一个足够新的采样；必要时临时启动采样器并在完成后停止。 */
+    suspend fun captureForTool(context: Context): PerformanceSnapshot {
+        val baselineTimestampMs = stateFlow.value.latest?.timestampMs ?: 0L
+        val startedByRequest =
+            synchronized(stateMutex) {
+                val started = startLocked(context)
+                if (started) {
+                    publishState()
+                }
+                started
+            }
+
+        try {
+            val currentState = stateFlow.value
+            if (!startedByRequest && currentState.paused) {
+                return currentState.latest
+                    ?: throw IllegalStateException("Performance sampling is paused before the first sample")
+            }
+
+            var snapshot = awaitSnapshotAfter(baselineTimestampMs)
+            if (!snapshot.deltaValid) {
+                snapshot = awaitSnapshotAfter(snapshot.timestampMs)
+            }
+            return snapshot
+        } finally {
+            if (startedByRequest) {
+                stop()
+            }
+        }
+    }
+
+    private suspend fun awaitSnapshotAfter(timestampMs: Long): PerformanceSnapshot {
+        return withTimeout(TOOL_CAPTURE_TIMEOUT_MS) {
+            stateFlow.first { state ->
+                (state.latest?.timestampMs ?: 0L) > timestampMs
+            }.latest ?: throw IllegalStateException("Performance snapshot is unavailable")
         }
     }
 
@@ -348,6 +398,7 @@ object PerformanceMonitorManager {
 
         return PerformanceSnapshot(
             timestampMs = System.currentTimeMillis(),
+            deltaValid = deltaValid,
             cpuCoreCount = coreCount,
             deviceCpuPercent = deviceCpuPercent,
             deviceTotalMemMb = deviceMem?.first ?: 0L,
