@@ -128,7 +128,9 @@ fun ColorPickerDialog(
                     bubbleUserTextColor: Int?,
                     bubbleAiTextColor: Int?
             ) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    thinkingParticleColorInput: Int = Color.White.toArgb(),
+    onSimpleColorSelected: ((Int) -> Unit)? = null,
 ) {
     if (!showColorPicker) return
 
@@ -142,6 +144,7 @@ fun ColorPickerDialog(
                 "navigationDrawerAccent" -> navigationDrawerAccentColorInput
                 "historyIcon" -> historyIconColorInput
                 "pipIcon" -> pipIconColorInput
+                "thinkingParticle" -> thinkingParticleColorInput
                 "cursorUserBubble" -> cursorUserBubbleColorInput
                 "bubbleUserBubble" -> bubbleUserBubbleColorInput
                 "bubbleAiBubble" -> bubbleAiBubbleColorInput
@@ -238,6 +241,8 @@ fun ColorPickerDialog(
                                     stringResource(R.string.colorpicker_select_navigation_drawer_accent)
                                 "historyIcon" -> stringResource(R.string.colorpicker_select_history_icon)
                                 "pipIcon" -> stringResource(R.string.colorpicker_select_pip_icon)
+                                "thinkingParticle" ->
+                                    stringResource(R.string.colorpicker_select_thinking_particle)
                                 "cursorUserBubble" ->
                                     stringResource(R.string.colorpicker_select_cursor_user_bubble)
                                 "bubbleUserBubble" ->
@@ -622,6 +627,7 @@ fun ColorPickerDialog(
                             onColorSelected(null, null, null, null, null, null, null, null, null, null, null, newColor, null)
                         "bubbleAiText" ->
                             onColorSelected(null, null, null, null, null, null, null, null, null, null, null, null, newColor)
+                        "thinkingParticle" -> onSimpleColorSelected?.invoke(newColor)
                     }
                     onDismiss()
                 },

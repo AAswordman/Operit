@@ -267,7 +267,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val enableThinkingMode by actualViewModel.enableThinkingMode.collectAsState() // 收集思考模式状态
     val thinkingOptionId by actualViewModel.thinkingOptionId.collectAsState()
     val enableMemoryAutoUpdate by actualViewModel.enableMemoryAutoUpdate.collectAsState()
-    val enableMaxContextMode by actualViewModel.enableMaxContextMode.collectAsState()
     val enableTools by actualViewModel.enableTools.collectAsState()
     val toolPromptVisibility by actualViewModel.toolPromptVisibility.collectAsState()
     val toolPromptOrder by actualViewModel.toolPromptOrder.collectAsState()
@@ -1019,20 +1018,12 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                     },
                                     maxWindowSizeInK =
                                             actualViewModel.maxWindowSizeInK.collectAsState().value,
-                                    baseContextLengthInK =
-                                            actualViewModel.baseContextLengthInK.collectAsState().value,
-                                    maxContextLengthInK =
-                                            actualViewModel.maxContextLengthInK.collectAsState().value,
                                     onContextLengthChange = {
                                         actualViewModel.updateContextLength(it)
                                     },
                                     enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                                     onToggleMemoryAutoUpdate = {
                                         actualViewModel.toggleMemoryAutoUpdate()
-                                    },
-                                    enableMaxContextMode = enableMaxContextMode,
-                                    onToggleEnableMaxContextMode = {
-                                        actualViewModel.toggleEnableMaxContextMode()
                                     },
                                     summaryTokenThreshold = summaryTokenThreshold,
                                     onSummaryTokenThresholdChange = {
@@ -1100,7 +1091,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 isWorkspaceOpen = isWorkspaceOpen,
                                 enableThinkingMode = enableThinkingMode,
                                 thinkingOptionId = thinkingOptionId,
-                                enableMaxContextMode = enableMaxContextMode,
                                 featureStates = featureStates,
                                 enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                                 isAutoReadEnabled = isAutoReadEnabled,
@@ -1496,7 +1486,6 @@ private fun ChatInputBottomBar(
     isWorkspaceOpen: Boolean,
     enableThinkingMode: Boolean,
     thinkingOptionId: String,
-    enableMaxContextMode: Boolean,
     featureStates: Map<String, Boolean>,
     enableMemoryAutoUpdate: Boolean,
     isAutoReadEnabled: Boolean,
@@ -1908,8 +1897,6 @@ private fun ChatInputBottomBar(
                 onToggleThinkingMode = actualViewModel::toggleThinkingMode,
                 thinkingOptionId = thinkingOptionId,
                 onThinkingOptionIdChange = actualViewModel::updateThinkingOptionId,
-                enableMaxContextMode = enableMaxContextMode,
-                onToggleEnableMaxContextMode = actualViewModel::toggleEnableMaxContextMode,
                 currentChatId = currentChatId,
                 featureStates = featureStates,
                 onToggleFeature = actualViewModel::toggleFeature,

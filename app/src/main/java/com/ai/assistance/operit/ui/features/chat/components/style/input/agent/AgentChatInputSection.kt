@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.Hub
@@ -107,7 +106,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityControl
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMapping
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
@@ -198,8 +196,6 @@ fun AgentChatInputSection(
     onToggleThinkingMode: () -> Unit = {},
     thinkingOptionId: String = "",
     onThinkingOptionIdChange: (String) -> Unit = {},
-    enableMaxContextMode: Boolean = false,
-    onToggleEnableMaxContextMode: () -> Unit = {},
     currentChatId: String?,
     featureStates: Map<String, Boolean> = emptyMap(),
     onToggleFeature: (String) -> Unit = {},
@@ -405,8 +401,6 @@ fun AgentChatInputSection(
 
     val currentWindowSize by actualViewModel.currentWindowSize.collectAsState()
     val maxWindowSizeInK by actualViewModel.maxWindowSizeInK.collectAsState()
-    val baseContextLengthInK by actualViewModel.baseContextLengthInK.collectAsState()
-    val maxContextLengthInK by actualViewModel.maxContextLengthInK.collectAsState()
     val maxTokens = (maxWindowSizeInK * 1024).toLong().coerceAtLeast(0L)
     val userMessageTokens = remember(userMessage.text) { ChatUtils.estimateTokenCount(userMessage.text) }
     val projectedTokens = userMessageTokens.toLong() + currentWindowSize
@@ -1398,10 +1392,6 @@ fun AgentChatInputSection(
                 onToggleThinkingMode = onToggleThinkingMode,
                 thinkingOptionId = thinkingOptionId,
                 onThinkingOptionIdChange = onThinkingOptionIdChange,
-                enableMaxContextMode = enableMaxContextMode,
-                onToggleEnableMaxContextMode = onToggleEnableMaxContextMode,
-                baseContextLengthInK = baseContextLengthInK,
-                maxContextLengthInK = maxContextLengthInK,
                 currentChatId = currentChatId,
                 featureStates = featureStates,
                 onToggleFeature = onToggleFeature,
@@ -1485,10 +1475,6 @@ private fun AgentModelSelectorPopup(
     onToggleThinkingMode: () -> Unit,
     thinkingOptionId: String,
     onThinkingOptionIdChange: (String) -> Unit,
-    enableMaxContextMode: Boolean,
-    onToggleEnableMaxContextMode: () -> Unit,
-    baseContextLengthInK: Float,
-    maxContextLengthInK: Float,
     currentChatId: String?,
     featureStates: Map<String, Boolean>,
     onToggleFeature: (String) -> Unit,
@@ -1499,7 +1485,6 @@ private fun AgentModelSelectorPopup(
 ) {
     if (!visible) return
 
-    var showThinkingDropdown by remember { mutableStateOf(false) }
     var infoPopupContent by remember { mutableStateOf<Pair<String, String>?>(null) }
     val context = LocalContext.current
     val inputMenuToggles = InputMenuTogglePluginRegistry.changeVersion.collectAsState().value.let {
@@ -1599,22 +1584,8 @@ private fun AgentModelSelectorPopup(
                         onToggleThinkingMode = if (thinkingQualityMapping?.reasoningRequired == true) ({}) else onToggleThinkingMode,
                         thinkingOptionId = thinkingOptionId,
                         thinkingQualityMapping = thinkingQualityMapping,
-                        onThinkingOptionIdChange = { optionId ->
-                            onThinkingOptionIdChange(optionId)
-                        },
+                        onThinkingOptionIdChange = onThinkingOptionIdChange,
                         thinkingSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.THINKING].orEmpty(),
-                        expanded = showThinkingDropdown,
-                        onExpandedChange = { showThinkingDropdown = it },
-                        onInfoClick = {
-                            infoPopupContent =
-                                context.getString(R.string.thinking_settings) to
-                                    context.getString(R.string.thinking_settings_desc)
-                        },
-                        onThinkingModeInfoClick = {
-                            infoPopupContent =
-                                context.getString(R.string.thinking_mode) to
-                                    context.getString(R.string.thinking_mode_desc)
-                        },
                         onThinkingQualityInfoClick = {
                             infoPopupContent =
                                 context.getString(R.string.thinking_quality) to
@@ -1642,31 +1613,6 @@ private fun AgentModelSelectorPopup(
                             onInfoClick = { title, description -> infoPopupContent = title to description },
                         )
                     }
-                    AgentMaxContextSettingItem(
-                        enableMaxContextMode = enableMaxContextMode,
-                        onToggleEnableMaxContextMode = onToggleEnableMaxContextMode,
-                        onInfoClick = {
-                            val normalLengthText =
-                                if (baseContextLengthInK % 1f == 0f) {
-                                    baseContextLengthInK.toInt().toString()
-                                } else {
-                                    String.format("%.1f", baseContextLengthInK)
-                                }
-                            val maxLengthText =
-                                if (maxContextLengthInK % 1f == 0f) {
-                                    maxContextLengthInK.toInt().toString()
-                                } else {
-                                    String.format("%.1f", maxContextLengthInK)
-                                }
-                            infoPopupContent =
-                                context.getString(R.string.max_mode_title) to
-                                    context.getString(
-                                        R.string.max_mode_info,
-                                        normalLengthText,
-                                        maxLengthText,
-                                    )
-                        },
-                    )
                     AgentModelSelectorItem(
                         popupContainerColor = popupContainerColor,
                         configSummaries = configSummaries,
@@ -1704,246 +1650,33 @@ private fun AgentThinkingSettingsItem(
     thinkingQualityMapping: ThinkingQualityMapping?,
     onThinkingOptionIdChange: (String) -> Unit,
     thinkingSlotToggles: List<InputMenuToggleDefinition>,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onInfoClick: () -> Unit,
-    onThinkingModeInfoClick: () -> Unit,
     onThinkingQualityInfoClick: () -> Unit,
     onToggleInfoClick: (String, String) -> Unit,
 ) {
-    val thinkingTypeText =
-        when {
-            enableThinkingMode -> stringResource(R.string.thinking_type_mode)
-            else -> stringResource(R.string.thinking_type_off)
-        }
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 36.dp)
-                .clickable { onExpandedChange(!expanded) }
-                .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(popupContainerColor)
+            .padding(horizontal = 12.dp),
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Psychology,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(16.dp),
-        )
-        IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
-            Icon(
-                imageVector = Icons.Outlined.Info,
-                contentDescription = stringResource(R.string.details),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp),
+        thinkingQualityMapping?.let { mapping ->
+            ThinkingQualitySlider(
+                label = stringResource(R.string.thinking_quality),
+                mapping = mapping,
+                enabled = enableThinkingMode || mapping.reasoningRequired,
+                onEnabledChange = if (mapping.reasoningRequired) ({}) else onToggleThinkingMode,
+                value = thinkingOptionId,
+                onValueChange = onThinkingOptionIdChange,
+                onInfoClick = onThinkingQualityInfoClick,
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = stringResource(R.string.thinking_settings) + ":",
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = thinkingTypeText,
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.primary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(
-            imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-        )
-    }
 
-    if (expanded) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(popupContainerColor)
-                    .padding(horizontal = 12.dp),
-        ) {
-            AgentThinkingSubSettingItem(
-                title = stringResource(R.string.thinking_mode),
-                icon = if (enableThinkingMode) Icons.Rounded.Psychology else Icons.Outlined.Psychology,
-                iconTint =
-                    if (enableThinkingMode) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    },
-                isChecked = enableThinkingMode,
-                onToggle = onToggleThinkingMode,
-                onInfoClick = onThinkingModeInfoClick,
-            )
-            if (enableThinkingMode) {
-                thinkingQualityMapping
-                    ?.takeIf { it.control == ThinkingQualityControl.LEVELS }
-                    ?.let { mapping ->
-                        ThinkingQualitySlider(
-                            label = stringResource(R.string.thinking_quality),
-                            mapping = mapping,
-                            value = thinkingOptionId,
-                            onValueChange = onThinkingOptionIdChange,
-                            onInfoClick = onThinkingQualityInfoClick,
-                        )
-                    }
-            }
-            thinkingSlotToggles.forEach { toggle ->
-                AgentInputMenuToggleSettingItem(
-                    toggle = toggle,
-                    onInfoClick = onToggleInfoClick,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AgentThinkingSubSettingItem(
-    title: String,
-    icon: ImageVector,
-    iconTint: Color,
-    isChecked: Boolean,
-    onToggle: () -> Unit,
-    onInfoClick: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .background(
-                    if (isChecked) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                    } else {
-                        Color.Transparent
-                    },
-                )
-                .toggleable(
-                    value = isChecked,
-                    onValueChange = { onToggle() },
-                    role = Role.Switch,
-                )
-                .heightIn(min = 36.dp)
-                .padding(horizontal = 8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(16.dp),
-            )
-            IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = stringResource(R.string.details),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Text(
-                text = title,
-                fontSize = 13.sp,
-                fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color =
-                    if (isChecked) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-            )
-            Switch(
-                checked = isChecked,
-                onCheckedChange = null,
-                modifier = Modifier.scale(0.65f),
-                colors =
-                    SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.primary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
+        thinkingSlotToggles.forEach { toggle ->
+            AgentInputMenuToggleSettingItem(
+                toggle = toggle,
+                onInfoClick = onToggleInfoClick,
             )
         }
-    }
-}
-
-@Composable
-private fun AgentMaxContextSettingItem(
-    enableMaxContextMode: Boolean,
-    onToggleEnableMaxContextMode: () -> Unit,
-    onInfoClick: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 36.dp)
-                .padding(horizontal = 12.dp)
-                .toggleable(
-                    value = enableMaxContextMode,
-                    onValueChange = { onToggleEnableMaxContextMode() },
-                    role = Role.Switch,
-                ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Default.Whatshot,
-            contentDescription = null,
-            tint =
-                if (enableMaxContextMode) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                },
-            modifier = Modifier.size(16.dp),
-        )
-        IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
-            Icon(
-                imageVector = Icons.Outlined.Info,
-                contentDescription = stringResource(R.string.details),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = stringResource(R.string.max_mode_title),
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = enableMaxContextMode,
-            onCheckedChange = null,
-            modifier = Modifier.scale(0.65f),
-            colors =
-                SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
-        )
     }
 }
 
