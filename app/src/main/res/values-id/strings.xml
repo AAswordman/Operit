@@ -3940,7 +3940,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="publish_new_skill">Publikasikan Skill baru</string>
 
     <string name="emoticons_desc">Sisipkan label status emosi dalam percakapan untuk meningkatkan efek ekspresi</string>
-    <string name="available_emoticons">Emoji yang tersedia: crying, like_you, happy, surprised, miss_you, speechless, angry, confused, sad</string>
+    <string name="available_emoticons">Kategori berasal dari pengelola emoji; AI menggunakan tag &lt;emotion&gt;kategori&lt;/emotion&gt; untuk mengirim emoji</string>
     <string name="enable_selfie_feature">Aktifkan fitur selfie</string>
     <string name="selfie_feature_desc">Izinkan AI menghasilkan gambar selfie karakter, memerlukan konfigurasi prompt penampilan</string>
     <string name="appearance_prompt">Prompt penampilan</string>

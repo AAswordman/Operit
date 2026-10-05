@@ -10,7 +10,6 @@ import com.ai.assistance.operit.data.model.CustomEmoji
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
-import com.ai.assistance.operit.data.preferences.CustomEmojiPreferences
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,7 +63,7 @@ class CustomEmojiViewModel(context: Context) : ViewModel() {
             initialValue = ""
         )
 
-    private val _selectedCategory = MutableStateFlow(CustomEmojiPreferences.BUILTIN_EMOTIONS.first())
+    private val _selectedCategory = MutableStateFlow("custom")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
     val categories: StateFlow<List<String>> = activePrompt

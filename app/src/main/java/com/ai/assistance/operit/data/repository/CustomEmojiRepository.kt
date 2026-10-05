@@ -55,31 +55,20 @@ class CustomEmojiRepository private constructor(private val context: Context) {
 
     suspend fun initializeBuiltinEmojis(target: ActivePrompt) = withContext(Dispatchers.IO) {
         purgeLegacyGlobalStorage()
-        if (preferences.isBuiltinEmojisInitialized(target).first()) {
-            return@withContext
-        }
-
-        copyBuiltinEmojisFromAssets(target)
-        preferences.setBuiltinEmojisInitialized(target, true)
-        AppLogger.d(TAG, "Built-in emojis initialized successfully for target: $target")
+        preferences.removeLegacyBuiltinEmojis(target)
     }
 
     suspend fun resetToDefault() = withContext(Dispatchers.IO) {
         resetToDefault(activePromptManager.getActivePrompt())
     }
 
-    /**
-     * 重置指定目标的表情库为默认表情（重新从 assets 复制）
-     */
+    /** 清空指定目标的表情库。应用不再提供内置默认表情。 */
     suspend fun resetToDefault(target: ActivePrompt) = withContext(Dispatchers.IO) {
         try {
             preferences.clearAllEmojis(target)
             getTargetBaseDir(target).deleteRecursively()
-
-            copyBuiltinEmojisFromAssets(target)
-            preferences.setBuiltinEmojisInitialized(target, true)
-
-            AppLogger.d(TAG, "Reset emojis to default successfully for target: $target")
+            preferences.removeLegacyBuiltinEmojis(target)
+            AppLogger.d(TAG, "Cleared emojis for target: $target")
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error resetting emojis for target: $target", e)
             throw e
@@ -129,7 +118,7 @@ class CustomEmojiRepository private constructor(private val context: Context) {
             val emoji = CustomEmoji(
                 emotionCategory = category,
                 fileName = fileName,
-                isBuiltInCategory = category in CustomEmojiPreferences.BUILTIN_EMOTIONS
+                isBuiltInCategory = false
             )
 
             preferences.addCategory(target, category)
@@ -259,7 +248,7 @@ class CustomEmojiRepository private constructor(private val context: Context) {
         }
 
         preferences.setCustomEmojis(target, copiedEmojis)
-        preferences.setBuiltinEmojisInitialized(target, true)
+        preferences.removeLegacyBuiltinEmojis(target)
     }
 
     suspend fun deleteTarget(target: ActivePrompt) = withContext(Dispatchers.IO) {
@@ -293,53 +282,7 @@ class CustomEmojiRepository private constructor(private val context: Context) {
         return categoryName.matches(Regex("^[a-z0-9_]+$"))
     }
 
-    private suspend fun copyBuiltinEmojisFromAssets(target: ActivePrompt) {
-        try {
-            val emojiAssetsDir = "emoji"
-            val categories = context.assets.list(emojiAssetsDir)
-
-            if (categories.isNullOrEmpty()) {
-                AppLogger.w(TAG, "No built-in emoji categories found in assets.")
-                return
-            }
-
-            preferences.addCategories(target, categories.toList())
-
-            categories.forEach { category ->
-                val files = context.assets.list("$emojiAssetsDir/$category")
-                files?.forEach { fileName ->
-                    val extension = fileName.substringAfterLast('.', "")
-                    if (extension.lowercase() !in SUPPORTED_EXTENSIONS) {
-                        return@forEach
-                    }
-
-                    val targetDir = getCategoryDir(target, category)
-                    if (!targetDir.exists()) {
-                        targetDir.mkdirs()
-                    }
-
-                    val targetFileName = "${UUID.randomUUID()}.$extension"
-                    val targetFile = File(targetDir, targetFileName)
-
-                    context.assets.open("$emojiAssetsDir/$category/$fileName").use { input ->
-                        FileOutputStream(targetFile).use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-
-                    val emoji = CustomEmoji(
-                        emotionCategory = category,
-                        fileName = targetFileName,
-                        isBuiltInCategory = true
-                    )
-                    preferences.addCustomEmoji(target, emoji)
-                }
-            }
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "Error copying built-in emojis for target: $target", e)
-            throw e
-        }
-    }
+    // 旧版内置表情复制逻辑已移除。
 
     private fun getTargetScopeDirName(target: ActivePrompt): String {
         return when (target) {

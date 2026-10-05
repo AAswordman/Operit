@@ -3898,7 +3898,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="waifu_custom_prompt_tip">Kandungan ini akan disambungkan sebagai peraturan tambahan kepada kata kunci petunjuk sistem untuk mod Waifu.</string>
     <string name="enable_emoticons">Dayakan stiker emosi</string>
     <string name="emoticons_desc">Masukkan label status emosi dalam perbualan untuk meningkatkan kesan ekspresi</string>
-    <string name="available_emoticons">Stiker emosi tersedia: crying, like_you, happy, surprised, miss_you, speechless, angry, confused, sad</string>
+    <string name="available_emoticons">Kategori ditambah melalui pengurusan emoji; AI menggunakan tag &lt;emotion&gt;kategori&lt;/emotion&gt; untuk menghantar emoji</string>
     <string name="enable_selfie_feature">Dayakan ciri selfie</string>
     <string name="selfie_feature_desc">Benarkan AI menjana gambar selfie watak, memerlukan kata kunci petunjuk rupa fizikal dikonfigurasi</string>
     <string name="appearance_prompt">Kata kunci petunjuk rupa fizikal</string>
