@@ -5374,6 +5374,11 @@
     <string name="chat_message_timestamp_compact">time: %1$s</string>
     <string name="global_user_name">Global User Name</string>
     <string name="system_display_settings">System Display Settings</string>
+    <string name="orientation_reload_policy">When screen orientation changes</string>
+    <string name="orientation_reload_policy_description">Choose how to handle the page after rotation</string>
+    <string name="orientation_reload_always">Reload automatically</string>
+    <string name="orientation_reload_ask">Ask every time</string>
+    <string name="orientation_reload_never">Do nothing</string>
     <string name="show_fps_counter_description">Display frame rate performance metrics on screen</string>
     <string name="enable_reply_notification">Enable Reply Notifications</string>
     <string name="enable_reply_notification_description">Send system notification when AI replies</string>

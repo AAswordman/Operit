@@ -4694,6 +4694,11 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="show_user_name_description">Tunjukkan nama pengguna dalam mesej pengguna</string>
     <string name="global_user_name">Nama pengguna global</string>
     <string name="system_display_settings">Tetapan paparan sistem</string>
+    <string name="orientation_reload_policy">Apabila orientasi skrin berubah</string>
+    <string name="orientation_reload_policy_description">Pilih tindakan pada halaman selepas skrin diputar</string>
+    <string name="orientation_reload_always">Muat semula secara automatik</string>
+    <string name="orientation_reload_ask">Tanya setiap kali</string>
+    <string name="orientation_reload_never">Jangan buat apa-apa</string>
     <string name="show_fps_counter_description">Tunjukkan penunjuk prestasi kadar bingkai pada skrin</string>
     <string name="enable_reply_notification">Dayakan pemberitahuan balasan</string>
     <string name="enable_reply_notification_description">Hantar pemberitahuan sistem apabila AI membalas</string>

@@ -38,6 +38,7 @@ import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.data.preferences.AgreementPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
+import com.ai.assistance.operit.data.preferences.OrientationReloadPolicy
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.updates.UpdateManager
@@ -55,6 +56,7 @@ import com.ai.assistance.operit.util.AnrMonitor
 import com.ai.assistance.operit.util.LocaleUtils
 import java.util.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.ai.assistance.operit.data.mcp.MCPRepository
@@ -73,7 +75,7 @@ class MainActivity : ComponentActivity() {
 
     // ======== 屏幕方向变更状态 ========
     private var showOrientationChangeDialog by mutableStateOf(false)
-
+    private var orientationReloadPolicy = OrientationReloadPolicy.ASK
     private var lastOrientation: Int? = null
 
     // ======== 工具和管理器 ========
@@ -193,6 +195,12 @@ class MainActivity : ComponentActivity() {
         initializeComponents()
         anrMonitor.start()
         configureDisplaySettings()
+        lifecycleScope.launch {
+            DisplayPreferencesManager.getInstance(this@MainActivity).orientationReloadPolicy.collect { policy ->
+                orientationReloadPolicy = policy
+                if (policy != OrientationReloadPolicy.ASK) showOrientationChangeDialog = false
+            }
+        }
 
         // 设置上下文以便获取插件元数据
         pluginLoadingState.setAppContext(this)
@@ -489,8 +497,14 @@ class MainActivity : ComponentActivity() {
                 return
             }
             
-            // 如果不是“转回去”，或者弹窗还未显示，则显示弹窗
-            showOrientationChangeDialog = true
+            when (orientationReloadPolicy) {
+                OrientationReloadPolicy.ALWAYS -> {
+                    showOrientationChangeDialog = false
+                    recreate()
+                }
+                OrientationReloadPolicy.ASK -> showOrientationChangeDialog = true
+                OrientationReloadPolicy.NEVER -> showOrientationChangeDialog = false
+            }
         }
     }
 

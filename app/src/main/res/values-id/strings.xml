@@ -4695,6 +4695,11 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="show_user_name_description">Tampilkan nama pengguna dalam pesan pengguna</string>
     <string name="global_user_name">Nama Pengguna Global</string>
     <string name="system_display_settings">Pengaturan Tampilan Sistem</string>
+    <string name="orientation_reload_policy">Saat orientasi layar berubah</string>
+    <string name="orientation_reload_policy_description">Pilih tindakan pada halaman setelah layar diputar</string>
+    <string name="orientation_reload_always">Muat ulang otomatis</string>
+    <string name="orientation_reload_ask">Tanyakan setiap kali</string>
+    <string name="orientation_reload_never">Jangan lakukan apa pun</string>
     <string name="show_fps_counter_description">Tampilkan metrik performa frame rate di layar</string>
     <string name="enable_reply_notification">Aktifkan Notifikasi Balasan</string>
     <string name="enable_reply_notification_description">Kirim notifikasi sistem saat AI membalas</string>

@@ -47,6 +47,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         private val KEY_ENABLE_ENTER_TO_SEND = booleanPreferencesKey("enable_enter_to_send")
         private val KEY_ENABLE_NAVIGATION_ANIMATION =
             booleanPreferencesKey("enable_navigation_animation")
+        private val KEY_ORIENTATION_RELOAD_POLICY = stringPreferencesKey("orientation_reload_policy")
         private val KEY_START_WITH_NEW_CHAT =
             booleanPreferencesKey("start_with_new_chat")
 
@@ -127,6 +128,11 @@ class DisplayPreferencesManager private constructor(private val context: Context
     val enableNavigationAnimation: Flow<Boolean> =
         context.displayPreferencesDataStore.data.map { preferences ->
             preferences[KEY_ENABLE_NAVIGATION_ANIMATION] ?: true
+        }
+
+    val orientationReloadPolicy: Flow<OrientationReloadPolicy> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            OrientationReloadPolicy.fromValue(preferences[KEY_ORIENTATION_RELOAD_POLICY])
         }
 
     /**
@@ -214,6 +220,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         enableReplyNotificationVibration: Boolean? = null,
         enableEnterToSend: Boolean? = null,
         enableNavigationAnimation: Boolean? = null,
+        orientationReloadPolicy: OrientationReloadPolicy? = null,
         startWithNewChat: Boolean? = null,
         globalUserAvatarUri: String? = null,
         globalUserName: String? = null,
@@ -240,6 +247,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
             enableEnterToSend?.let { preferences[KEY_ENABLE_ENTER_TO_SEND] = it }
             enableNavigationAnimation?.let {
                 preferences[KEY_ENABLE_NAVIGATION_ANIMATION] = it
+            }
+            orientationReloadPolicy?.let {
+                preferences[KEY_ORIENTATION_RELOAD_POLICY] = it.name
             }
             startWithNewChat?.let {
                 preferences[KEY_START_WITH_NEW_CHAT] = it
@@ -320,6 +330,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences[KEY_ENABLE_REPLY_NOTIFICATION_VIBRATION] = false
             preferences[KEY_ENABLE_ENTER_TO_SEND] = false
             preferences.remove(KEY_ENABLE_NAVIGATION_ANIMATION)
+            preferences.remove(KEY_ORIENTATION_RELOAD_POLICY)
             preferences[KEY_START_WITH_NEW_CHAT] = false
             preferences.remove(KEY_GLOBAL_USER_AVATAR_URI)
             preferences.remove(KEY_GLOBAL_USER_NAME)

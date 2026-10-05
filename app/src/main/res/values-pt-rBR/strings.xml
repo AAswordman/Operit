@@ -4403,6 +4403,11 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="show_user_name_description">Mostrar nome de usuário nas mensagens do usuário</string>
     <string name="global_user_name">nome de usuário global</string>
     <string name="system_display_settings">Configurações de exibição do sistema</string>
+    <string name="orientation_reload_policy">Ao mudar a orientação da tela</string>
+    <string name="orientation_reload_policy_description">Escolha como tratar a página após girar a tela</string>
+    <string name="orientation_reload_always">Recarregar automaticamente</string>
+    <string name="orientation_reload_ask">Perguntar sempre</string>
+    <string name="orientation_reload_never">Não fazer nada</string>
     <string name="show_fps_counter_description">Exibir métricas de desempenho de taxa de quadros na tela</string>
     <string name="enable_reply_notification">Ativar notificações de resposta</string>
     <string name="enable_reply_notification_description">Envie notificação do sistema quando a IA responder</string>
