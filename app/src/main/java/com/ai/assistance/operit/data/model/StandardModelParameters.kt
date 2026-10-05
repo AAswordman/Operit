@@ -39,7 +39,7 @@ data class ParameterDefinition<T : Any>(
  */
 object StandardModelParameters {
     // Default values for standard model parameters
-    const val DEFAULT_MAX_TOKENS = 4096
+    const val DEFAULT_MAX_TOKENS = 16384
     const val DEFAULT_TEMPERATURE = 1.0f
     const val DEFAULT_TOP_P = 1.0f
     const val DEFAULT_TOP_K = 0

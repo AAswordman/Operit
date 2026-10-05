@@ -19,6 +19,13 @@ interface AIService {
     /** 输出token计数 */
     val outputTokenCount: Long
 
+    /**
+     * 最近一次请求是否因为单次输出上限而停止。
+     * 用户取消、请求失败和模型主动结束都不属于这种情况。
+     */
+    val outputTruncatedByLimit: Boolean
+        get() = false
+
     /** 获取供应商:模型标识符，格式如"DEEPSEEK:deepseek-chat" */
     val providerModel: String
 

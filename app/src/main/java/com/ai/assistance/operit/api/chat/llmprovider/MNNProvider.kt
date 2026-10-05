@@ -92,6 +92,19 @@ class MNNProvider(
         _cachedInputTokenCount = 0L
     }
 
+    @Volatile
+    private var outputStoppedByLimit = false
+
+    override val outputTruncatedByLimit: Boolean
+        get() = outputStoppedByLimit
+
+    private fun requestedMaxTokens(parameters: List<ModelParameter<*>>): Int {
+        val parameter = parameters.find {
+            it.isEnabled && (it.id == "max_tokens" || it.apiName == "max_tokens")
+        } ?: return -1
+        return (parameter.currentValue as? Number)?.toInt() ?: -1
+    }
+
     override fun cancelStreaming() {
         isCancelled = true
         
@@ -612,6 +625,7 @@ class MNNProvider(
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> = stream {
         isCancelled = false
+        outputStoppedByLimit = false
 
         val requestTempFiles = mutableListOf<File>()
 
@@ -652,11 +666,8 @@ class MNNProvider(
                     flattenTypedHistory(multimodalTurns, preserveThinkInHistory)
                 }
 
-            val requestedMaxNewTokens = modelParameters
-                .find { it.name == "max_tokens" }
-                ?.let { (it.currentValue as? Number)?.toInt() }
-                ?: -1
-            val effectiveMaxNewTokens = (if (requestedMaxNewTokens > 0) requestedMaxNewTokens else 512).coerceAtMost(8192)
+            val requestedMaxNewTokens = requestedMaxTokens(modelParameters)
+            val effectiveMaxNewTokens = if (requestedMaxNewTokens > 0) requestedMaxNewTokens else 16384
             val maxPromptTokens = (maxAllTokens - effectiveMaxNewTokens).coerceAtLeast(128)
 
             val safeHistory = trimHistoryToTokenBudget(session, conversationHistory, maxPromptTokens)
@@ -684,7 +695,7 @@ class MNNProvider(
                 com.ai.assistance.operit.data.stats.ProviderUsageNormalizer.SOURCE_MNN,
                 onUsageReported,
             )
-            val success = session.generateStream(safeHistory, requestedMaxNewTokens) { token ->
+            val success = session.generateStream(safeHistory, effectiveMaxNewTokens) { token ->
                     if (isCancelled) {
                         false
                     } else {
@@ -708,6 +719,9 @@ class MNNProvider(
                     }
                 }
 
+            if (!isCancelled && success && outputTokenCount >= effectiveMaxNewTokens) {
+                outputStoppedByLimit = true
+            }
             LocalGenerationEnd.end(
                 cancelled = isCancelled,
                 success = success,
