@@ -118,8 +118,17 @@ object LogoBitmapLoader {
 
     private fun renderSvgToBitmap(input: InputStream, sizePx: Int): Bitmap? {
         val svg = SVG.getFromInputStream(input)
-        val viewWidth = if (svg.documentWidth > 0f) svg.documentWidth else 24f
-        val viewHeight = if (svg.documentHeight > 0f) svg.documentHeight else 24f
+        val viewBox = svg.documentViewBox
+        val viewWidth = when {
+            svg.documentWidth > 0f -> svg.documentWidth
+            viewBox != null && viewBox.width() > 0f -> viewBox.width()
+            else -> 24f
+        }
+        val viewHeight = when {
+            svg.documentHeight > 0f -> svg.documentHeight
+            viewBox != null && viewBox.height() > 0f -> viewBox.height()
+            else -> 24f
+        }
         val scale = sizePx / max(viewWidth, viewHeight)
         val scaledWidth = viewWidth * scale
         val scaledHeight = viewHeight * scale
@@ -167,6 +176,30 @@ object LogoBitmapLoader {
  * 以 Compose Painter 形式获取 provider logo。
  * provider 无 logo 素材时返回 null，调用方显示默认图标或首字母色块。
  */
+@Composable
+fun rememberAssetLogoPainter(assetPath: String, size: Dp = 24.dp): Painter? {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val sizePx = with(density) { size.roundToPx() }
+    val bitmap by
+        produceState<ImageBitmap?>(initialValue = null, assetPath, sizePx) {
+            value =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        context.assets.open(assetPath).use { input ->
+                            LogoBitmapLoader.load(
+                                input = input,
+                                mimeType = null,
+                                fileName = assetPath,
+                                sizePx = sizePx,
+                            )?.asImageBitmap()
+                        }
+                    }.getOrNull()
+                }
+        }
+    return bitmap?.let { BitmapPainter(it) }
+}
+
 @Composable
 fun rememberProviderLogoPainter(providerTypeId: String?, size: Dp = 24.dp): Painter? {
     val context = LocalContext.current

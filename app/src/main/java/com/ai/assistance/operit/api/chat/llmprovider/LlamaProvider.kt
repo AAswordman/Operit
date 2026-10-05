@@ -10,6 +10,8 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.storage.LocalModelRuntimeRegistry
+import com.ai.assistance.operit.data.storage.LocalModelUsageHandle
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
@@ -52,6 +54,7 @@ class LlamaProvider(
 
     private val sessionLock = Any()
     private var session: LlamaSession? = null
+    private var modelUsageHandle: LocalModelUsageHandle? = null
 
     override val inputTokenCount: Long
         get() = _inputTokenCount
@@ -105,8 +108,13 @@ class LlamaProvider(
 
     override fun release() {
         synchronized(sessionLock) {
-            session?.release()
-            session = null
+            try {
+                session?.release()
+            } finally {
+                session = null
+                modelUsageHandle?.close()
+                modelUsageHandle = null
+            }
         }
     }
 
@@ -124,12 +132,31 @@ class LlamaProvider(
             return@withContext Result.failure(Exception(context.getString(R.string.llama_error_model_file_not_exist, modelFile.absolutePath)))
         }
 
-        val testSession = LlamaSession.create(
-            pathModel = modelFile.absolutePath,
-            config = sessionConfig
-        ) ?: return@withContext Result.failure(Exception(context.getString(R.string.llama_error_create_session_failed)))
+        val usageHandle = LocalModelRuntimeRegistry.acquire(modelFile)
+            ?: return@withContext Result.failure(
+                Exception(context.getString(R.string.llama_error_create_session_failed))
+            )
+        val testSession =
+            try {
+                LlamaSession.create(
+                    pathModel = modelFile.absolutePath,
+                    config = sessionConfig,
+                )
+            } catch (error: Exception) {
+                usageHandle.close()
+                throw error
+            } ?: run {
+                usageHandle.close()
+                return@withContext Result.failure(
+                    Exception(context.getString(R.string.llama_error_create_session_failed))
+                )
+            }
 
-        testSession.release()
+        try {
+            testSession.release()
+        } finally {
+            usageHandle.close()
+        }
         Result.success("llama.cpp backend is available (native ready).")
     }
 
@@ -398,11 +425,23 @@ class LlamaProvider(
         synchronized(sessionLock) {
             session?.let { return it }
             val modelFile = getModelFile(context, modelName)
-            val created = LlamaSession.create(
-                pathModel = modelFile.absolutePath,
-                config = sessionConfig
-            )
+            val usageHandle = LocalModelRuntimeRegistry.acquire(modelFile) ?: return null
+            val created =
+                try {
+                    LlamaSession.create(
+                        pathModel = modelFile.absolutePath,
+                        config = sessionConfig,
+                    )
+                } catch (error: Exception) {
+                    usageHandle.close()
+                    throw error
+                }
+            if (created == null) {
+                usageHandle.close()
+                return null
+            }
             session = created
+            modelUsageHandle = usageHandle
             return created
         }
     }
