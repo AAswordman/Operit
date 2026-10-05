@@ -47,12 +47,18 @@ class StreamMarkdownFencedCodeBlockPlugin(private val includeFences: Boolean = t
                                     repeat(3) { char('`') }
                                     greedyStar { char('`') }
                                 }
-                                greedyStar { notChar('\n') }
+                                greedyStar { noneOf('`', '\n') }
+                                char('\n')
                             }
                     )
     private var endMatcher: StreamKmpGraph? = null
     private var isMatchingEndFence = false
     private var hasStartedMatchingFence = false
+    private var openingIndent = 0
+    private var closingIndent = 0
+    private var hasClosingFenceWhitespace = false
+    private var hasStartedOpeningFence = false
+    private var isReadingFenceInfo = false
 
     override fun processChar(c: Char, atStartOfLine: Boolean): Boolean {
         if (state == PluginState.PROCESSING) {
@@ -60,17 +66,32 @@ class StreamMarkdownFencedCodeBlockPlugin(private val includeFences: Boolean = t
             if (atStartOfLine) {
                 isMatchingEndFence = true
                 hasStartedMatchingFence = false
+                closingIndent = 0
+                hasClosingFenceWhitespace = false
                 endMatcher!!.reset()
             }
 
             if (isMatchingEndFence) {
                 if (!hasStartedMatchingFence) {
                     if (c == ' ') {
+                        closingIndent += 1
+                        if (closingIndent > 3) {
+                            isMatchingEndFence = false
+                            return true
+                        }
                         return includeFences
                     }
                     hasStartedMatchingFence = true
                 }
 
+                // KMP 可以重新搜索后续标记，因此显式拒绝围栏尾部空白之后的反引号。
+                if (c == '`' && hasClosingFenceWhitespace) {
+                    isMatchingEndFence = false
+                    return true
+                }
+                if (c == ' ' || c == '\t' || c == '\r') {
+                    hasClosingFenceWhitespace = true
+                }
                 val matcher = endMatcher!!
                 when (matcher.processChar(c)) {
                     is StreamKmpMatchResult.Match -> {
@@ -89,14 +110,46 @@ class StreamMarkdownFencedCodeBlockPlugin(private val includeFences: Boolean = t
                 // 这一行已经确定不是结束符，直接作为内容
                 return true
             }
-        } else { // IDLE or TRYING
+        } else { // 空闲或正在匹配开始围栏
+            // 只从行首开始匹配，并缓冲最多三个前导空格，避免行内反引号开启代码块。
+            if (state == PluginState.IDLE && !atStartOfLine) {
+                return true
+            }
+            if (!hasStartedOpeningFence) {
+                if (c == ' ' && openingIndent < 3) {
+                    openingIndent += 1
+                    state = PluginState.TRYING
+                    return includeFences
+                }
+                if (c != '`') {
+                    reset()
+                    return true
+                }
+                hasStartedOpeningFence = true
+            } else if (c == '`' && isReadingFenceInfo) {
+                // 反引号围栏的语言说明中不允许再次出现反引号。
+                reset()
+                return true
+            }
+            if (c != '`') {
+                isReadingFenceInfo = true
+            }
+
             when (val result = startMatcher.processChar(c)) {
                 is StreamKmpMatchResult.Match -> {
                     val fence = result.groups[GROUP_DELIMITER]
                     if (fence != null) {
                         state = PluginState.PROCESSING
-                        // Dynamically build the end matcher for the exact opening fence
-                        endMatcher = StreamKmpGraphBuilder().build(kmpPattern { literal(fence) })
+                        // 结束围栏至少与开始围栏等长，且必须以空白和换行结束。
+                        endMatcher =
+                                StreamKmpGraphBuilder().build(
+                                        kmpPattern {
+                                            literal(fence)
+                                            greedyStar { char('`') }
+                                            greedyStar { anyOf(' ', '\t', '\r') }
+                                            char('\n')
+                                        }
+                                )
                         startMatcher.reset()
                     } else {
                         reset()
@@ -130,6 +183,11 @@ class StreamMarkdownFencedCodeBlockPlugin(private val includeFences: Boolean = t
         endMatcher = null
         isMatchingEndFence = false
         hasStartedMatchingFence = false
+        openingIndent = 0
+        closingIndent = 0
+        hasClosingFenceWhitespace = false
+        hasStartedOpeningFence = false
+        isReadingFenceInfo = false
     }
 }
 

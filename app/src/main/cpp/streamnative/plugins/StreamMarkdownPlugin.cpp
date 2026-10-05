@@ -47,8 +47,12 @@ StreamMarkdownFencedCodeBlockPlugin::StreamMarkdownFencedCodeBlockPlugin(bool in
         : includeFences_(includeFences),
           state_(PluginState::IDLE),
           fenceLen_(0),
+          openingFenceLen_(0),
+          fenceIndent_(0),
           isMatchingEndFence_(false),
-          hasStartedMatchingFence_(false) {
+          hasStartedMatchingFence_(false),
+          isReadingFenceInfo_(false),
+          hasFenceTrailingWhitespace_(false) {
     reset();
 }
 
@@ -62,8 +66,12 @@ bool StreamMarkdownFencedCodeBlockPlugin::initPlugin() {
 void StreamMarkdownFencedCodeBlockPlugin::reset() {
     state_ = PluginState::IDLE;
     fenceLen_ = 0;
+    openingFenceLen_ = 0;
+    fenceIndent_ = 0;
     isMatchingEndFence_ = false;
     hasStartedMatchingFence_ = false;
+    isReadingFenceInfo_ = false;
+    hasFenceTrailingWhitespace_ = false;
 }
 
 bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOfLine) {
@@ -71,24 +79,38 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
         if (atStartOfLine) {
             isMatchingEndFence_ = true;
             hasStartedMatchingFence_ = false;
+            fenceLen_ = 0;
+            fenceIndent_ = 0;
+            hasFenceTrailingWhitespace_ = false;
         }
 
         if (isMatchingEndFence_) {
             if (!hasStartedMatchingFence_) {
                 if (c == u' ') {
+                    fenceIndent_ += 1;
+                    if (fenceIndent_ > 3) {
+                        isMatchingEndFence_ = false;
+                        return true;
+                    }
                     return includeFences_;
                 }
                 hasStartedMatchingFence_ = true;
             }
 
-            if (c == u'`') {
+            if (c == u'`' && !hasFenceTrailingWhitespace_) {
                 fenceLen_ += 1;
                 return includeFences_;
             }
 
+            if (fenceLen_ >= openingFenceLen_ &&
+                (c == u' ' || c == u'\t' || c == u'\r')) {
+                hasFenceTrailingWhitespace_ = true;
+                return includeFences_;
+            }
+
             if (c == u'\n') {
-                // line ended; only close if we matched at least 3 backticks
-                if (fenceLen_ >= 3) {
+                // 只在整行结束且反引号数量足够时闭合，避免代码正文提前退出。
+                if (fenceLen_ >= openingFenceLen_) {
                     reset();
                     return includeFences_;
                 }
@@ -107,28 +129,29 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
         return true;
     }
 
-    // IDLE/TRYING: detect opening fence of 3+ backticks (doesn't require SOL in Kotlin)
+    // 开始围栏必须位于行首，最多允许三个前导空格，与 Kotlin 解析保持一致。
     if (state_ == PluginState::IDLE) {
-        if (c == u'`') {
-            state_ = PluginState::TRYING;
-            fenceLen_ = 1;
-            return includeFences_;
+        if (!atStartOfLine) {
+            return true;
         }
-        (void)atStartOfLine;
-        return true;
+        state_ = PluginState::TRYING;
     }
 
     if (state_ == PluginState::TRYING) {
-        if (c == u'`') {
+        if (fenceLen_ == 0 && c == u' ' && fenceIndent_ < 3) {
+            fenceIndent_ += 1;
+            return includeFences_;
+        }
+        if (c == u'`' && !isReadingFenceInfo_) {
             fenceLen_ += 1;
             return includeFences_;
         }
 
-        // We only keep TRYING across the rest of the opening line after we have
-        // already seen 3+ consecutive backticks. This matches the Kotlin KMP pattern.
+        // 等到开始行结束后再确认代码块，保留流式输出中尚未闭合的合法围栏。
         if (c == u'\n') {
             if (fenceLen_ >= 3) {
                 state_ = PluginState::PROCESSING;
+                openingFenceLen_ = fenceLen_;
                 isMatchingEndFence_ = false;
                 hasStartedMatchingFence_ = false;
                 fenceLen_ = 0;
@@ -138,14 +161,13 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
             return true;
         }
 
-        if (fenceLen_ < 3) {
-            // Not a fenced code block; stop trying immediately so inline/backtick runs
-            // don't accidentally accumulate into a fake 3+ fence.
+        if (fenceLen_ < 3 || c == u'`') {
+            // 开始标记不足三个反引号或语言说明含反引号时，整行按普通文本处理。
             reset();
             return true;
         }
 
-        // still in opening line (language id etc)
+        isReadingFenceInfo_ = true;
         return includeFences_;
     }
 

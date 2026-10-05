@@ -24,8 +24,16 @@ object WaifuMessageProcessor {
     private const val ENTITY_PLACEHOLDER_PREFIX = "{WAIFUENTITY:"
     private const val ENTITY_PLACEHOLDER_SUFFIX = "}"
     private const val MAX_TYPING_DELAY_MS = 3000L
-    private val FENCED_CODE_BLOCK_REGEX = Regex("```[^\\r\\n`]*[\\r\\n]?[\\s\\S]*?```")
-    private val UNCLOSED_FENCED_CODE_BLOCK_REGEX = Regex("```[^\\r\\n`]*[\\r\\n]?[\\s\\S]*$")
+    private val FENCED_CODE_BLOCK_REGEX =
+        Regex(
+            "^ {0,3}(`{3,})[^\\r\\n`]*\\r?\\n[\\s\\S]*?^ {0,3}\\1`*[ \\t]*(?=\\r?$)",
+            RegexOption.MULTILINE,
+        )
+    private val UNCLOSED_FENCED_CODE_BLOCK_REGEX =
+        Regex(
+            "^ {0,3}`{3,}[^\\r\\n`]*(?:\\r?\\n[\\s\\S]*)?\\z",
+            RegexOption.MULTILINE,
+        )
     private val SENTENCE_SPLIT_REGEX =
         Regex("(?<=[。！？~～])(?![\"'”’」』])|(?<=[!?])(?![\"'”’」』])|(?<=\\.)(?![.\\d\"'”’」』])|(?<=\\.)$|(?<=\\.{3})|(?<=[…](?![…]))")
     private val SENTENCE_END_REGEX =
@@ -760,6 +768,12 @@ object WaifuMessageProcessor {
         return builder.toString()
     }
     
+    // 只过滤从行首合法开启的代码块，避免讲解反引号时丢失后续正文。
+    internal fun removeFencedCodeBlocks(content: String): String =
+        content
+            .replace(FENCED_CODE_BLOCK_REGEX, " ")
+            .replace(UNCLOSED_FENCED_CODE_BLOCK_REGEX, " ")
+
     /**
      * 清理内容中的状态标签和XML标签，只保留纯文本
      */
@@ -771,9 +785,7 @@ object WaifuMessageProcessor {
                 )
             )
 
-        return sanitizedContent
-            .replace(FENCED_CODE_BLOCK_REGEX, " ")
-            .replace(UNCLOSED_FENCED_CODE_BLOCK_REGEX, " ")
+        return removeFencedCodeBlocks(sanitizedContent)
             // 移除状态标签
             .replace(ChatMarkupRegex.statusTag, "")
             .replace(ChatMarkupRegex.statusSelfClosingTag, "")
@@ -796,16 +808,14 @@ object WaifuMessageProcessor {
             // 4. 移除列表标记
             .replace(Regex("^[\\*\\-\\+]\\s+", RegexOption.MULTILINE), "")
             .replace(Regex("^\\d+\\.\\s+", RegexOption.MULTILINE), "")
-            // 5. 移除代码块标记
-            .replace(Regex("```[a-zA-Z]*\\n?|\\n?```"), "")
-            // 6. 移除加粗、斜体、删除线 (注意顺序和互斥)
+            // 5. 移除加粗、斜体、删除线 (注意顺序和互斥)
             .replace(Regex("(\\*\\*\\*|___)(.+?)\\1"), "$2") // 加粗斜体
             .replace(Regex("(\\*\\*|__(?!MD_ENTITY__))(.+?)\\1"), "$2") // 加粗 (避免匹配占位符)
             .replace(Regex("(\\*|_)(.+?)\\1"), "$2")        // 斜体
             .replace(Regex("~~(.+?)~~"), "$1")              // 删除线
-            // 7. 移除行内代码
+            // 6. 移除行内代码
             .replace(Regex("`(.+?)`"), "$1")
-            // 8. 移除水平线
+            // 7. 移除水平线
             .replace(Regex("^[-_*]{3,}\\s*$", RegexOption.MULTILINE), "")
             // --- Markdown移除结束 ---
             

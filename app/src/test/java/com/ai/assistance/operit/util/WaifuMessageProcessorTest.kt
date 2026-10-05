@@ -10,6 +10,37 @@ import org.junit.Test
 
 class WaifuMessageProcessorTest {
     @Test
+    fun removeFencedCodeBlocks_preservesInlineBackticksAndFollowingText() {
+        val content = "停止条件比如 ``` 收尾，后面还有 ``` 标记。\n后续正文。"
+        assertEquals(content, WaifuMessageProcessor.removeFencedCodeBlocks(content))
+    }
+
+    @Test
+    fun removeFencedCodeBlocks_keepsTextAfterIndentedClosedFence() {
+        val content = "前文。\n   ```text\n代码内容\n   ``` \t\n后文。"
+        assertEquals("前文。\n \n后文。", WaifuMessageProcessor.removeFencedCodeBlocks(content))
+    }
+
+    @Test
+    fun removeFencedCodeBlocks_filtersLegitimateUnclosedFence() {
+        val content = "前文。\n```text\n代码内容\n正文中的 ``` 不会闭合。"
+        assertEquals("前文。\n ", WaifuMessageProcessor.removeFencedCodeBlocks(content))
+    }
+
+    @Test
+    fun removeFencedCodeBlocks_requiresClosingFenceAtLeastAsLongAsOpening() {
+        val content = "前文。\n````text\n代码内容\n```\n仍在代码块内\n`````\n后文。"
+        assertEquals("前文。\n \n后文。", WaifuMessageProcessor.removeFencedCodeBlocks(content))
+    }
+
+    @Test
+    fun removeFencedCodeBlocks_preservesInvalidOpeningFences() {
+        listOf("    ```text\n正文。", "```text `说明`\n正文。").forEach { content ->
+            assertEquals(content, WaifuMessageProcessor.removeFencedCodeBlocks(content))
+        }
+    }
+
+    @Test
     fun calculateTypingDelayMs_firstSegmentIsImmediate() {
         assertEquals(
             0L,
