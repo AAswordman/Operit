@@ -113,6 +113,14 @@ object XmlRenderPluginRegistry {
         changeVersionMutable.update { current -> current + 1 }
     }
 
+    fun supports(tagName: String): Boolean {
+        val normalizedTagName = tagName.trim()
+        if (normalizedTagName.isBlank()) {
+            return false
+        }
+        return plugins.any { plugin -> plugin.supports(normalizedTagName) }
+    }
+
     @Composable
     fun RenderIfMatched(
         xmlContent: String,
