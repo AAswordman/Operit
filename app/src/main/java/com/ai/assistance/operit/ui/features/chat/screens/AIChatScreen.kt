@@ -1552,7 +1552,8 @@ private fun ChatInputBottomBar(
             inputState is InputProcessingState.Processing ||
             inputState is InputProcessingState.ProcessingToolResult ||
             inputState is InputProcessingState.Summarizing ||
-            inputState is InputProcessingState.Receiving
+            inputState is InputProcessingState.Receiving ||
+            inputState is InputProcessingState.ExecutingPlan
     val isQueueBlocked = isMessageProcessing || isSummarizing || isSendTriggeredSummarizing
 
     val pendingQueueStates by actualViewModel.pendingMessageQueueStates.collectAsState()

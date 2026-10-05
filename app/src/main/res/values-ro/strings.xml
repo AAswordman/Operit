@@ -4966,7 +4966,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="clear_api_key_pool_confirm_message">Sunteți sigur că doriți să ștergeți totul? %1$d Vrei să confirmi? Această operațiune este ireversibilă.</string>
     <string name="api_key_pool_cleared">Rezerva de chei a fost golită</string>
 
-    <string name="api_key_pool_test_progress">Disponibil: %1$d, indisponibil: %2$d, netestat: %3$d</string>
+    <string name="api_key_pool_test_progress">Disponibil: %1$d, indisponibil: %2$d, netestat: %3$d, dezactivat: %4$d</string>
     <string name="api_key_pool_test_run_progress">Stadiul testării: %1$d / %2$d</string>
     <string name="api_key_pool_test_start">Începe testarea</string>
     <string name="api_key_pool_test_continue">Continuarea testării</string>
@@ -8358,4 +8358,43 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Se finalizează autorizarea și se încarcă detaliile contului…</string>
     <string name="antigravity_login_timed_out">Au trecut 15 minute de așteptare pentru autorizarea Google. Reîncepe autentificarea.</string>
+    <string name="api_key_pool_title">Grup de chei API</string>
+    <string name="api_key_pool_empty_title">Încă nu există chei</string>
+    <string name="api_key_pool_add_short">Adaugă cheie</string>
+    <string name="api_key_pool_import_short">Importă</string>
+    <string name="api_key_pool_export_short">Exportă</string>
+    <string name="api_key_pool_test_short">Testează</string>
+    <string name="api_key_pool_status_available">Disponibilă</string>
+    <string name="api_key_pool_status_unavailable">Indisponibilă</string>
+    <string name="api_key_pool_status_untested">Netestată</string>
+    <string name="api_key_pool_status_disabled">Dezactivată</string>
+    <string name="api_key_pool_disable">Dezactivează</string>
+    <string name="api_key_pool_enable">Activează</string>
+    <string name="api_key_pool_saved">Grupul de chei API a fost salvat</string>
+    <string name="api_key_pool_enabled">Grupul de chei API a fost activat</string>
+    <string name="api_key_pool_disabled">Grupul de chei API a fost dezactivat</string>
+    <string name="api_key_pool_import_keys">Importă chei</string>
+    <string name="api_key_pool_delete_keys">Șterge chei</string>
+    <string name="api_key_pool_selected_count">Selectate %1$d / %2$d</string>
+    <string name="api_key_pool_filter_all">Toate</string>
+    <string name="api_key_pool_filter_untested">Netestate</string>
+    <string name="api_key_pool_export_n">Exportă %1$d</string>
+    <string name="api_key_pool_delete_n">Șterge %1$d</string>
+    <string name="api_key_pool_delete_hint">Nu se poate anula. Cheia API principală nu este ștearsă.</string>
+    <string name="api_key_pool_deleted_count">Au fost șterse %1$d chei</string>
+    <string name="api_key_pool_reorder">Reordonează</string>
+    <string name="api_key_pool_info_title">Informații grup chei</string>
+    <string name="api_key_pool_info_subtitle">Ultimele 24 h · ordinea curentă</string>
+    <string name="api_key_pool_info_recent">Recent</string>
+    <string name="api_key_pool_info_never">Încă nefolosită</string>
+    <string name="api_key_pool_info_line_success">%1$s · succes · 24h %2$d/%3$d</string>
+    <string name="api_key_pool_info_line_failure_status">%1$s · eșec %2$d · 24h %3$d/%4$d</string>
+    <string name="api_key_pool_info_line_failure">%1$s · eșec · 24h %2$d/%3$d</string>
+    <string name="api_key_pool_info_just_now">Acum</string>
+    <string name="api_key_pool_info_minutes_ago">acum %1$d min</string>
+    <string name="api_key_pool_info_days_ago">acum %1$d z</string>
+    <string name="api_key_pool_test_run_completed">Test finalizat: %1$d / %2$d</string>
+    <string name="enhanced_retrying_request">Se reîncearcă cererea...</string>
+    <string name="api_key_pool_exhausted">S-au încercat %1$d chei din grup (%2$d fără cotă, %3$d limitate). Ultima eroare: %4$s</string>
+    <string name="api_key_first_token_timeout">Expirarea așteptării primului token, se schimbă cheia</string>
 </resources>

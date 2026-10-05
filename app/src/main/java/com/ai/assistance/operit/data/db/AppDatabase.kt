@@ -7,11 +7,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.ai.assistance.operit.data.dao.ApiKeyAttemptDao
 import com.ai.assistance.operit.data.dao.ChatContentDao
 import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
 import com.ai.assistance.operit.data.dao.MessageVariantDao
 import com.ai.assistance.operit.data.dao.TokenUsageDao
+import com.ai.assistance.operit.data.model.ApiKeyAttemptRecordEntity
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
@@ -21,7 +23,7 @@ import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.util.UUID
 
-private const val APP_DATABASE_VERSION = 21
+private const val APP_DATABASE_VERSION = 22
 
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
@@ -31,6 +33,7 @@ private const val APP_DATABASE_VERSION = 21
         MessageVariantEntity::class,
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
+        ApiKeyAttemptRecordEntity::class,
     ],
     version = APP_DATABASE_VERSION,
     exportSchema = false
@@ -44,6 +47,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun messageVariantDao(): MessageVariantDao
     abstract fun chatContentDao(): ChatContentDao
     abstract fun tokenUsageDao(): TokenUsageDao
+    abstract fun apiKeyAttemptDao(): ApiKeyAttemptDao
 
     companion object {
         const val DATABASE_VERSION = APP_DATABASE_VERSION
@@ -351,6 +355,60 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+
+        /** v21 -> v22: per-key attempt log for pool failover. */
+        internal val MIGRATION_21_22 =
+            object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    runSql { db.execSQL(it) }
+                }
+
+                override fun migrate(connection: androidx.sqlite.SQLiteConnection) {
+                    runSql { sql ->
+                        val stmt = connection.prepare(sql)
+                        try {
+                            stmt.step()
+                        } finally {
+                            stmt.close()
+                        }
+                    }
+                }
+
+                private fun runSql(exec: (String) -> Unit) {
+                    exec(
+                        """
+                        CREATE TABLE IF NOT EXISTS `api_key_attempt_records` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `occurredAtMs` INTEGER NOT NULL,
+                            `configId` TEXT NOT NULL,
+                            `keyId` TEXT NOT NULL,
+                            `model` TEXT NOT NULL,
+                            `success` INTEGER NOT NULL,
+                            `errorClass` TEXT NOT NULL,
+                            `httpStatus` INTEGER,
+                            `ttftMs` INTEGER,
+                            `tokensPerSec` REAL,
+                            `inputTokens` INTEGER,
+                            `outputTokens` INTEGER,
+                            `cachedInputTokens` INTEGER,
+                            `attemptIndex` INTEGER NOT NULL,
+                            `stickyHit` INTEGER NOT NULL DEFAULT 0,
+                            `stream` INTEGER NOT NULL DEFAULT 1
+                        )
+                        """.trimIndent()
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_api_key_attempt_records_occurredAtMs` " +
+                            "ON `api_key_attempt_records` (`occurredAtMs`)"
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS " +
+                            "`index_api_key_attempt_records_configId_keyId_model_occurredAtMs` " +
+                            "ON `api_key_attempt_records` (`configId`, `keyId`, `model`, `occurredAtMs`)"
+                    )
+                }
+            }
+
         // 定义从版本2到3的迁移
         private val MIGRATION_2_3 =
             object : Migration(2, 3) {
@@ -533,7 +591,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_17_18,
                     MIGRATION_18_19,
                     MIGRATION_19_20,
-                    MIGRATION_20_21
+                    MIGRATION_20_21,
+                    MIGRATION_21_22
                 )
                 .build()
 

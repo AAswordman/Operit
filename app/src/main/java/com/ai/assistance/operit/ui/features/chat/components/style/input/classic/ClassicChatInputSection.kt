@@ -130,7 +130,8 @@ fun ClassicChatInputSection(
             inputState is InputProcessingState.Processing ||
             inputState is InputProcessingState.ProcessingToolResult ||
             inputState is InputProcessingState.Summarizing ||
-            inputState is InputProcessingState.Receiving
+            inputState is InputProcessingState.Receiving ||
+            inputState is InputProcessingState.ExecutingPlan
 
     if (showTokenLimitDialog.value) {
         AlertDialog(

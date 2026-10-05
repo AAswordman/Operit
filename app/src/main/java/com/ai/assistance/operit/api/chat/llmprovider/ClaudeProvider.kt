@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.api.chat.keypool.*
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
@@ -72,6 +73,7 @@ open class ClaudeProvider(
     class HttpStatusException(
         message: String,
         override val statusCode: Int,
+        override val retryAfterMs: Long? = null,
         cause: Throwable? = null
     ) : IOException(message, cause), HttpStatusCodeException
 
@@ -1260,7 +1262,10 @@ open class ClaudeProvider(
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
         onRetryAccepted: suspend () -> Unit,
-        buildRetryMessage: (String, Int) -> String
+        buildRetryMessage: (String, Int) -> String,
+        attemptNumber: Int,
+        watchdog: FirstTokenWatchdog? = null,
+        stream: Boolean = true,
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
             throw exception
@@ -1269,31 +1274,29 @@ open class ClaudeProvider(
             AppLogger.d("AIService", "【Claude】请求被用户取消，停止重试。")
             throw UserCancellationException(context.getString(R.string.openai_error_request_cancelled), exception)
         }
-
-        val errorText = resolveRetryErrorText(context, exception)
-
-        if (!enableRetry) {
-            throw IOException(errorText, exception)
-        }
-
-        val newRetryCount = retryCount + 1
-        if (newRetryCount > maxRetries) {
-            AppLogger.e("AIService", "【Claude】$errorText 且达到最大重试次数($maxRetries)", exception)
-            throw IOException(
-                context.getString(R.string.openai_error_connection_timeout, maxRetries, errorText),
-                exception
+        watchdog?.cancel()
+        currentApiKeySession()?.reportOutcome(
+            ApiKeyAttemptReport(
+                success = false,
+                errorClass = ApiKeyFailureClassifier.classify(exception),
+                httpStatus = ApiKeyFailureClassifier.httpStatus(exception),
+                retryAfterMs = ApiKeyFailureClassifier.retryAfterMs(exception),
+                model = modelName,
+                stream = stream,
+                attemptIndex = attemptNumber,
             )
-        }
-
-        // A terminal failure must retain its streamed text; only a replacement request discards it.
-        onRetryAccepted()
-        val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
-        AppLogger.w("AIService", "【Claude】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
-            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
-        }
-        delay(retryDelayMs)
-        return newRetryCount
+        )
+        handleKeyAwareRetry(
+            context = context,
+            exception = exception,
+            enableRetry = enableRetry,
+            onNonFatalError = onNonFatalError,
+            onRetryAccepted = onRetryAccepted,
+            buildRetryMessage = buildRetryMessage,
+            logTag = "AIService",
+            attemptNumber = attemptNumber,
+        )
+        return retryCount + 1
     }
 
     override suspend fun sendMessage(
@@ -1316,9 +1319,12 @@ open class ClaudeProvider(
         isManuallyCancelled = false
         tokenCacheManager.setOutputTokens(0)
 
-        val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+        val session = apiKeyProvider.createRequestSession(modelName, stream)
+        val maxRetries = (session.maxAttempts() - 1).coerceAtLeast(0)
         var retryCount = 0
         var lastException: Exception? = null
+        val watchdog = FirstTokenWatchdog(CoroutineScope(currentCoroutineContext() + SupervisorJob()))
+        withContext(ApiKeyRequestElement(session)) {
         val receivedContent = StringBuilder()
         val requestSavepointId = "attempt_${UUID.randomUUID().toString().replace("-", "")}"
         var outboundAttempt = 0
@@ -1432,7 +1438,7 @@ open class ClaudeProvider(
                     tokenCacheManager.outputTokenCount
                 )
                 val request = createRequest(requestBody)
-                client.newCall(request)
+                client.newCall(request).also { watchdog.start(it) }
             } catch (e: Exception) {
                 throw e
             }
@@ -1447,13 +1453,11 @@ open class ClaudeProvider(
                         if (!response.isSuccessful) {
                             val errorBody = response.body?.string() ?: context.getString(R.string.openai_error_no_error_details)
                             // 状态码错误保留状态码信息，随后进入统一重试循环。
-                            if (response.code in 400..499) {
-                                throw HttpStatusException(
-                                    context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
-                                    statusCode = response.code
-                                )
-                            }
-                            throw IOException(context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody))
+                            throw HttpStatusException(
+                                context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
+                                statusCode = response.code,
+                                retryAfterMs = parseRetryAfterMs(response),
+                            )
                         }
 
                         AppLogger.d("AIService", "连接成功，等待响应...")
@@ -1491,6 +1495,7 @@ open class ClaudeProvider(
                                         tokenCacheManager.cachedInputTokenCount,
                                         tokenCacheManager.outputTokenCount,
                                     )
+                                    if (content.isNotEmpty()) watchdog.markFirstToken()
                                     emit(content)
                                     receivedContent.append(content)
                                 }
@@ -1648,6 +1653,7 @@ open class ClaudeProvider(
                                         tokenCacheManager.cachedInputTokenCount,
                                         tokenCacheManager.outputTokenCount
                                     )
+                                    if (content.isNotEmpty()) watchdog.markFirstToken()
                                     emit(content)
                                     receivedContent.append(content)
                                 }
@@ -1992,16 +1998,31 @@ open class ClaudeProvider(
                 if (stream && !streamCompletionConfirmed) {
                     throw IOException(context.getString(R.string.provider_error_network_interrupted))
                 }
+                watchdog.cancel()
+                currentApiKeySession()?.reportOutcome(
+                    ApiKeyAttemptReport(
+                        success = true,
+                        errorClass = ApiKeyErrorClass.NONE,
+                        ttftMs = watchdog.ttftMs(),
+                        tokensPerSec = watchdog.tokensPerSec(tokenCacheManager.outputTokenCount),
+                        inputTokens = tokenCacheManager.totalInputTokenCount,
+                        outputTokens = tokenCacheManager.outputTokenCount,
+                        cachedInputTokens = tokenCacheManager.cachedInputTokenCount,
+                        model = modelName,
+                        stream = stream,
+                        attemptIndex = currentAttempt,
+                    )
+                )
                 onUsageFinalized?.invoke(currentAttempt)
                 AppLogger.d("AIService", "【Claude】请求成功完成")
                 logFinalOutput(receivedContent, "Claude final output summary: ")
-                return@stream
+                return@withContext
             } catch (e: Exception) {
                 lastException = e
 
                 retryCount = handleRetryableError(
                         context = context,
-                        exception = e,
+                        exception = if (watchdog.timedOut) FirstTokenTimeoutException(e.message ?: "", e) else e,
                         retryCount = retryCount,
                         maxRetries = maxRetries,
                         enableRetry = enableRetry,
@@ -2010,6 +2031,9 @@ open class ClaudeProvider(
                         buildRetryMessage = { errorText, retryNumber ->
                             context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
                         },
+                        attemptNumber = currentAttempt,
+                        watchdog = watchdog,
+                        stream = stream,
                     )
             } finally {
                 activeCall = null
@@ -2028,6 +2052,7 @@ open class ClaudeProvider(
             ),
             lastException
         )
+        }
         }
         return responseStream.withEventChannel(eventChannel)
     }
