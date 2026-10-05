@@ -5055,10 +5055,10 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="backup_import_format_hint">Seleccione el formato del historial de chat a importar:</string>
     <string name="backup_format_operit">Operit JSON (recomendado)</string>
     <string name="backup_format_operit_desc">Formato nativo de esta aplicación, conserva todos los datos como el cambio de mensajes.</string>
-    <string name="backup_format_chatgpt">ChatGPT</string>
-    <string name="backup_format_chatgpt_desc">Formato de exportación conversations.json de OpenAI ChatGPT.</string>
-    <string name="backup_format_chatbox">ChatBox</string>
-    <string name="backup_format_chatbox_desc">Formato de exportación de la aplicación de escritorio ChatBox.</string>
+
+
+
+
     <string name="backup_format_generic_json">JSON genérico</string>
     <string name="backup_format_generic_json_desc">JSON con estructura estándar role-content (compatible con Claude, LibreChat, etc.).</string>
     <string name="backup_import_result_success">Importación exitosa del formato %1$s:\n- Nuevos registros: %2$d\n- Registros actualizados: %3$d%4$s</string>
@@ -5651,8 +5651,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="version_update">Actualización de versión</string>
     <string name="mcp_no_zip_selected">No se seleccionó ningún archivo ZIP</string>
     <string name="mcp_uninstall_failed">Error al desinstalar</string>
-    <string name="chatgpt_parse_error">Error al analizar el formato de ChatGPT: %1$s</string>
-    <string name="chatgpt_import_from">Importar desde ChatGPT</string>
+
+
     <string name="uiautomation_execute">Ejecutar</string>
     <string name="uiautomation_complete">Completar</string>
     <string name="message_list_empty">La lista de mensajes no puede estar vacía</string>
@@ -6229,17 +6229,17 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="export_user">Usuario</string>
     <string name="export_assistant">Asistente</string>
     <string name="export_model">(Modelo: %1$s)</string>
-    <string name="chatbox_unsupported_format">Formato ChatBox no compatible</string>
-    <string name="chatbox_unsupported_format_detail">Importe el JSON exportado por ChatBox (Ajustes &gt; Ajustes generales &gt; Copia de seguridad de datos &gt; Exportar datos seleccionados)</string>
-    <string name="chatbox_parse_error">Error al analizar el formato ChatBox: %1$s</string>
-    <string name="chatbox_invalid_export_file">No es un archivo de exportación ChatBox válido</string>
-    <string name="chatbox_invalid_export_hint">En ChatBox, vaya a Ajustes &gt; Ajustes generales &gt; Copia de seguridad de datos y use "Exportar datos seleccionados" para exportar JSON</string>
-    <string name="chatbox_import_group">Importado desde ChatBox</string>
-    <string name="chatbox_message_generation_failed">Error al generar el mensaje: %1$s</string>
-    <string name="chatbox_image_not_saved">Este mensaje contenía una imagen, pero no se ha guardado</string>
-    <string name="chatbox_role_user">Usuario</string>
-    <string name="chatbox_role_assistant">Asistente</string>
-    <string name="chatbox_role_system">Sistema</string>
+
+
+
+
+
+
+
+
+
+
+
     <string name="role_assistant">Asistente</string>
     <string name="role_system">Sistema</string>
     <string name="role_model">Modelo</string>
@@ -6449,7 +6449,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="gemini_connection_test_failed">Prueba de conexión fallida: %1$s</string>
     <string name="provider_error_response_empty">La respuesta de la API está vacía.</string>
     <string name="provider_error_parsing_failed">Error al analizar la respuesta.</string>
-    <string name="provider_error_retry_message">%1$s, reintento %2$d en curso...</string>
+    <string name="provider_error_retry_message">%1$s, reintento %2$d en curso; esperando %3$d s...</string>
     <string name="provider_error_timeout">Tiempo de espera agotado.</string>
     <string name="provider_error_unknown_host">No se puede resolver el host.</string>
     <string name="provider_error_network_interrupted">Conexión de red interrumpida.</string>
@@ -7822,6 +7822,40 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_trends">Análisis de tendencias</string>
     <string name="token_stats_settings">Configuración de estadísticas</string>
     <string name="token_stats_custom_range_confirm">Aceptar</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">Structured table format that preserves chat metadata, messages, and response variants and can be imported again</string>
+    <string name="data_recovery_raw_snapshot_section">Instantánea sin procesar</string>
+    <string name="data_recovery_raw_snapshot_description">La exportación empaquetará los directorios internos files, shared_prefs, datastore, databases y Android/data; la importación sobrescribirá los datos actuales.</string>
+    <string name="data_recovery_export_snapshot">Exportar instantánea</string>
+    <string name="data_recovery_import_snapshot">Importar instantánea</string>
+    <string name="data_recovery_start_main_app">Iniciar aplicación principal</string>
+    <string name="data_recovery_file_management">Gestión de archivos</string>
+    <string name="data_recovery_file_management_description">Esta página no abre directamente un gestor de archivos. Para revisar o exportar archivos internos manualmente, abre MT Manager, añade el repositorio de almacenamiento local, selecciona el repositorio de datos de Operit y adminístralo allí. provider: %1$s</string>
+    <string name="data_recovery_sql_executor">Ejecutor SQL</string>
+    <string name="data_recovery_messages_size">Tamaño de messages</string>
+    <string name="data_recovery_variants_size">Tamaño de variants</string>
+    <string name="data_recovery_chats_fields">Campos de chats</string>
+    <string name="data_recovery_sql_label">SQL</string>
+    <string name="data_recovery_execute">Ejecutar</string>
+    <string name="data_recovery_import_snapshot_title">Importar instantánea sin procesar</string>
+    <string name="data_recovery_import_snapshot_message">La importación sobrescribirá los datos actuales de la aplicación. ¿Importar esta instantánea?</string>
+    <string name="data_recovery_import_action">Importar</string>
+    <string name="data_recovery_cancel_action">Cancelar</string>
+    <string name="data_recovery_started">Proceso de recuperación iniciado</string>
+    <string name="data_recovery_affected_rows">Filas afectadas: %1$d</string>
+    <string name="data_recovery_query_result">Resultado de la consulta: %1$d filas</string>
+    <string name="data_recovery_sql_empty">SQL vacío</string>
+    <string name="data_recovery_sql_running">Ejecutando SQL</string>
+    <string name="data_recovery_query_completed">Consulta completada: %1$d filas</string>
+    <string name="data_recovery_sql_completed">Ejecución de SQL completada</string>
+    <string name="data_recovery_export_running">Exportando instantánea sin procesar</string>
+    <string name="data_recovery_export_completed">Exportación de instantánea completada</string>
+    <string name="data_recovery_restore_running">Importando instantánea sin procesar</string>
+    <string name="data_recovery_restore_completed">Importación completada. Reinicia la aplicación para aplicarla.</string>
+    <string name="data_recovery_export_progress">Exportar: %1$s</string>
+    <string name="data_recovery_restore_progress">Importar: %1$s</string>
+    <string name="data_recovery_progress_percent"> %1$d%%</string>
+    <string name="data_recovery_launch_failed">No se puede iniciar la aplicación principal</string>
     <string name="provider_section_generic_compatible">Compatibilidad genérica</string>
     <string name="provider_section_proprietary">Proveedores dedicados</string>
     <string name="provider_section_aggregation">Agregación de modelos</string>

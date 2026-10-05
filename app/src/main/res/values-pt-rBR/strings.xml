@@ -2348,7 +2348,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="speech_services_http_content_type">Tipo de conteúdo</string>
     <string name="speech_services_http_content_type_placeholder">aplicativo/json</string>
     <string name="speech_services_http_request_body">Solicitar modelo de corpo</string>
-    <string name="speech_services_http_request_body_placeholder">{\"texto\": \"{texto}\"}</string>
+    <string name="speech_services_http_request_body_placeholder">{\"text\": \"{text}\"}</string>
     <string name="speech_services_siliconflow_config">Configuração TTS de fluxo baseada em silício</string>
     <string name="speech_services_siliconflow_api_key">Chave de API</string>
     <string name="speech_services_siliconflow_api_key_placeholder">Por favor, insira sua chave API do Silicon Mobile</string>
@@ -3600,7 +3600,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="waifu_mode_toggle_desc">As respostas da IA ​​serão enviadas divididas por pontuação</string>
     <string name="typing_speed_settings">Configurações de velocidade de digitação</string>
     <string name="typing_speed_desc">Controle o tempo de atraso de cada personagem para simular o ritmo de digitação de pessoas reais</string>
-    <string name="current_speed_format">Velocidade atual: %,1f caracteres por segundo</string>
+    <string name="current_speed_format">Velocidade atual: %.1f caracteres por segundo</string>
     <string name="speed_fast">rápido</string>
     <string name="speed_slow">lento</string>
     <string name="current_delay_format">Atual: %dms/caracteres</string>
@@ -4596,10 +4596,10 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="backup_import_format_hint">Selecione o formato do histórico de bate-papo para importar:</string>
     <string name="backup_format_operit">Operar JSON (recomendado)</string>
     <string name="backup_format_operit_desc">O formato nativo deste aplicativo mantém todos os dados intactos</string>
-    <string name="backup_format_chatgpt">Bate-papoGPT</string>
-    <string name="backup_format_chatgpt_desc">Formato de exportação OpenAI ChatGPT conversas.json</string>
-    <string name="backup_format_chatbox">Caixa de bate-papo</string>
-    <string name="backup_format_chatbox_desc">Formato de exportação do aplicativo de desktop ChatBox</string>
+
+
+
+
     <string name="backup_format_generic_json">JSON genérico</string>
     <string name="backup_format_generic_json_desc">JSON com estrutura de conteúdo de função padrão (suporta Claude, LibreChat, etc.)</string>
     <string name="backup_import_result_success">Importado com sucesso %1$s Formato:\n- Novos registros: %2$d\n- Registros atualizados: %3$d%4$s</string>
@@ -5348,8 +5348,8 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="version_update">Atualização de versão</string>
     <string name="mcp_no_zip_selected">Nenhum arquivo ZIP selecionado</string>
     <string name="mcp_uninstall_failed">Falha na desinstalação</string>
-    <string name="chatgpt_parse_error">Falha ao analisar o formato ChatGPT: %1$s</string>
-    <string name="chatgpt_import_from">Importar do ChatGPT</string>
+
+
     <string name="uiautomation_execute">implementar</string>
     <string name="uiautomation_complete">Terminar</string>
     <string name="message_list_empty">A lista de mensagens não pode ficar vazia</string>
@@ -5707,7 +5707,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="gemini_connection_test_failed">Falha no teste de conexão: %1$s</string>
     <string name="provider_error_response_empty">A resposta da API está vazia</string>
     <string name="provider_error_parsing_failed">Falha ao analisar a resposta</string>
-    <string name="provider_error_retry_message">%1$s, tentando novamente %2$d...</string>
+    <string name="provider_error_retry_message">%1$s, tentando novamente %2$d; aguardando %3$d s...</string>
     <string name="provider_error_timeout">Tempo limite de conexão</string>
     <string name="provider_error_unknown_host">Não foi possível resolver o host</string>
     <string name="provider_error_network_interrupted">Interrupção de rede</string>
@@ -6055,17 +6055,17 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="export_user">usuário</string>
     <string name="export_assistant">assistente</string>
     <string name="export_model">(Modelo: %1$s)</string>
-    <string name="chatbox_unsupported_format">Formato ChatBox não suportado</string>
-    <string name="chatbox_unsupported_format_detail">Importe o JSON exportado pelo ChatBox (Configurações &gt; Configurações Gerais &gt; Backup de Dados &gt; Exportar Dados de Verificação)</string>
-    <string name="chatbox_parse_error">Falha ao analisar o formato ChatBox: %1$s</string>
-    <string name="chatbox_invalid_export_file">Não é um arquivo de exportação válido do ChatBox</string>
-    <string name="chatbox_invalid_export_hint">Use "Exportar dados de verificação" em Configurações do ChatBox &gt; Configurações gerais &gt; Backup de dados para exportar JSON</string>
-    <string name="chatbox_import_group">Importar do ChatBox</string>
-    <string name="chatbox_message_generation_failed">Falha na geração da mensagem: %1$s</string>
-    <string name="chatbox_image_not_saved">A mensagem continha originalmente uma imagem, mas não foi salva</string>
-    <string name="chatbox_role_user">usuário</string>
-    <string name="chatbox_role_assistant">assistente</string>
-    <string name="chatbox_role_system">sistema</string>
+
+
+
+
+
+
+
+
+
+
+
     <string name="role_assistant">assistente</string>
     <string name="role_system">sistema</string>
     <string name="role_model">Modelo</string>
@@ -7511,6 +7511,120 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_activity_chart_tap_hint">Toque no gráfico para ver dados detalhados</string>
     <string name="token_activity_total_tokens">Tokens acumulados</string>
     <string name="token_activity_peak_tokens">Pico de tokens</string>
+    <string name="multi_select_actions">Actions</string>
+    <string name="theme_select_target">Select theme target</string>
+    <string name="theme_unsaved_title">Save theme changes?</string>
+    <string name="theme_unsaved_message">Changes for the current theme target have not been saved.</string>
+    <string name="theme_save_failed">Failed to save theme</string>
+    <string name="theme_save_and_continue">Save and continue</string>
+    <string name="theme_discard_and_continue">Don\'t save</string>
+    <string name="theme_edit_target_character">Current character theme</string>
+    <string name="theme_edit_target_group">Current character group theme</string>
+    <string name="theme_target_switch_failed">Failed to switch theme target</string>
+    <string name="user_configuration_select">Select user configuration</string>
+    <string name="user_configuration_active">Active configuration</string>
+    <string name="user_configuration_policy">Automatic updates and locking</string>
+    <string name="user_configuration_open_memory">Open associated memory space</string>
+    <string name="user_configuration_create">Create user configuration</string>
+    <string name="user_configuration_rename">Rename user configuration</string>
+    <string name="user_configuration_delete">Delete user configuration</string>
+    <string name="user_configuration_name">User configuration name</string>
+    <string name="user_configuration_delete_warning">Delete user configuration “%1$s” and all associated memories? This action cannot be undone.</string>
+    <string name="user_configuration_auto_update">Automatically update profile</string>
+    <string name="user_configuration_lock">Lock automatic profile updates</string>
+    <string name="user_configuration_auto_update_desc">When enabled, long-term memory analysis updates user.md from conversations in the associated space. Locking blocks automatic updates only; manual editing remains available.</string>
+    <string name="user_configuration_unlock_notice">This configuration was locked during migration from older settings. Saving removes the document-wide lock.</string>
+    <string name="market_agreement_title">Plugin Market Agreement and Community Rules</string>
+    <string name="market_agreement_subtitle">Please read and agree to this agreement before entering the plugin market. The market is for sharing and discovering plugins; authors are encouraged to open source through a public GitHub repository.</string>
+    <string name="market_agreement_version">Market agreement version: %1$s</string>
+    <string name="market_agreement_content">1. Market role. The Operit plugin market is only for sharing, discovering, and indexing scripts, packages, Skills, MCP servers, and other extensions, and for providing in-market browsing, downloading, and installation entry points. The market is not the plugin author, buyer, seller, broker, payment provider, guarantor, or rights registry. Listing, displaying, ranking, or recommending a plugin does not mean that Operit developed, owns, represents, or endorses it.\n\n2. Publication license. By submitting a plugin to the market, the publisher grants Operit a non-exclusive, non-transferable license limited to what is necessary to operate the market: to store, cache, reproduce, process, display, and index the market entry, and to provide the plugin to market users for downloading and installation. Publication also means that the publisher allows market users to download, install, and use the plugin for its intended purpose, but does not by itself permit modification or redistribution. This license does not transfer copyright, ownership, or other rights in the plugin, and does not give the market a general right to sublicense the plugin outside the market. The publisher must have the right to grant this license.\n\n3. GitHub open-source recommendation. We recommend that publishers publish source code directly in a public GitHub repository they control, together with a README, license, versions or Releases, and changelogs, and register that source with the market. A publicly visible GitHub repository does not automatically grant an open-source license. Permission to use, modify, or redistribute must come from the author\'s stated open-source license or another written authorization.\n\n4. User use and redistribution. The right to redistribute a plugin remains with its author or other rights holder unless the applicable license or another authorization permits it. The preceding permission to download, install, and use does not grant every user the right to upload, forward, repackage, sell, or republish the plugin. Unless the law provides otherwise, users may modify and redistribute a plugin only under the license or authorization stated by the author. A plugin without permission to redistribute may not be redistributed by users. The rights for an open-source plugin are determined by its open-source license.\n\n5. Third-party risks and security responsibility. Plugins have independent code, configuration, and runtime permissions. They may execute code, start local services, access files, read environment variables, or connect to the network. Users must review and bear the risks of enabling, installing, and using plugins. Publishers must not commit API keys, cookies, tokens, private keys, passwords, or user data to plugins, repositories, examples, or configuration, and must accurately disclose the author, license, permissions, network behavior, environment variables, external services, and known risks. Operit does not guarantee the security, accuracy, availability, legality, or compatibility of third-party extensions.\n\n6. Comments and community conduct. Comments must relate to plugin features, usage, defects, or security issues. Do not post QQ, Telegram, Discord, or other group numbers, contact details, advertisements, traffic diversion, transaction information, unrelated links, or other disruptive content. Do not disclose API keys, cookies, tokens, private keys, passwords, or personal data.\n\n7. No trading or diversion. Do not buy, sell, resell, or provide paid installation of plugins in the market. Do not use payments, tips, memberships, private messages, or third-party links to charge others for free plugins. The market does not provide payment, fulfillment, refunds, or transaction dispute services. Free plugins require no payment to anyone; charges, licenses, or promises from third-party channels are not endorsed by Operit.\n\n8. Market service boundary. To provide sharing, downloading, and installation, the market may store, cache, or transmit market entries and plugin files, but it does not promise permanent hosting, backup, confidentiality, or anti-copying. Publishing to the market means that the author authorizes the market to provide downloading and installation to market users under this agreement; it does not automatically give the public a right to redistribute the plugin. Availability and continued access may depend on the author\'s repository, GitHub, and other third-party services.\n\n9. Enforcement and updates. Comments, entries, or accounts that violate these rules may be restricted, hidden, or removed. When this market agreement changes materially due to product, legal, or security requirements, its version will be increased. Users must read and confirm the updated agreement when they next enter the market.</string>
+    <string name="speech_services_tts_profiles">TTS Profiles</string>
+    <string name="speech_services_stt_profiles">STT Profiles</string>
+    <string name="speech_services_profile_current">Current profile</string>
+    <string name="speech_services_profile_create">Create speech profile</string>
+    <string name="speech_services_profile_created">Speech profile created</string>
+    <string name="speech_services_profile_delete">Delete speech profile</string>
+    <string name="speech_services_profile_delete_message">Delete "%1$s"?</string>
+    <string name="speech_services_profile_loading">Loading speech profiles...</string>
+    <string name="speech_services_profile_migrated_tts">Migrated TTS configuration</string>
+    <string name="speech_services_profile_migrated_stt">Migrated STT configuration</string>
+    <string name="chat_pasted_text_attached">Pasted text added as an attachment: %1$s</string>
+    <string name="settings_section_chat_input">Chat Input</string>
+    <string name="long_pasted_text_to_file">Convert long pasted text to a file</string>
+    <string name="long_pasted_text_to_file_desc">Pasted text longer than the configured limit is added as a text attachment</string>
+    <string name="long_pasted_text_threshold">Conversion limit</string>
+    <string name="long_pasted_text_threshold_desc">Pasted text longer than this number of characters is converted to a file</string>
+    <string name="long_pasted_text_threshold_unit">characters</string>
+    <string name="settings_token_stats_reset_failed">Failed to reset statistics. Please try again.</string>
+    <string name="token_stats_lifetime_total">Cumulative Usage</string>
+    <string name="token_stats_lifetime_models">Cumulative Models</string>
+    <string name="token_stats_lifetime_model_value">%1$s tokens · %2$d%%</string>
+    <string name="token_stats_tokens_total">Total Tokens</string>
+    <string name="token_stats_rate_default_hint">Default estimate: 1 USD = %1$s CNY (not set manually)</string>
+    <string name="token_stats_rate_applied_hint">Converted at 1 USD = %1$s CNY</string>
+    <string name="token_stats_rate_invalid">Rate must be a positive finite number</string>
+    <string name="token_stats_rate_summary">1 USD = %1$s CNY</string>
+    <string name="token_stats_rate_input_prefix">1 USD =</string>
+    <string name="token_stats_rate_estimated">Default estimate</string>
+    <string name="token_stats_rate_manual">Manual rate</string>
+    <string name="token_stats_rate_edit">Edit exchange rate</string>
+    <string name="token_stats_unknown_cost">%1$d request(s) with unknown cost</string>
+    <string name="token_stats_unknown_parts">%1$d request(s) with partially unknown data</string>
+    <string name="token_stats_request_count_compact">%1$s requests</string>
+    <string name="token_stats_unknown_part_suffix">unknown %1$d</string>
+    <string name="token_stats_token_uncached">Uncached input</string>
+    <string name="token_stats_token_cached">Cache read</string>
+    <string name="token_stats_cache_rate">Cache rate</string>
+    <string name="token_stats_token_output">Output</string>
+    <string name="token_stats_date_range">Date range</string>
+    <string name="token_stats_range_analysis">Range analysis</string>
+    <string name="token_stats_period_overview">Period overview</string>
+    <string name="token_stats_composition">Token composition</string>
+    <string name="token_stats_filters">Filters</string>
+    <string name="token_stats_trends">Trend analysis</string>
+    <string name="token_stats_settings">Statistics settings</string>
+    <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="package_market_origin_title">External package source notice</string>
+    <string name="package_market_origin_message">This package comes from the Operit Market.\nPackage: %1$s\nVersion: %2$s\nAuthor: %3$s\nPlease support the original author and beware of resale.</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">Structured table format that preserves chat metadata, messages, and response variants and can be imported again</string>
+    <string name="data_recovery_raw_snapshot_section">Snapshot bruto</string>
+    <string name="data_recovery_raw_snapshot_description">A exportação empacota os diretórios internos files, shared_prefs, datastore, databases e Android/data; a importação substitui os dados atuais.</string>
+    <string name="data_recovery_export_snapshot">Exportar snapshot</string>
+    <string name="data_recovery_import_snapshot">Importar snapshot</string>
+    <string name="data_recovery_start_main_app">Iniciar aplicativo principal</string>
+    <string name="data_recovery_file_management">Gerenciamento de arquivos</string>
+    <string name="data_recovery_file_management_description">Esta página não abre um gerenciador de arquivos diretamente. Para consultar ou exportar arquivos internos manualmente, abra o MT Manager, adicione o repositório de armazenamento local, selecione o repositório de dados do Operit e gerencie-o lá. provider: %1$s</string>
+    <string name="data_recovery_sql_executor">Executor SQL</string>
+    <string name="data_recovery_messages_size">tamanho de messages</string>
+    <string name="data_recovery_variants_size">tamanho de variants</string>
+    <string name="data_recovery_chats_fields">campos de chats</string>
+    <string name="data_recovery_sql_label">SQL</string>
+    <string name="data_recovery_execute">Executar</string>
+    <string name="data_recovery_import_snapshot_title">Importar snapshot bruto</string>
+    <string name="data_recovery_import_snapshot_message">A importação substituirá os dados atuais do aplicativo. Importar este snapshot?</string>
+    <string name="data_recovery_import_action">Importar</string>
+    <string name="data_recovery_cancel_action">Cancelar</string>
+    <string name="data_recovery_started">Processo de recuperação iniciado</string>
+    <string name="data_recovery_affected_rows">Linhas afetadas: %1$d</string>
+    <string name="data_recovery_query_result">Resultado da consulta: %1$d linhas</string>
+    <string name="data_recovery_sql_empty">O SQL está vazio</string>
+    <string name="data_recovery_sql_running">Executando SQL</string>
+    <string name="data_recovery_query_completed">Consulta concluída: %1$d linhas</string>
+    <string name="data_recovery_sql_completed">Execução do SQL concluída</string>
+    <string name="data_recovery_export_running">Exportando snapshot bruto</string>
+    <string name="data_recovery_export_completed">Exportação do snapshot bruto concluída</string>
+    <string name="data_recovery_restore_running">Importando snapshot bruto</string>
+    <string name="data_recovery_restore_completed">Importação do snapshot bruto concluída. Reinicie o aplicativo para aplicá-la.</string>
+    <string name="data_recovery_export_progress">Exportação: %1$s</string>
+    <string name="data_recovery_restore_progress">Importação: %1$s</string>
+    <string name="data_recovery_progress_percent"> %1$d%%</string>
+    <string name="data_recovery_launch_failed">Não foi possível iniciar o aplicativo principal</string>
+    <string name="thinking_config_rule_move_down">Mover regra para baixo</string>
+    <string name="thinking_config_rule_move_up">Mover regra para cima</string>
+    <string name="thinking_config_rule_order_hint">As regras são verificadas de cima para baixo. A primeira regra ativada que corresponder ao modelo será aplicada. Use as setas de cada regra para alterar a ordem.</string>
+    <string name="thinking_config_subtitle">Aplica os parâmetros de raciocínio na ordem das regras; a primeira regra correspondente será aplicada</string>
+    <string name="thinking_config_title">Configuração de raciocínio</string>
     <string name="provider_section_generic_compatible">Compatibilidade genérica</string>
     <string name="provider_section_proprietary">Provedores dedicados</string>
     <string name="provider_section_aggregation">Agregação de modelos</string>

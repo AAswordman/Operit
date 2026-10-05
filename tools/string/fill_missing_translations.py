@@ -67,8 +67,8 @@ LANGUAGE_DIR_OVERRIDES = {
     "pt-BR": "values-pt-rBR",
     "pt-br": "values-pt-rBR",
     "ms": "values-ms",
-    "id": "values-id",
-    "in": "values-id",
+    "id": "values-in",
+    "in": "values-in",
 }
 
 

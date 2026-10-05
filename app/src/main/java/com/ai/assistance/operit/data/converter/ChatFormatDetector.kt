@@ -78,11 +78,6 @@ object ChatFormatDetector {
     private fun detectJsonObjectFormat(obj: JsonObject): ChatFormat {
         val keys = obj.keys
         
-        // ChatGPT 格式特征: mapping, current_node, create_time
-        if (keys.contains("mapping") && keys.contains("current_node")) {
-            return ChatFormat.CHATGPT
-        }
-        
         // Operit 格式特征: id, title, messages, createdAt
         if (keys.contains("id") && keys.contains("title") && 
             keys.contains("messages") && keys.contains("createdAt")) {
@@ -152,8 +147,15 @@ object ChatFormatDetector {
         val lines = content.lines().filter { it.isNotBlank() }
         if (lines.isEmpty()) return false
         
+        // Operit 版本化 CSV 使用稳定表头，并且字段可能跨越多行，
+        // 因此不能要求每个物理行都包含逗号。
+        val normalizedFirstLine = lines.first().removePrefix("\uFEFF").trim()
+        if (normalizedFirstLine == ChatHistoryCsv.HEADER.joinToString(",")) {
+            return true
+        }
+
         // 检查第一行是否包含 CSV 头
-        val firstLine = lines.first().lowercase()
+        val firstLine = normalizedFirstLine.lowercase()
         val hasCsvHeaders = firstLine.contains("timestamp") || 
                            firstLine.contains("role") || 
                            firstLine.contains("content") ||

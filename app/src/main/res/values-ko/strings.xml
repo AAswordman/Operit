@@ -5015,10 +5015,10 @@
     <string name="backup_import_format_hint">가져올 채팅 기록 형식을 선택하세요.</string>
     <string name="backup_format_operit">Operit JSON(권장)</string>
     <string name="backup_format_operit_desc">이 앱의 기본 형식으로 변형 및 기타 모든 데이터가 보존됩니다.</string>
-    <string name="backup_format_chatgpt">ChatGPT</string>
-    <string name="backup_format_chatgpt_desc">OpenAI ChatGPT conversations.json 내보내기 형식</string>
-    <string name="backup_format_chatbox">ChatBox</string>
-    <string name="backup_format_chatbox_desc">ChatBox 데스크톱 애플리케이션 내보내기 형식</string>
+
+
+
+
     <string name="backup_format_generic_json">일반 JSON</string>
     <string name="backup_format_generic_json_desc">표준 role-content JSON 구조(Claude, LibreChat 등 지원)</string>
     <string name="backup_import_result_success">%1$s 형식을 성공적으로 가져왔습니다:\n- 새 레코드: %2$d\n- 업데이트된 레코드: %3$d%4$s</string>
@@ -5786,8 +5786,8 @@
     <string name="version_update">버전 업데이트</string>
     <string name="mcp_no_zip_selected">ZIP 파일을 선택하지 않았습니다.</string>
     <string name="mcp_uninstall_failed">제거 실패</string>
-    <string name="chatgpt_parse_error">ChatGPT 형식 구문 분석 실패: %1$s</string>
-    <string name="chatgpt_import_from">ChatGPT에서 가져오기</string>
+
+
     <string name="uiautomation_execute">실행</string>
     <string name="uiautomation_complete">완료</string>
     <string name="message_list_empty">메시지 목록은 비워둘 수 없습니다.</string>
@@ -6148,7 +6148,7 @@
     <string name="gemini_connection_test_failed">연결 테스트 실패: %1$s</string>
     <string name="provider_error_response_empty">API 응답이 비어 있습니다.</string>
     <string name="provider_error_parsing_failed">응답을 구문 분석하지 못했습니다.</string>
-    <string name="provider_error_retry_message">%1$s, 재시도 중(%2$d)...</string>
+    <string name="provider_error_retry_message">%1$s, 재시도 중(%2$d), %3$d초 대기...</string>
     <string name="provider_error_timeout">연결 시간 초과</string>
     <string name="provider_error_unknown_host">알 수 없는 호스트</string>
     <string name="provider_error_network_interrupted">네트워크 중단됨</string>
@@ -6500,17 +6500,17 @@
     <string name="export_user">사용자</string>
     <string name="export_assistant">어시스턴트</string>
     <string name="export_model">(모델: %1$s)</string>
-    <string name="chatbox_unsupported_format">지원되지 않는 ChatBox 형식</string>
-    <string name="chatbox_unsupported_format_detail">ChatBox에서 내보낸 JSON을 가져오세요(설정 &gt; 일반 설정 &gt; 데이터 백업 &gt; 선택한 데이터 내보내기)</string>
-    <string name="chatbox_parse_error">ChatBox 형식을 구문 분석하지 못했습니다: %1$s</string>
-    <string name="chatbox_invalid_export_file">잘못된 ChatBox 내보내기 파일</string>
-    <string name="chatbox_invalid_export_hint">JSON을 내보내려면 ChatBox 설정 &gt; 일반 설정 &gt; 데이터 백업에서 "선택한 데이터 내보내기"를 사용하세요.</string>
-    <string name="chatbox_import_group">ChatBox에서 가져옴</string>
-    <string name="chatbox_message_generation_failed">메시지 생성 실패: %1$s</string>
-    <string name="chatbox_image_not_saved">이 메시지에는 원래 이미지가 포함되어 있었지만 저장되지 않았습니다.</string>
-    <string name="chatbox_role_user">사용자</string>
-    <string name="chatbox_role_assistant">도우미</string>
-    <string name="chatbox_role_system">시스템</string>
+
+
+
+
+
+
+
+
+
+
+
     <string name="role_assistant">도우미</string>
     <string name="role_system">시스템</string>
     <string name="role_model">모델</string>
@@ -7520,6 +7520,120 @@
     <string name="token_activity_chart_tap_hint">차트를 탭하여 자세한 데이터 보기</string>
     <string name="token_activity_total_tokens">누적 토큰</string>
     <string name="token_activity_peak_tokens">최대 토큰</string>
+    <string name="multi_select_actions">Actions</string>
+    <string name="theme_select_target">Select theme target</string>
+    <string name="theme_unsaved_title">Save theme changes?</string>
+    <string name="theme_unsaved_message">Changes for the current theme target have not been saved.</string>
+    <string name="theme_save_failed">Failed to save theme</string>
+    <string name="theme_save_and_continue">Save and continue</string>
+    <string name="theme_discard_and_continue">Don\'t save</string>
+    <string name="theme_edit_target_character">Current character theme</string>
+    <string name="theme_edit_target_group">Current character group theme</string>
+    <string name="theme_target_switch_failed">Failed to switch theme target</string>
+    <string name="user_configuration_select">Select user configuration</string>
+    <string name="user_configuration_active">Active configuration</string>
+    <string name="user_configuration_policy">Automatic updates and locking</string>
+    <string name="user_configuration_open_memory">Open associated memory space</string>
+    <string name="user_configuration_create">Create user configuration</string>
+    <string name="user_configuration_rename">Rename user configuration</string>
+    <string name="user_configuration_delete">Delete user configuration</string>
+    <string name="user_configuration_name">User configuration name</string>
+    <string name="user_configuration_delete_warning">Delete user configuration “%1$s” and all associated memories? This action cannot be undone.</string>
+    <string name="user_configuration_auto_update">Automatically update profile</string>
+    <string name="user_configuration_lock">Lock automatic profile updates</string>
+    <string name="user_configuration_auto_update_desc">When enabled, long-term memory analysis updates user.md from conversations in the associated space. Locking blocks automatic updates only; manual editing remains available.</string>
+    <string name="user_configuration_unlock_notice">This configuration was locked during migration from older settings. Saving removes the document-wide lock.</string>
+    <string name="market_agreement_title">Plugin Market Agreement and Community Rules</string>
+    <string name="market_agreement_subtitle">Please read and agree to this agreement before entering the plugin market. The market is for sharing and discovering plugins; authors are encouraged to open source through a public GitHub repository.</string>
+    <string name="market_agreement_version">Market agreement version: %1$s</string>
+    <string name="market_agreement_content">1. Market role. The Operit plugin market is only for sharing, discovering, and indexing scripts, packages, Skills, MCP servers, and other extensions, and for providing in-market browsing, downloading, and installation entry points. The market is not the plugin author, buyer, seller, broker, payment provider, guarantor, or rights registry. Listing, displaying, ranking, or recommending a plugin does not mean that Operit developed, owns, represents, or endorses it.\n\n2. Publication license. By submitting a plugin to the market, the publisher grants Operit a non-exclusive, non-transferable license limited to what is necessary to operate the market: to store, cache, reproduce, process, display, and index the market entry, and to provide the plugin to market users for downloading and installation. Publication also means that the publisher allows market users to download, install, and use the plugin for its intended purpose, but does not by itself permit modification or redistribution. This license does not transfer copyright, ownership, or other rights in the plugin, and does not give the market a general right to sublicense the plugin outside the market. The publisher must have the right to grant this license.\n\n3. GitHub open-source recommendation. We recommend that publishers publish source code directly in a public GitHub repository they control, together with a README, license, versions or Releases, and changelogs, and register that source with the market. A publicly visible GitHub repository does not automatically grant an open-source license. Permission to use, modify, or redistribute must come from the author\'s stated open-source license or another written authorization.\n\n4. User use and redistribution. The right to redistribute a plugin remains with its author or other rights holder unless the applicable license or another authorization permits it. The preceding permission to download, install, and use does not grant every user the right to upload, forward, repackage, sell, or republish the plugin. Unless the law provides otherwise, users may modify and redistribute a plugin only under the license or authorization stated by the author. A plugin without permission to redistribute may not be redistributed by users. The rights for an open-source plugin are determined by its open-source license.\n\n5. Third-party risks and security responsibility. Plugins have independent code, configuration, and runtime permissions. They may execute code, start local services, access files, read environment variables, or connect to the network. Users must review and bear the risks of enabling, installing, and using plugins. Publishers must not commit API keys, cookies, tokens, private keys, passwords, or user data to plugins, repositories, examples, or configuration, and must accurately disclose the author, license, permissions, network behavior, environment variables, external services, and known risks. Operit does not guarantee the security, accuracy, availability, legality, or compatibility of third-party extensions.\n\n6. Comments and community conduct. Comments must relate to plugin features, usage, defects, or security issues. Do not post QQ, Telegram, Discord, or other group numbers, contact details, advertisements, traffic diversion, transaction information, unrelated links, or other disruptive content. Do not disclose API keys, cookies, tokens, private keys, passwords, or personal data.\n\n7. No trading or diversion. Do not buy, sell, resell, or provide paid installation of plugins in the market. Do not use payments, tips, memberships, private messages, or third-party links to charge others for free plugins. The market does not provide payment, fulfillment, refunds, or transaction dispute services. Free plugins require no payment to anyone; charges, licenses, or promises from third-party channels are not endorsed by Operit.\n\n8. Market service boundary. To provide sharing, downloading, and installation, the market may store, cache, or transmit market entries and plugin files, but it does not promise permanent hosting, backup, confidentiality, or anti-copying. Publishing to the market means that the author authorizes the market to provide downloading and installation to market users under this agreement; it does not automatically give the public a right to redistribute the plugin. Availability and continued access may depend on the author\'s repository, GitHub, and other third-party services.\n\n9. Enforcement and updates. Comments, entries, or accounts that violate these rules may be restricted, hidden, or removed. When this market agreement changes materially due to product, legal, or security requirements, its version will be increased. Users must read and confirm the updated agreement when they next enter the market.</string>
+    <string name="speech_services_tts_profiles">TTS Profiles</string>
+    <string name="speech_services_stt_profiles">STT Profiles</string>
+    <string name="speech_services_profile_current">Current profile</string>
+    <string name="speech_services_profile_create">Create speech profile</string>
+    <string name="speech_services_profile_created">Speech profile created</string>
+    <string name="speech_services_profile_delete">Delete speech profile</string>
+    <string name="speech_services_profile_delete_message">Delete "%1$s"?</string>
+    <string name="speech_services_profile_loading">Loading speech profiles...</string>
+    <string name="speech_services_profile_migrated_tts">Migrated TTS configuration</string>
+    <string name="speech_services_profile_migrated_stt">Migrated STT configuration</string>
+    <string name="chat_pasted_text_attached">Pasted text added as an attachment: %1$s</string>
+    <string name="settings_section_chat_input">Chat Input</string>
+    <string name="long_pasted_text_to_file">Convert long pasted text to a file</string>
+    <string name="long_pasted_text_to_file_desc">Pasted text longer than the configured limit is added as a text attachment</string>
+    <string name="long_pasted_text_threshold">Conversion limit</string>
+    <string name="long_pasted_text_threshold_desc">Pasted text longer than this number of characters is converted to a file</string>
+    <string name="long_pasted_text_threshold_unit">characters</string>
+    <string name="settings_token_stats_reset_failed">Failed to reset statistics. Please try again.</string>
+    <string name="token_stats_lifetime_total">Cumulative Usage</string>
+    <string name="token_stats_lifetime_models">Cumulative Models</string>
+    <string name="token_stats_lifetime_model_value">%1$s tokens · %2$d%%</string>
+    <string name="token_stats_tokens_total">Total Tokens</string>
+    <string name="token_stats_rate_default_hint">Default estimate: 1 USD = %1$s CNY (not set manually)</string>
+    <string name="token_stats_rate_applied_hint">Converted at 1 USD = %1$s CNY</string>
+    <string name="token_stats_rate_invalid">Rate must be a positive finite number</string>
+    <string name="token_stats_rate_summary">1 USD = %1$s CNY</string>
+    <string name="token_stats_rate_input_prefix">1 USD =</string>
+    <string name="token_stats_rate_estimated">Default estimate</string>
+    <string name="token_stats_rate_manual">Manual rate</string>
+    <string name="token_stats_rate_edit">Edit exchange rate</string>
+    <string name="token_stats_unknown_cost">%1$d request(s) with unknown cost</string>
+    <string name="token_stats_unknown_parts">%1$d request(s) with partially unknown data</string>
+    <string name="token_stats_request_count_compact">%1$s requests</string>
+    <string name="token_stats_unknown_part_suffix">unknown %1$d</string>
+    <string name="token_stats_token_uncached">Uncached input</string>
+    <string name="token_stats_token_cached">Cache read</string>
+    <string name="token_stats_cache_rate">Cache rate</string>
+    <string name="token_stats_token_output">Output</string>
+    <string name="token_stats_date_range">Date range</string>
+    <string name="token_stats_range_analysis">Range analysis</string>
+    <string name="token_stats_period_overview">Period overview</string>
+    <string name="token_stats_composition">Token composition</string>
+    <string name="token_stats_filters">Filters</string>
+    <string name="token_stats_trends">Trend analysis</string>
+    <string name="token_stats_settings">Statistics settings</string>
+    <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="package_market_origin_title">External package source notice</string>
+    <string name="package_market_origin_message">This package comes from the Operit Market.\nPackage: %1$s\nVersion: %2$s\nAuthor: %3$s\nPlease support the original author and beware of resale.</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">Structured table format that preserves chat metadata, messages, and response variants and can be imported again</string>
+    <string name="data_recovery_raw_snapshot_section">원시 스냅샷</string>
+    <string name="data_recovery_raw_snapshot_description">내부 files, shared_prefs, datastore, databases 및 Android/data 패키지 디렉터리를 압축하여 내보내며, 가져오기는 현재 데이터를 덮어씁니다.</string>
+    <string name="data_recovery_export_snapshot">스냅샷 내보내기</string>
+    <string name="data_recovery_import_snapshot">스냅샷 가져오기</string>
+    <string name="data_recovery_start_main_app">기본 앱 시작</string>
+    <string name="data_recovery_file_management">파일 관리</string>
+    <string name="data_recovery_file_management_description">이 페이지는 파일 관리자를 직접 열지 않습니다. 내부 파일을 수동으로 확인하거나 내보내려면 MT Manager를 열고 로컬 저장소 저장소를 추가한 다음 Operit 데이터 저장소를 선택하여 관리하세요. provider: %1$s</string>
+    <string name="data_recovery_sql_executor">SQL 실행기</string>
+    <string name="data_recovery_messages_size">messages 크기</string>
+    <string name="data_recovery_variants_size">variants 크기</string>
+    <string name="data_recovery_chats_fields">chats 필드</string>
+    <string name="data_recovery_sql_label">SQL</string>
+    <string name="data_recovery_execute">실행</string>
+    <string name="data_recovery_import_snapshot_title">원시 스냅샷 가져오기</string>
+    <string name="data_recovery_import_snapshot_message">현재 앱 데이터를 덮어씁니다. 이 스냅샷을 가져오시겠습니까?</string>
+    <string name="data_recovery_import_action">가져오기</string>
+    <string name="data_recovery_cancel_action">취소</string>
+    <string name="data_recovery_started">복구 프로세스가 시작되었습니다</string>
+    <string name="data_recovery_affected_rows">영향받은 행: %1$d</string>
+    <string name="data_recovery_query_result">쿼리 결과: %1$d개 행</string>
+    <string name="data_recovery_sql_empty">SQL이 비어 있습니다</string>
+    <string name="data_recovery_sql_running">SQL 실행 중</string>
+    <string name="data_recovery_query_completed">쿼리 완료: %1$d개 행</string>
+    <string name="data_recovery_sql_completed">SQL 실행이 완료되었습니다</string>
+    <string name="data_recovery_export_running">원시 스냅샷 내보내는 중</string>
+    <string name="data_recovery_export_completed">원시 스냅샷 내보내기가 완료되었습니다</string>
+    <string name="data_recovery_restore_running">원시 스냅샷 가져오는 중</string>
+    <string name="data_recovery_restore_completed">원시 스냅샷 가져오기가 완료되었습니다. 적용하려면 앱을 다시 시작하세요.</string>
+    <string name="data_recovery_export_progress">내보내기: %1$s</string>
+    <string name="data_recovery_restore_progress">가져오기: %1$s</string>
+    <string name="data_recovery_progress_percent"> %1$d%%</string>
+    <string name="data_recovery_launch_failed">기본 앱을 시작할 수 없습니다</string>
+    <string name="thinking_config_rule_move_down">규칙 아래로 이동</string>
+    <string name="thinking_config_rule_move_up">규칙 위로 이동</string>
+    <string name="thinking_config_rule_order_hint">규칙은 위에서 아래 순서로 확인됩니다. 모델과 일치하는 활성 규칙 중 첫 번째 규칙이 적용됩니다. 각 규칙 오른쪽의 화살표로 순서를 변경할 수 있습니다.</string>
+    <string name="thinking_config_subtitle">규칙 순서에 따라 사고 매개변수를 일치시키며, 처음 일치한 규칙을 적용합니다</string>
+    <string name="thinking_config_title">사고 설정</string>
     <string name="provider_section_generic_compatible">범용 호환</string>
     <string name="provider_section_proprietary">전용 제공자</string>
     <string name="provider_section_aggregation">모델 집계</string>

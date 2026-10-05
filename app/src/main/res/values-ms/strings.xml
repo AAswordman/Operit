@@ -4896,10 +4896,10 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="backup_import_format_hint">Sila pilih format rekod sembang yang ingin diimport:</string>
     <string name="backup_format_operit">Operit JSON (disyorkan)</string>
     <string name="backup_format_operit_desc">Format asli aplikasi ini, mengekalkan semua data dengan lengkap</string>
-    <string name="backup_format_chatgpt">ChatGPT</string>
-    <string name="backup_format_chatgpt_desc">Format eksport conversations.json OpenAI ChatGPT</string>
-    <string name="backup_format_chatbox">ChatBox</string>
-    <string name="backup_format_chatbox_desc">Format eksport aplikasi desktop ChatBox</string>
+
+
+
+
     <string name="backup_format_generic_json">JSON generik</string>
     <string name="backup_format_generic_json_desc">JSON dengan struktur role-content standard (menyokong Claude, LibreChat, dll.)</string>
     <string name="backup_import_result_success">Berjaya mengimport format %1$s:\n- Rekod baharu: %2$d item\n- Rekod dikemas kini: %3$d item%4$s</string>
@@ -5624,8 +5624,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="version_update">Kemas kini versi</string>
     <string name="mcp_no_zip_selected">Fail ZIP tidak dipilih</string>
     <string name="mcp_uninstall_failed">Nyahpasang gagal</string>
-    <string name="chatgpt_parse_error">Gagal menghuraikan format ChatGPT: %1$s</string>
-    <string name="chatgpt_import_from">Import dari ChatGPT</string>
+
+
     <string name="uiautomation_execute">Laksanakan</string>
     <string name="uiautomation_complete">Selesai</string>
     <string name="message_list_empty">Senarai mesej tidak boleh kosong</string>
@@ -6036,7 +6036,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="gemini_connection_test_failed">Ujian sambungan gagal: %1$s</string>
     <string name="provider_error_response_empty">Respons API kosong</string>
     <string name="provider_error_parsing_failed">Gagal menghuraikan respons</string>
-    <string name="provider_error_retry_message">%1$s, sedang mencuba semula kali ke-%2$d...</string>
+    <string name="provider_error_retry_message">%1$s, sedang mencuba semula kali ke-%2$d; menunggu %3$d saat...</string>
     <string name="provider_error_timeout">Sambungan tamat masa</string>
     <string name="provider_error_unknown_host">Tidak dapat menyelesaikan hos</string>
     <string name="provider_error_network_interrupted">Rangkaian terputus</string>
@@ -6140,16 +6140,16 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="profile_gender_value">Jantina: %1$s</string>
     <string name="profile_birth_date">Tarikh lahir: %1$s</string>
 
-    <string name="chatbox_unsupported_format_detail">Sila import JSON yang dieksport oleh ChatBox (Tetapan &gt; Tetapan Umum &gt; Sandaran Data &gt; Eksport Data Terpilih)</string>
-    <string name="chatbox_parse_error">Gagal menghuraikan format ChatBox: %1$s</string>
-    <string name="chatbox_invalid_export_file">Bukan fail eksport ChatBox yang sah</string>
-    <string name="chatbox_invalid_export_hint">Sila gunakan "Eksport Data Terpilih" dalam ChatBox di Tetapan &gt; Tetapan Umum &gt; Sandaran Data untuk mengeksport JSON</string>
-    <string name="chatbox_import_group">Import dari ChatBox</string>
-    <string name="chatbox_message_generation_failed">Penjanaan mesej gagal: %1$s</string>
-    <string name="chatbox_image_not_saved">Mesej ini asalnya mengandungi gambar, tetapi tidak disimpan</string>
-    <string name="chatbox_role_user">Pengguna</string>
-    <string name="chatbox_role_assistant">Pembantu</string>
-    <string name="chatbox_role_system">Sistem</string>
+
+
+
+
+
+
+
+
+
+
     <string name="role_assistant">Pembantu</string>
     <string name="role_system">Sistem</string>
     <string name="role_model">Model</string>
@@ -6303,7 +6303,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="export_user">Pengguna</string>
     <string name="export_assistant">Pembantu</string>
     <string name="export_model">(Model: %1$s)</string>
-    <string name="chatbox_unsupported_format">Format ChatBox tidak disokong</string>
+
 
     <string name="root_execution_mode_auto">Pilih Automatik</string>
     <string name="root_execution_mode_force_libsu">Magisk SU Manual</string>
@@ -7751,6 +7751,40 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_trends">Analisis trend</string>
     <string name="token_stats_settings">Tetapan statistik</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">Structured table format that preserves chat metadata, messages, and response variants and can be imported again</string>
+    <string name="data_recovery_raw_snapshot_section">Syot kilat mentah</string>
+    <string name="data_recovery_raw_snapshot_description">Eksport akan membungkus direktori dalaman files, shared_prefs, datastore, databases dan Android/data; import akan menimpa data semasa.</string>
+    <string name="data_recovery_export_snapshot">Eksport syot kilat</string>
+    <string name="data_recovery_import_snapshot">Import syot kilat</string>
+    <string name="data_recovery_start_main_app">Lancarkan aplikasi utama</string>
+    <string name="data_recovery_file_management">Pengurusan fail</string>
+    <string name="data_recovery_file_management_description">Halaman ini tidak membuka pengurus fail secara langsung. Untuk melihat atau mengeksport fail dalaman secara manual, buka MT Manager, tambah repositori storan tempatan, pilih repositori data Operit dan uruskannya di sana. provider: %1$s</string>
+    <string name="data_recovery_sql_executor">Pelaksana SQL</string>
+    <string name="data_recovery_messages_size">Saiz messages</string>
+    <string name="data_recovery_variants_size">Saiz variants</string>
+    <string name="data_recovery_chats_fields">Medan chats</string>
+    <string name="data_recovery_sql_label">SQL</string>
+    <string name="data_recovery_execute">Laksana</string>
+    <string name="data_recovery_import_snapshot_title">Import syot kilat mentah</string>
+    <string name="data_recovery_import_snapshot_message">Import akan menimpa data aplikasi semasa. Import syot kilat ini?</string>
+    <string name="data_recovery_import_action">Import</string>
+    <string name="data_recovery_cancel_action">Batal</string>
+    <string name="data_recovery_started">Proses pemulihan telah dimulakan</string>
+    <string name="data_recovery_affected_rows">Baris terjejas: %1$d</string>
+    <string name="data_recovery_query_result">Hasil pertanyaan: %1$d baris</string>
+    <string name="data_recovery_sql_empty">SQL kosong</string>
+    <string name="data_recovery_sql_running">Sedang melaksanakan SQL</string>
+    <string name="data_recovery_query_completed">Pertanyaan selesai: %1$d baris</string>
+    <string name="data_recovery_sql_completed">Pelaksanaan SQL selesai</string>
+    <string name="data_recovery_export_running">Mengeksport syot kilat mentah</string>
+    <string name="data_recovery_export_completed">Eksport syot kilat mentah selesai</string>
+    <string name="data_recovery_restore_running">Mengimport syot kilat mentah</string>
+    <string name="data_recovery_restore_completed">Import syot kilat mentah selesai. Mulakan semula aplikasi untuk menerapkannya.</string>
+    <string name="data_recovery_export_progress">Eksport: %1$s</string>
+    <string name="data_recovery_restore_progress">Import: %1$s</string>
+    <string name="data_recovery_progress_percent"> %1$d%%</string>
+    <string name="data_recovery_launch_failed">Tidak dapat melancarkan aplikasi utama</string>
     <string name="provider_section_generic_compatible">Keserasian Generik</string>
     <string name="provider_section_proprietary">Pembekal Khusus</string>
     <string name="provider_section_aggregation">Agregasi Model</string>
