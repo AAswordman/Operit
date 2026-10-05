@@ -578,6 +578,9 @@ private object DeepseekRouting {
 }
 
 object DeepseekResponsesPayloadAdapter {
+    // DeepSeek 的不同 Responses 版本使用过两种思考内容分片类型，回放时保留实际返回的类型。
+    private val reasoningContentPartTypes = setOf("reasoning_text", "reasoning_content")
+
     fun toResponsesRequest(chatStyleRequest: JSONObject): JSONObject {
         val converted = JSONObject(chatStyleRequest.toString())
 
@@ -650,7 +653,7 @@ object DeepseekResponsesPayloadAdapter {
                                         }
                                     }
 
-                                    "reasoning_text" -> {
+                                    "reasoning_text", "reasoning_content" -> {
                                         val text = part.optString("text", "")
                                         if (text.isNotEmpty()) {
                                             reasoningObserved = true
@@ -669,7 +672,7 @@ object DeepseekResponsesPayloadAdapter {
                         if (contentArray != null) {
                             for (j in 0 until contentArray.length()) {
                                 val part = contentArray.optJSONObject(j) ?: continue
-                                if (part.optString("type", "") == "reasoning_text") {
+                                if (isReasoningContentPart(part)) {
                                     val text = part.optString("text", "")
                                     if (text.isNotEmpty()) {
                                         reasoningChunks.add(text)
@@ -737,8 +740,8 @@ object DeepseekResponsesPayloadAdapter {
             return null
         }
 
-        // DeepSeek emits some thinking as a commentary message instead of a reasoning item.
-        // Persist the original item so the continuation can restore it as reasoning_text.
+        // DeepSeek 有时会把思考内容放在 commentary message 中，而不是 reasoning item。
+        // 保存原始思考分片，使后续续写请求可以按服务端返回的类型恢复。
         val payload = JSONObject().apply {
             put("type", "message")
             put("role", "assistant")
@@ -1185,8 +1188,7 @@ object DeepseekResponsesPayloadAdapter {
                 if (reasoningContent.length() == 0) {
                     return false
                 }
-                // Thinking-mode function calls require reasoning_text. Commentary is that thought
-                // in a message envelope; replaying it as output_text makes DeepSeek return 400.
+                // 思考模式下的工具调用需要先回放思考分片；commentary message 中的思考内容也要按思考类型回放，避免被当作正文导致 400。
                 val reasoningItem = JSONObject().apply {
                     put("type", "reasoning")
                     val id = metadata.optString("id", "").trim()
@@ -1208,9 +1210,13 @@ object DeepseekResponsesPayloadAdapter {
     private fun containsReasoningText(content: JSONArray): Boolean {
         return (0 until content.length()).any { index ->
             val part = content.optJSONObject(index) ?: return@any false
-            part.optString("type", "") == "reasoning_text" &&
-                part.optString("text", "").isNotEmpty()
+            isReasoningContentPart(part)
         }
+    }
+
+    private fun isReasoningContentPart(part: JSONObject): Boolean {
+        return part.optString("type", "") in reasoningContentPartTypes &&
+            part.optString("text", "").isNotEmpty()
     }
 
     private fun containsCommentaryText(content: JSONArray): Boolean {
@@ -1221,7 +1227,8 @@ object DeepseekResponsesPayloadAdapter {
         val reasoningContent = JSONArray()
         for (index in 0 until content.length()) {
             val part = content.optJSONObject(index) ?: continue
-            if (part.optString("type", "") !in setOf("output_text", "text", "reasoning_text")) {
+            val partType = part.optString("type", "")
+            if (partType !in setOf("output_text", "text") && !isReasoningContentPart(part)) {
                 continue
             }
             val text = part.optString("text", "")
@@ -1230,7 +1237,10 @@ object DeepseekResponsesPayloadAdapter {
             }
             reasoningContent.put(
                 JSONObject()
-                    .put("type", "reasoning_text")
+                    .put(
+                        "type",
+                        if (partType in reasoningContentPartTypes) partType else "reasoning_text"
+                    )
                     .put("text", text)
             )
         }

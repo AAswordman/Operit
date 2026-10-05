@@ -57,6 +57,44 @@ class DeepseekResponsesPayloadAdapterTest {
     }
 
     @Test
+    fun `legacy reasoning content is preserved and replayed before function calls`() {
+        val reasoningContent =
+            JSONArray().put(
+                JSONObject()
+                    .put("type", "reasoning_content")
+                    .put("text", "I need to inspect the workspace first.")
+            )
+        val reasoningItem =
+            JSONObject()
+                .put("type", "reasoning")
+                .put("id", "rs_legacy_1")
+                .put("content", reasoningContent)
+        val parsed =
+            DeepseekResponsesPayloadAdapter.parseNonStreamingResponse(
+                JSONObject("{\"output\":[$reasoningItem]}")
+            )
+        val metadataTag = parsed.reasoningMetadataTags.single()
+        val chatStyleRequest = singleToolContinuationRequest(
+            assistantContent = metadataTag,
+            callId = "call_legacy_1",
+            toolName = "list_files",
+            arguments = "{\"path\":\"/workspace\"}"
+        )
+
+        val input = DeepseekResponsesPayloadAdapter.toResponsesRequest(chatStyleRequest)
+            .getJSONArray("input")
+        val replayedContent = input.getJSONObject(0).getJSONArray("content")
+
+        assertEquals("reasoning_content", replayedContent.getJSONObject(0).getString("type"))
+        assertEquals(
+            "I need to inspect the workspace first.",
+            replayedContent.getJSONObject(0).getString("text")
+        )
+        assertEquals("function_call", input.getJSONObject(1).getString("type"))
+        assertEquals("function_call_output", input.getJSONObject(2).getString("type"))
+    }
+
+    @Test
     fun `encrypted reasoning is not emitted as deepseek reasoning metadata`() {
         val reasoningItem =
             JSONObject()
