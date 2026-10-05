@@ -1,16 +1,18 @@
+const os = require("os");
+const net = require("net");
 const { readJsonBody, sendJson, parseBoolean } = require("../lib/http-utils");
 
 const FILE_WRITE_JSON_MAX_BODY_BYTES = 8 * 1024 * 1024;
 const FILE_WRITE_BASE64_JSON_MAX_BODY_BYTES = 24 * 1024 * 1024;
 
-function buildPublicConfig(config, versionInfo) {
+function buildPublicConfig(config, versionInfo, options = {}) {
   return {
     bindAddress: config.bindAddress,
     port: config.port,
     maxCommandMs: config.maxCommandMs,
     allowedPresets: config.allowedPresets,
     apiTokenConfigured: !!config.apiToken,
-    apiToken: config.apiToken || "",
+    apiToken: options.includeApiToken ? config.apiToken || "" : "",
     version: versionInfo.agentVersion
   };
 }
@@ -37,6 +39,71 @@ function isAuthorized(config, token) {
   }
 
   return String(token || "") === config.apiToken;
+}
+
+function normalizeIpAddress(value) {
+  const address = String(value || "").trim().toLowerCase();
+  if (net.isIP(address) === 4) {
+    return address;
+  }
+  if (net.isIP(address) !== 6 || address.includes("%")) {
+    return "";
+  }
+
+  const normalized = new URL(`http://[${address}]`).hostname.slice(1, -1);
+  const mappedIpv4 = /^::ffff:([0-9a-f]+):([0-9a-f]+)$/.exec(normalized);
+  if (mappedIpv4) {
+    const high = parseInt(mappedIpv4[1], 16);
+    const low = parseInt(mappedIpv4[2], 16);
+    return [high >> 8, high & 255, low >> 8, low & 255].join(".");
+  }
+  return normalized;
+}
+
+function isLocalRequest(req) {
+  const remoteAddress = normalizeIpAddress(req && req.socket && req.socket.remoteAddress);
+  if (!remoteAddress) {
+    return false;
+  }
+
+  const localAddresses = new Set(["127.0.0.1", "::1"]);
+  for (const interfaces of Object.values(os.networkInterfaces())) {
+    for (const networkInterface of interfaces || []) {
+      const address = normalizeIpAddress(networkInterface && networkInterface.address);
+      if (address) {
+        localAddresses.add(address);
+      }
+    }
+  }
+  const isLocalAddress = (address) => localAddresses.has(address) || address.startsWith("127.");
+  if (!isLocalAddress(remoteAddress)) {
+    return false;
+  }
+
+  // 本机浏览器也会发起外部网页请求，免认证管理必须同时防止跨站请求和 DNS 重绑定。
+  const headers = req.headers || {};
+  let requestOrigin;
+  try {
+    const requestUrl = new URL(`http://${headers.host}`);
+    const hostname = requestUrl.hostname;
+    const hostAddress = normalizeIpAddress(hostname.startsWith("[") ? hostname.slice(1, -1) : hostname);
+    if (hostname !== "localhost" && !isLocalAddress(hostAddress)) {
+      return false;
+    }
+    requestOrigin = requestUrl.origin;
+  } catch {
+    return false;
+  }
+
+  if (headers.origin !== undefined && headers.origin !== requestOrigin) {
+    return false;
+  }
+  const fetchSite = headers["sec-fetch-site"];
+  return fetchSite === undefined || fetchSite === "same-origin" || fetchSite === "none";
+}
+
+function isConfigRequestAuthorized(req, config, token) {
+  return isLocalRequest(req) || isAuthorized(config, token);
 }
 
 function createApiHandler({
@@ -306,7 +373,12 @@ function createApiHandler({
 
     if (req.method === "POST" && url.pathname === "/api/startup/apply_recommended_bind") {
       try {
-        await readJsonBody(req);
+        const body = await readJsonBody(req);
+        if (!isConfigRequestAuthorized(req, state.config, body.token)) {
+          unauthorized(res, "startup.apply_recommended_bind", body.token);
+          return true;
+        }
+
         const issue = getStartupIssueState();
         if (!issue || issue.issueType !== "bindAddressUnavailable") {
           sendJson(res, 400, { ok: false, error: "No bindAddressUnavailable startup issue" });
@@ -354,7 +426,7 @@ function createApiHandler({
           ok: true,
           restartScheduled: true,
           bindAddress: recommendedHost,
-          config: buildPublicConfig(state.config, versionInfo)
+          config: buildPublicConfig(state.config, versionInfo, { includeApiToken: isLocalRequest(req) })
         });
       } catch (error) {
         logger.error("startup.bind_recovery.error", { error: error.message });
@@ -364,7 +436,7 @@ function createApiHandler({
     }
 
     if (req.method === "GET" && url.pathname === "/api/config") {
-      sendJson(res, 200, buildPublicConfig(config, versionInfo));
+      sendJson(res, 200, buildPublicConfig(config, versionInfo, { includeApiToken: isLocalRequest(req) }));
       return true;
     }
 
@@ -378,6 +450,11 @@ function createApiHandler({
     if (req.method === "POST" && url.pathname === "/api/config") {
       try {
         const body = await readJsonBody(req);
+        if (!isConfigRequestAuthorized(req, state.config, body.token)) {
+          unauthorized(res, "config.update", body.token);
+          return true;
+        }
+
         const nextConfig = { ...state.config };
 
         const bindAddressInput = pickConfigInput(body, "bindAddress", "bind_address");
@@ -434,7 +511,7 @@ function createApiHandler({
         sendJson(res, 200, {
           ok: true,
           restartRequired,
-          config: buildPublicConfig(state.config, versionInfo)
+          config: buildPublicConfig(state.config, versionInfo, { includeApiToken: isLocalRequest(req) })
         });
       } catch (error) {
         logger.error("config.update.error", { error: error.message });
