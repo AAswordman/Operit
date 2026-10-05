@@ -2,6 +2,7 @@ package com.ai.assistance.operit.services.core
 
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.LocaleUtils
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ai.assistance.operit.R
@@ -738,7 +739,12 @@ class MessageProcessingDelegate(
         chatRuntime.isLoading.value = true
         chatRuntime.currentTurnOptions = turnOptions
         updateGlobalLoadingState()
-        setChatInputProcessingState(chatId, EnhancedInputProcessingState.Processing(context.getString(R.string.message_processing)))
+        setChatInputProcessingState(
+            chatId,
+            EnhancedInputProcessingState.Processing(
+                LocaleUtils.getLocalizedContext(context).getString(R.string.message_processing)
+            )
+        )
 
         val sendJob =
             coroutineScope.launch(Dispatchers.IO) {
@@ -933,7 +939,11 @@ class MessageProcessingDelegate(
                 serviceForTurnComplete = service
 
                 // 清除上一次可能残留的 Error 状态，避免 StateFlow 重放导致新一轮发送立即再次触发弹窗
-                service.setInputProcessingState(EnhancedInputProcessingState.Processing(context.getString(R.string.message_processing)))
+                service.setInputProcessingState(
+                    EnhancedInputProcessingState.Processing(
+                        LocaleUtils.getLocalizedContext(context).getString(R.string.message_processing)
+                    )
+                )
 
                 // 监听此 chat 对应的 EnhancedAIService 状态，映射到 per-chat state
                 chatRuntime.stateCollectionJob?.cancel()
@@ -1638,7 +1648,9 @@ class MessageProcessingDelegate(
         updateGlobalLoadingState()
         setChatInputProcessingState(
             chatId,
-            EnhancedInputProcessingState.Processing(context.getString(R.string.message_processing)),
+            EnhancedInputProcessingState.Processing(
+                LocaleUtils.getLocalizedContext(context).getString(R.string.message_processing)
+            ),
         )
         var terminalState: EnhancedInputProcessingState? = null
         var exceptionToPropagate: Exception? = null

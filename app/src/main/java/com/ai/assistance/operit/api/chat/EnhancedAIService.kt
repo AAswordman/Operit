@@ -94,7 +94,8 @@ import com.ai.assistance.operit.util.LocaleUtils
  * Enhanced AI service that provides advanced conversational capabilities by integrating various
  * components like tool execution, conversation management, user preferences, and problem library.
  */
-class EnhancedAIService private constructor(private val context: Context) {
+class EnhancedAIService private constructor(context: Context) {
+    private val context: Context = LocaleUtils.getLocalizedContext(context.applicationContext)
     data class TurnTokenSnapshot(
         val inputTokens: Long,
         val outputTokens: Long,
@@ -982,7 +983,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // Update state to show we're processing
                     if (!isSubTask) {
                     withContext(Dispatchers.Main) {
-                        _inputProcessingState.value = InputProcessingState.Processing(context.getString(R.string.enhanced_processing_message))
+                        _inputProcessingState.value = InputProcessingState.Processing(
+                            LocaleUtils.getLocalizedContext(context).getString(R.string.enhanced_processing_message)
+                        )
                         }
                     }
 
@@ -1024,7 +1027,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // Update UI state to connecting
                     if (!isSubTask) {
                     withContext(Dispatchers.Main) {
-                        _inputProcessingState.value = InputProcessingState.Connecting(context.getString(R.string.enhanced_connecting_service))
+                        _inputProcessingState.value = InputProcessingState.Connecting(
+                            LocaleUtils.getLocalizedContext(context).getString(R.string.enhanced_connecting_service)
+                        )
                         }
                     }
 
@@ -1184,7 +1189,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     if (!isSubTask) {
                                     withContext(Dispatchers.Main) {
                                         _inputProcessingState.value =
-                                                InputProcessingState.Receiving(context.getString(R.string.enhanced_receiving_response))
+                                                InputProcessingState.Receiving(
+                                                LocaleUtils.getLocalizedContext(context).getString(R.string.enhanced_receiving_response)
+                                            )
                                         }
                                     }
                                     isFirstChunk = false
@@ -2354,7 +2361,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                 if (!isSubTask) {
                 withContext(Dispatchers.Main) {
                     _inputProcessingState.value =
-                            InputProcessingState.Receiving(this@EnhancedAIService.context.getString(R.string.enhanced_receiving_tool_result))
+                            InputProcessingState.Receiving(
+                            LocaleUtils.getLocalizedContext(this@EnhancedAIService.context)
+                                .getString(R.string.enhanced_receiving_tool_result)
+                        )
                     }
                 }
 
