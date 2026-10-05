@@ -950,6 +950,8 @@
     <string name="settings_summary_message_count_threshold_subtitle">Number of new messages to trigger summary (1-20)</string>
     <string name="settings_summary_custom_rules">Custom Summary Rules</string>
     <string name="settings_summary_custom_rules_desc">Extra rules sent when summarizing the conversation. Leave blank for none</string>
+    <string name="settings_summary_previous_review">Summarize Previous Summary</string>
+    <string name="settings_summary_previous_review_desc">Compress the previous summary at the end of the new one. Summaries are usually long and uncached, so this increases quota usage</string>
     <string name="settings_summary_structure">Summary Structure</string>
     <string name="settings_summary_section_enabled_desc">Turn off to omit this section from generated summaries</string>
     <string name="settings_summary_section_title">Section Title</string>
