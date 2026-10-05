@@ -7520,4 +7520,20 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Concluindo a autorização e carregando os dados da conta…</string>
     <string name="antigravity_login_timed_out">O tempo de espera de 15 minutos pela autorização do Google terminou. Inicie o login novamente.</string>
+    <string name="model_config_manage_organization">Gerenciar grupos e ordem das configurações</string>
+    <string name="model_config_current_group">Grupo atual: %1$s</string>
+    <string name="model_config_new_group">Novo grupo de configurações</string>
+    <string name="model_config_toggle_group">Recolher ou expandir o grupo de configurações</string>
+    <string name="model_config_group_item_count">%1$s (%2$d)</string>
+    <string name="model_config_add_to_group">Criar configuração no grupo</string>
+    <string name="model_config_rename_group">Renomear grupo de configurações</string>
+    <string name="model_config_delete_group">Excluir grupo de configurações</string>
+    <string name="model_config_delete_group_confirmation">Excluir o grupo de configurações “%1$s”? As configurações serão movidas para Sem grupo. Esta ação não pode ser desfeita.</string>
+    <string name="model_config_drag_group">Mantenha pressionado para reordenar o grupo</string>
+    <string name="model_config_drag_config">Mantenha pressionado para reordenar a configuração</string>
+    <string name="model_config_current_selection">Seleção atual: %1$s</string>
+    <string name="model_config_save_group_order_failed">Falha ao salvar a ordem dos grupos</string>
+    <string name="model_config_save_order_failed">Falha ao salvar a ordem das configurações</string>
+    <string name="model_config_group_empty">Nenhuma configuração de modelo em “%1$s”</string>
+    <string name="model_config_name_with_group">%1$s (%2$s)</string>
 </resources>

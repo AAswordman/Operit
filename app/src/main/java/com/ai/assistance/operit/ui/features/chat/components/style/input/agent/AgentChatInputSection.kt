@@ -118,6 +118,7 @@ import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.InputProcessingState
+import com.ai.assistance.operit.data.model.ModelConfigSelection
 import com.ai.assistance.operit.data.model.ModelConfigSummary
 import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.model.getModelByIndex
@@ -360,8 +361,9 @@ fun AgentChatInputSection(
     val currentModelName by actualViewModel.modelName.collectAsState()
     val configMappingWithIndex by
         functionalConfigManager.functionConfigMappingWithIndexFlow.collectAsState(initial = emptyMap())
-    val configSummaries by
-            modelConfigManager.configSummariesFlow.collectAsState(initial = emptyList())
+    val configSelection by
+            modelConfigManager.configSelectionFlow.collectAsState(initial = ModelConfigSelection())
+    val configSummaries = configSelection.allConfigs
     val activeProfileId by userPreferencesManager.activeMemorySpaceIdFlow.collectAsState(initial = "default")
     var preferenceProfiles by remember { mutableStateOf<List<MemorySpace>>(emptyList()) }
     val currentConfigMapping =
@@ -391,10 +393,20 @@ fun AgentChatInputSection(
             profileIds.map { profileId -> userPreferencesManager.getMemorySpaceFlow(profileId).first() }
     }
 
+    val currentModelConfig = configSummaries.find { it.id == effectiveConfigMapping.configId }
     val mappedModelName =
-        configSummaries.find { it.id == effectiveConfigMapping.configId }?.let { config ->
+        currentModelConfig?.let { config ->
             val validIndex = getValidModelIndex(config.modelName, effectiveConfigMapping.modelIndex)
             getModelByIndex(config.modelName, validIndex)
+        }
+    val selectedGroupName =
+        configSelection.selectedGroup?.name ?: stringResource(R.string.ungrouped)
+    val boundConfigGroupName =
+        if (currentModelConfig != null && currentModelConfig.groupId != configSelection.selectedGroupId) {
+            configSelection.groups.firstOrNull { it.id == currentModelConfig.groupId }?.name
+                ?: stringResource(R.string.ungrouped)
+        } else {
+            null
         }
     val displayModelName =
         if (isModelSelectionLockedByCharacterCard) {
@@ -1394,6 +1406,9 @@ fun AgentChatInputSection(
                 popupContainerColor = popupContainerColor,
                 configSummaries = configSummaries,
                 currentConfigMapping = effectiveConfigMapping,
+                selectedGroupName = selectedGroupName,
+                availableConfigs = configSelection.availableConfigs,
+                boundConfigGroupName = boundConfigGroupName,
                 enableThinkingMode = enableThinkingMode,
                 onToggleThinkingMode = onToggleThinkingMode,
                 thinkingOptionId = thinkingOptionId,
@@ -1481,6 +1496,9 @@ private fun AgentModelSelectorPopup(
     popupContainerColor: Color,
     configSummaries: List<ModelConfigSummary>,
     currentConfigMapping: FunctionConfigMapping,
+    selectedGroupName: String,
+    availableConfigs: List<ModelConfigSummary>,
+    boundConfigGroupName: String?,
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
     thinkingOptionId: String,
@@ -1671,6 +1689,9 @@ private fun AgentModelSelectorPopup(
                         popupContainerColor = popupContainerColor,
                         configSummaries = configSummaries,
                         currentConfigMapping = currentConfigMapping,
+                        selectedGroupName = selectedGroupName,
+                        availableConfigs = availableConfigs,
+                        boundConfigGroupName = boundConfigGroupName,
                         onSelectModel = onSelectModel,
                         expanded = true,
                         onExpandedChange = {},
@@ -1952,6 +1973,9 @@ private fun AgentModelSelectorItem(
     popupContainerColor: Color,
     configSummaries: List<ModelConfigSummary>,
     currentConfigMapping: FunctionConfigMapping,
+    selectedGroupName: String,
+    availableConfigs: List<ModelConfigSummary>,
+    boundConfigGroupName: String?,
     onSelectModel: (String, Int) -> Unit,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
@@ -1969,12 +1993,19 @@ private fun AgentModelSelectorItem(
     }
 
     val currentConfig = configSummaries.find { it.id == currentConfigMapping.configId }
-    var expandedConfigId by remember { mutableStateOf<String?>(null) }
+    var expandedConfigId by remember(availableConfigs) { mutableStateOf<String?>(null) }
     val currentModelName =
         currentConfig?.let { config ->
             val validIndex = getValidModelIndex(config.modelName, currentConfigMapping.modelIndex)
             getModelByIndex(config.modelName, validIndex)
         } ?: stringResource(R.string.not_selected)
+
+    val selectedModelName = currentModelName.ifEmpty { stringResource(R.string.not_selected) }
+    val displayModelName = if (boundConfigGroupName != null) {
+        stringResource(R.string.model_config_name_with_group, selectedModelName, boundConfigGroupName)
+    } else {
+        selectedModelName
+    }
 
     Row(
         modifier =
@@ -2005,22 +2036,32 @@ private fun AgentModelSelectorItem(
                 modifier = Modifier.size(16.dp),
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = stringResource(R.string.model) + ":",
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = currentModelName.ifEmpty { stringResource(R.string.not_selected) },
-            fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.primary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            Text(
+                text = stringResource(R.string.model_config_current_group, selectedGroupName),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.model) + ":",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = displayModelName,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
         if (allowCollapse) {
             Icon(
                 imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -2039,15 +2080,15 @@ private fun AgentModelSelectorItem(
                     .background(popupContainerColor)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            if (configSummaries.isEmpty()) {
+            if (availableConfigs.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.no_models_available),
+                    text = stringResource(R.string.model_config_group_empty, selectedGroupName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 )
             } else {
-                configSummaries.forEach { config ->
+                availableConfigs.forEach { config ->
                     val isSelected = config.id == currentConfigMapping.configId
                     val modelList = getModelList(config.modelName)
                     val hasMultipleModels = modelList.size > 1
@@ -2191,7 +2232,7 @@ private fun AgentModelSelectorItem(
                                 }
                             }
                         }
-                        if (configSummaries.last() != config) {
+                        if (availableConfigs.last() != config) {
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                     }
