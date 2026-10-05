@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.ai.assistance.operit.R
 
 /**
- * 基于无障碍服务的UI操作监听器 实现ACCESSIBILITY权限级别的操作监听
+ * 基于无障碍服务的UI操作监听器 作为管理员模式的无障碍后端
  * 通过UIHierarchyManager与系统的无障碍服务进行通信，监听系统级的UI事件和用户操作
  */
 class AccessibilityActionListener(private val context: Context) : ActionListener {
@@ -24,7 +24,7 @@ class AccessibilityActionListener(private val context: Context) : ActionListener
     private val isListening = AtomicBoolean(false)
     private var actionCallback: ((ActionListener.ActionEvent) -> Unit)? = null
 
-    override fun getPermissionLevel(): AndroidPermissionLevel = AndroidPermissionLevel.ACCESSIBILITY
+    override fun getPermissionLevel(): AndroidPermissionLevel = AndroidPermissionLevel.ADMIN
 
     override suspend fun isAvailable(): Boolean {
         // 使用UIHierarchyManager检查无障碍服务是否启用并连接

@@ -1,19 +1,12 @@
 package com.ai.assistance.operit.core.tools.system
 
-/**
- * 定义工具权限的五个层级
- * - STANDARD: 基础权限，不需要特殊权限
- * - ACCESSIBILITY: 需要无障碍服务的权限
- * - ROOT: 需要root权限
- * - ADMIN: 需要设备管理员权限
- * - DEBUGGER: 调试和开发用途的权限
- */
+import java.util.Locale
+
+/** 用户选择的操作模式，不代表已经获得某一种系统授权。 */
 enum class AndroidPermissionLevel {
-    STANDARD,      // 普通应用权限
-    ACCESSIBILITY, // 无障碍服务权限
-    DEBUGGER,      // 调试权限
-    ADMIN,         // 管理员权限  
-    ROOT;          // Root权限
+    STANDARD, // 普通应用权限
+    ADMIN,    // 组合使用无障碍与 Shizuku
+    ROOT;     // 允许使用 Root，并复用已授权的管理员能力
 
     companion object {
         /**
@@ -22,10 +15,9 @@ enum class AndroidPermissionLevel {
          * @return 对应的权限等级，如果无法识别则默认为STANDARD
          */
         fun fromString(value: String?): AndroidPermissionLevel {
-            return when(value?.uppercase()) {
+            return when(value?.uppercase(Locale.ROOT)) {
                 "STANDARD" -> STANDARD
-                "ACCESSIBILITY" -> ACCESSIBILITY
-                "DEBUGGER" -> DEBUGGER
+                "ACCESSIBILITY", "DEBUGGER" -> ADMIN
                 "ADMIN" -> ADMIN
                 "ROOT" -> ROOT
                 else -> STANDARD // 默认为最低权限

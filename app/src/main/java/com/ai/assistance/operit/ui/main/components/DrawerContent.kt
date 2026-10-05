@@ -51,9 +51,9 @@ import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
-import com.ai.assistance.operit.core.tools.system.action.ActionListenerFactory
+
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.data.repository.WorkflowRepository
@@ -81,38 +81,18 @@ private suspend fun resolveSidebarPermissionStatus(
                         SidebarPermissionStatus(
                                 badgeTextResId = R.string.sidebar_status_normal
                         )
-                AndroidPermissionLevel.DEBUGGER ->
-                        when {
-                                !ShizukuAuthorizer.isShizukuInstalled(context) ->
-                                        SidebarPermissionStatus(
-                                                badgeTextResId = R.string.status_not_installed
-                                        )
-                                !ShizukuAuthorizer.isShizukuServiceRunning() ->
-                                        SidebarPermissionStatus(
-                                                badgeTextResId = R.string.status_not_running
-                                        )
-                                ShizukuAuthorizer.hasShizukuPermission() ->
-                                        SidebarPermissionStatus(
-                                                badgeTextResId = R.string.sidebar_status_normal
-                                        )
-                                else ->
-                                        SidebarPermissionStatus(
-                                                badgeTextResId = R.string.unauthorized
-                                        )
-                        }
-                AndroidPermissionLevel.ACCESSIBILITY,
-                AndroidPermissionLevel.ADMIN,
-                AndroidPermissionLevel.ROOT -> {
-                        val permissionStatus =
-                                ActionListenerFactory.getListener(context, preferredPermissionLevel)
-                                        .hasPermission()
+                AndroidPermissionLevel.ADMIN -> {
+                        val capabilities = PermissionCapabilityResolver.statusUiSnapshot(context, preferredPermissionLevel)
                         SidebarPermissionStatus(
-                                badgeTextResId =
-                                        if (permissionStatus.granted) {
-                                                R.string.sidebar_status_normal
-                                        } else {
-                                                R.string.unauthorized
-                                        }
+                                badgeTextResId = if (capabilities.canUseAccessibility || capabilities.canUseShizuku)
+                                        R.string.sidebar_status_normal else R.string.unauthorized
+                        )
+                }
+                AndroidPermissionLevel.ROOT -> {
+                        val capabilities = PermissionCapabilityResolver.statusShellSnapshot(context, preferredPermissionLevel)
+                        SidebarPermissionStatus(
+                                badgeTextResId = if (capabilities.canUseRoot)
+                                        R.string.sidebar_status_normal else R.string.unauthorized
                         )
                 }
         }

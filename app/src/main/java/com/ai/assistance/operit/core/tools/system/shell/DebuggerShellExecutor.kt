@@ -25,7 +25,7 @@ import java.io.InputStream
 import java.io.IOException
 import kotlinx.coroutines.isActive
 
-/** 基于Shizuku的Shell命令执行器 实现DEBUGGER权限级别的命令执行 */
+/** 基于Shizuku的Shell命令执行器 作为管理员模式的 Shizuku 后端 */
 class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
     companion object {
         private const val TAG = "DebuggerShellExecutor"
@@ -47,7 +47,7 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
         }
     }
 
-    override fun getPermissionLevel(): AndroidPermissionLevel = AndroidPermissionLevel.DEBUGGER
+    override fun getPermissionLevel(): AndroidPermissionLevel = AndroidPermissionLevel.ADMIN
 
     override fun isAvailable(): Boolean {
         return ShizukuAuthorizer.isShizukuServiceRunning()
@@ -83,11 +83,6 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
         identity: ShellIdentity
     ): ShellExecutor.CommandResult =
             withContext(Dispatchers.IO) {
-                val permStatus = hasPermission()
-                if (!permStatus.granted) {
-                    return@withContext ShellExecutor.CommandResult(false, "", permStatus.reason)
-                }
-
                 // 使用更精确的方法检测shell操作符
                 if (containsShellOperators(command)) {
                     AppLogger.d(TAG, "Executing command via shell: $command")
@@ -561,9 +556,6 @@ class DebuggerShellExecutor(private val context: Context) : ShellExecutor {
     }
 
     override suspend fun startProcess(command: String): ShellProcess {
-        if (!hasPermission().granted) {
-            throw SecurityException("Shizuku permission not granted.")
-        }
         val service = getShizukuService() ?: throw IOException("Shizuku service not available")
         return ShizukuShellProcess(service, command)
     }

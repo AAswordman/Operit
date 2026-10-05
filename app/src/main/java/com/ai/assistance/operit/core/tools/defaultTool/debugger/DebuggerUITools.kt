@@ -14,11 +14,11 @@ import com.ai.assistance.operit.core.tools.UIActionResultData
 import com.ai.assistance.operit.core.tools.UIPageResultData
 import com.ai.assistance.operit.core.tools.defaultTool.accessbility.AccessibilityUITools
 import com.ai.assistance.operit.core.tools.defaultTool.standard.StandardUITools
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
 import com.ai.assistance.operit.core.tools.system.ShellIdentity
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import java.io.StringReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,7 +40,10 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
         return AndroidShellExecutor.executeShellCommand(command, uiShellIdentity)
     }
 
-    /** 是否包含 display 相关参数（有的话强制走 ADB，不走无障碍） */
+    protected suspend fun shouldUseAccessibility(tool: AITool): Boolean =
+        !hasDisplayParam(tool) && PermissionCapabilityResolver.uiSnapshot(context).canUseAccessibility
+
+    /** 是否包含 display 相关参数（有的话强制走 Shell，不走无障碍） */
     private fun hasDisplayParam(tool: AITool): Boolean {
         return tool.parameters.any { param ->
             param.name.equals("display", ignoreCase = true)
@@ -54,7 +57,7 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
 
     /** 使用Shell命令实现点击操作 */
     override suspend fun tap(tool: AITool): ToolResult {
-        if (!hasDisplayParam(tool) && UIHierarchyManager.isAccessibilityServiceEnabled(context)) {
+        if (shouldUseAccessibility(tool)) {
             AppLogger.d(TAG, "无障碍服务已启用，使用无障碍点击")
             return super.tap(tool)
         }
@@ -125,7 +128,7 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
     }
 
     override suspend fun longPress(tool: AITool): ToolResult {
-        if (!hasDisplayParam(tool) && UIHierarchyManager.isAccessibilityServiceEnabled(context)) {
+        if (shouldUseAccessibility(tool)) {
             AppLogger.d(TAG, "无障碍服务已启用，使用无障碍长按")
             return super.longPress(tool)
         }
@@ -189,7 +192,7 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
 
     /** 使用Shell命令实现滑动操作 */
     override suspend fun swipe(tool: AITool): ToolResult {
-        if (!hasDisplayParam(tool) && UIHierarchyManager.isAccessibilityServiceEnabled(context)) {
+        if (shouldUseAccessibility(tool)) {
             AppLogger.d(TAG, "无障碍服务已启用，使用无障碍滑动")
             return super.swipe(tool)
         }
@@ -264,7 +267,7 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
 
     /** 使用Shell命令点击元素 */
     override suspend fun clickElement(tool: AITool): ToolResult {
-        if (!hasDisplayParam(tool) && UIHierarchyManager.isAccessibilityServiceEnabled(context)) {
+        if (shouldUseAccessibility(tool)) {
             AppLogger.d(TAG, "无障碍服务已启用，使用无障碍点击元素")
             return super.clickElement(tool)
         }
@@ -347,7 +350,7 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
 
     /** 使用Shell命令设置输入文本 */
     override suspend fun setInputText(tool: AITool): ToolResult {
-        if (!hasDisplayParam(tool) && UIHierarchyManager.isAccessibilityServiceEnabled(context)) {
+        if (shouldUseAccessibility(tool)) {
             AppLogger.d(TAG, "无障碍服务已启用，使用无障碍设置文本")
             return super.setInputText(tool)
         }
@@ -444,8 +447,6 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
 
     /** 使用Shell命令实现按键操作 */
     override suspend fun pressKey(tool: AITool): ToolResult {
-        //直接用shell
-
         val keyCode = tool.parameters.find { it.name == "key_code" }?.value
 
         if (keyCode == null) {
@@ -455,6 +456,13 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
                     result = StringResultData(""),
                     error = "Missing 'key_code' parameter."
             )
+        }
+
+        if (shouldUseAccessibility(tool) &&
+            (accessibilityKeyAction(keyCode) != null ||
+                !PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell)
+        ) {
+            return super.pressKey(tool)
         }
 
         val command = "input ${getDisplayArg(tool)}keyevent $keyCode"
@@ -494,6 +502,9 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
     }
 
     override suspend fun captureScreenshotToFile(tool: AITool): Pair<String?, Pair<Int, Int>?> {
+        if (!PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) {
+            return if (hasDisplayParam(tool)) Pair(null, null) else super.captureScreenshotToFile(tool)
+        }
         return try {
             val screenshotDir = OperitPaths.cleanOnExitDir()
 
@@ -519,7 +530,7 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
 
             // 2) 如果 Shell 失败，作为回退尝试无障碍截图 (调用父类)
             AppLogger.w(TAG, "captureScreenshotToFile: Shell screencap failed, falling back to accessibility")
-            super.captureScreenshotToFile(tool)
+            if (hasDisplayParam(tool)) Pair(null, null) else super.captureScreenshotToFile(tool)
         } catch (e: Exception) {
             AppLogger.e(TAG, "captureScreenshotToFile failed in Debugger", e)
             Pair(null, null)
@@ -543,9 +554,10 @@ open class DebuggerUITools(context: Context) : AccessibilityUITools(context) {
 
     /** 使用Shell命令获取页面信息 */
     override suspend fun getPageInfo(tool: AITool): ToolResult {
-        if (!hasDisplayParam(tool) && UIHierarchyManager.isAccessibilityServiceEnabled(context)) {
+        if (shouldUseAccessibility(tool)) {
             AppLogger.d(TAG, "无障碍服务已启用，使用无障碍获取页面信息")
-            return super.getPageInfo(tool)
+            val result = super.getPageInfo(tool)
+            if (result.success || !PermissionCapabilityResolver.shellSnapshot(context).hasPrivilegedShell) return result
         }
 
         val format = tool.parameters.find { it.name == "format" }?.value ?: "xml"

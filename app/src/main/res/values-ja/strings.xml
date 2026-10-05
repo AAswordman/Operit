@@ -297,6 +297,9 @@
     <string name="test_media_unverified">接続できましたが、確認できませんでした</string>
     <string name="test_result_expand">展開</string>
     <string name="test_result_collapse">折りたたむ</string>
+    <string name="permission_level_admin_desc">個別に許可したユーザー補助と Shizuku を併用し、利用できない場合は標準操作を使用します</string>
+    <string name="permission_level_admin_full_desc">管理者モード：ユーザー補助と Shizuku を個別に許可します。操作には利用可能なサービスを使い、追加権限がない場合は標準のファイル操作とシェルを使用します。</string>
+    <string name="permission_level_admin">管理者権限</string>
     <string name="provider_openai">ChatGPT (OpenAI)</string>
     <string name="provider_xai">Grok (SpaceXAI)</string>
     <string name="provider_openai_responses">ChatGPT Responses (OpenAI)</string>

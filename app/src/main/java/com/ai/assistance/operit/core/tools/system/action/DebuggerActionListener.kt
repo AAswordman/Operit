@@ -3,6 +3,7 @@ package com.ai.assistance.operit.core.tools.system.action
 import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.tools.permissions.PermissionBackend
 import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
 import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,7 @@ import com.ai.assistance.operit.core.tools.system.shell.ShellProcess
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
-/** 基于Shizuku的UI操作监听器 实现DEBUGGER权限级别的操作监听 */
+/** 基于Shizuku的UI操作监听器 作为管理员模式的 Shizuku 后端 */
 class DebuggerActionListener(private val context: Context) : ActionListener {
     companion object {
         private const val TAG = "DebuggerActionListener"
@@ -47,10 +48,10 @@ class DebuggerActionListener(private val context: Context) : ActionListener {
     private var lastActivityStack: String? = null
     private val shellExecutor by lazy {
         com.ai.assistance.operit.core.tools.system.shell.ShellExecutorFactory
-            .getExecutor(context, AndroidPermissionLevel.DEBUGGER)
+            .getBackendExecutor(context, PermissionBackend.SHIZUKU)
     }
 
-    override fun getPermissionLevel(): AndroidPermissionLevel = AndroidPermissionLevel.DEBUGGER
+    override fun getPermissionLevel(): AndroidPermissionLevel = AndroidPermissionLevel.ADMIN
 
     override suspend fun isAvailable(): Boolean {
         return ShizukuAuthorizer.isShizukuServiceRunning()

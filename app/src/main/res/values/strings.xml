@@ -1321,7 +1321,7 @@
     <string name="shizuku_wizard_permission_notice">注意：如果没有看到授权弹窗，请检查：</string>
     <string name="shizuku_wizard_permission_notice_details">1. Shizuku服务是否正在运行\n2. 重启Shizuku服务后再尝试\n3. 确认允许显示悬浮窗权限</string>
     <string name="shizuku_wizard_grant_permission">授予Shizuku权限</string>
-    <string name="shizuku_wizard_success_message">恭喜！Shizuku已完全设置，您现在可以使用调试权限功能。</string>
+    <string name="shizuku_wizard_success_message">Shizuku 已完成设置，可以在管理员模式下与无障碍服务配合使用。</string>
     <string name="shizuku_wizard_update_available">发现新版本</string>
     <string name="shizuku_wizard_update_message">应用内置了更新版本的Shizuku，建议更新以获得更好的兼容性和功能。</string>
     <string name="shizuku_wizard_current_version">当前版本：%1$s</string>
@@ -1419,6 +1419,12 @@
     <string name="storage_permission">存储权限</string>
     <string name="overlay_permission">悬浮窗权限</string>
     <string name="battery_optimization">电池优化豁免</string>
+    <string name="system_permission_notifications">通知</string>
+    <string name="system_permission_app_list">应用列表</string>
+    <string name="system_permission_usage_access">应用使用统计</string>
+    <string name="system_permission_write_settings">系统设置修改</string>
+    <string name="status_available">可用</string>
+    <string name="status_unavailable">不可用</string>
     <string name="location_permission">位置权限</string>
     <string name="operit_terminal">Operit终端</string>
     
@@ -1430,12 +1436,12 @@
     <string name="permission_level_root">Root权限</string>
     <string name="permission_level_standard_desc">基本应用运行权限，无需系统特殊授权</string>
     <string name="permission_level_accessibility_desc">增加了无障碍服务支持，可模拟屏幕操作</string>
-    <string name="permission_level_admin_desc">添加设备管理员权限，可访问更多系统功能</string>
+    <string name="permission_level_admin_desc">组合使用独立授权的无障碍服务与 Shizuku，未授权时使用标准实现</string>
     <string name="permission_level_debugger_desc">通过Shizuku提供ADB级别的系统访问</string>
     <string name="permission_level_root_desc">超级用户权限，可执行任意系统操作</string>
     <string name="permission_level_standard_full_desc">标准权限：基本的应用运行权限，无需特殊权限</string>
     <string name="permission_level_accessibility_full_desc">无障碍权限：允许应用模拟用户操作，需要开启无障碍服务</string>
-    <string name="permission_level_admin_full_desc">管理员权限：允许应用访问更多系统功能，如位置服务等</string>
+    <string name="permission_level_admin_full_desc">管理员模式：无障碍与 Shizuku 分别授权，按当前可用能力选择操作方式。未获得增强授权时，文件与 Shell 操作使用标准实现。</string>
     <string name="permission_level_debugger_full_desc">调试权限：允许通过ADB调试功能进行高级操作，需要Shizuku服务</string>
     <string name="permission_level_root_full_desc">Root权限：允许应用以超级用户身份运行，需要设备已Root</string>
     
@@ -7351,7 +7357,7 @@
     <string name="openai_connection_test_failed">连接测试失败: %1$s</string>
 
     <!-- Phone Agent -->
-    <string name="phone_agent_need_debug_permission">需要调试/管理员/Root 权限并启用实验虚拟屏幕，才能使用虚拟屏幕自动化。</string>
+    <string name="phone_agent_need_debug_permission">虚拟屏幕自动化需要选择管理员或 Root 模式、获得 Shizuku 或 Root 授权，并启用实验虚拟屏幕。</string>
     <string name="phone_agent_shizuku_unavailable">Shizuku 不可用，无法启动虚拟屏幕。</string>
     <string name="phone_agent_virtual_screen_service_start_failed">虚拟屏幕服务启动失败。</string>
     <string name="phone_agent_virtual_screen_create_failed">虚拟屏幕创建失败。</string>

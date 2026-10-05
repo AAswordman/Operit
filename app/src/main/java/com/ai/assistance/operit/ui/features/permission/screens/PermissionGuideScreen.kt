@@ -856,22 +856,13 @@ private fun PermissionLevelPage(
                     onClick = { onLevelSelected(AndroidPermissionLevel.STANDARD) }
             )
 
-            // 无障碍权限
+            // 管理员模式分别管理无障碍与 Shizuku 授权。
             PermissionLevelItem(
-                    level = AndroidPermissionLevel.ACCESSIBILITY,
-                    title = stringResource(R.string.permission_guide_accessibility_title),
-                    description = stringResource(R.string.permission_guide_accessibility_desc),
-                    isSelected = selectedLevel == AndroidPermissionLevel.ACCESSIBILITY,
-                    onClick = { onLevelSelected(AndroidPermissionLevel.ACCESSIBILITY) }
-            )
-
-            // 调试权限
-            PermissionLevelItem(
-                    level = AndroidPermissionLevel.DEBUGGER,
-                    title = stringResource(R.string.permission_guide_debugger_title),
-                    description = stringResource(R.string.permission_guide_debugger_desc),
-                    isSelected = selectedLevel == AndroidPermissionLevel.DEBUGGER,
-                    onClick = { onLevelSelected(AndroidPermissionLevel.DEBUGGER) }
+                    level = AndroidPermissionLevel.ADMIN,
+                    title = stringResource(R.string.permission_level_admin),
+                    description = stringResource(R.string.permission_level_admin_desc),
+                    isSelected = selectedLevel == AndroidPermissionLevel.ADMIN,
+                    onClick = { onLevelSelected(AndroidPermissionLevel.ADMIN) }
             )
 
             // Root权限

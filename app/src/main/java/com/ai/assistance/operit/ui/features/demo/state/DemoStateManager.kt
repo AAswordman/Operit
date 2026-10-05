@@ -29,6 +29,8 @@ import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
 import com.ai.assistance.operit.core.tools.system.Terminal
 import com.ai.assistance.operit.data.mcp.plugins.MCPSharedSession
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.features.demo.permissions.SystemPermissionSettings
+import com.ai.assistance.operit.ui.features.demo.permissions.SystemPermissionStatus
 
 private const val TAG = "DemoStateManager"
 
@@ -76,6 +78,13 @@ class DemoStateManager(private val context: Context, private val coroutineScope:
        coroutineScope.launch {
            refreshStatusAsync()
        }
+    }
+    fun refreshSystemPermissions() {
+        try {
+            _uiState.value.systemPermissions.value = SystemPermissionSettings.readStatus(context)
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "刷新系统权限状态失败", e)
+        }
     }
 
     /** Update root status */
@@ -234,6 +243,9 @@ class DemoStateManager(private val context: Context, private val coroutineScope:
                     updateBatteryOptimizationExemption = {
                         _uiState.value.hasBatteryOptimizationExemption.value = it
                     },
+                    updateSystemPermissionStatus = {
+                        _uiState.value.systemPermissions.value = it
+                    },
                     updateAccessibilityProviderInstalled = {
                         _uiState.value.isAccessibilityProviderInstalled.value = it
                     },
@@ -341,6 +353,7 @@ suspend fun refreshPermissionsAndStatus(
     updateLocationPermission: (Boolean) -> Unit,
     updateOverlayPermission: (Boolean) -> Unit,
     updateBatteryOptimizationExemption: (Boolean) -> Unit,
+    updateSystemPermissionStatus: (SystemPermissionStatus) -> Unit,
     updateAccessibilityProviderInstalled: (Boolean) -> Unit,
     updateAccessibilityServiceEnabled: (Boolean) -> Unit
 ) {
@@ -435,6 +448,7 @@ suspend fun refreshPermissionsAndStatus(
     val hasBatteryOptimizationExemption =
         powerManager.isIgnoringBatteryOptimizations(context.packageName)
     updateBatteryOptimizationExemption(hasBatteryOptimizationExemption)
+    updateSystemPermissionStatus(SystemPermissionSettings.readStatus(context))
 
     // 检查无障碍服务提供者和服务的状态
     val isProviderInstalled = UIHierarchyManager.isProviderAppInstalled(context)
@@ -461,6 +475,8 @@ data class DemoScreenState(
         val hasStoragePermission: MutableState<Boolean> = mutableStateOf(false),
         val hasOverlayPermission: MutableState<Boolean> = mutableStateOf(false),
         val hasBatteryOptimizationExemption: MutableState<Boolean> = mutableStateOf(false),
+        val systemPermissions: MutableState<SystemPermissionStatus> =
+                mutableStateOf(SystemPermissionStatus()),
         val hasAccessibilityServiceEnabled: MutableState<Boolean> = mutableStateOf(false),
         val isAccessibilityProviderInstalled: MutableState<Boolean> = mutableStateOf(false),
         val hasLocationPermission: MutableState<Boolean> = mutableStateOf(false),

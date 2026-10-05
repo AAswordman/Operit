@@ -1017,7 +1017,7 @@
     <string name="shizuku_wizard_permission_notice">Perhatian: Jika tiada dialog pemberian kebenaran muncul, semak:</string>
     <string name="shizuku_wizard_permission_notice_details">1. Adakah perkhidmatan Shizuku sedang berjalan\n2. Cuba semula selepas mulakan semula perkhidmatan Shizuku\n3. Pastikan kebenaran paparan tetingkap terapung dibenarkan</string>
     <string name="shizuku_wizard_grant_permission">Beri Kebenaran Shizuku</string>
-    <string name="shizuku_wizard_success_message">Tahniah! Shizuku telah ditetapkan sepenuhnya, anda kini boleh menggunakan fungsi kebenaran nyahpepijat.</string>
+    <string name="shizuku_wizard_success_message">Shizuku sedia digunakan bersama kebolehcapaian dalam mod pentadbir.</string>
     <string name="shizuku_wizard_update_available">Versi Baru Ditemui</string>
     <string name="shizuku_wizard_update_message">Aplikasi ini mempunyai versi Shizuku yang lebih baru terbina dalam, disyorkan untuk dikemaskini bagi mendapatkan keserasian dan fungsi yang lebih baik.</string>
     <string name="shizuku_wizard_current_version">Versi semasa: %1$s</string>
@@ -1338,12 +1338,12 @@
     <string name="permission_level_root">Kebenaran Root</string>
     <string name="permission_level_standard_desc">Kebenaran asas untuk menjalankan aplikasi, tidak memerlukan kebenaran khas sistem</string>
     <string name="permission_level_accessibility_desc">Menambah sokongan perkhidmatan aksesibiliti, boleh mensimulasikan operasi skrin</string>
-    <string name="permission_level_admin_desc">Menambah kebenaran pentadbir peranti, boleh mengakses lebih banyak fungsi sistem</string>
+    <string name="permission_level_admin_desc">Menggabungkan perkhidmatan kebolehcapaian dan Shizuku dengan kebenaran berasingan; menggunakan operasi standard jika tidak tersedia</string>
     <string name="permission_level_debugger_desc">Menyediakan akses sistem peringkat ADB melalui Shizuku</string>
     <string name="permission_level_root_desc">Kebenaran pengguna super, boleh melaksanakan sebarang operasi sistem</string>
     <string name="permission_level_standard_full_desc">Kebenaran Standard: Kebenaran asas untuk menjalankan aplikasi, tidak memerlukan kebenaran khas</string>
     <string name="permission_level_accessibility_full_desc">Kebenaran Aksesibiliti: Membenarkan aplikasi mensimulasikan operasi pengguna, perlu menghidupkan perkhidmatan aksesibiliti</string>
-    <string name="permission_level_admin_full_desc">Kebenaran Pentadbir: Membenarkan aplikasi mengakses lebih banyak fungsi sistem, seperti perkhidmatan lokasi, dll.</string>
+    <string name="permission_level_admin_full_desc">Mod pentadbir: beri kebenaran kebolehcapaian dan Shizuku secara berasingan. Operasi menggunakan perkhidmatan tersedia atau operasi fail dan shell standard.</string>
     <string name="permission_level_debugger_full_desc">Kebenaran Penyahpepijat: Membenarkan operasi lanjutan melalui fungsi penyahpepijatan ADB, memerlukan perkhidmatan Shizuku</string>
     <string name="permission_level_root_full_desc">Kebenaran Root: Membenarkan aplikasi berjalan sebagai pengguna super, memerlukan peranti sudah di-Root</string>
     <string name="root_access_granted">Aplikasi telah mendapat kebenaran Root, boleh melaksanakan arahan istimewa</string>
@@ -6052,7 +6052,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="openai_error_parse_response_failed">Gagal menghuraikan respons: %1$s</string>
     <string name="openai_connection_success">Sambungan berjaya!</string>
     <string name="openai_connection_test_failed">Ujian sambungan gagal: %1$s</string>
-    <string name="phone_agent_need_debug_permission">Memerlukan kebenaran nyahpepijat/pentadbir/Root dan skrin maya eksperimen diaktifkan untuk menggunakan automasi skrin maya.</string>
+    <string name="phone_agent_need_debug_permission">Automasi skrin maya memerlukan mod pentadbir atau Root, akses Shizuku atau Root yang dibenarkan, dan skrin maya eksperimen diaktifkan.</string>
     <string name="phone_agent_shizuku_unavailable">Shizuku tidak tersedia, tidak dapat memulakan skrin maya.</string>
     <string name="phone_agent_virtual_screen_service_start_failed">Gagal memulakan perkhidmatan skrin maya.</string>
     <string name="phone_agent_virtual_screen_create_failed">Gagal mencipta skrin maya.</string>

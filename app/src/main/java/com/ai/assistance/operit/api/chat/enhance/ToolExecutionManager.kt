@@ -12,6 +12,8 @@ import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.data.model.ToolInvocation
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilitySession
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
 import kotlinx.coroutines.Dispatchers
@@ -501,17 +503,19 @@ object ToolExecutionManager {
      * @param collector 按原始调用顺序输出最终结果的 StreamCollector。
      * @return 有序结果及已经输出的 XML，供循环内模型历史复用。
      */
-    suspend fun executeInvocations(
+    internal suspend fun executeInvocations(
         invocations: List<ToolInvocation>,
         context: Context,
         toolHandler: AIToolHandler,
         packageManager: PackageManager,
         collector: StreamCollector<String>,
+        permissionSession: PermissionCapabilitySession,
         toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         callerName: String? = null,
         callerChatId: String? = null,
         callerCardId: String? = null
-    ): ToolExecutionBatch = coroutineScope {
+    ): ToolExecutionBatch = PermissionCapabilityResolver.withSession(permissionSession) {
+        coroutineScope {
         val orderedResults = OrderedToolResults(invocations.size) { markup ->
             collector.emit(ensureOwnLine(markup))
         }
@@ -660,6 +664,7 @@ object ToolExecutionManager {
         parallelJobs.awaitAll()
 
         return@coroutineScope orderedResults.finish()
+        }
     }
 
     /**
