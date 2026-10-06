@@ -24,6 +24,7 @@ data class MCPToolParameter(
         if (value !is String) return value
 
         return when (type.lowercase()) {
+            "string" -> value
             "number" -> {
                 try {
                     if (value.contains(".")) value.toDouble() else value.toLong()
@@ -77,6 +78,7 @@ data class MCPToolParameter(
             if (value !is String) return value
 
             return when (typeName?.lowercase()) {
+                "string" -> value
                 "number" -> {
                     try {
                         if (value.contains(".")) value.toDouble() else value.toLong()
@@ -107,8 +109,8 @@ data class MCPToolParameter(
                     // 尝试解析对象
                     parseObject(value)
                 }
-                else -> {
-                    // 如果未指定类型，尝试智能猜测
+                null, "" -> {
+                    // 仅当未指定类型时，尝试智能猜测
                     when {
                         // 检测是否为对象格式（JSON对象）
                         value.trimStart().startsWith("{") && value.trimEnd().endsWith("}") -> {
@@ -131,6 +133,7 @@ data class MCPToolParameter(
                         else -> value
                     }
                 }
+                else -> value
             }
         }
 
