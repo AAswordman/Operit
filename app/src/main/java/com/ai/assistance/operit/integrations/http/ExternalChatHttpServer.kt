@@ -329,11 +329,11 @@ class ExternalChatHttpServer(
                             }
                         }
                     } catch (e: CancellationException) {
-                        streamingSessionRef.get()?.responseStreamSession?.cancel()
+                        streamingSessionRef.get()?.responseStreamSession?.cancel("External chat stream cancelled")
                         throw e
                     } catch (e: IOException) {
                         AppLogger.i(TAG, "SSE client disconnected: requestId=$resolvedRequestId")
-                        streamingSessionRef.get()?.responseStreamSession?.cancel()
+                        streamingSessionRef.get()?.responseStreamSession?.cancel("External chat client disconnected")
                     } catch (e: Exception) {
                         AppLogger.e(TAG, "SSE stream failed: requestId=$resolvedRequestId", e)
                         val streamSession = streamingSessionRef.get()
@@ -349,7 +349,7 @@ class ExternalChatHttpServer(
                                 )
                             )
                         }
-                        streamSession?.responseStreamSession?.cancel()
+                        streamSession?.responseStreamSession?.cancel("External chat stream failed")
                     } finally {
                         streamingSessionRef.get()?.cleanup()
                     }
@@ -363,7 +363,7 @@ class ExternalChatHttpServer(
                         super.close()
                     } finally {
                         streamJob.cancel()
-                        streamingSessionRef.get()?.responseStreamSession?.cancel()
+                        streamingSessionRef.get()?.responseStreamSession?.cancel("External chat connection closed")
                         streamingSessionRef.get()?.cleanup()
                     }
                 }

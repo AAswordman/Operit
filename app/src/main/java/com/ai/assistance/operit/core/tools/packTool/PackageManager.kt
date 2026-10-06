@@ -581,10 +581,15 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
 
         return runCatching {
             toolPkgManager.cancelExecutionsForChat(normalizedChatId, reason)
+        }.onSuccess { cancelled ->
+            AppLogger.d(
+                TAG,
+                "Cancel ToolPkg executions: chatId=$normalizedChatId, reason=$reason, executionsCancelled=$cancelled"
+            )
         }.getOrElse { error ->
             AppLogger.e(
                 TAG,
-                "Failed to cancel toolpkg execution for chatId=$normalizedChatId: ${error.message ?: error.javaClass.simpleName}",
+                "Failed to cancel toolpkg execution for chatId=$normalizedChatId, reason=$reason: ${error.message ?: error.javaClass.simpleName}",
                 error
             )
             false
