@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -274,6 +276,18 @@ fun ChatArea(
     var viewportHeightPx by remember { mutableStateOf(0) }
     val messageAnchors = remember(currentChatId) { mutableStateMapOf<Long, ChatScrollMessageAnchor>() }
     var pendingJumpToMessageTimestamp by remember(currentChatId) { mutableStateOf<Long?>(null) }
+    // true = pending jump was scheduled by streaming auto-follow (not by an explicit user jump)
+    var pendingJumpIsAutoFollow by remember(currentChatId) { mutableStateOf(false) }
+    val isUserDragging by scrollState.interactionSource.collectIsDraggedAsState()
+    val latestAutoScrollToBottom by rememberUpdatedState(autoScrollToBottom)
+    LaunchedEffect(isUserDragging) {
+        // A drag gesture always wins over a queued auto-follow jump; otherwise the queued
+        // jump fires right after the finger is lifted and snaps the list back to bottom.
+        if (isUserDragging && pendingJumpIsAutoFollow) {
+            pendingJumpToMessageTimestamp = null
+            pendingJumpIsAutoFollow = false
+        }
+    }
     val lastMessage = chatHistory.lastOrNull()
     val pendingTargetAnchor =
         pendingJumpToMessageTimestamp?.let { targetTimestamp -> messageAnchors[targetTimestamp] }
@@ -303,7 +317,8 @@ fun ChatArea(
                 onShowLatestDisplayWindow != null
         ) {
             onShowLatestDisplayWindow.invoke()
-        } else if (autoScrollToBottom && messagesCount > 0) {
+        } else if (autoScrollToBottom && messagesCount > 0 && !isUserDragging) {
+            pendingJumpIsAutoFollow = true
             pendingJumpToMessageTimestamp = lastMessage?.timestamp
         }
     }
@@ -323,8 +338,18 @@ fun ChatArea(
         }
 
         val targetAnchor = pendingTargetAnchor ?: return@LaunchedEffect
-        val isActualLatestMessage = targetIndex == messagesCount - 1 && !hasNewerDisplayHistory
-        onAutoScrollToBottomChange?.invoke(isActualLatestMessage)
+        if (pendingJumpIsAutoFollow) {
+            if (!latestAutoScrollToBottom || isUserDragging) {
+                // User scrolled away (or is holding the list): drop the stale follow jump
+                pendingJumpToMessageTimestamp = null
+                pendingJumpIsAutoFollow = false
+                return@LaunchedEffect
+            }
+        } else {
+            val isActualLatestMessage =
+                targetIndex == messagesCount - 1 && !hasNewerDisplayHistory
+            onAutoScrollToBottomChange?.invoke(isActualLatestMessage)
+        }
 
         if (targetIndex == messagesCount - 1) {
             scrollState.animateScrollTo(scrollState.maxValue)
@@ -334,6 +359,7 @@ fun ChatArea(
             scrollState.animateScrollTo(targetOffset)
         }
         pendingJumpToMessageTimestamp = null
+        pendingJumpIsAutoFollow = false
     }
 
     LaunchedEffect(lastMessage?.timestamp, lastMessage?.contentStream) {
@@ -569,6 +595,7 @@ fun ChatArea(
             onAutoScrollToBottomChange = onAutoScrollToBottomChange,
             onToggleFavoriteMessage = onToggleFavoriteMessage,
             onJumpToMessageTimestamp = { targetTimestamp ->
+                pendingJumpIsAutoFollow = false
                 pendingJumpToMessageTimestamp = targetTimestamp
                 val targetIndex = chatHistory.indexOfFirst { it.timestamp == targetTimestamp }
                 if (targetIndex >= 0) {
@@ -596,6 +623,7 @@ fun ChatArea(
                     val isActualLatestMessage =
                         targetIndex == messagesCount - 1 && !hasNewerDisplayHistory
                     onAutoScrollToBottomChange?.invoke(isActualLatestMessage)
+                    pendingJumpIsAutoFollow = false
                     pendingJumpToMessageTimestamp = targetMessage.timestamp
                 }
             },
