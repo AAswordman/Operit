@@ -132,7 +132,7 @@ class A2aTaskManager(
                     val session = startResult.session
                     streamingSession = session
                     if (!record.start(session)) {
-                        session.responseStreamSession.cancel()
+                        session.responseStreamSession.cancel("A2A task already cancelled")
                         return
                     }
                     contextChats[record.contextId] = session.chatId
@@ -241,7 +241,7 @@ class A2aTaskManager(
 
         fun cancel(): A2aTaskSnapshot {
             val cancellation = transitionToCancelled() ?: throw A2aTaskNotCancelableException(id)
-            cancellation.session?.responseStreamSession?.cancel()
+            cancellation.session?.responseStreamSession?.cancel("A2A task cancelled")
             cancellation.job?.cancel()
             terminalTask.complete(cancellation.snapshot)
             publish(A2aTaskEvent.Status(cancellation.snapshot, final = true))
@@ -250,7 +250,7 @@ class A2aTaskManager(
 
         fun cancelForShutdown() {
             val cancellation = transitionToCancelled() ?: return
-            cancellation.session?.responseStreamSession?.cancel()
+            cancellation.session?.responseStreamSession?.cancel("A2A server shutdown")
             cancellation.job?.cancel()
             terminalTask.complete(cancellation.snapshot)
             publish(A2aTaskEvent.Status(cancellation.snapshot, final = true))

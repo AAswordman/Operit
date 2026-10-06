@@ -77,6 +77,9 @@ class MessageProcessingDelegate(
 ) {
     companion object {
         private const val TAG = "MessageProcessingDelegate"
+
+        /** 破坏性历史变更（编辑/删除消息等）触发的会话取消原因，用于区分真实的用户主动取消。 */
+        const val CANCELLATION_REASON_HISTORY_MUTATION = "Chat history modified during generation"
         private const val STREAM_SCROLL_THROTTLE_MS = 200L
         private const val STREAM_PERSIST_INTERVAL_MS = 1000L
         private const val AUTO_READ_PREVIEW_MAX = 48
@@ -497,6 +500,7 @@ class MessageProcessingDelegate(
         chatId: String,
         keepPartialResponse: Boolean,
         expectedTurnId: Long? = null,
+        cancellationReason: String,
     ) {
         val chatRuntime = runtimeFor(chatId)
         chatRuntime.cancellationMutex.withLock {
@@ -505,6 +509,7 @@ class MessageProcessingDelegate(
                 return@withLock
             }
 
+            AppLogger.d(TAG, "取消消息处理: chatId=$chatId, turnId=$turnId, reason=$cancellationReason")
             chatRuntime.cancellationInProgress = true
             val currentTurnOptions = chatRuntime.currentTurnOptions
             val activeTurn =
@@ -520,7 +525,7 @@ class MessageProcessingDelegate(
 
             try {
                 clearCurrentTurnToolInvocationCount(chatId)
-                AIMessageManager.cancelOperation(chatId)
+                AIMessageManager.cancelOperation(chatId, cancellationReason)
 
                 jobsToCancel.forEach { job -> job.cancel() }
                 jobsToCancel.forEach { job ->
@@ -561,19 +566,24 @@ class MessageProcessingDelegate(
         }
     }
 
-    fun cancelMessage(chatId: String) {
+    fun cancelMessage(chatId: String, reason: String = AIMessageManager.CANCELLATION_REASON_USER) {
         val expectedTurnId = runtimeFor(chatId).activeTurnId
         coroutineScope.launch(Dispatchers.IO) {
             cancelMessageInternal(
                 chatId = chatId,
                 keepPartialResponse = true,
                 expectedTurnId = expectedTurnId,
+                cancellationReason = reason,
             )
         }
     }
 
     suspend fun cancelMessageForDestructiveMutation(chatId: String) {
-        cancelMessageInternal(chatId, keepPartialResponse = false)
+        cancelMessageInternal(
+            chatId = chatId,
+            keepPartialResponse = false,
+            cancellationReason = CANCELLATION_REASON_HISTORY_MUTATION,
+        )
     }
 
     init {

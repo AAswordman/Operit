@@ -79,6 +79,15 @@ internal fun formatDialogueReviewHeader(defaultHeader: String, customTitle: Stri
 @SuppressLint("StaticFieldLeak")
 object AIMessageManager {
     private const val TAG = "AIMessageManager"
+
+    /** 用户主动取消操作时的取消原因；系统触发的取消路径必须传入各自的真实原因。 */
+    const val CANCELLATION_REASON_USER = "User cancelled"
+
+    /**
+     * 测试缝：替换 ToolPkg 执行取消的最终落地调用，使 [cancelOperation] 的 reason 透传
+     * 可在 JVM 测试中验证；生产为 null（走真实 [PackageManager]）。
+     */
+    internal var toolPkgCancelOverride: ((chatKey: String, reason: String) -> Unit)? = null
     // 聊天总结的消息数量阈值 - 移除硬编码，改用动态设置
     // private const val SUMMARY_CHUNK_SIZE = 4
 
@@ -637,13 +646,13 @@ object AIMessageManager {
      * 取消当前正在进行的AI操作。
      * 这会同时尝试取消插件接管执行（如果正在进行）和底层的AI流。
      */
-    fun cancelCurrentOperation() {
-        cancelOperation(lastActiveChatKey)
+    fun cancelCurrentOperation(reason: String = CANCELLATION_REASON_USER) {
+        cancelOperation(lastActiveChatKey, reason)
     }
 
-    fun cancelOperation(chatId: String) {
+    fun cancelOperation(chatId: String, reason: String = CANCELLATION_REASON_USER) {
         val chatKey = chatId.ifBlank { DEFAULT_CHAT_KEY }
-        AppLogger.d(TAG, "请求取消AI操作: chatId=$chatKey")
+        AppLogger.d(TAG, "请求取消AI操作: chatId=$chatKey, reason=$reason")
 
         activeMessageProcessingControllerByChatId.remove(chatKey)?.let {
             AppLogger.d(TAG, "正在取消消息处理插件执行: chatId=$chatKey")
@@ -656,20 +665,25 @@ object AIMessageManager {
         }
 
         if (chatId.isNotBlank()) {
-            runCatching {
-                packageManager.cancelToolPkgExecutionsForChat(chatKey, "User cancelled")
-            }.onFailure { error ->
-                AppLogger.e(TAG, "取消ToolPkg JS执行失败: chatId=$chatKey", error)
+            val cancelOverride = toolPkgCancelOverride
+            if (cancelOverride != null) {
+                cancelOverride(chatKey, reason)
+            } else {
+                runCatching {
+                    packageManager.cancelToolPkgExecutionsForChat(chatKey, reason)
+                }.onFailure { error ->
+                    AppLogger.e(TAG, "取消ToolPkg JS执行失败: chatId=$chatKey, reason=$reason", error)
+                }
             }
         }
 
         AppLogger.d(TAG, "AI操作取消请求已发送: chatId=$chatKey")
     }
 
-    fun cancelAllOperations() {
-        AppLogger.d(TAG, "请求取消所有AI操作...")
+    fun cancelAllOperations(reason: String = CANCELLATION_REASON_USER) {
+        AppLogger.d(TAG, "请求取消所有AI操作: reason=$reason")
         val keys = (activeEnhancedAiServiceByChatId.keys + activeMessageProcessingControllerByChatId.keys).toSet()
-        keys.forEach { cancelOperation(it) }
+        keys.forEach { cancelOperation(it, reason) }
         AppLogger.d(TAG, "所有AI操作取消请求已发送。")
     }
 
