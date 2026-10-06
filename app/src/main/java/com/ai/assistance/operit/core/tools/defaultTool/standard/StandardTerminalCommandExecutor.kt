@@ -13,6 +13,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 
 /** 终端命令执行工具 - 非流式输出版本 执行终端命令并一次性收集全部输出后返回 */
@@ -23,7 +25,12 @@ class StandardTerminalCommandExecutor(private val context: Context) {
     companion object {
         // 用于将会话名称映射到会话ID
         private val sessionNameToIdMap = ConcurrentHashMap<String, String>()
+        private val sessionCreateMutexes = ConcurrentHashMap<String, Mutex>()
         private const val COMMAND_CANCEL_SETTLE_TIMEOUT_MS = 3_000L
+
+        private fun mutexForSessionName(sessionName: String): Mutex {
+            return sessionCreateMutexes.getOrPut(sessionName) { Mutex() }
+        }
     }
 
 
@@ -41,37 +48,34 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                     )
                 }
 
-                val terminal = Terminal.getInstance(context)
+                mutexForSessionName(sessionName).withLock {
+                    val terminal = Terminal.getInstance(context)
+                    val existingSession = terminal.terminalState.value.sessions.find { it.title == sessionName }
+                    if (existingSession != null) {
+                        sessionNameToIdMap[sessionName] = existingSession.id
+                        return@withLock ToolResult(
+                            toolName = tool.name,
+                            success = true,
+                            result = TerminalSessionCreationResultData(
+                                sessionId = existingSession.id,
+                                sessionName = sessionName,
+                                isNewSession = false
+                            )
+                        )
+                    }
 
-                // 修正：直接检查 Terminal 单例中是否已存在同名会话，而不是依赖本地缓存
-                val existingSession = terminal.terminalState.value.sessions.find { it.title == sessionName }
-                if (existingSession != null) {
-                    // 如果存在，更新本地缓存并返回该会话
-                    sessionNameToIdMap[sessionName] = existingSession.id
-                    return@runBlocking ToolResult(
+                    val newSessionId = terminal.createSession(sessionName)
+                    sessionNameToIdMap[sessionName] = newSessionId
+                    ToolResult(
                         toolName = tool.name,
                         success = true,
                         result = TerminalSessionCreationResultData(
-                            sessionId = existingSession.id,
+                            sessionId = newSessionId,
                             sessionName = sessionName,
-                            isNewSession = false
+                            isNewSession = true
                         )
                     )
                 }
-
-                // 如果 Terminal 中不存在，则创建新会话
-                val newSessionId = terminal.createSession(sessionName)
-                sessionNameToIdMap[sessionName] = newSessionId
-
-                ToolResult(
-                    toolName = tool.name,
-                    success = true,
-                    result = TerminalSessionCreationResultData(
-                        sessionId = newSessionId,
-                        sessionName = sessionName,
-                        isNewSession = true
-                    )
-                )
             } catch (e: Exception) {
                 AppLogger.e(TAG, "创建或获取终端会话时出错", e)
                 ToolResult(
