@@ -63,7 +63,7 @@ exports.subagent_run = subagent_run;
     ]
 }
 */
-require("../../../types/quickjs-runtime.js");
+const subagent_i18n_js_1 = require("../shared/subagent_i18n.js");
 const EnhancedAIService = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
 const FunctionType = Java.com.ai.assistance.operit.data.model.FunctionType;
 const SystemPromptConfig = Java.com.ai.assistance.operit.core.config.SystemPromptConfig;
@@ -71,10 +71,17 @@ const Unit = Java.kotlin.Unit;
 const PromptTurnClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurn");
 const PromptTurnKindClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurnKind");
 const SendMessageOptionsClass = Java.type("com.ai.assistance.operit.api.chat.EnhancedAIService$SendMessageOptions");
-const TOOL_TAG = /<tool\b[\s\S]*?<\/tool>/gi;
-const TOOL_SELF_CLOSING = /<tool\b[^>]*\/>/gi;
-const TOOL_RESULT_TAG = /<tool_result\b[\s\S]*?<\/tool_result>/gi;
-const TOOL_RESULT_SELF = /<tool_result\b[^>]*\/>/gi;
+// 宿主会把工具标签改写成 tool_<随机码> / tool_result_<随机码>（见 ChatMarkupRegex.kt 的
+// TOOL_TAG_NAME_REGEX_SOURCE / TOOL_RESULT_TAG_NAME_REGEX_SOURCE）。标签名必须与宿主保持一致，
+// 否则标签剥离和「最后一个工具块」定位都会失效，最终摘要会退化成整段执行日志。
+const TOOL_TAG_NAME = "tool(?:_(?!result(?:_|\\b))[A-Za-z0-9_]*)?";
+const TOOL_RESULT_TAG_NAME = "tool_result(?:_[A-Za-z0-9_]*)?";
+// 成对正则用反向引用绑定同名开闭标签，避免 <tool_A ...> ... </tool_B> 被跨块吞掉。
+const TOOL_TAG = new RegExp(`<(${TOOL_TAG_NAME})\\b[\\s\\S]*?<\\/\\1>`, "gi");
+const TOOL_SELF_CLOSING = new RegExp(`<${TOOL_TAG_NAME}\\b[^>]*\\/>`, "gi");
+const TOOL_RESULT_TAG = new RegExp(`<(${TOOL_RESULT_TAG_NAME})\\b[\\s\\S]*?<\\/\\1>`, "gi");
+const TOOL_RESULT_SELF = new RegExp(`<${TOOL_RESULT_TAG_NAME}\\b[^>]*\\/>`, "gi");
+const TOOL_ORPHAN_TAG = new RegExp(`</?(?:${TOOL_TAG_NAME}|${TOOL_RESULT_TAG_NAME})\\b[^>]*>`, "gi");
 const STATUS_TAG = /<status\b[\s\S]*?<\/status>/gi;
 const STATUS_SELF = /<status\b[^>]*\/>/gi;
 const THINK_TAG = /<think(?:ing)?>[\s\S]*?(<\/think(?:ing)?>|\z)/gi;
@@ -145,21 +152,36 @@ function stripMarkup(text) {
         .replace(TOOL_SELF_CLOSING, "")
         .replace(TOOL_RESULT_TAG, "")
         .replace(TOOL_RESULT_SELF, "")
+        .replace(TOOL_ORPHAN_TAG, "")
         .replace(STATUS_TAG, "")
         .replace(STATUS_SELF, "")
         .trim();
 }
 function extractFinalNonToolAssistantContent(raw) {
     const noThinking = removeThinkingContent(asText(raw).trim());
-    const lastToolLike = /(<tool\s+name="([^"]+)"[\s\S]*?<\/tool>)|(<tool_result([^>]*)>[\s\S]*?<\/tool_result>)/gi;
+    // With /g regexes we must create a fresh instance per call to avoid lastIndex state leakage.
+    const lastToolLike = new RegExp(`(<(${TOOL_TAG_NAME})\\b[^>]*name="[^"]+"[\\s\\S]*?<\/\\2>)` +
+        `|(<(${TOOL_RESULT_TAG_NAME})\\b[^>]*>[\\s\\S]*?<\/\\4>)`, "gi");
     let lastMatch = null;
     let match;
     while ((match = lastToolLike.exec(noThinking)) !== null) {
         lastMatch = match;
     }
-    const tail = lastMatch
-        ? noThinking.substring((lastMatch.index || 0) + lastMatch[0].length)
-        : noThinking;
+    let tailStart = lastMatch
+        ? (lastMatch.index || 0) + lastMatch[0].length
+        : 0;
+    // When the stream is truncated the last tool block may lack a closing tag.
+    // Find any orphan opening tag after tailStart and advance past it, otherwise
+    // the summary would degrade into the full execution log.
+    const orphanOpen = new RegExp(`<(${TOOL_TAG_NAME}|${TOOL_RESULT_TAG_NAME})\\b[^>]*>`, "gi");
+    let orphanMatch;
+    while ((orphanMatch = orphanOpen.exec(noThinking)) !== null) {
+        if ((orphanMatch.index || 0) < tailStart) {
+            continue;
+        }
+        tailStart = (orphanMatch.index || 0) + orphanMatch[0].length;
+    }
+    const tail = noThinking.substring(tailStart);
     const tailStripped = stripMarkup(tail);
     if (tailStripped) {
         return tailStripped;
@@ -359,14 +381,15 @@ function buildDelegatedTaskMessage(task, contextText, targetPaths, maxToolCalls)
     return lines.join("\n");
 }
 function internalToolUpdateText(toolName) {
+    const text = (0, subagent_i18n_js_1.resolveSubagentI18n)();
     const raw = asText(toolName).trim();
     if (!raw || raw === "package_proxy") {
-        return "已触发内部工具";
+        return text.toolTriggeredGeneric;
     }
     const shortName = raw.includes(":")
         ? raw.substring(raw.lastIndexOf(":") + 1).trim()
         : raw;
-    return shortName ? `已调用 ${shortName}` : "已触发内部工具";
+    return shortName ? text.toolCalledPrefix(shortName) : text.toolTriggeredGeneric;
 }
 async function runSubagent(params) {
     const runId = createRunId();
@@ -376,15 +399,16 @@ async function runSubagent(params) {
         const contextText = asText(params.context_text).trim();
         const targetPaths = parseTargetPaths(params);
         const maxToolCalls = parseMaxToolCalls(params);
-        emitIntermediate(stageUpdateXml(runId, "accepted", "已接受任务"));
-        emitIntermediate(stageUpdateXml(runId, "planning", targetPaths.length > 0 ? "正在分析目标文件" : "正在分析委托任务"));
+        const text = (0, subagent_i18n_js_1.resolveSubagentI18n)();
+        emitIntermediate(stageUpdateXml(runId, "accepted", text.stageAccepted));
+        emitIntermediate(stageUpdateXml(runId, "planning", targetPaths.length > 0 ? text.stagePlanningTargets : text.stagePlanningTask));
         const context = getAppContext();
         if (!context) {
-            throw new Error("无法获取应用上下文");
+            throw new Error(text.errorNoAppContext);
         }
         const enhancedAIService = EnhancedAIService.getInstance(context);
         const settings = await resolveExecutionSettings(enhancedAIService);
-        emitIntermediate(stageUpdateXml(runId, "executing", "正在执行委托任务"));
+        emitIntermediate(stageUpdateXml(runId, "executing", text.stageExecuting));
         const raw = await sendMessage(enhancedAIService, {
             message: buildDelegatedTaskMessage(task, contextText, targetPaths, maxToolCalls),
             chatHistory: [],
@@ -398,15 +422,15 @@ async function runSubagent(params) {
                 }));
             },
         });
-        emitIntermediate(stageUpdateXml(runId, "summarizing", "正在汇总结果"));
-        const summary = clipText(extractFinalNonToolAssistantContent(raw), 320);
+        emitIntermediate(stageUpdateXml(runId, "summarizing", text.stageSummarizing));
+        const summary = extractFinalNonToolAssistantContent(raw);
         if (!summary) {
-            throw new Error("子代理未返回总结文本");
+            throw new Error(text.errorNoSummary);
         }
         return finalXml(runId, true, toolCount, summary);
     }
     catch (error) {
-        return finalXml(runId, false, toolCount, clipText(`执行失败：${toErrorText(error)}`, 220));
+        return finalXml(runId, false, toolCount, clipText((0, subagent_i18n_js_1.resolveSubagentI18n)().errorExecutionFailedPrefix(toErrorText(error)), 220));
     }
 }
 async function subagent_run(params) {
@@ -415,6 +439,6 @@ async function subagent_run(params) {
     }
     catch (error) {
         const runId = createRunId();
-        return finalXml(runId, false, 0, clipText(`执行失败：${toErrorText(error)}`, 220));
+        return finalXml(runId, false, 0, clipText((0, subagent_i18n_js_1.resolveSubagentI18n)().errorExecutionFailedPrefix(toErrorText(error)), 220));
     }
 }
