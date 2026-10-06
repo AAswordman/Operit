@@ -1730,34 +1730,21 @@ data class GrepResultData(
                 matchesToShow.forEach { lineMatch ->
                     // If context is available, show full context
                     if (lineMatch.matchContext != null && lineMatch.matchContext.isNotBlank()) {
-                        val contextLines = lineMatch.matchContext.lines()
-                        val isPreNumberedContext =
-                            contextLines.any { it.isNotBlank() } &&
-                                contextLines.all { it.isBlank() || parsePreNumberedLineNumber(it) != null }
-
-                        if (isPreNumberedContext) {
-                            contextLines.forEach { contextLine ->
-                                val renderedLine =
-                                    if (parsePreNumberedLineNumber(contextLine) == lineMatch.lineNumber) {
-                                        markPreNumberedContextLine(contextLine)
-                                    } else {
-                                        contextLine
-                                    }
-                                sb.appendLine(renderedLine)
-                            }
-                        } else {
-                            val centerIndex = contextLines.size / 2
-
-                            contextLines.forEachIndexed { idx, contextLine ->
-                                val actualLineNum = lineMatch.lineNumber - centerIndex + idx
-                                val lineNumStr = String.format("%6d", actualLineNum)
-
-                                if (idx == centerIndex) {
-                                    sb.appendLine("$lineNumStr|>${contextLine}")
+                        // Context lines carry their real source line numbers inline
+                        // ("<number>|<text>", matched lines additionally marked with ">").
+                        // Render each line by its embedded number; never derive numbers
+                        // from the line position, because context windows are clamped at
+                        // file start/end and merged multi-match blocks are non-contiguous.
+                        // Lines without a number (blank separators, truncation markers)
+                        // are printed verbatim.
+                        lineMatch.matchContext.lines().forEach { contextLine ->
+                            val renderedLine =
+                                if (parsePreNumberedLineNumber(contextLine) == lineMatch.lineNumber) {
+                                    markPreNumberedContextLine(contextLine)
                                 } else {
-                                    sb.appendLine("$lineNumStr| ${contextLine}")
+                                    contextLine
                                 }
-                            }
+                            sb.appendLine(renderedLine)
                         }
                         sb.appendLine() // Add blank line after each match block
                     } else {
