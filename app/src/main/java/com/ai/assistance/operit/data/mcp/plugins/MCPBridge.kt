@@ -50,6 +50,23 @@ class MCPBridge private constructor(private val context: Context) {
         private const val START_COMMAND_THROTTLE_MS = 4000L
         private const val COMMAND_CONNECTION_KEEP_MS = 3500L
         private const val DETECT_PORT_CACHE_MS = 3500L
+
+        // Connect timeout for every bridge socket. Kept short: the bridge is on loopback.
+        private const val SOCKET_CONNECT_TIMEOUT_MS = 5000
+
+        // Read timeout for the shared control channel (list / listtools / register / ...).
+        // These commands are served from in-memory maps, so a slow answer means the bridge is
+        // wedged. Never let a control command occupy the shared socket for 3 minutes.
+        private const val CONTROL_SO_TIMEOUT_MS = 15_000
+
+        // Read timeout for toolcall on its dedicated socket. Tool calls can legitimately be slow
+        // (a shell command with sudo, a network fetch), so this is longer than the control
+        // channel but still bounded well below the previous 180s blanket value.
+        private const val TOOLCALL_SO_TIMEOUT_MS = 60_000
+
+        // Read timeout for spawn on its dedicated socket.
+        private const val SPAWN_SO_TIMEOUT_MS = 180_000
+
         private var appContext: Context? = null
 
         private val startBridgeMutex = Mutex()
@@ -467,6 +484,17 @@ class MCPBridge private constructor(private val context: Context) {
                     AppLogger.d(TAG, "命令[$cmdId: $cmdType${if (!serviceName.isNullOrBlank()) " service=$serviceName" else ""}]响应: $response")
                     JSONObject(response)
                 }
+            } catch (e: java.net.SocketTimeoutException) {
+                // Distinguish a read timeout from a generic transport failure. Previously both
+                // surfaced as "通信或解析失败", which hid the single most common cause of a
+                // "stuck" MCP call: the bridge accepted the request but never answered, so the
+                // client sat on readLine() until soTimeout elapsed.
+                AppLogger.e(
+                    TAG,
+                    "命令[$cmdId: $cmdType${if (!serviceName.isNullOrBlank()) " service=$serviceName" else ""}]读取超时，" +
+                        "桥接器未在该超时内返回结果（服务可能仍在运行该工具，或子进程已挂起）"
+                )
+                null
             } catch (e: Exception) {
                 AppLogger.e(TAG, "命令[$cmdId: $cmdType]通信或解析失败: ${e.message}")
                 null
@@ -515,13 +543,32 @@ class MCPBridge private constructor(private val context: Context) {
 
                         AppLogger.d(TAG, logMessage)
 
-                        if (cmdType == "spawn") {
+                        // `spawn` and `toolcall` run on a dedicated socket instead of the shared
+                        // control channel.
+                        //
+                        // Why this matters: the shared channel is guarded by a single global
+                        // `commandConnectionMutex`, and a read on it blocks for the whole
+                        // socket read timeout. Previously a `toolcall` that never returned (a
+                        // sudo/shell command waiting on a password prompt, a wedged child
+                        // process, a dead PTY) held that global mutex for up to 180s, which
+                        // stalled *every* other MCP command in the app -- including the
+                        // `list`/`listtools` calls that back isActive(), ping() and getTools().
+                        // One stuck tool call therefore froze the entire MCP subsystem.
+                        //
+                        // Isolating tool calls on their own connection bounds the damage to the
+                        // single call that is actually stuck.
+                        if (cmdType == "spawn" || cmdType == "toolcall") {
+                            val dedicatedSoTimeout =
+                                if (cmdType == "spawn") SPAWN_SO_TIMEOUT_MS else TOOLCALL_SO_TIMEOUT_MS
                             var dedicatedSocket: Socket? = null
                             return@withContext try {
                                 dedicatedSocket = Socket().apply {
                                     reuseAddress = true
-                                    soTimeout = 180000
-                                    connect(java.net.InetSocketAddress(host, actualPort), 5000)
+                                    soTimeout = dedicatedSoTimeout
+                                    connect(
+                                        java.net.InetSocketAddress(host, actualPort),
+                                        SOCKET_CONNECT_TIMEOUT_MS
+                                    )
                                 }
 
                                 val dedicatedWriter = PrintWriter(dedicatedSocket.getOutputStream(), true)
@@ -536,6 +583,12 @@ class MCPBridge private constructor(private val context: Context) {
                                     serviceName = serviceName,
                                     emptyResponseMessage = "命令[$cmdId: $cmdType]没有收到响应（独立连接）"
                                 )
+                            } catch (e: java.net.SocketTimeoutException) {
+                                AppLogger.e(
+                                    TAG,
+                                    "命令[$cmdId: $cmdType]在 ${dedicatedSoTimeout}ms 内没有收到响应（独立连接），已放弃等待"
+                                )
+                                null
                             } catch (e: Exception) {
                                 AppLogger.e(TAG, "发送独立连接命令失败[$cmdType]: ${e.message}")
                                 null
@@ -554,10 +607,10 @@ class MCPBridge private constructor(private val context: Context) {
 
                                 val newSocket = Socket()
                                 newSocket.reuseAddress = true
-                                newSocket.soTimeout = 180000
+                                newSocket.soTimeout = CONTROL_SO_TIMEOUT_MS
                                 newSocket.connect(
                                     java.net.InetSocketAddress(host, actualPort),
-                                    5000
+                                    SOCKET_CONNECT_TIMEOUT_MS
                                 )
 
                                 commandSocket = newSocket
