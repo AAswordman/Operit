@@ -308,12 +308,41 @@ fn search_file(
         }
     }
 
-    let match_context = context_indexes
-        .into_iter()
-        .filter_map(|line_number| lines.get(line_number - 1))
-        .map(|line| clip_text(line, 400))
-        .collect::<Vec<_>>()
-        .join("\n");
+    // Emit every context line with its real source line number ("<n>|<text>",
+    // matched lines additionally marked with ">"). The Kotlin renderer trusts
+    // these embedded numbers, so clamped windows at file start/end and merged
+    // multi-match blocks can no longer desync the rendered line numbers.
+    let match_lines: BTreeSet<usize> = matches.iter().map(|item| item.line_number).collect();
+    let number_width = lines.len().to_string().len();
+
+    const MAX_CONTEXT_CHARS: usize = 4000;
+    let mut match_context = String::new();
+    let mut context_truncated = false;
+    for line_number in context_indexes {
+        let Some(line) = lines.get(line_number - 1) else {
+            continue;
+        };
+        let clipped = clip_text(line, 400);
+        let formatted = if match_lines.contains(&line_number) {
+            format!("{:>number_width$}|>{clipped}", line_number)
+        } else {
+            format!("{:>number_width$}| {clipped}", line_number)
+        };
+        // Clip at line boundaries only: a mid-line cut could sever the number
+        // prefix and break the "<n>|" contract the renderer relies on.
+        if !match_context.is_empty() && match_context.len() + 1 + formatted.len() > MAX_CONTEXT_CHARS
+        {
+            context_truncated = true;
+            break;
+        }
+        if !match_context.is_empty() {
+            match_context.push('\n');
+        }
+        match_context.push_str(&formatted);
+    }
+    if context_truncated {
+        match_context.push_str("\n...");
+    }
 
     let line_content = if matches.len() == 1 {
         clip_text(&matches[0].text, 300)
@@ -331,7 +360,7 @@ fn search_file(
         file_path: path.to_string_lossy().to_string(),
         first_match_line: matches[0].line_number,
         line_content,
-        match_context: clip_text(&match_context, 4000),
+        match_context,
         match_count: matches.len(),
     }))
 }
@@ -347,4 +376,209 @@ fn clip_text(text: &str, max_chars: usize) -> String {
 
 fn escape_json_fragment(text: &str) -> String {
     text.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEMP_FILE_SEQ: AtomicU64 = AtomicU64::new(0);
+
+    struct TestFile {
+        path: PathBuf,
+    }
+
+    impl TestFile {
+        /// Writes `total_lines` numbered lines ("line 1" .. "line N") and plants
+        /// `needle ` at the given 1-based match line numbers.
+        fn write(total_lines: usize, match_line_numbers: &[usize]) -> TestFile {
+            let seq = TEMP_FILE_SEQ.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "operit_ripgrep_test_{}_{}.txt",
+                std::process::id(),
+                seq
+            ));
+            let mut content = String::new();
+            for line_number in 1..=total_lines {
+                if match_line_numbers.contains(&line_number) {
+                    content.push_str(&format!("needle line {line_number}\n"));
+                } else {
+                    content.push_str(&format!("line {line_number}\n"));
+                }
+            }
+            std::fs::write(&path, content).expect("write temp grep test file");
+            TestFile { path }
+        }
+    }
+
+    impl Drop for TestFile {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+
+    fn needle_matcher() -> Vec<RegexMatcher> {
+        vec![RegexMatcherBuilder::new()
+            .build("needle")
+            .expect("valid test regex")]
+    }
+
+    fn search(test_file: &TestFile, context_lines: usize) -> SearchBlock {
+        search_file(&test_file.path, &needle_matcher(), context_lines)
+            .expect("search_file should succeed")
+            .expect("test file always contains a needle match")
+    }
+
+    /// Parses one emitted context line into (line number, is match marker, text).
+    fn parse_context_line(line: &str) -> (usize, bool, &str) {
+        let separator = line
+            .find('|')
+            .unwrap_or_else(|| panic!("context line must contain '|': {line}"));
+        let number: usize = line[..separator]
+            .trim()
+            .parse()
+            .unwrap_or_else(|_| panic!("context line must start with its line number: {line}"));
+        let rest = &line[separator + 1..];
+        match rest.strip_prefix('>') {
+            Some(text) => (number, true, text),
+            None => (
+                number,
+                false,
+                rest.strip_prefix(' ').expect("context line must be '<n>| <text>'"),
+            ),
+        }
+    }
+
+    fn context_lines(block: &SearchBlock) -> Vec<(usize, bool, String)> {
+        block
+            .match_context
+            .lines()
+            .map(|line| {
+                let (number, is_match, text) = parse_context_line(line);
+                (number, is_match, text.to_string())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn match_at_file_start_keeps_real_line_numbers() {
+        let file = TestFile::write(20, &[1]);
+        let block = search(&file, 3);
+
+        let lines = context_lines(&block);
+        assert_eq!(
+            lines.iter().map(|entry| entry.0).collect::<Vec<_>>(),
+            vec![1, 2, 3, 4],
+            "clamped window at file start must still carry the true line numbers"
+        );
+        assert_eq!(lines[0], (1, true, "needle line 1".to_string()));
+        assert!(lines.iter().all(|entry| entry.0 >= 1));
+    }
+
+    #[test]
+    fn match_at_file_end_keeps_real_line_numbers() {
+        let file = TestFile::write(20, &[20]);
+        let block = search(&file, 3);
+
+        let lines = context_lines(&block);
+        assert_eq!(
+            lines.iter().map(|entry| entry.0).collect::<Vec<_>>(),
+            vec![17, 18, 19, 20]
+        );
+        assert_eq!(lines.last().unwrap().0, 20);
+        assert!(lines.last().unwrap().1, "final line must be marked as match");
+    }
+
+    #[test]
+    fn match_in_file_middle_keeps_symmetric_window() {
+        let file = TestFile::write(20, &[10]);
+        let block = search(&file, 3);
+
+        let lines = context_lines(&block);
+        assert_eq!(
+            lines.iter().map(|entry| entry.0).collect::<Vec<_>>(),
+            vec![7, 8, 9, 10, 11, 12, 13]
+        );
+        let match_entry = lines.iter().find(|entry| entry.1).expect("one match line");
+        assert_eq!(match_entry.0, 10);
+        assert_eq!(match_entry.2, "needle line 10");
+    }
+
+    #[test]
+    fn different_context_line_counts() {
+        let file = TestFile::write(20, &[10]);
+
+        let zero = context_lines(&search(&file, 0));
+        assert_eq!(zero.len(), 1);
+        assert_eq!(zero[0].0, 10);
+        assert!(zero[0].1);
+
+        let one = context_lines(&search(&file, 1));
+        assert_eq!(
+            one.iter().map(|entry| entry.0).collect::<Vec<_>>(),
+            vec![9, 10, 11]
+        );
+
+        let five = context_lines(&search(&file, 5));
+        assert_eq!(
+            five.iter().map(|entry| entry.0).collect::<Vec<_>>(),
+            (5..=15).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn merged_multi_match_block_marks_every_match_with_true_numbers() {
+        // Two matches whose context windows do not touch: the merged context is
+        // non-contiguous, which is exactly what broke center-based rendering.
+        let file = TestFile::write(30, &[2, 25]);
+        let block = search(&file, 1);
+
+        let lines = context_lines(&block);
+        assert_eq!(
+            lines.iter().map(|entry| entry.0).collect::<Vec<_>>(),
+            vec![1, 2, 3, 24, 25, 26]
+        );
+        let marked: Vec<usize> = lines
+            .iter()
+            .filter(|entry| entry.1)
+            .map(|entry| entry.0)
+            .collect();
+        assert_eq!(marked, vec![2, 25]);
+        assert_eq!(block.first_match_line, 2);
+        assert_eq!(block.match_count, 2);
+    }
+
+    #[test]
+    fn context_clipping_keeps_complete_numbered_lines() {
+        // 4000 chars fits roughly ten 400-char lines; with context 10 around a
+        // single match the 21-line window exceeds the budget and must clip at a
+        // line boundary so every retained line keeps a parseable number prefix.
+        let total_lines = 40;
+        let seq = TEMP_FILE_SEQ.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "operit_ripgrep_clip_test_{}_{}.txt",
+            std::process::id(),
+            seq
+        ));
+        let filler = "x".repeat(380);
+        let mut content = String::new();
+        for line_number in 1..=total_lines {
+            if line_number == 20 {
+                content.push_str(&format!("needle {filler} {line_number}\n"));
+            } else {
+                content.push_str(&format!("{filler} {line_number}\n"));
+            }
+        }
+        std::fs::write(&path, content).expect("write temp grep clip test file");
+        let file = TestFile { path };
+
+        let block = search(&file, 10);
+        let raw_lines: Vec<&str> = block.match_context.lines().collect();
+        assert_eq!(raw_lines.last(), Some(&"..."), "truncated context ends with marker");
+        for line in &raw_lines[..raw_lines.len() - 1] {
+            parse_context_line(line);
+        }
+        assert!(block.match_context.len() <= 4000 + "\n...".len());
+    }
 }
