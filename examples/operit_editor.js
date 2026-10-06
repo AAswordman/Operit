@@ -6,8 +6,8 @@
     en: "Operit Platform Editor"
   }
   description: {
-    zh: '''Operit 平台配置直改工具包：提供一组可直接读取与修改 Operit 平台设置的工具，覆盖 MCP、Skill、Sandbox Package、角色卡、功能模型绑定、模型参数、上下文总结与 TTS/STT 语音服务配置。'''
-    en: '''Direct Operit platform configuration toolkit: a collection of tools for reading and directly modifying Operit platform settings, covering MCP, Skill, Sandbox Package, character cards, function-model bindings, model parameters, context-summary settings, and TTS/STT speech-service configuration.'''
+    zh: '''Operit 平台配置直改工具包：提供一组可直接读取与修改 Operit 平台设置的工具，覆盖 MCP、Skill、Sandbox Package、全局工具权限模式、角色卡、功能模型绑定、模型参数、上下文总结与 TTS/STT 语音服务配置。'''
+    en: '''Direct Operit platform configuration toolkit: a collection of tools for reading and directly modifying Operit platform settings, covering MCP, Skill, Sandbox Package, global tool permission mode, character cards, function-model bindings, model parameters, context-summary settings, and TTS/STT speech-service configuration.'''
   }
 
   enabledByDefault: true
@@ -23,6 +23,7 @@
 - 用户提到 MCP/Skill 安装失败、无法启动、工具不出现、导入失败、重名冲突、配置文件怎么改
 - 用户提到沙盒包（Package）开关、内置包列表、导入删除路径、包启用状态异常
 - 用户让你排查 Operit 的插件配置路径、部署目录、开关状态、环境变量
+- 用户提到全局工具权限模式、允许/询问/拒绝，或需要临时调整后恢复
 - 用户提到功能模型绑定、模型配置新增/删除/修改、模型连接测试
 - 用户提到角色卡的新增、编辑、删除、激活、酒馆 JSON 导入或导出
 - 用户提到 TTS/STT 语音服务不会配置、参数太多不会填、语音播报/语音识别不可用
@@ -284,6 +285,7 @@
 - The user mentions MCP/Skill install failure, startup failure, tools not appearing, import failure, duplicate name conflicts, or config editing
 - The user mentions sandbox package toggles, built-in package listing, import/delete paths, or package enable-state issues
 - The user asks to troubleshoot plugin config paths, deploy directories, enable switches, or environment variables
+- The user mentions the global tool permission mode, allow/ask/forbid, or temporarily changing and restoring it
 - The user mentions function model bindings, adding/deleting/updating model configs, or testing model connectivity
 - The user says TTS/STT setup is confusing, too many fields to fill, or speech playback/recognition is not working
 - The core issue is configuration/deployment flow rather than normal Q&A
@@ -729,6 +731,32 @@
           description: {
             zh: "环境变量名"
             en: "Environment variable key"
+          }
+          type: string
+          required: true
+        }
+      ]
+    },
+    {
+      name: "get_tool_permission_mode"
+      description: {
+        zh: '''读取全局工具权限模式，返回 ALLOW、ASK 或 FORBID。'''
+        en: '''Read the global tool permission mode. The result is ALLOW, ASK, or FORBID.'''
+      }
+      parameters: []
+    },
+    {
+      name: "set_tool_permission_mode"
+      description: {
+        zh: '''设置全局工具权限模式。permission_level 只能是 ALLOW、ASK 或 FORBID；FORBID 后必须由用户从设置页恢复。'''
+        en: '''Set the global tool permission mode. permission_level must be ALLOW, ASK, or FORBID; after FORBID, the user must restore it from Settings.'''
+      }
+      parameters: [
+        {
+          name: "permission_level"
+          description: {
+            zh: "权限模式，只能填写 ALLOW、ASK 或 FORBID"
+            en: "Permission mode; only ALLOW, ASK, or FORBID is accepted"
           }
           type: string
           required: true
@@ -3275,6 +3303,41 @@ description: one-line summary of what this skill does
             });
         }
     }
+    async function get_tool_permission_mode() {
+        try {
+            const result = await Tools.SoftwareSettings.getToolPermissionMode();
+            complete({
+                success: true,
+                message: `Global tool permission mode: ${String(result.permissionLevel)}`,
+                data: result
+            });
+        }
+        catch (error) {
+            complete({
+                success: false,
+                message: get_error_message(error)
+            });
+        }
+    }
+    async function set_tool_permission_mode(params) {
+        try {
+            const permissionLevel = String(params?.permission_level ?? "").trim();
+            const result = await Tools.SoftwareSettings.setToolPermissionMode(permissionLevel);
+            complete({
+                success: true,
+                message: result.changed
+                    ? `Global tool permission mode changed to ${String(result.permissionLevel)}.`
+                    : `Global tool permission mode is already ${String(result.permissionLevel)}.`,
+                data: result
+            });
+        }
+        catch (error) {
+            complete({
+                success: false,
+                message: get_error_message(error)
+            });
+        }
+    }
     async function write_environment_variable(params) {
         try {
             const key = (params?.key ?? "").trim();
@@ -3931,6 +3994,8 @@ description: one-line summary of what this skill does
         debug_install_toolpkg,
         debug_run_sandbox_script,
         read_environment_variable,
+        get_tool_permission_mode,
+        set_tool_permission_mode,
         write_environment_variable,
         restart_mcp_with_logs,
         get_speech_services_config,
@@ -3966,6 +4031,8 @@ exports.debug_install_js_package = operitEditorPackage.debug_install_js_package;
 exports.debug_install_toolpkg = operitEditorPackage.debug_install_toolpkg;
 exports.debug_run_sandbox_script = operitEditorPackage.debug_run_sandbox_script;
 exports.read_environment_variable = operitEditorPackage.read_environment_variable;
+exports.get_tool_permission_mode = operitEditorPackage.get_tool_permission_mode;
+exports.set_tool_permission_mode = operitEditorPackage.set_tool_permission_mode;
 exports.write_environment_variable = operitEditorPackage.write_environment_variable;
 exports.restart_mcp_with_logs = operitEditorPackage.restart_mcp_with_logs;
 exports.get_speech_services_config = operitEditorPackage.get_speech_services_config;

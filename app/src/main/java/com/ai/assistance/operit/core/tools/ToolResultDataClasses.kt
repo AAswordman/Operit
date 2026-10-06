@@ -32,11 +32,21 @@ sealed class ToolResultData {
 data class BooleanResultData(val value: Boolean) : ToolResultData() {
     override fun toString(): String = value.toString()
 }
-
 @Serializable
 data class StringResultData(val value: String) : ToolResultData() {
     override fun toString(): String = value
 }
+
+@Serializable
+data class ToolPermissionModeResultData(
+        val permissionLevel: String,
+        val previousPermissionLevel: String? = null,
+        val changed: Boolean = false
+) : ToolResultData() {
+    // 让文本型工具调用也能直接看到当前权限模式。
+    override fun toString(): String = permissionLevel
+}
+
 
 @Serializable
 data class SleepResultData(
