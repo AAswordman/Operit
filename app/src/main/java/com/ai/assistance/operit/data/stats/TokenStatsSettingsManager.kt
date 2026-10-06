@@ -21,6 +21,20 @@ data class TokenStatsPriceDraft(
     val cacheWritePricePerMillion: Double? = null,
     val outputPricePerMillion: Double? = null,
     val pricePerRequest: Double? = null,
+    val peakPricingEnabled: Boolean = false,
+    val weekendOffPeakPricingEnabled: Boolean = true,
+    val holidayOffPeakPricingEnabled: Boolean = true,
+    val peakSchedule: List<TokenPeakTimeRange> = DEFAULT_TOKEN_PEAK_TIME_RANGES,
+    val peakInputMultiplier: Double = 1.0,
+    val peakCachedInputMultiplier: Double = 1.0,
+    val peakCacheWriteMultiplier: Double = 1.0,
+    val peakOutputMultiplier: Double = 1.0,
+    val longContextPricingEnabled: Boolean = false,
+    val longContextThreshold: Long? = null,
+    val longContextInputMultiplier: Double = 1.0,
+    val longContextCachedInputMultiplier: Double = 1.0,
+    val longContextCacheWriteMultiplier: Double = 1.0,
+    val longContextOutputMultiplier: Double = 1.0,
 )
 
 data class TokenStatsPriceSetting(
@@ -36,6 +50,20 @@ data class TokenStatsPriceSetting(
     val cacheWritePricePerMillion: Double?,
     val outputPricePerMillion: Double?,
     val pricePerRequest: Double?,
+    val peakPricingEnabled: Boolean?,
+    val weekendOffPeakPricingEnabled: Boolean?,
+    val holidayOffPeakPricingEnabled: Boolean?,
+    val peakSchedule: List<TokenPeakTimeRange>?,
+    val peakInputMultiplier: Double?,
+    val peakCachedInputMultiplier: Double?,
+    val peakCacheWriteMultiplier: Double?,
+    val peakOutputMultiplier: Double?,
+    val longContextPricingEnabled: Boolean?,
+    val longContextThreshold: Long?,
+    val longContextInputMultiplier: Double?,
+    val longContextCachedInputMultiplier: Double?,
+    val longContextCacheWriteMultiplier: Double?,
+    val longContextOutputMultiplier: Double?,
 )
 
 class TokenStatsSettingsManager(context: Context) {
@@ -48,6 +76,32 @@ class TokenStatsSettingsManager(context: Context) {
             "$name must be non-negative and finite, got $value"
         }
         return value
+    }
+
+    private fun validateMultiplier(name: String, value: Double): Double {
+        require(value.isFinite() && value >= 0.0) {
+            "$name must be non-negative and finite, got $value"
+        }
+        return value
+    }
+
+    private fun validateThreshold(enabled: Boolean, value: Long?): Long? {
+        if (value == null) {
+            require(!enabled) { "long context threshold is required when pricing is enabled" }
+            return null
+        }
+        require(value > 0L) { "long context threshold must be positive" }
+        return value
+    }
+
+    private fun encodePeakSchedule(
+        enabled: Boolean,
+        schedule: List<TokenPeakTimeRange>,
+    ): String {
+        require(!enabled || schedule.isNotEmpty()) {
+            "peak schedule is required when pricing is enabled"
+        }
+        return TokenPricingRules.encodePeakTimeRanges(schedule)
     }
 
     suspend fun savePrice(draft: TokenStatsPriceDraft) {
@@ -99,6 +153,50 @@ class TokenStatsSettingsManager(context: Context) {
                         } else {
                             null
                         },
+                    peakPricingEnabled = draft.peakPricingEnabled,
+                    weekendOffPeakPricingEnabled = draft.weekendOffPeakPricingEnabled,
+                    holidayOffPeakPricingEnabled = draft.holidayOffPeakPricingEnabled,
+                    peakScheduleJson = encodePeakSchedule(
+                        draft.peakPricingEnabled,
+                        draft.peakSchedule,
+                    ),
+                    peakInputMultiplier = validateMultiplier(
+                        "peakInputMultiplier",
+                        draft.peakInputMultiplier,
+                    ),
+                    peakCachedInputMultiplier = validateMultiplier(
+                        "peakCachedInputMultiplier",
+                        draft.peakCachedInputMultiplier,
+                    ),
+                    peakCacheWriteMultiplier = validateMultiplier(
+                        "peakCacheWriteMultiplier",
+                        draft.peakCacheWriteMultiplier,
+                    ),
+                    peakOutputMultiplier = validateMultiplier(
+                        "peakOutputMultiplier",
+                        draft.peakOutputMultiplier,
+                    ),
+                    longContextPricingEnabled = draft.longContextPricingEnabled,
+                    longContextThreshold = validateThreshold(
+                        draft.longContextPricingEnabled,
+                        draft.longContextThreshold,
+                    ),
+                    longContextInputMultiplier = validateMultiplier(
+                        "longContextInputMultiplier",
+                        draft.longContextInputMultiplier,
+                    ),
+                    longContextCachedInputMultiplier = validateMultiplier(
+                        "longContextCachedInputMultiplier",
+                        draft.longContextCachedInputMultiplier,
+                    ),
+                    longContextCacheWriteMultiplier = validateMultiplier(
+                        "longContextCacheWriteMultiplier",
+                        draft.longContextCacheWriteMultiplier,
+                    ),
+                    longContextOutputMultiplier = validateMultiplier(
+                        "longContextOutputMultiplier",
+                        draft.longContextOutputMultiplier,
+                    ),
                 )
             )
         }
@@ -156,7 +254,21 @@ internal fun TokenStatsModelEntity.hasPriceSetting(): Boolean =
         cachedInputPricePerMillion != null ||
         cacheWritePricePerMillion != null ||
         outputPricePerMillion != null ||
-        pricePerRequest != null
+        pricePerRequest != null ||
+        peakPricingEnabled != null ||
+        weekendOffPeakPricingEnabled != null ||
+        holidayOffPeakPricingEnabled != null ||
+        peakScheduleJson != null ||
+        peakInputMultiplier != null ||
+        peakCachedInputMultiplier != null ||
+        peakCacheWriteMultiplier != null ||
+        peakOutputMultiplier != null ||
+        longContextPricingEnabled != null ||
+        longContextThreshold != null ||
+        longContextInputMultiplier != null ||
+        longContextCachedInputMultiplier != null ||
+        longContextCacheWriteMultiplier != null ||
+        longContextOutputMultiplier != null
 
 internal fun TokenStatsModelEntity.toModelPriceSettings(): ModelPriceSettings =
     ModelPriceSettings(
@@ -167,6 +279,20 @@ internal fun TokenStatsModelEntity.toModelPriceSettings(): ModelPriceSettings =
         cacheWritePricePerMillion = cacheWritePricePerMillion,
         outputPricePerMillion = outputPricePerMillion,
         pricePerRequest = pricePerRequest,
+        peakPricingEnabled = peakPricingEnabled,
+        weekendOffPeakPricingEnabled = weekendOffPeakPricingEnabled,
+        holidayOffPeakPricingEnabled = holidayOffPeakPricingEnabled,
+        peakSchedule = peakScheduleJson?.let(TokenPricingRules::decodePeakTimeRanges),
+        peakInputMultiplier = peakInputMultiplier,
+        peakCachedInputMultiplier = peakCachedInputMultiplier,
+        peakCacheWriteMultiplier = peakCacheWriteMultiplier,
+        peakOutputMultiplier = peakOutputMultiplier,
+        longContextPricingEnabled = longContextPricingEnabled,
+        longContextThreshold = longContextThreshold,
+        longContextInputMultiplier = longContextInputMultiplier,
+        longContextCachedInputMultiplier = longContextCachedInputMultiplier,
+        longContextCacheWriteMultiplier = longContextCacheWriteMultiplier,
+        longContextOutputMultiplier = longContextOutputMultiplier,
     )
 
 private fun TokenStatsModelEntity.toPriceSetting(): TokenStatsPriceSetting {
@@ -185,5 +311,19 @@ private fun TokenStatsModelEntity.toPriceSetting(): TokenStatsPriceSetting {
         cacheWritePricePerMillion = cacheWritePricePerMillion,
         outputPricePerMillion = outputPricePerMillion,
         pricePerRequest = pricePerRequest,
+        peakPricingEnabled = peakPricingEnabled,
+        weekendOffPeakPricingEnabled = weekendOffPeakPricingEnabled,
+        holidayOffPeakPricingEnabled = holidayOffPeakPricingEnabled,
+        peakSchedule = peakScheduleJson?.let(TokenPricingRules::decodePeakTimeRanges),
+        peakInputMultiplier = peakInputMultiplier,
+        peakCachedInputMultiplier = peakCachedInputMultiplier,
+        peakCacheWriteMultiplier = peakCacheWriteMultiplier,
+        peakOutputMultiplier = peakOutputMultiplier,
+        longContextPricingEnabled = longContextPricingEnabled,
+        longContextThreshold = longContextThreshold,
+        longContextInputMultiplier = longContextInputMultiplier,
+        longContextCachedInputMultiplier = longContextCachedInputMultiplier,
+        longContextCacheWriteMultiplier = longContextCacheWriteMultiplier,
+        longContextOutputMultiplier = longContextOutputMultiplier,
     )
 }

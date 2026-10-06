@@ -3,6 +3,8 @@ package com.ai.assistance.operit.data.stats
 import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.dao.TokenUsageModelAggregateRow
 import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
+import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -156,6 +158,183 @@ class TokenCostCalculatorTest {
     }
 
     @Test
+    fun `request pricing applies long context before peak component multipliers`() {
+        val result = TokenCostCalculator.currentCost(
+            records = listOf(
+                TokenUsageRecordEntity(
+                    occurredAtMs = at("2026-08-03T10:00"),
+                    configId = "config",
+                    provider = "OPENAI",
+                    model = "gpt-test",
+                    requestCount = 1L,
+                    uncachedInputTokens = 1_000_000L,
+                    cachedInputTokens = 1_000_000L,
+                    cacheWriteTokens = 1_000_000L,
+                    totalInputTokens = 3_000_000L,
+                    outputTokens = 1_000_000L,
+                ),
+            ),
+            pricing = ResolvedTokenPricing(
+                billingMode = BillingMode.TOKEN,
+                currency = PricingCurrency.CNY,
+                inputPricePerMillion = 1.0,
+                cachedInputPricePerMillion = 1.0,
+                cacheWritePricePerMillion = 1.0,
+                outputPricePerMillion = 1.0,
+                pricePerRequest = 0.0,
+                peakPricingEnabled = true,
+                peakInputMultiplier = 3.0,
+                peakCachedInputMultiplier = 3.0,
+                peakCacheWriteMultiplier = 3.0,
+                peakOutputMultiplier = 3.0,
+                longContextPricingEnabled = true,
+                longContextThreshold = 2_000_000L,
+                longContextInputMultiplier = 2.0,
+                longContextCachedInputMultiplier = 1.5,
+                longContextCacheWriteMultiplier = 1.5,
+                longContextOutputMultiplier = 1.5,
+                source = PricingSource.USER,
+            ),
+            targetCurrency = PricingCurrency.CNY,
+            usdToCnyRate = 7.0,
+        )
+
+        assertEquals(19.5, result.knownAmount, 1e-12)
+        assertEquals(0L, result.unknownContributionCount)
+    }
+
+    @Test
+    fun `long context threshold includes output tokens`() {
+        val result = TokenCostCalculator.currentCost(
+            records = listOf(
+                TokenUsageRecordEntity(
+                    occurredAtMs = at("2026-08-03T13:00"),
+                    configId = "config",
+                    provider = "OPENAI",
+                    model = "gpt-test",
+                    requestCount = 1L,
+                    uncachedInputTokens = 1_000_000L,
+                    cachedInputTokens = 1_000_000L,
+                    cacheWriteTokens = 10_000_000L,
+                    totalInputTokens = 2_000_000L,
+                    outputTokens = 1_000_000L,
+                ),
+            ),
+            pricing = tokenPricing().copy(
+                longContextPricingEnabled = true,
+                longContextThreshold = 2_500_000L,
+                longContextInputMultiplier = 2.0,
+                longContextCachedInputMultiplier = 1.0,
+                longContextCacheWriteMultiplier = 1.0,
+                longContextOutputMultiplier = 1.0,
+            ),
+            targetCurrency = PricingCurrency.USD,
+            usdToCnyRate = 7.0,
+        )
+
+        assertEquals(4.5, result.knownAmount, 1e-12)
+    }
+
+    @Test
+    fun `count pricing ignores token-only advanced rules`() {
+        val result = TokenCostCalculator.currentCost(
+            records = listOf(
+                TokenUsageRecordEntity(
+                    occurredAtMs = at("2026-08-03T10:00"),
+                    configId = "config",
+                    provider = "OPENAI",
+                    model = "gpt-test",
+                    requestCount = 2L,
+                ),
+            ),
+            pricing = ResolvedTokenPricing(
+                billingMode = BillingMode.COUNT,
+                currency = PricingCurrency.CNY,
+                inputPricePerMillion = 0.0,
+                cachedInputPricePerMillion = 0.0,
+                cacheWritePricePerMillion = 0.0,
+                outputPricePerMillion = 0.0,
+                pricePerRequest = 0.25,
+                peakPricingEnabled = true,
+                peakInputMultiplier = 3.0,
+                longContextPricingEnabled = true,
+                longContextThreshold = 1L,
+                longContextInputMultiplier = 2.0,
+                source = PricingSource.USER,
+            ),
+            targetCurrency = PricingCurrency.CNY,
+            usdToCnyRate = 7.0,
+        )
+
+        assertEquals(0.5, result.knownAmount, 1e-12)
+        assertEquals(0L, result.unknownContributionCount)
+    }
+
+    @Test
+    fun `request aggregates do not receive request-level multipliers`() {
+        val result = TokenCostCalculator.currentCost(
+            records = listOf(
+                TokenUsageRecordEntity(
+                    occurredAtMs = at("2026-08-03T10:00"),
+                    configId = "config",
+                    provider = "OPENAI",
+                    model = "gpt-test",
+                    requestCount = 2L,
+                    uncachedInputTokens = 1_000_000L,
+                    cachedInputTokens = 0L,
+                    cacheWriteTokens = 0L,
+                    totalInputTokens = 1_000_000L,
+                    outputTokens = 1_000_000L,
+                ),
+            ),
+            pricing = tokenPricing().copy(
+                peakPricingEnabled = true,
+                peakInputMultiplier = 3.0,
+                peakOutputMultiplier = 3.0,
+            ),
+            targetCurrency = PricingCurrency.USD,
+            usdToCnyRate = 7.0,
+        )
+
+        assertEquals(3.0, result.knownAmount, 1e-12)
+        assertEquals(0L, result.unknownContributionCount)
+        assertEquals(2L, result.totalContributionCount)
+    }
+
+    @Test
+    fun `zero multiplier makes a priced component free`() {
+        val result = TokenCostCalculator.currentCost(
+            records = listOf(
+                TokenUsageRecordEntity(
+                    occurredAtMs = at("2026-08-03T10:00"),
+                    configId = "config",
+                    provider = "OPENAI",
+                    model = "gpt-test",
+                    requestCount = 1L,
+                    uncachedInputTokens = 1_000_000L,
+                    cachedInputTokens = 0L,
+                    cacheWriteTokens = 0L,
+                    totalInputTokens = 1_000_000L,
+                    outputTokens = 1_000_000L,
+                ),
+            ),
+            pricing = tokenPricing().copy(
+                peakPricingEnabled = true,
+                peakInputMultiplier = 0.0,
+                peakCachedInputMultiplier = 0.0,
+                peakCacheWriteMultiplier = 0.0,
+                peakOutputMultiplier = 0.0,
+            ),
+            targetCurrency = PricingCurrency.USD,
+            usdToCnyRate = 7.0,
+        )
+
+        assertEquals(0.0, result.knownAmount, 0.0)
+        assertEquals(0L, result.unknownContributionCount)
+        assertEquals(1L, result.totalContributionCount)
+    }
+
+    @Test
     fun `currency conversion uses configured rate`() {
         assertEquals(
             70.0,
@@ -184,6 +363,12 @@ class TokenCostCalculatorTest {
         assertEquals(Long.MAX_VALUE, TokenCostCalculator.saturatedAdd(Long.MAX_VALUE, 1L))
         assertEquals(7L, TokenCostCalculator.saturatedAdd(3L, 4L))
     }
+
+    private fun at(value: String): Long =
+        LocalDateTime.parse(value)
+            .atZone(TokenPricingRules.PRICING_ZONE)
+            .toInstant()
+            .toEpochMilli()
 
     private fun tokenPricing(
         inputPricePerMillion: Double = 1.0,

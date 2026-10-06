@@ -401,7 +401,6 @@ private fun TokenStatsModelDetailsSection(
             initialDraft = target.draft,
             configurationName = target.configurationName,
             onSave = onSavePrice,
-            onDelete = target.existing?.let { setting -> { onDeletePrice(setting) } },
             onDismiss = { priceEditor = null },
         )
     }
