@@ -1,6 +1,9 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
+import com.ai.assistance.operit.data.resources.ManagedResourceFiles
+import com.ai.assistance.operit.data.resources.PrivateResourceCleanup
+import com.ai.assistance.operit.util.AppLogger
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -737,7 +740,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
     
     suspend fun saveAiAvatarForCharacterCard(characterCardId: String, avatarUri: String?) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = getCharacterCardThemePrefix(characterCardId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             if (avatarUri != null) {
@@ -757,7 +760,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     suspend fun saveAiAvatarForCharacterGroup(characterGroupId: String, avatarUri: String?) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = getCharacterGroupThemePrefix(characterGroupId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             if (avatarUri != null) {
@@ -1052,7 +1055,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         target: ActivePrompt,
         values: ThemePreferenceValues,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = themePrefixForPrompt(target)
             writeVisualThemeValues(preferences, prefix, values)
             writeThemeTargetMetadata(preferences, prefix, values)
@@ -1063,7 +1066,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         target: ActivePrompt,
         transform: (ThemePreferenceValues) -> ThemePreferenceValues,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = themePrefixForPrompt(target)
             val values = transform(readThemePreferenceValues(preferences, prefix))
             writeVisualThemeValues(preferences, prefix, values)
@@ -1075,7 +1078,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         target: ActivePrompt,
         values: ThemePreferenceValues,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = themePrefixForPrompt(target)
             clearVisualThemeValues(preferences, prefix)
             writeThemeTargetMetadata(preferences, prefix, values)
@@ -1083,7 +1086,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private suspend fun cloneThemeBetweenPrefixes(sourcePrefix: String, targetPrefix: String) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             copyThemeValues(
                 preferences,
                 sourcePrefix,
@@ -1094,7 +1097,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private suspend fun deleteThemeByPrefix(prefix: String) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             getAllStringThemeKeys().forEach { key ->
                 preferences.remove(stringPreferencesKey("${prefix}${key.name}"))
             }
@@ -1151,7 +1154,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         activeCharacterCardId: String?,
         defaultCharacterWasCreated: Boolean,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val defaultPrefix = getCharacterCardThemePrefix(CharacterCardManager.DEFAULT_CHARACTER_CARD_ID)
             val shouldMigrate = ThemeScopeMigrationPolicy.shouldCopyLegacyThemeToDefaultCharacter(
                 migrationCompleted = preferences[CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED] ?: false,
@@ -1244,4 +1247,22 @@ class UserPreferencesManager private constructor(private val context: Context) {
             characterGroupId = characterGroupId,
         ).first()
     }
+
+    internal suspend fun storedResourceReferences(): Set<String> {
+        val preferences = context.userPreferencesDataStore.data.first()
+        return ManagedResourceFiles.references(preferences.asMap().mapKeys { it.key.name })
+    }
+
+    private suspend fun editResourcePreferences(
+        transform: suspend (MutablePreferences) -> Unit,
+    ): Preferences = PrivateResourceCleanup.update(
+        filesDir = context.filesDir,
+        readReferences = { storedResourceReferences() },
+        persist = { context.userPreferencesDataStore.edit(transform) },
+        readAllReferences = {
+            storedResourceReferences() +
+                DisplayPreferencesManager.getInstance(context).storedResourceReferences()
+        },
+        onCleanupFailure = { AppLogger.w("PrivateResourceCleanup", "清理已替换的私有资源失败", it) },
+    )
 }

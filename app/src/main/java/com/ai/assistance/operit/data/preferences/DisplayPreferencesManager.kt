@@ -1,7 +1,11 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
+import com.ai.assistance.operit.data.resources.ManagedResourceFiles
+import com.ai.assistance.operit.data.resources.PrivateResourceCleanup
+import com.ai.assistance.operit.util.AppLogger
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -228,7 +232,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         virtualDisplayBitrateKbps: Int? = null,
         toolCollapseMode: ToolCollapseMode? = null
     ) {
-        context.displayPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             showFpsCounter?.let { preferences[KEY_SHOW_FPS_COUNTER] = it }
             enableReplyNotification?.let { preferences[KEY_ENABLE_REPLY_NOTIFICATION] = it }
             enableReplyNotificationSound?.let {
@@ -313,7 +317,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
      * 重置所有显示设置为默认值
      */
     suspend fun resetDisplaySettings() {
-        context.displayPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             preferences[KEY_SHOW_FPS_COUNTER] = false
             preferences[KEY_ENABLE_REPLY_NOTIFICATION] = true
             preferences[KEY_ENABLE_REPLY_NOTIFICATION_SOUND] = false
@@ -335,4 +339,22 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences.remove(KEY_TOOL_COLLAPSE_MODE)
         }
     }
+
+    internal suspend fun storedResourceReferences(): Set<String> {
+        val preferences = context.displayPreferencesDataStore.data.first()
+        return ManagedResourceFiles.references(preferences.asMap().mapKeys { it.key.name })
+    }
+
+    private suspend fun editResourcePreferences(
+        transform: suspend (MutablePreferences) -> Unit,
+    ): Preferences = PrivateResourceCleanup.update(
+        filesDir = context.filesDir,
+        readReferences = { storedResourceReferences() },
+        persist = { context.displayPreferencesDataStore.edit(transform) },
+        readAllReferences = {
+            storedResourceReferences() +
+                UserPreferencesManager.getInstance(context).storedResourceReferences()
+        },
+        onCleanupFailure = { AppLogger.w("PrivateResourceCleanup", "清理已替换的私有资源失败", it) },
+    )
 }

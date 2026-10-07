@@ -165,7 +165,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
             hasMemberRosterChanged(existingGroup, normalizedGroup) &&
                 isManagedDefaultGroupAvatar(previousAvatarUri, group.id)
         if (shouldRegenerateDefaultAvatar) {
-            regenerateDefaultAvatarForGroup(normalizedGroup, previousAvatarUri)
+            regenerateDefaultAvatarForGroup(normalizedGroup)
         }
     }
 
@@ -356,10 +356,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
         return fileName.startsWith("group_avatar_${groupId}_") && fileName.endsWith(".png")
     }
 
-    private suspend fun regenerateDefaultAvatarForGroup(
-        group: CharacterGroupCard,
-        previousAvatarUri: String?
-    ) {
+    private suspend fun regenerateDefaultAvatarForGroup(group: CharacterGroupCard) {
         runCatching {
             val newAvatarUri = buildDefaultGroupAvatar(group)
             ActivePromptManager.getInstance(context).saveAiAvatarForPrompt(
@@ -367,12 +364,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
                 newAvatarUri,
             )
 
-            if (!previousAvatarUri.isNullOrBlank() && previousAvatarUri != newAvatarUri) {
-                val oldUri = Uri.parse(previousAvatarUri)
-                if (oldUri.scheme?.lowercase() == "file") {
-                    runCatching { File(oldUri.path ?: "").delete() }
-                }
-            }
         }
     }
 

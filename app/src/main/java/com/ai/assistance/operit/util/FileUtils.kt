@@ -4,12 +4,11 @@ import android.content.Context
 import android.net.Uri
 import com.ai.assistance.operit.util.AppLogger
 import android.webkit.MimeTypeMap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
 import java.util.UUID
 
 object FileUtils {
@@ -294,41 +293,32 @@ object FileUtils {
      * @return The URI of the copied file in internal storage, or null on failure.
      */
     suspend fun copyFileToInternalStorage(context: Context, uri: Uri, uniqueName: String): Uri? = withContext(Dispatchers.IO) {
-        var inputStream: InputStream? = null
-        var outputStream: FileOutputStream? = null
+        var copiedFile: File? = null
         try {
-            inputStream = context.contentResolver.openInputStream(uri)
+            val inputStream = context.contentResolver.openInputStream(uri)
             if (inputStream == null) {
                 AppLogger.e("FileUtils", "Failed to open input stream for URI: $uri")
                 return@withContext null
             }
-
-            // 获取原始文件的扩展名
-            val originalExtension = getFileExtensionFromUri(context, uri) ?: "dat"
-            
-            // Use the unique name to create a distinct file with correct extension
-            val file = File(context.filesDir, "${uniqueName}_${UUID.randomUUID()}.${originalExtension}")
-            outputStream = FileOutputStream(file)
-
-            val buffer = ByteArray(4 * 1024) // 4K buffer
-            var read: Int
-            while (inputStream.read(buffer).also { read = it } != -1) {
-                outputStream.write(buffer, 0, read)
+            inputStream.use { input ->
+                val originalExtension = getFileExtensionFromUri(context, uri) ?: "dat"
+                val file = File(context.filesDir, "${uniqueName}_${UUID.randomUUID()}.${originalExtension}")
+                copiedFile = file
+                file.outputStream().use { output -> input.copyTo(output, 4 * 1024) }
             }
-            outputStream.flush()
-            
+            val file = checkNotNull(copiedFile)
             AppLogger.d("FileUtils", "File copied successfully to internal storage: ${file.absolutePath}")
-            return@withContext Uri.fromFile(file)
+            Uri.fromFile(file)
         } catch (e: Exception) {
-            AppLogger.e("FileUtils", "Error copying file to internal storage", e)
-            return@withContext null
-        } finally {
-            try {
-                inputStream?.close()
-                outputStream?.close()
-            } catch (e: Exception) {
-                AppLogger.e("FileUtils", "Error closing streams", e)
+            // 复制失败只清理本次生成的半成品，已保存的旧资源继续由配置持有。
+            copiedFile?.let { file ->
+                if (file.exists() && !file.delete()) {
+                    AppLogger.w("FileUtils", "清理复制失败的资源文件失败: ${file.absolutePath}")
+                }
             }
+            if (e is CancellationException) throw e
+            AppLogger.e("FileUtils", "Error copying file to internal storage", e)
+            null
         }
     }
     
