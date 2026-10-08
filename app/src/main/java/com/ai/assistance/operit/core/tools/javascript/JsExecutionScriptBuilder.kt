@@ -827,6 +827,10 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                             return Promise.reject(new Error('ToolPkg.ipc channel is required'));
                         }
                         var callOptions = options && typeof options === 'object' ? options : {};
+                        var timeoutSec = null;
+                        if (callOptions.timeoutMs !== undefined && callOptions.timeoutMs !== null && callOptions.timeoutMs !== '') {
+                            timeoutSec = Math.max(1, Math.ceil((Number(callOptions.timeoutMs) || 0) / 1000));
+                        }
                         var targetRuntime = text(callOptions.targetRuntime || '').trim().toLowerCase();
                         if (
                             targetRuntime &&
@@ -980,15 +984,28 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                                 );
                             };
                             try {
-                                NativeInterface.invokeToolPkgIpcAsync(
-                                    callbackId,
-                                    packageTarget,
-                                    currentContextKey,
-                                    targetContextKey,
-                                    targetRuntime,
-                                    normalizedChannel,
-                                    payloadJson
-                                );
+                                if (timeoutSec !== null) {
+                                    NativeInterface.invokeToolPkgIpcAsync(
+                                        callbackId,
+                                        packageTarget,
+                                        currentContextKey,
+                                        targetContextKey,
+                                        targetRuntime,
+                                        normalizedChannel,
+                                        payloadJson,
+                                        timeoutSec
+                                    );
+                                } else {
+                                    NativeInterface.invokeToolPkgIpcAsync(
+                                        callbackId,
+                                        packageTarget,
+                                        currentContextKey,
+                                        targetContextKey,
+                                        targetRuntime,
+                                        normalizedChannel,
+                                        payloadJson
+                                    );
+                                }
                             } catch (error) {
                                 try {
                                     delete root[callbackId];

@@ -1340,7 +1340,11 @@ export async function onQQBotAutoReplyApplicationCreate(): Promise<QQBotLifecycl
                 });
             }
             await stopAutoReplyLoopInternal("manual_stop");
-            await stopQQBotServiceInternalAsync(8000);
+            try {
+                await stopQQBotServiceInternalAsync(8000);
+            } catch (stopError: unknown) {
+                console.error(`[qqbot_auto_reply] stop leftover gateway on create failed: ${safeErrorMessage(stopError)}`);
+            }
         } else {
             await ensureQQBotServiceStarted({
                 allow_missing_config: true,
