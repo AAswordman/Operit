@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.enhance
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
@@ -707,9 +708,7 @@ class ConversationService(
     }
 
     private fun extractApplyFileRequestContent(toolResultBody: String): String? {
-        val contentBody =
-            ChatMarkupRegex.contentTag.find(toolResultBody)?.groupValues?.getOrNull(1)
-                ?: toolResultBody
+        val contentBody = ToolResultMarkup.contentFromBody(toolResultBody)
 
         return fileRequestContentRegex.find(contentBody)?.groupValues?.getOrNull(1)?.trim()
     }

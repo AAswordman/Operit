@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.util
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -154,13 +155,11 @@ class ChatMarkupRegexTest {
         assertEquals("body", match.groupValues[4])
     }
 
-    @Test fun xmlToolResultPattern_extractsContentAndStatus() {
-        val match = ChatMarkupRegex.xmlToolResultPattern.find(
-            "<tool_result name=\"run\" status=\"ok\"><content>done</content></tool_result>"
-        )
+    @Test fun toolResultBlock_keepsContentAndStatus() {
+        val xml = "<tool_result name=\"run\" status=\"ok\"><content>done</content></tool_result>"
+        val match = ChatMarkupRegex.toolResultTagWithAttrs.matchEntire(xml)
         assertNotNull(match)
-        assertEquals("run", match!!.groupValues[2])
-        assertEquals("ok", match.groupValues[3])
-        assertEquals("done", match.groupValues[4])
+        assertEquals("ok", ChatMarkupRegex.statusAttr.find(match!!.groupValues[2])!!.groupValues[1])
+        assertEquals("done", ToolResultMarkup.contentFromBlock(xml))
     }
 }

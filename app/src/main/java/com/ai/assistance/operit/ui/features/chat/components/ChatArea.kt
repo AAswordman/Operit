@@ -86,6 +86,8 @@ import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.AiReference
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 
@@ -123,53 +125,40 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * 清理复制文本中的内部标记，保留Markdown格式和纯文本内容
- */
-internal fun cleanMessageContentForCopy(content: String): String {
-    return content
-        // Provider元数据必须保留在消息中供后续轮次使用，但不能暴露在复制内容中
-        .let(ChatMarkupRegex::removeGeminiThoughtSignatureMeta)
-        .let(ChatMarkupRegex::removeOpenAiResponsesProtocolMeta)
-        // 移除状态标签
-        .replace(ChatMarkupRegex.statusTag, "")
-        .replace(ChatMarkupRegex.statusSelfClosingTag, "")
-        // 移除思考标签（包括 <think> 和 <thinking>）
-        .replace(ChatMarkupRegex.thinkTag, "")
-        .replace(ChatMarkupRegex.thinkSelfClosingTag, "")
-        // 移除搜索来源标签
-        .replace(ChatMarkupRegex.searchTag, "")
-        .replace(ChatMarkupRegex.searchSelfClosingTag, "")
-        // 移除工具标签
-        .replace(ChatMarkupRegex.toolTag, "")
-        .replace(ChatMarkupRegex.toolSelfClosingTag, "")
-        // 移除工具结果标签
-        .replace(ChatMarkupRegex.toolResultTag, "")
-        .replace(ChatMarkupRegex.toolResultSelfClosingTag, "")
-        // 移除emotion标签
+/** 按已有片段分类提取正文，避免工具结果中的标签示例改变复制边界。 */
+internal fun cleanMessageContentForCopy(sections: List<MessageSection>): String {
+    return sections.filterIsInstance<MessageSection.Text>()
+        .joinToString(separator = "") { it.content }
+        // 移除正文中的附件、情绪和媒体内部标记，保留 Markdown 与字面代码示例。
         .replace(ChatMarkupRegex.emotionTag, "")
-        // 移除附件与工作区上下文
         .replace(ChatMarkupRegex.workspaceAttachmentTag, "")
         .replace(ChatMarkupRegex.attachmentTag, "")
         .replace(ChatMarkupRegex.attachmentSelfClosingTag, "")
-        // 移除多媒体链接标签
         .let(MediaLinkParser::removeImageLinks)
         .let(MediaLinkParser::removeMediaLinks)
         .trim()
 }
 
-/** 保留结构化标记用于复制，同时移除供应商协议元数据。 */
-internal fun cleanMessageContentForXmlCopy(content: String): String {
-    return content
-        .let(ChatMarkupRegex::removeGeminiThoughtSignatureMeta)
-        .let(ChatMarkupRegex::removeOpenAiResponsesProtocolMeta)
-        .trim()
+/** XML 源沿用原片段边界，保留工具标记并移除供应商协议元数据。 */
+internal fun cleanMessageContentForXmlCopy(sections: List<MessageSection>): String {
+    return MessageSectionCodec.render(
+        sections.filterNot { it is MessageSection.Protocol }
+    ).trim()
 }
 
 internal data class MessageCopyContent(
     val markdownSource: String,
     val xmlSource: String,
 )
+
+/** 复制与聊天展示使用相同的协议过滤，原始 sections 继续供保存和后续请求使用。 */
+internal fun buildMessageCopyContent(message: ChatMessage): MessageCopyContent {
+    val visibleSections = message.displaySections()
+    return MessageCopyContent(
+        markdownSource = cleanMessageContentForCopy(visibleSections),
+        xmlSource = cleanMessageContentForXmlCopy(visibleSections),
+    )
+}
 
 internal suspend fun buildSelectedMessagesPlainText(
     messages: List<ChatMessage>,
@@ -179,7 +168,7 @@ internal suspend fun buildSelectedMessagesPlainText(
         .filter { message -> message.sender == "user" || message.sender == "ai" }
         .filterNot(::isHiddenUserPlaceholder)
         .mapNotNull { message ->
-            markdownToPlainText(cleanMessageContentForCopy(message.content))
+            markdownToPlainText(buildMessageCopyContent(message).markdownSource)
                 .trim()
                 .takeIf(String::isNotEmpty)
         }
@@ -831,10 +820,7 @@ private fun MessageItem(
                         )
                     },
                     onClick = {
-                        copyPreviewContent = MessageCopyContent(
-                            markdownSource = cleanMessageContentForCopy(message.content),
-                            xmlSource = cleanMessageContentForXmlCopy(message.content),
-                        )
+                        copyPreviewContent = buildMessageCopyContent(message)
                         onCopyMessage?.invoke(message)
                         showContextMenu = false
                     },

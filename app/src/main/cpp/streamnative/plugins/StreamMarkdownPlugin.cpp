@@ -42,13 +42,9 @@ struct PrefixMatcher {
 inline bool isDigit(char16_t c) { return c >= u'0' && c <= u'9'; }
 }
 
-// --- Fenced code block ---
+// 代码围栏记录字符和开始长度，避免另一种围栏或较短围栏提前闭合。
 StreamMarkdownFencedCodeBlockPlugin::StreamMarkdownFencedCodeBlockPlugin(bool includeFences)
-        : includeFences_(includeFences),
-          state_(PluginState::IDLE),
-          fenceLen_(0),
-          isMatchingEndFence_(false),
-          hasStartedMatchingFence_(false) {
+        : includeFences_(includeFences) {
     reset();
 }
 
@@ -62,6 +58,10 @@ bool StreamMarkdownFencedCodeBlockPlugin::initPlugin() {
 void StreamMarkdownFencedCodeBlockPlugin::reset() {
     state_ = PluginState::IDLE;
     fenceLen_ = 0;
+    openingFenceLen_ = 0;
+    fenceChar_ = 0;
+    readingOpeningFence_ = false;
+    endFenceWhitespace_ = false;
     isMatchingEndFence_ = false;
     hasStartedMatchingFence_ = false;
 }
@@ -71,91 +71,63 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
         if (atStartOfLine) {
             isMatchingEndFence_ = true;
             hasStartedMatchingFence_ = false;
-        }
-
-        if (isMatchingEndFence_) {
-            if (!hasStartedMatchingFence_) {
-                if (c == u' ') {
-                    return includeFences_;
-                }
-                hasStartedMatchingFence_ = true;
-            }
-
-            if (c == u'`') {
-                fenceLen_ += 1;
-                return includeFences_;
-            }
-
-            if (c == u'\n') {
-                // line ended; only close if we matched at least 3 backticks
-                if (fenceLen_ >= 3) {
-                    reset();
-                    return includeFences_;
-                }
-                // not end fence
-                isMatchingEndFence_ = false;
-                fenceLen_ = 0;
-                return true;
-            }
-
-            // non-backtick breaks end fence attempt
-            isMatchingEndFence_ = false;
+            endFenceWhitespace_ = false;
             fenceLen_ = 0;
-            return true;
         }
-
-        return true;
-    }
-
-    // IDLE/TRYING: detect opening fence of 3+ backticks (doesn't require SOL in Kotlin)
-    if (state_ == PluginState::IDLE) {
-        if (c == u'`') {
-            state_ = PluginState::TRYING;
-            fenceLen_ = 1;
+        if (!isMatchingEndFence_) return true;
+        if (!hasStartedMatchingFence_ && c == u' ') return includeFences_;
+        hasStartedMatchingFence_ = true;
+        if (c == fenceChar_ && !endFenceWhitespace_) {
+            ++fenceLen_;
             return includeFences_;
         }
-        (void)atStartOfLine;
-        return true;
-    }
-
-    if (state_ == PluginState::TRYING) {
-        if (c == u'`') {
-            fenceLen_ += 1;
-            return includeFences_;
-        }
-
-        // We only keep TRYING across the rest of the opening line after we have
-        // already seen 3+ consecutive backticks. This matches the Kotlin KMP pattern.
         if (c == u'\n') {
-            if (fenceLen_ >= 3) {
-                state_ = PluginState::PROCESSING;
-                isMatchingEndFence_ = false;
-                hasStartedMatchingFence_ = false;
-                fenceLen_ = 0;
+            if (fenceLen_ >= openingFenceLen_) {
+                reset();
                 return includeFences_;
             }
-            reset();
+            isMatchingEndFence_ = false;
             return true;
         }
-
-        if (fenceLen_ < 3) {
-            // Not a fenced code block; stop trying immediately so inline/backtick runs
-            // don't accidentally accumulate into a fake 3+ fence.
-            reset();
-            return true;
+        if ((c == u' ' || c == u'\t' || c == u'\r') && fenceLen_ >= openingFenceLen_) {
+            endFenceWhitespace_ = true;
+            return includeFences_;
         }
-
-        // still in opening line (language id etc)
+        isMatchingEndFence_ = false;
+        return true;
+    }
+    if (state_ == PluginState::IDLE) {
+        if (c == u'`' || c == u'~') {
+            state_ = PluginState::TRYING;
+            fenceChar_ = c;
+            fenceLen_ = 1;
+            readingOpeningFence_ = true;
+            return includeFences_;
+        }
+        return true;
+    }
+    if (readingOpeningFence_ && c == fenceChar_) {
+        ++fenceLen_;
         return includeFences_;
     }
-
-    (void)atStartOfLine;
-    return true;
+    if (fenceLen_ < 3) {
+        reset();
+        return true;
+    }
+    readingOpeningFence_ = false;
+    if (c == u'\n') {
+        openingFenceLen_ = fenceLen_;
+        fenceLen_ = 0;
+        state_ = PluginState::PROCESSING;
+        isMatchingEndFence_ = false;
+    }
+    return includeFences_;
 }
 
 // --- Inline code ---
-StreamMarkdownInlineCodePlugin::StreamMarkdownInlineCodePlugin(bool includeTicks)
-        : includeTicks_(includeTicks), state_(PluginState::IDLE), tickLen_(0), endMatch_(0) {
+StreamMarkdownInlineCodePlugin::StreamMarkdownInlineCodePlugin(bool includeTicks, bool deferFences)
+        : includeTicks_(includeTicks), deferFences_(deferFences),
+          state_(PluginState::IDLE), tickLen_(0), endMatch_(0) {
     reset();
 }
 
@@ -199,15 +171,20 @@ bool StreamMarkdownInlineCodePlugin::processChar(char16_t c, bool /*atStartOfLin
             return includeTicks_;
         }
         if (state_ == PluginState::TRYING) {
-            // Kotlin start matcher is ` + noneOf('`','\n'), so a second backtick immediately fails.
-            reset();
-            return true;
+            // 连续反引号属于同一个开始分隔符，不能在中间重启匹配。
+            ++tickLen_;
+            return includeTicks_;
         }
     }
 
     if (state_ == PluginState::TRYING) {
         // need a non-tick, non-newline char to confirm start
         if (c != u'`' && c != u'\n') {
+            // 块级解析把三字符以上的开始行留给围栏插件；内联阶段仍解析代码正文。
+            if (deferFences_ && tickLen_ >= 3) {
+                reset();
+                return true;
+            }
             state_ = PluginState::PROCESSING;
             endMatch_ = 0;
             return true;

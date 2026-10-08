@@ -73,11 +73,6 @@ object ChatMarkupRegex {
         "<status\\s+type=\"([^\"]+)\"(?:\\s+uuid=\"([^\"]+)\")?(?:\\s+title=\"([^\"]+)\")?(?:\\s+subtitle=\"([^\"]+)\")?>([\\s\\S]*?)</status>"
     )
 
-    val xmlToolResultPattern = Regex(
-        """<($TOOL_RESULT_TAG_NAME_REGEX_SOURCE)\b[^>]*name="([^"]+)"[^>]*status="([^"]+)"[^>]*>\s*<content>([\s\S]*?)</content>\s*</\1>""",
-        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
-    )
-
     val xmlToolRequestPattern = Regex(
         """<($TOOL_TAG_NAME_REGEX_SOURCE)\b[^>]*name="([^"]+)"(?:\s+description="([^"]+)")?[^>]*>([\s\S]*?)</\1>""",
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
@@ -104,11 +99,6 @@ object ChatMarkupRegex {
 
     val uuidAttr = Regex("uuid\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
 
-    val contentTag = Regex(
-        "<content>([\\s\\S]*?)</content>",
-        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
-    )
-
     val errorTag = Regex(
         "<error>([\\s\\S]*?)</error>",
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
@@ -125,12 +115,12 @@ object ChatMarkupRegex {
     )
 
     val thinkTag = Regex(
-        "<think(?:ing)?\\b[\\s\\S]*?</think(?:ing)?>",
+        "<(?:think(?:ing)?)\\b[\\s\\S]*?</(?:think(?:ing)?)>",
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
     )
 
     val thinkSelfClosingTag = Regex(
-        "<think(?:ing)?\\b[^>]*/>",
+        "<(?:think(?:ing)?)\\b[^>]*/>",
         RegexOption.IGNORE_CASE
     )
 

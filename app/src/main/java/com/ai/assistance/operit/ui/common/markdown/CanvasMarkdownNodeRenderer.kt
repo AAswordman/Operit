@@ -585,22 +585,13 @@ private fun renderNodeContent(
         
         // ========== 代码块：保留原组件 ==========
         MarkdownProcessorType.CODE_BLOCK -> {
-            val codeLines = content.trimAll().lines()
-            val firstLine = codeLines.firstOrNull() ?: ""
-            val language = if (firstLine.startsWith("```")) {
-                firstLine.removePrefix("```").trim()
-            } else ""
-            
-            val codeContent = codeLines
-                .dropWhile { it.startsWith("```") }
-                .dropLastWhile { it.endsWith("```") }
-                .joinToString("\n")
-            
+            val codeBlock = extractFencedCodeBlockContent(content)
+
             // 不使用 key()，让 Compose 根据位置自然识别组件
             // 这样可以保留内部状态（如"已复制"提示、Mermaid 渲染状态）
             EnhancedCodeBlock(
-                code = codeContent,
-                language = language,
+                code = codeBlock.code,
+                language = codeBlock.language,
                 modifier = Modifier.fillMaxWidth()
             )
         }

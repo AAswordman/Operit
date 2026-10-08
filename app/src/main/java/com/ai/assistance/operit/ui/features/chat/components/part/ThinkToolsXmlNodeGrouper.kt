@@ -28,6 +28,7 @@ import com.ai.assistance.operit.ui.common.markdown.MarkdownGroupedItem
 import com.ai.assistance.operit.ui.common.markdown.MarkdownNodeGrouper
 import com.ai.assistance.operit.ui.common.markdown.XmlContentRenderer
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ThinkingMarkup
 import com.ai.assistance.operit.util.markdown.MarkdownNodeStable
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.stream.Stream
@@ -414,6 +415,9 @@ private fun isXmlFullyClosed(xml: String): Boolean {
     val trimmed = xml.trim()
     if (trimmed.endsWith("/>") || trimmed.startsWith("<$tagName") && trimmed.endsWith("/>")) {
         return true
+    }
+    if (ThinkingMarkup.isThinkingTag(tagName)) {
+        return ThinkingMarkup.isClosed(trimmed)
     }
     return trimmed.contains("</$tagName>")
 }

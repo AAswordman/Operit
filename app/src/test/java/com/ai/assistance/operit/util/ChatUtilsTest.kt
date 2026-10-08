@@ -142,4 +142,14 @@ class ChatUtilsTest {
         val turn = PromptTurn(PromptTurnKind.USER, "hello")
         assertTrue(ChatUtils.stripGeminiThoughtSignatureMetaTurns(listOf(turn)).single() === turn)
     }
+
+    @Test fun unsupportedThinkingNameIsNotRemovedOrExtracted() {
+        val raw = "<operit_thinking token=\"aBc4\">普通内容</operit_thinking token=\"aBc4\">"
+        assertEquals(raw, ChatUtils.removeThinkingContent(raw))
+        assertEquals(raw to "", ChatUtils.extractThinkingContent(raw))
+        val mixed = raw + ThinkingMarkup.wrap("真实思考") + "回答"
+        assertEquals(raw + "回答", ChatUtils.removeThinkingContent(mixed))
+        assertEquals((raw + "回答") to "真实思考", ChatUtils.extractThinkingContent(mixed))
+    }
+
 }

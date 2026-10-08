@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.data.model.ToolParameterSchema
@@ -791,12 +792,7 @@ internal object StructuredToolCallBridge {
 
         matches.forEach { match ->
             val fullContent = match.groupValues[2].trim()
-            val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
-            val resultContent = if (contentMatch != null) {
-                contentMatch.groupValues[1].trim()
-            } else {
-                fullContent
-            }
+            val resultContent = ToolResultMarkup.contentFromBody(fullContent).trim()
             val openingTag = match.value.substringBefore('>')
             val resultName = ChatMarkupRegex.nameAttr.find(openingTag)?.groupValues?.getOrNull(1)
             results.add(ToolResultRecord(resultName, resultContent))

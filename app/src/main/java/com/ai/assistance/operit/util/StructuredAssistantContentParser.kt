@@ -77,6 +77,9 @@ object StructuredAssistantContentParser {
                 !normalizedTagName.isNullOrBlank() -> normalizedTagName
                 else -> return xml
             }
+        if (ThinkingMarkup.isThinkingTag(effectiveTagName)) {
+            return ThinkingMarkup.body(xml)
+        }
         val startTag = "<$effectiveTagName"
         val startTagIndex = xml.indexOf(startTag)
         if (startTagIndex < 0) {
@@ -127,6 +130,9 @@ object StructuredAssistantContentParser {
         }
 
         val effectiveTagName = rawTagName ?: ChatMarkupRegex.extractOpeningTagName(trimmed) ?: return false
+        if (ThinkingMarkup.isThinkingTag(effectiveTagName)) {
+            return ThinkingMarkup.isClosed(trimmed)
+        }
         return trimmed.contains("</$effectiveTagName>")
     }
 }

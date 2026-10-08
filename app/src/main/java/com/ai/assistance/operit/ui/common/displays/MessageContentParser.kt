@@ -10,7 +10,6 @@ class MessageContentParser {
     companion object {
         // XML markup patterns
         public val xmlStatusPattern = ChatMarkupRegex.xmlStatusPattern
-        public val xmlToolResultPattern = ChatMarkupRegex.xmlToolResultPattern
         private val xmlToolRequestPattern = ChatMarkupRegex.xmlToolRequestPattern
 
         // 添加缺失的工具名称和参数解析模式

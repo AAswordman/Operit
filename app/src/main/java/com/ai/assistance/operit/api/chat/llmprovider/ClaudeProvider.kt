@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
@@ -15,6 +16,7 @@ import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.HttpLogSanitizer
 import com.ai.assistance.operit.util.StreamingJsonXmlConverter
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ThinkingMarkup
 import com.ai.assistance.operit.util.TokenCacheManager
 import com.ai.assistance.operit.util.exceptions.UserCancellationException
 import com.ai.assistance.operit.util.stream.MutableSharedStream
@@ -409,12 +411,7 @@ open class ClaudeProvider(
         var textContent = content
         matches.forEach { match ->
             val fullContent = match.groupValues[2].trim()
-            val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
-            val resultContent = if (contentMatch != null) {
-                contentMatch.groupValues[1].trim()
-            } else {
-                fullContent
-            }
+            val resultContent = ToolResultMarkup.contentFromBody(fullContent).trim()
             
             val openingTag = match.value.substringBefore('>')
             val resultName =
@@ -1345,14 +1342,13 @@ open class ClaudeProvider(
                         val text = block.optString("text", "")
                         if (text.isNotEmpty()) fullText.append(text)
                     }
-                    // A provider endpoint can still send thinking blocks when thinking is disabled. Do not
-                    // expose those blocks or turn them into visible <think> markup in that mode.
+                    // 思考关闭时忽略提供商仍然返回的思考块，避免它进入可见消息。
                     "thinking" -> if (enableThinking) {
                         val thinking = block.optString("thinking", "")
                         if (thinking.isNotEmpty()) {
-                            fullText.append("\n<think>")
-                            fullText.append(thinking)
-                            fullText.append("</think>\n")
+                            fullText.append("\n")
+                            fullText.append(ThinkingMarkup.wrap(thinking))
+                            fullText.append("\n")
                         }
                     }
                     "redacted_thinking" -> {
@@ -1605,6 +1601,7 @@ open class ClaudeProvider(
                         var currentToolTagName: String? = null
                         var isInToolCall = false
                         var isInThinkingBlock = false
+                        var thinkingToken: String? = null
                         var emittedAny = false
                         val nonSseJsonLinesBuffer = StringBuilder()
 
@@ -1727,10 +1724,11 @@ open class ClaudeProvider(
                                                     }
                                                 }
                                             }
-                                            // Keep response parsing aligned with the request flag;
-                                            // otherwise an unsolicited thinking block leaks to the UI.
+                                            // 与请求中的思考开关保持一致，防止未请求的思考内容漏到界面。
                                             "thinking" -> if (enableThinking) {
-                                                val thinkingStartTag = "\n<think>"
+                                                val token = ThinkingMarkup.newToken()
+                                                thinkingToken = token
+                                                val thinkingStartTag = "\n" + ThinkingMarkup.openTag(token)
                                                 emittedAny = true
                                                 emit(thinkingStartTag)
                                                 receivedContent.append(thinkingStartTag)
@@ -1828,10 +1826,11 @@ open class ClaudeProvider(
                                         currentToolParser = null
                                         currentToolTagName = null
                                     } else if (isInThinkingBlock) {
-                                        val thinkingEndTag = "</think>\n"
+                                        val thinkingEndTag = ThinkingMarkup.closeTag(requireNotNull(thinkingToken)) + "\n"
                                         emit(thinkingEndTag)
                                         receivedContent.append(thinkingEndTag)
                                         isInThinkingBlock = false
+                                        thinkingToken = null
                                     }
                                 }
                                 "message_delta" -> {
@@ -1869,10 +1868,11 @@ open class ClaudeProvider(
                                         currentToolTagName = null
                                     }
                                     if (isInThinkingBlock) {
-                                        val thinkingEndTag = "</think>\n"
+                                        val thinkingEndTag = ThinkingMarkup.closeTag(requireNotNull(thinkingToken)) + "\n"
                                         emit(thinkingEndTag)
                                         receivedContent.append(thinkingEndTag)
                                         isInThinkingBlock = false
+                                        thinkingToken = null
                                     }
                                     streamCompletionConfirmed = true
                                     break

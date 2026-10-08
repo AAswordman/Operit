@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.chat.components.part
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import android.webkit.WebView
 import android.webkit.WebSettings
 import androidx.compose.animation.*
@@ -51,8 +52,8 @@ import com.ai.assistance.operit.ui.common.rememberLocal
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ThinkingMarkup
 import com.ai.assistance.operit.util.stream.Stream
-import com.ai.assistance.operit.util.stream.stream
 import java.io.StringReader
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
@@ -209,8 +210,7 @@ class CustomXmlRenderer(
 
         // 标签已正确闭合，根据标签名分发到对应的渲染函数
         when (resolvedTagName) {
-            "think" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
-            "thinking" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
+            "think", "thinking" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
             "search" -> renderSearchContent(trimmedContent, Modifier, textColor)
             "tool" -> renderToolRequest(trimmedContent, Modifier, textColor, xmlStream)
             "tool_result" -> renderToolResult(trimmedContent, Modifier, textColor)
@@ -244,6 +244,12 @@ class CustomXmlRenderer(
     /** 检查XML标签是否完全闭合。 支持标准配对标签 (<tag>...</tag>) 和自闭合标签 (<tag/>)。 */
     private fun isXmlFullyClosed(content: String): Boolean {
         val tagName = extractRawTagName(content) ?: return false
+        if (ChatMarkupRegex.isToolResultTagName(tagName)) {
+            return ToolResultMarkup.isCompleteBlock(content)
+        }
+        if (ThinkingMarkup.isThinkingTag(tagName)) {
+            return ThinkingMarkup.isClosed(content)
+        }
 
         // 处理自闭合标签，例如 <status type="completion"/>
         if (content.endsWith("/>")) {
@@ -258,6 +264,9 @@ class CustomXmlRenderer(
     /** 从XML内容中提取纯文本内容 */
     private fun extractContentFromXml(content: String, tagName: String? = null): String {
         val rawTagName = extractRawTagName(content) ?: return content
+        if (ThinkingMarkup.isThinkingTag(rawTagName)) {
+            return ThinkingMarkup.body(content).trim()
+        }
         val normalizedRawTagName = ChatMarkupRegex.normalizeToolLikeTagName(rawTagName)
         val effectiveTagName =
             if (tagName != null && normalizedRawTagName != tagName) {
@@ -722,7 +731,7 @@ class CustomXmlRenderer(
         return "https://www.google.com/s2/favicons?sz=64&domain=$host"
     }
 
-    /** 渲染 <think> 和 <thinking> 标签内容 */
+    /** 渲染上游已有的 think 和 thinking 标签内容。 */
     @Composable
     private fun renderThinkContent(
         content: String,
@@ -730,8 +739,7 @@ class CustomXmlRenderer(
         textColor: Color,
         xmlStream: Stream<String>?
     ) {
-        val tagName =
-            if (content.contains("<thinking")) "thinking" else "think"
+        val tagName = extractRawTagName(content) ?: "think"
 
         var expandThinkingProcess by rememberLocal(key = "expand_thinking_process_default", defaultValue = false)
         // 仅在"流仍然存在"且标签未闭合时，才判定为进行中。
@@ -1027,45 +1035,6 @@ class CustomXmlRenderer(
             }
     }
 
-    private fun createThinkMarkdownCharStream(
-        xmlStream: Stream<String>,
-        tagName: String
-    ): Stream<Char> = stream {
-        val endTag = "</$tagName>"
-        var startTagClosed = false
-        var reachedEndTag = false
-        val tailBuffer = StringBuilder()
-
-        xmlStream.collect { chunk ->
-            chunk.forEach { ch ->
-                if (reachedEndTag) return@forEach
-
-                if (!startTagClosed) {
-                    if (ch == '>') {
-                        startTagClosed = true
-                    }
-                    return@forEach
-                }
-
-                tailBuffer.append(ch)
-
-                while (tailBuffer.length > endTag.length) {
-                    emit(tailBuffer[0])
-                    tailBuffer.deleteCharAt(0)
-                }
-
-                if (tailBuffer.length == endTag.length && tailBuffer.toString() == endTag) {
-                    tailBuffer.setLength(0)
-                    reachedEndTag = true
-                }
-            }
-        }
-
-        if (!reachedEndTag && tailBuffer.isNotEmpty()) {
-            tailBuffer.toString().forEach { emit(it) }
-        }
-    }
-
     /** 渲染标准工具请求标签 <tool name="..."><param name="param_name">param_value</param></tool> */
     @Composable
     private fun renderToolRequest(
@@ -1234,12 +1203,12 @@ class CustomXmlRenderer(
 
         val renderState =
             run {
-                val nameMatch = ChatMarkupRegex.nameAttr.find(content)
+                val openingTag = content.substringBefore('>')
+                val nameMatch = ChatMarkupRegex.nameAttr.find(openingTag)
                 val toolName = nameMatch?.groupValues?.get(1) ?: ""
-                val statusMatch = ChatMarkupRegex.statusAttr.find(content)
+                val statusMatch = ChatMarkupRegex.statusAttr.find(openingTag)
                 val status = statusMatch?.groupValues?.get(1) ?: "success"
-                val contentMatch = ChatMarkupRegex.contentTag.find(content)
-                val resultContent = contentMatch?.groupValues?.get(1)?.trim() ?: ""
+                val resultContent = ToolResultMarkup.contentFromBlock(content).trim()
 
                 ToolResultRenderState(
                     toolName = toolName,

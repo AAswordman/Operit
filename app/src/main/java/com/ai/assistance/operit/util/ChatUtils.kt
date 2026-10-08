@@ -5,17 +5,11 @@ import com.ai.assistance.operit.core.chat.hooks.withContent
 
 /** Utility functions for chat message handling */
 object ChatUtils {
-    // getMemoryFromMessages 会对每条 AI 消息调用 removeThinkingContent。
-    // 每次 toRegex() 都会走 ICU Pattern.compile，长会话会把主线程卡死。
-    private val thinkContentPattern =
-        Regex("<think(?:ing)?>.*?(</think(?:ing)?>|\\z)", RegexOption.DOT_MATCHES_ALL)
     private val searchContentPattern =
         Regex(
             "<search\\b[\\s\\S]*?(</search>|\\z)",
             setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
         )
-    private val thinkCapturePattern =
-        Regex("<think(?:ing)?>([\\s\\S]*?)</think(?:ing)?>", RegexOption.DOT_MATCHES_ALL)
 
     fun stripGeminiThoughtSignatureMeta(content: String): String {
         return ChatMarkupRegex.removeGeminiThoughtSignatureMeta(content)
@@ -72,7 +66,7 @@ object ChatUtils {
         if (!containsThinkOrSearchMarkup(content)) {
             return content.trim()
         }
-        return content.replace(thinkContentPattern, "").replace(searchContentPattern, "").trim()
+        return ThinkingMarkup.remove(content).replace(searchContentPattern, "").trim()
     }
 
     /**
@@ -84,10 +78,9 @@ object ChatUtils {
         if (!containsThinkOrSearchMarkup(content)) {
             return Pair(content.trim(), "")
         }
-        val thinkMatches = thinkCapturePattern.findAll(content)
-        val thinkingContent = thinkMatches.joinToString("\n") { it.groupValues[1].trim() }
-        val contentWithoutThink =
-            content.replace(thinkCapturePattern, "").replace(searchContentPattern, "").trim()
+        val (visible, thoughts) = ThinkingMarkup.extract(content)
+        val thinkingContent = thoughts.joinToString("\n") { it.trim() }
+        val contentWithoutThink = visible.replace(searchContentPattern, "").trim()
         return Pair(contentWithoutThink, thinkingContent)
     }
 

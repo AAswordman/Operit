@@ -24,4 +24,16 @@ class ChatUtilsThinkingTest {
     @Test fun removeThinkingContent_preservesMiddleText() {
         assertEquals("ab", ChatUtils.removeThinkingContent("a<think>x</think>b"))
     }
+
+    @Test fun removeThinkingContent_tokenBlockIgnoresInnerClose() {
+        val raw = "<think token=\"aBc4\">前半</think>后半</think token=\"aBc4\">回答"
+        assertEquals("回答", ChatUtils.removeThinkingContent(raw))
+        assertEquals("回答" to "前半</think>后半", ChatUtils.extractThinkingContent(raw))
+    }
+
+    @Test fun extractThinkingContent_unclosedTokenNeverReturnsThoughtAsAnswer() {
+        val raw = "前文<think token=\"aBc4\">前半</think>后半"
+        assertEquals("前文", ChatUtils.removeThinkingContent(raw))
+        assertEquals("前文" to "前半</think>后半", ChatUtils.extractThinkingContent(raw))
+    }
 }

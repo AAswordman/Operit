@@ -1542,6 +1542,14 @@
     <string name="data_recovery_database_repair_plan">将执行的修复操作</string>
     <string name="data_recovery_database_repair_rebuild_indexes">重建 SQLite 索引</string>
     <string name="data_recovery_database_repair_run_migrations">执行已发布的 Room 数据库迁移</string>
+    <string name="data_recovery_database_upgrade_action">升级数据库</string>
+    <string name="data_recovery_database_upgrade_running">正在关闭主应用并升级数据库</string>
+    <string name="data_recovery_database_upgrade_completed">数据库升级完成，复检通过</string>
+    <string name="data_recovery_database_upgrade_confirm_title">升级 Room 数据库</string>
+    <string name="data_recovery_database_upgrade_confirm_message">检测到数据库版本为 %1$d，可升级到版本 %2$d。确认后会先关闭主应用及其前台服务，保留当前数据库原件，再执行迁移。</string>
+    <string name="data_recovery_database_upgrade_confirm_action">升级</string>
+    <string name="data_recovery_database_main_process_running_details">主应用进程仍在运行：PID %1$d，进程 %2$s，重要性 %3$d。数据库升级会先请求该进程关闭。</string>
+    <string name="data_recovery_database_main_process_stop_failed">主应用进程未能在限定时间内退出，数据库未被修改</string>
     <string name="data_recovery_database_no_supported_repair">当前检查结果没有可安全执行的修复操作</string>
     <string name="data_recovery_database_summary_healthy">配置和数据库检查通过</string>
     <string name="data_recovery_database_summary_repairable">发现可处理的配置或数据库问题</string>

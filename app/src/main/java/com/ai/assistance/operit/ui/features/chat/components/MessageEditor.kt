@@ -47,12 +47,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.R
 
-/**
- * 消息编辑器组件，用于编辑包含XML标签的消息
- */
-data class ParsedMessagePart(val type: PartType, val content: String, val tag: String? = null, val attributes: String? = null)
-enum class PartType { TEXT, XML }
-
 private data class XmlTagSuggestion(
     val name: String,
     @StringRes val descriptionRes: Int,
@@ -73,46 +67,7 @@ private val XmlTagSuggestions = listOf(
     XmlTagSuggestion("meta", R.string.xml_tag_desc_meta),
 )
 
-fun parseMessageContentForEditor(content: String): List<ParsedMessagePart> {
-    val parts = mutableListOf<ParsedMessagePart>()
-    // 支持带属性的标签
-    val regex = "<([a-zA-Z0-9_-]+)([^>]*)>([\\s\\S]*?)</\\1>".toRegex(RegexOption.DOT_MATCHES_ALL)
-    var lastIndex = 0
-
-    regex.findAll(content).forEach { matchResult ->
-        val startIndex = matchResult.range.first
-        if (startIndex > lastIndex) {
-            val textPart = content.substring(lastIndex, startIndex)
-            if (textPart.isNotBlank()) {
-                parts.add(ParsedMessagePart(PartType.TEXT, textPart, null, null))
-            }
-        }
-        val tag = matchResult.groupValues[1]
-        val attributes = matchResult.groupValues[2]
-        val tagContent = matchResult.groupValues[3]
-        parts.add(ParsedMessagePart(PartType.XML, tagContent, tag, attributes))
-        lastIndex = matchResult.range.last + 1
-    }
-
-    if (lastIndex < content.length) {
-        val trailingText = content.substring(lastIndex)
-        if (trailingText.isNotBlank()) {
-            parts.add(ParsedMessagePart(PartType.TEXT, trailingText, null, null))
-        }
-    }
-    return parts
-}
-
-fun recomposeMessageFromParts(parts: List<ParsedMessagePart>): String {
-    return parts.joinToString(separator = "") { part ->
-        if (part.type == PartType.TEXT) {
-            part.content
-        } else {
-            "<${part.tag}${part.attributes ?: ""}>${part.content}</${part.tag}>"
-        }
-    }
-}
-
+/** 消息编辑器组件，用于编辑包含 XML 标签的消息。 */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MessageEditor(
@@ -244,6 +199,8 @@ fun MessageEditor(
                             // Message parts
                             partsState.forEachIndexed { index, part ->
                                 when (part.type) {
+                                    // 保留原文间隔的索引，编辑和删除继续定位到原始片段。
+                                    PartType.SPACING -> Unit
                                     PartType.TEXT -> {
                                         Box(modifier = Modifier.padding(bottom = 8.dp)) {
                                             OutlinedTextField(
@@ -775,7 +732,13 @@ private fun TagEditorDialog(
 
                     Button(
                         onClick = {
-                            onSave(ParsedMessagePart(PartType.XML, content, tagName, attributes))
+                            onSave(
+                                createMessageEditorXmlPart(
+                                    content = content,
+                                    tagName = tagName,
+                                    attributes = attributes,
+                                )
+                            )
                         },
                         enabled = tagName.isNotBlank(),
                         shape = RoundedCornerShape(16.dp),

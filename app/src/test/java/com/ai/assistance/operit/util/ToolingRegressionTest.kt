@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.util
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,8 +55,8 @@ class ToolingRegressionTest {
         assertEquals("123", ChatMarkupRegex.uuidAttr.find("uuid=\"123\"")!!.groupValues[1])
     }
 
-    @Test fun contentTag_extractsInnerContent() {
-        assertEquals("done", ChatMarkupRegex.contentTag.find("<content>done</content>")!!.groupValues[1])
+    @Test fun toolResultBody_extractsInnerContent() {
+        assertEquals("done", ToolResultMarkup.contentFromBody("<content>done</content>"))
     }
 
     @Test fun errorTag_extractsInnerContent() {

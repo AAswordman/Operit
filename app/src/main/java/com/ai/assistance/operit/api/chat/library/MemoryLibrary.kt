@@ -3,6 +3,7 @@ package com.ai.assistance.operit.api.chat.library
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ThinkingMarkup
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.core.tools.AIToolHandler
@@ -730,14 +731,13 @@ object MemoryLibrary {
     }
 
     private fun normalizeCandidateSearchText(raw: String, maxLen: Int): String {
-        return raw
+        return ThinkingMarkup.remove(raw, " ")
             .replace(ChatMarkupRegex.toolTag, " ")
             .replace(ChatMarkupRegex.toolSelfClosingTag, " ")
             .replace(ChatMarkupRegex.toolResultTag, " ")
             .replace(ChatMarkupRegex.toolResultSelfClosingTag, " ")
             .replace(ChatMarkupRegex.statusTag, " ")
             .replace(ChatMarkupRegex.statusSelfClosingTag, " ")
-            .replace(ChatMarkupRegex.thinkTag, " ")
             .replace(ChatMarkupRegex.thinkSelfClosingTag, " ")
             .replace(ChatMarkupRegex.searchTag, " ")
             .replace(ChatMarkupRegex.searchSelfClosingTag, " ")

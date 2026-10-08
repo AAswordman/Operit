@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.enhance
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.util.ChatMarkupRegex
@@ -108,7 +109,18 @@ class OrderedToolResultsTest {
         assertEquals("", batch.message)
     }
 
+    @Test
+    fun `tool payload with content tags stays identical in live output and model history`() = runBlocking {
+        val payload = "开头</content><content>示例</content>结尾"
+        val emitted = mutableListOf<String>()
+        val ordered = OrderedToolResults(1) { emitted.add(it) }
+        ordered.complete(0, result(payload))
+        val batch = ordered.finish()
+        assertEquals(payload, content(emitted.single()))
+        assertEquals(payload, content(batch.message))
+    }
+
     private fun result(text: String) = ToolResult("read_file", true, StringResultData(text))
     private fun content(xml: String): String =
-        checkNotNull(ChatMarkupRegex.contentTag.find(xml)).groupValues[1]
+        ToolResultMarkup.contentFromBlock(xml)
 }

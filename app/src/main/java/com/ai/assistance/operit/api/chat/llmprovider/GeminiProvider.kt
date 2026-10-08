@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
@@ -12,6 +13,7 @@ import com.ai.assistance.operit.data.model.ParameterCategory
 import com.ai.assistance.operit.data.stats.ProviderUsageNormalizer
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ThinkingMarkup
 import com.ai.assistance.operit.util.HttpLogSanitizer
 import com.ai.assistance.operit.util.StreamingJsonXmlConverter
 import com.ai.assistance.operit.util.TokenCacheManager
@@ -351,10 +353,26 @@ open class GeminiProvider(
         val completionConfirmed: Boolean = false,
     )
 
-    /** Response parsing state must belong to one request, never to the shared provider instance. */
+    /** 思考状态与 token 只属于当前请求，避免并发请求串用结束边界。 */
     private data class GeminiResponseState(
         var isInThinkingMode: Boolean = false,
-    )
+        var thinkingToken: String? = null,
+    ) {
+        fun beginThinking(): String {
+            check(!isInThinkingMode)
+            val token = ThinkingMarkup.newToken()
+            thinkingToken = token
+            isInThinkingMode = true
+            return ThinkingMarkup.openTag(token)
+        }
+
+        fun endThinking(): String {
+            val token = requireNotNull(thinkingToken)
+            thinkingToken = null
+            isInThinkingMode = false
+            return ThinkingMarkup.closeTag(token)
+        }
+    }
 
     private fun encodeGeminiThoughtSignature(signature: String): String {
         return Base64.encodeToString(signature.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
@@ -474,12 +492,7 @@ open class GeminiProvider(
         matches.forEach { match ->
             val toolName = match.groupValues[2]
             val fullContent = match.groupValues[3].trim()
-            val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
-            val resultContent = if (contentMatch != null) {
-                contentMatch.groupValues[1].trim()
-            } else {
-                fullContent
-            }
+            val resultContent = ToolResultMarkup.contentFromBody(fullContent).trim()
             
             // 构建functionResponse对象（Gemini格式）
             val functionResponse = JSONObject().apply {
@@ -1814,8 +1827,9 @@ open class GeminiProvider(
             // 确保思考模式正确结束
             if (responseState.isInThinkingMode) {
                 logDebug("流结束时仍在思考模式，添加结束标签")
-                streamCollector.emit("</think>")
-                responseState.isInThinkingMode = false
+                val closingTag = responseState.endThinking()
+                receivedContent.append(closingTag)
+                streamCollector.emit(closingTag)
             }
             
             // 确保至少发送一次内容
@@ -1887,8 +1901,9 @@ open class GeminiProvider(
             // 确保思考模式正确结束
             if (responseState.isInThinkingMode) {
                 logDebug("非流式响应结束时仍在思考模式，添加结束标签")
-                streamCollector.emit("</think>")
-                responseState.isInThinkingMode = false
+                val closingTag = responseState.endThinking()
+                receivedContent.append(closingTag)
+                streamCollector.emit(closingTag)
             }
         } catch (e: CancellationException) {
             throw e
@@ -2076,8 +2091,7 @@ open class GeminiProvider(
                      val b64 = inlineData.optString("data", "")
                      if (mimeType.startsWith("image/", ignoreCase = true) && b64.isNotEmpty()) {
                          if (responseState.isInThinkingMode) {
-                             contentBuilder.append("</think>")
-                             responseState.isInThinkingMode = false
+                             contentBuilder.append(responseState.endThinking())
                          }
                          val bytes = try {
                              Base64.decode(b64, Base64.DEFAULT)
@@ -2100,8 +2114,7 @@ open class GeminiProvider(
                     if (toolName.isNotEmpty()) {
                         // 工具调用必须在思考模式之外，如果当前在思考中，先关闭
                         if (responseState.isInThinkingMode) {
-                            contentBuilder.append("</think>")
-                            responseState.isInThinkingMode = false
+                            contentBuilder.append(responseState.endThinking())
                             logDebug("检测到工具调用，提前结束思考模式")
                         }
                         
@@ -2145,13 +2158,11 @@ open class GeminiProvider(
                     // 处理思考模式状态切换
                     if (isThought && includeThoughtsInOutput && !responseState.isInThinkingMode) {
                         // 开始思考模式
-                        contentBuilder.append("<think>")
-                        responseState.isInThinkingMode = true
+                        contentBuilder.append(responseState.beginThinking())
                         logDebug("开始思考模式")
                     } else if (!isThought && responseState.isInThinkingMode) {
                         // 结束思考模式
-                        contentBuilder.append("</think>")
-                        responseState.isInThinkingMode = false
+                        contentBuilder.append(responseState.endThinking())
                         logDebug("结束思考模式")
                     }
                     

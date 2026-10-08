@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.core.chat
 
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.SystemClock
@@ -786,10 +787,7 @@ object AIMessageManager {
         }
 
         fun condenseToolResultPreview(block: String): String {
-            val resultBody =
-                ChatMarkupRegex.contentTag.find(block)?.groupValues?.getOrNull(1)
-                    ?: ChatMarkupRegex.errorTag.find(block)?.groupValues?.getOrNull(1)
-                    ?: extractXmlBody(block)
+            val resultBody = ToolResultMarkup.contentFromBody(extractXmlBody(block))
             val cleanedBody = stripXmlTagsForReview(resultBody)
             return condenseHeadTail(cleanedBody, headChars = 140, tailChars = 56)
         }

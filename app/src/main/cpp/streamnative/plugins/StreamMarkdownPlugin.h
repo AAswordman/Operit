@@ -19,13 +19,17 @@ private:
     bool includeFences_;
     PluginState state_;
     int fenceLen_;
+    int openingFenceLen_;
+    char16_t fenceChar_;
+    bool readingOpeningFence_;
+    bool endFenceWhitespace_;
     bool isMatchingEndFence_;
     bool hasStartedMatchingFence_;
 };
 
 class StreamMarkdownInlineCodePlugin final : public StreamPlugin {
 public:
-    explicit StreamMarkdownInlineCodePlugin(bool includeTicks = true);
+    explicit StreamMarkdownInlineCodePlugin(bool includeTicks = true, bool deferFences = false);
 
     PluginState state() const override;
     bool processChar(char16_t c, bool atStartOfLine) override;
@@ -34,6 +38,7 @@ public:
 
 private:
     bool includeTicks_;
+    bool deferFences_;
     PluginState state_;
     int tickLen_;
     int endMatch_; // number matched at end
