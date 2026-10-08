@@ -51,17 +51,28 @@ import kotlin.math.roundToInt
 fun CodeEditor(
     code: String,
     language: String,
+    fileKey: String,
     onCodeChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
     showLineNumbers: Boolean = true,
     enableCompletion: Boolean = true,
-    editorRef: ((NativeCodeEditor?) -> Unit)? = null
+    editorRef: ((NativeCodeEditor?) -> Unit)? = null,
+    onKeyCommand: ((EditorKeyCommand) -> Boolean)? = null,
+    searchMatches: List<IntRange> = emptyList(),
+    activeSearchMatch: Int = -1,
+    searchNavigationRequest: Int = 0,
+    initialLine: Int? = null,
+    initialLineRequest: Int = 0
 ) {
     val theme = getThemeForLanguage(language)
+    // 文件切换或显式链接请求重新定位，同一文件编辑不会重复消费行号。
+    var pendingInitialLine by remember(fileKey, initialLine, initialLineRequest) { mutableStateOf(initialLine) }
+    var revealedSearchRequest by remember { mutableStateOf(searchNavigationRequest) }
     val latestCode = rememberUpdatedState(code)
     val latestOnCodeChange = rememberUpdatedState(onCodeChange)
     val latestEditorRef = rememberUpdatedState(editorRef)
+    val latestOnKeyCommand = rememberUpdatedState(onKeyCommand)
     val density = LocalDensity.current
     val popupVerticalOffsetPx = with(density) { 6.dp.toPx().roundToInt() }
     val imeBottomInsetPx = WindowInsets.ime.getBottom(density)
@@ -111,11 +122,13 @@ fun CodeEditor(
                                 )
                             editorRefState.value = this
                             latestEditorRef.value?.invoke(this)
+                            setKeyCommandListener(latestOnKeyCommand.value)
                         }
                     },
                     update = { view ->
                         editorRefState.value = view
                         latestEditorRef.value?.invoke(view)
+                        view.setKeyCommandListener(latestOnKeyCommand.value)
                         view.setEditorTheme(theme)
                         view.setLanguage(language)
                         view.setReadOnly(readOnly)
@@ -154,6 +167,15 @@ fun CodeEditor(
                         )
                         if (view.getText() != latestCode.value) {
                             view.setText(latestCode.value, fromUpdate = true)
+                        }
+                        view.setSearchMatches(searchMatches, activeSearchMatch)
+                        if (revealedSearchRequest != searchNavigationRequest) {
+                            view.revealActiveSearchMatch()
+                            revealedSearchRequest = searchNavigationRequest
+                        }
+                        pendingInitialLine?.let { line ->
+                            view.goToLine(line)
+                            pendingInitialLine = null
                         }
                     },
                     onRelease = { view ->
@@ -303,11 +325,31 @@ class NativeCodeEditor @JvmOverloads constructor(
 
     fun getText(): String = if (isReleased) "" else canvasEditorView.getTextContent()
 
+    fun goToLine(line: Int) {
+        if (!isReleased) canvasEditorView.goToLine(line)
+    }
+
+    fun revealActiveSearchMatch() {
+        if (!isReleased) canvasEditorView.revealActiveSearchMatch()
+    }
+
+    fun setSearchMatches(matches: List<IntRange>, active: Int) {
+        if (!isReleased) canvasEditorView.setSearchMatches(matches, active)
+    }
+
+
     fun setCompletionCallback(callback: EditorCompletionCallback?) {
         if (isReleased) {
             return
         }
         canvasEditorView.setCompletionCallback(callback)
+    }
+
+    fun setKeyCommandListener(listener: ((EditorKeyCommand) -> Boolean)?) {
+        if (isReleased) {
+            return
+        }
+        canvasEditorView.setKeyCommandListener(listener)
     }
 
     fun applyCompletion(item: CompletionItem) {

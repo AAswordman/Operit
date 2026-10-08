@@ -5804,6 +5804,18 @@
     <string name="file_modified_save_prompt">文件 \'%1$s\' 已修改，是否保存更改？</string>
     <string name="dont_save">不保存</string>
     <string name="format_code">格式化代码</string>
+    <string name="workspace_open_with">打开方式</string>
+    <string name="workspace_text_preview_too_large">文本超过 %1$d MiB，已停止应用内读取。可选择系统应用打开。</string>
+    <string name="workspace_default_open">默认打开</string>
+    <string name="workspace_open_as_text">作为文本打开</string>
+    <string name="workspace_open_external">使用系统应用打开</string>
+    <string name="workspace_invalid_paste">不能将文件粘贴到自身目录中</string>
+    <string name="workspace_search_content">搜索内容</string>
+    <string name="workspace_search_previous">上一个匹配</string>
+    <string name="workspace_search_next">下一个匹配</string>
+    <string name="workspace_sort_descending">降序排列</string>
+    <string name="workspace_sort_ignore_case">忽略大小写</string>
+    <string name="workspace_sort_folders_first">文件夹置顶</string>
     <string name="create_default_workspace">创建默认</string>
     <string name="create_new_workspace_in_app">在应用内创建新工作区</string>
     <string name="select_existing_workspace">选择现有</string>
@@ -8480,7 +8492,7 @@
     <string name="token_stats_detail_tokens">Token 明细</string>
     <string name="token_stats_detail_close">关闭</string>
     <string name="token_stats_detail_open">点击查看详细数据</string>
-    <string name="markdown_link_not_openable">该链接指向文档内部的引用，无法打开</string>
+    <string name="markdown_link_not_openable">无法打开该链接，请检查链接地址或是否已安装对应应用。</string>
 
     <string name="provider_openai_codex">Codex（OpenAI）</string>
     <string name="onboarding_config_codex_login_required">请先登录 Codex</string>
@@ -8534,4 +8546,5 @@
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">正在完成授权并加载账号信息…</string>
     <string name="antigravity_login_timed_out">等待 Google 授权已超过 15 分钟，请重新发起登录。</string>
+    <string name="workspace_markdown_anchor_not_found">找不到文档标题：%1$s</string>
 </resources>

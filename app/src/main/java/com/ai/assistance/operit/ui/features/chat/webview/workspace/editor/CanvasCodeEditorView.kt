@@ -52,6 +52,14 @@ interface EditorCompletionCallback {
     fun isCompletionVisible(): Boolean
 }
 
+enum class EditorKeyCommand {
+    SAVE,
+    SAVE_AS,
+    CLOSE,
+    FIND,
+    ESCAPE
+}
+
 class CanvasCodeEditorView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -156,11 +164,15 @@ class CanvasCodeEditorView @JvmOverloads constructor(
     private var highlightSnapshot = HighlightSnapshot(0, IntArray(0))
     private var completionProvider: CompletionProvider = CompletionProviderFactory.getProvider("text")
     private var completionCallback: EditorCompletionCallback? = null
+    private var keyCommandListener: ((EditorKeyCommand) -> Boolean)? = null
     private var currentLanguage = "text"
     private var currentScale = 1f
     private var showLineNumbers = true
     private var completionEnabled = true
     private var readOnly = false
+    @Volatile private var searchRanges: List<IntRange> = emptyList()
+    @Volatile private var activeSearchMatch = -1
+    private val searchPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var scrollOffsetX = 0f
     private var scrollOffsetY = 0f
     private var viewportBottomPaddingPx = 0f
@@ -384,6 +396,10 @@ class CanvasCodeEditorView @JvmOverloads constructor(
         }
     }
 
+    fun setKeyCommandListener(listener: ((EditorKeyCommand) -> Boolean)?) {
+        keyCommandListener = listener
+    }
+
     fun setTextContent(text: String) {
         document.setText(text, clearHistory = true)
         highlightSnapshot = HighlightSnapshot(document.version, IntArray(text.length))
@@ -400,6 +416,39 @@ class CanvasCodeEditorView @JvmOverloads constructor(
     }
 
     fun getTextContent(): String = document.textString()
+
+    /** 行号链接按一基行号定位，等待布局完成后滚动到目标光标。 */
+    fun goToLine(line: Int) {
+        val targetLine = (line - 1).coerceIn(0, document.lineCount() - 1)
+        document.collapseSelection(document.getLineStart(targetLine))
+        preferredColumnCells = null
+        notifySelectionChanged()
+        post {
+            ensureCursorVisible()
+            requestRender()
+        }
+    }
+
+    /** 搜索高亮不改变光标和选择范围，长按复制仍使用原始文本。 */
+    fun setSearchMatches(matches: List<IntRange>, active: Int) {
+        val valid = matches.filter { !it.isEmpty() && it.first >= 0 && it.last < document.length() }
+        if (valid == searchRanges && active == activeSearchMatch) return
+        searchRanges = valid
+        activeSearchMatch = active
+        requestRender()
+    }
+
+    /** 只有用户明确选择上一处或下一处时才改变视口。 */
+    fun revealActiveSearchMatch() {
+        searchRanges.getOrNull(activeSearchMatch)?.let { match ->
+            val line = document.getLineForOffset(match.first)
+            setScrollOffsets(
+                max(0f, xForOffsetInLine(match.first) - textViewportWidth() / 3f),
+                max(0f, line * metrics.lineHeight - height / 3f)
+            )
+            requestRender()
+        }
+    }
 
     fun undo() {
         if (document.undo()) {
@@ -477,6 +526,17 @@ class CanvasCodeEditorView @JvmOverloads constructor(
     }
 
     override fun onCheckIsTextEditor(): Boolean = !readOnly
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (isReleased) {
+            return false
+        }
+        return if (handleKeyEvent(event)) {
+            true
+        } else {
+            super.onKeyDown(keyCode, event)
+        }
+    }
 
     override fun onCreateInputConnection(outAttrs: EditorInfo?): InputConnection {
         outAttrs?.apply {
@@ -590,6 +650,19 @@ class CanvasCodeEditorView @JvmOverloads constructor(
 
     private fun handleKeyEvent(event: KeyEvent): Boolean {
         val ctrlPressed = event.isCtrlPressed
+        if (event.keyCode == KeyEvent.KEYCODE_ESCAPE && !ctrlPressed) {
+            if (keyCommandListener?.invoke(EditorKeyCommand.ESCAPE) == true) {
+                return true
+            }
+            hideCompletions()
+            actionMode?.finish()
+            if (document.hasSelection()) {
+                document.collapseSelection(document.selectionEnd)
+                notifySelectionChanged()
+                requestRender()
+            }
+            return true
+        }
         when (event.keyCode) {
             KeyEvent.KEYCODE_DEL -> {
                 if (readOnly) {
@@ -623,8 +696,14 @@ class CanvasCodeEditorView @JvmOverloads constructor(
                 if (readOnly) {
                     return true
                 }
-                document.replaceSelection(" ".repeat(TAB_SPACES), recordHistory = true)
-                onDocumentMutated()
+                if (event.isShiftPressed) {
+                    if (document.unindentSelection(TAB_SPACES)) {
+                        onDocumentMutated()
+                    }
+                } else {
+                    document.replaceSelection(" ".repeat(TAB_SPACES), recordHistory = true)
+                    onDocumentMutated()
+                }
                 return true
             }
 
@@ -650,7 +729,7 @@ class CanvasCodeEditorView @JvmOverloads constructor(
 
             KeyEvent.KEYCODE_MOVE_HOME -> {
                 val line = document.getLineForOffset(document.selectionEnd)
-                val target = document.getLineStart(line)
+                val target = if (ctrlPressed) 0 else document.getLineStart(line)
                 if (event.isShiftPressed) {
                     document.setSelection(document.selectionStart, target)
                 } else {
@@ -666,7 +745,7 @@ class CanvasCodeEditorView @JvmOverloads constructor(
 
             KeyEvent.KEYCODE_MOVE_END -> {
                 val line = document.getLineForOffset(document.selectionEnd)
-                val target = document.getLineEnd(line)
+                val target = if (ctrlPressed) document.length() else document.getLineEnd(line)
                 if (event.isShiftPressed) {
                     document.setSelection(document.selectionStart, target)
                 } else {
@@ -683,6 +762,44 @@ class CanvasCodeEditorView @JvmOverloads constructor(
 
         if (ctrlPressed) {
             when (event.keyCode) {
+                KeyEvent.KEYCODE_S -> {
+                    keyCommandListener?.invoke(
+                        if (event.isShiftPressed) EditorKeyCommand.SAVE_AS else EditorKeyCommand.SAVE
+                    )
+                    return true
+                }
+
+                KeyEvent.KEYCODE_W -> {
+                    keyCommandListener?.invoke(EditorKeyCommand.CLOSE)
+                    return true
+                }
+
+                KeyEvent.KEYCODE_F -> {
+                    keyCommandListener?.invoke(EditorKeyCommand.FIND)
+                    return true
+                }
+
+                KeyEvent.KEYCODE_SLASH,
+                KeyEvent.KEYCODE_NUMPAD_DIVIDE -> {
+                    if (!readOnly) {
+                        val syntax = CommentSyntaxRegistry.forLanguage(currentLanguage)
+                        val changed = when {
+                            syntax == null -> false
+                            !document.hasSelection() && syntax.preferredLinePrefix != null ->
+                                document.toggleLineComment(syntax.preferredLinePrefix.orEmpty())
+                            syntax.hasBlockComment -> document.toggleBlockComment(
+                                syntax.blockStart.orEmpty(),
+                                syntax.blockEnd.orEmpty()
+                            )
+                            else -> commentPrefixForLanguage()?.let(document::toggleLineComment) == true
+                        }
+                        if (changed) {
+                            onDocumentMutated()
+                        }
+                    }
+                    return true
+                }
+
                 KeyEvent.KEYCODE_A -> {
                     document.selectAll()
                     showSelectionMenu()
@@ -728,6 +845,10 @@ class CanvasCodeEditorView @JvmOverloads constructor(
         }
 
         return false
+    }
+
+    private fun commentPrefixForLanguage(): String? {
+        return CommentSyntaxRegistry.forLanguage(currentLanguage)?.preferredLinePrefix
     }
 
     private fun moveCursorHorizontal(delta: Int, extendSelection: Boolean) {
@@ -1097,6 +1218,7 @@ class CanvasCodeEditorView @JvmOverloads constructor(
         for (line in firstVisibleLine..lastVisibleLine) {
             val lineTop = verticalPaddingPx + line * metrics.lineHeight - scrollOffsetY
             drawIndentGuides(canvas, line, lineTop, textRegionLeft)
+            drawSearchForLine(canvas, line, lineTop, textRegionLeft)
             drawTextForLine(canvas, line, lineTop, textRegionLeft)
             drawSelectionForLine(canvas, line, lineTop, textRegionLeft)
             drawComposingUnderline(canvas, line, lineTop, textRegionLeft)
@@ -1166,6 +1288,26 @@ class CanvasCodeEditorView @JvmOverloads constructor(
                 lineTop + metrics.lineHeight - density * 2f,
                 indentGuidePaint
             )
+        }
+    }
+
+    private fun drawSearchForLine(canvas: Canvas, line: Int, top: Float, textLeft: Float) {
+        val ranges = searchRanges
+        if (ranges.isEmpty()) return
+        val start = document.getLineStart(line)
+        val end = document.getLineEnd(line)
+        val found = ranges.binarySearchBy(start) { it.first }
+        var index = if (found >= 0) found else max(0, -found - 2)
+        while (index < ranges.size && ranges[index].first < end) {
+            val match = ranges[index]
+            val from = max(start, match.first)
+            val to = min(end, match.last + 1)
+            if (to > from) {
+                searchPaint.color = (if (index == activeSearchMatch) theme.activeSearchMatchColor else theme.searchMatchColor).toArgb()
+                canvas.drawRect(textLeft + xForOffsetInLine(from) - scrollOffsetX, top,
+                    textLeft + xForOffsetInLine(to) - scrollOffsetX, top + metrics.lineHeight, searchPaint)
+            }
+            index++
         }
     }
 

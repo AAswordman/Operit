@@ -282,6 +282,12 @@ internal class EditorDocument(initialText: String = "") {
     var maxLineCells: Int = 0
         private set
 
+    private data class OffsetEdit(
+        val position: Int,
+        val removedLength: Int,
+        val insertedLength: Int
+    )
+
     init {
         rebuildMetadata()
         collapseSelection(length())
@@ -540,6 +546,165 @@ internal class EditorDocument(initialText: String = "") {
             afterSelectionEnd = insertionCursor,
             recordHistory = true
         )
+    }
+
+    fun unindentSelection(spaces: Int = EDITOR_TAB_SPACES): Boolean {
+        val (firstLine, lastLine) = selectedLineBounds()
+        val rangeStart = getLineStart(firstLine)
+        val rangeEnd = getLineEnd(lastLine)
+        val original = buffer.substring(rangeStart, rangeEnd)
+        val edits = mutableListOf<OffsetEdit>()
+        val removeSpaces = spaces.coerceAtLeast(1)
+        val lines = original.split('\n')
+        val updated = buildString {
+            var oldLineStart = rangeStart
+            lines.forEachIndexed { index, line ->
+                val removeLength = when {
+                    line.startsWith('\t') -> 1
+                    else -> line.take(removeSpaces).takeWhile { it == ' ' }.length
+                }
+                if (removeLength > 0) {
+                    edits += OffsetEdit(oldLineStart, removeLength, 0)
+                    append(line.substring(removeLength))
+                } else {
+                    append(line)
+                }
+                if (index != lines.lastIndex) {
+                    append('\n')
+                    oldLineStart += line.length + 1
+                }
+            }
+        }
+        if (edits.isEmpty()) return false
+
+        replaceRangeInternal(
+            start = rangeStart,
+            end = rangeEnd,
+            replacement = updated,
+            afterSelectionStart = mapOffsetAfterEdits(selectionStart, edits),
+            afterSelectionEnd = mapOffsetAfterEdits(selectionEnd, edits),
+            recordHistory = true
+        )
+        return true
+    }
+
+    fun toggleLineComment(prefix: String): Boolean {
+        if (prefix.isEmpty()) return false
+        val commentCurrentLine = !hasSelection()
+        val (firstLine, lastLine) = selectedLineBounds()
+        val rangeStart = getLineStart(firstLine)
+        val rangeEnd = getLineEnd(lastLine)
+        val original = buffer.substring(rangeStart, rangeEnd)
+        val lines = original.split('\n')
+        val nonBlankLines = lines.filter { it.any { character -> !character.isWhitespace() } }
+        if (nonBlankLines.isEmpty() && !commentCurrentLine) return false
+
+        val allCommented = nonBlankLines.isNotEmpty() && nonBlankLines.all { line ->
+            val firstNonWhitespace = line.indexOfFirst { !it.isWhitespace() }
+            firstNonWhitespace >= 0 && line.startsWith(prefix, firstNonWhitespace)
+        }
+        val edits = mutableListOf<OffsetEdit>()
+        val updated = buildString {
+            var oldLineStart = rangeStart
+            lines.forEachIndexed { index, line ->
+                val firstNonWhitespace = line.indexOfFirst { !it.isWhitespace() }
+                if (firstNonWhitespace < 0) {
+                    append(line)
+                    if (commentCurrentLine) {
+                        val inserted = "$prefix "
+                        edits += OffsetEdit(oldLineStart + line.length, 0, inserted.length)
+                        append(inserted)
+                    }
+                } else if (allCommented) {
+                    val prefixEnd = firstNonWhitespace + prefix.length
+                    val hasSpaceAfterPrefix =
+                        line.startsWith(prefix, firstNonWhitespace) &&
+                            prefixEnd < line.length &&
+                            line[prefixEnd] == ' '
+                    val removeLength = prefix.length + if (hasSpaceAfterPrefix) 1 else 0
+                    if (line.startsWith(prefix, firstNonWhitespace)) {
+                        edits += OffsetEdit(oldLineStart + firstNonWhitespace, removeLength, 0)
+                        append(line.removeRange(firstNonWhitespace, firstNonWhitespace + removeLength))
+                    } else {
+                        append(line)
+                    }
+                } else {
+                    val inserted = "$prefix "
+                    edits += OffsetEdit(oldLineStart + firstNonWhitespace, 0, inserted.length)
+                    append(line.substring(0, firstNonWhitespace))
+                    append(inserted)
+                    append(line.substring(firstNonWhitespace))
+                }
+                if (index != lines.lastIndex) {
+                    append('\n')
+                    oldLineStart += line.length + 1
+                }
+            }
+        }
+        if (edits.isEmpty()) return false
+
+        replaceRangeInternal(
+            start = rangeStart,
+            end = rangeEnd,
+            replacement = updated,
+            afterSelectionStart = mapOffsetAfterEdits(selectionStart, edits),
+            afterSelectionEnd = mapOffsetAfterEdits(selectionEnd, edits),
+            recordHistory = true
+        )
+        return true
+    }
+
+    fun toggleBlockComment(startMarker: String, endMarker: String): Boolean {
+        if (startMarker.isEmpty() || endMarker.isEmpty()) return false
+
+        val hadSelection = hasSelection()
+        val line = getLineForOffset(selectionEnd)
+        val start = if (hadSelection) min(selectionStart, selectionEnd) else getLineStart(line)
+        val end = if (hadSelection) max(selectionStart, selectionEnd) else getLineEnd(line)
+
+        val selected = buffer.substring(start, end)
+        val alreadyCommented =
+            selected.startsWith(startMarker) && selected.endsWith(endMarker)
+        val replacement = if (alreadyCommented) {
+            selected.removePrefix(startMarker).removeSuffix(endMarker)
+        } else {
+            "$startMarker$selected$endMarker"
+        }
+        if (replacement == selected) return false
+
+        val reversedSelection = selectionStart > selectionEnd
+        val newStart = start
+        val newEnd = start + replacement.length
+        val newCursor = if (alreadyCommented) (selectionEnd - startMarker.length).coerceIn(newStart, newEnd)
+            else selectionEnd + startMarker.length
+        replaceRangeInternal(
+            start = start,
+            end = end,
+            replacement = replacement,
+            afterSelectionStart = if (!hadSelection) newCursor else if (reversedSelection) newEnd else newStart,
+            afterSelectionEnd = if (!hadSelection) newCursor else if (reversedSelection) newStart else newEnd,
+            recordHistory = true
+        )
+        return true
+    }
+
+    private fun selectedLineBounds(): Pair<Int, Int> {
+        val start = min(selectionStart, selectionEnd)
+        val end = max(selectionStart, selectionEnd)
+        val lastOffset = if (end > start) end - 1 else start
+        return getLineForOffset(start) to getLineForOffset(lastOffset)
+    }
+
+    private fun mapOffsetAfterEdits(offset: Int, edits: List<OffsetEdit>): Int {
+        var delta = 0
+        for (edit in edits.sortedBy { it.position }) {
+            if (offset < edit.position) break
+            if (edit.removedLength > 0 && offset < edit.position + edit.removedLength) {
+                return edit.position + delta
+            }
+            delta += edit.insertedLength - edit.removedLength
+        }
+        return offset + delta
     }
 
     fun setSelection(start: Int, end: Int) {

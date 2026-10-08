@@ -462,7 +462,6 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
             .replace(workspaceGuidelines, "")
     }
 
-
     // Clean up multiple consecutive blank lines (replace 3+ newlines with 2)
     prompt = prompt.replace(Regex("\n{3,}"), "\n\n")
 

@@ -48,6 +48,7 @@ import com.ai.assistance.operit.data.model.ActivePrompt
 
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
+import com.ai.assistance.operit.ui.features.chat.webview.workspace.links.WorkspaceFileLinkHost
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
 import com.ai.assistance.operit.ui.features.chat.components.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspaceBackupManager
@@ -249,7 +250,11 @@ fun ChatScreenContent(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize().padding(paddingValues)) {
+    WorkspaceFileLinkHost(
+        actualViewModel = actualViewModel,
+        currentChat = chatHistories.find { it.id == currentChatId },
+        modifier = modifier.fillMaxSize().padding(paddingValues)
+    ) {
         if (chatHeaderOverlayMode && chatHeaderTransparent) {
             // 覆盖模式：Header浮动在ChatArea之上
             Box(modifier = Modifier.fillMaxSize()) {

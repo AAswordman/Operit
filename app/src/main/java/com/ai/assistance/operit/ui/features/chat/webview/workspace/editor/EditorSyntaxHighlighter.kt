@@ -19,9 +19,7 @@ internal class EditorSyntaxHighlighter(
     initialLanguage: String,
     private val onResult: (HighlightSnapshot) -> Unit
 ) {
-    companion object {
-        private const val DEFAULT_LANGUAGE = "javascript"
-    }
+    companion object {}
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -33,11 +31,13 @@ internal class EditorSyntaxHighlighter(
     private var language = initialLanguage.lowercase()
     @Volatile
     private var languageSupport = LanguageFactory.getLanguageSupport(language)
+    @Volatile
+    private var commentSyntax = CommentSyntaxRegistry.forLanguage(language)
 
     fun setLanguage(language: String) {
         this.language = language.lowercase()
         languageSupport = LanguageFactory.getLanguageSupport(this.language)
-            ?: LanguageFactory.getLanguageSupport(DEFAULT_LANGUAGE)
+        commentSyntax = CommentSyntaxRegistry.forLanguage(this.language)
     }
 
     fun requestHighlight(text: String, version: Int) {
@@ -46,6 +46,7 @@ internal class EditorSyntaxHighlighter(
         }
         latestRequestedVersion.set(version)
         val activeSupport = languageSupport
+        val activeCommentSyntax = commentSyntax
 
         try {
             executor.execute {
@@ -55,7 +56,7 @@ internal class EditorSyntaxHighlighter(
 
                 val colors = IntArray(text.length)
                 if (text.isNotEmpty()) {
-                    parseFullText(text, colors, activeSupport)
+                    parseFullText(text, colors, activeSupport, activeCommentSyntax)
                 }
                 if (released || latestRequestedVersion.get() != version) {
                     return@execute
@@ -80,9 +81,14 @@ internal class EditorSyntaxHighlighter(
         executor.shutdownNow()
     }
 
-    private fun parseFullText(text: String, colors: IntArray, support: LanguageSupport?) {
+    private fun parseFullText(
+        text: String,
+        colors: IntArray,
+        support: LanguageSupport?,
+        syntax: CommentSyntax?
+    ) {
         if (support == null) {
-            simpleHighlight(text, colors)
+            simpleHighlight(text, colors, syntax)
             return
         }
 
@@ -91,42 +97,39 @@ internal class EditorSyntaxHighlighter(
             val current = text[index]
 
             var handled = false
-            for (commentMarker in support.getCommentStart()) {
-                if (text.startsWith(commentMarker, index)) {
-                    if (commentMarker == "//" || commentMarker.length == 1) {
+            if (syntax != null) {
+                val blockStart = syntax.blockStart
+                val blockEnd = syntax.blockEnd
+                if (
+                    !blockStart.isNullOrEmpty() &&
+                        !blockEnd.isNullOrEmpty() &&
+                        text.startsWith(blockStart, index)
+                ) {
+                    val end = text.indexOf(blockEnd, index + blockStart.length)
+                    val commentEnd = if (end == -1) text.length else end + blockEnd.length
+                    fill(colors, index, commentEnd, LanguageSupport.COMMENT_COLOR)
+                    index = commentEnd
+                    handled = true
+                }
+
+                if (!handled) {
+                    val linePrefix = syntax.linePrefixes.firstOrNull { prefix ->
+                        text.startsWith(prefix, index)
+                    }
+                    if (linePrefix != null) {
                         val end = text.indexOf('\n', index)
                         val commentEnd = if (end == -1) text.length else end
                         fill(colors, index, commentEnd, LanguageSupport.COMMENT_COLOR)
                         index = commentEnd
-                    } else {
-                        val commentEndMarker = support.getMultiLineCommentEnd() ?: "*/"
-                        val end = text.indexOf(commentEndMarker, index + commentMarker.length)
-                        val commentEnd = if (end == -1) text.length else end + commentEndMarker.length
-                        fill(colors, index, commentEnd, LanguageSupport.COMMENT_COLOR)
-                        index = commentEnd
+                        handled = true
                     }
-                    handled = true
-                    break
                 }
             }
             if (handled) continue
 
             if (support.isStringDelimiter(current)) {
-                val quote = current
-                val escape = support.getStringEscapeChar()
                 val start = index
-                index++
-                while (index < text.length) {
-                    if (text[index] == escape && index + 1 < text.length) {
-                        index += 2
-                        continue
-                    }
-                    if (text[index] == quote) {
-                        index++
-                        break
-                    }
-                    index++
-                }
+                index = consumeString(text, start, support.getStringEscapeChar())
                 fill(colors, start, index, LanguageSupport.STRING_COLOR)
                 continue
             }
@@ -206,36 +209,29 @@ internal class EditorSyntaxHighlighter(
         }
     }
 
-    private fun simpleHighlight(text: String, colors: IntArray) {
+    private fun simpleHighlight(text: String, colors: IntArray, syntax: CommentSyntax?) {
         var index = 0
         while (index < text.length) {
+            val blockStart = syntax?.blockStart
+            val blockEnd = syntax?.blockEnd
             when {
-                text.startsWith("//", index) -> {
+                !blockStart.isNullOrEmpty() &&
+                    !blockEnd.isNullOrEmpty() &&
+                    text.startsWith(blockStart, index) -> {
+                    val end = text.indexOf(blockEnd, index + blockStart.length)
+                    val commentEnd = if (end == -1) text.length else end + blockEnd.length
+                    fill(colors, index, commentEnd, LanguageSupport.COMMENT_COLOR)
+                    index = commentEnd
+                }
+                syntax?.linePrefixes?.any { prefix -> text.startsWith(prefix, index) } == true -> {
                     val end = text.indexOf('\n', index)
                     val commentEnd = if (end == -1) text.length else end
                     fill(colors, index, commentEnd, LanguageSupport.COMMENT_COLOR)
                     index = commentEnd
                 }
-                text.startsWith("/*", index) -> {
-                    val end = text.indexOf("*/", index + 2)
-                    val commentEnd = if (end == -1) text.length else end + 2
-                    fill(colors, index, commentEnd, LanguageSupport.COMMENT_COLOR)
-                    index = commentEnd
-                }
-                text[index] == '"' || text[index] == '\'' -> {
-                    val quote = text[index]
+                text[index] == '"' || text[index] == '\'' || text[index] == '`' -> {
                     val start = index
-                    index++
-                    while (index < text.length && text[index] != quote) {
-                        if (text[index] == '\\' && index + 1 < text.length) {
-                            index += 2
-                        } else {
-                            index++
-                        }
-                    }
-                    if (index < text.length) {
-                        index++
-                    }
+                    index = consumeString(text, start, '\\')
                     fill(colors, start, index, LanguageSupport.STRING_COLOR)
                 }
                 text[index].isDigit() -> {
@@ -249,6 +245,28 @@ internal class EditorSyntaxHighlighter(
                 }
             }
         }
+    }
+
+    private fun consumeString(text: String, startIndex: Int, escape: Char): Int {
+        val quote = text[startIndex]
+        val isTripleQuoted =
+            startIndex + 2 < text.length &&
+                text[startIndex + 1] == quote &&
+                text[startIndex + 2] == quote
+        val delimiter = quote.toString().repeat(if (isTripleQuoted) 3 else 1)
+        var index = startIndex + delimiter.length
+
+        while (index < text.length) {
+            if (text.startsWith(delimiter, index)) {
+                return index + delimiter.length
+            }
+            if (!isTripleQuoted && text[index] == escape && index + 1 < text.length) {
+                index += 2
+            } else {
+                index++
+            }
+        }
+        return text.length
     }
 
     private fun consumeNumber(text: String, startIndex: Int): Int {

@@ -191,15 +191,6 @@ object ScreenRouteRegistry {
                 order = 10
             ),
             hostEntryDefinition(
-                entryId = "toolbox.file_manager",
-                screen = Screen.FileManager,
-                surface = NavigationSurface.TOOLBOX,
-                titleResId = R.string.tool_file_manager,
-                descriptionResId = R.string.tool_file_manager_desc,
-                icon = Icons.Default.Folder,
-                order = 20
-            ),
-            hostEntryDefinition(
                 entryId = "toolbox.text_to_speech",
                 screen = Screen.TextToSpeech,
                 surface = NavigationSurface.TOOLBOX,

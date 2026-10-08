@@ -67,7 +67,7 @@ interface LanguageSupport {
         val FUNCTION_COLOR = Color.parseColor("#DCDCAA")     // Yellow for functions and methods
         val STRING_COLOR = Color.parseColor("#CE9178")       // Orange-brown for strings
         val NUMBER_COLOR = Color.parseColor("#B5CEA8")       // Light green for numbers
-        val COMMENT_COLOR = Color.parseColor("#6A9955")      // Green for comments
+        val COMMENT_COLOR = Color.parseColor("#9E9E9E")      // 灰色注释
         val TYPE_COLOR = Color.parseColor("#4EC9B0")         // Cyan for types, classes, interfaces
         val VARIABLE_COLOR = Color.parseColor("#9CDCFE")     // Light blue for variables and parameters
         val OPERATOR_COLOR = Color.parseColor("#D4D4D4")     // Light grey for operators

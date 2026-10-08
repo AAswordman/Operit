@@ -5344,6 +5344,18 @@
     <string name="file_modified_save_prompt">File \'%1$s\' has been modified, save changes?</string>
     <string name="dont_save">Don\'t Save</string>
     <string name="format_code">Format Code</string>
+    <string name="workspace_open_with">Open with</string>
+    <string name="workspace_text_preview_too_large">Text exceeds %1$d MiB and will not be loaded in the app. Open it with a system app.</string>
+    <string name="workspace_default_open">Default viewer</string>
+    <string name="workspace_open_as_text">Open as text</string>
+    <string name="workspace_open_external">Open in a system app</string>
+    <string name="workspace_invalid_paste">Cannot paste a file into itself or its own subdirectory</string>
+    <string name="workspace_search_content">Search content</string>
+    <string name="workspace_search_previous">Previous match</string>
+    <string name="workspace_search_next">Next match</string>
+    <string name="workspace_sort_descending">Descending order</string>
+    <string name="workspace_sort_ignore_case">Ignore case</string>
+    <string name="workspace_sort_folders_first">Folders first</string>
     <string name="create_default_workspace">Create Default</string>
     <string name="create_new_workspace_in_app">Create new workspace in app</string>
     <string name="select_existing_workspace">Select Existing</string>
@@ -8474,7 +8486,7 @@
     <string name="token_stats_detail_tokens">Token breakdown</string>
     <string name="token_stats_detail_close">Close</string>
     <string name="token_stats_detail_open">Tap to view details</string>
-    <string name="markdown_link_not_openable">This link points to a reference inside the document and cannot be opened</string>
+    <string name="markdown_link_not_openable">Could not open this link. Check the address and whether an app is installed to handle it.</string>
     <string name="openai_file_omitted">File content omitted, current model does not support file processing</string>
 
     <string name="provider_openai_codex">Codex (OpenAI)</string>
@@ -8547,4 +8559,5 @@
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Completing authorization and loading account details…</string>
     <string name="antigravity_login_timed_out">Timed out after waiting 15 minutes for Google authorization. Please start sign-in again.</string>
+    <string name="workspace_markdown_anchor_not_found">Heading not found in the document: %1$s</string>
 </resources>
