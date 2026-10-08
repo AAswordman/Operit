@@ -117,7 +117,12 @@ object WaifuMessageProcessor {
             val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
             when (blockType) {
                 MarkdownProcessorType.XML_BLOCK -> {
-                    blockGroup.stream.collect { }
+                    val blockBuilder = StringBuilder()
+                    blockGroup.stream.collect { blockBuilder.append(it) }
+                    val xmlBlock = blockBuilder.toString()
+                    if (isRenderableWaifuXmlBlock(xmlBlock)) {
+                        appendRenderableText(xmlBlock)
+                    }
                 }
 
                 MarkdownProcessorType.CODE_BLOCK,
@@ -178,6 +183,14 @@ object WaifuMessageProcessor {
         }
         return rawContent.substring(0, start) + "$$" + body + "$$" + rawContent.substring(end)
     }
+
+    /**
+     * Keep user-visible Waifu emotion tags alive across XML filtering until
+     * separateEmotionAndText() converts them to custom emoji image markdown.
+     * Control/status/tool XML must remain hidden from the rendered message.
+     */
+    internal fun isRenderableWaifuXmlBlock(rawContent: String): Boolean =
+        ChatMarkupRegex.emotionTag.matches(rawContent.trim())
 
     internal fun calculateTypingDelayMs(
         segmentLength: Int,
@@ -753,7 +766,11 @@ object WaifuMessageProcessor {
                     builder.append(block.rawContent)
                 }
 
-                StructuredAssistantContentParser.BlockKind.XML -> Unit
+                StructuredAssistantContentParser.BlockKind.XML -> {
+                    if (isRenderableWaifuXmlBlock(block.rawContent)) {
+                        builder.append(block.rawContent)
+                    }
+                }
             }
         }
 
@@ -837,10 +854,12 @@ object WaifuMessageProcessor {
             MarkdownProcessorType.UNORDERED_LIST,
             MarkdownProcessorType.BLOCK_LATEX,
             MarkdownProcessorType.TABLE,
-            MarkdownProcessorType.IMAGE -> true
+            MarkdownProcessorType.IMAGE,
+            // buildRenderableContentForWaifu filters control XML first; any XML block
+            // reaching sentence splitting is a renderable Waifu emotion atom.
+            MarkdownProcessorType.XML_BLOCK -> true
 
             MarkdownProcessorType.HORIZONTAL_RULE,
-            MarkdownProcessorType.XML_BLOCK,
             MarkdownProcessorType.BOLD,
             MarkdownProcessorType.ITALIC,
             MarkdownProcessorType.INLINE_CODE,
