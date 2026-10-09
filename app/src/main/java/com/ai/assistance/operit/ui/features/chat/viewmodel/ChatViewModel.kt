@@ -1094,9 +1094,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun saveCurrentChat() {
         viewModelScope.launch {
-            val (inputTokens, outputTokens) = tokenStatsDelegate.getCumulativeTokenCounts()
-            val currentWindowSize = tokenStatsDelegate.getLastCurrentWindowSize()
-            chatHistoryDelegate.saveCurrentChat(inputTokens, outputTokens, currentWindowSize)
+            chatHistoryDelegate.saveChatStatistics()
         }
     }
 

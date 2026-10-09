@@ -59,7 +59,7 @@ class MessageProcessingDelegate(
         private val getRuntimeChatHistory: suspend (String) -> List<ChatMessage>,
         private val hasUserMessage: suspend (String) -> Boolean,
         private val addMessageToChat: suspend (String, ChatMessage) -> Unit,
-        private val saveCurrentChat: suspend () -> Unit,
+        private val saveCurrentChat: suspend (chatId: String?) -> Unit,
         private val showErrorMessage: (String) -> Unit,
         private val updateChatTitle: (chatId: String, title: String) -> Unit,
         private val getChatTitle: (chatId: String) -> String?,
@@ -539,7 +539,7 @@ class MessageProcessingDelegate(
                 }
 
                 if (currentTurnOptions.persistTurn) {
-                    withContext(Dispatchers.IO) { saveCurrentChat() }
+                    withContext(Dispatchers.IO) { saveCurrentChat(chatId) }
                 }
             } finally {
                 chatRuntime.cancellationInProgress = false

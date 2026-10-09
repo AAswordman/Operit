@@ -296,21 +296,12 @@ class MessageCoordinationDelegate(
                 chatModelIndexOverride = effectiveChatModelIndexOverride,
                 memorySpaceIdOverride = effectiveMemorySpaceIdOverride
             )
-        val (inputTokens, outputTokens) = tokenStatsDelegate.getCumulativeTokenCounts(targetChatId)
-        chatHistoryDelegate.saveCurrentChat(
-            inputTokens = inputTokens,
-            outputTokens = outputTokens,
-            actualContextWindowSize = newWindowSize,
-            chatIdOverride = targetChatId
-        )
+        // 更新窗口不应携带累计快照，避免编辑、总结时覆盖正在增长的用量。
+        chatHistoryDelegate.saveCurrentContextWindow(newWindowSize, chatIdOverride = targetChatId)
         withContext(Dispatchers.Main) {
-            tokenStatsDelegate.setTokenCounts(
-                targetChatId,
-                inputTokens,
-                outputTokens,
-                newWindowSize
-            )
+            tokenStatsDelegate.setCurrentWindowSize(targetChatId, newWindowSize)
         }
+        val (inputTokens, outputTokens) = tokenStatsDelegate.getCumulativeTokenCounts(targetChatId)
         AppLogger.d(
             TAG,
             "上下文窗口已刷新: chatId=$targetChatId, window=$newWindowSize, " +

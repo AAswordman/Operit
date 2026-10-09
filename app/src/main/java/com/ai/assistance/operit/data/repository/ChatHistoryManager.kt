@@ -1395,7 +1395,15 @@ class ChatHistoryManager private constructor(private val context: Context) {
         }
     }
 
-    // 更新聊天的token计数
+    /** 按会话 ID 直接读取统计，不依赖侧边栏列表的异步加载。 */
+    suspend fun getChatTokenCounts(chatId: String): Triple<Long, Long, Long>? =
+        withContext(Dispatchers.IO) {
+            chatDao.getChatById(chatId)?.let { chat ->
+                Triple(chat.inputTokens, chat.outputTokens, chat.currentWindowSize)
+            }
+        }
+
+    // 保存普通累计快照；消息清空仍使用独立的元数据更新操作。
     suspend fun updateChatTokenCounts(
         chatId: String,
         inputTokens: Long,
@@ -1403,21 +1411,18 @@ class ChatHistoryManager private constructor(private val context: Context) {
         currentWindowSize: Long
     ) {
         chatMutex(chatId).withLock {
-            try {
-                val chat = chatDao.getChatById(chatId)
-                if (chat != null) {
-                    chatDao.updateChatMetadata(
-                        chatId = chatId,
-                        title = chat.title,
-                        timestamp = System.currentTimeMillis(),
-                        inputTokens = inputTokens,
-                        outputTokens = outputTokens,
-                        currentWindowSize = currentWindowSize
-                    )
-                }
-            } catch (e: Exception) {
-                throw e
-            }
+            chatDao.updateChatTokenCounts(
+                chatId = chatId,
+                inputTokens = inputTokens.coerceAtLeast(0L),
+                outputTokens = outputTokens.coerceAtLeast(0L),
+                currentWindowSize = currentWindowSize.coerceAtLeast(0L),
+            )
+        }
+    }
+    /** 仅保存上下文窗口，保留当前累计用量。 */
+    suspend fun updateChatContextWindow(chatId: String, windowSize: Long) {
+        chatMutex(chatId).withLock {
+            chatDao.updateChatContextWindow(chatId, windowSize.coerceAtLeast(0L))
         }
     }
 

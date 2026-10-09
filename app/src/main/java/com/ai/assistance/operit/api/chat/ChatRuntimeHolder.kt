@@ -148,6 +148,16 @@ class ChatRuntimeHolder private constructor(context: Context) {
     }
 
     private fun setupCrossSessionSync() {
+        // 同步清空所有运行时中的目标缓存，避免悬浮窗写回清空前的累计。
+        ChatRuntimeSlot.values().forEach { sourceSlot ->
+            getCore(sourceSlot).setAdditionalOnTokenStatisticsCleared { chatId ->
+                cores.forEach { (targetSlot, targetCore) ->
+                    if (targetSlot != sourceSlot) {
+                        targetCore.getTokenStatisticsDelegate().clearChatTokenStatistics(chatId)
+                    }
+                }
+            }
+        }
         registerChatSelectionSync(
             sourceSlot = ChatRuntimeSlot.MAIN,
             targetSlot = ChatRuntimeSlot.FLOATING
@@ -169,7 +179,7 @@ class ChatRuntimeHolder private constructor(context: Context) {
         val sourceCore = getCore(sourceSlot)
         val targetCore = getCore(targetSlot)
 
-        sourceCore.setAdditionalOnTurnComplete { chatId, inputTokens, outputTokens, windowSize ->
+        sourceCore.setAdditionalOnTurnComplete { chatId, statistics ->
             if (chatId.isNullOrBlank()) {
                 return@setAdditionalOnTurnComplete
             }
@@ -180,11 +190,13 @@ class ChatRuntimeHolder private constructor(context: Context) {
             runtimeScope.launch {
                 try {
                     targetCore.reloadChatMessagesSmart(chatId)
-                    targetCore.getTokenStatisticsDelegate()
-                        .setTokenCounts(chatId, inputTokens, outputTokens, windowSize)
+                    statistics?.let { (inputTokens, outputTokens, windowSize) ->
+                        targetCore.getTokenStatisticsDelegate()
+                            .setTokenCounts(chatId, inputTokens, outputTokens, windowSize)
+                    }
                     AppLogger.d(
                         TAG,
-                        "跨 Session smart 同步完成: $sourceSlot -> $targetSlot, chatId=$chatId, input=$inputTokens, output=$outputTokens, window=$windowSize"
+                        "跨 Session smart 同步完成: $sourceSlot -> $targetSlot, chatId=$chatId, statistics=$statistics"
                     )
                 } catch (e: Exception) {
                     AppLogger.e(

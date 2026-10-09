@@ -48,6 +48,26 @@ interface ChatDao {
             currentWindowSize: Long
     )
 
+    /** 普通累计快照只增加计数，避免迟到的会话快照覆盖较新的统计。 */
+    @Query(
+        "UPDATE chats SET updatedAt = :timestamp, inputTokens = MAX(inputTokens, :inputTokens), outputTokens = MAX(outputTokens, :outputTokens), currentWindowSize = :currentWindowSize WHERE id = :chatId"
+    )
+    suspend fun updateChatTokenCounts(
+        chatId: String,
+        inputTokens: Long,
+        outputTokens: Long,
+        currentWindowSize: Long,
+        timestamp: Long = System.currentTimeMillis(),
+    )
+
+    /** 刷新窗口时不修改累计用量。 */
+    @Query("UPDATE chats SET updatedAt = :timestamp, currentWindowSize = :currentWindowSize WHERE id = :chatId")
+    suspend fun updateChatContextWindow(
+        chatId: String,
+        currentWindowSize: Long,
+        timestamp: Long = System.currentTimeMillis(),
+    )
+
     /** 更新聊天标题 */
     @Query("UPDATE chats SET title = :title, updatedAt = :timestamp WHERE id = :chatId")
     suspend fun updateChatTitle(chatId: String, title: String, timestamp: Long = System.currentTimeMillis())

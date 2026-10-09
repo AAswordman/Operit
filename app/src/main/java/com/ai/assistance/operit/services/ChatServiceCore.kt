@@ -60,7 +60,9 @@ class ChatServiceCore(
     private var onEnhancedAiServiceReady: ((EnhancedAIService) -> Unit)? = null
     
     // 额外的 onTurnComplete 回调（用于悬浮窗通知应用等场景）
-    private var additionalOnTurnComplete: ((String?, Long, Long, Long) -> Unit)? = null
+    private var additionalOnTurnComplete: ((String?, Triple<Long, Long, Long>?) -> Unit)? = null
+    private var additionalOnTokenStatisticsCleared: ((String) -> Unit)? = null
+
     private var uiBridge: ChatServiceUiBridge = EmptyChatServiceUiBridge
     private val workspaceChangeTracker = WorkspaceChangeTracker.getInstance(context)
     private val workspaceTrackerOwnerId = "${selectionMode.name}@${System.identityHashCode(this)}"
@@ -106,8 +108,14 @@ class ChatServiceCore(
             coroutineScope = coroutineScope,
             selectionMode = selectionMode,
             onTokenStatisticsLoaded = { chatId, inputTokens, outputTokens, windowSize ->
-                tokenStatisticsDelegate.setActiveChatId(chatId)
                 tokenStatisticsDelegate.setTokenCounts(chatId, inputTokens, outputTokens, windowSize)
+            },
+            isTokenStatisticsLoaded = { chatId ->
+                tokenStatisticsDelegate.hasTokenStatistics(chatId)
+            },
+            onTokenStatisticsCleared = { chatId ->
+                tokenStatisticsDelegate.clearChatTokenStatistics(chatId)
+                additionalOnTokenStatisticsCleared?.invoke(chatId)
             },
             getEnhancedAiService = { enhancedAiService },
             ensureAiServiceAvailable = {
@@ -116,9 +124,9 @@ class ChatServiceCore(
                     enhancedAiService = EnhancedAIService.getInstance(context)
                 }
             },
-            getChatStatistics = {
-                val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts()
-                val windowSize = tokenStatisticsDelegate.getLastCurrentWindowSize()
+            getChatStatistics = { chatId ->
+                val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts(chatId)
+                val windowSize = tokenStatisticsDelegate.getLastCurrentWindowSize(chatId)
                 Triple(inputTokens, outputTokens, windowSize)
             },
             onScrollToBottom = {
@@ -168,10 +176,8 @@ class ChatServiceCore(
             addMessageToChat = { chatId, message ->
                 chatHistoryDelegate.addMessageToChat(message, chatId)
             },
-            saveCurrentChat = {
-                val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts()
-                val windowSize = tokenStatisticsDelegate.getLastCurrentWindowSize()
-                chatHistoryDelegate.saveCurrentChat(inputTokens, outputTokens, windowSize)
+            saveCurrentChat = { chatId ->
+                chatHistoryDelegate.saveChatStatistics(chatId)
             },
             showErrorMessage = { error ->
                 AppLogger.e(TAG, "错误: $error")
@@ -183,7 +189,25 @@ class ChatServiceCore(
             getChatTitle = { chatId ->
                 chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == chatId }?.title
             },
-            onTurnComplete = { chatId, service, nextWindowSize, turnOptions ->
+            onTurnComplete = turnComplete@ { chatId, service, nextWindowSize, turnOptions ->
+                // 首轮累加前恢复持久化统计，后台会话同样需要已有的累计基数。
+                val statisticsLoaded = if (chatId == null) {
+                    true
+                } else {
+                    try {
+                        chatHistoryDelegate.ensureTokenStatisticsLoaded(chatId)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        AppLogger.w(TAG, "会话统计恢复失败: chatId=$chatId", e)
+                        false
+                    }
+                }
+                if (!statisticsLoaded) {
+                    AppLogger.w(TAG, "会话统计尚未恢复，跳过本轮统计保存: chatId=$chatId")
+                    additionalOnTurnComplete?.invoke(chatId, null)
+                    return@turnComplete
+                }
                 tokenStatisticsDelegate.updateCumulativeStatistics(chatId, service)
                 val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts(chatId)
                 val windowSize = nextWindowSize ?: tokenStatisticsDelegate.getLastCurrentWindowSize(chatId)
@@ -196,12 +220,7 @@ class ChatServiceCore(
                         chatIdOverride = chatId
                     )
                 }
-                additionalOnTurnComplete?.invoke(
-                    chatId,
-                    inputTokens,
-                    outputTokens,
-                    windowSize
-                )
+                additionalOnTurnComplete?.invoke(chatId, Triple(inputTokens, outputTokens, windowSize))
             },
             getIsAutoReadEnabled = {
                 apiConfigDelegate.enableAutoRead.value
@@ -515,8 +534,13 @@ class ChatServiceCore(
     }
     
     /** 设置额外的 onTurnComplete 回调（用于悬浮窗通知应用等场景） */
-    fun setAdditionalOnTurnComplete(callback: ((chatId: String?, inputTokens: Long, outputTokens: Long, windowSize: Long) -> Unit)?) {
+    fun setAdditionalOnTurnComplete(callback: ((chatId: String?, statistics: Triple<Long, Long, Long>?) -> Unit)?) {
         additionalOnTurnComplete = callback
+    }
+
+    /** 同步显式清空后的统计，防止其他运行时重新保存旧累计。 */
+    fun setAdditionalOnTokenStatisticsCleared(callback: (String) -> Unit) {
+        additionalOnTokenStatisticsCleared = callback
     }
 
     fun setUiBridge(uiBridge: ChatServiceUiBridge) {
