@@ -3,6 +3,7 @@ package com.ai.assistance.operit.data.stats
 import android.content.Context
 import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.dao.TokenUsageActivityDayRow
+import com.ai.assistance.operit.data.dao.TokenUsageActivityHourRow
 import com.ai.assistance.operit.data.dao.TokenUsageModelAggregateRow
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.normalizeProviderModel
@@ -107,12 +108,24 @@ object TokenStatsQueryService {
                 providerModels = params.providerModels.queryValues(),
                 allModels = params.providerModels == null,
             )
+            val hours = dao.getActivityHoursInRange(
+                startMs = range.startMs,
+                endMs = range.endMs,
+                providerModels = params.providerModels.queryValues(),
+                allModels = params.providerModels == null,
+            )
             TokenActivitySnapshot(
                 zone = zone,
                 dayTotals =
                     days.groupBy(TokenUsageActivityDayRow::localDate).mapValues { (_, rows) ->
                         rows.fold(0L) { total, row -> TokenCostCalculator.saturatedAdd(total, row.tokens) }
                     }.mapKeys { (date, _) -> LocalDate.parse(date) },
+                hourTotals =
+                    hours.groupBy { it.localDate to it.localHour }.mapValues { (_, rows) ->
+                        rows.fold(0L) { total, row -> TokenCostCalculator.saturatedAdd(total, row.tokens) }
+                    }.mapKeys { (key, _) ->
+                        LocalDate.parse(key.first).atTime(key.second, 0)
+                    },
             )
         }
     }

@@ -1,21 +1,45 @@
 package com.ai.assistance.operit.data.stats
 
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.ceil
-
-enum class TokenActivityViewMode { DAILY, WEEKLY, CUMULATIVE }
+enum class TokenActivityViewMode { DAILY, WEEKLY, MONTHLY, YEARLY, CUMULATIVE }
 
 internal data class TokenActivitySnapshot(
     val zone: ZoneId,
     val dayTotals: Map<LocalDate, Long>,
+    val hourTotals: Map<LocalDateTime, Long> = emptyMap(),
 )
 
 data class TokenActivityDay(val date: LocalDate, val tokens: Long, val level: Int)
 
 data class TokenActivityWeek(
     val startDate: LocalDate,
+    val tokens: Long,
+    val level: Int,
+    val barHeight: Int,
+)
+
+data class TokenActivityMonth(
+    val startDate: LocalDate,
+    val tokens: Long,
+    val level: Int,
+    val barHeight: Int,
+)
+
+data class TokenActivityYear(
+    val startDate: LocalDate,
+    val tokens: Long,
+    val level: Int,
+    val barHeight: Int,
+)
+
+data class TokenActivityHour(
+    val startDate: LocalDate,
+    val hour: Int,
     val tokens: Long,
     val level: Int,
     val barHeight: Int,
@@ -31,23 +55,27 @@ data class TokenActivityStats(
 data class TokenActivityRangeData(
     val daily: List<TokenActivityDay>,
     val weekly: List<TokenActivityWeek>,
+    val monthly: List<TokenActivityMonth>,
+    val yearly: List<TokenActivityYear>,
+    val hourly: List<TokenActivityHour>,
     val cumulative: List<TokenActivityDay>,
     val stats: TokenActivityStats,
 )
 
 object TokenActivityAggregator {
-    /** Builds all three activity views from the same explicit calendar range. */
+    /** Builds all activity views from the same explicit calendar range. */
     internal fun rangeData(
         snapshot: TokenActivitySnapshot,
         range: TokenStatsTimeRange,
     ): TokenActivityRangeData {
         val start = java.time.Instant.ofEpochMilli(range.startMs).atZone(snapshot.zone).toLocalDate()
         val end = java.time.Instant.ofEpochMilli(range.endMs - 1L).atZone(snapshot.zone).toLocalDate()
-        return rangeData(snapshot.dayTotals, start, end)
+        return rangeData(snapshot.dayTotals, snapshot.hourTotals, start, end)
     }
 
     private fun rangeData(
         dayTotals: Map<LocalDate, Long>,
+        hourTotals: Map<LocalDateTime, Long>,
         start: LocalDate,
         end: LocalDate,
     ): TokenActivityRangeData {
@@ -67,26 +95,92 @@ object TokenActivityAggregator {
         val cumulativeLevels = QuantileLevels.from(cumulativeRaw.map(TokenActivityDay::tokens))
         val cumulative = cumulativeRaw.map { it.copy(level = cumulativeLevels.level(it.tokens)) }
 
-        val firstWeek = start.minusDays((start.dayOfWeek.value % 7).toLong())
-        val lastWeek = end.minusDays((end.dayOfWeek.value % 7).toLong())
-        val weekCount = ChronoUnit.WEEKS.between(firstWeek, lastWeek).toInt() + 1
+        // Rolling 7-day buckets aligned to the range start: a week runs from the
+        // range's first day, matching the mode policy that ends the window today
+        // and starts seven days earlier. The final bucket may be shorter when the
+        // range is not an exact multiple of seven days.
+        val weekCount = ((dayCount + 6) / 7).coerceAtLeast(1)
         val weekTotals = LongArray(weekCount)
         raw.forEach { day ->
-            val weekStart = day.date.minusDays((day.date.dayOfWeek.value % 7).toLong())
-            val index = ChronoUnit.WEEKS.between(firstWeek, weekStart).toInt()
+            val index = (ChronoUnit.DAYS.between(start, day.date).toInt() / 7)
+                .coerceIn(0, weekCount - 1)
             weekTotals[index] = TokenCostCalculator.saturatedAdd(weekTotals[index], day.tokens)
         }
         val weekLevels = QuantileLevels.from(weekTotals.toList())
         val heights = barHeights(weekTotals.toList())
         val weekly = List(weekCount) { index ->
             TokenActivityWeek(
-                startDate = firstWeek.plusWeeks(index.toLong()),
+                startDate = start.plusDays(index.toLong() * 7L),
                 tokens = weekTotals[index],
                 level = weekLevels.level(weekTotals[index]),
                 barHeight = heights[index],
             )
         }
-        return TokenActivityRangeData(daily, weekly, cumulative, stats(raw))
+
+        val monthTotals = linkedMapOf<YearMonth, Long>()
+        raw.forEach { day ->
+            val key = YearMonth.from(day.date)
+            monthTotals[key] = TokenCostCalculator.saturatedAdd(monthTotals[key] ?: 0L, day.tokens)
+        }
+        val monthLevels = QuantileLevels.from(monthTotals.values.toList())
+        val monthHeights = barHeights(monthTotals.values.toList())
+        val monthly = monthTotals.entries.mapIndexed { index, (yearMonth, tokens) ->
+            TokenActivityMonth(
+                startDate = yearMonth.atDay(1),
+                tokens = tokens,
+                level = monthLevels.level(tokens),
+                barHeight = monthHeights[index],
+            )
+        }
+
+        val yearTotals = linkedMapOf<Int, Long>()
+        raw.forEach { day ->
+            val key = day.date.year
+            yearTotals[key] = TokenCostCalculator.saturatedAdd(yearTotals[key] ?: 0L, day.tokens)
+        }
+        val yearLevels = QuantileLevels.from(yearTotals.values.toList())
+        val yearHeights = barHeights(yearTotals.values.toList())
+        val yearly = yearTotals.entries.mapIndexed { index, (year, tokens) ->
+            TokenActivityYear(
+                startDate = LocalDate.of(year, 1, 1),
+                tokens = tokens,
+                level = yearLevels.level(tokens),
+                barHeight = yearHeights[index],
+            )
+        }
+
+        // Hourly buckets are only meaningful for single-day views (24 bars). Keep the
+        // range short to avoid wasteful computation for weekly/monthly/yearly ranges.
+        val hourly = if (dayCount <= 2 && hourTotals.isNotEmpty()) {
+            val hourEntries = buildList {
+                var current = start.atStartOfDay()
+                val endExclusive = end.plusDays(1L).atStartOfDay()
+                while (current < endExclusive) {
+                    add(
+                        TokenActivityHour(
+                            startDate = current.toLocalDate(),
+                            hour = current.hour,
+                            tokens = hourTotals[current] ?: 0L,
+                            level = 0,
+                            barHeight = 0,
+                        )
+                    )
+                    current = current.plusHours(1L)
+                }
+            }
+            val hourLevels = QuantileLevels.from(hourEntries.map(TokenActivityHour::tokens))
+            val hourHeights = barHeights(hourEntries.map(TokenActivityHour::tokens))
+            hourEntries.mapIndexed { index, entry ->
+                entry.copy(
+                    level = hourLevels.level(entry.tokens),
+                    barHeight = hourHeights[index],
+                )
+            }
+        } else {
+            emptyList()
+        }
+
+        return TokenActivityRangeData(daily, weekly, monthly, yearly, hourly, cumulative, stats(raw))
     }
 
     private fun stats(days: List<TokenActivityDay>): TokenActivityStats {
