@@ -27,6 +27,7 @@ import com.ai.assistance.operit.ui.features.packages.components.dialogs.content.
 import com.ai.assistance.operit.ui.features.packages.components.dialogs.content.MCPServerDetailsContent
 import com.ai.assistance.operit.ui.features.packages.components.dialogs.header.MCPServerDetailsHeader
 import com.ai.assistance.operit.ui.features.packages.components.dialogs.tabs.MCPServerDetailsTabs
+import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
 
 /**
@@ -52,7 +53,8 @@ fun MCPServerDetailsDialog(
         pluginConfig: String = "",
         onSaveConfig: () -> Unit = {},
         onUpdateConfig: (String) -> Unit = {},
-        mdFontSize: Float = 14f
+        mdFontSize: Float = 14f,
+        onOpenMarketDetail: (MarketV2Entry) -> Unit = {}
 ) {
     val isInstalled = server.isInstalled
     val supportsLocalConfigEditing = server.type != "remote"
@@ -135,7 +137,9 @@ fun MCPServerDetailsDialog(
                             server = server,
                             isInstalled = isInstalled,
                             onInstall = onInstall,
-                            onUninstall = onUninstall
+                            onUninstall = onUninstall,
+                            installedPath = installedPath,
+                            onOpenMarketDetail = onOpenMarketDetail
                     )
                 }
             }
