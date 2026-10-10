@@ -102,7 +102,7 @@ class MemoryAutoSaveScheduler(
                 val nextRunAt = System.currentTimeMillis() + intervalMs
                 AppLogger.d(
                     TAG,
-                    "候选总条数不足，继续累计并重置下次执行时间: profileId=$profileId, totalCandidates=${allCandidates.size}, nextRunAt=$nextRunAt"
+                    "候选总条数不足，继续累计并重置下次执行时间: profileId=$profileId, totalCandidates=${allCandidates.size}, minimumCandidates=$MIN_TOTAL_CANDIDATES_TO_EXTRACT, nextRunAt=$nextRunAt"
                 )
                 scheduleNextRun(profileId, nextRunAt)
                 continue

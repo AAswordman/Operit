@@ -6084,6 +6084,7 @@
     <string name="memory_search_keyword_weight">Keyword Weight</string>
     <string name="memory_search_tag_weight">Tag Weight</string>
     <string name="memory_search_vector_weight">Vector Weight</string>
+    <string name="memory_search_min_semantic_similarity">Minimum Semantic Similarity</string>
     <string name="memory_search_edge_weight">Edge Propagation Weight</string>
     <string name="memory_search_reset_default">Reset Default</string>
     <string name="memory_search_debug_tools">Search Debug</string>

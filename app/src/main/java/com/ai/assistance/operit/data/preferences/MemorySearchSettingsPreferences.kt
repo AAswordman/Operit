@@ -22,7 +22,11 @@ class MemorySearchSettingsPreferences(context: Context, profileId: String) {
             keywordWeight = searchPrefs.getFloat(KEY_KEYWORD_WEIGHT, 10.0f),
             tagWeight = searchPrefs.getFloat(KEY_TAG_WEIGHT, 0.0f),
             vectorWeight = searchPrefs.getFloat(KEY_VECTOR_WEIGHT, 0.0f),
-            edgeWeight = searchPrefs.getFloat(KEY_EDGE_WEIGHT, 0.4f)
+            edgeWeight = searchPrefs.getFloat(KEY_EDGE_WEIGHT, 0.4f),
+            minSemanticSimilarity = searchPrefs.getFloat(
+                KEY_MIN_SEMANTIC_SIMILARITY,
+                MemorySearchConfig.DEFAULT_MIN_SEMANTIC_SIMILARITY
+            )
         )
         return config.normalized()
     }
@@ -35,6 +39,7 @@ class MemorySearchSettingsPreferences(context: Context, profileId: String) {
             .putFloat(KEY_TAG_WEIGHT, normalized.tagWeight)
             .putFloat(KEY_VECTOR_WEIGHT, normalized.vectorWeight)
             .putFloat(KEY_EDGE_WEIGHT, normalized.edgeWeight)
+            .putFloat(KEY_MIN_SEMANTIC_SIMILARITY, normalized.minSemanticSimilarity)
             .apply()
     }
 
@@ -113,6 +118,7 @@ class MemorySearchSettingsPreferences(context: Context, profileId: String) {
         private const val KEY_TAG_WEIGHT = "tag_weight"
         private const val KEY_VECTOR_WEIGHT = "vector_weight"
         private const val KEY_EDGE_WEIGHT = "edge_weight"
+        private const val KEY_MIN_SEMANTIC_SIMILARITY = "min_semantic_similarity"
         private const val KEY_AUTO_SAVE_INTERVAL_MINUTES = "auto_save_interval_minutes"
         private const val KEY_NEXT_AUTO_SAVE_RUN_AT_MS = "next_auto_save_run_at_ms"
         private const val KEY_MEMORY_EXTRACTION_CUSTOM_RULES = "memory_extraction_custom_rules"

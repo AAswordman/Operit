@@ -1907,12 +1907,24 @@ export interface ChatMessagesResult extends BaseResult {
 // ============================================================================
 
 /**
+ * 查询总分与各信号分项。通配符列表和按标题读取没有评分。
+ */
+export interface MemoryQueryScoreInfo {
+    total: number;
+    keyword: number;
+    tag: number;
+    reverseContainment: number;
+    semantic: number;
+    edge: number;
+}
+
+/**
  * Single memory item returned by memory query
  */
 export interface MemoryQueryResultMemoryInfo {
     /** Memory title */
     title: string;
-    /** Memory content or formatted document chunk summary */
+    /** 普通记忆内容；通配符列表仅返回前 10 个字符的预览。 */
     content: string;
     /** Memory source */
     source: string;
@@ -1924,6 +1936,8 @@ export interface MemoryQueryResultMemoryInfo {
     chunkInfo?: string | null;
     /** Optional matched chunk indices for document memories */
     chunkIndices?: number[] | null;
+    /** 排名结果的总分和各信号分项。 */
+    score?: MemoryQueryScoreInfo | null;
 }
 
 /**

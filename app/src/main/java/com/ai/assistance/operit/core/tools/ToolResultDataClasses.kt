@@ -1385,7 +1385,18 @@ data class MemoryQueryResultData(
         val tags: List<String>,
         val createdAt: String,
         val chunkInfo: String? = null,
-        val chunkIndices: List<Int>? = null
+        val chunkIndices: List<Int>? = null,
+        val score: ScoreInfo? = null
+    )
+
+    @Serializable
+    data class ScoreInfo(
+        val total: Double,
+        val keyword: Double,
+        val tag: Double,
+        val reverseContainment: Double,
+        val semantic: Double,
+        val edge: Double
     )
 
     override fun toString(): String {

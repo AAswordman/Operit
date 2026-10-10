@@ -68,6 +68,7 @@ fun MemorySearchSettingsDialog(
     var keywordWeight by remember(currentConfig) { mutableFloatStateOf(currentConfig.keywordWeight) }
     var tagWeight by remember(currentConfig) { mutableFloatStateOf(currentConfig.tagWeight) }
     var vectorWeight by remember(currentConfig) { mutableFloatStateOf(currentConfig.vectorWeight) }
+    var minSemanticSimilarity by remember(currentConfig) { mutableFloatStateOf(currentConfig.minSemanticSimilarity) }
     var edgeWeight by remember(currentConfig) { mutableFloatStateOf(currentConfig.edgeWeight) }
     var scoreMode by remember(currentConfig) { mutableStateOf(currentConfig.scoreMode) }
     var editedAutoSaveIntervalMinutes by remember(autoSaveIntervalMinutes) {
@@ -138,6 +139,15 @@ fun MemorySearchSettingsDialog(
                         valueText = String.format("%.2f", vectorWeight),
                         valueRange = 0.0f..2.0f,
                         onValueChange = { vectorWeight = it }
+                    )
+                    // 未启用向量检索时保留已选阈值，控件置灰以避免误以为它会影响当前查询。
+                    SliderSettingItem(
+                        title = stringResource(R.string.memory_search_min_semantic_similarity),
+                        value = minSemanticSimilarity,
+                        valueText = String.format("%.2f", minSemanticSimilarity),
+                        valueRange = 0.0f..1.0f,
+                        enabled = vectorWeight > 0f && editedCloudConfig.isReady(),
+                        onValueChange = { minSemanticSimilarity = it }
                     )
                     SliderSettingItem(
                         title = stringResource(R.string.memory_search_edge_weight),
@@ -350,7 +360,8 @@ fun MemorySearchSettingsDialog(
                             keywordWeight = keywordWeight,
                             tagWeight = tagWeight,
                             vectorWeight = vectorWeight,
-                            edgeWeight = edgeWeight
+                            edgeWeight = edgeWeight,
+                            minSemanticSimilarity = minSemanticSimilarity
                         ).normalized(),
                         editedCloudConfig,
                         editedAutoSaveIntervalMinutes.roundToInt(),
@@ -370,6 +381,7 @@ fun MemorySearchSettingsDialog(
                         keywordWeight = 10.0f
                         tagWeight = 0.0f
                         vectorWeight = 0.0f
+                        minSemanticSimilarity = MemorySearchConfig.DEFAULT_MIN_SEMANTIC_SIMILARITY
                         edgeWeight = 0.4f
                         editedAutoSaveIntervalMinutes =
                             MemorySearchSettingsPreferences.DEFAULT_AUTO_SAVE_INTERVAL_MINUTES.toFloat()
@@ -457,6 +469,7 @@ private fun SliderSettingItem(
     valueText: String,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int = 0,
+    enabled: Boolean = true,
     onValueChange: (Float) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -465,18 +478,23 @@ private fun SliderSettingItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
             Text(
                 text = valueText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
+                color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             )
         }
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
-            steps = steps
+            steps = steps,
+            enabled = enabled
         )
     }
 }

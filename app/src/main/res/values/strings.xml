@@ -6436,6 +6436,7 @@
     <string name="memory_search_keyword_weight">关键词权重</string>
     <string name="memory_search_tag_weight">标签权重</string>
     <string name="memory_search_vector_weight">向量权重</string>
+    <string name="memory_search_min_semantic_similarity">最低语义相似度</string>
     <string name="memory_search_edge_weight">边传播权重</string>
     <string name="memory_search_reset_default">恢复默认</string>
     <string name="memory_search_debug_tools">搜索调试</string>

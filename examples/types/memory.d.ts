@@ -46,9 +46,9 @@ export namespace Memory {
      * @param startTime - Optional local-time start time in `YYYY-MM-DD` or `YYYY-MM-DD HH:mm` format, filters memories by createdAt >= startTime
      * @param endTime - Optional local-time end time in `YYYY-MM-DD` or `YYYY-MM-DD HH:mm` format, filters memories by createdAt <= endTime
      * @param snapshotId - Optional snapshot id. Omit or pass empty to auto-create one; pass any non-empty id to use or create that exact snapshot so follow-up or parallel queries can exclude already returned memories
-     * @param threshold - Optional relevance threshold (>=0). Only memories whose score is at least this value are returned; `query_memory` defaults to `0`
+     * @param threshold - 可选相关性阈值（>=0），只返回分数不低于此值的记忆；默认 0.025
      * @param callerCardId - Optional caller role card id used to select the bound memory profile
-     * @returns Structured query results
+     * @returns 结构化查询结果。普通记忆的通配符查询只返回预览，可通过 getByTitle 读取全文；排名结果包含评分分项。
      */
     function query(
         query: string,
@@ -70,10 +70,10 @@ export namespace Memory {
      * @param query - Optional query to search within the document. Supports natural language, space-separated phrases, `|`-separated keywords, and `*` as a fuzzy wildcard inside a keyword
      * @param limit - Optional maximum number of matched chunks when using query (>=1, default 20)
      * @param callerCardId - Optional caller role card id used to select the bound memory profile
-     * @returns Memory content as a string
+     * @returns 普通记忆返回结构化结果；请求文档分块时返回字符串。
      */
-    function getByTitle(title: string, chunkIndex?: number, chunkRange?: string, query?: string, limit?: number, callerCardId?: string): Promise<string>;
-    function getByTitle(options: GetByTitleOptions): Promise<string>;
+    function getByTitle(title: string, chunkIndex?: number, chunkRange?: string, query?: string, limit?: number, callerCardId?: string): Promise<import('./results').MemoryQueryResultData | string>;
+    function getByTitle(options: GetByTitleOptions): Promise<import('./results').MemoryQueryResultData | string>;
 
     /**
      * Create a new memory

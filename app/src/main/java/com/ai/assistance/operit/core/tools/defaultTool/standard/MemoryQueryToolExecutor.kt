@@ -11,6 +11,7 @@ import com.ai.assistance.operit.core.tools.ToolExecutor
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.Memory
+import com.ai.assistance.operit.data.model.MemorySearchDebugCandidate
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ToolValidationResult
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
@@ -34,7 +35,6 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
     companion object {
         private const val TAG = "MemoryQueryToolExecutor"
         private const val MAX_QUERY_SNAPSHOTS_PER_PROFILE = 32
-        private const val DEFAULT_RELEVANCE_THRESHOLD = 0.0
 
         private data class QuerySnapshotState(
             val id: String,
@@ -291,11 +291,11 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
 
         AppLogger.d(
             TAG,
-            "Executing memory query: '$query' in folder: '${folderPath ?: "All"}', snapshot_id=${snapshotState.id}, snapshot_created=$snapshotCreated, start_time: ${startTimeMs ?: "null"}, end_time: ${endTimeMs ?: "null"}, limit: $validLimit, threshold=${threshold ?: DEFAULT_RELEVANCE_THRESHOLD}, mode=${settings.scoreMode}, keywordWeight=${settings.keywordWeight}, tagWeight=${settings.tagWeight}, vectorWeight=${settings.vectorWeight}, edgeWeight=${settings.edgeWeight}"
+            "Executing memory query: '$query' in folder: '${folderPath ?: "All"}', snapshot_id=${snapshotState.id}, snapshot_created=$snapshotCreated, start_time: ${startTimeMs ?: "null"}, end_time: ${endTimeMs ?: "null"}, limit: $validLimit, threshold=${threshold ?: MemoryRepository.DEFAULT_RELEVANCE_THRESHOLD}, mode=${settings.scoreMode}, keywordWeight=${settings.keywordWeight}, tagWeight=${settings.tagWeight}, vectorWeight=${settings.vectorWeight}, edgeWeight=${settings.edgeWeight}, minSemanticSimilarity=${settings.minSemanticSimilarity}"
         )
 
         return try {
-            val results = memoryRepository.searchMemories(
+            val searchResult = memoryRepository.runSearchMemoriesWithDebug(
                 query = query,
                 folderPath = folderPath,
                 scoreMode = settings.scoreMode,
@@ -303,10 +303,11 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
                 tagWeight = settings.tagWeight,
                 semanticWeight = settings.vectorWeight,
                 edgeWeight = settings.edgeWeight,
-                relevanceThreshold = threshold ?: DEFAULT_RELEVANCE_THRESHOLD,
+                relevanceThreshold = threshold ?: MemoryRepository.DEFAULT_RELEVANCE_THRESHOLD,
                 createdAtStartMs = startTimeMs,
                 createdAtEndMs = endTimeMs
             )
+            val results = searchResult.memories
 
             // Keep de-duplication stable even when multiple calls share the same snapshot in parallel.
             val (excludedBySnapshotCount, returnedMemories) = synchronized(snapshotState.lock) {
@@ -325,6 +326,7 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
                 memories = returnedMemories,
                 query = query,
                 limit = validLimit,
+                scoresByMemoryId = searchResult.debug.candidates.associateBy { it.memoryId },
                 snapshotId = snapshotState.id,
                 snapshotCreated = snapshotCreated,
                 excludedBySnapshotCount = excludedBySnapshotCount
@@ -1290,6 +1292,7 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
         memories: List<Memory>,
         query: String,
         limit: Int,
+        scoresByMemoryId: Map<Long, MemorySearchDebugCandidate> = emptyMap(),
         snapshotId: String? = null,
         snapshotCreated: Boolean = false,
         excludedBySnapshotCount: Int = 0
@@ -1359,7 +1362,17 @@ class MemoryQueryToolExecutor(private val context: Context) : ToolExecutor {
                 tags = memory.tags.map { it.name },
                 createdAt = sdf.format(memory.createdAt),
                 chunkInfo = chunkInfo,
-                chunkIndices = chunkIndices
+                chunkIndices = chunkIndices,
+                score = scoresByMemoryId[memory.id]?.let { candidate ->
+                    MemoryQueryResultData.ScoreInfo(
+                        total = candidate.totalScore,
+                        keyword = candidate.keywordScore,
+                        tag = candidate.tagScore,
+                        reverseContainment = candidate.reverseContainmentScore,
+                        semantic = candidate.semanticScore,
+                        edge = candidate.edgeScore
+                    )
+                }
             )
         }
         MemoryQueryResultData(
