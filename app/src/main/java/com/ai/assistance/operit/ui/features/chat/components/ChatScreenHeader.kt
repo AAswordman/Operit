@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
@@ -120,6 +122,10 @@ fun ChatScreenHeader(
     val maxWindowSizeInK by actualViewModel.maxWindowSizeInK.collectAsState()
     val inputTokenCount by actualViewModel.inputTokenCount.collectAsState()
     val outputTokenCount by actualViewModel.outputTokenCount.collectAsState()
+    val contextWindowBreakdown by actualViewModel.contextWindowBreakdown.collectAsState()
+    val isLoadingContextWindowBreakdown by
+            actualViewModel.isLoadingContextWindowBreakdown.collectAsState()
+    val isSummarizing by actualViewModel.isSummarizing.collectAsState()
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -181,8 +187,22 @@ fun ChatScreenHeader(
                         0f
                     }
 
-            // 使用一个状态来跟踪是否显示详细信息
+            // 圆环下拉只展示累计数字；上下文右侧图标再打开当前窗口拆分
             val (showDetailedStats, setShowDetailedStats) = remember { mutableStateOf(false) }
+            val (showBreakdownSheet, setShowBreakdownSheet) = remember { mutableStateOf(false) }
+            val wasSummarizing = remember { mutableStateOf(false) }
+
+            LaunchedEffect(showBreakdownSheet) {
+                if (showBreakdownSheet) {
+                    actualViewModel.loadContextWindowBreakdown()
+                }
+            }
+            LaunchedEffect(isSummarizing, showBreakdownSheet) {
+                if (showBreakdownSheet && wasSummarizing.value && !isSummarizing) {
+                    actualViewModel.loadContextWindowBreakdown()
+                }
+                wasSummarizing.value = isSummarizing
+            }
 
             Box {
                 // 主要显示（圆环进度）
@@ -227,8 +247,19 @@ fun ChatScreenHeader(
                 ) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.context_window, currentWindowSize)) },
-                        onClick = {},
-                        enabled = false
+                        trailingIcon = {
+                            Icon(
+                                    imageVector = Icons.Outlined.Info,
+                                    contentDescription =
+                                            stringResource(R.string.context_details),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        onClick = {
+                            setShowDetailedStats(false)
+                            setShowBreakdownSheet(true)
+                        }
                     )
                     
                     DropdownMenuItem(
@@ -259,8 +290,18 @@ fun ChatScreenHeader(
                             onClick = {},
                             enabled = false
                     )
-                    
                 }
+            }
+
+            if (showBreakdownSheet) {
+                ContextWindowBreakdownSheet(
+                        breakdown = contextWindowBreakdown,
+                        persistedWindowTokens = currentWindowSize,
+                        isLoading = isLoadingContextWindowBreakdown,
+                        isSummarizing = isSummarizing,
+                        onSummarizeNow = { actualViewModel.manuallySummarizeConversation() },
+                        onDismiss = { setShowBreakdownSheet(false) }
+                )
             }
         }
     }
