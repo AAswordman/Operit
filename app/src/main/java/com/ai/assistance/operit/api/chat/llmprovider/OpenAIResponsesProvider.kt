@@ -124,7 +124,9 @@ open class OpenAIResponsesProvider(
     }
 
     private fun shouldAttachPromptCacheKey(): Boolean {
-        return responsesProviderType == ApiProviderType.OPENAI_RESPONSES
+        // Codex 请求 store=false，没有服务端会话，缓存同样依赖这个稳定键。
+        return responsesProviderType == ApiProviderType.OPENAI_RESPONSES ||
+            responsesProviderType == ApiProviderType.OPENAI_CODEX
     }
 
     private fun buildPromptCacheKey(
