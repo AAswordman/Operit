@@ -50,6 +50,9 @@ import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.ToolPackage
 import com.ai.assistance.operit.core.tools.EnvVar
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.PackageTemplateCreateError
+import com.ai.assistance.operit.core.tools.packTool.PackageTemplateFactory
+import com.ai.assistance.operit.core.tools.packTool.PackageTemplateKind
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
 import com.ai.assistance.operit.data.mcp.MCPRepository
 import com.ai.assistance.operit.data.preferences.EnvPreferences
@@ -60,7 +63,9 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.ui.components.ErrorDialog
 import com.ai.assistance.operit.ui.features.packages.components.EmptyState
 import com.ai.assistance.operit.ui.features.packages.components.PackageTab
+import com.ai.assistance.operit.ui.features.packages.dialogs.PackageAddActionDialog
 import com.ai.assistance.operit.ui.features.packages.dialogs.PackageDetailsDialog
+import com.ai.assistance.operit.ui.features.packages.dialogs.PackageTemplateIdentityDialog
 import com.ai.assistance.operit.ui.features.packages.dialogs.QuickPluginCreatorDialog
 import com.ai.assistance.operit.ui.features.packages.dialogs.ScriptExecutionDialog
 import com.ai.assistance.operit.ui.features.packages.lists.PackagesList
@@ -212,6 +217,8 @@ fun PackageManagerScreen(
     var quickPluginRequirement by rememberSaveable { mutableStateOf("") }
     var quickPluginSetupRunning by remember { mutableStateOf(false) }
     var quickPluginSetupResult by remember { mutableStateOf<ToolResult?>(null) }
+    var showPackageAddActionDialog by remember { mutableStateOf(false) }
+    var pendingTemplateKind by remember { mutableStateOf<PackageTemplateKind?>(null) }
 
     val requiredEnvByPackage by remember {
         derivedStateOf {
@@ -590,7 +597,7 @@ fun PackageManagerScreen(
 
                     // Existing import package button
                     FloatingActionButton(
-                        onClick = { packageFilePicker.launch("*/*") },
+                        onClick = { showPackageAddActionDialog = true },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier =
@@ -602,8 +609,8 @@ fun PackageManagerScreen(
                         Icon(
                             imageVector = Icons.Rounded.Add,
                             contentDescription = when (selectedTab) {
-                                PackageTab.PLUGINS -> context.getString(R.string.import_external_plugin)
-                                PackageTab.PACKAGES -> context.getString(R.string.import_external_package)
+                                PackageTab.PLUGINS -> context.getString(R.string.package_add_dialog_title_plugin)
+                                PackageTab.PACKAGES -> context.getString(R.string.package_add_dialog_title_package)
                                 else -> context.getString(R.string.import_action)
                             }
                         )
@@ -1118,6 +1125,127 @@ fun PackageManagerScreen(
                             Text(stringResource(R.string.confirm))
                         }
                     }
+                )
+            }
+
+            if (showPackageAddActionDialog) {
+                PackageAddActionDialog(
+                    isPluginTab = selectedTab == PackageTab.PLUGINS,
+                    onImport = {
+                        showPackageAddActionDialog = false
+                        packageFilePicker.launch("*/*")
+                    },
+                    onCreateTemplate = { kind ->
+                        showPackageAddActionDialog = false
+                        pendingTemplateKind = kind
+                    },
+                    onDismiss = { showPackageAddActionDialog = false }
+                )
+            }
+
+            pendingTemplateKind?.let { kind ->
+                PackageTemplateIdentityDialog(
+                    kind = kind,
+                    onConfirm = { displayName, packageId ->
+                        val creatingKind = kind
+                        pendingTemplateKind = null
+                        scope.launch {
+                            isLoading = true
+                            val created =
+                                withContext(Dispatchers.IO) {
+                                    PackageTemplateFactory.create(
+                                        packagesDir = packageManager.getExternalPackagesDirectory(),
+                                        kind = creatingKind,
+                                        displayName = displayName,
+                                        packageId = packageId
+                                    )
+                                }
+                            if (!created.success || created.file == null) {
+                                isLoading = false
+                                snackbarHostState.showSnackbar(
+                                    message =
+                                        when (created.error) {
+                                            PackageTemplateCreateError.INVALID_DISPLAY_NAME ->
+                                                context.getString(R.string.package_template_display_name_required)
+                                            PackageTemplateCreateError.INVALID_PACKAGE_ID ->
+                                                context.getString(
+                                                    if (PackageTemplateFactory.isToolPkgKind(creatingKind)) {
+                                                        R.string.package_template_toolpkg_id_invalid
+                                                    } else {
+                                                        R.string.package_template_package_id_invalid
+                                                    }
+                                                )
+                                            PackageTemplateCreateError.FILE_EXISTS ->
+                                                context.getString(
+                                                    R.string.package_template_file_exists,
+                                                    created.file?.name ?: packageId
+                                                )
+                                            else ->
+                                                context.getString(R.string.package_template_create_failed)
+                                        }
+                                )
+                                return@launch
+                            }
+
+                            val errorsBeforeCreate = packageManager.getPackageLoadErrors()
+                            val loadResult =
+                                withContext(Dispatchers.IO) {
+                                    val available =
+                                        packageManager.getExecutableAvailablePackages(forceRefresh = true)
+                                    val allAvailable = packageManager.getAvailablePackages()
+                                    val plugins =
+                                        packageManager
+                                            .getToolPkgPluginContainerDetails(context)
+                                            .associateBy { it.packageName }
+                                    val imported = packageManager.getEnabledPackageNames()
+                                    val errors = packageManager.getPackageLoadErrors()
+                                    val errorInfos = packageManager.getPackageLoadErrorInfos()
+                                    val newErrors =
+                                        errors.filter { (key, value) -> errorsBeforeCreate[key] != value }
+                                    ExternalPackageImportResult(
+                                        message = "template created",
+                                        marketOrigin = null,
+                                        availablePackages = available,
+                                        allAvailablePackages = allAvailable,
+                                        pluginContainers = plugins,
+                                        importedPackages = imported,
+                                        packageLoadErrors = errors,
+                                        packageLoadErrorInfos = errorInfos,
+                                        newPackageLoadErrors = newErrors
+                                    )
+                                }
+
+                            availablePackages.value = loadResult.availablePackages
+                            allAvailablePackages.value = loadResult.allAvailablePackages
+                            pluginContainers.value = loadResult.pluginContainers
+                            importedPackages.value = loadResult.importedPackages
+                            packageLoadErrors.value = loadResult.packageLoadErrors
+                            packageLoadErrorInfos.value = loadResult.packageLoadErrorInfos
+                            visibleImportedPackages.value = importedPackages.value.toList()
+                            isLoading = false
+
+                            if (loadResult.newPackageLoadErrors.isNotEmpty()) {
+                                importErrorMessage =
+                                    buildString {
+                                        append(context.getString(R.string.package_template_create_failed))
+                                        append("\n\n")
+                                        append(
+                                            loadResult.newPackageLoadErrors
+                                                .toSortedMap()
+                                                .entries
+                                                .joinToString(separator = "\n\n") { (packageName, errorText) ->
+                                                    "$packageName:\n$errorText"
+                                                }
+                                        )
+                                    }
+                            } else {
+                                snackbarHostState.showSnackbar(
+                                    message = context.getString(R.string.package_template_created)
+                                )
+                            }
+                        }
+                    },
+                    onDismiss = { pendingTemplateKind = null }
                 )
             }
 
