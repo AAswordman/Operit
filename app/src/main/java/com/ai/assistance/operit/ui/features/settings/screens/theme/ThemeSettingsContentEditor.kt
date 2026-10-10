@@ -153,6 +153,7 @@ internal fun ThemeSettingsContentEditor(
     var pendingAction by remember { mutableStateOf<ThemeEditorPendingAction?>(null) }
     var exitContinuation by remember { mutableStateOf<CancellableContinuation<Boolean>?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+    var showApplyToAllConfirm by remember { mutableStateOf(false) }
     var targetSwitchesInFlight by remember { mutableStateOf(0) }
     val scrollState = androidx.compose.foundation.rememberScrollState()
 
@@ -310,6 +311,48 @@ internal fun ThemeSettingsContentEditor(
         }
     }
 
+    fun applyCurrentThemeToAllCharacterCards() {
+        val state = editorState ?: return
+        if (state.target !is ActivePrompt.CharacterCard) return
+        val draft = state.session
+        if (isSaving || pendingAction != null) return
+        val savedValues = draft.currentValues
+        val resetRequested = draft.isResetRequested
+        isSaving = true
+        showApplyToAllConfirm = false
+        draft.beginSave(savedValues)
+        scope.launch {
+            try {
+                if (resetRequested) {
+                    activePromptManager.resetThemeDraft(state.target, savedValues)
+                } else {
+                    activePromptManager.commitThemeDraft(state.target, savedValues)
+                }
+                activePromptManager.applyVisualThemeToAllCharacterCards(savedValues)
+                draft.markSaved(savedValues)
+                showSaveSuccessMessage = true
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.theme_applied_to_all_character_cards),
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } catch (e: CancellationException) {
+                draft.cancelSave()
+                throw e
+            } catch (e: Exception) {
+                draft.cancelSave()
+                AppLogger.e("ThemeSettings", "Failed to apply theme to all character cards", e)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.theme_apply_to_all_character_cards_failed),
+                    Toast.LENGTH_LONG,
+                ).show()
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
     RegisterRouteBackGuard {
         if (pendingAction != null) {
             return@RegisterRouteBackGuard false
@@ -417,13 +460,44 @@ internal fun ThemeSettingsContentEditor(
                             onShowSaveSuccessMessageChange = { showSaveSuccessMessage = it },
                             saveEnabled = hasUnsavedChanges && !isSaving,
                             isSaving = isSaving,
+                            showApplyToAll = editorTarget is ActivePrompt.CharacterCard,
+                            applyToAllEnabled = editorState != null && !isSaving && pendingAction == null,
                             onSave = ::saveCurrentDraft,
                             onReset = draft::reset,
+                            onApplyToAllCharacterCards = { showApplyToAllConfirm = true },
                         )
                     },
                 )
             }
         }
+    }
+
+    if (showApplyToAllConfirm) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isSaving) {
+                    showApplyToAllConfirm = false
+                }
+            },
+            title = { Text(stringResource(R.string.theme_apply_to_all_character_cards_title)) },
+            text = { Text(stringResource(R.string.theme_apply_to_all_character_cards_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = ::applyCurrentThemeToAllCharacterCards,
+                    enabled = !isSaving,
+                ) {
+                    Text(stringResource(R.string.theme_apply_to_all_character_cards_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showApplyToAllConfirm = false },
+                    enabled = !isSaving,
+                ) {
+                    Text(stringResource(R.string.cancel_action))
+                }
+            },
+        )
     }
 
     if (pendingAction != null) {

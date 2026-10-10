@@ -1180,6 +1180,28 @@ class UserPreferencesManager private constructor(private val context: Context) {
         )
     }
 
+    /**
+     * Overwrite the visual theme of every listed character card.
+     * Background, fonts, and user avatars are part of that visual set and
+     * are copied with it. Character-card identity keys stay on each card.
+     */
+    suspend fun applyVisualThemeToCharacterCards(
+        values: ThemePreferenceValues,
+        characterCardIds: Collection<String>,
+    ) {
+        val targetIds = characterCardIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (targetIds.isEmpty()) return
+        context.userPreferencesDataStore.edit { preferences ->
+            targetIds.forEach { characterCardId ->
+                writeVisualThemeValues(
+                    preferences,
+                    getCharacterCardThemePrefix(characterCardId),
+                    values,
+                )
+            }
+        }
+    }
+
     suspend fun deleteCharacterCardTheme(characterCardId: String) {
         deleteThemeByPrefix(getCharacterCardThemePrefix(characterCardId))
     }

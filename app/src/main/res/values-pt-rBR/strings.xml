@@ -675,6 +675,12 @@
     <string name="theme_select_image">Selecione a imagem</string>
     <string name="theme_bg_opacity">Opacidade do plano de fundo: %1$d%%</string>
     <string name="theme_reset">Redefinir para o tema padrão</string>
+    <string name="theme_apply_to_all_character_cards">Aplicar a todos os cartões de personagem</string>
+    <string name="theme_apply_to_all_character_cards_title">Aplicar a todos os cartões de personagem?</string>
+    <string name="theme_apply_to_all_character_cards_message">A opção atual substituirá todos os cartões de personagem e não poderá ser desfeita. Continuar?</string>
+    <string name="theme_apply_to_all_character_cards_confirm">Continuar</string>
+    <string name="theme_applied_to_all_character_cards">Aplicado a todos os cartões de personagem</string>
+    <string name="theme_apply_to_all_character_cards_failed">Falha ao aplicar o tema a todos os cartões de personagem</string>
     <string name="theme_saved">Configurações salvas</string>
     <string name="theme_video_too_large">Arquivos de vídeo muito grandes podem fazer com que o aplicativo congele ou trave. Escolha um vídeo menor que 30 MB.</string>
     <string name="theme_video_saved">Vídeo de fundo salvo</string>
