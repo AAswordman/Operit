@@ -1,10 +1,7 @@
 package com.ai.assistance.operit.ui.features.workflow.screens
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,22 +9,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -55,11 +49,27 @@ import com.ai.assistance.operit.ui.features.workflow.components.GridWorkflowCanv
 import com.ai.assistance.operit.ui.features.workflow.components.ConnectionMenuDialog
 import com.ai.assistance.operit.ui.features.workflow.components.NodeActionMenuDialog
 import com.ai.assistance.operit.ui.features.workflow.components.ScheduleConfigDialog
+import com.ai.assistance.operit.ui.main.LocalTopBarActions
+import com.ai.assistance.operit.ui.main.components.LocalAppBarContentColor
+import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private const val MAX_WORKFLOW_EXPORT_NAME_LENGTH = 100
+
+private fun createWorkflowExportFileName(name: String): String {
+    val sanitizedName = name
+        .trim()
+        .replace(Regex("""[\\/:*?"<>|]"""), "_")
+        .trim('.', ' ')
+        .take(MAX_WORKFLOW_EXPORT_NAME_LENGTH)
+        .trim('.', ' ')
+        .ifBlank { "workflow" }
+    return "$sanitizedName.json"
+}
 
 @Composable
 private fun ConditionOperator.toDisplayText(): String {
@@ -126,7 +136,6 @@ fun WorkflowDetailScreen(
     var showNodeActionMenu by remember { mutableStateOf<String?>(null) }
     var showConnectionMenu by remember { mutableStateOf<String?>(null) }
     var showEditNodeDialog by remember { mutableStateOf<WorkflowNode?>(null) }
-    var isFabMenuExpanded by remember { mutableStateOf(false) }
     var showExecutionLogDialog by remember { mutableStateOf(false) }
     var showExecutionLogsForNodeId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -140,6 +149,79 @@ fun WorkflowDetailScreen(
     val runningWorkflowIds by viewModel.runningWorkflowIds.collectAsState()
     val latestExecutionRecord = viewModel.latestExecutionRecord
     val isWorkflowRunning = runningWorkflowIds.contains(workflowId)
+    val setTopBarActions = LocalTopBarActions.current
+    val isCurrentScreen = LocalIsCurrentScreen.current
+    val appBarContentColor = LocalAppBarContentColor.current
+    val exportFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportWorkflowJson(workflowId, uri)
+        }
+    }
+
+    LaunchedEffect(isCurrentScreen, workflow?.id, appBarContentColor) {
+        if (!isCurrentScreen || workflow == null) {
+            setTopBarActions {}
+            return@LaunchedEffect
+        }
+        setTopBarActions {
+            IconButton(onClick = { showEditDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = stringResource(R.string.workflow_settings),
+                    tint = appBarContentColor
+                )
+            }
+            IconButton(
+                onClick = {
+                    viewModel.loadLatestExecutionRecord(workflowId)
+                    showExecutionLogsForNodeId = null
+                    showExecutionLogDialog = true
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = stringResource(R.string.workflow_view_logs),
+                    tint = appBarContentColor
+                )
+            }
+            if (workflow.enabled || isWorkflowRunning) {
+                FilledTonalButton(
+                    onClick = {
+                        if (isWorkflowRunning) {
+                            viewModel.cancelWorkflow(workflowId) { result ->
+                                showTriggerResult = result
+                            }
+                        } else {
+                            viewModel.triggerWorkflow(workflowId) { result ->
+                                showTriggerResult = result
+                            }
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isWorkflowRunning) Icons.Default.Close else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (isWorkflowRunning) {
+                            stringResource(R.string.cancel)
+                        } else {
+                            stringResource(R.string.workflow_run)
+                        }
+                    )
+                }
+            }
+        }
+    }
 
     CustomScaffold(
         snackbarHost = {
@@ -154,94 +236,18 @@ fun WorkflowDetailScreen(
         },
         floatingActionButton = {
             if (workflow != null) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Animated secondary actions
-                    AnimatedVisibility(
-                        visible = isFabMenuExpanded,
-                        enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
-                        exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            if (workflow.enabled || isWorkflowRunning) {
-                                SpeedDialAction(
-                                    text = if (isWorkflowRunning) {
-                                        stringResource(R.string.cancel)
-                                    } else {
-                                        stringResource(R.string.workflow_action_trigger)
-                                    },
-                                    icon = if (isWorkflowRunning) {
-                                        Icons.Default.Close
-                                    } else {
-                                        Icons.Default.PlayArrow
-                                    },
-                                    onClick = {
-                                        if (isWorkflowRunning) {
-                                            viewModel.cancelWorkflow(workflowId) { result -> showTriggerResult = result }
-                                        } else {
-                                            viewModel.triggerWorkflow(workflowId) { result -> showTriggerResult = result }
-                                        }
-                                        isFabMenuExpanded = false
-                                    }
-                                )
-                            }
-                            SpeedDialAction(
-                                text = stringResource(R.string.workflow_view_logs),
-                                icon = Icons.Default.Call,
-                                onClick = {
-                                    viewModel.loadLatestExecutionRecord(workflowId)
-                                    showExecutionLogsForNodeId = null
-                                    showExecutionLogDialog = true
-                                    isFabMenuExpanded = false
-                                }
-                            )
-                            SpeedDialAction(
-                                text = stringResource(R.string.workflow_action_add_node),
-                                icon = Icons.Default.Add,
-                                onClick = {
-                                    showAddNodeDialog = true
-                                    isFabMenuExpanded = false
-                                }
-                            )
-                            SpeedDialAction(
-                                text = stringResource(R.string.workflow_action_edit_workflow),
-                                icon = Icons.Default.Edit,
-                                onClick = {
-                                    showEditDialog = true
-                                    isFabMenuExpanded = false
-                                }
-                            )
-                            SpeedDialAction(
-                                text = stringResource(R.string.workflow_delete),
-                                icon = Icons.Default.Delete,
-                                onClick = {
-                                    showDeleteDialog = true
-                                    isFabMenuExpanded = false
-                                },
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                    }
-
-                    // Main FAB
-                    FloatingActionButton(
-                        onClick = { isFabMenuExpanded = !isFabMenuExpanded },
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        val rotation by animateFloatAsState(targetValue = if (isFabMenuExpanded) 45f else 0f, label = "fab_icon_rotation")
+                ExtendedFloatingActionButton(
+                    onClick = { showAddNodeDialog = true },
+                    icon = {
                         Icon(
-                            Icons.Default.Add,
-                            contentDescription = stringResource(R.string.workflow_open_action_menu),
-                            modifier = Modifier.rotate(rotation)
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null
                         )
-                    }
-                }
+                    },
+                    text = { Text(stringResource(R.string.workflow_action_add_node)) },
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                )
             }
         }
     ) { paddingValues ->
@@ -263,64 +269,29 @@ fun WorkflowDetailScreen(
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // 网格画布
-                        if (workflow.nodes.isEmpty()) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(48.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "📋",
-                                        style = MaterialTheme.typography.displayMedium
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = stringResource(R.string.workflow_nodes_empty),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = stringResource(R.string.workflow_nodes_empty_hint_add),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                    )
-                                }
-                            }
-                        } else {
-                            GridWorkflowCanvas(
-                                nodes = workflow.nodes,
-                                connections = workflow.connections,
-                                nodeExecutionStates = nodeExecutionStates,
-                                onNodePositionChanged = { nodeId, x, y ->
-                                    viewModel.updateNodePosition(workflowId, nodeId, x, y)
-                                },
-                                onNodeLongPress = { nodeId ->
-                                    // 长按节点显示操作菜单
-                                    showNodeActionMenu = nodeId
-                                },
-                                onNodeClick = { nodeId ->
-                                    // 点击节点不做任何操作（避免拖动时误触发）
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
+                        WorkflowEditorHeader(
+                            workflow = workflow,
+                            isWorkflowRunning = isWorkflowRunning
+                        )
+
+                        GridWorkflowCanvas(
+                            nodes = workflow.nodes,
+                            connections = workflow.connections,
+                            nodeExecutionStates = nodeExecutionStates,
+                            onNodePositionChanged = { nodeId, x, y ->
+                                viewModel.updateNodePosition(workflowId, nodeId, x, y)
+                            },
+                            onNodeLongPress = { nodeId ->
+                                // 长按节点显示操作菜单
+                                showNodeActionMenu = nodeId
+                            },
+                            onNodeClick = { nodeId ->
+                                // 点击节点不做任何操作，避免拖动时误触发
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        )
                     }
                 }
             }
@@ -330,6 +301,14 @@ fun WorkflowDetailScreen(
                 EditWorkflowDialog(
                     workflow = workflow,
                     onDismiss = { showEditDialog = false },
+                    onExport = {
+                        showEditDialog = false
+                        exportFileLauncher.launch(createWorkflowExportFileName(workflow.name))
+                    },
+                    onDelete = {
+                        showEditDialog = false
+                        showDeleteDialog = true
+                    },
                     onSave = { name, description, enabled ->
                         val contentChanged = workflow.name != name || workflow.description != description
                         if (contentChanged) {
@@ -554,36 +533,44 @@ fun WorkflowDetailScreen(
 }
 
 @Composable
-private fun SpeedDialAction(
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    containerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
-    contentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer
+private fun WorkflowEditorHeader(
+    workflow: Workflow,
+    isWorkflowRunning: Boolean
 ) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Card(
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = text,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.labelLarge
+                text = workflow.name,
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = if (isWorkflowRunning) {
+                    stringResource(R.string.workflow_execution_running)
+                } else {
+                    stringResource(R.string.workflow_saved)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isWorkflowRunning) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
             )
         }
-        SmallFloatingActionButton(
-            onClick = onClick,
-            containerColor = containerColor,
-            contentColor = contentColor
-        ) {
-            Icon(icon, contentDescription = text)
-        }
+        Text(
+            text = stringResource(R.string.workflow_node_count_format, workflow.nodes.size),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable
@@ -2239,7 +2226,9 @@ fun NodeDialog(
 fun EditWorkflowDialog(
     workflow: Workflow,
     onDismiss: () -> Unit,
-    onSave: (String, String, Boolean) -> Unit
+    onSave: (String, String, Boolean) -> Unit,
+    onExport: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     var name by remember { mutableStateOf(workflow.name) }
     var description by remember { mutableStateOf(workflow.description) }
@@ -2269,6 +2258,41 @@ fun EditWorkflowDialog(
                     minLines = 3,
                     maxLines = 5
                 )
+
+                Text(
+                    text = stringResource(R.string.workflow_export_sensitive_data_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(onClick = onExport) {
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.workflow_export_json))
+                    }
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.workflow_delete))
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

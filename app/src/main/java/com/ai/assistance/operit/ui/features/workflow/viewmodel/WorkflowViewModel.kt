@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.features.workflow.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -1132,7 +1133,6 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
             loadLatestExecutionRecordInternal(workflowId)
         }
     }
-    
     /**
      * 创建工作流
      */
@@ -1158,6 +1158,124 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
             isLoading = false
         }
     }
+
+    /**
+     * 读取外部 JSON 文件内容，供导入对话框预览或继续编辑。
+     */
+    fun readWorkflowJson(uri: Uri, onSuccess: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            val content = try {
+                withContext(Dispatchers.IO) {
+                    app.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        ?: throw IllegalStateException(app.getString(R.string.workflow_import_file_unreadable))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                error = e.message ?: app.getString(R.string.workflow_import_file_unreadable)
+                return@launch
+            }
+            onSuccess(content)
+        }
+    }
+
+    /**
+     * 从文本内容创建一个新的工作流副本。
+     */
+    fun importWorkflowJson(content: String, onSuccess: (Workflow) -> Unit = {}) {
+        if (content.isBlank()) {
+            error = app.getString(R.string.workflow_import_empty)
+            return
+        }
+
+        viewModelScope.launch {
+            isLoading = true
+            error = null
+            repository.importWorkflowJson(content).fold(
+                onSuccess = {
+                    loadWorkflows(showLoading = false)
+                    onSuccess(it)
+                },
+                onFailure = { error = it.message ?: app.getString(R.string.workflow_import_failed) }
+            )
+            isLoading = false
+        }
+    }
+
+    /**
+     * 将工作流定义写入系统文件选择器返回的目标文件。
+     */
+    fun exportWorkflowJson(
+        workflowId: String,
+        uri: Uri,
+        onSuccess: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            isLoading = true
+            error = null
+            repository.exportWorkflowJson(workflowId).fold(
+                onSuccess = { content ->
+                    try {
+                        withContext(Dispatchers.IO) {
+                            app.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { writer ->
+                                writer.write(content)
+                            } ?: throw IllegalStateException(app.getString(R.string.workflow_export_file_unwritable))
+                        }
+                        onSuccess()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        error = e.message ?: app.getString(R.string.workflow_export_failed)
+                    }
+                },
+                onFailure = { error = it.message ?: app.getString(R.string.workflow_export_failed) }
+            )
+            isLoading = false
+        }
+    }
+
+    /**
+     * 创建工作流副本，副本默认关闭并从零开始统计执行记录。
+     */
+    fun duplicateWorkflow(id: String, onSuccess: (Workflow) -> Unit = {}) {
+        viewModelScope.launch {
+            isLoading = true
+            error = null
+            repository.getWorkflowById(id).fold(
+                onSuccess = { workflow ->
+                    if (workflow == null) {
+                        error = app.getString(R.string.workflow_not_found)
+                    } else {
+                        val now = System.currentTimeMillis()
+                        val duplicate = workflow.copy(
+                            id = UUID.randomUUID().toString(),
+                            name = app.getString(R.string.workflow_copy_name_format, workflow.name),
+                            createdAt = now,
+                            updatedAt = now,
+                            enabled = false,
+                            lastExecutionTime = null,
+                            lastExecutionStatus = null,
+                            totalExecutions = 0,
+                            successfulExecutions = 0,
+                            failedExecutions = 0
+                        )
+                        repository.createWorkflow(duplicate).fold(
+                            onSuccess = {
+                                loadWorkflows(showLoading = false)
+                                onSuccess(it)
+                            },
+                            onFailure = {
+                                error = it.message ?: app.getString(R.string.workflow_copy_failed)
+                            }
+                        )
+                    }
+                },
+                onFailure = { error = it.message ?: app.getString(R.string.workflow_copy_failed) }
+            )
+            isLoading = false
+        }
+    }
+
 
     private fun replaceWorkflowInState(updatedWorkflow: Workflow) {
         workflows = workflows.map { workflow ->
