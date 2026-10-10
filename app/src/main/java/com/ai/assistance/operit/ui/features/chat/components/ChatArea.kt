@@ -1,5 +1,17 @@
 package com.ai.assistance.operit.ui.features.chat.components
 
+import com.ai.assistance.operit.ui.features.chat.components.timeline.ChatMessageSlice
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
+import com.ai.assistance.operit.data.preferences.ToolCollapseMode
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment
+import com.ai.assistance.operit.ui.features.chat.components.timeline.LocalChatMessageSlice
+import com.ai.assistance.operit.ui.features.chat.components.timeline.rememberChatTimelineEntries
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
@@ -200,7 +212,7 @@ enum class ChatStyle {
 fun ChatArea(
     chatHistory: List<ChatMessage>,
     currentChatId: String,
-    scrollState: ScrollState,
+    scrollState: LazyListState,
     aiReferences: List<AiReference> = emptyList(),
     isLoading: Boolean,
     enableDialogs: Boolean = true,
@@ -271,12 +283,20 @@ fun ChatArea(
     val showMessageTimingStats = themeSnapshot.showMessageTimingStats
     val showMessageTokenSpeed = themeSnapshot.showMessageTokenSpeed
     val showMessageTimestamp = themeSnapshot.showMessageTimestamp
-    var viewportHeightPx by remember { mutableStateOf(0) }
-    val messageAnchors = remember(currentChatId) { mutableStateMapOf<Long, ChatScrollMessageAnchor>() }
     var pendingJumpToMessageTimestamp by remember(currentChatId) { mutableStateOf<Long?>(null) }
     val lastMessage = chatHistory.lastOrNull()
-    val pendingTargetAnchor =
-        pendingJumpToMessageTimestamp?.let { targetTimestamp -> messageAnchors[targetTimestamp] }
+    val displayPreferences = remember(context) { DisplayPreferencesManager.getInstance(context) }
+    val toolCollapseMode by displayPreferences.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
+    val timelineEntries = rememberChatTimelineEntries(
+        messages = chatHistory,
+        chatId = currentChatId,
+        showThinkingProcess = themeSnapshot.showThinkingProcess,
+        showStatusTags = themeSnapshot.showStatusTags,
+        toolCollapseMode = toolCollapseMode,
+    )
+    val historyHeaderCount = if (hasOlderDisplayHistory) 1 else 0
+    val itemMessageIndices = List(historyHeaderCount) { -1 } + timelineEntries.map { it.messageIndex }
+    val lastRenderNodes = timelineEntries.lastOrNull()?.slice?.state?.renderNodes
     var hasLastAiMessageStartedStreaming by remember(lastMessage?.timestamp) {
         mutableStateOf(lastMessage?.run { sender == "ai" && content.isNotBlank() } == true)
     }
@@ -290,48 +310,21 @@ fun ChatArea(
 
     val lastMessageContentLength = lastMessage?.content?.length
     LaunchedEffect(
-        autoScrollToBottom,
-        messagesCount,
-        hasNewerDisplayHistory,
-        isLoadingDisplayWindow,
-        lastMessageContentLength,
-    ) {
-        if (
-            autoScrollToBottom &&
-                hasNewerDisplayHistory &&
-                !isLoadingDisplayWindow &&
-                onShowLatestDisplayWindow != null
-        ) {
-            onShowLatestDisplayWindow.invoke()
-        } else if (autoScrollToBottom && messagesCount > 0) {
-            pendingJumpToMessageTimestamp = lastMessage?.timestamp
-        }
-    }
-
-    LaunchedEffect(
         pendingJumpToMessageTimestamp,
-        messagesCount,
         chatHistory.firstOrNull()?.timestamp,
         chatHistory.lastOrNull()?.timestamp,
-        pendingTargetAnchor,
-        scrollState.maxValue,
+        timelineEntries.size,
     ) {
         val targetTimestamp = pendingJumpToMessageTimestamp ?: return@LaunchedEffect
-        val targetIndex = chatHistory.indexOfFirst { it.timestamp == targetTimestamp }
-        if (targetIndex < 0) {
-            return@LaunchedEffect
-        }
-
-        val targetAnchor = pendingTargetAnchor ?: return@LaunchedEffect
-        val isActualLatestMessage = targetIndex == messagesCount - 1 && !hasNewerDisplayHistory
-        onAutoScrollToBottomChange?.invoke(isActualLatestMessage)
-
-        if (targetIndex == messagesCount - 1) {
-            scrollState.animateScrollTo(scrollState.maxValue)
+        val messageIndex = chatHistory.indexOfFirst { it.timestamp == targetTimestamp }
+        val blockIndex = timelineEntries.indexOfFirst { it.messageIndex == messageIndex }
+        if (messageIndex < 0 || blockIndex < 0) return@LaunchedEffect
+        val isLatest = messageIndex == chatHistory.lastIndex && !hasNewerDisplayHistory
+        onAutoScrollToBottomChange?.invoke(isLatest)
+        if (isLatest) {
+            scrollState.animateScrollToEnd()
         } else {
-            val targetOffset =
-                targetAnchor.absoluteTopPx.roundToInt().coerceIn(0, scrollState.maxValue)
-            scrollState.animateScrollTo(targetOffset)
+            scrollState.animateScrollToItem(historyHeaderCount + blockIndex)
         }
         pendingJumpToMessageTimestamp = null
     }
@@ -356,18 +349,6 @@ fun ChatArea(
         }
     }
 
-    LaunchedEffect(
-        messagesCount,
-        chatHistory.firstOrNull()?.timestamp,
-        chatHistory.lastOrNull()?.timestamp,
-    ) {
-        val visibleTimestamps = chatHistory.mapTo(mutableSetOf()) { it.timestamp }
-        messageAnchors.keys
-            .toList()
-            .filterNot { it in visibleTimestamps }
-            .forEach(messageAnchors::remove)
-    }
-
     val isLatestMessageVisible = messagesCount > 0 && !hasNewerDisplayHistory
     val showLoadingIndicator =
         isLatestMessageVisible &&
@@ -385,167 +366,161 @@ fun ChatArea(
             showLoadingIndicator &&
             chatStyle == ChatStyle.BUBBLE &&
             lastMessage?.sender == "ai"
+    // 跟随只由新消息和流式正文推进，展开历史卡片不会触发跳到底部。
+    LaunchedEffect(currentChatId, autoScrollToBottom, messagesCount, hasNewerDisplayHistory, isLoadingDisplayWindow, lastMessageContentLength, lastMessage?.contentStream, lastRenderNodes?.size, lastRenderNodes?.lastOrNull()?.content?.length) {
+        if (autoScrollToBottom && hasNewerDisplayHistory && !isLoadingDisplayWindow && onShowLatestDisplayWindow != null) {
+            onShowLatestDisplayWindow.invoke()
+        } else if (autoScrollToBottom && messagesCount > 0) {
+            val tailIndex = timelineEntries.size + historyHeaderCount + (if (hasNewerDisplayHistory) 1 else 0) + (if (showLoadingIndicator) 1 else 0)
+            scrollState.scrollToItem(tailIndex)
+        }
+    }
     Box(
         modifier =
             modifier
-                .background(Color.Transparent)
-                .onGloballyPositioned { coordinates ->
-                    viewportHeightPx = coordinates.size.height
-                },
+                .background(Color.Transparent),
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding)
-                    .verticalScroll(scrollState)
-                    .background(Color.Transparent)
-                    .padding(top = topPadding, bottom = bottomPadding),
+        LazyColumn(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding).background(Color.Transparent),
+            contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding),
         ) {
             if (hasOlderDisplayHistory) {
-                Text(
-                    text = stringResource(id = R.string.load_more_history),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onAutoScrollToBottomChange?.invoke(false)
-                                if (!isLoadingDisplayWindow) {
-                                    onLoadOlderDisplayWindow?.invoke()
+                item(key = "older-history") {
+                    Text(
+                        text = stringResource(id = R.string.load_more_history),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onAutoScrollToBottomChange?.invoke(false)
+                                    if (!isLoadingDisplayWindow) {
+                                        onLoadOlderDisplayWindow?.invoke()
+                                    }
                                 }
-                            }
-                            .padding(vertical = 16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                                .padding(vertical = 16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
             }
 
-            val timestampKeyOccurrences = mutableMapOf<Long, Int>()
-            chatHistory.forEachIndexed { actualIndex, message ->
-                val isLastAiMessage = actualIndex == messagesCount - 1 && message.sender == "ai"
-                val shouldHide = shouldHideLastAiMessage && isLastAiMessage
-                val timestampKeyOccurrence = timestampKeyOccurrences[message.timestamp] ?: 0
-                timestampKeyOccurrences[message.timestamp] = timestampKeyOccurrence + 1
+            items(timelineEntries, key = { it.key }, contentType = { if (it.slice?.split == true) "message-block" else "message" }) { entry ->
+                val actualIndex = entry.messageIndex
+                val message = chatHistory[actualIndex]
+                val shouldHide = shouldHideLastAiMessage && actualIndex == messagesCount - 1 && message.sender == "ai"
 
-                key(message.timestamp, timestampKeyOccurrence) {
-                    Box(
-                        modifier =
-                            Modifier.onGloballyPositioned { coordinates ->
-                                messageAnchors[message.timestamp] =
-                                    ChatScrollMessageAnchor(
-                                        absoluteTopPx = coordinates.positionInParent().y,
-                                        heightPx = coordinates.size.height,
-                                    )
-                            },
-                    ) {
-                        MessageItem(
-                            index = actualIndex,
-                            currentChatId = currentChatId,
-                            message = message,
-                            enableDialogs = enableDialogs,
-                            userMessageColor = userMessageColor,
-                            aiMessageColor = aiMessageColor,
-                            userTextColor = userTextColor,
-                            aiTextColor = aiTextColor,
-                            systemMessageColor = systemMessageColor,
-                            systemTextColor = systemTextColor,
-                            thinkingBackgroundColor = thinkingBackgroundColor,
-                            thinkingTextColor = thinkingTextColor,
-                            onSelectMessageToEdit = onSelectMessageToEdit,
-                            onCopyMessage = onCopyMessage,
-                            onDeleteMessage = onDeleteMessage,
-                            onDeleteCurrentMessageVariant = onDeleteCurrentMessageVariant,
-                            onDeleteMessagesFrom = onDeleteMessagesFrom,
-                            onRollbackToMessage = onRollbackToMessage,
-                            onRegenerateMessage = onRegenerateMessage,
-                            onSwitchMessageVariant = onSwitchMessageVariant,
-                            onSpeakMessage = onSpeakMessage,
-                            onReplyToMessage = onReplyToMessage,
-                            onToggleFavoriteMessage = onToggleFavoriteMessage,
-                            onCreateBranch = onCreateBranch,
-                            onInsertSummary = onInsertSummary,
-                            onMentionRoleFromAvatar = onMentionRoleFromAvatar,
-                            chatStyle = chatStyle,
-                            showMessageTokenStats = showMessageTokenStats,
-                            showMessageTimingStats = showMessageTimingStats,
-                            showMessageTokenSpeed = showMessageTokenSpeed,
-                            showMessageTimestamp = showMessageTimestamp,
-                            cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                            cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                            bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                            bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                            bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                            bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
-                            isHidden = shouldHide,
-                            isMultiSelectMode = isMultiSelectMode,
-                            isSelected = selectedMessageIndices.contains(actualIndex),
-                            onToggleSelection = { onToggleMessageSelection?.invoke(actualIndex) },
-                            onToggleMultiSelectMode = onToggleMultiSelectMode,
-                            messageIndex = actualIndex,
-                            bubbleUserImageStyle = bubbleUserImageStyle,
-                            bubbleAiImageStyle = bubbleAiImageStyle,
-                            bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                            bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                            bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                            bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                            bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                            bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
-                        )
-                    }
-                }
+                MessageItem(
+                    index = actualIndex,
+                    currentChatId = currentChatId,
+                    message = message,
+                    enableDialogs = enableDialogs,
+                    userMessageColor = userMessageColor,
+                    aiMessageColor = aiMessageColor,
+                    userTextColor = userTextColor,
+                    aiTextColor = aiTextColor,
+                    systemMessageColor = systemMessageColor,
+                    systemTextColor = systemTextColor,
+                    thinkingBackgroundColor = thinkingBackgroundColor,
+                    thinkingTextColor = thinkingTextColor,
+                    onSelectMessageToEdit = onSelectMessageToEdit,
+                    onCopyMessage = onCopyMessage,
+                    onDeleteMessage = onDeleteMessage,
+                    onDeleteCurrentMessageVariant = onDeleteCurrentMessageVariant,
+                    onDeleteMessagesFrom = onDeleteMessagesFrom,
+                    onRollbackToMessage = onRollbackToMessage,
+                    onRegenerateMessage = onRegenerateMessage,
+                    onSwitchMessageVariant = onSwitchMessageVariant,
+                    onSpeakMessage = onSpeakMessage,
+                    onReplyToMessage = onReplyToMessage,
+                    onToggleFavoriteMessage = onToggleFavoriteMessage,
+                    onCreateBranch = onCreateBranch,
+                    onInsertSummary = onInsertSummary,
+                    onMentionRoleFromAvatar = onMentionRoleFromAvatar,
+                    chatStyle = chatStyle,
+                    showMessageTokenStats = showMessageTokenStats,
+                    showMessageTimingStats = showMessageTimingStats,
+                    showMessageTokenSpeed = showMessageTokenSpeed,
+                    showMessageTimestamp = showMessageTimestamp,
+                    cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
+                    cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
+                    bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
+                    bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
+                    bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
+                    bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
+                    isHidden = shouldHide,
+                    isMultiSelectMode = isMultiSelectMode,
+                    isSelected = selectedMessageIndices.contains(actualIndex),
+                    onToggleSelection = { onToggleMessageSelection?.invoke(actualIndex) },
+                    onToggleMultiSelectMode = onToggleMultiSelectMode,
+                    messageIndex = actualIndex,
+                    messageSlice = entry.slice,
+                    bubbleUserImageStyle = bubbleUserImageStyle,
+                    bubbleAiImageStyle = bubbleAiImageStyle,
+                    bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
+                    bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
+                    bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
+                    bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
+                    bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
+                    bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
+                )
+                if (entry.slice?.last != false) Spacer(modifier = Modifier.height(8.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             if (hasNewerDisplayHistory) {
-                Text(
-                    text = stringResource(id = R.string.load_newer_history),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (!isLoadingDisplayWindow) {
-                                    onLoadNewerDisplayWindow?.invoke()
+                item(key = "newer-history") {
+                    Text(
+                        text = stringResource(id = R.string.load_newer_history),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (!isLoadingDisplayWindow) {
+                                        onLoadNewerDisplayWindow?.invoke()
+                                    }
                                 }
-                            }
-                            .padding(vertical = 16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                                .padding(vertical = 16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
             }
 
             if (showLoadingIndicator) {
-                when (chatStyle) {
-                    ChatStyle.BUBBLE -> {
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 0.dp)
-                                    .offset(y = (-24).dp),
-                        ) {
-                            Box(modifier = Modifier.padding(start = 16.dp)) {
-                                if (showChatFloatingDotsAnimation) {
-                                    LoadingDotsIndicator(aiTextColor)
+                item(key = "loading") {
+                    when (chatStyle) {
+                        ChatStyle.BUBBLE -> {
+                            Column(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 0.dp)
+                                        .offset(y = (-24).dp),
+                            ) {
+                                Box(modifier = Modifier.padding(start = 16.dp)) {
+                                    if (showChatFloatingDotsAnimation) {
+                                        LoadingDotsIndicator(aiTextColor)
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    ChatStyle.CURSOR -> {
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 0.dp),
-                        ) {
-                            Box(modifier = Modifier.padding(start = 16.dp)) {
-                                if (showChatFloatingDotsAnimation) {
-                                    LoadingDotsIndicator(aiTextColor)
+                        ChatStyle.CURSOR -> {
+                            Column(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 0.dp),
+                            ) {
+                                Box(modifier = Modifier.padding(start = 16.dp)) {
+                                    if (showChatFloatingDotsAnimation) {
+                                        LoadingDotsIndicator(aiTextColor)
+                                    }
                                 }
                             }
                         }
@@ -553,15 +528,14 @@ fun ChatArea(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item(key = "tail-padding") { Spacer(modifier = Modifier.height(16.dp)) }
         }
 
         ChatScrollNavigator(
             chatHistory = chatHistory,
             currentChatId = currentChatId,
             scrollState = scrollState,
-            messageAnchors = messageAnchors,
-            viewportHeightPx = viewportHeightPx,
+            itemMessageIndices = itemMessageIndices,
             autoScrollToBottom = autoScrollToBottom,
             hasNewerDisplayHistory = hasNewerDisplayHistory,
             loadLocatorEntries = loadMessageLocatorEntries,
@@ -612,6 +586,7 @@ fun ChatArea(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageItem(
+    messageSlice: ChatMessageSlice?,
     index: Int,
     currentChatId: String,
     message: ChatMessage,
@@ -728,6 +703,10 @@ private fun MessageItem(
                 },
             ),
     ) {
+        CompositionLocalProvider(
+            LocalChatMessageSlice provides messageSlice,
+            LocalMarkdownRenderFragment provides messageSlice?.fragment,
+        ) {
         Column {
             when (chatStyle) {
                 ChatStyle.CURSOR -> {
@@ -787,7 +766,7 @@ private fun MessageItem(
                 }
             }
 
-            if (message.sender == "ai" &&
+            if (message.sender == "ai" && LocalChatMessageSlice.current?.last != false &&
                 (
                     message.variantCount > 1 ||
                         (showMessageTokenStats && hasDisplayableTokenStats(message)) ||
@@ -807,6 +786,7 @@ private fun MessageItem(
                     },
                 )
             }
+        }
         }
 
         DropdownMenu(

@@ -1,5 +1,10 @@
 package com.ai.assistance.operit.ui.features.chat.components.style.bubble
 
+import androidx.collection.LruCache
+import com.ai.assistance.operit.ui.features.chat.components.timeline.LocalChatMessageSlice
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
@@ -64,6 +69,7 @@ fun BubbleImageBackgroundSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val imageBitmap = rememberBubbleImageBitmap(imageStyle.imageUri)
+    val slice = LocalChatMessageSlice.current
 
     Box(
         modifier =
@@ -72,9 +78,9 @@ fun BubbleImageBackgroundSurface(
                 .drawWithContent {
                     imageBitmap?.let { bitmap ->
                         if (imageStyle.renderMode == BubbleImageRenderMode.NINE_PATCH) {
-                            drawStretchedNinePatchBubble(bitmap, imageStyle)
+                            drawStretchedNinePatchBubble(bitmap, imageStyle, slice?.first != false, slice?.last != false)
                         } else {
-                            drawRepeatedCenterBubble(bitmap, imageStyle)
+                            drawRepeatedCenterBubble(bitmap, imageStyle, slice?.first != false, slice?.last != false)
                         }
                         if (showSliceGuides) {
                             drawNinePatchSliceGuides(
@@ -91,19 +97,28 @@ fun BubbleImageBackgroundSurface(
     )
 }
 
+// 内容块共用有大小边界的位图缓存，避免滑动重入时重复解码同一张背景。
+private val bubbleBitmapCache = object : LruCache<String, ImageBitmap>(12 * 1024 * 1024) {
+    override fun sizeOf(key: String, value: ImageBitmap): Int =
+        (value.width.toLong() * value.height * 4L).coerceIn(1L, Int.MAX_VALUE.toLong()).toInt()
+}
+private val bubbleBitmapLoadMutex = Mutex()
+
 @Composable
 private fun rememberBubbleImageBitmap(uriString: String): ImageBitmap? {
     val context = LocalContext.current
-    var bitmap by remember(uriString) { mutableStateOf<ImageBitmap?>(null) }
+    var bitmap by remember(uriString) { mutableStateOf<ImageBitmap?>(bubbleBitmapCache[uriString]) }
 
     LaunchedEffect(context, uriString) {
         bitmap =
             withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openInputStream(Uri.parse(uriString))?.use { input ->
-                        BitmapFactory.decodeStream(input)?.asImageBitmap()
-                    }
-                }.getOrNull()
+                bubbleBitmapLoadMutex.withLock {
+                    bubbleBitmapCache[uriString] ?: runCatching {
+                        context.contentResolver.openInputStream(Uri.parse(uriString))?.use { input ->
+                            BitmapFactory.decodeStream(input)?.asImageBitmap()
+                        }
+                    }.getOrNull()?.also { bubbleBitmapCache.put(uriString, it) }
+                }
             }
     }
 
@@ -122,6 +137,18 @@ private data class BubbleSliceLayout(
     val centerHeight: Int,
     val bottomCapHeight: Int,
 )
+
+/** 图片的顶底装饰只画在消息首尾，连续内容块使用相同的中心切片。 */
+private fun BubbleSliceLayout.forMessageBlock(first: Boolean, last: Boolean): BubbleSliceLayout {
+    val removedTop = if (first) 0 else topCapHeight
+    val removedBottom = if (last) 0 else bottomCapHeight
+    return copy(
+        srcY = srcY + removedTop,
+        srcHeight = (srcHeight - removedTop - removedBottom).coerceAtLeast(1),
+        topCapHeight = if (first) topCapHeight else 0,
+        bottomCapHeight = if (last) bottomCapHeight else 0,
+    )
+}
 
 private data class BubbleDstSliceLayout(
     val leftDstWidth: Int,
@@ -254,8 +281,8 @@ private fun computeDstSliceLayout(
     )
 }
 
-private fun DrawScope.drawRepeatedCenterBubble(bitmap: ImageBitmap, config: BubbleImageStyleConfig) {
-    val layout = buildSliceLayout(bitmap, config)
+private fun DrawScope.drawRepeatedCenterBubble(bitmap: ImageBitmap, config: BubbleImageStyleConfig, first: Boolean = true, last: Boolean = true) {
+    val layout = buildSliceLayout(bitmap, config).forMessageBlock(first, last)
     val dstWidth = size.width.roundToInt().coerceAtLeast(1)
     val dstHeight = size.height.roundToInt().coerceAtLeast(1)
 
@@ -417,8 +444,8 @@ private fun DrawScope.drawRepeatedCenterBubble(bitmap: ImageBitmap, config: Bubb
     )
 }
 
-private fun DrawScope.drawStretchedNinePatchBubble(bitmap: ImageBitmap, config: BubbleImageStyleConfig) {
-    val layout = buildSliceLayout(bitmap, config)
+private fun DrawScope.drawStretchedNinePatchBubble(bitmap: ImageBitmap, config: BubbleImageStyleConfig, first: Boolean = true, last: Boolean = true) {
+    val layout = buildSliceLayout(bitmap, config).forMessageBlock(first, last)
     val dstWidth = size.width.roundToInt().coerceAtLeast(1)
     val dstHeight = size.height.roundToInt().coerceAtLeast(1)
 

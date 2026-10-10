@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.common.markdown
 
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownCardStateStore
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment
 import com.ai.assistance.operit.util.AppLogger
 import android.widget.ImageView
 import androidx.collection.LruCache
@@ -390,7 +392,17 @@ fun StreamMarkdownRenderer(
         state: StreamMarkdownRendererState? = null,
         enableDialogs: Boolean = true,
         fillMaxWidth: Boolean = true,
+        renderContent: Boolean = true,
 ) {
+    if (renderContent) {
+        val fragment = LocalMarkdownRenderFragment.current
+        if (fragment != null) {
+            CompositionLocalProvider(LocalMarkdownRenderFragment provides null) {
+                fragment.Render(modifier, textColor, fontSize, onLinkClick, xmlRenderer, nodeGrouper, enableDialogs, fillMaxWidth)
+            }
+            return
+        }
+    }
     // 使用传入的state或创建新的state
     val rendererState = state ?: remember { StreamMarkdownRendererState() }
     
@@ -662,9 +674,12 @@ fun StreamMarkdownRenderer(
         }
     }
 
+    // 聊天列表的解析入口不创建布局，离屏时仍持续收集消息。
+    if (!renderContent) return
+
     // 渲染Markdown内容 - 使用统一的Canvas渲染器
     Surface(modifier = modifier, color = Color.Transparent, shape = RoundedCornerShape(4.dp)) {
-        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STREAMING) {
+        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STREAMING, LocalMarkdownCardStateStore provides null) {
             key(rendererId) {
                 UnifiedMarkdownCanvas(
                     nodes = renderNodes,
@@ -884,7 +899,17 @@ fun StreamMarkdownRenderer(
         state: StreamMarkdownRendererState? = null,
         enableDialogs: Boolean = true,
         fillMaxWidth: Boolean = true,
+        renderContent: Boolean = true,
 ) {
+    if (renderContent) {
+        val fragment = LocalMarkdownRenderFragment.current
+        if (fragment != null) {
+            CompositionLocalProvider(LocalMarkdownRenderFragment provides null) {
+                fragment.Render(modifier, textColor, fontSize, onLinkClick, xmlRenderer, nodeGrouper, enableDialogs, fillMaxWidth)
+            }
+            return
+        }
+    }
     // 使用流式版本相同的渲染器ID生成逻辑
     val rendererId = remember(content) { "static-renderer-${content.hashCode()}" }
 
@@ -955,9 +980,12 @@ fun StreamMarkdownRenderer(
         }
     }
 
+    // 聊天列表的解析入口不创建布局，离屏时仍持续收集消息。
+    if (!renderContent) return
+
     // 渲染Markdown内容 - 使用统一的Canvas渲染器
     Surface(modifier = modifier, color = Color.Transparent, shape = RoundedCornerShape(4.dp)) {
-        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC) {
+        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC, LocalMarkdownCardStateStore provides null) {
             key(rendererId) {
                 UnifiedMarkdownCanvas(
                     nodes = renderNodes,
@@ -997,7 +1025,7 @@ fun StreamMarkdownRenderer(
  * - 使用 graphicsLayer 避免触发内容重组
  */
 @Composable
-private fun AnimatedNode(
+internal fun AnimatedNode(
     nodeKey: String,
     node: MarkdownNodeStable,
     index: Int,
@@ -1041,7 +1069,7 @@ private fun AnimatedNode(
 }
 
 @Composable
-private fun UnifiedMarkdownCanvas(
+internal fun UnifiedMarkdownCanvas(
     nodes: List<MarkdownNodeStable>,
     rendererId: String,
     nodeAnimationStates: Map<String, Boolean>,

@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.chat.components.part
 
+import com.ai.assistance.operit.ui.common.markdown.lazy.rememberMarkdownCardValue
 import android.webkit.WebView
 import android.webkit.WebSettings
 import androidx.compose.animation.*
@@ -116,7 +117,7 @@ class CustomXmlRenderer(
         val trimmedContent = xmlContent.trim()
         val tagName = extractTagName(trimmedContent)
 
-        if (shouldHideHiddenMeta(trimmedContent, tagName)) {
+        if (!isVisibleChatXmlContent(trimmedContent, showThinkingProcess, showStatusTags)) {
             return
         }
         
@@ -155,24 +156,6 @@ class CustomXmlRenderer(
         renderInstanceKey: Any?,
         modifier: Modifier
     ) {
-        val shouldSkipHiddenThink =
-            (tagName == "think" || tagName == "thinking") && !showThinkingProcess
-        if (shouldSkipHiddenThink) {
-            return
-        }
-
-        val shouldSkipHiddenStatus =
-            if (tagName != "status") {
-                false
-            } else {
-                val typeMatch = ChatMarkupRegex.typeAttr.find(trimmedContent)
-                val statusType = typeMatch?.groupValues?.get(1)
-                statusType in listOf("completion", "complete", "wait_for_user_need") && !showStatusTags
-            }
-        if (shouldSkipHiddenStatus) {
-            return
-        }
-
         // 如果无法识别为有效的XML标签，则交由默认渲染器处理
         if (tagName == null) {
             fallback.RenderXmlContent(trimmedContent, Modifier, textColor, xmlStream, renderInstanceKey)
@@ -230,15 +213,6 @@ class CustomXmlRenderer(
 
     private fun extractRawTagName(content: String): String? {
         return ChatMarkupRegex.extractOpeningTagName(content)
-    }
-
-    private fun shouldHideHiddenMeta(content: String, tagName: String?): Boolean {
-        return tagName == "meta" &&
-            Regex(
-                """\bprovider\s*=\s*["'](?:gemini:thought_signature|openai:responses_reasoning|openai:responses_output_item)["']""",
-                RegexOption.IGNORE_CASE
-            )
-                .containsMatchIn(content)
     }
 
     /** 检查XML标签是否完全闭合。 支持标准配对标签 (<tag>...</tag>) 和自闭合标签 (<tag/>)。 */
@@ -331,7 +305,7 @@ class CustomXmlRenderer(
             return
         }
 
-        var expanded by remember { mutableStateOf(false) }
+        var expanded by rememberMarkdownCardValue("tool-expanded", false)
 
         val rotation by
             animateFloatAsState(
@@ -762,23 +736,26 @@ class CustomXmlRenderer(
                 null
             }
 
-        var expanded by remember { mutableStateOf(initialThinkingExpanded) }
+        var expanded by rememberMarkdownCardValue("think-expanded", initialThinkingExpanded)
+        var userExpansionOverride by rememberMarkdownCardValue<Boolean?>("think-user-override", null)
         var thinkBodyFullHeight by
-            remember { mutableStateOf(allowExpandedThinkingFullHeight && initialThinkingExpanded) }
-        var thinkExpandSession by remember { mutableIntStateOf(0) }
+            rememberMarkdownCardValue("think-full-height", allowExpandedThinkingFullHeight && initialThinkingExpanded)
+        var thinkExpandSession by remember { mutableIntStateOf(if (expanded) 1 else 0) }
         var skipCollapseAnimationOnce by remember { mutableStateOf(false) }
         val scrollState = rememberScrollState()
         var autoScrollEnabled by remember { mutableStateOf(true) }
         var userHasInteractedWithScroll by remember { mutableStateOf(false) }
         var isProgrammaticScroll by remember { mutableStateOf(false) }
-        val thinkVisibilityState = remember { MutableTransitionState(initialThinkingExpanded) }
+        val thinkVisibilityState = remember { MutableTransitionState(expanded) }
         val thinkBodyToggleInteractionSource = remember { MutableInteractionSource() }
 
         val accessibilityDesc = stringResource(R.string.thinking_process_block)
 
         // 使用LaunchedEffect来初始化和同步状态，避免在快速重组时状态被意外重置
-        LaunchedEffect(isThinkingInProgress, expandThinkingProcess) {
-            val targetExpanded = if (initialThinkingExpanded && !isThinkingInProgress) {
+        LaunchedEffect(isThinkingInProgress, expandThinkingProcess, userExpansionOverride) {
+            val targetExpanded = if (userExpansionOverride != null) {
+                userExpansionOverride == true
+            } else if (initialThinkingExpanded && !isThinkingInProgress) {
                 true
             } else if (isThinkingInProgress) {
                 // 思考过程中，状态由用户偏好决定
@@ -850,6 +827,7 @@ class CustomXmlRenderer(
         val useStreamingThinkMarkdown = shouldComposeThinkBody && isThinkingInProgress && (thinkMarkdownStream != null)
         val renderExpandedThinkWithFullHeight =
             (allowExpandedThinkingFullHeight || thinkBodyFullHeight) && expanded
+        val thinkMaxHeight = 300.dp
 
         LaunchedEffect(expanded, thinkText) {
             if (shouldComposeThinkBody && autoScrollEnabled) {
@@ -899,6 +877,7 @@ class CustomXmlRenderer(
                             thinkExpandSession += 1
                         }
                         expanded = newExpandedValue
+                        userExpansionOverride = newExpandedValue
                         if (isThinkingInProgress) {
                             expandThinkingProcess = newExpandedValue
                         }
@@ -938,7 +917,7 @@ class CustomXmlRenderer(
                                         if (renderExpandedThinkWithFullHeight) {
                                             Modifier
                                         } else {
-                                            Modifier.heightIn(max = 300.dp)
+                                            Modifier.heightIn(max = thinkMaxHeight)
                                         }
                                     )
                             val thinkContentModifier =

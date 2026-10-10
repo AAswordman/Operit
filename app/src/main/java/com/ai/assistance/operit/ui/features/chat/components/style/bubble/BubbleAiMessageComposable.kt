@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.chat.components.style.bubble
 
+import com.ai.assistance.operit.ui.features.chat.components.timeline.LocalChatMessageSlice
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
@@ -95,6 +97,7 @@ fun BubbleAiMessageComposable(
     enableDialogs: Boolean = true,
     onAvatarLongPressMention: ((String) -> Unit)? = null,
 ) {
+    val slice = LocalChatMessageSlice.current
     val context = LocalContext.current
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
@@ -118,7 +121,8 @@ fun BubbleAiMessageComposable(
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
     
     // 根据角色名获取头像
-    val aiAvatarUri by remember(message.roleName, themeSnapshot.customAiAvatarUri) {
+    val avatarFlow = if (slice?.first == false || !bubbleShowAvatar) null else remember(message.roleName, themeSnapshot.customAiAvatarUri, slice?.appearance) {
+        val createFlow = {
         if (message.roleName != null) {
             try {
                 runBlocking {
@@ -135,7 +139,11 @@ fun BubbleAiMessageComposable(
         } else {
             flowOf(themeSnapshot.customAiAvatarUri)
         }
-    }.collectAsState(initial = null)
+        }
+        val appearance = slice?.appearance
+        if (appearance == null) createFlow() else appearance.avatarFlows.getOrPut(message.roleName to themeSnapshot.customAiAvatarUri, createFlow)
+    }
+    val aiAvatarUri = avatarFlow?.collectAsState(initial = null)?.value
 
     val avatarShape = remember(avatarShapePref, avatarCornerRadius) {
         if (avatarShapePref == UserPreferencesManager.AVATAR_SHAPE_SQUARE) {
@@ -165,7 +173,7 @@ fun BubbleAiMessageComposable(
     var linkToPreview by remember { mutableStateOf("") }
     
     // 创建并保存StreamMarkdownRenderer的状态，使用message.timestamp作为key确保同一条消息共享状态
-    val rendererState = remember(message.timestamp) { StreamMarkdownRendererState() }
+    val rendererState = slice?.state ?: remember(message.timestamp) { StreamMarkdownRendererState() }
 
     val xmlRenderer = remember(
         effectiveShowThinkingProcess,
@@ -183,11 +191,11 @@ fun BubbleAiMessageComposable(
         )
     }
 
-    val nodeGrouper = remember(effectiveShowThinkingProcess, toolCollapseMode, expandThinkToolsGroups) {
+    val nodeGrouper = slice?.grouper ?: remember(effectiveShowThinkingProcess, toolCollapseMode, expandThinkToolsGroups, enableDialogs) {
         ThinkToolsXmlNodeGrouper(
             showThinkingProcess = effectiveShowThinkingProcess,
             forceExpandGroups = expandThinkToolsGroups,
-            toolCollapseMode = toolCollapseMode
+            toolCollapseMode = toolCollapseMode,
         )
     }
     val rememberedOnLinkClick = remember(context, onLinkClick, enableDialogs) {
@@ -285,15 +293,15 @@ fun BubbleAiMessageComposable(
                 .fillMaxWidth()
                 .padding(
                     start = if (bubbleShowAvatar) 0.dp else 8.dp,
-                    top = 4.dp,
+                    top = if (slice?.first != false) 4.dp else 0.dp,
                     end = 0.dp,
-                    bottom = 4.dp,
+                    bottom = if (slice?.last != false) 4.dp else 0.dp,
                 )
                 .then(sizeTrackingModifier)
                 .alpha(alpha)
                 .offset(y = offsetY.dp),
         ) {
-            if (headerVisible) {
+            if (headerVisible && slice?.first != false) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -360,17 +368,24 @@ fun BubbleAiMessageComposable(
                 } else {
                     val bubbleShape =
                         if (bubbleRoundedCornersEnabled) {
-                            RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
+                            RoundedCornerShape(
+                                topStart = if (slice?.first != false) 4.dp else 0.dp,
+                                topEnd = if (slice?.first != false) 20.dp else 0.dp,
+                                bottomEnd = if (slice?.last != false) 20.dp else 0.dp,
+                                bottomStart = if (slice?.last != false) 20.dp else 0.dp,
+                            )
                         } else {
                             RoundedCornerShape(0.dp)
                         }
                     val bubbleModifier =
-                        Modifier
-                            .widthIn(max = maxBubbleWidth)
-                            .defaultMinSize(minHeight = 44.dp)
+                        if (slice?.split == true) {
+                            Modifier.width(maxBubbleWidth)
+                        } else {
+                            Modifier.widthIn(max = maxBubbleWidth).defaultMinSize(minHeight = 44.dp)
+                        }
                     val renderContent: @Composable () -> Unit = {
                         key(message.timestamp) {
-                            val stream = rememberRevisableTextStream(message.contentStream)
+                            val stream = if (LocalMarkdownRenderFragment.current != null) null else rememberRevisableTextStream(message.contentStream)
                             if (stream != null) {
                                 val charStream = remember(stream) { stream.toCharStream() }
                                 StreamMarkdownRenderer(
@@ -384,9 +399,9 @@ fun BubbleAiMessageComposable(
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
-                                            top = 12.dp,
+                                            top = if (slice?.first != false) 12.dp else 0.dp,
                                             end = bubbleContentPaddingRight.dp,
-                                            bottom = 12.dp,
+                                            bottom = if (slice?.last != false) 12.dp else 0.dp,
                                     ),
                                     state = rendererState,
                                     fillMaxWidth = shouldUseExpandedBubbleLayout,
@@ -403,9 +418,9 @@ fun BubbleAiMessageComposable(
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
-                                            top = 12.dp,
+                                            top = if (slice?.first != false) 12.dp else 0.dp,
                                             end = bubbleContentPaddingRight.dp,
-                                            bottom = 12.dp,
+                                            bottom = if (slice?.last != false) 12.dp else 0.dp,
                                     ),
                                     state = rendererState,
                                     fillMaxWidth = shouldUseExpandedBubbleLayout,
@@ -431,16 +446,16 @@ fun BubbleAiMessageComposable(
                                         enabled = waterGlassEnabled,
                                         shape = bubbleShape,
                                         containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.7.dp,
+                                        shadowElevation = if (slice?.split == true) 0.dp else 10.dp,
+                                        borderWidth = if (slice?.split == true) 0.dp else 0.7.dp,
                                         overlayAlphaBoost = 0.08f,
                                     )
                                     .liquidGlass(
                                         enabled = liquidGlassEnabled,
                                         shape = bubbleShape,
                                         containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.28.dp,
+                                        shadowElevation = if (slice?.split == true) 0.dp else 10.dp,
+                                        borderWidth = if (slice?.split == true) 0.dp else 0.28.dp,
                                         blurRadius = 28.dp,
                                         overlayAlphaBoost = 0.10f,
                                         enableLens = false,
@@ -468,7 +483,7 @@ fun BubbleAiMessageComposable(
     } else {
     Row(
         modifier = Modifier
-            .padding(horizontal = 0.dp, vertical = 4.dp)
+            .padding(top = if (slice?.first != false) 4.dp else 0.dp, bottom = if (slice?.last != false) 4.dp else 0.dp)
             .then(sizeTrackingModifier)
             .alpha(alpha)
             .offset(y = offsetY.dp),
@@ -476,6 +491,7 @@ fun BubbleAiMessageComposable(
         verticalAlignment = Alignment.Top
     ) {
         if (bubbleShowAvatar) {
+            if (slice?.first != false) {
             val avatarModifier = Modifier
                 .size(32.dp)
                 .clip(avatarShape)
@@ -503,6 +519,9 @@ fun BubbleAiMessageComposable(
                     modifier = avatarModifier,
                     tint = MaterialTheme.colorScheme.secondary
                 )
+            }
+            } else {
+                Spacer(modifier = Modifier.width(32.dp))
             }
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -540,7 +559,7 @@ fun BubbleAiMessageComposable(
                 }
             }
             
-            if (displayText.isNotEmpty()) {
+            if (displayText.isNotEmpty() && slice?.first != false) {
                 Text(
                     text = displayText,
                     style = MaterialTheme.typography.labelSmall,
@@ -565,19 +584,26 @@ fun BubbleAiMessageComposable(
                     // Message bubble
                     val bubbleShape =
                         if (bubbleRoundedCornersEnabled) {
-                            RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
+                            RoundedCornerShape(
+                                topStart = if (slice?.first != false) 4.dp else 0.dp,
+                                topEnd = if (slice?.first != false) 20.dp else 0.dp,
+                                bottomEnd = if (slice?.last != false) 20.dp else 0.dp,
+                                bottomStart = if (slice?.last != false) 20.dp else 0.dp,
+                            )
                         } else {
                             RoundedCornerShape(0.dp)
                         }
                     val bubbleModifier =
-                        Modifier
-                            .widthIn(max = maxBubbleWidth)
-                            .defaultMinSize(minHeight = 44.dp)
+                        if (slice?.split == true) {
+                            Modifier.width(maxBubbleWidth)
+                        } else {
+                            Modifier.widthIn(max = maxBubbleWidth).defaultMinSize(minHeight = 44.dp)
+                        }
                     val renderContent: @Composable () -> Unit = {
                         // 使用 message.timestamp 作为 key，确保在重组期间，
                         // 只要是同一条消息，StreamMarkdownRenderer就不会被销毁和重建。
                         key(message.timestamp) {
-                            val stream = rememberRevisableTextStream(message.contentStream)
+                            val stream = if (LocalMarkdownRenderFragment.current != null) null else rememberRevisableTextStream(message.contentStream)
                             if (stream != null) {
                                 val charStream = remember(stream) { stream.toCharStream() }
                                 StreamMarkdownRenderer(
@@ -591,9 +617,9 @@ fun BubbleAiMessageComposable(
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
-                                            top = 12.dp,
+                                            top = if (slice?.first != false) 12.dp else 0.dp,
                                             end = bubbleContentPaddingRight.dp,
-                                            bottom = 12.dp,
+                                            bottom = if (slice?.last != false) 12.dp else 0.dp,
                                     ),
                                     state = rendererState,
                                     fillMaxWidth = shouldUseExpandedBubbleLayout,
@@ -612,9 +638,9 @@ fun BubbleAiMessageComposable(
                                     modifier =
                                         Modifier.padding(
                                             start = bubbleContentPaddingLeft.dp,
-                                            top = 12.dp,
+                                            top = if (slice?.first != false) 12.dp else 0.dp,
                                             end = bubbleContentPaddingRight.dp,
-                                            bottom = 12.dp,
+                                            bottom = if (slice?.last != false) 12.dp else 0.dp,
                                     ),
                                     state = rendererState,
                                     fillMaxWidth = shouldUseExpandedBubbleLayout,
@@ -640,16 +666,16 @@ fun BubbleAiMessageComposable(
                                         enabled = waterGlassEnabled,
                                         shape = bubbleShape,
                                         containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.7.dp,
+                                        shadowElevation = if (slice?.split == true) 0.dp else 10.dp,
+                                        borderWidth = if (slice?.split == true) 0.dp else 0.7.dp,
                                         overlayAlphaBoost = 0.08f,
                                     )
                                     .liquidGlass(
                                         enabled = liquidGlassEnabled,
                                         shape = bubbleShape,
                                         containerColor = backgroundColor,
-                                        shadowElevation = 10.dp,
-                                        borderWidth = 0.28.dp,
+                                        shadowElevation = if (slice?.split == true) 0.dp else 10.dp,
+                                        borderWidth = if (slice?.split == true) 0.dp else 0.28.dp,
                                         blurRadius = 28.dp,
                                         overlayAlphaBoost = 0.10f,
                                         enableLens = false,

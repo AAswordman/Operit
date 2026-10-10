@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.common.markdown
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownCardNodeIndex
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.StaticLayout
@@ -660,6 +662,7 @@ private fun renderNodeContent(
         
         // ========== XML块：保留原组件 ==========
         MarkdownProcessorType.XML_BLOCK -> {
+            CompositionLocalProvider(LocalMarkdownCardNodeIndex provides index) {
             xmlRenderer.RenderXmlContent(
                 xmlContent = content,
                 modifier = Modifier.fillMaxWidth(),
@@ -667,6 +670,7 @@ private fun renderNodeContent(
                 xmlStream = xmlStream,
                 renderInstanceKey = nodeKey
             )
+            }
         }
         
         // ========== 图片：保留原组件 ==========

@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.chat.components.style.cursor
 
+import com.ai.assistance.operit.ui.features.chat.components.timeline.LocalChatMessageSlice
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -53,6 +55,7 @@ fun AiMessageComposable(
     heightMemory: ChatMessageHeightMemory? = null,
     enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
 ) {
+    val slice = LocalChatMessageSlice.current
     val context = LocalContext.current
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val themeSnapshot = LocalThemePreferenceSnapshot.current
@@ -70,7 +73,7 @@ fun AiMessageComposable(
     var linkToPreview by remember { mutableStateOf("") }
     
     // 创建并保存StreamMarkdownRenderer的状态，使用message.timestamp作为key确保同一条消息共享状态
-    val rendererState = remember(message.timestamp) { StreamMarkdownRendererState() }
+    val rendererState = slice?.state ?: remember(message.timestamp) { StreamMarkdownRendererState() }
 
     // 创建自定义XML渲染器
     val xmlRenderer = remember(
@@ -89,11 +92,11 @@ fun AiMessageComposable(
         )
     }
 
-    val nodeGrouper = remember(effectiveShowThinkingProcess, toolCollapseMode, expandThinkToolsGroups) {
+    val nodeGrouper = slice?.grouper ?: remember(effectiveShowThinkingProcess, toolCollapseMode, expandThinkToolsGroups, enableDialogs) {
         ThinkToolsXmlNodeGrouper(
             showThinkingProcess = effectiveShowThinkingProcess,
             forceExpandGroups = expandThinkToolsGroups,
-            toolCollapseMode = toolCollapseMode
+            toolCollapseMode = toolCollapseMode,
         )
     }
     val rememberedOnLinkClick = remember(context, onLinkClick, enableDialogs) {
@@ -120,12 +123,13 @@ fun AiMessageComposable(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp)
+                    .padding(top = if (slice?.first != false) 2.dp else 0.dp, bottom = if (slice?.last != false) 2.dp else 0.dp)
                     .onSizeChanged { size ->
                         heightMemory?.updateMeasured(message.timestamp, size.height)
                     }
         ) {
-        // 构建标题 - 分左右两部分显示
+        // 一条消息的标题只显示在首块，后续块保持相同内容缩进。
+        if (slice?.first != false) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,11 +176,13 @@ fun AiMessageComposable(
             }
         }
 
+        }
+
         // 使用 message.timestamp 作为 key，确保在重组期间，
         // 只要是同一条消息，StreamMarkdownRenderer就不会被销毁和重建。
         // 这可以防止流被不必要地取消，保证了渲染的连续性。
         key(message.timestamp) {
-            val streamToRender = rememberRevisableTextStream(overrideStream ?: message.contentStream)
+            val streamToRender = if (LocalMarkdownRenderFragment.current != null) null else rememberRevisableTextStream(overrideStream ?: message.contentStream)
             if (streamToRender != null) {
                 // 对于正在流式传输的消息，使用流式渲染器
                 // 将contentStream保存到本地变量以避免智能转换问题
