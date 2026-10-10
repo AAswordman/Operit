@@ -1069,6 +1069,7 @@ open class ClaudeProvider(
             chatHistory: List<PromptTurn>,
             modelParameters: List<ModelParameter<*>> = emptyList(),
             enableThinking: Boolean,
+            thinkingOptionId: String? = null,
             stream: Boolean = true,
             availableTools: List<ToolPrompt>? = null,
             preserveThinkInHistory: Boolean = false
@@ -1119,7 +1120,7 @@ open class ClaudeProvider(
             apiEndpoint = apiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
 
         // 日志输出时省略过长的tools字段
@@ -1301,6 +1302,7 @@ open class ClaudeProvider(
             chatHistory: List<PromptTurn>,
             modelParameters: List<ModelParameter<*>>,
             enableThinking: Boolean,
+            thinkingOptionId: String?,
             stream: Boolean,
             availableTools: List<ToolPrompt>?,
             preserveThinkInHistory: Boolean,
@@ -1422,6 +1424,7 @@ open class ClaudeProvider(
                     chatHistory,
                     modelParameters,
                     enableThinking,
+                    thinkingOptionId,
                     stream,
                     availableTools,
                     preserveThinkInHistory

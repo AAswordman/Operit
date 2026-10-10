@@ -49,6 +49,15 @@ internal data class ThinkingQualityMapping(
     fun optionFor(id: String): ThinkingQualityOption? = options.firstOrNull { it.id == id }
     fun textValueFor(id: String): String? = (optionFor(id)?.wireValue as? ThinkingQualityWireValue.Text)?.value
     fun numberValueFor(id: String): Int? = (optionFor(id)?.wireValue as? ThinkingQualityWireValue.Number)?.value
+
+    fun resolveOptionId(preferred: String, fallback: String = ""): String {
+        if (control != ThinkingQualityControl.LEVELS) {
+            return preferred.ifBlank { fallback }
+        }
+        if (preferred.isNotBlank() && optionFor(preferred) != null) return preferred
+        if (fallback.isNotBlank() && optionFor(fallback) != null) return fallback
+        return options.firstOrNull()?.id.orEmpty()
+    }
 }
 
 internal object ThinkingQualityMappingRegistry {

@@ -7,6 +7,7 @@ import com.ai.assistance.operit.api.chat.llmprovider.AIServiceFactory
 import com.ai.assistance.operit.api.chat.llmprovider.RateLimitedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.RateLimiterRegistry
 import com.ai.assistance.operit.api.chat.llmprovider.RequestConcurrencyRegistry
+import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelParameter
@@ -75,6 +76,28 @@ class MultiServiceManager(private val context: Context) {
             if (isInitialized) return
             isInitialized = true
         }
+    }
+
+    internal suspend fun getThinkingRequestForFunction(functionType: FunctionType): FunctionThinkingRequest {
+        val configMapping = functionalConfigManager.getConfigMappingForFunction(functionType)
+        val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
+        val modelName =
+            getModelByIndex(
+                config.modelName,
+                getValidModelIndex(config.modelName, configMapping.modelIndex)
+            )
+        val mapping =
+            ThinkingQualityMappingRegistry.resolve(
+                providerTypeId = config.apiProviderTypeId,
+                modelName = modelName,
+                apiEndpoint = config.apiEndpoint,
+                thinkingConfigurations = config.thinkingConfigurations
+            )
+        return FunctionThinkingRequest(
+            enableThinking = configMapping.enableThinking || mapping.reasoningRequired,
+            thinkingOptionId =
+                mapping.resolveOptionId(configMapping.thinkingOptionId, config.thinkingOptionId)
+        )
     }
 
     /** 获取指定功能类型的AIService */
@@ -419,3 +442,8 @@ class MultiServiceManager(private val context: Context) {
     }
 
 }
+
+internal data class FunctionThinkingRequest(
+    val enableThinking: Boolean,
+    val thinkingOptionId: String,
+)

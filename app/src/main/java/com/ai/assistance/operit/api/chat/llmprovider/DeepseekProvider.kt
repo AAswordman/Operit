@@ -107,6 +107,7 @@ class DeepseekProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -120,7 +121,7 @@ class DeepseekProvider(
                 apiEndpoint = configuredApiEndpoint,
                 thinkingConfigurations = thinkingConfigurations,
                 enableThinking = enableThinking,
-                optionId = thinkingOptionId,
+                optionId = thinkingOptionId ?: this.thinkingOptionId,
             )
         }
 
@@ -540,6 +541,7 @@ class DeepseekProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -551,7 +553,7 @@ class DeepseekProvider(
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
         // 直接调用父类的sendMessage实现
-        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
+        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, thinkingOptionId, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
     }
 }
 
@@ -1317,6 +1319,7 @@ private class DeepseekResponsesProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -1345,7 +1348,7 @@ private class DeepseekResponsesProvider(
             apiEndpoint = responsesApiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
         return createJsonRequestBody(requestJson.toString())
     }

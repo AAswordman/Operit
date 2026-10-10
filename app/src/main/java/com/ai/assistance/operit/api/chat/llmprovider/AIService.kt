@@ -62,6 +62,7 @@ interface AIService {
             chatHistory: List<PromptTurn> = emptyList(),
             modelParameters: List<ModelParameter<*>> = emptyList(),
             enableThinking: Boolean = false,
+            thinkingOptionId: String? = null,
             stream: Boolean = true,
             availableTools: List<ToolPrompt>? = null,
             preserveThinkInHistory: Boolean = false, // 新增参数，控制是否保留历史中的思考过程
