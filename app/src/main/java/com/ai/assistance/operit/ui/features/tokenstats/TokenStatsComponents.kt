@@ -43,6 +43,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -1248,10 +1254,21 @@ internal fun TokenStatsSettingsCard(
     manualRate: Double,
     rateIsEstimated: Boolean,
     onSaveRate: (Double) -> Boolean,
+    onResetUsage: () -> Unit,
 ) {
     val colors = LocalTokenStatsColors.current
     var rateInput by remember { mutableStateOf(formatRateInput(manualRate)) }
     var rateEditing by rememberSaveable { mutableStateOf(false) }
+    var confirmResetUsage by rememberSaveable { mutableStateOf(false) }
+    var resetConfirmSeconds by rememberSaveable { mutableIntStateOf(USAGE_RESET_CONFIRM_DELAY_SECONDS) }
+    LaunchedEffect(confirmResetUsage) {
+        if (!confirmResetUsage) return@LaunchedEffect
+        resetConfirmSeconds = USAGE_RESET_CONFIRM_DELAY_SECONDS
+        while (resetConfirmSeconds > 0) {
+            delay(1_000)
+            resetConfirmSeconds -= 1
+        }
+    }
     val rateStatus = stringResource(
         if (rateIsEstimated) {
             R.string.token_stats_rate_estimated
@@ -1394,9 +1411,55 @@ internal fun TokenStatsSettingsCard(
                     }
                 }
             }
+            HorizontalDivider(color = colors.cardBorder)
+            TextButton(
+                onClick = { confirmResetUsage = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.token_stats_reset_usage))
+            }
+            Text(
+                text = stringResource(R.string.token_stats_reset_usage_desc),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.cardSupportingContent,
+            )
         }
     }
+    if (confirmResetUsage) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmResetUsage = false },
+            title = { Text(stringResource(R.string.settings_reset_confirmation)) },
+            text = { Text(stringResource(R.string.settings_reset_warning)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmResetUsage = false
+                        onResetUsage()
+                    },
+                    enabled = resetConfirmSeconds == 0,
+                ) {
+                    Text(
+                        if (resetConfirmSeconds == 0) {
+                            stringResource(R.string.settings_reset)
+                        } else {
+                            stringResource(
+                                R.string.token_stats_usage_reset_confirm_wait,
+                                resetConfirmSeconds,
+                            )
+                        }
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmResetUsage = false }) {
+                    Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        )
+    }
 }
+
+private const val USAGE_RESET_CONFIRM_DELAY_SECONDS = 5
 
 // ==== 定价草稿推导（沿用） ====
 
