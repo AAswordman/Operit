@@ -16,6 +16,7 @@ import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.HttpLogSanitizer
+import com.ai.assistance.operit.util.logging.RequestBodyLogFormatter
 import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.util.StreamingJsonXmlConverter
 import com.ai.assistance.operit.util.TokenCacheManager
@@ -318,6 +319,10 @@ open class OpenAIProvider(
         }
     }
 
+    protected fun logRequestBody(tag: String, body: JSONObject, prefix: String) {
+        logLargeString(tag, RequestBodyLogFormatter.format(body), prefix)
+    }
+
     protected fun logFinalOutput(tag: String, content: CharSequence, prefix: String = "Final output: ") {
         val finalOutput = content.toString()
         if (finalOutput.isBlank()) {
@@ -326,49 +331,6 @@ open class OpenAIProvider(
         }
         logLargeString(tag, finalOutput, prefix)
     }
-
-     protected fun sanitizeImageDataForLogging(json: JSONObject): JSONObject {
-         fun sanitizeObject(obj: JSONObject) {
-             fun sanitizeArray(arr: JSONArray) {
-                 for (i in 0 until arr.length()) {
-                     val value = arr.get(i)
-                     when (value) {
-                         is JSONObject -> sanitizeObject(value)
-                         is JSONArray -> sanitizeArray(value)
-                         is String -> {
-                             if (value.startsWith("data:") && value.contains(";base64,")) {
-                                 arr.put(i, "[image base64 omitted, length=${value.length}]")
-                             }
-                         }
-                     }
-                 }
-             }
-
-             val keys = obj.keys()
-             while (keys.hasNext()) {
-                 val key = keys.next()
-                 val value = obj.get(key)
-                 when (value) {
-                     is JSONObject -> sanitizeObject(value)
-                     is JSONArray -> sanitizeArray(value)
-                     is String -> {
-                         if (value.startsWith("data:") && value.contains(";base64,")) {
-                             obj.put(key, "[image base64 omitted, length=${value.length}]")
-                         } else if (
-                             key == "data" &&
-                                 value.length > 256 &&
-                                 value.all { it.isLetterOrDigit() || it == '+' || it == '/' || it == '=' || it == '\n' || it == '\r' }
-                         ) {
-                             obj.put(key, "[base64 omitted, length=${value.length}]")
-                         }
-                     }
-                 }
-             }
-         }
-
-         sanitizeObject(json)
-         return json
-     }
 
     private fun getOutputImagesDir(): File {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -583,9 +545,8 @@ open class OpenAIProvider(
         availableTools: List<ToolPrompt>? = null,
         preserveThinkInHistory: Boolean = false
     ): RequestBody {
-        val jsonString =
-            createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-        val requestJson = JSONObject(jsonString)
+        val requestJson =
+            createRequestBodyObject(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
         ThinkingConfigurationApplier.apply(
             context = context,
             requestJson = requestJson,
@@ -613,7 +574,19 @@ open class OpenAIProvider(
         stream: Boolean = true,
         availableTools: List<ToolPrompt>? = null,
         preserveThinkInHistory: Boolean = false
-    ): String {
+    ): String = createRequestBodyObject(
+        context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory
+    ).toString()
+
+    // 直接传递可修改的请求对象，避免内置 Provider 先序列化再解析完整历史。
+    protected fun createRequestBodyObject(
+        context: Context,
+        chatHistory: List<PromptTurn>,
+        modelParameters: List<ModelParameter<*>> = emptyList(),
+        stream: Boolean = true,
+        availableTools: List<ToolPrompt>? = null,
+        preserveThinkInHistory: Boolean = false
+    ): JSONObject {
         val jsonObject = JSONObject()
         jsonObject.put("model", modelName)
         jsonObject.put("stream", stream) // 根据stream参数设置
@@ -703,14 +676,9 @@ open class OpenAIProvider(
         customizeFinalRequestObject(finalRequestObject, messagesArray, toolsJson)
 
         // 使用分块日志函数记录请求体（省略过长的tools字段）
-        val logJson = JSONObject(finalRequestObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString("AIService", sanitizedLogJson.toString(4), "Request body: ")
-        return finalRequestObject.toString()
+        logRequestBody("AIService", finalRequestObject, "Request body: ")
+
+        return finalRequestObject
     }
 
     protected open fun comparableRoleForTurn(turn: PromptTurn): String {

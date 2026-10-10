@@ -13,6 +13,7 @@ import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.HttpLogSanitizer
+import com.ai.assistance.operit.util.logging.RequestBodyLogFormatter
 import com.ai.assistance.operit.util.StreamingJsonXmlConverter
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.TokenCacheManager
@@ -553,49 +554,6 @@ open class ClaudeProvider(
         }
     }
 
-    private fun sanitizeImageDataForLogging(json: JSONObject): JSONObject {
-        fun sanitizeObject(obj: JSONObject) {
-            fun sanitizeArray(arr: JSONArray) {
-                for (index in 0 until arr.length()) {
-                    when (val value = arr.get(index)) {
-                        is JSONObject -> sanitizeObject(value)
-                        is JSONArray -> sanitizeArray(value)
-                        is String -> {
-                            if (value.startsWith("data:") && value.contains(";base64,")) {
-                                arr.put(index, "[image base64 omitted, length=${value.length}]")
-                            }
-                        }
-                    }
-                }
-            }
-
-            val mediaType = obj.optString("media_type", obj.optString("mime_type", ""))
-            if (mediaType.startsWith("image/", ignoreCase = true) && obj.has("data")) {
-                val dataValue = obj.opt("data")
-                if (dataValue is String) {
-                    obj.put("data", "[image base64 omitted, length=${dataValue.length}]")
-                }
-            }
-
-            val keys = obj.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                when (val value = obj.get(key)) {
-                    is JSONObject -> sanitizeObject(value)
-                    is JSONArray -> sanitizeArray(value)
-                    is String -> {
-                        if (value.startsWith("data:") && value.contains(";base64,")) {
-                            obj.put(key, "[image base64 omitted, length=${value.length}]")
-                        }
-                    }
-                }
-            }
-        }
-
-        sanitizeObject(json)
-        return json
-    }
-
     private data class ClaudeSerializedHistory(
         val messagesArray: JSONArray,
         val systemBlocks: JSONArray?
@@ -1123,13 +1081,7 @@ open class ClaudeProvider(
         )
 
         // 日志输出时省略过长的tools字段
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        sanitizeImageDataForLogging(logJson)
-        AppLogger.d("AIService", "Claude请求体: ${logJson.toString(4)}")
+        AppLogger.d("AIService", "Claude请求体: ${RequestBodyLogFormatter.format(jsonObject)}")
         return jsonObject.toString().toByteArray(Charsets.UTF_8).toRequestBody(JSON)
     }
 

@@ -48,15 +48,13 @@ class XaiProvider(
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
     ): RequestBody {
-        val requestJson = JSONObject(
-            super.createRequestBodyInternal(
-                context,
-                chatHistory,
-                modelParameters,
-                stream,
-                availableTools,
-                preserveThinkInHistory
-            )
+        val requestJson = super.createRequestBodyObject(
+            context,
+            chatHistory,
+            modelParameters,
+            stream,
+            availableTools,
+            preserveThinkInHistory
         )
 
         ThinkingConfigurationApplier.apply(

@@ -201,13 +201,7 @@ class DeepseekProvider(
         jsonObject.put("messages", messagesArray)
 
         // 记录最终的请求体（省略过长的tools字段）
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString("DeepseekProvider", sanitizedLogJson.toString(4), "Final DeepSeek reasoning mode request body: ")
+        logRequestBody("DeepseekProvider", jsonObject, "Final DeepSeek reasoning mode request body: ")
 
         return createJsonRequestBody(jsonObject.toString())
     }
@@ -1327,15 +1321,13 @@ private class DeepseekResponsesProvider(
             } else {
                 ChatUtils.stripOpenAiResponsesReasoningMetaTurns(chatHistory)
             }
-        val requestJson = JSONObject(
-            createRequestBodyInternal(
-                context = context,
-                chatHistory = requestChatHistory,
-                modelParameters = modelParameters,
-                stream = stream,
-                availableTools = availableTools,
-                preserveThinkInHistory = preserveThinkInHistory
-            )
+        val requestJson = createRequestBodyObject(
+            context = context,
+            chatHistory = requestChatHistory,
+            modelParameters = modelParameters,
+            stream = stream,
+            availableTools = availableTools,
+            preserveThinkInHistory = preserveThinkInHistory
         )
         ThinkingConfigurationApplier.apply(
             context = context,

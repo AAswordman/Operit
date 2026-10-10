@@ -680,7 +680,10 @@ class MessageCoordinationDelegate(
                 .toInt()
 
         // 如果不是续写，检查是否需要总结
-        if (turnOptions.persistTurn && !isBackgroundSend && !isContinuation && !skipSummaryCheck) {
+        // 总结关闭时无需读取历史；否则这次预读会在实际发送前重复加载整段运行态上下文。
+        if (chatContextSettings.enableSummary &&
+            turnOptions.persistTurn && !isBackgroundSend && !isContinuation && !skipSummaryCheck
+        ) {
             val currentMessages = runBlocking { chatHistoryDelegate.getCurrentRuntimeChatHistorySnapshot() }
             val currentTokens = tokenStatsDelegate.currentWindowSizeFlow.value
 

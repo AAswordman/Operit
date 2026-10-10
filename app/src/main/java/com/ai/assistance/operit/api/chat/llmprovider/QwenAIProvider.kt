@@ -64,8 +64,7 @@ class QwenAIProvider(
         preserveThinkInHistory: Boolean
     ): RequestBody {
         // 首先，调用父类的实现来获取一个标准的OpenAI格式的请求体JSON对象
-        val baseRequestBodyJson = super.createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-        val jsonObject = JSONObject(baseRequestBodyJson)
+        val jsonObject = super.createRequestBodyObject(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
 
         applyQwenReasoningSettings(
             requestJson = jsonObject,
@@ -73,17 +72,7 @@ class QwenAIProvider(
         )
 
         // 记录最终的请求体（省略过长的tools字段）
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString(
-            "QwenAIProvider",
-            sanitizedLogJson.toString(4),
-            "Final Qwen-compatible request body: "
-        )
+        logRequestBody("QwenAIProvider", jsonObject, "Final Qwen-compatible request body: ")
 
         // 使用更新后的JSONObject创建新的RequestBody
         return createJsonRequestBody(jsonObject.toString())

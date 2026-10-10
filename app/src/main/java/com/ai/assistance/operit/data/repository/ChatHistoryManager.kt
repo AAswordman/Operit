@@ -2427,13 +2427,11 @@ class ChatHistoryManager private constructor(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 val latestSummaryTimestamp = messageDao.getLatestSummaryTimestamp(chatId)
-                val messageEntities =
-                    if (latestSummaryTimestamp != null) {
-                        chatContentDao.getMessagesForChatFromTimestampAsc(chatId, latestSummaryTimestamp)
-                    } else {
-                        chatContentDao.getMessagesForChat(chatId)
-                    }
-                hydrateMessages(chatId, messageEntities)
+                chatContentDao.getRuntimeMessagesForChatWindow(
+                    chatId = chatId,
+                    startTimestampInclusive = latestSummaryTimestamp,
+                    endTimestampInclusive = null,
+                ).toChatMessages()
             } catch (e: Exception) {
                 AppLogger.e(TAG, "加载运行态聊天消息失败", e)
                 emptyList()
@@ -2448,22 +2446,11 @@ class ChatHistoryManager private constructor(private val context: Context) {
         return withContext(Dispatchers.IO) {
             val latestSummaryTimestamp =
                 messageDao.getLatestSummaryTimestampUpTo(chatId, upToTimestampInclusive)
-            val messageEntities =
-                if (latestSummaryTimestamp != null) {
-                    chatContentDao.getMessagesForChatWindowAsc(
-                        chatId = chatId,
-                        startTimestampInclusive = latestSummaryTimestamp,
-                        endTimestampInclusive = upToTimestampInclusive
-                    )
-                } else {
-                    chatContentDao.getMessagesForChatInRangeAsc(
-                        chatId = chatId,
-                        afterTimestampExclusive = null,
-                        beforeTimestampExclusive = null,
-                        upToTimestampInclusive = upToTimestampInclusive
-                    )
-                }
-            hydrateMessages(chatId, messageEntities)
+            chatContentDao.getRuntimeMessagesForChatWindow(
+                chatId = chatId,
+                startTimestampInclusive = latestSummaryTimestamp,
+                endTimestampInclusive = upToTimestampInclusive,
+            ).toChatMessages()
         }
     }
 

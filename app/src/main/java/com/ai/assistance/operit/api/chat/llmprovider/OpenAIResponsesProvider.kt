@@ -61,7 +61,7 @@ open class OpenAIResponsesProvider(
             } else {
                 ChatUtils.stripOpenAiResponsesReasoningMetaTurns(chatHistory)
             }
-        val baseRequestBodyJson = super.createRequestBodyInternal(
+        val jsonObject = super.createRequestBodyObject(
             context,
             requestChatHistory,
             modelParameters,
@@ -69,21 +69,10 @@ open class OpenAIResponsesProvider(
             availableTools,
             preserveThinkInHistory
         )
-        val jsonObject = JSONObject(baseRequestBodyJson)
 
         applyResponsesReasoningEffort(context, jsonObject, enableThinking)
 
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString(
-            "OpenAIResponsesProvider",
-            sanitizedLogJson.toString(4),
-            "Final Responses request body: "
-        )
+        logRequestBody("OpenAIResponsesProvider", jsonObject, "Final Responses request body: ")
 
         return createJsonRequestBody(jsonObject.toString())
     }

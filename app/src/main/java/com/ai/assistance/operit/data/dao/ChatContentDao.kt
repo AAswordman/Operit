@@ -76,6 +76,33 @@ data class ChatContentCharacterCount(
 /** Reads message text in bounded rows so a single large message cannot overflow CursorWindow. */
 @Dao
 abstract class ChatContentDao {
+    @Query(
+        "SELECT messageTimestamp, COUNT(*) AS variantCount FROM message_variants" +
+            " WHERE chatId = :chatId AND messageTimestamp >= :minTimestamp" +
+            " AND messageTimestamp <= :maxTimestamp GROUP BY messageTimestamp"
+    )
+    protected abstract suspend fun queryVariantCountsForMessageRange(
+        chatId: String,
+        minTimestamp: Long,
+        maxTimestamp: Long,
+    ): List<MessageVariantCount>
+
+    @Query(
+        MESSAGE_VARIANT_CONTENT_ROW_QUERY +
+            " WHERE chatId = :chatId AND messageTimestamp >= :minTimestamp" +
+            " AND messageTimestamp <= :maxTimestamp" +
+            " AND EXISTS (SELECT 1 FROM messages" +
+            " WHERE messages.chatId = message_variants.chatId" +
+            " AND messages.timestamp = message_variants.messageTimestamp" +
+            " AND messages.selectedVariantIndex = message_variants.variantIndex)" +
+            " ORDER BY messageTimestamp ASC, variantIndex ASC"
+    )
+    protected abstract suspend fun querySelectedVariantsForMessageRange(
+        chatId: String,
+        minTimestamp: Long,
+        maxTimestamp: Long,
+    ): List<MessageVariantContentRow>
+
     @Query(MESSAGE_CONTENT_ROW_QUERY + " WHERE chatId = :chatId ORDER BY timestamp ASC")
     protected abstract suspend fun queryMessagesForChat(chatId: String): List<MessageContentRow>
 
@@ -407,6 +434,38 @@ abstract class ChatContentDao {
         queryVariantForMessage(chatId, messageTimestamp, variantIndex)?.let {
             materializeVariant(it)
         }
+
+    /** 事务内读取基础消息、候选数量及选中正文，确保切换候选不会拼出混合快照。 */
+    @Transaction
+    open suspend fun getRuntimeMessagesForChatWindow(
+        chatId: String,
+        startTimestampInclusive: Long?,
+        endTimestampInclusive: Long?,
+    ): RuntimeChatMessageSnapshot {
+        // 复用已有时间窗口查询，保持总结起点、重生成截止位置和索引使用方式相同。
+        val rows = when {
+            startTimestampInclusive != null && endTimestampInclusive != null ->
+                queryMessagesForChatWindowAsc(chatId, startTimestampInclusive, endTimestampInclusive)
+            startTimestampInclusive != null ->
+                queryMessagesForChatFromTimestampAsc(chatId, startTimestampInclusive)
+            endTimestampInclusive != null ->
+                queryMessagesForChatInRangeAsc(chatId, null, null, endTimestampInclusive)
+            else -> queryMessagesForChat(chatId)
+        }
+        val messages = materializeMessages(rows)
+        if (messages.isEmpty()) {
+            return RuntimeChatMessageSnapshot(emptyList(), emptyList(), emptyList())
+        }
+        val minTimestamp = messages.first().timestamp
+        val maxTimestamp = messages.last().timestamp
+        val variantCounts = queryVariantCountsForMessageRange(chatId, minTimestamp, maxTimestamp)
+        val selectedVariants = if (messages.any { it.selectedVariantIndex != 0 }) {
+            materializeVariants(querySelectedVariantsForMessageRange(chatId, minTimestamp, maxTimestamp))
+        } else {
+            emptyList()
+        }
+        return RuntimeChatMessageSnapshot(messages, selectedVariants, variantCounts)
+    }
 
     private suspend fun materializeMessages(rows: List<MessageContentRow>): List<MessageEntity> =
         rows.map { materializeMessage(it) }
