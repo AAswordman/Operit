@@ -1012,6 +1012,12 @@ class StandardChatManagerTool(private val context: Context) {
                 )
             }
 
+            ChatRuntimeSlot.values().forEach { slot ->
+                runCatching {
+                    chatRuntimeHolder.getCore(slot).cancelMessageForDestructiveMutation(chatId)
+                }
+            }
+
             val deleted = chatHistoryManager.deleteChatHistory(chatId)
             if (!deleted) {
                 return ToolResult(
