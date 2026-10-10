@@ -93,7 +93,8 @@ class StandardHttpTools(private val context: Context) {
             useCookies: Boolean = true,
             proxyHost: String? = null,
             proxyPort: Int = 0,
-            ignoreSsl: Boolean = false
+            ignoreSsl: Boolean = false,
+            callTimeout: Long? = null
     ): OkHttpClient {
         val builder =
                 OkHttpClient.Builder()
@@ -102,6 +103,9 @@ class StandardHttpTools(private val context: Context) {
                         .writeTimeout(writeTimeout, TimeUnit.SECONDS)
                         .followRedirects(followRedirects)
                         .followSslRedirects(followSslRedirects)
+        if (callTimeout != null) {
+            builder.callTimeout(callTimeout, TimeUnit.SECONDS)
+        }
 
         // 配置Cookie支持
         if (useCookies) {
@@ -213,9 +217,7 @@ class StandardHttpTools(private val context: Context) {
         val bodyTypeParam = tool.parameters.find { it.name == "body_type" }?.value
         val bodyType = bodyTypeParam?.lowercase() ?: "json"
 
-        val connectTimeoutParam = tool.parameters.find { it.name == "connect_timeout" }?.value
-        val readTimeoutParam = tool.parameters.find { it.name == "read_timeout" }?.value
-        val writeTimeoutParam = tool.parameters.find { it.name == "write_timeout" }?.value
+        val timeouts = resolveHttpTimeouts(tool)
         val followRedirectsParam = tool.parameters.find { it.name == "follow_redirects" }?.value
         val useCookiesParam = tool.parameters.find { it.name == "use_cookies" }?.value
         val proxyHostParam = tool.parameters.find { it.name == "proxy_host" }?.value
@@ -238,9 +240,10 @@ class StandardHttpTools(private val context: Context) {
         val useCookies = useCookiesParam?.lowercase() != "false"
         val client =
                 buildConfigurableClient(
-                        connectTimeout = connectTimeoutParam?.toLongOrNull() ?: 15,
-                        readTimeout = readTimeoutParam?.toLongOrNull() ?: 20,
-                        writeTimeout = writeTimeoutParam?.toLongOrNull() ?: 15,
+                        connectTimeout = timeouts.connectSeconds,
+                        readTimeout = timeouts.readSeconds,
+                        writeTimeout = timeouts.writeSeconds,
+                        callTimeout = timeouts.overallSeconds,
                         followRedirects = followRedirectsParam?.lowercase() != "false",
                         followSslRedirects = followRedirectsParam?.lowercase() != "false",
                         useCookies = useCookies,
@@ -625,10 +628,7 @@ class StandardHttpTools(private val context: Context) {
         val formDataParam = tool.parameters.find { it.name == "form_data" }?.value ?: "{}"
         val filesParam = tool.parameters.find { it.name == "files" }?.value ?: "[]"
 
-        // 高级参数
-        val connectTimeoutParam = tool.parameters.find { it.name == "connect_timeout" }?.value
-        val readTimeoutParam = tool.parameters.find { it.name == "read_timeout" }?.value
-        val writeTimeoutParam = tool.parameters.find { it.name == "write_timeout" }?.value
+        val timeouts = resolveHttpTimeouts(tool)
         val followRedirectsParam = tool.parameters.find { it.name == "follow_redirects" }?.value
         val useCookiesParam = tool.parameters.find { it.name == "use_cookies" }?.value
         val proxyHostParam = tool.parameters.find { it.name == "proxy_host" }?.value
@@ -678,9 +678,10 @@ class StandardHttpTools(private val context: Context) {
             // 配置客户端
             val client =
                     buildConfigurableClient(
-                            connectTimeout = connectTimeoutParam?.toLongOrNull() ?: 15,
-                            readTimeout = readTimeoutParam?.toLongOrNull() ?: 20,
-                            writeTimeout = writeTimeoutParam?.toLongOrNull() ?: 15,
+                            connectTimeout = timeouts.connectSeconds,
+                            readTimeout = timeouts.readSeconds,
+                            writeTimeout = timeouts.writeSeconds,
+                            callTimeout = timeouts.overallSeconds,
                             followRedirects = followRedirectsParam?.lowercase() != "false",
                             followSslRedirects = followRedirectsParam?.lowercase() != "false",
                             useCookies = useCookiesParam?.lowercase() != "false",
@@ -826,5 +827,47 @@ class StandardHttpTools(private val context: Context) {
                     error = "Error executing multipart form request: ${e.message}"
             )
         }
+    }
+
+    private data class HttpTimeouts(
+        val connectSeconds: Long,
+        val readSeconds: Long,
+        val writeSeconds: Long,
+        val overallSeconds: Long?,
+    )
+
+    private fun resolveHttpTimeouts(tool: AITool): HttpTimeouts {
+        val connectTimeoutParam = tool.parameters.find { it.name == "connect_timeout" }?.value
+        val readTimeoutParam = tool.parameters.find { it.name == "read_timeout" }?.value
+        val writeTimeoutParam = tool.parameters.find { it.name == "write_timeout" }?.value
+        val overallSeconds =
+            tool.parameters.find { it.name == "timeout" }?.value?.let(::parseTimeoutSeconds)
+                ?: tool.parameters.find { it.name == "timeout_ms" }?.value?.let(::parseTimeoutMilliseconds)
+
+        val connectSeconds = parseTimeoutSeconds(connectTimeoutParam) ?: overallSeconds ?: 15L
+        val readSeconds = parseTimeoutSeconds(readTimeoutParam) ?: overallSeconds ?: 20L
+        val writeSeconds = parseTimeoutSeconds(writeTimeoutParam) ?: overallSeconds ?: 15L
+        return HttpTimeouts(
+            connectSeconds = connectSeconds.coerceIn(1L, 600L),
+            readSeconds = readSeconds.coerceIn(1L, 600L),
+            writeSeconds = writeSeconds.coerceIn(1L, 600L),
+            overallSeconds = overallSeconds?.coerceIn(1L, 600L),
+        )
+    }
+
+    private fun parseTimeoutSeconds(raw: String?): Long? {
+        val value = raw?.trim()?.toLongOrNull() ?: return null
+        if (value <= 0L) return null
+        return if (value >= 1000L) {
+            parseTimeoutMilliseconds(raw)
+        } else {
+            value
+        }
+    }
+
+    private fun parseTimeoutMilliseconds(raw: String?): Long? {
+        val value = raw?.trim()?.toLongOrNull() ?: return null
+        if (value <= 0L) return null
+        return (value / 1000L + if (value % 1000L == 0L) 0L else 1L).coerceAtLeast(1L)
     }
 }
