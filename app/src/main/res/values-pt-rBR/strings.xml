@@ -2707,6 +2707,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="chat_pending_queue_title">Fila a ser enviada (%1$d)</string>
     <string name="chat_queue_add_message">Adicionar à fila de envio</string>
     <string name="chat_queue_added">Adicionado à fila de envio</string>
+    <string name="chat_continue_generation">Continuar geração</string>
     <string name="chat_use_default_config_continue">Continue usando a configuração padrão</string>
     <string name="chat_default_config_incomplete">A configuração padrão está incompleta, preencha as informações necessárias</string>
     <string name="chat_locked_cannot_delete">Este bate-papo está bloqueado e não pode ser excluído</string>

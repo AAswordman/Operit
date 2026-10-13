@@ -3407,6 +3407,7 @@
     <string name="chat_pending_queue_title">Pending Queue (%1$d)</string>
     <string name="chat_queue_add_message">Queue Message</string>
     <string name="chat_queue_added">Added to queue</string>
+    <string name="chat_continue_generation">Continue generation</string>
     <string name="chat_use_default_config_continue">Continue with default configuration</string>
     <string name="chat_default_config_incomplete">Default configuration is incomplete. Please fill in required information.</string>
     <string name="chat_locked_cannot_delete">This chat is locked and cannot be deleted</string>

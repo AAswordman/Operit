@@ -73,6 +73,26 @@ fun List<PromptTurn>.appendUserTurnIfMissing(message: String): List<PromptTurn> 
     }
 }
 
+fun applyFinalizedCurrentUserTurn(
+    preparedHistory: List<PromptTurn>,
+    originalCurrentMessage: String,
+    finalizedCurrentMessage: String,
+    historyOnly: Boolean = false,
+): List<PromptTurn> {
+    // Prompt hooks must not turn a manual continuation into a new user message.
+    if (historyOnly || finalizedCurrentMessage.isBlank()) {
+        return preparedHistory
+    }
+    val lastTurn = preparedHistory.lastOrNull()
+    return when {
+        lastTurn?.kind == PromptTurnKind.USER && lastTurn.content == finalizedCurrentMessage ->
+            preparedHistory
+        lastTurn?.kind == PromptTurnKind.USER && lastTurn.content == originalCurrentMessage ->
+            preparedHistory.dropLast(1) + lastTurn.copy(content = finalizedCurrentMessage)
+        else -> preparedHistory.appendUserTurnIfMissing(finalizedCurrentMessage)
+    }
+}
+
 fun List<PromptTurn>.mergeAdjacentTurns(
     shouldMerge: (PromptTurn, PromptTurn) -> Boolean = { previous, current ->
         previous.kind == current.kind &&
