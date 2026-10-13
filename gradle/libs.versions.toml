@@ -226,6 +226,8 @@ nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanoht
 test-runner = { group = "androidx.test", name = "runner", version.ref = "test-runner" }
 test-rules = { group = "androidx.test", name = "rules", version.ref = "test-rules" }
 ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
 
 # Coroutines
 coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }

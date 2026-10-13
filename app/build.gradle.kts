@@ -794,6 +794,12 @@ dependencies {
     // 协程测试依赖
     testImplementation(libs.coroutines.test)
     androidTestImplementation(libs.coroutines.test)
+
+    // MockEngine: drives the MCP Streamable HTTP client pipeline without a real server.
+    testImplementation(libs.ktor.client.mock)
+
+    // MockWebServer: exercises the same pipeline through the production OkHttp engine.
+    testImplementation(libs.okhttp.mockwebserver)
     
     // 模拟测试框架 - 保留现有的 mockito 并新增 mockk
     testImplementation(libs.mockito.core)
