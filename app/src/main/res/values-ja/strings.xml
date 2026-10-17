@@ -364,4 +364,9 @@
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">認証を完了し、アカウント情報を読み込んでいます…</string>
     <string name="antigravity_login_timed_out">Google 認証の待機が 15 分を超えました。ログインをやり直してください。</string>
+<string name="service_live_update_short_critical_idle">待機中</string>
+<string name="service_live_update_short_critical_busy">処理中</string>
+<string name="service_live_update_short_critical_paused">一時停止</string>
+<string name="service_live_update_enable">ライブアップデート / Fluid Cloud に AI の進捗を表示</string>
+<string name="service_live_update_enable_desc">対応デバイス（ColorOS Fluid Cloud、Android 16 Live Updates など）で、AI の実行進捗をステータスバーのカプセルに表示します。</string>
 </resources>

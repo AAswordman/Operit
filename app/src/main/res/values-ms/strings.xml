@@ -7760,4 +7760,9 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Melengkapkan kebenaran dan memuatkan butiran akaun…</string>
     <string name="antigravity_login_timed_out">Masa menunggu kebenaran Google telah melebihi 15 minit. Sila mulakan log masuk semula.</string>
+<string name="service_live_update_short_critical_idle">Melahu</string>
+<string name="service_live_update_short_critical_busy">Memproses</string>
+<string name="service_live_update_short_critical_paused">Dijeda</string>
+<string name="service_live_update_enable">Paparkan kemajuan AI dalam Live Updates (awan cecair)</string>
+<string name="service_live_update_enable_desc">Pada peranti yang disokong (cth. awan cecair ColorOS, Android 16 Live Updates), paparkan kemajuan AI dalam kapsul bar status.</string>
 </resources>

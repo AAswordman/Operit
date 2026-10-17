@@ -7682,4 +7682,9 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Menyelesaikan otorisasi dan memuat detail akun…</string>
     <string name="antigravity_login_timed_out">Waktu tunggu otorisasi Google telah melebihi 15 menit. Silakan mulai login lagi.</string>
+<string name="service_live_update_short_critical_idle">Idle</string>
+<string name="service_live_update_short_critical_busy">Memproses</string>
+<string name="service_live_update_short_critical_paused">Dijeda</string>
+<string name="service_live_update_enable">Tampilkan progres AI di Live Update / Fluid Cloud</string>
+<string name="service_live_update_enable_desc">Di perangkat yang mendukung (mis. ColorOS Fluid Cloud, Android 16 Live Updates), tampilkan progres AI pada kapsul bilah status.</string>
 </resources>

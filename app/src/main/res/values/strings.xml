@@ -8534,4 +8534,9 @@
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">正在完成授权并加载账号信息…</string>
     <string name="antigravity_login_timed_out">等待 Google 授权已超过 15 分钟，请重新发起登录。</string>
+<string name="service_live_update_short_critical_idle">待机</string>
+<string name="service_live_update_short_critical_busy">处理中</string>
+<string name="service_live_update_short_critical_paused">已暂停</string>
+<string name="service_live_update_enable">在流体云/实时活动中显示 AI 进度</string>
+<string name="service_live_update_enable_desc">在支持的设备（如 ColorOS 流体云、Android 16 Live Updates）上，将 AI 运行进度显示在状态栏胶囊中。</string>
 </resources>

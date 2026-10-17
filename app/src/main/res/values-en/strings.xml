@@ -8547,4 +8547,9 @@
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Completing authorization and loading account details…</string>
     <string name="antigravity_login_timed_out">Timed out after waiting 15 minutes for Google authorization. Please start sign-in again.</string>
+<string name="service_live_update_short_critical_idle">Idle</string>
+<string name="service_live_update_short_critical_busy">Processing</string>
+<string name="service_live_update_short_critical_paused">Paused</string>
+<string name="service_live_update_enable">Show AI progress in Live Update / Fluid Cloud</string>
+<string name="service_live_update_enable_desc">On supported devices (e.g., ColorOS Fluid Cloud, Android 16 Live Updates), show the AI running progress in the status bar capsule.</string>
 </resources>

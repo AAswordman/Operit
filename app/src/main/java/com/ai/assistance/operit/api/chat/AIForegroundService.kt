@@ -715,6 +715,9 @@ class AIForegroundService : Service() {
     private var hideRuntimeTaskViewEnabled: Boolean = false
     @Volatile
     private var backgroundKeepAliveEnabled: Boolean = false
+    // 上流体云 / Android 16 Live Updates：是否把 AI 运行进度提升为实时活动
+    @Volatile
+    private var liveUpdateNotificationEnabled: Boolean = true
     @Volatile
     private var lastAppliedRuntimeTaskViewHidden: Boolean? = null
 
@@ -941,6 +944,7 @@ class AIForegroundService : Service() {
         )
         observeRuntimeTaskViewPreference()
         observeBackgroundKeepAlivePreference()
+        observeLiveUpdateNotificationPreference()
         observeChatRuntimeStats()
         startWakeMonitoring()
         startExternalHttpMonitoring()
@@ -984,9 +988,34 @@ class AIForegroundService : Service() {
         }
     }
 
+    /** 监听「上流体云 / 实时活动」开关：开启时允许把 AI 进度提升为实时活动通知 */
+    private fun observeLiveUpdateNotificationPreference() {
+        serviceScope.launch {
+            try {
+                DisplayPreferencesManager
+                    .getInstance(applicationContext)
+                    .enableLiveUpdateNotification
+                    .collectLatest { enabled ->
+                        liveUpdateNotificationEnabled = enabled
+                        if (isRunning.get()) {
+                            refreshServiceNotification()
+                        }
+                    }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                AppLogger.e(TAG, "监听上流体云设置失败: ${e.message}", e)
+            }
+        }
+    }
+
     private fun updateAiBusyState(isBusy: Boolean) {
+        val changed = isAiBusy != isBusy
         isAiBusy = isBusy
         updateRuntimeTaskViewVisibility()
+        // AI 忙碌状态变化会影响实时活动（流体云）的短文本，需刷新通知
+        if (changed) {
+            refreshServiceNotification()
+        }
     }
 
     private fun updateRuntimeTaskViewVisibility() {
@@ -2013,6 +2042,25 @@ class AIForegroundService : Service() {
                 getString(R.string.service_stop),
                 pendingIntent
             )
+        }
+
+        // 上流体云 / Android 16 Live Updates：
+        // 仅当用户在设置中开启、且运行于 Android 16 (API 36) 及以上时，
+        // 使用标准 ProgressStyle 并请求系统把该常驻通知提升为实时活动（流体云胶囊）。
+        if (liveUpdateNotificationEnabled && Build.VERSION.SDK_INT >= 36) {
+            val progressStyle = NotificationCompat.ProgressStyle().setProgressIndeterminate(true)
+            val shortCriticalText =
+                when {
+                    isAiBusy -> getString(R.string.service_live_update_short_critical_busy)
+                    wakeListeningSuspendedSnapshot ->
+                        getString(R.string.service_live_update_short_critical_paused)
+                    else -> getString(R.string.service_live_update_short_critical_idle)
+                }
+            builder
+                .setStyle(progressStyle)
+                .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+                .setShortCriticalText(shortCriticalText)
+                .setRequestPromotedOngoing(true)
         }
 
         return builder.build()

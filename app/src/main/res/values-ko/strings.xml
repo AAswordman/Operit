@@ -7529,4 +7529,9 @@
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">인증을 완료하고 계정 정보를 불러오는 중…</string>
     <string name="antigravity_login_timed_out">Google 인증 대기 시간이 15분을 초과했습니다. 다시 로그인을 시작하세요.</string>
+<string name="service_live_update_short_critical_idle">대기 중</string>
+<string name="service_live_update_short_critical_busy">처리 중</string>
+<string name="service_live_update_short_critical_paused">일시 중지됨</string>
+<string name="service_live_update_enable">유체 클라우드/라이브 업데이트에 AI 진행 상황 표시</string>
+<string name="service_live_update_enable_desc">지원 기기(예: ColorOS 유체 클라우드, Android 16 라이브 업데이트)에서 AI 실행 진행 상황을 상태 표시줄 캡슐에 표시합니다.</string>
 </resources>

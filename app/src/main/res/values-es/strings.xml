@@ -7831,4 +7831,9 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
 <!-- 已移除实验性提示 -->
     <string name="antigravity_login_completing">Completando la autorización y cargando los datos de la cuenta…</string>
     <string name="antigravity_login_timed_out">Se agotaron los 15 minutos de espera de la autorización de Google. Inicia sesión de nuevo.</string>
+<string name="service_live_update_short_critical_idle">En espera</string>
+<string name="service_live_update_short_critical_busy">Procesando</string>
+<string name="service_live_update_short_critical_paused">En pausa</string>
+<string name="service_live_update_enable">Mostrar el progreso de la IA en Live Update / Fluid Cloud</string>
+<string name="service_live_update_enable_desc">En dispositivos compatibles (p. ej., ColorOS Fluid Cloud, Android 16 Live Updates), muestra el progreso de la IA en la capsula de la barra de estado.</string>
 </resources>

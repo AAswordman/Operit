@@ -57,6 +57,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
         // 自动化显示与行为相关设置的 Key
         private val KEY_ENABLE_BACKGROUND_KEEP_ALIVE =
             booleanPreferencesKey("enable_background_keep_alive")
+        // 上流体云 / Android 16 Live Updates：是否将 AI 运行进度提升为实时活动通知
+        private val KEY_ENABLE_LIVE_UPDATE_NOTIFICATION =
+            booleanPreferencesKey("enable_live_update_notification")
         private val KEY_ENABLE_EXPERIMENTAL_VIRTUAL_DISPLAY =
             booleanPreferencesKey("enable_experimental_virtual_display")
         private val KEY_HIDE_RUNTIME_TASK_VIEW =
@@ -158,6 +161,11 @@ class DisplayPreferencesManager private constructor(private val context: Context
         context.displayPreferencesDataStore.data.map { preferences ->
             preferences[KEY_ENABLE_BACKGROUND_KEEP_ALIVE] ?: false
         }
+    /** 是否将 AI 运行进度提升为实时活动（流体云 / Android 16 Live Updates） */
+    val enableLiveUpdateNotification: Flow<Boolean> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            preferences[KEY_ENABLE_LIVE_UPDATE_NOTIFICATION] ?: true
+        }
 
     val enableExperimentalVirtualDisplay: Flow<Boolean> =
         context.displayPreferencesDataStore.data.map { preferences ->
@@ -218,6 +226,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         globalUserAvatarUri: String? = null,
         globalUserName: String? = null,
         enableBackgroundKeepAlive: Boolean? = null,
+        enableLiveUpdateNotification: Boolean? = null,
         enableExperimentalVirtualDisplay: Boolean? = null,
         hideRuntimeTaskView: Boolean? = null,
         screenshotFormat: String? = null,
@@ -248,6 +257,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
             globalUserName?.let { preferences[KEY_GLOBAL_USER_NAME] = it }
             enableBackgroundKeepAlive?.let {
                 preferences[KEY_ENABLE_BACKGROUND_KEEP_ALIVE] = it
+            }
+            enableLiveUpdateNotification?.let {
+                preferences[KEY_ENABLE_LIVE_UPDATE_NOTIFICATION] = it
             }
             enableExperimentalVirtualDisplay?.let {
                 preferences[KEY_ENABLE_EXPERIMENTAL_VIRTUAL_DISPLAY] = it
@@ -324,6 +336,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences.remove(KEY_GLOBAL_USER_AVATAR_URI)
             preferences.remove(KEY_GLOBAL_USER_NAME)
             preferences[KEY_ENABLE_BACKGROUND_KEEP_ALIVE] = false
+            preferences[KEY_ENABLE_LIVE_UPDATE_NOTIFICATION] = true
             preferences[KEY_ENABLE_EXPERIMENTAL_VIRTUAL_DISPLAY] = true
             preferences[KEY_HIDE_RUNTIME_TASK_VIEW] = false
             preferences.remove(KEY_SCREENSHOT_FORMAT)

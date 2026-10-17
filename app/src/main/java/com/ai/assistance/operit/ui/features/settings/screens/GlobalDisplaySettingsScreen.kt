@@ -65,6 +65,7 @@ fun GlobalDisplaySettingsScreen(
     val enableNavigationAnimation by displayPreferencesManager.enableNavigationAnimation.collectAsState(initial = true)
     val startWithNewChat by displayPreferencesManager.startWithNewChat.collectAsState(initial = false)
     val enableBackgroundKeepAlive by displayPreferencesManager.enableBackgroundKeepAlive.collectAsState(initial = false)
+    val enableLiveUpdateNotification by displayPreferencesManager.enableLiveUpdateNotification.collectAsState(initial = true)
     val enableExperimentalVirtualDisplay by displayPreferencesManager.enableExperimentalVirtualDisplay.collectAsState(initial = true)
     val hideRuntimeTaskView by displayPreferencesManager.hideRuntimeTaskView.collectAsState(initial = false)
     val globalUserName by displayPreferencesManager.globalUserName.collectAsState(initial = null)
@@ -576,6 +577,21 @@ fun GlobalDisplaySettingsScreen(
                             enableBackgroundKeepAlive = it
                         )
                         AIForegroundService.refreshBackgroundKeepAlive(context)
+                    }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.service_live_update_enable),
+                subtitle = stringResource(R.string.service_live_update_enable_desc),
+                checked = enableLiveUpdateNotification,
+                onCheckedChange = {
+                    scope.launch {
+                        displayPreferencesManager.saveDisplaySettings(
+                            enableLiveUpdateNotification = it
+                        )
+                        // 偏好变化会经由 AIForegroundService 内部 Flow 监听自动刷新通知
                     }
                 },
                 backgroundColor = componentBackgroundColor
