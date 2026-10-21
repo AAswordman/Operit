@@ -284,7 +284,7 @@ object ApiProviderConfigs {
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.MINIMAX,
-            defaultModelName = "MiniMax-M2.7",
+            defaultModelName = "MiniMax-M3.1-Flash",
             defaultApiEndpoint = "https://api.minimaxi.com/v1/chat/completions",
             endpointOptions = listOf(
                 ProviderEndpointOption(

@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
+import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityControl
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
@@ -410,14 +411,72 @@ class ModelConfigManager(
                 current: ModelConfigData,
                 providerTypeId: String,
                 modelName: String,
-                apiEndpoint: String = ""
+                apiEndpoint: String,
+                nextThinkingConfigurations: String
         ): String =
                 // Keep a model's choice while editing it; built-in defaults apply only on provider changes.
+                // Within the same provider a new model or endpoint can still match a different levels rule,
+                // so the stored option is checked against the rules being saved with it.
                 if (current.apiProviderTypeId == providerTypeId) {
-                    current.thinkingOptionId
+                    alignedThinkingOptionId(
+                            configId = current.id,
+                            providerTypeId = providerTypeId,
+                            modelName = modelName,
+                            apiEndpoint = apiEndpoint,
+                            thinkingConfigurations = nextThinkingConfigurations,
+                            storedOptionId = current.thinkingOptionId
+                    )
                 } else {
                     firstThinkingOptionIdForModel(providerTypeId, modelName, apiEndpoint)
                 }
+
+        /**
+         * Keeps the stored thinking option inside the levels rule it will be sent with.
+         *
+         * Options are seeded only when a config is created or its provider changes. Adding a levels
+         * rule on the config page, or moving the model onto another levels rule, otherwise leaves an
+         * option (often "") that the rule does not list, and every request that does not pass through
+         * the chat input (for example the config page's connection test) fails in
+         * [com.ai.assistance.operit.api.chat.llmprovider.ThinkingConfigurationApplier] with
+         * "option is not supported".
+         *
+         * The value changes only in that failing state: the matched rule is a levels rule with options
+         * and the stored option is not one of them. It then takes the rule's first option, the same
+         * choice made when a config is created, its provider changes, or the chat input shows the rule.
+         * Every other state returns the stored option unchanged, and request-time validation stays as is.
+         */
+        internal fun alignedThinkingOptionId(
+                configId: String,
+                providerTypeId: String,
+                modelName: String,
+                apiEndpoint: String,
+                thinkingConfigurations: String,
+                storedOptionId: String
+        ): String {
+            val mapping =
+                    ThinkingQualityMappingRegistry.resolve(
+                            providerTypeId,
+                            modelName,
+                            apiEndpoint,
+                            thinkingConfigurations
+                    )
+            val storedOptionListed = mapping.optionFor(storedOptionId) != null
+            if (mapping.control != ThinkingQualityControl.LEVELS ||
+                            mapping.options.isEmpty() ||
+                            storedOptionListed
+            ) {
+                return storedOptionId
+            }
+
+            val alignedOptionId = mapping.options.first().id
+            AppLogger.i(
+                    "ModelConfigManager",
+                    "Aligned thinking option for config=$configId provider=$providerTypeId " +
+                            "model=$modelName: '$storedOptionId' is not listed by the matched rule, " +
+                            "stored '$alignedOptionId'"
+            )
+            return alignedOptionId
+        }
     }
 
     // Json解析器，支持宽松模式
@@ -675,14 +734,22 @@ class ModelConfigManager(
             apiProviderTypeId: String = apiProviderType.name
     ): ModelConfigData {
         return updateConfigInternal(configId) {
+            val thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint)
             it.copy(
                     apiKey = apiKey,
                     apiEndpoint = apiEndpoint,
                     modelName = modelName,
                     apiProviderType = apiProviderType,
                     apiProviderTypeId = apiProviderTypeId,
-                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint),
-                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName, apiEndpoint)
+                    thinkingConfigurations = thinkingConfigurations,
+                    thinkingOptionId =
+                            nextThinkingOptionIdForProvider(
+                                    it,
+                                    apiProviderTypeId,
+                                    modelName,
+                                    apiEndpoint,
+                                    thinkingConfigurations
+                            )
             )
         }
     }
@@ -699,14 +766,22 @@ class ModelConfigManager(
             mnnThreadCount: Int
     ): ModelConfigData {
         return updateConfigInternal(configId) {
+            val thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint)
             it.copy(
                     apiKey = apiKey,
                     apiEndpoint = apiEndpoint,
                     modelName = modelName,
                     apiProviderType = apiProviderType,
                     apiProviderTypeId = apiProviderTypeId,
-                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint),
-                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName, apiEndpoint),
+                    thinkingConfigurations = thinkingConfigurations,
+                    thinkingOptionId =
+                            nextThinkingOptionIdForProvider(
+                                    it,
+                                    apiProviderTypeId,
+                                    modelName,
+                                    apiEndpoint,
+                                    thinkingConfigurations
+                            ),
                     mnnForwardType = mnnForwardType,
                     mnnThreadCount = mnnThreadCount
             )
@@ -735,14 +810,22 @@ class ModelConfigManager(
             enableToolCall: Boolean
     ): ModelConfigData {
         return updateConfigInternal(configId) {
+            val thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint)
             it.copy(
                     apiKey = apiKey,
                     apiEndpoint = apiEndpoint,
                     modelName = modelName,
                     apiProviderType = apiProviderType,
                     apiProviderTypeId = apiProviderTypeId,
-                    thinkingConfigurations = nextThinkingRulesForProvider(it, apiProviderTypeId, apiEndpoint),
-                    thinkingOptionId = nextThinkingOptionIdForProvider(it, apiProviderTypeId, modelName, apiEndpoint),
+                    thinkingConfigurations = thinkingConfigurations,
+                    thinkingOptionId =
+                            nextThinkingOptionIdForProvider(
+                                    it,
+                                    apiProviderTypeId,
+                                    modelName,
+                                    apiEndpoint,
+                                    thinkingConfigurations
+                            ),
                     mnnForwardType = mnnForwardType,
                     mnnThreadCount = mnnThreadCount,
                     llamaThreadCount = llamaThreadCount.coerceAtLeast(1),
@@ -762,7 +845,19 @@ class ModelConfigManager(
 
     suspend fun updateThinkingConfigurations(configId: String, thinkingConfigurations: String): ModelConfigData {
         return updateConfigInternal(configId) {
-            it.copy(thinkingConfigurations = thinkingConfigurations)
+            it.copy(
+                    thinkingConfigurations = thinkingConfigurations,
+                    // A rule added or edited on the config page may not list the stored option.
+                    thinkingOptionId =
+                            alignedThinkingOptionId(
+                                    configId = it.id,
+                                    providerTypeId = it.apiProviderTypeId,
+                                    modelName = it.modelName,
+                                    apiEndpoint = it.apiEndpoint,
+                                    thinkingConfigurations = thinkingConfigurations,
+                                    storedOptionId = it.thinkingOptionId
+                            )
+            )
         }
     }
 

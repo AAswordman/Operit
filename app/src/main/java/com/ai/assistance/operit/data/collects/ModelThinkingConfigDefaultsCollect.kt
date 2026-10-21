@@ -294,6 +294,21 @@ object ModelThinkingConfigDefaults {
                     ]
                   },
                   {
+                    "id": "minimax-m31-reasoning-effort",
+                    "providers": ["MINIMAX"],
+                    "match": {"modelPrefix": ["minimax-m3.1"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "required": true,
+                    "options": [
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
+                      {"id": "medium", "label": "medium", "path": "reasoning_effort", "value": "medium"},
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "xhigh", "label": "xhigh", "path": "reasoning_effort", "value": "xhigh"},
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"}
+                    ]
+                  },
+                  {
                     "id": "nvidia-reasoning-effort",
                     "providers": ["NVIDIA"],
                     "match": {"modelContains": ["gpt-oss", "nemotron"]},
