@@ -6,6 +6,7 @@ import com.ai.assistance.operit.util.AppLogger
 import androidx.annotation.RequiresApi
 import com.ai.assistance.operit.terminal.CommandExecutionEvent
 import com.ai.assistance.operit.terminal.SessionDirectoryEvent
+import com.ai.assistance.operit.terminal.SessionInputResult
 import com.ai.assistance.operit.terminal.TerminalManager
 import com.ai.assistance.operit.terminal.data.TerminalState
 import com.ai.assistance.operit.terminal.provider.type.HiddenExecResult
@@ -180,19 +181,17 @@ class Terminal private constructor(private val context: Context) {
     }
     
     /**
-     * 发送输入到当前会话
+     * 发送输入到指定会话，不改变前台当前会话
      */
-    fun sendInput(sessionId: String, input: String) {
-        terminalManager.switchToSession(sessionId)
-        terminalManager.sendInput(input)
+    fun sendInput(sessionId: String, input: String): SessionInputResult {
+        return terminalManager.sendInputToSession(sessionId, input)
     }
 
     /**
-     * 发送中断信号 (Ctrl+C)
+     * 发送中断信号 (Ctrl+C) 到指定会话，不改变前台当前会话
      */
-    fun sendInterruptSignal(sessionId: String) {
-        terminalManager.switchToSession(sessionId)
-        terminalManager.sendInterruptSignal()
+    fun sendInterruptSignal(sessionId: String): SessionInputResult {
+        return terminalManager.sendInterruptSignalToSession(sessionId)
     }
 
     /**

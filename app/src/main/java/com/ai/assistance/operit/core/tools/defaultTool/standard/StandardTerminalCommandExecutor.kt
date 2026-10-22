@@ -7,6 +7,7 @@ import com.ai.assistance.operit.core.tools.*
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.system.Terminal
+import com.ai.assistance.operit.terminal.SessionInputResult
 import com.ai.assistance.operit.terminal.provider.type.HiddenExecResult
 import com.ai.assistance.operit.terminal.view.domain.ansi.TerminalChar
 import kotlinx.coroutines.*
@@ -474,8 +475,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                             acceptedChars
                         )
                     )
-                )
-            } catch (e: IllegalArgumentException) {
+                )            } catch (e: IllegalArgumentException) {
                 ToolResult(
                     toolName = tool.name,
                     success = false,
@@ -603,7 +603,14 @@ class StandardTerminalCommandExecutor(private val context: Context) {
     }
 
     private suspend fun cancelTimedOutCommand(terminal: Terminal, sessionId: String) {
-        terminal.sendInterruptSignal(sessionId)
+        val interruptResult = terminal.sendInterruptSignal(sessionId)
+        if (interruptResult != SessionInputResult.DELIVERED) {
+            AppLogger.w(
+                TAG,
+                "Timed-out command cancellation could not interrupt session $sessionId: $interruptResult"
+            )
+            return
+        }
         val settled =
             withTimeoutOrNull(COMMAND_CANCEL_SETTLE_TIMEOUT_MS) {
                 terminal.terminalState.first { state ->
@@ -665,7 +672,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
     ): Int {
         if (control == null) {
             if (hasInput && input.isNotEmpty()) {
-                terminal.sendInput(sessionId, input)
+                requireInputDelivered(terminal.sendInput(sessionId, input), sessionId)
             }
             return if (hasInput) input.length else 0
         }
@@ -678,10 +685,19 @@ class StandardTerminalCommandExecutor(private val context: Context) {
             ?: throw IllegalArgumentException(context.getString(R.string.terminal_error_unsupported_control, control))
 
         if (hasInput && input.isNotEmpty()) {
-            terminal.sendInput(sessionId, input)
+            requireInputDelivered(terminal.sendInput(sessionId, input), sessionId)
         }
-        terminal.sendInput(sessionId, controlSequence)
+        requireInputDelivered(terminal.sendInput(sessionId, controlSequence), sessionId)
         return (if (hasInput) input.length else 0) + controlSequence.length
+    }
+
+    /**
+     * 输入没有真正写进目标会话时上报失败，避免工具报告“已写入”而实际什么都没发生。
+     */
+    private fun requireInputDelivered(result: SessionInputResult, sessionId: String) {
+        if (result != SessionInputResult.DELIVERED) {
+            throw IllegalStateException("session $sessionId: $result")
+        }
     }
 
     private fun isModifierControl(control: String): Boolean {
@@ -703,12 +719,12 @@ class StandardTerminalCommandExecutor(private val context: Context) {
             "ctrl", "control" -> applyCtrlCombination(terminal, sessionId, input)
             "alt", "meta", "cmd" -> {
                 val payload = "\u001b$input"
-                terminal.sendInput(sessionId, payload)
+                requireInputDelivered(terminal.sendInput(sessionId, payload), sessionId)
                 payload.length
             }
             "shift" -> {
                 val payload = input.uppercase()
-                terminal.sendInput(sessionId, payload)
+                requireInputDelivered(terminal.sendInput(sessionId, payload), sessionId)
                 payload.length
             }
             else -> throw IllegalArgumentException(context.getString(R.string.terminal_error_unsupported_control, control))
@@ -722,7 +738,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
 
         val value = input[0]
         if (value.equals('c', ignoreCase = true)) {
-            terminal.sendInterruptSignal(sessionId)
+            requireInputDelivered(terminal.sendInterruptSignal(sessionId), sessionId)
             return 1
         }
 
@@ -745,7 +761,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                     )
             }
 
-        terminal.sendInput(sessionId, code.toChar().toString())
+        requireInputDelivered(terminal.sendInput(sessionId, code.toChar().toString()), sessionId)
         return 1
     }
 
