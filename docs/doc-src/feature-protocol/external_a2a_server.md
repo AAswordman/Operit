@@ -117,15 +117,17 @@ curl -N -X POST "http://DEVICE_IP:8094/a2a" \
   }'
 ```
 
-The first event contains `result.task`. Subsequent events contain `result.statusUpdate` or `result.artifactUpdate`. The final `statusUpdate` carries `final: true`, then the SSE connection closes.
+The first event contains `result.task`. Subsequent events contain `result.statusUpdate` or `result.artifactUpdate`. Each member carries only the fields its A2A 1.0 message type declares. A `statusUpdate` has `taskId`, `contextId`, `status` and optional `metadata`; the task state alone says whether the task ended. After the `statusUpdate` whose `status.state` is `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, `TASK_STATE_CANCELED` or `TASK_STATE_REJECTED`, the SSE connection closes.
 
 ```text
 data: {"jsonrpc":"2.0","id":2,"result":{"task":{"id":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_WORKING"}}}}
 
 data: {"jsonrpc":"2.0","id":2,"result":{"artifactUpdate":{"taskId":"task-uuid","contextId":"context-uuid","artifact":{"artifactId":"task-uuid-result","parts":[{"text":"这是回答的第一部分。"}]},"append":true,"lastChunk":false}}}
 
-data: {"jsonrpc":"2.0","id":2,"result":{"statusUpdate":{"taskId":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_COMPLETED"},"final":true}}}
+data: {"jsonrpc":"2.0","id":2,"result":{"statusUpdate":{"taskId":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_COMPLETED"}}}}
 ```
+
+Because the stream ends on the terminal status instead of a separate flag, clients that parse responses strictly, including the official A2A SDK, accept every event.
 
 ## Read, List, Cancel, And Subscribe
 
