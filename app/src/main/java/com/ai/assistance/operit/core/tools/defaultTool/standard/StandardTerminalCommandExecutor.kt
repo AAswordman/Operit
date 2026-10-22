@@ -663,7 +663,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
         }
     }
 
-    private fun applyTerminalInput(
+    private suspend fun applyTerminalInput(
         terminal: Terminal,
         sessionId: String,
         hasInput: Boolean,
@@ -704,7 +704,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
         return control == "ctrl" || control == "control" || control == "alt" || control == "shift" || control == "meta" || control == "cmd"
     }
 
-    private fun applyModifierControl(
+    private suspend fun applyModifierControl(
         terminal: Terminal,
         sessionId: String,
         control: String,
@@ -731,7 +731,7 @@ class StandardTerminalCommandExecutor(private val context: Context) {
         }
     }
 
-    private fun applyCtrlCombination(terminal: Terminal, sessionId: String, input: String): Int {
+    private suspend fun applyCtrlCombination(terminal: Terminal, sessionId: String, input: String): Int {
         if (input.length != 1) {
             throw IllegalArgumentException(context.getString(R.string.terminal_error_ctrl_input_single_char))
         }

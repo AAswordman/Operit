@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -182,16 +183,22 @@ class Terminal private constructor(private val context: Context) {
     
     /**
      * 发送输入到指定会话，不改变前台当前会话
+     *
+     * 写入 pty 是阻塞 IO，调用方多在主线程，因此切到 IO 上下文执行。
      */
-    fun sendInput(sessionId: String, input: String): SessionInputResult {
-        return terminalManager.sendInputToSession(sessionId, input)
+    suspend fun sendInput(sessionId: String, input: String): SessionInputResult {
+        return withContext(Dispatchers.IO) {
+            terminalManager.sendInputToSession(sessionId, input)
+        }
     }
 
     /**
      * 发送中断信号 (Ctrl+C) 到指定会话，不改变前台当前会话
      */
-    fun sendInterruptSignal(sessionId: String): SessionInputResult {
-        return terminalManager.sendInterruptSignalToSession(sessionId)
+    suspend fun sendInterruptSignal(sessionId: String): SessionInputResult {
+        return withContext(Dispatchers.IO) {
+            terminalManager.sendInterruptSignalToSession(sessionId)
+        }
     }
 
     /**

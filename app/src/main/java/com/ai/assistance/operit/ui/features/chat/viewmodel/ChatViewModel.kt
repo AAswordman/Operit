@@ -2752,9 +2752,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
         _workspaceCommandExecutionState.value = currentState.copy(isCancelling = true)
         viewModelScope.launch {
-            val interruptResult = withContext(Dispatchers.IO) {
-                terminal?.sendInterruptSignal(currentState.sessionId)
-            }
+            val interruptResult = terminal?.sendInterruptSignal(currentState.sessionId)
             if (interruptResult != SessionInputResult.DELIVERED) {
                 AppLogger.w(
                     TAG,
