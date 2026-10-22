@@ -3024,7 +3024,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 }
 
                 val cleanerRegexs = speechServiceProfiles.getCurrentTtsProfile().cleanerRegexs
-                val cleanedText = TtsCleaner.clean(message, cleanerRegexs)
+                val cleanedText = TtsCleaner.cleanForSpeech(message, cleanerRegexs)
                 val cleanMessage = WaifuMessageProcessor.cleanContentForWaifu(cleanedText)
                 AppLogger.d(
                     TAG,
