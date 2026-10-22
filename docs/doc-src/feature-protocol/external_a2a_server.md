@@ -45,7 +45,7 @@ The server supports these A2A 1.0 JSON-RPC methods:
 - `CancelTask`
 - `SubscribeToTask`
 
-Text input uses a Message with `ROLE_USER` and one or more text Parts. File and data Parts are not supported.
+Text input uses a Message with `ROLE_USER` and one or more text Parts. File and data Parts are not supported. A Part's kind follows the `text`, `raw`, `url`, or `data` member it sets, so `mediaType`, `filename`, and `metadata` are accepted next to `text` and do not change it into another kind.
 
 ## Send A Message
 

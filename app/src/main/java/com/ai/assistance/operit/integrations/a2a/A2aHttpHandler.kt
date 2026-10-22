@@ -367,16 +367,7 @@ class A2aHttpHandler(
         if (parts.length() == 0) {
             throw A2aProtocolException("A2A message parts must not be empty")
         }
-        val text = buildList {
-            for (index in 0 until parts.length()) {
-                val part = parts.optJSONObject(index)
-                    ?: throw A2aProtocolException("A2A message part[$index] must be an object")
-                if (part.length() != 1 || !part.has("text")) {
-                    throw A2aProtocolException("A2A server accepts text parts only")
-                }
-                add(part.requiredString("text"))
-            }
-        }.joinToString(separator = "\n")
+        val text = parseA2aTextParts(parts)
         if (text.isBlank()) {
             throw A2aProtocolException("A2A message text must not be blank")
         }
@@ -607,6 +598,39 @@ class A2aHttpHandler(
         )
     }
 }
+
+/**
+ * A2A 1.0 `Part` carries its payload in a `content` oneof (`text`, `raw`, `url`, `data`) while
+ * `metadata`, `filename`, and `mediaType` are sibling fields. The part kind therefore follows
+ * which content member is present; companions such as `mediaType: "text/plain"` leave a text
+ * part a text part.
+ */
+internal fun parseA2aTextParts(parts: JSONArray): String {
+    val texts = mutableListOf<String>()
+    for (index in 0 until parts.length()) {
+        val part = parts.optJSONObject(index)
+            ?: throw A2aProtocolException("A2A message part[$index] must be an object")
+        val contentMembers = A2A_PART_CONTENT_MEMBERS.filter { part.hasNonNullValue(it) }
+        if (contentMembers.size != 1) {
+            throw A2aProtocolException(
+                "A2A message part[$index] must contain exactly one of " +
+                    A2A_PART_CONTENT_MEMBERS.joinToString(separator = ", ")
+            )
+        }
+        val contentMember = contentMembers.single()
+        if (contentMember != A2A_TEXT_MEMBER) {
+            throw A2aProtocolException(
+                "A2A server accepts text parts only, part[$index] contains $contentMember"
+            )
+        }
+        texts += part.requiredString(A2A_TEXT_MEMBER)
+    }
+    return texts.joinToString(separator = "\n")
+}
+
+private const val A2A_TEXT_MEMBER = "text"
+
+private val A2A_PART_CONTENT_MEMBERS = listOf(A2A_TEXT_MEMBER, "raw", "url", "data")
 
 private fun JSONObject.requiredString(name: String): String {
     return optionalString(name) ?: throw A2aProtocolException("A2A field $name is required")
