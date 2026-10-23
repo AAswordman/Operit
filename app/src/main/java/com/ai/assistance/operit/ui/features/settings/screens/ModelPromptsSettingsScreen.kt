@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.features.settings.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -806,6 +809,10 @@ fun ModelPromptsSettingsScreen(
         }
     }
 
+    // 每个页签的列表状态需要跨页签切换保留。页签内容被 when 分支替换时会离开组合，
+    // 仅靠 rememberSaveable 不足以恢复，必须由 SaveableStateHolder 按页签键保存。
+    val tabStateHolder = rememberSaveableStateHolder()
+
     CustomScaffold() { paddingValues ->
         Box(
             modifier = Modifier
@@ -871,7 +878,8 @@ fun ModelPromptsSettingsScreen(
                 }
 
                 // 内容区域
-                when (currentTab) {
+                tabStateHolder.SaveableStateProvider(currentTab) {
+                    when (currentTab) {
                     0 -> CharacterCardTab(
                         characterCards = allCharacterCards,
                         activePrompt = activePrompt,
@@ -989,6 +997,7 @@ fun ModelPromptsSettingsScreen(
                             }
                         }
                     )
+                    }
                 }
             }
 
@@ -2160,7 +2169,7 @@ fun CharacterCardTab(
         }
 
         // 角色卡列表
-        items(sortedCharacterCards) { characterCard ->
+        items(sortedCharacterCards, key = { it.id }) { characterCard ->
             CharacterCardItem(
                 characterCard = characterCard,
                 isActive = (activePrompt as? ActivePrompt.CharacterCard)?.id == characterCard.id,
@@ -2588,7 +2597,7 @@ fun TagTab(
                 )
             }
 
-            items(sortedTags) { tag ->
+            items(sortedTags, key = { it.id }) { tag ->
                 TagItem(
                     tag = tag,
                     onEdit = { onEditTag(tag) },
@@ -3211,6 +3220,10 @@ fun TagDialog(
     onDismiss: () -> Unit,
     onSave: (PromptTag) -> Unit
 ) {
+    // 标签编辑页同样存在输入法触发的对话框重排；按标签 id 持久化滚动状态，
+    // 避免用户滚动到提示词中段后点击输入框时回到顶部。
+    val dialogScrollState =
+        rememberSaveable(tag.id, saver = ScrollState.Saver) { ScrollState(0) }
     var name by remember { mutableStateOf(tag.name) }
     var description by remember { mutableStateOf(tag.description) }
     var promptContent by remember { mutableStateOf(tag.promptContent) }
@@ -3229,7 +3242,7 @@ fun TagDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 360.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(dialogScrollState),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(

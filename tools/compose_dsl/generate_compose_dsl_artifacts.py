@@ -972,7 +972,12 @@ def build_component_renderer_function(spec: ComponentSpec, params: Sequence[Para
                 val spacing = props.dp("spacing")
                 val reverseLayout = props.bool("reverseLayout", false)
                 val autoScrollToEnd = props.bool("autoScrollToEnd", false)
-                val listState = rememberLazyListState()
+                val listState =
+                    rememberComposeDslLazyListState(
+                        nodePath = nodePath,
+                        nodeType = node.type,
+                        nodeKey = props["key"]
+                    )
                 val contentNodes = node.slotChildren("content", fallbackToChildren = true)
                 val autoScrollSignature =
                     if (!autoScrollToEnd) {
@@ -1025,8 +1030,15 @@ def build_component_renderer_function(spec: ComponentSpec, params: Sequence[Para
             ) {
                 val props = node.props
                 val spacing = props.dp("spacing")
+                val listState =
+                    rememberComposeDslLazyListState(
+                        nodePath = nodePath,
+                        nodeType = node.type,
+                        nodeKey = props["key"]
+                    )
                 val contentNodes = node.slotChildren("content", fallbackToChildren = true)
                 androidx.compose.foundation.lazy.LazyRow(
+                    state = listState,
                     modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
                     horizontalArrangement = props.horizontalArrangement("horizontalArrangement", spacing),
                     verticalAlignment = props.verticalAlignment("verticalAlignment")

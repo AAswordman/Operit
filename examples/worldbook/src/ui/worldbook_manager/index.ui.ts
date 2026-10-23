@@ -2381,21 +2381,36 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
 
   if (view === "group_create" || view === "group_edit") {
     return UI.LazyColumn(
-      { fillMaxSize: true, spacing: 12, padding: { horizontal: 12, vertical: 8 } },
+      {
+        key: "worldbook_group_form",
+        fillMaxSize: true,
+        spacing: 12,
+        padding: { horizontal: 12, vertical: 8 }
+      },
       [renderGroupForm()]
     );
   }
 
   if (view === "group_delete") {
     return UI.LazyColumn(
-      { fillMaxSize: true, spacing: 12, padding: { horizontal: 12, vertical: 8 } },
+      {
+        key: "worldbook_group_delete",
+        fillMaxSize: true,
+        spacing: 12,
+        padding: { horizontal: 12, vertical: 8 }
+      },
       [renderGroupDeleteView()]
     );
   }
 
   if (view === "copy_to_group") {
     return UI.LazyColumn(
-      { fillMaxSize: true, spacing: 12, padding: { horizontal: 12, vertical: 8 } },
+      {
+        key: "worldbook_copy_to_group",
+        fillMaxSize: true,
+        spacing: 12,
+        padding: { horizontal: 12, vertical: 8 }
+      },
       [renderCopyToGroupView()]
     );
   }
@@ -2408,6 +2423,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
       [
         UI.LazyColumn(
           {
+            key: "worldbook_form",
             fillMaxSize: true,
             spacing: 12,
             padding: { horizontal: 12, vertical: 8 }
@@ -2422,6 +2438,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
   if (view === "import") {
     return UI.LazyColumn(
       {
+        key: "worldbook_import",
         fillMaxSize: true,
         spacing: 12,
         padding: { horizontal: 12, vertical: 8 }
@@ -2547,6 +2564,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
 
   return UI.LazyColumn(
     {
+      key: "worldbook_list",
       spacing: 10,
       padding: { horizontal: 12, vertical: 8 },
       fillMaxSize: true,

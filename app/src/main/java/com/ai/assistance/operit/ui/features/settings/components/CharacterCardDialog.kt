@@ -4,6 +4,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +68,10 @@ fun CharacterCardDialog(
     onAvatarChange: () -> Unit,
     onAvatarReset: () -> Unit
 ) {
+    // 编辑字段区的滚动状态按角色卡 id 持久化。对话框在输入法弹出时会被系统重新布局，
+    // 不能只依赖 remember，否则正在编辑的角色卡会回到系统提示词顶部。
+    val fieldsScrollState =
+        rememberSaveable(characterCard.id, saver = ScrollState.Saver) { ScrollState(0) }
     var name by remember(characterCard.id) { mutableStateOf(characterCard.name) }
     var description by remember(characterCard.id) { mutableStateOf(characterCard.description) }
     var characterSetting by remember(characterCard.id) { mutableStateOf(characterCard.characterSetting) }
@@ -307,7 +313,7 @@ fun CharacterCardDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(fieldsScrollState),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // 角色设定
