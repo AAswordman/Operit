@@ -3,10 +3,50 @@ package com.ai.assistance.operit.services.core
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.util.stream.emptyStream
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MessageProcessingDelegateTest {
+    @Test
+    fun planTurnRuntimeReset_staleTurnLeavesRuntimeUntouched() {
+        val plan =
+            MessageProcessingDelegate.planTurnRuntimeReset(
+                activeTurnId = 7L,
+                turnId = 6L,
+                cancellationInProgress = false,
+            )
+
+        assertFalse(plan.resetDerivedRuntime)
+        assertFalse(plan.resetLoadingState)
+    }
+
+    @Test
+    fun planTurnRuntimeReset_currentTurnClearsLoading() {
+        val plan =
+            MessageProcessingDelegate.planTurnRuntimeReset(
+                activeTurnId = 7L,
+                turnId = 7L,
+                cancellationInProgress = false,
+            )
+
+        assertTrue(plan.resetDerivedRuntime)
+        assertTrue(plan.resetLoadingState)
+    }
+
+    @Test
+    fun planTurnRuntimeReset_cancellingTurnDefersLoadingResetToCancellationPath() {
+        val plan =
+            MessageProcessingDelegate.planTurnRuntimeReset(
+                activeTurnId = 7L,
+                turnId = 7L,
+                cancellationInProgress = true,
+            )
+
+        assertTrue(plan.resetDerivedRuntime)
+        assertFalse(plan.resetLoadingState)
+    }
     @Test
     fun completeInterruptedMessage_appliesTurnSnapshotAndCompletesPartialContent() {
         val message =

@@ -109,6 +109,20 @@ object XmlRenderPluginRegistry {
         }
     }
 
+    /**
+     * 非 Compose 环境的渲染器查询。
+     *
+     * 消息处理链路（例如 Waifu 分句、XML 过滤）需要知道某个标签是否由插件渲染器接管，
+     * 才能只保留合法渲染标签（如 voice）而丢弃 think/tool 等控制标签。这里复用同一份
+     * 注册信息，避免在消息链路上再维护一份标签白名单，导致两处数据不同步。
+     */
+    fun supportsTag(tagName: String): Boolean {
+        if (tagName.isBlank()) {
+            return false
+        }
+        return plugins.any { plugin -> plugin.supports(tagName) }
+    }
+
     fun notifyChanged() {
         changeVersionMutable.update { current -> current + 1 }
     }
