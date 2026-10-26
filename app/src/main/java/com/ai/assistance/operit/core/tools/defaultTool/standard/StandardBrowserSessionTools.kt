@@ -69,6 +69,33 @@ import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 
+/**
+ * Maps an element rect (CSS px, viewport-relative) to WebView-local touch coordinates (view px).
+ *
+ * The WebView properties feeding this mapping are passed in as primitives on purpose: `WebView`
+ * getters (`scale`, `width`, `height`) run `checkThread()` and must be read on the main thread, so
+ * the caller reads them there and hands the values over. Keeping the arithmetic free of Android
+ * types also lets the coordinate mapping be covered by plain JVM unit tests. See #1318.
+ */
+internal fun nativeTapCoordinates(
+    rectLeft: Int,
+    rectTop: Int,
+    rectRight: Int,
+    rectBottom: Int,
+    rawPageScale: Float,
+    viewWidth: Int,
+    viewHeight: Int
+): Pair<Float, Float> {
+    val pageScale = rawPageScale.takeIf { it > 0f } ?: 1f
+    val x =
+        (((rectLeft + rectRight) / 2f) * pageScale)
+            .coerceIn(1f, (viewWidth - 1).coerceAtLeast(1).toFloat())
+    val y =
+        (((rectTop + rectBottom) / 2f) * pageScale)
+            .coerceIn(1f, (viewHeight - 1).coerceAtLeast(1).toFloat())
+    return x to y
+}
+
 class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor {
 
     companion object {
@@ -408,14 +435,23 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
 
     private fun dispatchNativeTapByRef(webView: WebView, ref: String): Boolean {
         val rect = resolveElementRect(webView, ref) ?: return false
-        val pageScale = webView.scale.takeIf { it > 0f } ?: 1f
-        val x =
-            (((rect.left + rect.right) / 2f) * pageScale)
-                .coerceIn(1f, (webView.width - 1).coerceAtLeast(1).toFloat())
-        val y =
-            (((rect.top + rect.bottom) / 2f) * pageScale)
-                .coerceIn(1f, (webView.height - 1).coerceAtLeast(1).toFloat())
         return runOnMainSync {
+            // WebView#getScale()/getWidth()/getHeight() internally call checkThread(), so reading
+            // them off the main thread throws "A WebView method was called on thread ...".
+            // browserClick runs on a tool thread, so the CSS-px -> view-px mapping must be read
+            // here, on the main thread, together with the touch dispatch. Keeping it outside the
+            // try below means a threading violation still surfaces instead of being swallowed.
+            // Fix for #1318.
+            val (x, y) =
+                nativeTapCoordinates(
+                    rectLeft = rect.left,
+                    rectTop = rect.top,
+                    rectRight = rect.right,
+                    rectBottom = rect.bottom,
+                    rawPageScale = webView.scale,
+                    viewWidth = webView.width,
+                    viewHeight = webView.height
+                )
             try {
                 webView.requestFocus()
                 val downTime = SystemClock.uptimeMillis()
