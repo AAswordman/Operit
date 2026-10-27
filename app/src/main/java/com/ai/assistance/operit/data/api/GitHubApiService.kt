@@ -112,7 +112,13 @@ data class GitHubReleaseAsset(
     val browser_download_url: String,
     val size: Long,
     val download_count: Int,
-    val content_type: String
+    val content_type: String,
+    /**
+     * Checksum GitHub publishes for the uploaded artifact, e.g.
+     * `sha256:a04d2834...`. Absent on assets uploaded before GitHub started
+     * recording digests, hence nullable.
+     */
+    val digest: String? = null
 )
 
 /**

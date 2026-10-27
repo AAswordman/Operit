@@ -1753,6 +1753,7 @@
     <string name="patch_update_stage_verifying_patch_step">正在校验补丁包 (%1$d/%2$d)</string>
     <string name="patch_update_stage_applying_patch_step">正在合并补丁 (%1$d/%2$d)</string>
     <string name="patch_update_stage_verifying_new_apk_step">正在校验新 APK (%1$d/%2$d)</string>
+    <string name="update_source_failed_reason">%1$s 下载失败：%2$s</string>
     <string name="patch_install_confirm_title">安装补丁更新</string>
     <string name="patch_install_confirm_message">检测到新补丁版本：%1$s\n\n是否现在安装？</string>
     <string name="developer">开发者</string>
