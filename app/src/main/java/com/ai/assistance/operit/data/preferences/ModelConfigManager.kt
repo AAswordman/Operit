@@ -564,8 +564,25 @@ class ModelConfigManager(
     // 获取指定ID的配置
     fun getModelConfigFlow(configId: String): Flow<ModelConfigData> {
         return configDataStore.data.map { preferences ->
-            val config = loadConfigFromDataStore(configId) ?: ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
-            config
+            readConfigFromPrefs(preferences, configId)
+        }
+    }
+
+    /**
+     * 从 [Preferences] 快照读取指定配置，避免在 map 内部再读一次 [configDataStore].data
+     * （那样既重复读取，也可能拿到与发射值不同的快照）。
+     */
+    private fun readConfigFromPrefs(preferences: Preferences, configId: String): ModelConfigData {
+        val configKey = stringPreferencesKey("config_${configId}")
+        val configJson = preferences[configKey]
+        return if (configJson != null) {
+            try {
+                json.decodeFromString<ModelConfigData>(configJson)
+            } catch (e: Exception) {
+                fallbackConfigFor(configId)
+            }
+        } else {
+            fallbackConfigFor(configId)
         }
     }
 

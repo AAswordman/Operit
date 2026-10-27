@@ -1135,7 +1135,7 @@ open class GeminiProvider(
 
         val newRetryCount = retryCount + 1
         if (newRetryCount > maxRetries) {
-            logError("$errorText 且达到最大重试次数($maxRetries)", exception)
+            logError("$errorText 且达到最大重试次数($maxRetries) [model=$modelName]", exception)
             throw IOException(
                 context.getString(R.string.gemini_error_connection_timeout, maxRetries, errorText),
                 exception
@@ -1282,7 +1282,8 @@ open class GeminiProvider(
 
                         if (!response.isSuccessful) {
                             val errorBody = response.body?.string() ?: context.getString(R.string.gemini_error_no_error_details)
-                            logError("API请求失败: ${response.code}, $errorBody")
+                            // 日志带上模型名，便于排查 429 等错误时确认请求到底用的哪个模型（#915）。
+                            logError("API请求失败: ${response.code}, $errorBody [model=$modelName]")
                             // 状态码错误保留状态码信息，随后进入统一重试循环。
                             if (response.code in 400..499) {
                                 throw HttpStatusException(
