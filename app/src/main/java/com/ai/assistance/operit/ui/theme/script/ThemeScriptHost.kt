@@ -5,6 +5,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -88,9 +90,14 @@ fun ThemeScriptHost(
         }
     }
     val ready = state as? ThemeScriptState.Ready
-    val activeColors = if (ready == null) colors else applyThemePalette(colors, ready.appearance.palette, dark)
+    val activeColors = if (ready == null) colors else applyThemeTextColors(applyThemePalette(colors, ready.appearance.palette, dark), ready.appearance.typography)
     val typography = if (ready == null) MaterialTheme.typography else applyThemeTypography(MaterialTheme.typography, ready.appearance.typography, ready.images)
-    CompositionLocalProvider(LocalThemeScriptState provides state) {
+    val textColor = ready?.appearance?.typography?.color?.let(::themeColor)
+    CompositionLocalProvider(
+        LocalThemeScriptState provides state,
+        LocalContentColor provides (textColor ?: LocalContentColor.current),
+        LocalTextStyle provides (if (textColor == null) LocalTextStyle.current else LocalTextStyle.current.copy(color = textColor)),
+    ) {
         MaterialTheme(colorScheme = activeColors, typography = typography) {
         Box {
             content()

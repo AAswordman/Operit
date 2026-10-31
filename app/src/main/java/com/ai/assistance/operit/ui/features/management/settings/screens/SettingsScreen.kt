@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptBorder
+import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
@@ -246,6 +248,8 @@ private fun SettingsSection(
 
                 // 内容区域
                 Card(
+                        shape = themeScriptShape("settingsCard", MaterialTheme.shapes.medium),
+                        border = themeScriptBorder("settingsCard", null),
                         modifier = Modifier.fillMaxWidth()
                             .liquidGlass(glassEnabled, MaterialTheme.shapes.medium, containerColor,
                                 region = GlassRegion.SETTINGS_CARDS,
@@ -256,7 +260,7 @@ private fun SettingsSection(
                         )
                 ) {
                         Column(
-                                modifier = Modifier.themeScriptDecoration("settingsCard", drawFill = false).padding(12.dp),
+                                modifier = Modifier.themeScriptDecoration("settingsCard", drawFill = false, drawStroke = false, originalShape = MaterialTheme.shapes.medium).padding(12.dp),
                                 content = content
                         )
                 }
@@ -273,16 +277,16 @@ private fun CompactSettingsItem(
         Row(
                 modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(themeScriptShape("listItem", RoundedCornerShape(6.dp)))
                         .clickable { onClick() }
-                        .themeScriptDecoration("listItem")
+                        .themeScriptDecoration("listItem", originalShape = RoundedCornerShape(6.dp))
                         .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
         ) {
                 Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        tint = themeScriptContentColor("listItem", MaterialTheme.colorScheme.onSurface),
                         modifier = Modifier.size(20.dp)
                 )
 
@@ -291,16 +295,16 @@ private fun CompactSettingsItem(
                 Column(modifier = Modifier.weight(1f)) {
                         Text(
                                 text = title,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = themeScriptTextStyle("listItem", MaterialTheme.typography.bodyMedium),
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = themeScriptContentColor("listItem", MaterialTheme.colorScheme.onSurface),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                         )
                         Text(
                                 text = subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = themeScriptTextStyle("listItem", MaterialTheme.typography.bodySmall),
+                                color = themeScriptContentColor("listItem", MaterialTheme.colorScheme.onSurfaceVariant),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                         )

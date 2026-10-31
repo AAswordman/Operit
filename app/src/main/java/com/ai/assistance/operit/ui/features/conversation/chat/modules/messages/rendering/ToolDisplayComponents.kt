@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 
 import androidx.compose.foundation.clickable
@@ -82,8 +83,8 @@ fun CompactToolDisplay(
         summary = summary,
         semanticDescription = semanticDescription,
         leadingIcon = getToolIcon(displayToolName),
-        titleColor = MaterialTheme.colorScheme.primary,
-        summaryColor = textColor.copy(alpha = 0.7f),
+        titleColor = themeScriptContentColor("toolCard", MaterialTheme.colorScheme.primary),
+        summaryColor = themeScriptContentColor("toolCard", textColor).copy(alpha = 0.7f),
         modifier = modifier.themeScriptDecoration("toolCard"),
         onClick =
             if (hasParams && enableDialog) {
@@ -135,8 +136,8 @@ fun DetailedToolDisplay(
         summary = paramsSizeLabel,
         semanticDescription = semanticDescription,
         leadingIcon = getToolIcon(displayToolName),
-        titleColor = MaterialTheme.colorScheme.primary,
-        summaryColor = textColor.copy(alpha = 0.7f),
+        titleColor = themeScriptContentColor("toolCard", MaterialTheme.colorScheme.primary),
+        summaryColor = themeScriptContentColor("toolCard", textColor).copy(alpha = 0.7f),
         modifier = modifier.themeScriptDecoration("toolCard"),
         onClick =
             if (hasParams && enableDialog) {

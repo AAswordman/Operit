@@ -473,8 +473,6 @@ class ChatServiceCore(
     val chatHistories: StateFlow<List<com.ai.assistance.operit.data.model.ChatHistory>>
         get() = chatHistoryDelegate.chatHistories
 
-    val showChatHistorySelector: StateFlow<Boolean>
-        get() = chatHistoryDelegate.showChatHistorySelector
 
     // API 配置相关
     val enableThinkingMode: StateFlow<Boolean>

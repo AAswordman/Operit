@@ -77,6 +77,7 @@ import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
 import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
 import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.LocalThemePreviewUserName
 import com.ai.assistance.operit.ui.theme.liquidGlass
 import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
 import com.ai.assistance.operit.ui.theme.waterGlass
@@ -197,7 +198,7 @@ fun BubbleUserMessageComposable(
             CircleShape
         }
     }
-    val resolvedDisplayName = if (isProxySender) proxySenderName else globalUserName
+    val resolvedDisplayName = if (isProxySender) proxySenderName else LocalThemePreviewUserName.current ?: globalUserName
     val shouldShowResolvedName = !isHiddenPlaceholder && if (isProxySender) true else showUserName
     val shouldShowAvatar = !isHiddenPlaceholder && bubbleShowAvatar
     val avatarSize = themeScriptAvatarSize("userAvatar", 32.dp)
@@ -365,7 +366,7 @@ fun BubbleUserMessageComposable(
                                     contentDescription = "User Avatar",
                                     modifier = Modifier
                                         .size(avatarSize)
-                                        .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar"),
+                                        .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                                 )
                             } else {
@@ -374,7 +375,7 @@ fun BubbleUserMessageComposable(
                                     contentDescription = "User Avatar",
                                     modifier = Modifier
                                         .size(avatarSize)
-                                        .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar"),
+                                        .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                                     tint = if (isProxySender) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
                                 )
                             }
@@ -417,7 +418,7 @@ fun BubbleUserMessageComposable(
                                         bottom = if (isHiddenPlaceholder) 0.dp else if (voiceMessage != null) 6.dp else 12.dp,
                                     ),
                             ) {
-                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = true) {
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
                                     if (isHiddenPlaceholder) {
                                         HiddenUserMessagePlaceholderContent(
                                             titleColor = effectiveTextColor,
@@ -471,7 +472,7 @@ fun BubbleUserMessageComposable(
                                         2.dp
                                     },
                             ) {
-                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = false) {
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
                                     if (isHiddenPlaceholder) {
                                         Box(
                                             modifier =
@@ -576,7 +577,7 @@ fun BubbleUserMessageComposable(
                                         bottom = if (isHiddenPlaceholder) 0.dp else if (voiceMessage != null) 6.dp else 12.dp,
                                     ),
                             ) {
-                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = true) {
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
                                     if (isHiddenPlaceholder) {
                                         HiddenUserMessagePlaceholderContent(
                                             titleColor = effectiveTextColor,
@@ -630,7 +631,7 @@ fun BubbleUserMessageComposable(
                                         2.dp
                                     }
                             ) {
-                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = false) {
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
                                     if (isHiddenPlaceholder) {
                                         Box(
                                             modifier =
@@ -682,7 +683,7 @@ fun BubbleUserMessageComposable(
                             contentDescription = "User Avatar",
                             modifier = Modifier
                                 .size(avatarSize)
-                                .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar"),
+                                .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
                     } else {
@@ -691,7 +692,7 @@ fun BubbleUserMessageComposable(
                             contentDescription = "User Avatar",
                             modifier = Modifier
                                 .size(avatarSize)
-                                .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar"),
+                                .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                             tint = if (isProxySender) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
                         )
                     }

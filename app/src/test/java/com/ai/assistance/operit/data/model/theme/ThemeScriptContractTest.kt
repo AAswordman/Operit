@@ -45,7 +45,7 @@ class ThemeScriptContractTest {
         ThemeScriptContract.validate(appearance(valid), manifest)
         listOf(
             valid.copy(opacity = Float.NaN), valid.copy(radius = 129f), valid.copy(strokeWidth = -1f),
-            valid.copy(bounds = ThemeScriptBounds(x = 0.5f, width = 1f)),
+            valid.copy(bounds = ThemeScriptBounds(x = 1.01f, width = 1f)),
             valid.copy(color = "red"), valid.copy(state = "hover"), valid.copy(placement = "overlay"),
         ).forEach { invalid -> rejects { ThemeScriptContract.validate(appearance(invalid), manifest) } }
         rejects {
@@ -122,4 +122,50 @@ class ThemeScriptContractTest {
         rejects { ThemeScriptContract.validate(appearance(sliced.copy(slices = ThemeScriptInsets(end = -1f))), manifest) }
         rejects { ThemeScriptContract.validate(appearance(sliced.copy(slices = ThemeScriptInsets(end = 2049f))), manifest) }
     }
+    @Test
+    fun textColorsRoundTripInGlobalLocalAndModeTypography() {
+        val base = ThemeScriptAppearance(
+            1,
+            typography = ThemeAppearanceText(color = "#80112233"),
+            surfaces = mapOf("assistantMessage" to ThemeScriptSurface(textStyle = ThemeAppearanceText(color = "#445566"))),
+            modes = mapOf("dark" to ThemeAppearanceMode(typography = ThemeAppearanceText(color = "#FFEEDD"))),
+        )
+        val full = manifest.copy(appearance = base)
+        assertEquals(full, ThemeScriptContract.decodeManifest(ThemeScriptContract.json.encodeToString(ThemeScriptManifest.serializer(), full)))
+        assertEquals("#80112233", base.forMode("light").typography.color)
+        assertEquals("#FFEEDD", base.forMode("dark").typography.color)
+        assertNull(ThemeScriptContract.decodeResult("""{"apiVersion":1}""", manifest).typography.color)
+        listOf("red", "#12345", "#GG112233").forEach { invalid ->
+            rejects { ThemeScriptContract.validate(base.copy(typography = ThemeAppearanceText(color = invalid)), manifest) }
+            rejects { ThemeScriptContract.validate(base.copy(modes = mapOf("light" to ThemeAppearanceMode(typography = ThemeAppearanceText(color = invalid)))), manifest) }
+            rejects { ThemeScriptContract.validate(base.copy(surfaces = mapOf("input" to ThemeScriptSurface(textStyle = ThemeAppearanceText(color = invalid)))), manifest) }
+        }
+    }
+
+    @Test
+    fun fullSizeImagesAndNineSlicesTranslateWithoutChangingTheirSize() {
+        for (type in listOf("image", "nineSlice")) {
+            for (x in listOf(-1f, -.5f, 0f, .5f, 1f)) for (y in listOf(-1f, 0f, 1f)) {
+                val layer = ThemeScriptLayer(type, asset = "badge", bounds = ThemeScriptBounds(x = x, y = y))
+                val source = manifest.copy(appearance = appearance(layer))
+                val result = ThemeScriptContract.decodeManifest(ThemeScriptContract.json.encodeToString(ThemeScriptManifest.serializer(), source))
+                assertEquals(layer.bounds, result.appearance.surfaces.getValue("userMessage").layers.single().bounds)
+            }
+        }
+        listOf(
+            ThemeScriptBounds(x = -1.01f), ThemeScriptBounds(y = 1.01f), ThemeScriptBounds(x = Float.NaN),
+            ThemeScriptBounds(width = 0f), ThemeScriptBounds(height = 1.01f), ThemeScriptBounds(height = Float.POSITIVE_INFINITY),
+        ).forEach { bounds -> rejects { ThemeScriptContract.validate(appearance(ThemeScriptLayer("image", asset = "badge", bounds = bounds)), manifest) } }
+    }
+
+    @Test
+    fun imageBlurUsesTheSameEightDpLimitAsTheEditor() {
+        val layer = ThemeScriptLayer("image", asset = "badge")
+        for (blur in listOf(0f, ThemeScriptContract.MAX_BLUR_DP)) ThemeScriptContract.validate(appearance(layer.copy(blur = blur)), manifest)
+        assertEquals(8f, ThemeScriptContract.MAX_BLUR_DP, 0f)
+        for (blur in listOf(-.01f, 8.01f, 32f, Float.NaN, Float.POSITIVE_INFINITY)) {
+            rejects { ThemeScriptContract.validate(appearance(layer.copy(blur = blur)), manifest) }
+        }
+    }
+
 }

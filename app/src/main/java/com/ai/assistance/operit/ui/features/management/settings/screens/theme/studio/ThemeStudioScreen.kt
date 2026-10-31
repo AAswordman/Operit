@@ -13,11 +13,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Save
@@ -33,6 +33,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.components.ActionSheetItem
+import com.ai.assistance.operit.ui.components.menu.WorkbenchDropdownMenu
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.ThemeEditorSession
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemeWorkbenchCard
@@ -102,17 +104,17 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                         IconButton(onClick = state::redo, enabled = !state.busy && state.canRedo) { Icon(Icons.AutoMirrored.Filled.Redo, stringResource(R.string.studio_redo)) }
                         Box {
                             IconButton(onClick = { more = true }, enabled = !state.busy && state.project != null) { Icon(Icons.Default.MoreVert, stringResource(R.string.studio_project_actions)) }
-                            DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
-                                DropdownMenuItem(text = { Text(stringResource(R.string.studio_project_info)) }, onClick = { more = false; info = true })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.studio_save_draft)) }, onClick = { more = false; scope.launch { if (state.saveProjectDraft()) notice = R.string.studio_draft_saved } })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.studio_import_project)) }, onClick = { more = false; if (!state.sourceDirty || state.synchronizeSource()) importProject.launch(arrayOf("*/*")) })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.studio_export_project)) }, onClick = {
+                            WorkbenchDropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                                ActionSheetItem(label = stringResource(R.string.studio_project_info), icon = Icons.Default.Settings, onClick = { more = false; info = true })
+                                ActionSheetItem(label = stringResource(R.string.studio_save_draft), icon = Icons.Default.Save, onClick = { more = false; scope.launch { if (state.saveProjectDraft()) notice = R.string.studio_draft_saved } })
+                                ActionSheetItem(label = stringResource(R.string.studio_import_project), icon = Icons.Default.Upload, onClick = { more = false; if (!state.sourceDirty || state.synchronizeSource()) importProject.launch(arrayOf("*/*")) })
+                                ActionSheetItem(label = stringResource(R.string.studio_export_project), icon = Icons.Default.Download, onClick = {
                                     more = false
                                     if (!state.sourceDirty || state.synchronizeSource()) exportProject.launch("theme.oktheme")
                                 })
                                 HorizontalDivider()
-                                DropdownMenuItem(text = { Text(stringResource(R.string.theme_appearance_forest)) }, onClick = { more = false; preset = "forest" })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.theme_appearance_paper)) }, onClick = { more = false; preset = "paper" })
+                                ActionSheetItem(label = stringResource(R.string.theme_appearance_forest), icon = Icons.Default.Palette, onClick = { more = false; preset = "forest" })
+                                ActionSheetItem(label = stringResource(R.string.theme_appearance_paper), icon = Icons.Default.Palette, onClick = { more = false; preset = "paper" })
                             }
                         }
                     }
@@ -181,21 +183,13 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
 @Composable
 private fun StudioDesign(state: ThemeStudioState, onPickTarget: () -> Unit, onFullPreview: () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val previewHeight = (maxHeight * .34f).coerceIn(140.dp, 238.dp)
+        val previewHeight = (maxHeight * .44f).coerceIn(260.dp, 340.dp)
+            .coerceAtMost((maxHeight - 160.dp).coerceAtLeast(0.dp))
         Column(Modifier.fillMaxSize()) {
-            TabRow(selectedTabIndex = state.scene.ordinal, containerColor = StudioPanel) {
-                StudioScene.entries.forEach { scene -> Tab(selected = scene == state.scene, onClick = { state.selectScene(scene) }, modifier = Modifier.heightIn(min = 46.dp), text = { Text(stringResource(scene.label), style = MaterialTheme.typography.labelLarge) }) }
-            }
-            Row(Modifier.fillMaxWidth().height(42.dp).padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.studio_preview), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                TextButton(onClick = { state.mode = "light" }) { Text(stringResource(R.string.studio_light), color = if (state.mode == "light") StudioAccent else MaterialTheme.colorScheme.onSurfaceVariant) }
-                TextButton(onClick = { state.mode = "dark" }) { Text(stringResource(R.string.studio_dark), color = if (state.mode == "dark") StudioAccent else MaterialTheme.colorScheme.onSurfaceVariant) }
-                IconButton(onClick = onFullPreview) { Icon(Icons.Default.Fullscreen, stringResource(R.string.studio_full_preview)) }
-                IconButton(onClick = { state.previewCollapsed = !state.previewCollapsed }) { Icon(if (state.previewCollapsed) Icons.Default.ExpandMore else Icons.Default.ExpandLess, stringResource(if (state.previewCollapsed) R.string.studio_expand_preview else R.string.studio_collapse_preview)) }
-            }
+            StudioPreviewToolbar(state, onFullPreview)
             if (!state.previewCollapsed) StudioPreview(state, Modifier.fillMaxWidth().height(previewHeight))
             Row(Modifier.fillMaxWidth().clickable(onClick = onPickTarget).background(StudioPanel).padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(state.target.glyph, null, tint = StudioAccent)
+                StudioTargetThumbnail(state, state.target)
                 Column(Modifier.weight(1f)) { Text(state.target.label(), style = MaterialTheme.typography.titleSmall); Text(stringResource(R.string.studio_select_component), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Icon(Icons.Default.ChevronRight, null)
             }
@@ -230,7 +224,7 @@ private fun StudioTargetPicker(state: ThemeStudioState, onClose: () -> Unit) {
                     item(key = "group:$group") { Text(stringResource(group.label), Modifier.fillMaxWidth().padding(14.dp), style = MaterialTheme.typography.labelLarge, color = StudioAccent) }
                     items(targets, key = { it.id }) { target ->
                         Row(Modifier.fillMaxWidth().background(if (state.target == target) StudioPanel else StudioBackground).clickable { state.select(target); onClose() }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Icon(target.glyph, null); Text(labels.getValue(target), Modifier.weight(1f)); Icon(Icons.Default.ChevronRight, null)
+                            StudioTargetThumbnail(state, target); Text(labels.getValue(target), Modifier.weight(1f)); Icon(Icons.Default.ChevronRight, null)
                         }
                         HorizontalDivider(color = StudioLine)
                     }

@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 /** 主题脚本只输出外观描述；现有主题参数和原生内容不交给脚本持有。 */
 object ThemeScriptContract {
     const val API_VERSION = 1
+    const val MAX_BLUR_DP = 8f
     const val MAX_SOURCE_BYTES = 65536
     const val MAX_RESULT_BYTES = 131072
     const val MAX_BUNDLE_BYTES = 16 * 1024 * 1024
@@ -18,7 +19,7 @@ object ThemeScriptContract {
     val iconIds = setOf(
         "composer.settings", "composer.attachment", "composer.microphone", "composer.send",
         "composer.stop", "composer.fullscreen", "composer.queue", "composer.expand",
-        "appBar.back", "appBar.menu", "appBar.history", "appBar.floating", "navigation.item",
+        "appBar.back", "appBar.menu", "appBar.workspace", "appBar.floating", "navigation.item",
     )
     val colorTokens = setOf(
         "primary", "onPrimary", "primaryContainer", "onPrimaryContainer", "inversePrimary",
@@ -144,15 +145,14 @@ object ThemeScriptContract {
                 require(layer.fit in setOf("fill", "fit", "crop", "tile")) { "Unknown image fit" }
                 require(layer.sampling in setOf("smooth", "nearest")) { "Unknown image sampling" }
                 require(layer.alignment in setOf("center", "top", "bottom", "start", "end")) { "Unknown image alignment" }
-                require(layer.blur.isFinite() && layer.blur in 0f..32f) { "Invalid layer blur" }
+                require(layer.blur.isFinite() && layer.blur in 0f..MAX_BLUR_DP) { "Invalid layer blur" }
                 require(layer.opacity.isFinite() && layer.opacity in 0f..1f) { "Invalid layer opacity" }
                 require(layer.radius.isFinite() && layer.radius in 0f..128f) { "Invalid layer radius" }
                 require(layer.strokeWidth.isFinite() && layer.strokeWidth in 0f..16f) { "Invalid layer stroke" }
                 val b = layer.bounds
-                require(listOf(b.x, b.y, b.width, b.height).all { it.isFinite() && it in 0f..1f }) { "Layer bounds must be normalized" }
-                require(b.width > 0f && b.height > 0f && b.x + b.width <= 1.001f && b.y + b.height <= 1.001f) {
-                    "Layer extends outside its surface"
-                }
+                // 平移与尺寸独立；满幅素材越过区域边缘时由绘制容器裁剪。
+                require(listOf(b.x, b.y).all { it.isFinite() && it in -1f..1f }) { "Layer position must be normalized" }
+                require(listOf(b.width, b.height).all { it.isFinite() && it > 0f && it <= 1f }) { "Layer size must be normalized" }
                 require(layer.color == null || color.matches(layer.color)) { "Invalid layer color" }
                 require(layer.strokeColor == null || color.matches(layer.strokeColor)) { "Invalid stroke color" }
                 require(layer.id == null || assetName.matches(layer.id)) { "Invalid layer identifier" }
@@ -168,6 +168,7 @@ object ThemeScriptContract {
         }
     }
     private fun validateText(text: ThemeAppearanceText, manifest: ThemeScriptManifest) {
+        require(text.color == null || color.matches(text.color)) { "Invalid text color" }
         val family = text.family
         if (family != null && family.startsWith("asset:")) {
             val path = requireNotNull(manifest.assets[family.removePrefix("asset:")]) { "Font references an undeclared asset" }

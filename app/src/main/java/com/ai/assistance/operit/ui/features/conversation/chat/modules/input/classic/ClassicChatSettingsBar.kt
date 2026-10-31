@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.input.classic
 
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.ChatInputRuntime
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.rememberChatInputRuntime
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
@@ -128,10 +130,90 @@ fun ClassicChatSettingsBar(
     characterCardBoundChatModelIndex: Int = 0,
     characterCardBoundMemoryProfileId: String? = null
 ) {
+    val runtime = rememberChatInputRuntime(actualViewModel)
+    ClassicChatSettingsContent(
+        runtime = runtime,
+        modifier = modifier,
+        currentChatId = currentChatId,
+        featureStates = featureStates,
+        onToggleFeature = onToggleFeature,
+        inputMenuRuntime = inputMenuRuntime,
+        permissionLevel = permissionLevel,
+        onSetPermissionLevel = onSetPermissionLevel,
+        enableThinkingMode = enableThinkingMode,
+        onToggleThinkingMode = onToggleThinkingMode,
+        thinkingOptionId = thinkingOptionId,
+        onThinkingOptionIdChange = onThinkingOptionIdChange,
+        maxWindowSizeInK = maxWindowSizeInK,
+        onContextLengthChange = onContextLengthChange,
+        enableMemoryAutoUpdate = enableMemoryAutoUpdate,
+        onToggleMemoryAutoUpdate = onToggleMemoryAutoUpdate,
+        summaryTokenThreshold = summaryTokenThreshold,
+        onSummaryTokenThresholdChange = onSummaryTokenThresholdChange,
+        onNavigateToMemoryBase = onNavigateToMemoryBase,
+        onNavigateToModelConfig = onNavigateToModelConfig,
+        onNavigateToModelPrompts = onNavigateToModelPrompts,
+        onNavigateToPackageManager = onNavigateToPackageManager,
+        enableTools = enableTools,
+        onToggleTools = onToggleTools,
+        toolPromptVisibility = toolPromptVisibility,
+        onSaveToolPromptVisibilityMap = onSaveToolPromptVisibilityMap,
+        toolOrder = toolOrder,
+        onSaveToolOrder = onSaveToolOrder,
+        disableStreamOutput = disableStreamOutput,
+        onToggleDisableStreamOutput = onToggleDisableStreamOutput,
+        disableUserPreferenceDescription = disableUserPreferenceDescription,
+        onToggleDisableUserPreferenceDescription = onToggleDisableUserPreferenceDescription,
+        onManualMemoryUpdate = onManualMemoryUpdate,
+        characterCardBoundChatModelConfigId = characterCardBoundChatModelConfigId,
+        characterCardBoundChatModelIndex = characterCardBoundChatModelIndex,
+        characterCardBoundMemoryProfileId = characterCardBoundMemoryProfileId,
+    )
+}
+
+@Composable
+internal fun ClassicChatSettingsContent(
+    modifier: Modifier = Modifier,
+    runtime: ChatInputRuntime,
+    currentChatId: String?,
+    featureStates: Map<String, Boolean>,
+    onToggleFeature: (String) -> Unit,
+    inputMenuRuntime: String = "main",
+    permissionLevel: PermissionLevel,
+    onSetPermissionLevel: (PermissionLevel) -> Unit,
+    enableThinkingMode: Boolean,
+    onToggleThinkingMode: () -> Unit,
+    thinkingOptionId: String,
+    onThinkingOptionIdChange: (String) -> Unit,
+    maxWindowSizeInK: Float,
+    onContextLengthChange: (Float) -> Unit,
+    enableMemoryAutoUpdate: Boolean,
+    onToggleMemoryAutoUpdate: () -> Unit,
+    summaryTokenThreshold: Float,
+    onSummaryTokenThresholdChange: (Float) -> Unit,
+    onNavigateToMemoryBase: () -> Unit,
+    onNavigateToModelConfig: () -> Unit,
+    onNavigateToModelPrompts: () -> Unit,
+    onNavigateToPackageManager: () -> Unit,
+    enableTools: Boolean,
+    onToggleTools: () -> Unit,
+    toolPromptVisibility: Map<String, Boolean>,
+    onSaveToolPromptVisibilityMap: (Map<String, Boolean>) -> Unit,
+    toolOrder: List<String> = emptyList(),
+    onSaveToolOrder: (List<String>) -> Unit = {},
+    disableStreamOutput: Boolean,
+    onToggleDisableStreamOutput: () -> Unit,
+    disableUserPreferenceDescription: Boolean,
+    onToggleDisableUserPreferenceDescription: () -> Unit,
+    onManualMemoryUpdate: () -> Unit,
+    characterCardBoundChatModelConfigId: String? = null,
+    characterCardBoundChatModelIndex: Int = 0,
+    characterCardBoundMemoryProfileId: String? = null
+) {
     var showMenu by remember { mutableStateOf(false) }
     var showContextUsageDialog by remember { mutableStateOf(false) }
     if (showContextUsageDialog) {
-        ChatContextUsageDialog(actualViewModel, onDismiss = { showContextUsageDialog = false })
+        runtime.contextUsageDialog { showContextUsageDialog = false }
     }
     val iconScale by
             animateFloatAsState(targetValue = if (showMenu) 1.2f else 1f, label = "iconScale")
@@ -453,7 +535,7 @@ fun ClassicChatSettingsBar(
                                         Modifier.padding(vertical = 4.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            ChatContextUsageEntry(actualViewModel, onClick = {
+                            runtime.contextUsageEntry({
                                 showMenu = false
                                 showContextUsageDialog = true
                             })

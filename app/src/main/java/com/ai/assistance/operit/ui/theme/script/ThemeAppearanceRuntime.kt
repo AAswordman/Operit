@@ -74,6 +74,11 @@ internal fun applyThemePalette(base: ColorScheme, palette: ThemeAppearancePalett
     )
 }
 
+/** 全局文字色同步到默认正文角色，让显式读取 onSurface 的页面保持一致。 */
+internal fun applyThemeTextColors(colors: ColorScheme, text: ThemeAppearanceText): ColorScheme {
+    val color = text.color?.let(::themeColor) ?: return colors
+    return colors.copy(onBackground = color, onSurface = color, onSurfaceVariant = color)
+}
 internal fun themeColorTokens(colors: ColorScheme): Map<String, String> {
     fun hex(color: Color): String = java.lang.String.format(java.util.Locale.ROOT, "#%08X", color.toArgb())
     return mapOf(
@@ -131,6 +136,7 @@ internal fun applyThemeText(style: TextStyle, text: ThemeAppearanceText, images:
     }
     return style.copy(
         fontFamily = family,
+        color = text.color?.let(::themeColor) ?: style.color,
         fontSize = if (style.fontSize.isSpecified) style.fontSize * text.scale else style.fontSize,
         lineHeight = if (style.lineHeight.isSpecified) style.lineHeight * (text.scale * text.lineHeight) else style.lineHeight,
         letterSpacing = if (text.letterSpacing == 0f) style.letterSpacing else text.letterSpacing.sp,
@@ -155,6 +161,9 @@ internal fun applyThemeTypography(base: Typography, text: ThemeAppearanceText, i
     labelSmall = applyThemeText(base.labelSmall, text, images),
 )
 
+/** 区域正文色也进入排版，避免全局 TextStyle.color 压住区域的内容色。 */
+internal fun surfaceTypography(surface: ThemeScriptSurface?): ThemeAppearanceText =
+    if (surface == null) ThemeAppearanceText() else surface.textStyle.copy(color = surface.contentColor ?: surface.textStyle.color)
 @Composable
 internal fun themeSurface(id: String): ThemeScriptSurface? =
     (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.appearance?.surfaces?.get(id)?.takeUnless { it == ThemeScriptSurface() }?.let { resolvedThemeSurface(id, it) }
@@ -191,7 +200,10 @@ fun themeScriptFill(id: String, original: Color, backgroundOpacity: Float? = nul
 
 @Composable
 fun themeScriptContentColor(id: String, original: Color): Color {
-    val color = themeSurface(id)?.contentColor
+    val surface = themeSurface(id)
+    val global = (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.appearance?.typography?.color
+    // 状态或区域正文色优先，随后是区域排版色、全局排版色和业务默认色。
+    val color = surface?.contentColor ?: surface?.textStyle?.color ?: global
     return if (color == null) original else themeColor(color)
 }
 
@@ -206,22 +218,31 @@ fun themeScriptMessageFraction(id: String): Float = themeSurface(id)?.messageWid
 
 @Composable
 fun themeScriptTypography(id: String, original: Typography): Typography =
-    applyThemeTypography(original, themeSurface(id)?.textStyle ?: ThemeAppearanceText(), (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.images.orEmpty())
+    applyThemeTypography(original, surfaceTypography(themeSurface(id)), (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.images.orEmpty())
 
 @Composable
 fun themeScriptMessageWidth(id: String, original: Dp): Dp = original * (themeSurface(id)?.messageWidth ?: 1f)
 
 @Composable
 internal fun themeScriptBorder(id: String, original: BorderStroke?): BorderStroke? {
-    val style = themeSurface(id)
-    return if (style?.strokeColor == null) original
-        else if (style.strokeWidth == 0f) null
-        else BorderStroke(style.strokeWidth.dp, themeColor(style.strokeColor))
+    return appearanceBorder(themeSurface(id), original)
+}
+
+/** 继承边框保留原生画刷；正宽度可以调整既有边框，显式颜色与零宽度共同决定自定义描边。 */
+internal fun appearanceBorder(style: ThemeScriptSurface?, original: BorderStroke?, opacity: Float = 1f): BorderStroke? {
+    if (style == null) return original
+    val color = style.strokeColor
+    if (color == null) {
+        return if (style.strokeWidth > 0f && original != null) BorderStroke(style.strokeWidth.dp, original.brush) else original
+    }
+    if (style.strokeWidth == 0f) return null
+    val resolved = themeColor(color)
+    return BorderStroke(style.strokeWidth.dp, resolved.copy(alpha = resolved.alpha * opacity))
 }
 
 @Composable
 fun themeScriptTextStyle(id: String, original: TextStyle): TextStyle =
-    applyThemeText(original, themeSurface(id)?.textStyle ?: ThemeAppearanceText(), (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.images.orEmpty())
+    applyThemeText(original, surfaceTypography(themeSurface(id)), (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.images.orEmpty())
 
 /** 素材只替换图像，外层原生按钮继续持有点击、长按和无障碍语义。 */
 @Composable

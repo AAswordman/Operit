@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.List
@@ -31,20 +32,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.components.ActionSheetItem
+import com.ai.assistance.operit.ui.components.menu.WorkbenchDropdownMenu
 import com.ai.assistance.operit.data.model.theme.forMode
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptImage
 
 @Composable
 internal fun StudioAssetThumbnail(image: ThemeScriptImage, modifier: Modifier = Modifier) {
-    Box(modifier.clip(RoundedCornerShape(8.dp)).background(ColorResourceTile), contentAlignment = Alignment.Center) {
+    Box(modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
         when (image) {
             is ThemeScriptImage.Bitmap -> Image(image.image, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             is ThemeScriptImage.Vector -> Canvas(Modifier.fillMaxSize()) { drawContext.canvas.nativeCanvas.drawPicture(image.picture, android.graphics.RectF(0f, 0f, size.width, size.height)) }
-            is ThemeScriptImage.Font -> Text("Aa 字", fontFamily = image.family, style = MaterialTheme.typography.headlineMedium)
+            is ThemeScriptImage.Font -> Text("Aa 字", fontFamily = image.family, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
-private val ColorResourceTile = androidx.compose.ui.graphics.Color(0xFF29313D)
 
 private fun assetKind(state: ThemeStudioState, id: String, path: String): String {
     if (path.substringAfterLast('.').lowercase() in setOf("ttf", "otf")) return "font"
@@ -74,9 +76,9 @@ internal fun StudioResources(state: ThemeStudioState, onImport: () -> Unit) {
             IconButton(onClick = { state.resourceList = !state.resourceList }) { Icon(Icons.Default.List, stringResource(R.string.studio_switch_resource_view)) }
             Box {
                 IconButton(onClick = { addMenu = true }) { Icon(Icons.Default.Add, stringResource(R.string.studio_add_resource)) }
-                DropdownMenu(expanded = addMenu, onDismissRequest = { addMenu = false }) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.studio_import_resource)) }, onClick = { addMenu = false; onImport() })
-                    DropdownMenuItem(text = { Text(stringResource(R.string.studio_new_folder)) }, onClick = { addMenu = false; prompt = "create"; state.clearError() })
+                WorkbenchDropdownMenu(expanded = addMenu, onDismissRequest = { addMenu = false }) {
+                    ActionSheetItem(label = stringResource(R.string.studio_import_resource), icon = Icons.Default.Upload, onClick = { addMenu = false; onImport() })
+                    ActionSheetItem(label = stringResource(R.string.studio_new_folder), icon = Icons.Default.Folder, onClick = { addMenu = false; prompt = "create"; state.clearError() })
                 }
             }
         }

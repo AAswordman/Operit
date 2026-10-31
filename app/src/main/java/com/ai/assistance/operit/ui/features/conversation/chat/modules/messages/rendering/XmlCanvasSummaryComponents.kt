@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
@@ -59,8 +60,8 @@ internal fun CanvasToolSummaryRow(
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val iconPainter = rememberVectorPainter(leadingIcon)
-    val titleStyle = MaterialTheme.typography.labelMedium.copy(color = titleColor)
-    val summaryStyle = MaterialTheme.typography.bodySmall.copy(color = summaryColor)
+    val titleStyle = themeScriptTextStyle("toolCard", MaterialTheme.typography.labelMedium.copy(color = titleColor))
+    val summaryStyle = themeScriptTextStyle("toolCard", MaterialTheme.typography.bodySmall.copy(color = summaryColor))
     val measuredSummary = remember(summary) { summary.toCanvasSingleLineText() }
     val interactionSource = remember { MutableInteractionSource() }
     val clickableModifier =

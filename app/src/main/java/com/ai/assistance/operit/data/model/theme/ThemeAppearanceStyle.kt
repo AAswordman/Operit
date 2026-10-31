@@ -15,6 +15,7 @@ data class ThemeAppearanceText(
     val scale: Float = 1f,
     val lineHeight: Float = 1f,
     val letterSpacing: Float = 0f,
+    val color: String? = null,
 )
 
 @Serializable

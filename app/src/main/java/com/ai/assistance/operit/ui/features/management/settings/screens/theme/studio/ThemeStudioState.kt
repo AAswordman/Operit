@@ -45,6 +45,7 @@ internal class ThemeStudioState(
     var error by mutableStateOf<String?>(null); private set
     var workspace by mutableStateOf(StudioWorkspace.Design)
     var scene by mutableStateOf(StudioScene.Chat)
+    var previewInputStyle by mutableStateOf(session.currentValues.requiredString("input_style"))
     var mode by mutableStateOf("light")
     var target by mutableStateOf(ThemeStudioTargets.first { it.id == "assistantMessage" })
     var property by mutableStateOf(StudioProperty.Appearance)
@@ -97,7 +98,7 @@ internal class ThemeStudioState(
                     }
                     else -> ThemeScriptBundle(
                         ThemeScriptManifest(1, "assets/main.js", studio = ThemeStudioMetadata(name = targetName, id = "theme_" + UUID.randomUUID().toString().replace("-", ""), folders = listOf("assets/images", "assets/icons", "assets/fonts"))),
-                        "module.exports = { apiVersion: 1, render(context) { return context.appearance; } };", emptyMap(),
+                        ThemeScriptDefaults.SOURCE, emptyMap(),
                     )
                 }
             }
@@ -185,11 +186,11 @@ internal class ThemeStudioState(
         val updated = change(base.forMode(forMode).surfaces[id] ?: ThemeScriptSurface())
         base.copy(modes = base.modes + (forMode to variant.copy(surfaces = variant.surfaces + (id to updated))))
     }
-    fun updateText(change: (ThemeAppearanceText) -> ThemeAppearanceText) {
+    fun updateText(forMode: String = mode, change: (ThemeAppearanceText) -> ThemeAppearanceText) {
         if (target.kind == StudioKind.Typography) updateAppearance { base ->
-            val variant = base.modes[mode] ?: ThemeAppearanceMode()
-            base.copy(modes = base.modes + (mode to variant.copy(typography = change(base.forMode(mode).typography))))
-        } else updateSurface { it.copy(textStyle = change(it.textStyle)) }
+            val variant = base.modes[forMode] ?: ThemeAppearanceMode()
+            base.copy(modes = base.modes + (forMode to variant.copy(typography = change(base.forMode(forMode).typography))))
+        } else updateSurface(forMode = forMode) { it.copy(textStyle = change(it.textStyle)) }
     }
     fun icon(id: String = target.id, forMode: String = mode) = bundle.manifest.appearance.forMode(forMode).icons[id]
     fun setIcon(value: ThemeAppearanceIcon?, id: String = target.id, forMode: String = mode) = updateAppearance { base ->
@@ -210,6 +211,8 @@ internal class ThemeStudioState(
     fun color(field: String, forMode: String): String? {
         if (target.kind == StudioKind.Palette) return (if (forMode == "light") bundle.manifest.appearance.palette.light else bundle.manifest.appearance.palette.dark)[field]
         if (target.kind == StudioKind.Icon) return icon(forMode = forMode)?.tintColor
+        if (target.kind == StudioKind.Typography) return bundle.manifest.appearance.forMode(forMode).typography.color
+        if (field == "textColor") return surface(forMode = forMode).textStyle.color
         val value = surface(forMode = forMode).forState(if (property == StudioProperty.States) previewState else "always")
         return when (field) { "fillColor" -> value.fillColor; "contentColor" -> value.contentColor; "strokeColor" -> value.strokeColor; else -> error("Unknown color field") }
     }
@@ -222,9 +225,9 @@ internal class ThemeStudioState(
                     val before = surface.states[previewState] ?: ThemeAppearanceState()
                     val next = when (field) { "fillColor" -> before.copy(fillColor = value); "contentColor" -> before.copy(contentColor = value); "strokeColor" -> before.copy(strokeColor = value); else -> error("Unknown state color") }
                     surface.copy(states = surface.states + (previewState to next))
-                } else when (field) { "fillColor" -> surface.copy(fillColor = value); "contentColor" -> surface.copy(contentColor = value); "strokeColor" -> surface.copy(strokeColor = value); else -> error("Unknown surface color") }
+                } else when (field) { "fillColor" -> surface.copy(fillColor = value); "contentColor" -> surface.copy(contentColor = value); "strokeColor" -> surface.copy(strokeColor = value); "textColor" -> surface.copy(textStyle = surface.textStyle.copy(color = value)); else -> error("Unknown surface color") }
             }
-            StudioKind.Typography -> error("Typography has no color property")
+            StudioKind.Typography -> updateText(forMode) { it.copy(color = value) }
         }
         mode = forMode
     }

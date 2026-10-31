@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.input.agent
 
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.ChatInputRuntime
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.rememberChatInputRuntime
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 
@@ -8,7 +10,6 @@ import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
 
-import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 
 import androidx.compose.material.icons.filled.Mic
 
@@ -248,13 +249,164 @@ fun AgentChatInputSection(
     onEditPendingQueueMessage: (Long) -> Unit = {},
     onSendPendingQueueMessage: (Long) -> Unit = {},
 ) {
+    val runtime = rememberChatInputRuntime(actualViewModel)
+    AgentChatInputContent(
+        runtime = runtime,
+        userMessage = userMessage,
+        onUserMessageChange = onUserMessageChange,
+        enableEnterToSend = enableEnterToSend,
+        onSendMessage = onSendMessage,
+        onRecordVoiceMessage = onRecordVoiceMessage,
+        onContinueGeneration = onContinueGeneration,
+        continueGenerationEnabled = continueGenerationEnabled,
+        onQueueMessage = onQueueMessage,
+        onCancelMessage = onCancelMessage,
+        isLoading = isLoading,
+        inputState = inputState,
+        allowTextInputWhileProcessing = allowTextInputWhileProcessing,
+        onAttachmentRequest = onAttachmentRequest,
+        attachments = attachments,
+        onRemoveAttachment = onRemoveAttachment,
+        onInsertAttachment = onInsertAttachment,
+        onAttachScreenContent = onAttachScreenContent,
+        onAttachNotifications = onAttachNotifications,
+        onAttachLocation = onAttachLocation,
+        onAttachMemory = onAttachMemory,
+        onAttachPackage = onAttachPackage,
+        onTakePhoto = onTakePhoto,
+        hasBackgroundImage = hasBackgroundImage,
+        chatInputTransparent = chatInputTransparent,
+        chatInputOpacity = chatInputOpacity,
+        chatInputFloating = chatInputFloating,
+        chatInputLiquidGlass = chatInputLiquidGlass,
+        chatInputWaterGlass = chatInputWaterGlass,
+        modifier = modifier,
+        externalAttachmentPanelState = externalAttachmentPanelState,
+        onAttachmentPanelStateChange = onAttachmentPanelStateChange,
+        showInputProcessingStatus = showInputProcessingStatus,
+        enableTools = enableTools,
+        replyToMessage = replyToMessage,
+        onClearReply = onClearReply,
+        isWorkspaceOpen = isWorkspaceOpen,
+        enableThinkingMode = enableThinkingMode,
+        onToggleThinkingMode = onToggleThinkingMode,
+        thinkingOptionId = thinkingOptionId,
+        onThinkingOptionIdChange = onThinkingOptionIdChange,
+        currentChatId = currentChatId,
+        featureStates = featureStates,
+        onToggleFeature = onToggleFeature,
+        inputMenuRuntime = inputMenuRuntime,
+        permissionLevel = permissionLevel,
+        onSetPermissionLevel = onSetPermissionLevel,
+        enableMemoryAutoUpdate = enableMemoryAutoUpdate,
+        onToggleMemoryAutoUpdate = onToggleMemoryAutoUpdate,
+        onToggleTools = onToggleTools,
+        disableStreamOutput = disableStreamOutput,
+        onToggleDisableStreamOutput = onToggleDisableStreamOutput,
+        disableUserPreferenceDescription = disableUserPreferenceDescription,
+        onToggleDisableUserPreferenceDescription = onToggleDisableUserPreferenceDescription,
+        onNavigateToMemoryBase = onNavigateToMemoryBase,
+        onNavigateToPackageManager = onNavigateToPackageManager,
+        toolPromptVisibility = toolPromptVisibility,
+        onSaveToolPromptVisibilityMap = onSaveToolPromptVisibilityMap,
+        toolOrder = toolOrder,
+        onSaveToolOrder = onSaveToolOrder,
+        onManualMemoryUpdate = onManualMemoryUpdate,
+        onNavigateToModelConfig = onNavigateToModelConfig,
+        characterCardBoundChatModelConfigId = characterCardBoundChatModelConfigId,
+        characterCardBoundChatModelIndex = characterCardBoundChatModelIndex,
+        characterCardBoundMemoryProfileId = characterCardBoundMemoryProfileId,
+        pendingQueueMessages = pendingQueueMessages,
+        isPendingQueueExpanded = isPendingQueueExpanded,
+        onPendingQueueExpandedChange = onPendingQueueExpandedChange,
+        onDeletePendingQueueMessage = onDeletePendingQueueMessage,
+        onEditPendingQueueMessage = onEditPendingQueueMessage,
+        onSendPendingQueueMessage = onSendPendingQueueMessage,
+    )
+}
+
+/** 正式页面和主题预览共用输入布局，业务动作由 runtime 提供。 */
+@Composable
+internal fun AgentChatInputContent(
+    runtime: ChatInputRuntime,
+    userMessage: TextFieldValue,
+    onUserMessageChange: (TextFieldValue) -> Unit,
+    enableEnterToSend: Boolean = false,
+    onSendMessage: () -> Unit,
+    onRecordVoiceMessage: (() -> Unit)? = null,
+    onContinueGeneration: () -> Unit,
+    continueGenerationEnabled: Boolean,
+    onQueueMessage: () -> Unit,
+    onCancelMessage: () -> Unit,
+    isLoading: Boolean,
+    inputState: InputProcessingState = InputProcessingState.Idle,
+    allowTextInputWhileProcessing: Boolean = false,
+    onAttachmentRequest: (String) -> Unit = {},
+    attachments: List<AttachmentInfo> = emptyList(),
+    onRemoveAttachment: (String) -> Unit = {},
+    onInsertAttachment: (AttachmentInfo) -> Unit = {},
+    onAttachScreenContent: () -> Unit = {},
+    onAttachNotifications: () -> Unit = {},
+    onAttachLocation: () -> Unit = {},
+    onAttachMemory: () -> Unit = {},
+    onAttachPackage: (String) -> Unit = {},
+    onTakePhoto: (Uri) -> Unit,
+    hasBackgroundImage: Boolean = false,
+    chatInputTransparent: Boolean = false,
+    chatInputOpacity: Float? = null,
+    chatInputFloating: Boolean = false,
+    chatInputLiquidGlass: Boolean = false,
+    chatInputWaterGlass: Boolean = false,
+    modifier: Modifier = Modifier,
+    externalAttachmentPanelState: Boolean? = null,
+    onAttachmentPanelStateChange: ((Boolean) -> Unit)? = null,
+    showInputProcessingStatus: Boolean = true,
+    enableTools: Boolean = true,
+    replyToMessage: ChatMessage? = null,
+    onClearReply: (() -> Unit)? = null,
+    isWorkspaceOpen: Boolean = false,
+    enableThinkingMode: Boolean = false,
+    onToggleThinkingMode: () -> Unit = {},
+    thinkingOptionId: String = "",
+    onThinkingOptionIdChange: (String) -> Unit = {},
+    currentChatId: String?,
+    featureStates: Map<String, Boolean> = emptyMap(),
+    onToggleFeature: (String) -> Unit = {},
+    inputMenuRuntime: String = "main",
+    permissionLevel: PermissionLevel = PermissionLevel.ASK,
+    onSetPermissionLevel: (PermissionLevel) -> Unit = {},
+    enableMemoryAutoUpdate: Boolean = false,
+    onToggleMemoryAutoUpdate: () -> Unit = {},
+    onToggleTools: () -> Unit = {},
+    disableStreamOutput: Boolean = false,
+    onToggleDisableStreamOutput: () -> Unit = {},
+    disableUserPreferenceDescription: Boolean = false,
+    onToggleDisableUserPreferenceDescription: () -> Unit = {},
+    onNavigateToMemoryBase: () -> Unit = {},
+    onNavigateToPackageManager: () -> Unit = {},
+    toolPromptVisibility: Map<String, Boolean> = emptyMap(),
+    onSaveToolPromptVisibilityMap: (Map<String, Boolean>) -> Unit = {},
+    toolOrder: List<String> = emptyList(),
+    onSaveToolOrder: (List<String>) -> Unit = {},
+    onManualMemoryUpdate: () -> Unit = {},
+    onNavigateToModelConfig: () -> Unit = {},
+    characterCardBoundChatModelConfigId: String? = null,
+    characterCardBoundChatModelIndex: Int = 0,
+    characterCardBoundMemoryProfileId: String? = null,
+    pendingQueueMessages: List<PendingQueueMessageItem> = emptyList(),
+    isPendingQueueExpanded: Boolean = true,
+    onPendingQueueExpandedChange: (Boolean) -> Unit = {},
+    onDeletePendingQueueMessage: (Long) -> Unit = {},
+    onEditPendingQueueMessage: (Long) -> Unit = {},
+    onSendPendingQueueMessage: (Long) -> Unit = {},
+) {
     val showTokenLimitDialog = remember { mutableStateOf(false) }
     val showFullscreenInput = remember { mutableStateOf(false) }
     val showModelSelectorPopup = remember { mutableStateOf(false) }
     val showExtraSettingsPopup = remember { mutableStateOf(false) }
     var showContextUsageDialog by remember { mutableStateOf(false) }
     if (showContextUsageDialog) {
-        ChatContextUsageDialog(actualViewModel, onDismiss = { showContextUsageDialog = false })
+        runtime.contextUsageDialog { showContextUsageDialog = false }
     }
     var showCharacterCardBindingSwitchConfirm by remember { mutableStateOf(false) }
     var pendingCharacterCardModelSelection by remember { mutableStateOf<Pair<String, Int>?>(null) }
@@ -377,7 +529,7 @@ fun AgentChatInputSection(
     val typography = MaterialTheme.typography
 
     val toolProgressEvent by ToolProgressBus.progress.collectAsState()
-    val currentModelName by actualViewModel.modelName.collectAsState()
+    val currentModelName = runtime.modelName
     val configMappingWithIndex by
         functionalConfigManager.functionConfigMappingWithIndexFlow.collectAsState(initial = emptyMap())
     val configSelection by
@@ -434,8 +586,8 @@ fun AgentChatInputSection(
             mappedModelName?.takeIf { it.isNotBlank() } ?: currentModelName
         }
 
-    val currentWindowSize by actualViewModel.currentWindowSize.collectAsState()
-    val maxWindowSizeInK by actualViewModel.maxWindowSizeInK.collectAsState()
+    val currentWindowSize = runtime.currentWindowSize
+    val maxWindowSizeInK = runtime.maxWindowSizeInK
     val maxTokens = (maxWindowSizeInK * 1024).toLong().coerceAtLeast(0L)
     val userMessageTokens = remember(userMessage.text) { ChatUtils.estimateTokenCount(userMessage.text) }
     val projectedTokens = userMessageTokens.toLong() + currentWindowSize
@@ -474,16 +626,6 @@ fun AgentChatInputSection(
         }
     }
 
-    val voicePermissionLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
-        ) { isGranted ->
-            if (isGranted) {
-                actualViewModel.launchFloatingModeIn(FloatingMode.FULLSCREEN, colorScheme, typography)
-            } else {
-                OKToast.warning(context, context.getString(R.string.microphone_permission_denied_toast)).show()
-            }
-        }
 
     val (showAttachmentPanel, setShowAttachmentPanel) =
         remember { mutableStateOf(externalAttachmentPanelState ?: false) }
@@ -859,7 +1001,7 @@ fun AgentChatInputSection(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .themeScriptDecoration("composer", inputDecorationOpacity, drawFill = false)
+                            .themeScriptDecoration("composer", inputDecorationOpacity, drawFill = false, originalShape = inputCardShape)
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     OutlinedTextField(
@@ -873,10 +1015,11 @@ fun AgentChatInputSection(
                                 } else {
                                     context.getString(R.string.input_question_hint)
                                 },
-                                style = inputTextStyle,
+                                style = themeScriptTextStyle("input", inputTextStyle),
+                                color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input").onPreviewKeyEvent(onEnterToSendKeyEvent),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input", enabled = !isProcessing || allowTextInputWhileProcessing, originalShape = RoundedCornerShape(14.dp)).onPreviewKeyEvent(onEnterToSendKeyEvent),
                         textStyle = themeScriptTextStyle("input", themeScriptTextStyle("composer", inputTextStyle)),
                         maxLines = 6,
                         minLines = 1,
@@ -900,7 +1043,7 @@ fun AgentChatInputSection(
                                 unfocusedContainerColor = Color.Transparent,
                                 disabledContainerColor = Color.Transparent,
                             ),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = themeScriptShape("input", RoundedCornerShape(14.dp)),
                         trailingIcon = {
                             IconButton(onClick = { showFullscreenInput.value = true }) {
                                 ThemeScriptIcon(
@@ -1169,7 +1312,7 @@ fun AgentChatInputSection(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .themeScriptDecoration("composer", inputDecorationOpacity, drawFill = false)
+                                .themeScriptDecoration("composer", inputDecorationOpacity, drawFill = false, originalShape = inputCardShape)
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                     ) {
                         OutlinedTextField(
@@ -1183,10 +1326,11 @@ fun AgentChatInputSection(
                                     } else {
                                         context.getString(R.string.input_question_hint)
                                     },
-                                    style = inputTextStyle,
+                                    style = themeScriptTextStyle("input", inputTextStyle),
+                                    color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input").onPreviewKeyEvent(onEnterToSendKeyEvent),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input", enabled = !isProcessing || allowTextInputWhileProcessing, originalShape = RoundedCornerShape(14.dp)).onPreviewKeyEvent(onEnterToSendKeyEvent),
                             textStyle = themeScriptTextStyle("input", themeScriptTextStyle("composer", inputTextStyle)),
                             maxLines = 6,
                             minLines = 1,
@@ -1210,7 +1354,7 @@ fun AgentChatInputSection(
                                     unfocusedContainerColor = Color.Transparent,
                                     disabledContainerColor = Color.Transparent,
                                 ),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = themeScriptShape("input", RoundedCornerShape(14.dp)),
                             trailingIcon = {
                                 IconButton(onClick = { showFullscreenInput.value = true }) {
                                     ThemeScriptIcon(
@@ -1472,7 +1616,7 @@ fun AgentChatInputSection(
 
             AgentExtraSettingsPopup(
                 visible = showExtraSettingsPopup.value,
-                actualViewModel = actualViewModel,
+                runtime = runtime,
                 onContextUsageClick = {
                     showExtraSettingsPopup.value = false
                     showContextUsageDialog = true
@@ -1519,12 +1663,7 @@ fun AgentChatInputSection(
                 onAttachNotifications = onAttachNotifications,
                 onAttachLocation = onAttachLocation,
                 onVoiceCall = {
-                    actualViewModel.onFloatingButtonClick(
-                        FloatingMode.FULLSCREEN,
-                        voicePermissionLauncher,
-                        colorScheme,
-                        typography
-                    )
+                    runtime.onVoiceCall()
                 },
                 onAttachMemory = onAttachMemory,
                 onAttachPackage = onAttachPackage,
@@ -2063,7 +2202,7 @@ private fun AgentModelSelectorItem(
 @Composable
 private fun AgentExtraSettingsPopup(
     visible: Boolean,
-    actualViewModel: ChatViewModel,
+    runtime: ChatInputRuntime,
     onContextUsageClick: () -> Unit,
     popupContainerColor: Color,
     preferenceProfiles: List<MemorySpace>,
@@ -2176,7 +2315,7 @@ private fun AgentExtraSettingsPopup(
                             .padding(vertical = 4.dp)
                             .verticalScroll(rememberScrollState()),
                 ) {
-                    ChatContextUsageEntry(actualViewModel, onClick = onContextUsageClick)
+                    runtime.contextUsageEntry(onContextUsageClick)
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 12.dp),
                         color = MaterialTheme.colorScheme.outlineVariant

@@ -111,3 +111,7 @@ QuickJS 的通用执行资源限制放在现有 `quickjs` 模块内；主题模�
 只确定新增功能的位置与依赖边界，不搬迁现有主题偏好、玻璃、透明度、主题分享和聊天组件，也不重做上一轮包整理。
 
 [DONE] 路径与职责核对、布局记录及临时一级包撤回；实现已按此布局完成，原编辑弹窗已由设置页独立 studio 下级包替代，部件名称映射仍可复用。
+
+## 预览工具栏与菜单复用
+
+工作室场景入口单独放在既有 studio 包的 ThemeStudioPreviewToolbar.kt。可复用的锚定菜单位于 ui/components/menu/WorkbenchDropdownMenu.kt，与已有 ActionSheetItem 选项行组合；数值与颜色滑杆复用 ui/components/slider/WorkbenchSlider.kt。新增菜单组件没有依赖主题工程模型，其他工作区保留原职责。

@@ -5,7 +5,7 @@ export type SurfaceId = "background" | "userMessage" | "assistantMessage" | "com
     "listItem" | "status" | "toolCard";
 export type IconId = "composer.settings" | "composer.attachment" | "composer.microphone" |
     "composer.send" | "composer.stop" | "composer.fullscreen" | "composer.queue" |
-    "composer.expand" | "appBar.back" | "appBar.menu" | "appBar.history" |
+    "composer.expand" | "appBar.back" | "appBar.menu" | "appBar.workspace" |
     "appBar.floating" | "navigation.item";
 /** 六位是 RGB，八位是 ARGB。 */
 export type Color = `#${string}`;
@@ -26,10 +26,12 @@ export interface Typography {
     scale?: number;
     lineHeight?: number;
     letterSpacing?: number;
+    /** 全局或区域文字颜色；null 表示沿用原有配色。 */
+    color?: Color | null;
 }
 export interface Shape { type?: "rounded" | "cut" | "circle"; radius?: number; }
 export interface IconAsset { asset: string; size?: number; opacity?: number; useContentTint?: boolean; tintColor?: Color; }
-/** 坐标和宽高为所在部件的归一化比例。 */
+/** 位置为 -1..1，宽高为 (0,1]；平移保持尺寸，超出部件边缘的部分裁剪。 */
 export interface Bounds { x?: number; y?: number; width?: number; height?: number; }
 /** 内容留白使用 dp，九宫格切片使用原图像素。 */
 export interface Insets { start?: number; top?: number; end?: number; bottom?: number; }
@@ -40,7 +42,7 @@ interface BaseLayer {
     placement?: "background" | "foreground";
     sampling?: "smooth" | "nearest";
     alignment?: "center" | "top" | "bottom" | "start" | "end";
-    /** 单位 dp；非零值要求 Android 12 或更新系统。 */
+    /** 0..8 dp；非零值要求 Android 12 或更新系统。 */
     blur?: number;
     state?: "always" | "pressed" | "focused" | "selected" | "disabled" | "error";
 }

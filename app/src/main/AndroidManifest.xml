@@ -77,7 +77,9 @@
         <package android:name="com.ai.assistance.operit.provider" />
     </queries>
 
+    <!-- QuickJS 使用 47 位地址保存 JSValue，须在进程启动前关闭会丢失的堆顶字节标记。 -->
     <application
+        android:allowNativeHeapPointerTagging="false"
         android:name=".core.application.OperitApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

@@ -9225,7 +9225,6 @@
     <string name="theme_icon_expand">Expand composer menu</string>
     <string name="theme_icon_back">Back</string>
     <string name="theme_icon_menu">Open navigation</string>
-    <string name="theme_icon_history">Chat history</string>
     <string name="theme_icon_floating">Floating window</string>
     <string name="theme_icon_navigation">Common navigation icon</string>
     <string name="theme_appearance_disabled">Disabled</string>

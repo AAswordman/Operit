@@ -20,7 +20,7 @@
 本轮不运行应用、本地构建或测试，不查询或等待 CI。文档描述已实现的声明式外观接口；原生界面和性能的验证状态沿用已有回归记录。
 ## 交付结果
 
-- [完整制作手册](../../../doc-src/feature-protocol/theme_authoring_guide.md)：15 个共享结构、86 个字段，19 个区域、13 个图标、36 个颜色 token 的位置、默认值、范围与原生消费边界
+- [完整制作手册](../../../doc-src/feature-protocol/theme_authoring_guide.md)：15 个共享结构、87 个字段，19 个区域、13 个图标、36 个颜色 token 的位置、默认值、范围与原生消费边界
 - [只读参数目录](../../../doc-src/feature-protocol/theme_settings_reference.md)：完整列出 166 个主题分享字段，包含 158 项已知可读设置与 8 项明确过滤的媒体位置字符串，另外解释标题、脚本私有引用和五个 layout 值
 - `examples/theme-script/starter/`：无外部素材的配套外观、工程清单、CommonJS JS 和操作说明；两份 appearance 一致
 - 手机目录 `/sdcard/Download/Operit/theme-authoring/`：可离线阅读的手册、参数目录、概览、类型声明、示例源码和学习包 `starter.oktheme`，已重写并核对本地文档链接，源码与仓库文件逐字节一致

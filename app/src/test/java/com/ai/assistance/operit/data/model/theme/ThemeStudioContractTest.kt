@@ -80,10 +80,15 @@ class ThemeStudioContractTest {
 
     @Test
     fun samplingAlignmentBlurAndTintRespectTheirBoundaries() {
-        val layer = ThemeScriptLayer("image", asset = "badge", fit = "tile", sampling = "nearest", alignment = "end", blur = 32f)
+        // 合法样例与编辑器共用模糊上限，旧的 32 dp 只作为超限拒绝用例。
+        val layer = ThemeScriptLayer("image", asset = "badge", fit = "tile", sampling = "nearest", alignment = "end", blur = ThemeScriptContract.MAX_BLUR_DP)
         fun appearance(value: ThemeScriptLayer) = ThemeScriptAppearance(1, surfaces = mapOf("composer" to ThemeScriptSurface(layers = listOf(value))))
         ThemeScriptContract.validate(appearance(layer), manifest)
-        for (invalid in listOf(layer.copy(sampling = "auto"), layer.copy(alignment = "left"), layer.copy(blur = 33f), layer.copy(blur = Float.NaN))) {
+        for (invalid in listOf(
+            layer.copy(sampling = "auto"), layer.copy(alignment = "left"),
+            layer.copy(blur = ThemeScriptContract.MAX_BLUR_DP + .01f),
+            layer.copy(blur = 32f), layer.copy(blur = Float.NaN),
+        )) {
             rejects { ThemeScriptContract.validate(appearance(invalid), manifest) }
         }
         ThemeScriptContract.validate(ThemeScriptAppearance(1, icons = mapOf("composer.send" to ThemeAppearanceIcon("badge", tintColor = "#80112233"))), manifest)

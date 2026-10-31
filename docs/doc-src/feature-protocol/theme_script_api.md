@@ -8,13 +8,13 @@
 
 ## 制作流程
 
-1. 在主题设置中选择角色卡或角色组，打开“基础 → 主题工作室 → 创作主题”。工作室使用原生全屏界面
-2. “设计”区上方提供聊天、组件、导航三个场景和浅深模式预览。聊天标题位于顶部，消息靠下排列，输入区贴底；预览可收起或全屏查看，没有自由拖拽分隔条
-3. 打开部件选择页，通过分组侧栏和搜索选择 19 个区域、13 个图标或全局排版与配色。只有容器提供图层；按钮、图标按钮及导航项提供其实际交互状态。全局字体、全局配色和图标不显示图层或状态页签
+1. 在主题设置中选择角色卡或角色组，打开“基础 → 主题工作室 → 创作主题”。工作室使用原生全屏界面，编辑器外壳跟随当前应用的浅色、深色或系统模式，文字与图标使用配套内容色
+2. 顶部保留“设计／源码／资源”三个工作区。“设计”区使用一条预览工具栏：左侧下拉选择聊天、常用组件、侧栏与顶栏场景，右侧切换浅深模式，并保留全屏与展开／收起。场景和部件选择相互联动。聊天标题位于顶部，消息靠下排列，输入区贴底；预览可收起或全屏查看，没有自由拖拽分隔条。预览模式与编辑器外壳独立，聊天场景可选择经典或智能体，复用正式消息、顶栏、输入与经典设置条；侧栏共用展示布局与历史行，常用组件可打开真实弹窗和面板。预览使用固定数据且点击不触发会话业务，实际内容和窗口尺寸仍会影响画面
+3. 打开部件选择页，通过分组侧栏和搜索选择 19 个区域、13 个图标或全局排版与配色。只有容器提供图层；按钮、图标按钮及导航项提供其实际交互状态。全局字体、全局配色和图标不显示图层或状态页签。全局和区域排版均可设置浅深文字颜色，普通主题页字体窗口编辑同一份全局文字色；颜色跟随角色草稿保存和放弃。形状、字体等属性选项等分整行，最小触控高度 52 dp，较多选项换行展示
 4. 所有颜色入口打开统一选色器，包含饱和度与明度、色相、透明度、ARGB、RGBA、预设颜色和素材图片点按取色。浅色与深色列独立保存。图标只有已绑定素材的模式才能编辑固定着色
 5. “资源”区导入 PNG、JPEG、WebP、静态 SVG、TTF、OTF；支持网格和列表、搜索、图片/图标/字体分类、嵌套文件夹、重命名与移动。素材标识保持不变，路径改动不破坏静态外观绑定；被静态外观引用的资源不能删除，文件夹只能在空目录时删除
-6. “源码”区单独铺满工作区，编辑 `theme.json`、`manifest.json` 和清单指定的 JS 入口。支持行号、查找、JSON 格式化及脚本文件导入。切换工作区或源文件前先校验并同步；解析失败保留未同步文本，不能应用或导出
-7. 工程菜单编辑名称、ID、作者、版本、简介和许可，或载入森林/信纸模板。模板替换当前工程，撤销可恢复。撤销/重做最多保留 24 步，连续滑杆和数值调整合为一步，资源对象随历史恢复
+6. “源码”区单独铺满工作区，编辑 `theme.json`、`manifest.json` 和清单指定的 JS 入口。支持行号、查找、JSON 字符串高亮、JavaScript 轻量语法高亮、JSON 格式化及脚本文件导入。切换工作区或源文件前先校验并同步；解析失败保留未同步文本，不能应用或导出
+7. 工程菜单编辑名称、ID、作者、版本、简介和许可，或载入森林/信纸模板。模板替换当前工程，撤销可恢复。撤销/重做最多保留 24 步，连续滑杆和数值调整合为一步，资源对象随历史恢复。场景、工程操作、源码文件、添加资源和添加图层使用统一的自定义锚定菜单，当前单选项显示选中标记；滑杆沿用项目的细轨圆形样式
 8. “保存工程草稿”只保存所选角色的制作进度，下次进入继续编辑；“应用到角色草稿”验证浅深两套脚本结果后返回主题页，仍需点击主题页保存。关闭时可保存制作草稿或放弃本次修改
 9. 工程菜单直接导出当前工程为 `.oktheme`，包括当前角色参数、布局、源码、资源和工程信息，不要求先应用。工作室“导入工程”只载入包内的脚本工程；完整主题的角色参数应用继续使用原有完整主题导入页。没有脚本工程的包在工作室中明确拒绝
 
@@ -45,7 +45,7 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 - `userMessage`、`assistantMessage`：双方 Cursor/Bubble 消息正文、宽度比例、文字样式和原生容器形状；包括现有宽窄布局和图片气泡路径。已有消息分片仍逐片绘制
 - `userAvatar`、`assistantAvatar`：消息头像尺寸、外形和装饰；不修改头像身份数据
 - `composer`：Classic/Agent 输入容器，支持形状、填色、描边、尺寸、留白、图层和字体
-- `input`：Agent 文本输入区域装饰，Classic/Agent 输入正文的局部排版；其他业务表单与工作室自身表单不自动接入该部件
+- `input`：Classic/Agent 真实输入外框的填色、形状、描边、留白与局部排版；其他业务表单与工作室自身表单不自动接入该部件
 - `appBar`：主顶栏和聊天标题栏；不同入口保留各自的原生结构
 - `navigation`、`navigationItem`：手机抽屉、平板侧边栏的内容及导航项，导航项传入选中状态
 - `button`、`iconButton`：已接入适配器的常用 Material3 按钮、描边按钮、文字按钮、色调按钮及图标按钮；业务事件和交互源继续交给原生按钮
@@ -61,12 +61,14 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 `Appearance` 包含数字 `apiVersion: 1` 和以下可选字段：
 
 - `palette.light/dark`：36 个 Material 颜色 token。包括 primary/secondary/tertiary 的前景与容器、background/surface、surfaceVariant、inverse、error、outline、scrim、surfaceTint，以及 surfaceBright/surfaceDim 和五档 surfaceContainer；完整 token 名称以类型声明为准
-- `typography`：全局字体类别 `default/sans-serif/serif/monospace/cursive` 或 `asset:<素材标识>` 的 TTF/OTF 字体，字号比例 `scale`、行高倍数 `lineHeight` 和字间距 `letterSpacing`
+- `typography`：全局字体类别 `default/sans-serif/serif/monospace/cursive` 或 `asset:<素材标识>` 的 TTF/OTF 字体，字号比例 `scale`、行高倍数 `lineHeight` 、字间距 `letterSpacing` 和可选文字色 `color`
 - `surfaces`：上述 19 个部件的局部外观
 - `icons`：原生按钮图像绑定，只替换图像
 - `modes.light/dark`：按模式覆盖 `surfaces/icons/typography`。未声明的部件保留公共外观；声明的单个部件以完整局部对象替换公共部件，局部对象中未指定的字段使用模型默认值。模式展开后才传入脚本，脚本返回的模式覆盖也按当前模式展开
 
-每个部件可以配置：
+共享结构包含以下字段，工作室按实际消费显示控件：背景不展示描边，头像不展示文字样式，固定尺寸部件不展示最小高度，圆形不展示半径。当前能力边界见[十九个区域与工作室属性](theme_authoring_guide.md#surfaces)。原生边框与装饰只绘制一次，描边位于形状内侧。
+
+共享字段：
 
 - `shape`：`rounded/cut/circle` 和 `radius`；圆角/切角 `0..128 dp`
 - `fillColor/contentColor/strokeColor/strokeWidth`：底色、前景色、描边；宽度 `0..16 dp`
@@ -93,11 +95,11 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 
 图层支持 `rect/ellipse/line/image/nineSlice`，可设 `id`、归一化 `bounds`、`opacity`、`placement` 和 `state`。
 
-`bounds.x/y/width/height` 默认 `0/0/1/1`，宽高必须大于零且不越界。`placement` 为 `background/foreground`，默认背景：原生材质底色、背景图层、原生正文、前景图层与描边依次绘制。前景层不要遮挡正文。
+`bounds.x/y/width/height` 默认 `0/0/1/1`，`x/y` 在 `-1..1`，宽高在 `(0,1]`。图层平移保持尺寸，超出容器的部分裁剪。`placement` 为 `background/foreground`，默认背景：原生材质底色、背景图层、原生正文、前景图层与描边依次绘制。前景层不要遮挡正文。
 
 `state` 为 `always/pressed/focused/selected/disabled/error`。按下和聚焦由原生指针与焦点更新；导航项传入选中状态，按钮传入启用状态；只有明确传入错误状态的消费入口显示错误层。其余入口只显示它们实际提供的状态，不把这些值解释为任意业务条件，也不逐帧执行 JS。
 
-绘图层至少设置 `color` 或 `strokeColor`，描边 `0..16 dp`、圆角 `0..128 dp`。`line` 连接区域左上与右下，最细为一个物理像素。图片层要求 `asset`，不能配置绘图颜色；`fit` 为 `fill/fit/crop/tile`，`alignment` 为 `center/top/bottom/start/end`，起始与结束侧随布局方向解释。`sampling` 为 `smooth/nearest`，最近邻关闭位图缩放滤波；`blur` 为 `0..32 dp`，非零值要求 Android 12 或更新系统，低版本明确拒绝。平铺与采样由原生绘制消费。九宫格仅接受位图，`slices.start/top/end/bottom` 是原图像素，切片必须留出非空中心；四角保留，边和中心按目标尺寸拉伸。
+绘图层至少设置 `color` 或 `strokeColor`，描边 `0..16 dp`、圆角 `0..128 dp`。`line` 连接区域左上与右下，最细为一个物理像素。图片层要求 `asset`，不能配置绘图颜色；`fit` 为 `fill/fit/crop/tile`，`alignment` 为 `center/top/bottom/start/end`，起始与结束侧随布局方向解释。`sampling` 为 `smooth/nearest`，最近邻关闭位图缩放滤波；`blur` 为 `0..8 dp`，非零值要求 Android 12 或更新系统，低版本明确拒绝。平铺与采样由原生绘制消费。九宫格仅接受位图，`slices.start/top/end/bottom` 是原图像素，切片必须留出非空中心；四角保留，边和中心按目标尺寸拉伸。
 
 所有装饰都乘以区域原有背景透明度；背景使用 `background_image_opacity`。区域透明度为零时装饰不可见，正文保持原透明度行为。Cursor 助手背景默认透明，需要提高原有助手背景不透明度才能看到装饰。原生材质已经绘制的底色不在装饰层重复绘制。 `fillColor` 的 alpha 只影响容器填色，图层仍使用区域原有透明度；制作图片边框时，可以将底色设为 `#00000000`，并保持对应区域不透明度大于零。
 
@@ -175,3 +177,5 @@ Promise、循环引用、未知字段、非法数值和不支持的机器版本�
 JVM 用例覆盖格式与机器 schema、旧文件/链接兼容、模式/状态继承、字体声明与图像类型约束、部件页签能力、目录边界、资源归档与引用清理，由 `Android Tests` 工作流执行。`ThemeScriptAndroidTest` 另含模板、原生求值、冻结上下文、执行预算和 SVG 用例，需要 Android 条件；当前仓库工作流不编译或执行仪器测试。
 
 完整操作与可填写结果见 [主题回归记录](../../TODO/feat/theme-script-api/03-verification.md)。实现和静态核对不等于 Android 界面验证通过。
+
+当前聊天控件行与工作室共用展示入口，图标槽包含 `appBar.menu`、`appBar.floating` 和 `appBar.workspace`。重构前的 `appBar.history` 已从此开发协议移除；开发工程请更新对应绑定。

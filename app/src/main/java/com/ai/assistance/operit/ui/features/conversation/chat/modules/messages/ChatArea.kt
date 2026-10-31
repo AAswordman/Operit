@@ -2,6 +2,8 @@ package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages
 
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
@@ -783,7 +785,7 @@ private fun MessageItem(
             onDismissRequest = { showContextMenu = false },
             modifier = Modifier
                 .width(180.dp)
-                .background(themeScriptFill("menu", MaterialTheme.colorScheme.surface), shape = themeScriptShape("menu", RoundedCornerShape(6.dp))).themeScriptDecoration("menu", drawFill = false),
+                .background(themeScriptFill("menu", MaterialTheme.colorScheme.surface), shape = themeScriptShape("menu", RoundedCornerShape(6.dp))).themeScriptDecoration("menu", drawFill = false, originalShape = RoundedCornerShape(6.dp)),
             properties = PopupProperties(
                 focusable = true,
                 dismissOnBackPress = true,
@@ -1300,7 +1302,7 @@ private fun MessageCopyPreviewBottomSheet(
     ModalBottomSheet(
         modifier = Modifier.clip(themeScriptShape("sheet", androidx.compose.material3.BottomSheetDefaults.ExpandedShape))
                     .background(themeScriptFill("sheet", androidx.compose.material3.BottomSheetDefaults.ContainerColor))
-                    .themeScriptDecoration("sheet", drawFill = false),
+                    .themeScriptDecoration("sheet", drawFill = false, originalShape = androidx.compose.material3.BottomSheetDefaults.ExpandedShape),
         shape = themeScriptShape("sheet", androidx.compose.material3.BottomSheetDefaults.ExpandedShape),
         containerColor = Color.Transparent,
         onDismissRequest = onDismiss,
@@ -1384,7 +1386,7 @@ private fun MessageCopyPreviewBottomSheet(
 }
 
 @Composable
-private fun MessageFooterBar(
+internal fun MessageFooterBar(
     message: ChatMessage,
     showMessageTokenStats: Boolean,
     showMessageTimingStats: Boolean,
@@ -1408,7 +1410,7 @@ private fun MessageFooterBar(
             Text(
                 text = stringResource(R.string.chat_generated_at, completedAtText),
                 modifier = Modifier.align(Alignment.Start),
-                style = MaterialTheme.typography.labelSmall,
+                style = themeScriptTextStyle("status", MaterialTheme.typography.labelSmall),
                 color = statsTextColor,
             )
         }
@@ -1423,9 +1425,9 @@ private fun MessageFooterBar(
                     contentDescription = stringResource(R.string.chat_previous_variant),
                     tint =
                         if (hasPrevious) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.35f)
                         },
                     modifier =
                         Modifier
@@ -1441,17 +1443,17 @@ private fun MessageFooterBar(
                             message.selectedVariantIndex + 1,
                             message.variantCount,
                         ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = themeScriptTextStyle("status", MaterialTheme.typography.labelSmall),
+                    color = themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant),
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = stringResource(R.string.chat_next_variant),
                     tint =
                         if (hasNext) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.35f)
                         },
                     modifier =
                         Modifier

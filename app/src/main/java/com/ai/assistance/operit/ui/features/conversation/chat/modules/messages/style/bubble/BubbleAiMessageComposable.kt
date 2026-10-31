@@ -296,7 +296,7 @@ fun BubbleAiMessageComposable(
         val headerVisible = bubbleShowAvatar || roleNameText.isNotEmpty() || metadataText.isNotEmpty()
         val avatarModifier = Modifier
             .size(themeScriptAvatarSize("assistantAvatar", 32.dp))
-            .clip(themeScriptShape("assistantAvatar", avatarShape)).themeScriptDecoration("assistantAvatar")
+            .clip(themeScriptShape("assistantAvatar", avatarShape)).themeScriptDecoration("assistantAvatar", originalShape = avatarShape)
             .combinedClickable(
                 onClick = {},
                 onLongClick = {
@@ -455,7 +455,7 @@ fun BubbleAiMessageComposable(
                             modifier = bubbleModifier,
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = true) {
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
                                 renderContent()
                             }
                         }
@@ -492,7 +492,7 @@ fun BubbleAiMessageComposable(
                                     2.dp
                                 },
                         ) {
-                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = false) {
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
                                 renderContent()
                             }
                         }
@@ -514,7 +514,7 @@ fun BubbleAiMessageComposable(
             if (slice?.first != false) {
             val avatarModifier = Modifier
                 .size(themeScriptAvatarSize("assistantAvatar", 32.dp))
-                .clip(themeScriptShape("assistantAvatar", avatarShape)).themeScriptDecoration("assistantAvatar")
+                .clip(themeScriptShape("assistantAvatar", avatarShape)).themeScriptDecoration("assistantAvatar", originalShape = avatarShape)
                 .combinedClickable(
                     onClick = {},
                     onLongClick = {
@@ -676,7 +676,7 @@ fun BubbleAiMessageComposable(
                             modifier = bubbleModifier,
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = true) {
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
                                 renderContent()
                             }
                         }
@@ -713,7 +713,7 @@ fun BubbleAiMessageComposable(
                                     2.dp
                                 }
                         ) {
-                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = false) {
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
                                 renderContent()
                             }
                         }

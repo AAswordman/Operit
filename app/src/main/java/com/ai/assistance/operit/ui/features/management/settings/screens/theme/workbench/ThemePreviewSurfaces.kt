@@ -47,6 +47,23 @@ import com.ai.assistance.operit.ui.theme.*
 
 @Composable
 internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, userName: String, markdownPreview: Boolean = false) {
+    ThemePreviewMessageSample(
+        values, user, userName,
+        message = stringResource(if (user) R.string.chat_style_preview_user_message else R.string.chat_style_preview_ai_message),
+        markdownPreview = markdownPreview,
+    )
+}
+
+/** 工作室使用简洁消息正文，主题页与布局页继续展示完整元信息。 */
+@Composable
+internal fun ThemePreviewMessageSample(
+    values: ThemePreferenceValues,
+    user: Boolean,
+    userName: String,
+    message: String,
+    markdownPreview: Boolean = false,
+    showDetails: Boolean = true,
+) {
     val context = LocalContext.current
     val preferences = remember(context) { DisplayPreferencesManager.getInstance(context) }
     val globalAvatar by preferences.globalUserAvatarUri.collectAsState(initial = null)
@@ -139,13 +156,13 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
                         else null,
                     )
                     .joinToString(" · ")
-        if (names.isNotBlank())
+        if (showDetails && names.isNotBlank())
             Text(
                 names,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        if (!user && values.requiredBoolean("show_thinking_process")) {
+        if (showDetails && !user && values.requiredBoolean("show_thinking_process")) {
             Text(
                 stringResource(R.string.show_thinking_process),
                 Modifier.clickable { thoughtExpanded = !thoughtExpanded },
@@ -178,10 +195,7 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                     )
                 } else Text(
-                    stringResource(
-                        if (user) R.string.chat_style_preview_user_message
-                        else R.string.chat_style_preview_ai_message
-                    ),
+                    message,
                     style = themeScriptTextStyle(if (user) "userMessage" else "assistantMessage", MaterialTheme.typography.bodyMedium),
                     color = textColor,
                     fontFamily = themeScriptTextStyle(if (user) "userMessage" else "assistantMessage", MaterialTheme.typography.bodyMedium.copy(fontFamily = family)).fontFamily,
@@ -265,7 +279,7 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
             if (!cursor && values.requiredBoolean("bubble_show_avatar") && user)
                 ThemePreviewAvatar(avatar, values, user)
         }
-        if (!user) {
+        if (showDetails && !user) {
             val meta = buildList {
                 if (values.requiredBoolean("show_message_token_stats")) add("128 tokens")
                 if (
@@ -299,7 +313,7 @@ private fun ThemePreviewAvatar(uri: String?, values: ThemePreferenceValues, user
             .size(themeScriptAvatarSize(if (user) "userAvatar" else "assistantAvatar", 27.dp))
             .clip(themeScriptShape(if (user) "userAvatar" else "assistantAvatar", shape))
             .background(MaterialTheme.colorScheme.secondaryContainer)
-            .themeScriptDecoration(if (user) "userAvatar" else "assistantAvatar"),
+            .themeScriptDecoration(if (user) "userAvatar" else "assistantAvatar", originalShape = shape),
         contentAlignment = Alignment.Center,
     ) {
         if (uri != null)

@@ -82,6 +82,7 @@ internal fun SidebarPluginSection(
                         appearance = appearance,
                         containerColor = container,
                         contentColor = getTextColorForBackground(container),
+                        selected = selected,
                         border = BorderStroke(1.dp, appearance.dividerColor.copy(alpha = 0.6f)),
                     ) {
                         Row(

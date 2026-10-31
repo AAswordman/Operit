@@ -5,6 +5,7 @@ import androidx.compose.material3.CardColors
 import androidx.compose.runtime.Composable
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.ThemeEditorSession
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemeWorkbenchFontEditor
+import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemeTypographyColorEditor
 
 @Composable
 internal fun ThemeSettingsFontSection(
@@ -31,4 +32,5 @@ internal fun ThemeSettingsFontSection(
         scale = fontScaleInput,
         onScaleChange = { editorSession.setFloat("font_scale", it) },
     )
+    ThemeTypographyColorEditor(editorSession)
 }

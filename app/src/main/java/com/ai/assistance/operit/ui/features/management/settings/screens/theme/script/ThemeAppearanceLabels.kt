@@ -40,7 +40,7 @@ internal fun themeAppearanceIconLabel(id: String): String = stringResource(when 
     "composer.expand" -> R.string.theme_icon_expand
     "appBar.back" -> R.string.theme_icon_back
     "appBar.menu" -> R.string.theme_icon_menu
-    "appBar.history" -> R.string.theme_icon_history
+    "appBar.workspace" -> R.string.workspace_hub_entry
     "appBar.floating" -> R.string.theme_icon_floating
     "navigation.item" -> R.string.theme_icon_navigation
     else -> error("Unknown appearance icon")

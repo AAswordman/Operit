@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.components.slider.WorkbenchSlider
 import com.ai.assistance.operit.data.model.theme.*
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptImage
 import java.util.Locale
@@ -45,7 +47,7 @@ internal fun studioHex(value: Int): String = String.format(Locale.ROOT, "#%08X",
 
 @Composable
 internal fun StudioColorChip(value: Color?, modifier: Modifier = Modifier) {
-    Canvas(modifier.size(26.dp).border(1.dp, Color.White.copy(alpha = .2f), RoundedCornerShape(6.dp))) {
+    Canvas(modifier.size(26.dp).clip(RoundedCornerShape(6.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp))) {
         val tile = 5.dp.toPx()
         for (x in 0..(size.width / tile).toInt()) for (y in 0..(size.height / tile).toInt()) drawRect(if ((x + y) % 2 == 0) Color(0xFF686C78) else Color(0xFFADB1BE), Offset(x * tile, y * tile), androidx.compose.ui.geometry.Size(tile, tile))
         if (value != null) drawRect(value)
@@ -59,7 +61,7 @@ internal fun StudioColorRow(state: ThemeStudioState, label: String, field: Strin
         for (mode in listOf("light", "dark")) {
             val value = state.color(field, mode)
             val available = state.target.kind != StudioKind.Icon || state.icon(forMode = mode) != null
-            Row(Modifier.width(102.dp).padding(start = 4.dp).border(1.dp, if (state.mode == mode) Color(0xFF51425E) else Color.Transparent, RoundedCornerShape(8.dp)).clickable(enabled = available) { onPick(field, mode, value) }.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.width(102.dp).padding(start = 4.dp).border(1.dp, if (state.mode == mode) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(8.dp)).clickable(enabled = available) { onPick(field, mode, value) }.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 StudioColorChip(value?.let { Color(android.graphics.Color.parseColor(it)) })
                 Text(value?.removePrefix("#") ?: stringResource(if (available) R.string.studio_inherit else R.string.studio_unbound), style = MaterialTheme.typography.labelSmall, maxLines = 1)
             }
@@ -79,7 +81,7 @@ internal fun StudioColorHead() {
 
 @Composable
 internal fun StudioColorPicker(
-    state: ThemeStudioState,
+    state: ThemeStudioState?,
     title: String,
     initial: String?,
     seed: Color,
@@ -124,9 +126,9 @@ internal fun StudioColorPicker(
                 drawCircle(Color.White, radius = 7.dp.toPx(), center = Offset(saturation * size.width, (1f - brightness) * size.height), style = Stroke(2.dp.toPx()))
             }
             Text(stringResource(R.string.studio_hue), style = MaterialTheme.typography.labelSmall)
-            Slider(hue, { hue = it; syncInputs() }, valueRange = 0f..359.9f)
+            WorkbenchSlider(hue, { hue = it; syncInputs() }, valueRange = 0f..359.9f)
             Text(stringResource(R.string.studio_alpha), style = MaterialTheme.typography.labelSmall)
-            Slider(alpha, { alpha = it; syncInputs() }, valueRange = 0f..255f)
+            WorkbenchSlider(alpha, { alpha = it; syncInputs() }, valueRange = 0f..255f)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StudioColorChip(Color(start)); Text("→"); StudioColorChip(Color(current()))
                 OutlinedTextField(hex, { value ->
@@ -148,13 +150,13 @@ internal fun StudioColorPicker(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(Color.White, Color(0xFFFAF2E1), Color(0xFF556A53), Color(0xFFE2D6EE), Color.Black, Color.Transparent).forEach { color -> Box(Modifier.clickable { setColor(color.toArgb()) }) { StudioColorChip(color) } }
             }
-            TextButton(onClick = { chooseSample = true }) { Text(stringResource(R.string.studio_sample_image)) }
+            if (state != null) TextButton(onClick = { chooseSample = true }) { Text(stringResource(R.string.studio_sample_image)) }
         }
     }, confirmButton = { Button(onClick = { onChange(studioHex(current())); onClose() }, enabled = !invalid) { Text(stringResource(R.string.studio_apply_color)) } }, dismissButton = {
         Row { TextButton(onClick = { onChange(null); onClose() }) { Text(stringResource(R.string.studio_inherit)) }; TextButton(onClick = onClose) { Text(stringResource(R.string.studio_cancel)) } }
     })
-    if (chooseSample) StudioAssetPicker(state, fontsOnly = false, title = stringResource(R.string.studio_sample_image), onClose = { chooseSample = false }, onChoose = { id -> chooseSample = false; sample = id })
-    sample?.let { id -> StudioImageSampler(state.images.getValue(id), onClose = { sample = null }, onPicked = { value -> setColor(value); sample = null }) }
+    if (chooseSample && state != null) StudioAssetPicker(state, fontsOnly = false, title = stringResource(R.string.studio_sample_image), onClose = { chooseSample = false }, onChoose = { id -> chooseSample = false; sample = id })
+    if (state != null) sample?.let { id -> StudioImageSampler(state.images.getValue(id), onClose = { sample = null }, onPicked = { value -> setColor(value); sample = null }) }
 }
 
 @Composable

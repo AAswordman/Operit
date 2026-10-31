@@ -7,16 +7,21 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.components.ActionSheetItem
+import com.ai.assistance.operit.ui.components.menu.WorkbenchDropdownMenu
 import com.ai.assistance.operit.data.model.theme.*
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptImage
 
@@ -26,6 +31,7 @@ private data class StudioColorRequest(val title: String, val initial: String?, v
 internal fun StudioProperties(state: ThemeStudioState) {
     val context = LocalContext.current
     val title = state.target.label()
+    val layerSeed = StudioAccent
     var colorRequest by remember { mutableStateOf<StudioColorRequest?>(null) }
     var fontPicker by remember { mutableStateOf(false) }
     var bindIcon by remember { mutableStateOf(false) }
@@ -39,7 +45,7 @@ internal fun StudioProperties(state: ThemeStudioState) {
         colorRequest = StudioColorRequest("$title · $label", initial, Color.White) { value -> state.setColor(field, value, mode) }
     }
     fun layerColor(index: Int, field: String, initial: String?) {
-        colorRequest = StudioColorRequest(title, initial, StudioAccent) { value -> state.updateLayer(index) { if (field == "color") it.copy(color = value) else it.copy(strokeColor = value) } }
+        colorRequest = StudioColorRequest(title, initial, layerSeed) { value -> state.updateLayer(index) { if (field == "color") it.copy(color = value) else it.copy(strokeColor = value) } }
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 2.dp)) {
         if (state.property == StudioProperty.States) {
@@ -50,12 +56,12 @@ internal fun StudioProperties(state: ThemeStudioState) {
             StudioSection(stringResource(R.string.studio_state_colors)) {
                 StudioColorHead()
                 StudioColorRow(state, stringResource(R.string.studio_fill_color), "fillColor", ::color)
-                StudioColorRow(state, stringResource(R.string.studio_content_color), "contentColor", ::color)
-                StudioColorRow(state, stringResource(R.string.studio_stroke_color), "strokeColor", ::color)
+                if (state.target.supports(StudioSurfaceControl.ContentColor)) StudioColorRow(state, stringResource(R.string.studio_content_color), "contentColor", ::color)
+                if (state.target.supports(StudioSurfaceControl.Stroke)) StudioColorRow(state, stringResource(R.string.studio_stroke_color), "strokeColor", ::color)
                 if (state.previewState != "always") {
                     val active = state.surface().states[state.previewState] ?: ThemeAppearanceState()
                     StudioSlider(state, stringResource(R.string.studio_opacity), active.opacity, 0f..1f) { value -> state.updateSurface { it.copy(states = it.states + (state.previewState to (it.states[state.previewState] ?: ThemeAppearanceState()).copy(opacity = value))) } }
-                    StudioSlider(state, stringResource(R.string.studio_stroke_width), active.strokeWidth ?: state.surface().strokeWidth, 0f..16f, "dp") { value -> state.updateSurface { it.copy(states = it.states + (state.previewState to (it.states[state.previewState] ?: ThemeAppearanceState()).copy(strokeWidth = value))) } }
+                    if (state.target.supports(StudioSurfaceControl.Stroke)) StudioSlider(state, stringResource(R.string.studio_stroke_width), active.strokeWidth ?: state.surface().strokeWidth, 0f..16f, "dp") { value -> state.updateSurface { it.copy(states = it.states + (state.previewState to (it.states[state.previewState] ?: ThemeAppearanceState()).copy(strokeWidth = value))) } }
                     TextButton(onClick = { state.updateSurface { it.copy(states = it.states - state.previewState) } }) { Text(stringResource(R.string.studio_clear_state)) }
                 }
             }
@@ -66,7 +72,7 @@ internal fun StudioProperties(state: ThemeStudioState) {
                 ThemeScriptContract.colorTokens.filter { token -> token.contains(paletteQuery, true) || context.getString(ThemeStudioPaletteLabels.getValue(token)).contains(paletteQuery, true) }.forEach { token -> StudioColorRow(state, stringResource(ThemeStudioPaletteLabels.getValue(token)), token, ::color) }
             }
         } else if (state.target.kind == StudioKind.Typography) {
-            StudioTextProperties(state) { fontPicker = true }
+            StudioTextProperties(state, ::color) { fontPicker = true }
         } else if (state.target.kind == StudioKind.Icon) {
             val icon = state.icon()
             StudioSection(stringResource(R.string.studio_icon_binding)) {
@@ -96,10 +102,12 @@ internal fun StudioProperties(state: ThemeStudioState) {
                         if (layer.type in setOf("image", "nineSlice")) {
                             StudioAssetThumbnail(state.images.getValue(requireNotNull(layer.asset)), Modifier.fillMaxWidth().height(86.dp))
                             TextButton(onClick = { replaceLayer = index }) { Text(stringResource(R.string.studio_replace_image)) }
-                            StudioChoices(layer.fit, listOf("crop" to stringResource(R.string.studio_fit_crop), "fit" to stringResource(R.string.studio_fit_contain), "fill" to stringResource(R.string.studio_fit_fill), "tile" to stringResource(R.string.studio_fit_tile))) { value -> state.updateLayer(index) { it.copy(fit = value) } }
-                            StudioChoices(layer.alignment, listOf("center" to stringResource(R.string.studio_align_center), "top" to stringResource(R.string.studio_top), "bottom" to stringResource(R.string.studio_bottom), "start" to stringResource(R.string.studio_start), "end" to stringResource(R.string.studio_end))) { value -> state.updateLayer(index) { it.copy(alignment = value) } }
+                            if (layer.type == "image") {
+                                StudioChoices(layer.fit, listOf("crop" to stringResource(R.string.studio_fit_crop), "fit" to stringResource(R.string.studio_fit_contain), "fill" to stringResource(R.string.studio_fit_fill), "tile" to stringResource(R.string.studio_fit_tile))) { value -> state.updateLayer(index) { it.copy(fit = value) } }
+                                StudioChoices(layer.alignment, listOf("center" to stringResource(R.string.studio_align_center), "top" to stringResource(R.string.studio_top), "bottom" to stringResource(R.string.studio_bottom), "start" to stringResource(R.string.studio_start), "end" to stringResource(R.string.studio_end))) { value -> state.updateLayer(index) { it.copy(alignment = value) } }
+                            }
                             StudioChoices(layer.sampling, listOf("smooth" to stringResource(R.string.studio_sampling_smooth), "nearest" to stringResource(R.string.studio_sampling_nearest))) { value -> state.updateLayer(index) { it.copy(sampling = value) } }
-                            if (Build.VERSION.SDK_INT >= 31) StudioSlider(state, stringResource(R.string.studio_blur), layer.blur, 0f..32f, "dp") { value -> state.updateLayer(index) { it.copy(blur = value) } }
+                            if (Build.VERSION.SDK_INT >= 31) StudioSlider(state, stringResource(R.string.studio_blur), layer.blur, 0f..ThemeScriptContract.MAX_BLUR_DP, "dp") { value -> state.updateLayer(index) { it.copy(blur = value) } }
                             if (state.images[layer.asset] is ThemeScriptImage.Bitmap) {
                                 StudioChoices(layer.type, listOf("image" to stringResource(R.string.studio_image_layer), "nineSlice" to stringResource(R.string.studio_nine_slice))) { value -> state.updateLayer(index) { it.copy(type = value) } }
                                 if (layer.type == "nineSlice") TextButton(onClick = { nineIndex = index }) { Text(stringResource(R.string.studio_nine_slice)) }
@@ -111,18 +119,18 @@ internal fun StudioProperties(state: ThemeStudioState) {
                             if (layer.type == "rect") StudioSlider(state, stringResource(R.string.studio_corner_radius), layer.radius, 0f..128f, "dp") { value -> state.updateLayer(index) { it.copy(radius = value) } }
                         }
                         if (state.target.states.isNotEmpty()) StudioChoices(layer.state, (listOf("always") + state.target.states).map { it to studioStateLabel(it) }) { value -> state.updateLayer(index) { it.copy(state = value) } }
-                        StudioSlider(state, stringResource(R.string.studio_layer_x), layer.bounds.x * 100, 0f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(x = (value / 100).coerceAtMost(1f - it.bounds.width))) } }
-                        StudioSlider(state, stringResource(R.string.studio_layer_y), layer.bounds.y * 100, 0f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(y = (value / 100).coerceAtMost(1f - it.bounds.height))) } }
-                        StudioSlider(state, stringResource(R.string.studio_layer_width), layer.bounds.width * 100, 1f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(width = (value / 100).coerceAtMost(1f - it.bounds.x))) } }
-                        StudioSlider(state, stringResource(R.string.studio_layer_height), layer.bounds.height * 100, 1f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(height = (value / 100).coerceAtMost(1f - it.bounds.y))) } }
+                        StudioSlider(state, stringResource(R.string.studio_layer_x), layer.bounds.x * 100, -100f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(x = value / 100)) } }
+                        StudioSlider(state, stringResource(R.string.studio_layer_y), layer.bounds.y * 100, -100f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(y = value / 100)) } }
+                        StudioSlider(state, stringResource(R.string.studio_layer_width), layer.bounds.width * 100, 1f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(width = value / 100)) } }
+                        StudioSlider(state, stringResource(R.string.studio_layer_height), layer.bounds.height * 100, 1f..100f, "%") { value -> state.updateLayer(index) { it.copy(bounds = it.bounds.copy(height = value / 100)) } }
                     }
                 }
             }
             Box {
                 TextButton(onClick = { addLayerMenu = true }) { Icon(Icons.Default.Add, null); Text(stringResource(R.string.studio_add_layer)) }
-                DropdownMenu(expanded = addLayerMenu, onDismissRequest = { addLayerMenu = false }) {
+                WorkbenchDropdownMenu(expanded = addLayerMenu, onDismissRequest = { addLayerMenu = false }) {
                     listOf("image" to R.string.studio_image_layer, "nineSlice" to R.string.studio_nine_slice, "rect" to R.string.studio_rect_layer, "ellipse" to R.string.studio_ellipse_layer, "line" to R.string.studio_line_layer).forEach { (type, label) ->
-                        DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = {
+                        ActionSheetItem(label = stringResource(label), icon = if (type in setOf("image", "nineSlice")) Icons.Default.Image else Icons.Default.Palette, onClick = {
                             addLayerMenu = false
                             if (type in setOf("image", "nineSlice")) layerType = type
                             else state.updateSurface { it.copy(layers = it.layers + ThemeScriptLayer(type, color = "#80D1B5FF", strokeWidth = if (type == "line") 2f else 0f)) }
@@ -152,16 +160,18 @@ internal fun StudioProperties(state: ThemeStudioState) {
 
 @Composable
 private fun StudioSingleColor(label: String, value: String?, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         StudioColorChip(value?.let { Color(android.graphics.Color.parseColor(it)) }); Text(label, Modifier.weight(1f)); StudioHint(value ?: stringResource(R.string.studio_inherit))
     }
 }
 
 @Composable
-private fun StudioTextProperties(state: ThemeStudioState, onFont: () -> Unit) {
+private fun StudioTextProperties(state: ThemeStudioState, onColor: (String, String, String?) -> Unit, onFont: () -> Unit) {
     val text = if (state.target.kind == StudioKind.Typography) state.appearance.typography else state.surface().textStyle
     StudioSection(stringResource(R.string.studio_font)) {
-        StudioChoices(text.family, listOf(null to stringResource(R.string.studio_inherit), "default" to stringResource(R.string.studio_system_font), "sans-serif" to "Sans", "serif" to "Serif", "monospace" to "Mono", "cursive" to "Cursive")) { value -> state.updateText { it.copy(family = value) } }
+        StudioColorHead()
+        StudioColorRow(state, stringResource(R.string.studio_content_color), "textColor", onColor)
+        StudioChoices(text.family, listOf(null to stringResource(R.string.studio_inherit), "default" to stringResource(R.string.studio_system_font), "sans-serif" to stringResource(R.string.studio_font_sans), "serif" to stringResource(R.string.studio_font_serif), "monospace" to stringResource(R.string.studio_font_mono), "cursive" to stringResource(R.string.studio_font_cursive))) { value -> state.updateText { it.copy(family = value) } }
         TextButton(onClick = onFont) { Text(text.family?.takeIf { it.startsWith("asset:") }?.removePrefix("asset:")?.let { state.bundle.manifest.assets.getValue(it).substringAfterLast('/') } ?: stringResource(R.string.studio_choose_font)) }
         StudioSlider(state, stringResource(R.string.studio_font_scale), text.scale, .5f..2f) { value -> state.updateText { it.copy(scale = value) } }
         StudioSlider(state, stringResource(R.string.studio_line_height), text.lineHeight, .8f..2f) { value -> state.updateText { it.copy(lineHeight = value) } }
@@ -172,26 +182,38 @@ private fun StudioTextProperties(state: ThemeStudioState, onFont: () -> Unit) {
 @Composable
 private fun StudioSurfaceProperties(state: ThemeStudioState, onColor: (String, String, String?) -> Unit, onFont: () -> Unit) {
     val s = state.surface()
+    val target = state.target
     StudioSection(stringResource(R.string.studio_colors)) {
-        StudioColorHead(); StudioColorRow(state, stringResource(R.string.studio_fill_color), "fillColor", onColor)
-        if (state.target.id != "background") StudioColorRow(state, stringResource(R.string.studio_content_color), "contentColor", onColor)
-        StudioColorRow(state, stringResource(R.string.studio_stroke_color), "strokeColor", onColor)
+        StudioColorHead()
+        StudioColorRow(state, stringResource(R.string.studio_fill_color), "fillColor", onColor)
+        if (target.supports(StudioSurfaceControl.ContentColor)) StudioColorRow(state, stringResource(R.string.studio_content_color), "contentColor", onColor)
+        if (target.supports(StudioSurfaceControl.Stroke)) StudioColorRow(state, stringResource(R.string.studio_stroke_color), "strokeColor", onColor)
         StudioSlider(state, stringResource(R.string.studio_opacity), s.opacity, 0f..1f) { value -> state.updateSurface { it.copy(opacity = value) } }
     }
-    if (state.target.id != "background") {
+    if (target.supports(StudioSurfaceControl.Shape)) {
         StudioSection(stringResource(R.string.studio_shape_border)) {
             val shape = when { s.shape == null -> "inherit"; s.shape.type == "rounded" && s.shape.radius == 0f -> "rect"; else -> s.shape.type }
             StudioChoices(shape, listOf("inherit" to stringResource(R.string.studio_inherit), "rounded" to stringResource(R.string.studio_rounded), "rect" to stringResource(R.string.studio_square), "cut" to stringResource(R.string.studio_cut), "circle" to stringResource(R.string.studio_circle))) { value ->
-                state.updateSurface { it.copy(shape = when (value) { "inherit" -> null; "rect" -> ThemeAppearanceShape("rounded", 0f); else -> ThemeAppearanceShape(value, it.shape?.radius ?: 16f) }) }
+                state.updateSurface { it.copy(shape = when (value) { "inherit" -> null; "rect" -> ThemeAppearanceShape("rounded", 0f); else -> ThemeAppearanceShape(value, it.shape?.radius?.takeIf { radius -> radius > 0f } ?: 16f) }) }
             }
-            StudioSlider(state, stringResource(R.string.studio_corner_radius), s.shape?.radius ?: 0f, 0f..128f, "dp") { value -> state.updateSurface { it.copy(shape = ThemeAppearanceShape(it.shape?.type ?: "rounded", value)) } }
-            StudioSlider(state, stringResource(R.string.studio_stroke_width), s.strokeWidth, 0f..16f, "dp") { value -> state.updateSurface { it.copy(strokeWidth = value) } }
-            StudioSlider(state, stringResource(R.string.studio_min_height), s.minHeight, 0f..256f, "dp") { value -> state.updateSurface { it.copy(minHeight = value) } }
-            StudioSlider(state, stringResource(R.string.studio_elevation), s.elevation ?: 0f, 0f..24f, "dp") { value -> state.updateSurface { it.copy(elevation = value) } }
+            val configuredShape = s.shape
+            if (configuredShape != null && configuredShape.type in setOf("rounded", "cut")) {
+                StudioSlider(state, stringResource(R.string.studio_corner_radius), configuredShape.radius, 0f..128f, "dp") { value -> state.updateSurface { it.copy(shape = configuredShape.copy(radius = value)) } }
+            }
+            if (target.supports(StudioSurfaceControl.Stroke)) {
+                StudioSlider(state, stringResource(R.string.studio_stroke_width), s.strokeWidth, 0f..16f, "dp") { value -> state.updateSurface { it.copy(strokeWidth = value) } }
+                StudioHint(stringResource(R.string.studio_stroke_hint))
+            }
+            if (target.supports(StudioSurfaceControl.MinHeight)) StudioSlider(state, stringResource(R.string.studio_min_height), s.minHeight, 0f..256f, "dp") { value -> state.updateSurface { it.copy(minHeight = value) } }
+            if (target.supports(StudioSurfaceControl.Elevation)) StudioSlider(state, stringResource(R.string.studio_elevation), s.elevation ?: 0f, 0f..24f, "dp") { value -> state.updateSurface { it.copy(elevation = value) } }
         }
-        if (state.target.id.endsWith("Avatar")) StudioSection(stringResource(R.string.studio_avatar_size)) { StudioSlider(state, stringResource(R.string.studio_avatar_size), s.size ?: 27f, 16f..96f, "dp") { value -> state.updateSurface { it.copy(size = value) } } }
+    }
+    if (target.supports(StudioSurfaceControl.AvatarSize)) StudioSection(stringResource(R.string.studio_avatar_size)) {
+        StudioSlider(state, stringResource(R.string.studio_avatar_size), s.size ?: 27f, 16f..96f, "dp") { value -> state.updateSurface { it.copy(size = value) } }
+    }
+    if (target.supports(StudioSurfaceControl.Padding)) {
         StudioSection(stringResource(R.string.studio_padding)) {
-            var linked by remember(state.target.id) { mutableStateOf(true) }
+            var linked by remember(target.id) { mutableStateOf(true) }
             StudioChoices(linked, listOf(true to stringResource(R.string.studio_link_padding), false to stringResource(R.string.studio_separate_padding))) { linked = it }
             listOf("top" to R.string.studio_top, "end" to R.string.studio_end, "bottom" to R.string.studio_bottom, "start" to R.string.studio_start).forEach { (side, label) ->
                 val current = when (side) { "top" -> s.padding.top; "end" -> s.padding.end; "bottom" -> s.padding.bottom; else -> s.padding.start }
@@ -201,7 +223,10 @@ private fun StudioSurfaceProperties(state: ThemeStudioState, onColor: (String, S
                 } }
             }
         }
-        if (state.target.id in setOf("userMessage", "assistantMessage")) StudioSection(stringResource(R.string.studio_message_layout)) { StudioSlider(state, stringResource(R.string.studio_message_width), s.messageWidth * 100f, 30f..100f, "%") { value -> state.updateSurface { it.copy(messageWidth = value / 100f) } } }
-        StudioTextProperties(state, onFont)
-    } else StudioHint(stringResource(R.string.studio_background_image_hint))
+    }
+    if (target.supports(StudioSurfaceControl.MessageWidth)) StudioSection(stringResource(R.string.studio_message_layout)) {
+        StudioSlider(state, stringResource(R.string.studio_message_width), s.messageWidth * 100f, 30f..100f, "%") { value -> state.updateSurface { it.copy(messageWidth = value / 100f) } }
+    }
+    if (target.supports(StudioSurfaceControl.Typography)) StudioTextProperties(state, onColor, onFont)
+    if (target.id == "background") StudioHint(stringResource(R.string.studio_background_image_hint))
 }

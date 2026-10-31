@@ -48,3 +48,5 @@ JSON 的 `palette.light/dark` 分别覆盖九个颜色 token，其余 token 使�
 - [TypeScript 类型声明](../oktheme.d.ts)
 
 完整包的根 JSON 目前最多 8 层，本例把复杂图层放在 JS 中生成，静态模式覆盖仅使用较浅的部件字段。独立脚本输出仍受 16 层、128 KiB、128 图层及执行预算限制。
+
+全局文字颜色示例在 `modes.light/dark.typography.color`，普通主题字体窗口和工作室编辑同一字段。图片与九宫格位置可设为 `-100%..100%`，移动保持尺寸，越界部分裁剪；图层模糊上限为 8 dp。

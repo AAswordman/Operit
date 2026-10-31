@@ -277,7 +277,7 @@ fun PhoneLayout(
                                 else drawerAppearance.containerColor,
                         shadowElevation = 0.dp
                 ) {
-                    ThemeScriptSurface("navigation") {
+                    ThemeScriptSurface("navigation", originalShape = drawerShape) {
                             DrawerContent(
                                     navItems = navItems,
                                     pluginEntries = pluginSidebarEntries,

@@ -4,6 +4,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ai.assistance.operit.core.tools.javascript.QuickJsNativeRuntime
 import com.ai.assistance.operit.data.model.theme.ThemeScriptContext
+import com.ai.assistance.operit.data.model.theme.ThemeAppearanceShape
+import com.ai.assistance.operit.data.model.theme.ThemeAppearanceText
+import com.ai.assistance.operit.data.model.theme.ThemeScriptDefaults
+import com.ai.assistance.operit.data.model.theme.ThemeScriptSurface
 import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
 import com.ai.assistance.operit.data.model.theme.ThemeScriptSettings
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
@@ -116,6 +120,28 @@ class ThemeScriptAndroidTest {
         }
         QuickJsNativeRuntime.create(bridge).use { ordinary ->
             assertEquals("42", ordinary.eval("6 * 7").valueJson)
+        }
+    }
+
+    @Test(timeout = 30000)
+    fun repeatedAppearanceEditsSurviveNativeRuntimeCleanup() = runBlocking {
+        val shapes = listOf(
+            ThemeAppearanceShape("rounded", 16f),
+            ThemeAppearanceShape("cut", 16f),
+            ThemeAppearanceShape("rounded", 0f),
+        )
+        val colors = listOf("#FF112233", "#80335577", "#FF00AA88")
+        // 较长上下文和反复销毁实例覆盖释放路径，不能只验证最终外观字段。
+        val settings = input.settings.copy(strings = mapOf("system_font_name" to "sans-serif".repeat(256)))
+        repeat(18) { index ->
+            val surface = ThemeScriptSurface(
+                shape = shapes[index % shapes.size], contentColor = colors[index % colors.size],
+                textStyle = ThemeAppearanceText(color = colors[(index + 1) % colors.size]),
+            )
+            val appearance = input.appearance.copy(surfaces = mapOf("assistantMessage" to surface))
+            val project = bundle(ThemeScriptDefaults.SOURCE).copy(manifest = manifest.copy(appearance = appearance))
+            val resolved = ThemeScriptResolver.resolve(project, input.copy(appearance = appearance, settings = settings))
+            assertEquals(surface, resolved.surfaces["assistantMessage"])
         }
     }
 

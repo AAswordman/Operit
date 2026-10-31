@@ -296,7 +296,7 @@ fun UserMessageComposable(
             ) {
                 Column(modifier = Modifier
                     .then(if (voiceMessage == null) Modifier.fillMaxWidth() else Modifier)
-                    .themeScriptDecoration("userMessage", messageDecorationOpacity, drawFill = false)
+                    .themeScriptDecoration("userMessage", messageDecorationOpacity, drawFill = false, originalShape = RoundedCornerShape(8.dp))
                     .padding(
                         start = 16.dp,
                         top = if (isHiddenPlaceholder) 0.dp else if (voiceMessage != null) 8.dp else 16.dp,

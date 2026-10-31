@@ -1,6 +1,5 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor
 
-import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptMessageFraction
 import com.ai.assistance.operit.ui.theme.script.themeScriptTypography
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
@@ -146,7 +145,7 @@ fun AiMessageComposable(
                 Modifier
                     .fillMaxWidth(themeScriptMessageFraction("assistantMessage"))
                     .background(containerBackground, themeScriptShape("assistantMessage", RoundedCornerShape(8.dp)))
-                    .themeScriptDecoration("assistantMessage", messageDecorationOpacity, drawFill = false)
+                    .themeScriptDecoration("assistantMessage", messageDecorationOpacity, drawFill = false, originalShape = RoundedCornerShape(8.dp))
                     .padding(top = if (slice?.first != false) 2.dp else 0.dp, bottom = if (slice?.last != false) 2.dp else 0.dp)
                     .onSizeChanged { size ->
                         heightMemory?.updateMeasured(message.timestamp, size.height)

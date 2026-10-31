@@ -9201,7 +9201,6 @@
     <string name="theme_icon_expand">展开输入菜单</string>
     <string name="theme_icon_back">返回</string>
     <string name="theme_icon_menu">打开侧边栏</string>
-    <string name="theme_icon_history">聊天历史</string>
     <string name="theme_icon_floating">悬浮窗口</string>
     <string name="theme_icon_navigation">导航项通用图标</string>
     <string name="theme_appearance_disabled">停用</string>

@@ -32,7 +32,8 @@
       "family": "sans-serif",
       "scale": 1,
       "lineHeight": 1.05,
-      "letterSpacing": 0
+      "letterSpacing": 0,
+      "color": null
     },
     "surfaces": {
       "background": {
@@ -132,6 +133,22 @@
             },
             "messageWidth": 0.9
           }
+        },
+        "typography": {
+          "family": "sans-serif",
+          "scale": 1,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "color": "#E0EBDD"
+        }
+      },
+      "light": {
+        "typography": {
+          "family": "sans-serif",
+          "scale": 1,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "color": "#26332B"
         }
       }
     }

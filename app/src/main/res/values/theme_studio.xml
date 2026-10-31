@@ -7,8 +7,8 @@
     <string name="studio_source">源码</string>
     <string name="studio_resources">资源</string>
     <string name="studio_scene_chat">聊天</string>
-    <string name="studio_scene_components">组件</string>
-    <string name="studio_scene_navigation">导航</string>
+    <string name="studio_scene_components">常用组件</string>
+    <string name="studio_scene_navigation">侧栏与顶栏</string>
     <string name="studio_appearance">外观</string>
     <string name="studio_layers">图层</string>
     <string name="studio_states">状态</string>
@@ -209,4 +209,17 @@
     <string name="studio_project_id">工程 ID</string>
     <string name="studio_unbound">未绑定</string>
     <string name="studio_replace_image">更换图片素材</string>
+    <string name="studio_font_sans">无衬线</string>
+    <string name="studio_font_serif">衬线</string>
+    <string name="studio_font_mono">等宽</string>
+    <string name="studio_font_cursive">手写</string>
+    <string name="studio_preview_user_message">帮我安排一下今天的计划。</string>
+    <string name="studio_preview_assistant_message">当然。先完成最重要的事，也记得留一点休息时间。</string>
+    <string name="studio_preview_input">输入消息…</string>
+    <string name="studio_preview_complete">已完成</string>
+    <string name="studio_preview_scene">预览场景</string>
+    <string name="studio_classic_preview">聊天 · 经典</string>
+    <string name="studio_agent_preview">聊天 · 智能体</string>
+    <string name="studio_open_component_preview">打开真实组件预览</string>
+    <string name="studio_stroke_hint">自定义描边需要可见颜色和大于 0 的宽度；完全透明或零宽度不绘制。</string>
 </resources>

@@ -87,7 +87,7 @@ fun CompactNavigationDrawerItem(
                 shape = itemShape
         ) {
             Row(
-                    modifier = Modifier.fillMaxSize().themeScriptDecoration("navigationItem", selected = selected, drawFill = false).padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxSize().themeScriptDecoration("navigationItem", selected = selected, drawFill = false, originalShape = itemShape).padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
             ) {
                 ThemeScriptIcon(

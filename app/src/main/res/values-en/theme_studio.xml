@@ -7,8 +7,8 @@
     <string name="studio_source">Source</string>
     <string name="studio_resources">Resources</string>
     <string name="studio_scene_chat">Chat</string>
-    <string name="studio_scene_components">Components</string>
-    <string name="studio_scene_navigation">Navigation</string>
+    <string name="studio_scene_components">Common components</string>
+    <string name="studio_scene_navigation">Sidebar and app bar</string>
     <string name="studio_appearance">Appearance</string>
     <string name="studio_layers">Layers</string>
     <string name="studio_states">States</string>
@@ -209,4 +209,17 @@
     <string name="studio_project_id">Project ID</string>
     <string name="studio_unbound">Unbound</string>
     <string name="studio_replace_image">Replace image resource</string>
+    <string name="studio_font_sans">Sans serif</string>
+    <string name="studio_font_serif">Serif</string>
+    <string name="studio_font_mono">Monospace</string>
+    <string name="studio_font_cursive">Cursive</string>
+    <string name="studio_preview_user_message">Help me plan my day.</string>
+    <string name="studio_preview_assistant_message">Of course. Start with what matters most, and leave some time to rest.</string>
+    <string name="studio_preview_input">Write a message…</string>
+    <string name="studio_preview_complete">Complete</string>
+    <string name="studio_preview_scene">Preview scene</string>
+    <string name="studio_classic_preview">Chat · Classic</string>
+    <string name="studio_agent_preview">Chat · Agent</string>
+    <string name="studio_open_component_preview">Open native component preview</string>
+    <string name="studio_stroke_hint">A custom border needs a visible color and a width above 0; transparent colors or zero width draw no border.</string>
 </resources>

@@ -53,7 +53,7 @@ fun ThemeScriptButton(
             interactionSource = activeSource,
         ) {
             if (style == null) content() else {
-                ThemeScriptSurface("button", enabled = enabled, drawFill = false) {
+                ThemeScriptSurface("button", enabled = enabled, drawFill = false, drawStroke = false, originalShape = shape) {
                     Row(
                         Modifier.defaultMinSize(minWidth = ButtonDefaults.MinWidth, minHeight = ButtonDefaults.MinHeight).padding(contentPadding),
                         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
@@ -95,7 +95,7 @@ fun ThemeScriptFilledTonalButton(
             interactionSource = activeSource,
         ) {
             if (style == null) content() else {
-                ThemeScriptSurface("button", enabled = enabled, drawFill = false) {
+                ThemeScriptSurface("button", enabled = enabled, drawFill = false, drawStroke = false, originalShape = shape) {
                     Row(
                         Modifier.defaultMinSize(minWidth = ButtonDefaults.MinWidth, minHeight = ButtonDefaults.MinHeight).padding(contentPadding),
                         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
@@ -137,7 +137,7 @@ fun ThemeScriptOutlinedButton(
             interactionSource = activeSource,
         ) {
             if (style == null) content() else {
-                ThemeScriptSurface("button", enabled = enabled, drawFill = false) {
+                ThemeScriptSurface("button", enabled = enabled, drawFill = false, drawStroke = false, originalShape = shape) {
                     Row(
                         Modifier.defaultMinSize(minWidth = ButtonDefaults.MinWidth, minHeight = ButtonDefaults.MinHeight).padding(contentPadding),
                         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
@@ -179,7 +179,7 @@ fun ThemeScriptTextButton(
             interactionSource = activeSource,
         ) {
             if (style == null) content() else {
-                ThemeScriptSurface("button", enabled = enabled, drawFill = false) {
+                ThemeScriptSurface("button", enabled = enabled, drawFill = false, drawStroke = false, originalShape = shape) {
                     Row(
                         Modifier.defaultMinSize(minWidth = ButtonDefaults.MinWidth, minHeight = ButtonDefaults.MinHeight).padding(contentPadding),
                         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
@@ -216,7 +216,7 @@ fun ThemeScriptIconButton(
             ),
             interactionSource = activeSource,
         ) {
-            if (style == null) content() else Box(Modifier.fillMaxSize().themeScriptDecoration("iconButton", enabled = enabled, drawFill = false), contentAlignment = Alignment.Center) { content() }
+            if (style == null) content() else Box(Modifier.fillMaxSize().themeScriptDecoration("iconButton", enabled = enabled, drawFill = false, originalShape = shape), contentAlignment = Alignment.Center) { content() }
         }
     }
 }
@@ -242,7 +242,7 @@ fun ThemeScriptAlertDialog(
     val resolvedShape = themeScriptShape("dialog", shape)
     val resolvedModifier = if (style == null) modifier else modifier
         .clip(resolvedShape).background(themeScriptFill("dialog", containerColor))
-        .themeScriptDecoration("dialog", drawFill = false)
+        .themeScriptDecoration("dialog", drawFill = false, originalShape = resolvedShape)
     MaterialTheme(typography = applyThemeTypography(MaterialTheme.typography, style?.textStyle ?: com.ai.assistance.operit.data.model.theme.ThemeAppearanceText(), (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.images.orEmpty())) {
     NativeAlertDialog(
         onDismissRequest = onDismissRequest, confirmButton = confirmButton, modifier = resolvedModifier,

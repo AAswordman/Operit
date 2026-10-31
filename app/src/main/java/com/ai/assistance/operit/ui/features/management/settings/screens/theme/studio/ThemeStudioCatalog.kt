@@ -1,13 +1,9 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -35,15 +31,42 @@ internal data class StudioTarget(
         if (kind == StudioKind.Surface) add(StudioProperty.Layers)
         if (states.isNotEmpty()) add(StudioProperty.States)
     }
-    val glyph: ImageVector get() = when {
-        kind == StudioKind.Palette -> Icons.Default.Palette
-        kind == StudioKind.Typography -> Icons.Default.TextFields
-        kind == StudioKind.Icon -> Icons.Default.Settings
-        id.endsWith("Avatar") -> Icons.Default.AccountCircle
-        id == "background" -> Icons.Default.Image
-        group == StudioGroup.Navigation -> Icons.Default.Menu
-        group == StudioGroup.Messages -> Icons.Default.Chat
-        else -> Icons.Default.Settings
+    val glyph: ImageVector get() = when (id) {
+        "typography" -> Icons.Default.TextFields
+        "palette" -> Icons.Default.Palette
+        "background" -> Icons.Default.Image
+        "userMessage" -> Icons.Default.ChatBubbleOutline
+        "assistantMessage" -> Icons.Default.ChatBubble
+        "composer" -> Icons.Default.Keyboard
+        "userAvatar" -> Icons.Default.Person
+        "assistantAvatar" -> Icons.Default.SmartToy
+        "appBar" -> Icons.Default.ViewComfy
+        "navigation" -> Icons.Default.ViewSidebar
+        "navigationItem" -> Icons.Default.FormatListBulleted
+        "button" -> Icons.Default.TouchApp
+        "iconButton" -> Icons.Default.Apps
+        "input" -> Icons.Default.TextSnippet
+        "settingsCard" -> Icons.Default.SettingsApplications
+        "dialog" -> Icons.Default.Comment
+        "sheet" -> Icons.Default.OpenInBrowser
+        "menu" -> Icons.Default.MoreVert
+        "listItem" -> Icons.Default.ViewList
+        "status" -> Icons.Default.CheckCircle
+        "toolCard" -> Icons.Default.Terminal
+        "composer.settings" -> Icons.Default.Settings
+        "composer.attachment" -> Icons.Default.AttachFile
+        "composer.microphone" -> Icons.Default.Mic
+        "composer.send" -> Icons.AutoMirrored.Filled.Send
+        "composer.stop" -> Icons.Default.Stop
+        "composer.fullscreen" -> Icons.Default.Fullscreen
+        "composer.queue" -> Icons.Default.Queue
+        "composer.expand" -> Icons.Default.ExpandMore
+        "appBar.back" -> Icons.AutoMirrored.Filled.ArrowBack
+        "appBar.menu" -> Icons.Default.Menu
+        "appBar.workspace" -> Icons.Default.Code
+        "appBar.floating" -> Icons.Default.PictureInPicture
+        "navigation.item" -> Icons.Default.Chat
+        else -> error("Unknown studio target: $id")
     }
 }
 
