@@ -1003,9 +1003,9 @@ class ChatViewModel(context: Context) : ViewModel() {
 
     private fun performInsertSummary(message: ChatMessage) {
         viewModelScope.launch {
+            // 固定总结所属会话，异步生成结束后不能把插入或清理操作写到新切换的会话。
+            val currentChatId = chatHistoryDelegate.currentChatId.value
             try {
-                // 获取当前会话ID并绑定
-                val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId == null) {
                     OKToast.warning(context, context.getString(R.string.chat_please_create_new_chat), OKToast.LENGTH_SHORT).show()
                     return@launch
@@ -1066,7 +1066,9 @@ class ChatViewModel(context: Context) : ViewModel() {
                         messagesToSummarize,
                         autoContinue = false,
                         isGroupChat = isGroupChat,
-                        summaryConfig = summaryConfig
+                        summaryConfig = summaryConfig,
+                        onProgress = { messageCoordinationDelegate.reportSummaryProgress(currentChatId, it) },
+                        onNonFatalError = { messageCoordinationDelegate.reportSummaryRetry(it) },
                     )
                 }
 
@@ -1077,20 +1079,20 @@ class ChatViewModel(context: Context) : ViewModel() {
                             summaryMessage = summaryMessage,
                             beforeTimestamp = beforeTimestamp,
                             afterTimestamp = afterTimestamp,
+                            chatIdOverride = currentChatId,
                         )
                     }
                     messageCoordinationDelegate.scheduleStableContextWindowRefresh(chatId = currentChatId)
 
                     OKToast.success(context, context.getString(R.string.chat_summary_inserted)).show()
                 } else {
-                    OKToast.error(context, context.getString(R.string.chat_summary_generation_failed)).show()
+                    OKToast.requestError(context, context.getString(R.string.chat_summary_generation_failed)).show()
                 }
                 
                 // 清除输入处理状态
                 messageProcessingDelegate.setInputProcessingStateForChat(currentChatId, InputProcessingState.Idle)
             } catch (e: CancellationException) {
                 AppLogger.d(TAG, "插入总结已取消")
-                val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId != null) {
                     messageProcessingDelegate.setInputProcessingStateForChat(
                         currentChatId,
@@ -1099,9 +1101,8 @@ class ChatViewModel(context: Context) : ViewModel() {
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "插入总结时发生错误", e)
-                OKToast.error(context, context.getString(R.string.chat_insert_summary_failed, e.message ?: "")).show()
+                OKToast.requestError(context, context.getString(R.string.chat_insert_summary_failed, e.message ?: "")).show()
                 // 发生错误时也需要清除状态
-                val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId != null) {
                     messageProcessingDelegate.setInputProcessingStateForChat(currentChatId, InputProcessingState.Idle)
                 }

@@ -69,6 +69,7 @@
 - [移除内置表情与恢复默认](remove-builtin-emoji/index.md) · `remove-builtin-emoji`
 - [预编译删除思考正则](remove_thinking_regex_anr_20260913/index.md) · `remove_thinking_regex_anr_20260913`
 - [替换资源后的私有文件清理](replaced-resource-cleanup/index.md) · `replaced-resource-cleanup`
+- [总结请求的实时进度与错误提示](summary-retry-notices/index.md)
 - [请求终止错误传播与重试规则](request-error-feedback/index.md) · `request-error-feedback`
 - [重试状态与显示设置转场修复](retry-status-settings-transition/index.md) · `retry-status-settings-transition`
 - [设置页提醒与协议阅读显示修复](settings-display-feedback/index.md) · `settings-display-feedback`

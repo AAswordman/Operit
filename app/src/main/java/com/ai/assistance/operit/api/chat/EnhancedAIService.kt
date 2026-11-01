@@ -2827,8 +2827,13 @@ class EnhancedAIService private constructor(context: Context) {
     suspend fun generateSummary(
         messages: List<Pair<String, String>>,
         recordTokenUsage: Boolean = true,
+        onProgress: (String) -> Unit = {},
+        onNonFatalError: suspend (String) -> Unit = {},
     ): String {
-        return generateSummary(messages, null, recordTokenUsage = recordTokenUsage)
+        return generateSummary(
+            messages, null, recordTokenUsage = recordTokenUsage,
+            onProgress = onProgress, onNonFatalError = onNonFatalError,
+        )
     }
 
     /**
@@ -2842,12 +2847,16 @@ class EnhancedAIService private constructor(context: Context) {
             previousSummary: String?,
             summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
+            onProgress: (String) -> Unit = {},
+            onNonFatalError: suspend (String) -> Unit = {},
     ): String {
         return generateSummaryFromPromptTurns(
             messages.toPromptTurns(),
             previousSummary,
             summaryConfig,
             recordTokenUsage,
+            onProgress = onProgress,
+            onNonFatalError = onNonFatalError,
         )
     }
 
@@ -2856,6 +2865,8 @@ class EnhancedAIService private constructor(context: Context) {
             previousSummary: String?,
             summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
+            onProgress: (String) -> Unit = {},
+            onNonFatalError: suspend (String) -> Unit = {},
     ): String {
         // 调用ConversationService中的方法
         return conversationService.generateSummaryFromPromptTurns(
@@ -2864,6 +2875,8 @@ class EnhancedAIService private constructor(context: Context) {
             multiServiceManager,
             summaryConfig,
             recordTokenUsage,
+            onProgress = onProgress,
+            onNonFatalError = onNonFatalError,
         )
     }
 

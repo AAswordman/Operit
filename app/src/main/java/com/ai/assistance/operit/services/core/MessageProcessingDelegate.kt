@@ -229,7 +229,7 @@ class MessageProcessingDelegate(
     private val chatRuntimes = ConcurrentHashMap<String, ChatRuntime>()
     private val lastScrollEmitMsByChatKey = ConcurrentHashMap<String, AtomicLong>()
     private val suppressIdleCompletedStateByChatId = ConcurrentHashMap<String, Boolean>()
-    private val pendingAsyncSummaryUiByChatId = ConcurrentHashMap<String, Boolean>()
+    private val pendingAsyncSummaryUiByChatId = ConcurrentHashMap<String, EnhancedInputProcessingState.Summarizing>()
 
     private fun chatKey(chatId: String?): String = chatId ?: "__DEFAULT_CHAT__"
 
@@ -304,9 +304,18 @@ class MessageProcessingDelegate(
 
     fun setPendingAsyncSummaryUiForChat(chatId: String, pending: Boolean) {
         if (pending) {
-            pendingAsyncSummaryUiByChatId[chatId] = true
+            pendingAsyncSummaryUiByChatId[chatId] = EnhancedInputProcessingState.Summarizing(context.getString(R.string.chat_compressing_history))
         } else {
             pendingAsyncSummaryUiByChatId.remove(chatId)
+        }
+    }
+
+    /** 并行总结也记录最新标签，正常回复结束后使用该进度，不恢复成固定的“总结中”。 */
+    fun setSummaryProgressForChat(chatId: String, message: String) {
+        val state = EnhancedInputProcessingState.Summarizing(message)
+        pendingAsyncSummaryUiByChatId.computeIfPresent(chatId) { _, _ -> state }
+        if (_inputProcessingStateByChatId.value[chatId] is EnhancedInputProcessingState.Summarizing) {
+            setChatInputProcessingState(chatId, state)
         }
     }
 
@@ -1659,12 +1668,10 @@ class MessageProcessingDelegate(
                         shouldNotifyTurnComplete = true
                         finalInputStateAfterSend = EnhancedInputProcessingState.Completed
 
-                        if (pendingAsyncSummaryUiByChatId.containsKey(chatId)) {
+                        val summaryState = pendingAsyncSummaryUiByChatId[chatId]
+                        if (summaryState != null) {
                             setSuppressIdleCompletedStateForChat(chatId, true)
-                            finalInputStateAfterSend =
-                                EnhancedInputProcessingState.Summarizing(
-                                    context.getString(R.string.message_summarizing)
-                                )
+                            finalInputStateAfterSend = summaryState
                         }
 
                         logMessageTiming(

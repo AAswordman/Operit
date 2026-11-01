@@ -1880,6 +1880,19 @@ class MessageCoordinationDelegate(
         }
     }
 
+    /** 进度只更新原会话的总结标签，不覆盖并发聊天的接收或工具执行状态。 */
+    internal fun reportSummaryProgress(chatId: String, message: String) {
+        messageProcessingDelegate.setSummaryProgressForChat(chatId, message)
+    }
+
+    internal fun reportSummaryRetry(error: String) = showSummaryError(error, retrying = true)
+
+    private fun showSummaryError(error: String, retrying: Boolean = false) {
+        val failure = context.getString(R.string.chat_summarize_generation_failed, error)
+        val message = if (retrying) failure + "\n" + context.getString(R.string.enhanced_retrying_request) else failure
+        OKToast.requestError(context, message).show()
+    }
+
     /**
      * 手动触发对话总结
      */
@@ -2068,7 +2081,11 @@ class MessageCoordinationDelegate(
         val asyncSummaryJob =
             coroutineScope.launch {
             try {
-                val service = getEnhancedAiService() ?: return@launch
+                val service = getEnhancedAiService()
+                if (service == null) {
+                    OKToast.requestError(context, context.getString(R.string.chat_ai_service_unavailable_summarize)).show()
+                    return@launch
+                }
 
                 // 检查是否是群聊
                 val currentChat = chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == originalChatId }
@@ -2080,8 +2097,14 @@ class MessageCoordinationDelegate(
                     messages = snapshotMessages,
                     autoContinue = false,
                     isGroupChat = isGroupChat,
-                    summaryConfig = summaryConfig
-                ) ?: return@launch
+                    summaryConfig = summaryConfig,
+                    onProgress = { reportSummaryProgress(originalChatId, it) },
+                    onNonFatalError = { reportSummaryRetry(it) },
+                )
+                if (summaryMessage == null) {
+                    OKToast.requestError(context, context.getString(R.string.chat_summarize_failed_no_valid_summary)).show()
+                    return@launch
+                }
 
                 val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId != originalChatId) {
@@ -2110,6 +2133,7 @@ class MessageCoordinationDelegate(
                 throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Async summary during send failed: ${e.message}", e)
+                showSummaryError(e.message.orEmpty())
             } finally {
                 _isSendTriggeredSummarizing.value = false
 
@@ -2183,7 +2207,7 @@ class MessageCoordinationDelegate(
         try {
             val service = getEnhancedAiService()
             if (service == null) {
-                uiStateDelegate.showErrorMessage(context.getString(R.string.chat_ai_service_unavailable_summarize))
+                OKToast.requestError(context, context.getString(R.string.chat_ai_service_unavailable_summarize)).show()
                 return false
             }
 
@@ -2208,7 +2232,9 @@ class MessageCoordinationDelegate(
                     currentMessages,
                     autoContinue,
                     effectiveIsGroupChat,
-                    summaryConfig
+                    summaryConfig,
+                    onProgress = { reportSummaryProgress(currentChatId, it) },
+                    onNonFatalError = { reportSummaryRetry(it) },
                 )
 
             if (summaryMessage != null) {
@@ -2231,7 +2257,7 @@ class MessageCoordinationDelegate(
                 summarySuccess = true
             } else {
                 AppLogger.w(TAG, "总结失败或无需总结")
-                uiStateDelegate.showErrorMessage(context.getString(R.string.chat_summarize_failed_no_valid_summary))
+                OKToast.requestError(context, context.getString(R.string.chat_summarize_failed_no_valid_summary)).show()
             }
         } catch (e: CancellationException) {
             // 总结被取消，这是正常流程
@@ -2239,12 +2265,7 @@ class MessageCoordinationDelegate(
             throw e // 重新抛出取消异常，让协程正确取消
         } catch (e: Exception) {
             AppLogger.e(TAG, "生成总结时出错: ${e.message}", e)
-            uiStateDelegate.showErrorMessage(
-                context.getString(
-                    R.string.chat_summarize_generation_failed,
-                    e.message ?: ""
-                )
-            )
+            showSummaryError(e.message.orEmpty())
         } finally {
             _isSummarizing.value = false
             if (_summarizingChatId.value == currentChatId) {

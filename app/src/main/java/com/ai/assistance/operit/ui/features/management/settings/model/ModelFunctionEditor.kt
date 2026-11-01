@@ -314,6 +314,12 @@ fun ModelFunctionEditor(
                                                     enhancedService.generateSummary(
                                                         sampleMessages,
                                                         recordTokenUsage = false,
+                                                        onNonFatalError = { error ->
+                                                            OKToast.requestError(context,
+                                                                context.getString(R.string.chat_summarize_generation_failed, error) + "\n" +
+                                                                    context.getString(R.string.enhanced_retrying_request)
+                                                            ).show()
+                                                        },
                                                     )
                                                 }
                                                 FunctionType.TITLE_GENERATION -> {
