@@ -8,8 +8,10 @@ object ThemeScriptContract {
     const val MAX_BLUR_DP = 8f
     const val MAX_SOURCE_BYTES = 65536
     const val MAX_RESULT_BYTES = 131072
-    const val MAX_BUNDLE_BYTES = 16 * 1024 * 1024
-    const val MAX_ASSET_BYTES = 4 * 1024 * 1024
+    const val MAX_BUNDLE_BYTES = 64 * 1024 * 1024
+    const val MAX_ASSET_BYTES = 8 * 1024 * 1024
+    const val MAX_SVG_BYTES = 512 * 1024
+    const val MAX_BITMAP_PIXELS = 41_943_040L
     const val MAX_MANIFEST_BYTES = 65536
     val surfaceIds = setOf(
         "background", "userMessage", "assistantMessage", "composer", "userAvatar", "assistantAvatar",

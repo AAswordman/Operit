@@ -84,7 +84,7 @@ object ThemeScriptBundleStore {
         var pixels = 0L
         bundle.assets.forEach { (path, data) ->
             pixels += validateAsset(path, data)
-            require(pixels <= 4_194_304L) { "Theme drawing assets exceed the decoded pixel budget" }
+            require(pixels <= ThemeScriptContract.MAX_BITMAP_PIXELS) { "Theme drawing assets exceed the decoded pixel budget" }
         }
     }
 
@@ -173,7 +173,7 @@ object ThemeScriptBundleStore {
                 val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
                 require(options.outWidth > 0 && options.outHeight > 0 &&
-                    options.outWidth.toLong() * options.outHeight <= 4_194_304L) { "Invalid theme script bitmap" }
+                    options.outWidth.toLong() * options.outHeight <= ThemeScriptContract.MAX_BITMAP_PIXELS) { "Invalid theme script bitmap" }
                 options.outWidth.toLong() * options.outHeight
             }
             "svg" -> { validateSvg(bytes); 0L }
@@ -188,7 +188,7 @@ object ThemeScriptBundleStore {
     }
 
     private fun validateSvg(bytes: ByteArray) {
-        require(bytes.size <= 262144) { "Theme SVG is too large" }
+        require(bytes.size <= ThemeScriptContract.MAX_SVG_BYTES) { "Theme SVG is too large" }
         val text = decodeUtf8(bytes)
         require(!Regex("<!DOCTYPE|<!ENTITY", RegexOption.IGNORE_CASE).containsMatchIn(text)) {
             "Theme SVG cannot declare external content"
