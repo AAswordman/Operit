@@ -5352,7 +5352,7 @@
     <string name="attachment_photo_added">Lampiran foto ditambah: %1$s</string>
     <string name="attachment_photo_process_failed">Tidak dapat memproses foto yang diambil, sila cuba lagi</string>
     <string name="attachment_photo_add_failed">Gagal menambah lampiran foto: %1$s</string>
-    <string name="attachment_added">Lampiran ditambah: %1$s</string>
+    <string name="attachment_added">Lampiran ditambah</string>
     <string name="attachment_media_process_failed">Tidak dapat memproses fail media, cuba cara lain</string>
     <string name="attachment_cannot_attach">Tidak dapat melampirkan fail: %1$s</string>
     <string name="attachment_file_not_exist">Fail tidak wujud</string>

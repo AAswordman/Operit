@@ -6383,7 +6383,7 @@
     <string name="attachment_photo_added">S-a adăugat o fotografie atașată: %1$s</string>
     <string name="attachment_photo_process_failed">Nu se pot procesa fotografiile realizate. Vă rugăm să încercați din nou.</string>
     <string name="attachment_photo_add_failed">Nu s-a reușit adăugarea atașamentului foto: %1$s</string>
-    <string name="attachment_added">Atașamentul a fost adăugat: %1$s</string>
+    <string name="attachment_added">Atașamentul a fost adăugat</string>
     <string name="attachment_media_process_failed">Nu se pot procesa fișierele media; vă rugăm să încercați alte metode</string>
     <string name="attachment_cannot_attach">Nu se pot atașa fișiere: %1$s</string>
     <string name="attachment_file_not_exist">Fișierul nu există</string>

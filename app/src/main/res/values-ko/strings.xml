@@ -5553,7 +5553,7 @@
     <string name="attachment_photo_added">사진 첨부 파일이 추가되었습니다: %1$s</string>
     <string name="attachment_photo_process_failed">촬영한 사진을 처리할 수 없습니다. 다시 시도해 주세요.</string>
     <string name="attachment_photo_add_failed">사진 첨부 파일 추가 실패: %1$s</string>
-    <string name="attachment_added">첨부파일 추가됨: %1$s</string>
+    <string name="attachment_added">첨부파일 추가됨</string>
     <string name="attachment_media_process_failed">미디어 파일을 처리할 수 없습니다. 다른 방법을 시도해 보십시오.</string>
     <string name="attachment_cannot_attach">파일을 첨부할 수 없습니다: %1$s</string>
     <string name="attachment_file_not_exist">파일이 존재하지 않습니다.</string>

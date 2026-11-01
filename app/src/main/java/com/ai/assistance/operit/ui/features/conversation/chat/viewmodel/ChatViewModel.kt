@@ -2355,7 +2355,7 @@ class ChatViewModel(context: Context) : ViewModel() {
                 messageProcessingDelegate.setInputProcessingStateForChat(chatId, InputProcessingState.Idle)
                 
                 AppLogger.d(TAG, "Successfully processed shared files")
-                OKToast.success(context, context.getString(R.string.chat_added_files_count, uris.size)).show()
+                OKToast.success(context, R.string.attachment_added).show()
             } catch (e: Exception) {
                 AppLogger.e(TAG, "处理分享文件失败", e)
                 uiStateDelegate.showErrorMessage(context.getString(R.string.chat_process_shared_files_failed, e.message ?: ""))

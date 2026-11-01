@@ -6796,7 +6796,7 @@
     <string name="attachment_photo_added">已添加照片附件: %1$s</string>
     <string name="attachment_photo_process_failed">无法处理拍摄的照片，请重试</string>
     <string name="attachment_photo_add_failed">添加照片附件失败: %1$s</string>
-    <string name="attachment_added">已添加附件: %1$s</string>
+    <string name="attachment_added">已成功添加附件</string>
     <string name="attachment_media_process_failed">无法处理媒体文件，请尝试其他方式</string>
     <string name="attachment_cannot_attach">无法附加文件: %1$s</string>
     <string name="attachment_file_not_exist">文件不存在</string>

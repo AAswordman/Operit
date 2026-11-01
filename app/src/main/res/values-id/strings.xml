@@ -5395,7 +5395,7 @@
     <string name="attachment_photo_added">Lampiran foto telah ditambahkan: %1$s</string>
     <string name="attachment_photo_process_failed">Tidak dapat memproses foto yang diambil, coba lagi</string>
     <string name="attachment_photo_add_failed">Gagal menambahkan lampiran foto: %1$s</string>
-    <string name="attachment_added">Lampiran telah ditambahkan: %1$s</string>
+    <string name="attachment_added">Lampiran telah ditambahkan</string>
     <string name="attachment_media_process_failed">Tidak dapat memproses file media, coba cara lain</string>
     <string name="attachment_cannot_attach">Tidak dapat melampirkan file: %1$s</string>
     <string name="attachment_file_not_exist">File tidak ada</string>

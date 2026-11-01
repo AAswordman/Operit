@@ -6246,7 +6246,7 @@
     <string name="attachment_photo_added">Photo attachment added: %1$s</string>
     <string name="attachment_photo_process_failed">Cannot process taken photo, please retry</string>
     <string name="attachment_photo_add_failed">Failed to add photo attachment: %1$s</string>
-    <string name="attachment_added">Attachment added: %1$s</string>
+    <string name="attachment_added">Attachment added successfully</string>
     <string name="attachment_media_process_failed">Cannot process media file, please try another method</string>
     <string name="attachment_cannot_attach">Cannot attach file: %1$s</string>
     <string name="attachment_file_not_exist">File does not exist</string>

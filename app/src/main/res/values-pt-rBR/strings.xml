@@ -5075,7 +5075,7 @@
     <string name="attachment_photo_added">Anexo de foto adicionado: %1$s</string>
     <string name="attachment_photo_process_failed">Não foi possível processar a foto capturada. Tente novamente</string>
     <string name="attachment_photo_add_failed">Falha ao adicionar anexo de foto: %1$s</string>
-    <string name="attachment_added">Anexo adicionado: %1$s</string>
+    <string name="attachment_added">Anexo adicionado</string>
     <string name="attachment_media_process_failed">Não foi possível processar o arquivo de mídia. Tente outro método</string>
     <string name="attachment_cannot_attach">Não foi possível anexar arquivo: %1$s</string>
     <string name="attachment_file_not_exist">O arquivo não existe</string>

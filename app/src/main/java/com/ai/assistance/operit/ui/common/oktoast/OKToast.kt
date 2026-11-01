@@ -151,9 +151,11 @@ object OKToast {
         val maxHeight = (bounds.height() * 0.25f).toInt().coerceAtLeast(1)
         val notice = queue.removeFirst()
         val isRequestError = notice.placement == Placement.Top
+        // 成功提示复用请求错误的点击关闭路径，让正文、空白区域与无障碍操作保持一致。
+        val canDismiss = isRequestError || notice.kind == Kind.Success
         val card = OKToastView(
             context, notice.kind, notice.message, appearance, maxHeight, isRequestError,
-            onDismiss = if (isRequestError) ({ notice.cancel() }) else null,
+            onDismiss = if (canDismiss) ({ notice.cancel() }) else null,
         )
         card.measure(
             View.MeasureSpec.makeMeasureSpec(maxWidth, if (isRequestError) View.MeasureSpec.EXACTLY else View.MeasureSpec.AT_MOST),
@@ -209,7 +211,7 @@ object OKToast {
         val accessibility = requireNotNull(context.getSystemService(AccessibilityManager::class.java))
         val timeout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val flags = AccessibilityManager.FLAG_CONTENT_TEXT or AccessibilityManager.FLAG_CONTENT_ICONS or
-                (if (isRequestError) AccessibilityManager.FLAG_CONTENT_CONTROLS else 0)
+                (if (canDismiss) AccessibilityManager.FLAG_CONTENT_CONTROLS else 0)
             accessibility.getRecommendedTimeoutMillis(base, flags)
         } else base
         val displayMillis = if (isRequestError) RequestErrorDuration.limitMillis(timeout) else timeout

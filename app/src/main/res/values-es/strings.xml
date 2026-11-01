@@ -5454,7 +5454,7 @@
     <string name="attachment_photo_added">Adjunto de foto añadido: %1$s</string>
     <string name="attachment_photo_process_failed">No se puede procesar la foto tomada, inténtalo de nuevo</string>
     <string name="attachment_photo_add_failed">Error al añadir adjunto de foto: %1$s</string>
-    <string name="attachment_added">Adjunto añadido: %1$s</string>
+    <string name="attachment_added">Adjunto añadido</string>
     <string name="attachment_media_process_failed">No se puede procesar el archivo multimedia, prueba con otro método</string>
     <string name="attachment_cannot_attach">No se puede adjuntar el archivo: %1$s</string>
     <string name="attachment_file_not_exist">El archivo no existe</string>

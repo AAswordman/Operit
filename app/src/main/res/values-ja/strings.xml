@@ -7183,7 +7183,7 @@
     <string name="attachment_photo_added">写真を添付しました：%1$s</string>
     <string name="attachment_photo_process_failed">撮影した写真を処理できません。もう一度お試しください。</string>
     <string name="attachment_photo_add_failed">写真を添付できませんでした：%1$s</string>
-    <string name="attachment_added">ファイルを添付しました：%1$s</string>
+    <string name="attachment_added">ファイルを添付しました</string>
     <string name="attachment_media_process_failed">メディアファイルを処理できません。別の方法を試してください。</string>
     <string name="attachment_cannot_attach">ファイルを添付できません：%1$s</string>
     <string name="attachment_file_not_exist">ファイルが存在しません</string>
