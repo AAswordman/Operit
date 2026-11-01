@@ -5,6 +5,7 @@ import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeSurface
 
 import androidx.compose.foundation.background
 import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubPage
@@ -194,6 +195,10 @@ fun AppContent(
     val useBackgroundImage = themeSnapshot.useBackgroundImage
     val backgroundImageUri = themeSnapshot.backgroundImageUri
     val hasBackgroundImage = useBackgroundImage && backgroundImageUri != null
+    val backgroundDecoration = themeSurface("background")
+    // 工作室背景与媒体背景共用底层画布，内容底色不能盖住已声明的填色或图层。
+    val hasBackgroundDecoration = backgroundDecoration != null &&
+        (backgroundDecoration.fillColor != null || backgroundDecoration.layers.isNotEmpty())
 
     // 标准页面顶栏连同状态栏统一使用主题底色，避免聊天壁纸透出。
     val appBarContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 1f)
@@ -349,7 +354,7 @@ fun AppContent(
                     .fillMaxSize(),
                 color =
                 if (workspaceVisible) MaterialTheme.colorScheme.surface.copy(alpha = 1f)
-                else if (hasBackgroundImage) Color.Transparent
+                else if (hasBackgroundImage || hasBackgroundDecoration) Color.Transparent
                 else MaterialTheme.colorScheme.background
             ) {
                 if (isLoading) {

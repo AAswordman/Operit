@@ -41,7 +41,7 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 
 ## 已接入的原生区域
 
-- `background`：主界面与草稿预览的装饰，位于媒体背景上方、业务界面下方
+- `background`：主界面与草稿预览的装饰，位于媒体背景上方、业务界面下方；声明填色或图层后普通内容承载面透明，工作区保持独立实色底面
 - `userMessage`、`assistantMessage`：双方 Cursor/Bubble 消息正文、宽度比例、文字样式和原生容器形状；包括现有宽窄布局和图片气泡路径。已有消息分片仍逐片绘制
 - `userAvatar`、`assistantAvatar`：消息头像尺寸、外形和装饰；不修改头像身份数据
 - `composer`：Classic/Agent 输入容器，支持形状、填色、描边、尺寸、留白、图层和字体
@@ -85,7 +85,7 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 
 ## 按钮素材
 
-`icons` 的键包括 `composer.settings/attachment/microphone/send/stop/fullscreen/queue/expand`、`appBar.back/menu/history/floating` 和 `navigation.item`，共 13 个绑定。
+`icons` 的键包括 `composer.settings/attachment/microphone/send/stop/fullscreen/queue/expand`、`appBar.back/menu/workspace/floating` 和 `navigation.item`，共 13 个绑定。
 
 每个值要求 `asset` 引用已声明的素材标识，可设 `size: 8..64 dp`、`opacity: 0..1` 、`useContentTint` 和 `tintColor`。`tintColor` 为固定 ARGB 着色，显式设置时优先；未设置固定色时，`useContentTint: true` 使用原按钮当前前景色，适合单色图标；两者均未设置时保留素材本色。一个通用 `navigation.item` 绑定会统一替换所有导航项图像。
 
@@ -174,8 +174,8 @@ Promise、循环引用、未知字段、非法数值和不支持的机器版本�
 
 ## 验证入口
 
-JVM 用例覆盖格式与机器 schema、旧文件/链接兼容、模式/状态继承、字体声明与图像类型约束、部件页签能力、目录边界、资源归档与引用清理，由 `Android Tests` 工作流执行。`ThemeScriptAndroidTest` 另含模板、原生求值、冻结上下文、执行预算和 SVG 用例，需要 Android 条件；当前仓库工作流不编译或执行仪器测试。
+JVM 用例覆盖格式与机器 schema、旧文件/链接兼容、模式/状态继承、字体声明与图像类型约束、部件页签能力、目录边界、资源归档与引用清理，由 `Android Tests` 工作流执行。`ThemeScriptAndroidTest` 另含模板、原生求值、冻结上下文、执行预算和 SVG 用例，需要 Android 条件；独立 Android Tests 工作流运行 JVM 回归；PR Check 按改动范围编译仪器代码，不执行设备用例。
 
-完整操作与可填写结果见 [主题回归记录](../../TODO/feat/theme-script-api/03-verification.md)。实现和静态核对不等于 Android 界面验证通过。
+手机操作先读 [16 场景验收指南](theme_acceptance_checklist.md)。完整操作与可填写结果见 [主题回归记录](../../TODO/feat/theme-script-api/03-verification.md)。实现和静态核对不等于 Android 界面验证通过。
 
 当前聊天控件行与工作室共用展示入口，图标槽包含 `appBar.menu`、`appBar.floating` 和 `appBar.workspace`。重构前的 `appBar.history` 已从此开发协议移除；开发工程请更新对应绑定。
