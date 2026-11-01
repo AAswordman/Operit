@@ -1916,8 +1916,6 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
             )
         }
 
-        mcpLoadingState.reset()
-        mcpLoadingState.show()
         mcpLoadingState.startConfiguredServers(context, lifecycleScope)
 
         val startAt = System.currentTimeMillis()

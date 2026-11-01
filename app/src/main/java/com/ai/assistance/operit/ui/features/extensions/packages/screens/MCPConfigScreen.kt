@@ -242,7 +242,7 @@ fun MCPConfigScreen(
 
 
     // Effect to fetch and display tools when MCP servers start
-    val isPluginLoading by mcpLoadingState.isVisible.collectAsState()
+    val isPluginLoading by mcpLoadingState.isLoading.collectAsState()
     val wasPluginLoading = remember { mutableStateOf(isPluginLoading) }
 
     LaunchedEffect(isPluginLoading) {
@@ -1133,11 +1133,9 @@ fun MCPConfigScreen(
             onStart = {
                 val lifecycleScope = activity?.lifecycleScope
                 if (lifecycleScope != null) {
-                    mcpLoadingState.reset()
-                    mcpLoadingState.show()
                     mcpLoadingState.startConfiguredServers(context, lifecycleScope)
                 } else {
-                    OKToast.error(context, context.getString(R.string.mcp_start_services_failed), OKToast.LENGTH_SHORT).show()
+                    AppLogger.e("MCPConfigScreen", "无法获取主界面生命周期，未启动模型上下文协议服务")
                 }
             },
             onRefresh = {
