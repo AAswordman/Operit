@@ -8,6 +8,8 @@
 
 ## 计划索引
 
+- [密钥池错误的实际请求范围](key-pool-error-scope/index.md)
+
 - [工作区复制内存与文件操作进度](workspace-copy-streaming-progress/index.md)
 
 - [流式气泡停更修复](streaming-bubble-freeze/index.md)

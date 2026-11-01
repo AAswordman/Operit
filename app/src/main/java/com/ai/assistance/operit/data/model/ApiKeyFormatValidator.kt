@@ -11,7 +11,8 @@ object ApiKeyFormatValidator {
     }
 
     fun hasUsableKey(config: ModelConfigData): Boolean {
-        if (!config.useMultipleApiKeys) {
+        // 空白占位不构成密钥池，与服务创建时的实际模式保持一致。
+        if (!config.useMultipleApiKeys || config.apiKeyPool.none { it.key.isNotBlank() }) {
             return isValid(config.apiKey)
         }
 

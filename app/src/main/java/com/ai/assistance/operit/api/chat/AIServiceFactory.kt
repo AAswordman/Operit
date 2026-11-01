@@ -352,8 +352,12 @@ object AIServiceFactory {
 
         // 根据配置决定使用单个API Key还是多API Key轮询。
         // Codex / 本地推理没有密钥池入口，即使旧配置里开过池子也不走池调度。
+        // 开关与实际条目共同决定请求模式，空池必须沿用单密钥的请求预算与错误提示。
         val apiKeyProvider =
-            if (config.useMultipleApiKeys && providerType.supportsApiKeyPool()) {
+            if (config.useMultipleApiKeys &&
+                config.apiKeyPool.any { it.key.isNotBlank() } &&
+                providerType.supportsApiKeyPool()
+            ) {
                 MultiApiKeyProvider(config.id, modelConfigManager)
             } else {
                 SingleApiKeyProvider(config.apiKey)
