@@ -86,12 +86,12 @@ internal class ManagedResourceFiles(private val filesDir: File) {
 
     companion object {
         private val managedPrefixes = setOf(
-            "background", "background_video",
+            "theme_script", "background", "background_video",
             "user_avatar", "ai_avatar", "global_user_avatar", "avatar", "group_avatar",
             "custom_font", "bubble_user_font", "bubble_ai_font", "bubble_user", "bubble_ai",
         )
         private val resourceKeys = setOf(
-            "background_image_uri", "custom_user_avatar_uri", "custom_ai_avatar_uri",
+            "custom_theme_script_uri", "background_image_uri", "custom_user_avatar_uri", "custom_ai_avatar_uri",
             "global_user_avatar_uri", "custom_font_path", "bubble_user_custom_font_path",
             "bubble_ai_custom_font_path", "bubble_user_image_uri", "bubble_ai_image_uri",
         )

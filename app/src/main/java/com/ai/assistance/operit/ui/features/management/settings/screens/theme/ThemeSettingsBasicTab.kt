@@ -135,6 +135,7 @@ internal fun ThemeSettingsBasicTab(
                 onPickFont = pickGlobalFont,
             )
         }
+    com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio.ThemeStudioEntry(editorSession, shared.projectKey, shared.targetName)
     ThemeLanguageSection(cardColors, languageChangeEnabled, onLanguageSelected)
 }
 

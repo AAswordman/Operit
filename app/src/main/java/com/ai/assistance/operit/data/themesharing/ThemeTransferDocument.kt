@@ -3,6 +3,7 @@ package com.ai.assistance.operit.data.themesharing
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
 import java.io.File
+import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
 
 internal enum class ThemeTransferError {
     INVALID_CODE,
@@ -27,12 +28,14 @@ internal data class ThemeTransferDocument(
     val fields: Set<String>,
     val layout: ChatLayoutSettings,
     val full: Boolean,
+    val script: ThemeScriptManifest? = null,
 )
 
 internal class PreparedTheme(
     val document: ThemeTransferDocument,
     val directory: File? = null,
     val assets: Map<String, File> = emptyMap(),
+    val scriptPreviewFile: File? = null,
 ) : AutoCloseable {
     override fun close() {
         directory?.deleteRecursively()

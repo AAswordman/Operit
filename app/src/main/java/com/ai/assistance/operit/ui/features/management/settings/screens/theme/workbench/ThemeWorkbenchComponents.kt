@@ -1,5 +1,15 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton as Button
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptBorder
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,11 +62,11 @@ internal fun ThemeWorkbenchCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth().padding(bottom = 14.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+        shape = themeScriptShape("settingsCard", RoundedCornerShape(18.dp)),
+        color = themeScriptFill("settingsCard", MaterialTheme.colorScheme.surface),
+        border = themeScriptBorder("settingsCard", BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))),
     ) {
-        Column(Modifier.padding(bottom = 6.dp)) {
+        Column(Modifier.themeScriptDecoration("settingsCard", drawFill = false, drawStroke = false, originalShape = RoundedCornerShape(18.dp)).padding(bottom = 6.dp)) {
             Row(
                 Modifier.fillMaxWidth()
                     .then(
@@ -69,18 +79,18 @@ internal fun ThemeWorkbenchCard(
                 horizontalArrangement = Arrangement.spacedBy(9.dp),
             ) {
                 if (icon != null)
-                    Icon(icon, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(icon, null, Modifier.size(18.dp), tint = themeScriptContentColor("settingsCard", MaterialTheme.colorScheme.primary))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = themeScriptTextStyle("settingsCard", MaterialTheme.typography.titleSmall),
+                        color = themeScriptContentColor("settingsCard", MaterialTheme.colorScheme.onSurface),
                     )
                     if (subtitle != null)
                         Text(
                             subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = themeScriptTextStyle("settingsCard", MaterialTheme.typography.bodySmall),
+                            color = themeScriptContentColor("settingsCard", MaterialTheme.colorScheme.onSurfaceVariant),
                         )
                 }
                 trailing?.invoke()

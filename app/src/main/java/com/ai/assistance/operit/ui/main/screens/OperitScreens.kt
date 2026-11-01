@@ -156,7 +156,6 @@ sealed class Screen(
                     padding = PaddingValues(0.dp),
                     viewModel = LocalMainChatViewModel.current,
                     isFloatingMode = false,
-                    useMainSidebar = true,
                     hasBackgroundImage = hasBackgroundImage,
                     onNavigateToSettings = { navigateTo(Settings) },
                     onNavigateToMemoryBase = { navigateTo(MemoryBase) },

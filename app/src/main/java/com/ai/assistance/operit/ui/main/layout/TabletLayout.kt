@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.main.layout
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import androidx.compose.animation.Crossfade
@@ -136,40 +138,42 @@ fun TabletLayout(
                                 if (drawerAppearance.waterGlassEnabled) Color.Transparent
                                 else drawerAppearance.containerColor
                 ) {
-                        Crossfade(
-                                targetState = isSidebarContentExpanded,
-                                animationSpec = tween(durationMillis = sidebarContentFadeDurationMillis),
-                                label = "sidebarContent"
-                        ) { isContentExpanded ->
-                                if (isContentExpanded) {
-                                        DrawerContent(
-                                                navItems = navItems,
-                                                pluginEntries = pluginSidebarEntries,
-                                                selectedItem = selectedItem,
-                                                selectedRouteId = selectedRouteId,
-                                                isNetworkAvailable = isNetworkAvailable,
-                                                networkType = networkType,
-                                                appearance = drawerAppearance,
-                                                scope = scope,
-                                                drawerState = drawerState,
-                                                onScreenSelected = onDrawerItemSelected,
-                                                onNavigationEntrySelected = onNavigationEntrySelected,
-                                                onCollapseSidebar = onToggleSidebar
-                                        )
-                                } else {
-                                        CollapsedDrawerContent(
-                                                navItems = navItems,
-                                                pluginEntries = pluginSidebarEntries,
-                                                selectedItem = selectedItem,
-                                                selectedRouteId = selectedRouteId,
-                                                isNetworkAvailable = isNetworkAvailable,
-                                                appearance = drawerAppearance,
-                                                onScreenSelected = onDrawerItemSelected,
-                                                onExpandSidebar = onToggleSidebar,
-                                                onNavigationEntrySelected = onNavigationEntrySelected
-                                        )
-                                }
-                        }
+                    ThemeScriptSurface("navigation") {
+                            Crossfade(
+                                    targetState = isSidebarContentExpanded,
+                                    animationSpec = tween(durationMillis = sidebarContentFadeDurationMillis),
+                                    label = "sidebarContent"
+                            ) { isContentExpanded ->
+                                    if (isContentExpanded) {
+                                            DrawerContent(
+                                                    navItems = navItems,
+                                                    pluginEntries = pluginSidebarEntries,
+                                                    selectedItem = selectedItem,
+                                                    selectedRouteId = selectedRouteId,
+                                                    isNetworkAvailable = isNetworkAvailable,
+                                                    networkType = networkType,
+                                                    appearance = drawerAppearance,
+                                                    scope = scope,
+                                                    drawerState = drawerState,
+                                                    onScreenSelected = onDrawerItemSelected,
+                                                    onNavigationEntrySelected = onNavigationEntrySelected,
+                                                    onCollapseSidebar = onToggleSidebar
+                                            )
+                                    } else {
+                                            CollapsedDrawerContent(
+                                                    navItems = navItems,
+                                                    pluginEntries = pluginSidebarEntries,
+                                                    selectedItem = selectedItem,
+                                                    selectedRouteId = selectedRouteId,
+                                                    isNetworkAvailable = isNetworkAvailable,
+                                                    appearance = drawerAppearance,
+                                                    onScreenSelected = onDrawerItemSelected,
+                                                    onExpandSidebar = onToggleSidebar,
+                                                    onNavigationEntrySelected = onNavigationEntrySelected
+                                            )
+                                    }
+                            }
+                    }
                 }
 
                 // 主内容区域 - 使用width+offset方式，保留稳定的布局

@@ -393,9 +393,6 @@ class ChatViewModel(context: Context) : ViewModel() {
 
     // 聊天历史相关
     val chatHistory: StateFlow<List<ChatMessage>> by lazy { chatHistoryDelegate.chatHistory }
-    val showChatHistorySelector: StateFlow<Boolean> by lazy {
-        chatHistoryDelegate.showChatHistorySelector
-    }
     val chatHistories: StateFlow<List<ChatHistory>> by lazy { chatHistoryDelegate.chatHistories }
     val currentChatId: StateFlow<String?> by lazy { chatHistoryDelegate.currentChatId }
     val loadedChatId: StateFlow<String?> by lazy { chatHistoryDelegate.loadedChatId }
@@ -798,7 +795,6 @@ class ChatViewModel(context: Context) : ViewModel() {
         if (trimmedDraft.isBlank()) return
 
         viewModelScope.launch {
-            showChatHistorySelector(false)
             val previousChatId = chatHistoryDelegate.currentChatId.value
             chatHistoryDelegate.createNewChat()
             chatHistoryDelegate.currentChatId
@@ -903,10 +899,7 @@ class ChatViewModel(context: Context) : ViewModel() {
         }
         OKToast.typed(context, context.getString(message), if (result == ChatDeletionResult.LOCKED || result == ChatDeletionResult.NOT_FOUND) OKToast.Kind.Warning else OKToast.Kind.Error).show()
     }
-    fun toggleChatHistorySelector() = chatHistoryDelegate.toggleChatHistorySelector()
-    fun showChatHistorySelector(show: Boolean) {
-        chatHistoryDelegate.showChatHistorySelector(show)
-    }
+
 
     fun switchActiveCharacterTarget(target: CharacterSelectorTarget) {
         viewModelScope.launch {

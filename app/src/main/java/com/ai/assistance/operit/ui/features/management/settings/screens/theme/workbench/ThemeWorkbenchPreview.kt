@@ -1,5 +1,9 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptHost
+
 import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -26,6 +30,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptOutlinedButton
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.ThemeEditorSession
@@ -48,6 +56,9 @@ internal fun ThemeWorkbenchPreview(
     full: Boolean = false,
     layoutPreview: Boolean = false,
     showDescription: Boolean = true,
+    draft: ThemeScriptBundle? = null,
+    previewMode: String? = null,
+    showComponentSamples: Boolean = false,
 ) {
     val values by editorSession.values.collectAsState()
     val userName by editorSession.globalUserNameFlow.collectAsState()
@@ -73,7 +84,11 @@ internal fun ThemeWorkbenchPreview(
             val context = LocalContext.current
             val currentSnapshot = LocalThemePreferenceSnapshot.current
             val snapshot =
-                remember(currentSnapshot, values) { currentSnapshot.copy(values = values) }
+                remember(currentSnapshot, values, previewMode) {
+                    val previewValues = if (previewMode == null) values else values
+                        .withBoolean("use_system_theme", false).withString("theme_mode", previewMode)
+                    currentSnapshot.copy(values = previewValues)
+                }
             val colors = remember(context, snapshot) { resolveThemeColorScheme(context, snapshot) }
             val typography =
                 remember(
@@ -101,14 +116,16 @@ internal fun ThemeWorkbenchPreview(
                 LocalWaterGlassState provides water,
             ) {
                 MaterialTheme(colorScheme = colors, typography = typography) {
+                    ThemeScriptHost(snapshot, draft = draft) {
                     Box(Modifier.fillMaxWidth().padding(8.dp).clip(RoundedCornerShape(14.dp))) {
                         Box(
                             Modifier.matchParentSize()
                                 .layerBackdrop(backdrop)
                                 .then(if (water != null) Modifier.liquefiable(water) else Modifier)
-                                .background(colors.background)
+                                .background(MaterialTheme.colorScheme.background)
                         ) {
                             ThemePreviewBackground(values)
+                            Box(Modifier.fillMaxSize().themeScriptDecoration("background", values.requiredFloat("background_image_opacity")))
                         }
                         if (layoutPreview) {
                             com.ai.assistance.operit.ui.features.management.settings.screens.theme.layout
@@ -120,7 +137,22 @@ internal fun ThemeWorkbenchPreview(
                             ThemePreviewMessage(values, user = true, userName = userName)
                             ThemePreviewMessage(values, user = false, userName = userName)
                             ThemePreviewInput(values)
+                            if (showComponentSamples) {
+                                ThemeScriptSurface("settingsCard") {
+                                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(stringResource(R.string.theme_area_settings_card), style = MaterialTheme.typography.titleSmall)
+                                        ThemeScriptSurface("navigationItem", selected = true) {
+                                            Text(stringResource(R.string.theme_area_navigation_item), Modifier.fillMaxWidth().padding(8.dp))
+                                        }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            ThemeScriptButton(onClick = {}) { Text(stringResource(R.string.theme_area_button)) }
+                                            ThemeScriptOutlinedButton(onClick = {}, enabled = false) { Text(stringResource(R.string.theme_appearance_disabled)) }
+                                        }
+                                    }
+                                }
+                            }
                         }
+                    }
                     }
                 }
             }
@@ -137,7 +169,7 @@ internal fun ThemeWorkbenchPreview(
 }
 
 @Composable
-private fun ThemePreviewBackground(values: ThemePreferenceValues) {
+internal fun ThemePreviewBackground(values: ThemePreferenceValues) {
     if (!values.requiredBoolean("use_background_image")) return
     val uri = values.string("background_image_uri") ?: return
     val opacity = values.requiredFloat("background_image_opacity").coerceIn(0f, 1f)

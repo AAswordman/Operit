@@ -1,5 +1,11 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
 
 import androidx.compose.material.icons.filled.Translate
@@ -54,7 +60,7 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material3.AlertDialog
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -64,7 +70,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.copy.MessageCopyTextField
@@ -78,6 +84,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -772,11 +779,13 @@ private fun MessageItem(
         }
 
         DropdownMenu(
+            shape = themeScriptShape("menu", RoundedCornerShape(6.dp)),
+            containerColor = Color.Transparent,
             expanded = showContextMenu,
             onDismissRequest = { showContextMenu = false },
             modifier = Modifier
                 .width(180.dp)
-                .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(6.dp)),
+                .background(themeScriptFill("menu", MaterialTheme.colorScheme.surface), shape = themeScriptShape("menu", RoundedCornerShape(6.dp))).themeScriptDecoration("menu", drawFill = false, originalShape = RoundedCornerShape(6.dp)),
             properties = PopupProperties(
                 focusable = true,
                 dismissOnBackPress = true,
@@ -1291,6 +1300,11 @@ private fun MessageCopyPreviewBottomSheet(
     }
 
     ModalBottomSheet(
+        modifier = Modifier.clip(themeScriptShape("sheet", androidx.compose.material3.BottomSheetDefaults.ExpandedShape))
+                    .background(themeScriptFill("sheet", androidx.compose.material3.BottomSheetDefaults.ContainerColor))
+                    .themeScriptDecoration("sheet", drawFill = false, originalShape = androidx.compose.material3.BottomSheetDefaults.ExpandedShape),
+        shape = themeScriptShape("sheet", androidx.compose.material3.BottomSheetDefaults.ExpandedShape),
+        containerColor = Color.Transparent,
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
@@ -1372,7 +1386,7 @@ private fun MessageCopyPreviewBottomSheet(
 }
 
 @Composable
-private fun MessageFooterBar(
+internal fun MessageFooterBar(
     message: ChatMessage,
     showMessageTokenStats: Boolean,
     showMessageTimingStats: Boolean,
@@ -1396,13 +1410,13 @@ private fun MessageFooterBar(
             Text(
                 text = stringResource(R.string.chat_generated_at, completedAtText),
                 modifier = Modifier.align(Alignment.Start),
-                style = MaterialTheme.typography.labelSmall,
+                style = themeScriptTextStyle("status", MaterialTheme.typography.labelSmall),
                 color = statsTextColor,
             )
         }
 
         if (message.variantCount > 1) {
-            Row(
+            Row(modifier = Modifier.themeScriptDecoration("status"),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -1411,9 +1425,9 @@ private fun MessageFooterBar(
                     contentDescription = stringResource(R.string.chat_previous_variant),
                     tint =
                         if (hasPrevious) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.35f)
                         },
                     modifier =
                         Modifier
@@ -1429,17 +1443,17 @@ private fun MessageFooterBar(
                             message.selectedVariantIndex + 1,
                             message.variantCount,
                         ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = themeScriptTextStyle("status", MaterialTheme.typography.labelSmall),
+                    color = themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant),
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = stringResource(R.string.chat_next_variant),
                     tint =
                         if (hasNext) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                            themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.35f)
                         },
                     modifier =
                         Modifier

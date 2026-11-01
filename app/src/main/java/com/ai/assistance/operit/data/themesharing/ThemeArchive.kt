@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.data.themesharing
 
+import com.ai.assistance.operit.data.model.theme.ThemeAssetPaths
+import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -12,11 +15,8 @@ import java.util.zip.ZipOutputStream
 internal object ThemeArchive {
     const val MAX_ARCHIVE_BYTES = 512L * 1024 * 1024
     private const val MAX_ASSET_BYTES = 256L * 1024 * 1024
-    private const val MAX_ENTRIES = 32
-    private val assetPath = Regex("assets/[A-Za-z0-9_-][A-Za-z0-9._-]*\\.[A-Za-z0-9]{1,10}")
-
-    fun isAssetPath(path: String): Boolean =
-        path.length <= 160 && assetPath.matches(path) && !path.contains("..")
+    private const val MAX_ENTRIES = 64
+    fun isAssetPath(path: String): Boolean = ThemeAssetPaths.isFile(path)
 
     fun read(archive: File, directory: File): PreparedTheme {
         try {
@@ -33,12 +33,12 @@ internal object ThemeArchive {
                     val name = entry.name
                     if (!names.add(name) || names.size > MAX_ENTRIES) invalid()
                     if (entry.isDirectory) {
-                        if (name != "assets/") invalid()
+                        if (name != "assets/" && !ThemeAssetPaths.isFolder(name.removeSuffix("/"))) invalid()
                         continue
                     }
                     if (name != "manifest.json" && !isAssetPath(name)) invalid()
                     val limit =
-                        if (name == "manifest.json") ThemeTransferSchema.MAX_JSON_BYTES.toLong()
+                        if (name == "manifest.json") ThemeTransferSchema.MAX_PACKAGE_JSON_BYTES.toLong()
                         else MAX_ASSET_BYTES
                     if (entry.size > limit) tooLarge()
                     val target = File(directory, name)
@@ -71,15 +71,14 @@ internal object ThemeArchive {
             }
             val parsed =
                 document ?: throw ThemeTransferException(ThemeTransferError.MISSING_MANIFEST)
-            val references =
-                parsed.values.strings
-                    .filterKeys { it in ThemeTransferSchema.assetKeys }
-                    .values
-                    .toSet()
+            val references = references(parsed)
             if (!assets.keys.containsAll(references))
                 throw ThemeTransferException(ThemeTransferError.MISSING_ASSET)
             if (assets.keys != references) invalid()
-            return PreparedTheme(parsed, directory, assets)
+            val preview = parsed.script?.let { manifest ->
+                ThemeScriptBundleStore.create(directory, ThemeScriptBundleStore.fromFiles(manifest, assets))
+            }
+            return PreparedTheme(parsed, directory, assets, preview)
         } catch (e: Exception) {
             directory.deleteRecursively()
             if (e is ThemeTransferException) throw e
@@ -89,13 +88,10 @@ internal object ThemeArchive {
 
     fun write(output: OutputStream, document: ThemeTransferDocument, assets: Map<String, File>) {
         if (!document.full) invalid()
-        val references =
-            document.values.strings
-                .filterKeys { it in ThemeTransferSchema.assetKeys }
-                .values
-                .toSet()
+        val references = references(document)
         if (assets.keys != references)
             throw ThemeTransferException(ThemeTransferError.MISSING_ASSET)
+        document.script?.let { ThemeScriptBundleStore.fromFiles(it, assets) }
         val manifest = ThemeTransferSchema.encode(document)
         var total = manifest.size.toLong()
         ZipOutputStream(output).use { zip ->
@@ -112,6 +108,10 @@ internal object ThemeArchive {
             }
         }
     }
+
+    private fun references(document: ThemeTransferDocument): Set<String> =
+        document.values.strings.filterKeys { it in ThemeTransferSchema.assetKeys }.values.toSet() +
+            document.script?.let(ThemeScriptContract::references).orEmpty()
 
     fun copyLimited(input: InputStream, output: OutputStream, limit: Long): Long {
         val buffer = ByteArray(8192)

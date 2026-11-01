@@ -18,14 +18,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -78,6 +78,8 @@ internal data class ThemeSettingsShared(
     val editorSession: ThemeEditorSession,
     val displayPreferencesManager: DisplayPreferencesManager,
     val scope: CoroutineScope,
+    val projectKey: String,
+    val targetName: String,
 )
 
 private data class ThemeEditorState(val target: ActivePrompt, val session: ThemeEditorSession)
@@ -498,6 +500,11 @@ internal fun ThemeSettingsContentEditor(
                     editorSession = draft,
                     displayPreferencesManager = displayPreferencesManager,
                     scope = scope,
+                    projectKey = when (val target = editorTarget) {
+                        is ActivePrompt.CharacterCard -> "card:${target.id}"
+                        is ActivePrompt.CharacterGroup -> "group:${target.id}"
+                    },
+                    targetName = selectedThemeTargetName,
                 )
 
             if (showFullPreview) {

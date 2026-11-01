@@ -1,5 +1,13 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptMessageFraction
+import com.ai.assistance.operit.ui.theme.script.themeScriptTypography
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
 import com.ai.assistance.operit.data.preferences.transparency.ThemeTransparencyPreferences
@@ -61,13 +69,15 @@ fun AiMessageComposable(
     enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
 ) {
     val slice = LocalChatMessageSlice.current
+    val themedTextColor = themeScriptContentColor("assistantMessage", textColor)
     val context = LocalContext.current
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val themeSnapshot = LocalThemePreferenceSnapshot.current
     // 命令行 AI 消息原来没有外层背景，新配置缺省时保留原状。
     val backgroundOpacity = themeSnapshot.values
         .float(ThemeTransparencyPreferences.CURSOR_AI)?.coerceIn(0f, 1f)
-    val containerBackground = backgroundColor.copy(alpha = backgroundOpacity ?: 0f)
+    val messageDecorationOpacity = backgroundOpacity ?: 0f
+    val containerBackground = themeScriptFill("assistantMessage", backgroundColor, messageDecorationOpacity)
     val showThinkingProcess = themeSnapshot.showThinkingProcess
     val showStatusTags = themeSnapshot.showStatusTags
     val effectiveShowThinkingProcess = if (forceShowThinkingProcess) true else showThinkingProcess
@@ -128,12 +138,14 @@ fun AiMessageComposable(
         }
     }
 
+    MaterialTheme(typography = themeScriptTypography("assistantMessage", MaterialTheme.typography)) {
     ProvideAiMarkdownTextLayoutSettings {
         Column(
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .background(containerBackground, RoundedCornerShape(8.dp))
+                    .fillMaxWidth(themeScriptMessageFraction("assistantMessage"))
+                    .background(containerBackground, themeScriptShape("assistantMessage", RoundedCornerShape(8.dp)))
+                    .themeScriptDecoration("assistantMessage", messageDecorationOpacity, drawFill = false, originalShape = RoundedCornerShape(8.dp))
                     .padding(top = if (slice?.first != false) 2.dp else 0.dp, bottom = if (slice?.last != false) 2.dp else 0.dp)
                     .onSizeChanged { size ->
                         heightMemory?.updateMeasured(message.timestamp, size.height)
@@ -152,7 +164,7 @@ fun AiMessageComposable(
             Text(
                 text = "Response",
                 style = MaterialTheme.typography.labelSmall,
-                color = textColor.copy(alpha = 0.7f)
+                color = themedTextColor.copy(alpha = 0.7f)
             )
             
             // 右侧：详细信息（角色名、模型信息）
@@ -182,7 +194,7 @@ fun AiMessageComposable(
                 Text(
                     text = detailText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = textColor.copy(alpha = 0.5f)
+                    color = themedTextColor.copy(alpha = 0.5f)
                 )
             }
         }
@@ -201,7 +213,7 @@ fun AiMessageComposable(
 
                 StreamMarkdownRenderer(
                     markdownStream = charStream,
-                    textColor = textColor,
+                    textColor = themedTextColor,
                     backgroundColor = backgroundColor,
                     onLinkClick = rememberedOnLinkClick,
                     xmlRenderer = xmlRenderer,
@@ -215,7 +227,7 @@ fun AiMessageComposable(
                 // 共享相同的state，避免重新计算nodes等状态
                 StreamMarkdownRenderer(
                     sections = rememberDisplayMessageSections(message),
-                    textColor = textColor,
+                    textColor = themedTextColor,
                     backgroundColor = backgroundColor,
                     onLinkClick = rememberedOnLinkClick,
                     xmlRenderer = xmlRenderer,
@@ -228,6 +240,7 @@ fun AiMessageComposable(
         }
     }
 
+    }
         // 链接预览弹窗 - 仅在启用弹窗时显示
         if (showLinkDialog && linkToPreview.isNotEmpty() && enableDialogs) {
             LinkPreviewDialog(

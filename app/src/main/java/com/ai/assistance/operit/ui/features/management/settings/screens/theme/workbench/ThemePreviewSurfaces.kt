@@ -1,5 +1,19 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptAvatarSize
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptMessageFraction
+import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
+
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,6 +47,23 @@ import com.ai.assistance.operit.ui.theme.*
 
 @Composable
 internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, userName: String, markdownPreview: Boolean = false) {
+    ThemePreviewMessageSample(
+        values, user, userName,
+        message = stringResource(if (user) R.string.chat_style_preview_user_message else R.string.chat_style_preview_ai_message),
+        markdownPreview = markdownPreview,
+    )
+}
+
+/** 工作室使用简洁消息正文，主题页与布局页继续展示完整元信息。 */
+@Composable
+internal fun ThemePreviewMessageSample(
+    values: ThemePreferenceValues,
+    user: Boolean,
+    userName: String,
+    message: String,
+    markdownPreview: Boolean = false,
+    showDetails: Boolean = true,
+) {
     val context = LocalContext.current
     val preferences = remember(context) { DisplayPreferencesManager.getInstance(context) }
     val globalAvatar by preferences.globalUserAvatarUri.collectAsState(initial = null)
@@ -59,23 +90,27 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
     val explicitOpacity = values.float(opacityKey)?.coerceIn(0f, 1f)
     val defaultColor =
         if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-    val baseColor =
+    val nativeBaseColor =
         if (cursor) {
             if (!user) MaterialTheme.colorScheme.surface.copy(alpha = 0f)
             else if (values.requiredBoolean("cursor_user_bubble_follow_theme")) defaultColor
             else Color(values.int("cursor_user_bubble_color") ?: defaultColor.toArgb())
         } else Color(values.int(prefix + "_bubble_color") ?: defaultColor.toArgb())
-    val textColor =
+    val area = if (user) "userMessage" else "assistantMessage"
+    val regionOpacity = explicitOpacity ?: nativeBaseColor.alpha
+    val baseColor = themeScriptFill(area, nativeBaseColor, regionOpacity)
+    val nativeTextColor =
         if (cursor) MaterialTheme.colorScheme.onSurface
         else
             Color(
                 values.int(prefix + "_text_color")
                     ?: getTextColorForBackground(baseColor.copy(alpha = 1f)).toArgb()
             )
+    val textColor = themeScriptContentColor(if (user) "userMessage" else "assistantMessage", nativeTextColor)
     val rounded =
         if (user) values.requiredBoolean("bubble_rounded_corners_enabled")
         else values.requiredBoolean("bubble_ai_rounded_corners_enabled")
-    val shape = RoundedCornerShape(if (cursor || rounded) 14.dp else 0.dp)
+    val shape = themeScriptShape(if (user) "userMessage" else "assistantMessage", RoundedCornerShape(if (cursor || rounded) 14.dp else 0.dp))
     val family =
         remember(
             context,
@@ -121,13 +156,13 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
                         else null,
                     )
                     .joinToString(" · ")
-        if (names.isNotBlank())
+        if (showDetails && names.isNotBlank())
             Text(
                 names,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        if (!user && values.requiredBoolean("show_thinking_process")) {
+        if (showDetails && !user && values.requiredBoolean("show_thinking_process")) {
             Text(
                 stringResource(R.string.show_thinking_process),
                 Modifier.clickable { thoughtExpanded = !thoughtExpanded },
@@ -146,7 +181,7 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
             verticalAlignment = Alignment.Top,
         ) {
             if (!cursor && values.requiredBoolean("bubble_show_avatar") && !user)
-                ThemePreviewAvatar(avatar, values)
+                ThemePreviewAvatar(avatar, values, user)
             val wide = !cursor && values.requiredBoolean("bubble_wide_layout_enabled")
             val bubbleModifier =
                 if (wide || cursor) Modifier.weight(1f)
@@ -160,13 +195,10 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                     )
                 } else Text(
-                    stringResource(
-                        if (user) R.string.chat_style_preview_user_message
-                        else R.string.chat_style_preview_ai_message
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
+                    message,
+                    style = themeScriptTextStyle(if (user) "userMessage" else "assistantMessage", MaterialTheme.typography.bodyMedium),
                     color = textColor,
-                    fontFamily = family,
+                    fontFamily = themeScriptTextStyle(if (user) "userMessage" else "assistantMessage", MaterialTheme.typography.bodyMedium.copy(fontFamily = family)).fontFamily,
                 )
             }
             val uri = values.string(prefix + "_image_uri")
@@ -216,7 +248,7 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
                             bottom = 12.dp,
                         ),
                 ) {
-                    content()
+                    ThemeScriptSurface(if (user) "userMessage" else "assistantMessage", explicitOpacity ?: 1f) { content() }
                 }
             } else {
                 Surface(
@@ -239,15 +271,15 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
                     shape = shape,
                     color =
                         if (water || liquid) Color.Transparent
-                        else baseColor.copy(alpha = explicitOpacity ?: baseColor.alpha),
+                        else baseColor,
                 ) {
-                    Box(Modifier.padding(12.dp)) { content() }
+                    Box(Modifier.themeScriptDecoration(area, regionOpacity, drawFill = false).padding(12.dp)) { content() }
                 }
             }
             if (!cursor && values.requiredBoolean("bubble_show_avatar") && user)
-                ThemePreviewAvatar(avatar, values)
+                ThemePreviewAvatar(avatar, values, user)
         }
-        if (!user) {
+        if (showDetails && !user) {
             val meta = buildList {
                 if (values.requiredBoolean("show_message_token_stats")) add("128 tokens")
                 if (
@@ -271,16 +303,17 @@ internal fun ThemePreviewMessage(values: ThemePreferenceValues, user: Boolean, u
 }
 
 @Composable
-private fun ThemePreviewAvatar(uri: String?, values: ThemePreferenceValues) {
+private fun ThemePreviewAvatar(uri: String?, values: ThemePreferenceValues, user: Boolean) {
     val shape =
         if (values.requiredString("avatar_shape") == UserPreferencesManager.AVATAR_SHAPE_CIRCLE)
             RoundedCornerShape(50)
         else RoundedCornerShape(values.requiredFloat("avatar_corner_radius").dp)
     Box(
         Modifier.padding(horizontal = 6.dp)
-            .size(27.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.secondaryContainer),
+            .size(themeScriptAvatarSize(if (user) "userAvatar" else "assistantAvatar", 27.dp))
+            .clip(themeScriptShape(if (user) "userAvatar" else "assistantAvatar", shape))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .themeScriptDecoration(if (user) "userAvatar" else "assistantAvatar", originalShape = shape),
         contentAlignment = Alignment.Center,
     ) {
         if (uri != null)
@@ -308,8 +341,8 @@ internal fun ThemePreviewInput(values: ThemePreferenceValues) {
             values.requiredBoolean("chat_input_liquid_glass") &&
             isLiquidGlassSupported()
     val floating = values.requiredBoolean("chat_input_floating")
-    val shape = RoundedCornerShape(if (floating) 28.dp else if (classic) 4.dp else 16.dp)
-    val baseColor = MaterialTheme.colorScheme.surface
+    val shape = themeScriptShape("composer", RoundedCornerShape(if (floating) 28.dp else if (classic) 4.dp else 16.dp))
+    val baseColor = themeScriptFill("composer", MaterialTheme.colorScheme.surface, rawOpacity ?: if (transparent) 0f else 0.9f)
     var generating by remember { mutableStateOf(false) }
     LaunchedEffect(generating) {
         if (generating) {
@@ -351,28 +384,31 @@ internal fun ThemePreviewInput(values: ThemePreferenceValues) {
             shape = shape,
             color =
                 if (water || liquid) Color.Transparent
-                else baseColor.copy(alpha = rawOpacity ?: if (transparent) 0f else 0.9f),
+                else baseColor,
         ) {
             Row(
-                Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp),
+                Modifier.fillMaxWidth().themeScriptDecoration("composer", rawOpacity ?: if (transparent) 0f else 0.9f, drawFill = false).padding(start = 12.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(
-                    if (classic) Icons.Default.Add else Icons.Default.AutoAwesome,
-                    null,
-                    Modifier.size(18.dp),
+                ThemeScriptIcon(
+                    id = if (classic) "composer.attachment" else "composer.settings",
+                    imageVector = if (classic) Icons.Default.Add else Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
                 )
                 Text(
                     stringResource(R.string.theme_workbench_example_input),
                     Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = themeScriptTextStyle("composer", MaterialTheme.typography.bodySmall),
+                    color = themeScriptContentColor("composer", MaterialTheme.colorScheme.onSurface),
                 )
                 IconButton(onClick = { generating = true }, enabled = !generating) {
-                    Icon(
-                        Icons.Default.Send,
-                        stringResource(R.string.theme_workbench_play_example),
-                        Modifier.size(20.dp),
+                    ThemeScriptIcon(
+                        id = "composer.send",
+                        imageVector = Icons.Default.Send,
+                        contentDescription = stringResource(R.string.theme_workbench_play_example),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }

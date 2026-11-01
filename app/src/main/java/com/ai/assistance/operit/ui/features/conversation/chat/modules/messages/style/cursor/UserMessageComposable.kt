@@ -1,4 +1,13 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor
+
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptMessageFraction
+import com.ai.assistance.operit.ui.theme.script.themeScriptMessageWidth
+import com.ai.assistance.operit.ui.theme.script.themeScriptTypography
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageMarkup
 import com.ai.assistance.operit.core.chat.media.unescapeMediaAttribute
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.MediaFileGuard
@@ -142,21 +151,28 @@ fun UserMessageComposable(
     val imageLinks = parseResult.imageLinks
     val proxySenderName = if (isHiddenPlaceholder) null else parseResult.proxySenderName
     val isProxySender = !proxySenderName.isNullOrBlank()
+    val messageDecorationOpacity = when {
+        isHiddenPlaceholder -> 0f
+        isProxySender -> backgroundOpacity ?: MaterialTheme.colorScheme.secondaryContainer.alpha
+        else -> backgroundOpacity ?: backgroundColor.alpha
+    }
     val effectiveBackgroundColor =
         when {
             isHiddenPlaceholder -> Color.Transparent
             isProxySender -> MaterialTheme.colorScheme.secondaryContainer.copy(
                 alpha = backgroundOpacity ?: MaterialTheme.colorScheme.secondaryContainer.alpha,
             )
-            else -> backgroundColor.copy(alpha = backgroundOpacity ?: backgroundColor.alpha)
+            else -> themeScriptFill("userMessage", backgroundColor, messageDecorationOpacity)
         }
-    val effectiveTextColor =
+    val nativeTextColor =
         when {
             isHiddenPlaceholder -> textColor
             isProxySender -> MaterialTheme.colorScheme.onSecondaryContainer
             else -> textColor
         }
 
+    val effectiveTextColor = themeScriptContentColor("userMessage", nativeTextColor)
+    MaterialTheme(typography = themeScriptTypography("userMessage", MaterialTheme.typography)) {
     Column(modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = 16.dp, vertical = if (isHiddenPlaceholder) 0.dp else 4.dp)) {
@@ -167,7 +183,7 @@ fun UserMessageComposable(
                     .fillMaxWidth()
                     .padding(bottom = 4.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(8.dp)
+                shape = themeScriptShape("userMessage", RoundedCornerShape(8.dp))
             ) {
                 Row(
                     modifier = Modifier.padding(8.dp),
@@ -248,21 +264,21 @@ fun UserMessageComposable(
                     .then(if (voiceMessage != null) Modifier.align(Alignment.End) else Modifier)
                     .then(
                         if (isHiddenPlaceholder || voiceMessage != null) {
-                            Modifier.widthIn(max = 320.dp)
+                            Modifier.widthIn(max = themeScriptMessageWidth("userMessage", 320.dp))
                         } else {
-                            Modifier.fillMaxWidth()
+                            Modifier.fillMaxWidth(themeScriptMessageFraction("userMessage"))
                         }
                     )
                     .waterGlass(
                         enabled = waterGlassEnabled,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = themeScriptShape("userMessage", RoundedCornerShape(8.dp)),
                         containerColor = effectiveBackgroundColor,
                         backgroundOpacity = backgroundOpacity,
                         region = GlassRegion.USER_MESSAGE,
                     )
                     .liquidGlass(
                         enabled = liquidGlassEnabled,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = themeScriptShape("userMessage", RoundedCornerShape(8.dp)),
                         containerColor = effectiveBackgroundColor,
                         backgroundOpacity = backgroundOpacity,
                         enableLens = false,
@@ -276,10 +292,11 @@ fun UserMessageComposable(
                             effectiveBackgroundColor
                         },
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = themeScriptShape("userMessage", RoundedCornerShape(8.dp))
             ) {
                 Column(modifier = Modifier
                     .then(if (voiceMessage == null) Modifier.fillMaxWidth() else Modifier)
+                    .themeScriptDecoration("userMessage", messageDecorationOpacity, drawFill = false, originalShape = RoundedCornerShape(8.dp))
                     .padding(
                         start = 16.dp,
                         top = if (isHiddenPlaceholder) 0.dp else if (voiceMessage != null) 8.dp else 16.dp,
@@ -320,6 +337,7 @@ fun UserMessageComposable(
         }
     }
 
+    }
     // 内容预览对话框
     if (enableDialogs && showContentPreview.value) {
         AttachmentViewerDialog(

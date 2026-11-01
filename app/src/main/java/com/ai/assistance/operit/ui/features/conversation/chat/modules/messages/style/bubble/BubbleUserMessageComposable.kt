@@ -1,4 +1,13 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble
+
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeScriptMessageWidth
+import com.ai.assistance.operit.ui.theme.script.themeScriptAvatarSize
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageMarkup
 import com.ai.assistance.operit.core.chat.media.unescapeMediaAttribute
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.MediaFileGuard
@@ -68,6 +77,7 @@ import com.ai.assistance.operit.ui.theme.applyFontFamilyToTypography
 import com.ai.assistance.operit.ui.theme.isLiquidGlassSupported
 import com.ai.assistance.operit.ui.theme.isWaterGlassSupported
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.LocalThemePreviewUserName
 import com.ai.assistance.operit.ui.theme.liquidGlass
 import com.ai.assistance.operit.ui.theme.resolveConfiguredFontFamily
 import com.ai.assistance.operit.ui.theme.waterGlass
@@ -99,14 +109,15 @@ fun BubbleUserMessageComposable(
     val isHiddenPlaceholder =
         message.sender == "user" &&
             message.displayMode == ChatMessageDisplayMode.HIDDEN_PLACEHOLDER
+    // 占位消息保持透明；正常消息的素材独立使用区域透明度。
+    val messageDecorationOpacity = if (isHiddenPlaceholder) 0f else backgroundOpacity ?: backgroundColor.alpha
     val effectiveBackgroundColor =
         if (isHiddenPlaceholder) {
             Color.Transparent
         } else {
-            backgroundColor.copy(alpha = backgroundOpacity ?: backgroundColor.alpha)
+            themeScriptFill("userMessage", backgroundColor, messageDecorationOpacity)
         }
-    val effectiveTextColor =
-        textColor
+    val effectiveTextColor = themeScriptContentColor("userMessage", textColor)
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
@@ -187,10 +198,10 @@ fun BubbleUserMessageComposable(
             CircleShape
         }
     }
-    val resolvedDisplayName = if (isProxySender) proxySenderName else globalUserName
+    val resolvedDisplayName = if (isProxySender) proxySenderName else LocalThemePreviewUserName.current ?: globalUserName
     val shouldShowResolvedName = !isHiddenPlaceholder && if (isProxySender) true else showUserName
     val shouldShowAvatar = !isHiddenPlaceholder && bubbleShowAvatar
-    val avatarSize = 32.dp
+    val avatarSize = themeScriptAvatarSize("userAvatar", 32.dp)
     val avatarSpacing = 8.dp
     // 图片组与正文共用右边界，普通气泡布局需预留头像列及其间距。
     val mediaEndPadding = when {
@@ -355,7 +366,7 @@ fun BubbleUserMessageComposable(
                                     contentDescription = "User Avatar",
                                     modifier = Modifier
                                         .size(avatarSize)
-                                        .clip(avatarShape),
+                                        .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                                 )
                             } else {
@@ -364,7 +375,7 @@ fun BubbleUserMessageComposable(
                                     contentDescription = "User Avatar",
                                     modifier = Modifier
                                         .size(avatarSize)
-                                        .clip(avatarShape),
+                                        .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                                     tint = if (isProxySender) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
                                 )
                             }
@@ -375,7 +386,7 @@ fun BubbleUserMessageComposable(
                 }
 
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val maxBubbleWidth = maxWidth
+                    val maxBubbleWidth = themeScriptMessageWidth("userMessage", maxWidth)
                     val bubbleShape =
                         if (bubbleRoundedCornersEnabled) {
                             RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp)
@@ -397,7 +408,7 @@ fun BubbleUserMessageComposable(
                         } else if (effectiveBubbleImageStyle != null) {
                             BubbleImageBackgroundSurface(
                                 imageStyle = effectiveBubbleImageStyle.copy(backgroundOpacity = backgroundOpacity ?: 1f),
-                                shape = bubbleShape,
+                                shape = themeScriptShape("userMessage", bubbleShape),
                                 modifier = bubbleModifier,
                                 contentPadding =
                                     PaddingValues(
@@ -407,22 +418,24 @@ fun BubbleUserMessageComposable(
                                         bottom = if (isHiddenPlaceholder) 0.dp else if (voiceMessage != null) 6.dp else 12.dp,
                                     ),
                             ) {
-                                if (isHiddenPlaceholder) {
-                                    HiddenUserMessagePlaceholderContent(
-                                        titleColor = effectiveTextColor,
-                                        subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
-                                    )
-                                } else {
-                                    if (voiceMessage != null) {
-                                        VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
-                                            voiceMessage.waveform, voiceMessage.transcript,
-                                            embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing)
-                                    } else {
-                                        Text(
-                                            text = textContent,
-                                            color = effectiveTextColor,
-                                            style = MaterialTheme.typography.bodyMedium,
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
+                                    if (isHiddenPlaceholder) {
+                                        HiddenUserMessagePlaceholderContent(
+                                            titleColor = effectiveTextColor,
+                                            subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
                                         )
+                                    } else {
+                                        if (voiceMessage != null) {
+                                            VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
+                                                voiceMessage.waveform, voiceMessage.transcript,
+                                                embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing)
+                                        } else {
+                                            Text(
+                                                text = textContent,
+                                                color = effectiveTextColor,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -432,20 +445,20 @@ fun BubbleUserMessageComposable(
                                     bubbleModifier
                                         .waterGlass(
                                             enabled = waterGlassEnabled,
-                                            shape = bubbleShape,
+                                            shape = themeScriptShape("userMessage", bubbleShape),
                                             containerColor = effectiveBackgroundColor,
                                             backgroundOpacity = backgroundOpacity,
                                             region = GlassRegion.USER_MESSAGE,
                                         )
                                         .liquidGlass(
                                             enabled = liquidGlassEnabled,
-                                            shape = bubbleShape,
+                                            shape = themeScriptShape("userMessage", bubbleShape),
                                             containerColor = effectiveBackgroundColor,
                                             backgroundOpacity = backgroundOpacity,
                                             enableLens = false,
                                             region = GlassRegion.USER_MESSAGE,
                                         ),
-                                shape = bubbleShape,
+                                shape = themeScriptShape("userMessage", bubbleShape),
                                 color =
                                     if (liquidGlassEnabled || waterGlassEnabled) {
                                         Color.Transparent
@@ -459,41 +472,43 @@ fun BubbleUserMessageComposable(
                                         2.dp
                                     },
                             ) {
-                                if (isHiddenPlaceholder) {
-                                    Box(
-                                        modifier =
-                                            Modifier.padding(
-                                                start = bubbleContentPaddingLeft.dp,
-                                                top = 0.dp,
-                                                end = bubbleContentPaddingRight.dp,
-                                                bottom = 0.dp,
-                                            ),
-                                    ) {
-                                        HiddenUserMessagePlaceholderContent(
-                                            titleColor = effectiveTextColor,
-                                            subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
-                                        )
-                                    }
-                                } else {
-                                    if (voiceMessage != null) {
-                                        VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
-                                            voiceMessage.waveform, voiceMessage.transcript,
-                                            embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing,
-                                            modifier = Modifier.padding(start = bubbleContentPaddingLeft.dp, end = bubbleContentPaddingRight.dp,
-                                                top = 6.dp, bottom = 6.dp))
-                                    } else {
-                                        Text(
-                                            text = textContent,
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
+                                    if (isHiddenPlaceholder) {
+                                        Box(
                                             modifier =
-                                            Modifier.padding(
-                                                start = bubbleContentPaddingLeft.dp,
-                                                top = 12.dp,
-                                                end = bubbleContentPaddingRight.dp,
-                                                bottom = 12.dp,
-                                            ),
-                                            color = effectiveTextColor,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                        )
+                                                Modifier.padding(
+                                                    start = bubbleContentPaddingLeft.dp,
+                                                    top = 0.dp,
+                                                    end = bubbleContentPaddingRight.dp,
+                                                    bottom = 0.dp,
+                                                ),
+                                        ) {
+                                            HiddenUserMessagePlaceholderContent(
+                                                titleColor = effectiveTextColor,
+                                                subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
+                                            )
+                                        }
+                                    } else {
+                                        if (voiceMessage != null) {
+                                            VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
+                                                voiceMessage.waveform, voiceMessage.transcript,
+                                                embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing,
+                                                modifier = Modifier.padding(start = bubbleContentPaddingLeft.dp, end = bubbleContentPaddingRight.dp,
+                                                    top = 6.dp, bottom = 6.dp))
+                                        } else {
+                                            Text(
+                                                text = textContent,
+                                                modifier =
+                                                Modifier.padding(
+                                                    start = bubbleContentPaddingLeft.dp,
+                                                    top = 12.dp,
+                                                    end = bubbleContentPaddingRight.dp,
+                                                    bottom = 12.dp,
+                                                ),
+                                                color = effectiveTextColor,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -534,7 +549,7 @@ fun BubbleUserMessageComposable(
 
                     // Message bubble
                     BoxWithConstraints {
-                        val maxBubbleWidth = maxWidth * 0.85f
+                        val maxBubbleWidth = themeScriptMessageWidth("userMessage", maxWidth) * 0.85f
                         val bubbleShape =
                             if (bubbleRoundedCornersEnabled) {
                                 RoundedCornerShape(20.dp, 4.dp, 20.dp, 20.dp)
@@ -552,7 +567,7 @@ fun BubbleUserMessageComposable(
                         } else if (effectiveBubbleImageStyle != null) {
                             BubbleImageBackgroundSurface(
                                 imageStyle = effectiveBubbleImageStyle.copy(backgroundOpacity = backgroundOpacity ?: 1f),
-                                shape = bubbleShape,
+                                shape = themeScriptShape("userMessage", bubbleShape),
                                 modifier = bubbleModifier,
                                 contentPadding =
                                     PaddingValues(
@@ -562,22 +577,24 @@ fun BubbleUserMessageComposable(
                                         bottom = if (isHiddenPlaceholder) 0.dp else if (voiceMessage != null) 6.dp else 12.dp,
                                     ),
                             ) {
-                                if (isHiddenPlaceholder) {
-                                    HiddenUserMessagePlaceholderContent(
-                                        titleColor = effectiveTextColor,
-                                        subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
-                                    )
-                                } else {
-                                    if (voiceMessage != null) {
-                                        VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
-                                            voiceMessage.waveform, voiceMessage.transcript,
-                                            embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing)
-                                    } else {
-                                        Text(
-                                            text = textContent,
-                                            color = effectiveTextColor,
-                                            style = MaterialTheme.typography.bodyMedium,
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
+                                    if (isHiddenPlaceholder) {
+                                        HiddenUserMessagePlaceholderContent(
+                                            titleColor = effectiveTextColor,
+                                            subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
                                         )
+                                    } else {
+                                        if (voiceMessage != null) {
+                                            VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
+                                                voiceMessage.waveform, voiceMessage.transcript,
+                                                embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing)
+                                        } else {
+                                            Text(
+                                                text = textContent,
+                                                color = effectiveTextColor,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -587,20 +604,20 @@ fun BubbleUserMessageComposable(
                                     bubbleModifier
                                         .waterGlass(
                                             enabled = waterGlassEnabled,
-                                            shape = bubbleShape,
+                                            shape = themeScriptShape("userMessage", bubbleShape),
                                             containerColor = effectiveBackgroundColor,
                                             backgroundOpacity = backgroundOpacity,
                                             region = GlassRegion.USER_MESSAGE,
                                         )
                                         .liquidGlass(
                                             enabled = liquidGlassEnabled,
-                                            shape = bubbleShape,
+                                            shape = themeScriptShape("userMessage", bubbleShape),
                                             containerColor = effectiveBackgroundColor,
                                             backgroundOpacity = backgroundOpacity,
                                             enableLens = false,
                                             region = GlassRegion.USER_MESSAGE,
                                         ),
-                                shape = bubbleShape,
+                                shape = themeScriptShape("userMessage", bubbleShape),
                                 color =
                                     if (liquidGlassEnabled || waterGlassEnabled) {
                                         Color.Transparent
@@ -614,41 +631,43 @@ fun BubbleUserMessageComposable(
                                         2.dp
                                     }
                             ) {
-                                if (isHiddenPlaceholder) {
-                                    Box(
-                                        modifier =
-                                            Modifier.padding(
-                                                start = bubbleContentPaddingLeft.dp,
-                                                top = 0.dp,
-                                                end = bubbleContentPaddingRight.dp,
-                                                bottom = 0.dp,
-                                            ),
-                                    ) {
-                                        HiddenUserMessagePlaceholderContent(
-                                            titleColor = effectiveTextColor,
-                                            subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
-                                        )
-                                    }
-                                } else {
-                                    if (voiceMessage != null) {
-                                        VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
-                                            voiceMessage.waveform, voiceMessage.transcript,
-                                            embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing,
-                                            modifier = Modifier.padding(start = bubbleContentPaddingLeft.dp, end = bubbleContentPaddingRight.dp,
-                                                top = 6.dp, bottom = 6.dp))
-                                    } else {
-                                        Text(
-                                            text = textContent,
+                                ThemeScriptSurface("userMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
+                                    if (isHiddenPlaceholder) {
+                                        Box(
                                             modifier =
-                                            Modifier.padding(
-                                                start = bubbleContentPaddingLeft.dp,
-                                                top = 12.dp,
-                                                end = bubbleContentPaddingRight.dp,
-                                                bottom = 12.dp,
-                                            ),
-                                            color = effectiveTextColor,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
+                                                Modifier.padding(
+                                                    start = bubbleContentPaddingLeft.dp,
+                                                    top = 0.dp,
+                                                    end = bubbleContentPaddingRight.dp,
+                                                    bottom = 0.dp,
+                                                ),
+                                        ) {
+                                            HiddenUserMessagePlaceholderContent(
+                                                titleColor = effectiveTextColor,
+                                                subtitleColor = effectiveTextColor.copy(alpha = 0.72f),
+                                            )
+                                        }
+                                    } else {
+                                        if (voiceMessage != null) {
+                                            VoiceMessagePlayer(voiceMessage.attachment.filePath, voiceMessage.durationMs,
+                                                voiceMessage.waveform, voiceMessage.transcript,
+                                                embedded = true, contentColor = effectiveTextColor, missingState = voiceFileMissing,
+                                                modifier = Modifier.padding(start = bubbleContentPaddingLeft.dp, end = bubbleContentPaddingRight.dp,
+                                                    top = 6.dp, bottom = 6.dp))
+                                        } else {
+                                            Text(
+                                                text = textContent,
+                                                modifier =
+                                                Modifier.padding(
+                                                    start = bubbleContentPaddingLeft.dp,
+                                                    top = 12.dp,
+                                                    end = bubbleContentPaddingRight.dp,
+                                                    bottom = 12.dp,
+                                                ),
+                                                color = effectiveTextColor,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -664,7 +683,7 @@ fun BubbleUserMessageComposable(
                             contentDescription = "User Avatar",
                             modifier = Modifier
                                 .size(avatarSize)
-                                .clip(avatarShape),
+                                .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
                     } else {
@@ -673,7 +692,7 @@ fun BubbleUserMessageComposable(
                             contentDescription = "User Avatar",
                             modifier = Modifier
                                 .size(avatarSize)
-                                .clip(avatarShape),
+                                .clip(themeScriptShape("userAvatar", avatarShape)).themeScriptDecoration("userAvatar", originalShape = avatarShape),
                             tint = if (isProxySender) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
                         )
                     }

@@ -1,0 +1,165 @@
+{
+  "apiVersion": 1,
+  "entry": "assets/main.js",
+  "assets": {},
+  "appearance": {
+    "apiVersion": 1,
+    "palette": {
+      "light": {
+        "primary": "#386A4C",
+        "onPrimary": "#FFFFFF",
+        "primaryContainer": "#BAF0C9",
+        "onPrimaryContainer": "#00210F",
+        "background": "#F6FBF4",
+        "onBackground": "#181D19",
+        "surface": "#F6FBF4",
+        "onSurface": "#181D19",
+        "outline": "#717972"
+      },
+      "dark": {
+        "primary": "#A0D5AE",
+        "onPrimary": "#07381D",
+        "primaryContainer": "#205134",
+        "onPrimaryContainer": "#BAF0C9",
+        "background": "#101511",
+        "onBackground": "#DFE4DD",
+        "surface": "#101511",
+        "onSurface": "#DFE4DD",
+        "outline": "#8B938C"
+      }
+    },
+    "typography": {
+      "family": "sans-serif",
+      "scale": 1,
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "color": null
+    },
+    "surfaces": {
+      "background": {
+        "layers": []
+      },
+      "composer": {
+        "shape": {
+          "type": "rounded",
+          "radius": 20
+        },
+        "padding": {
+          "start": 4,
+          "top": 2,
+          "end": 4,
+          "bottom": 2
+        },
+        "strokeColor": "#80386A4C",
+        "strokeWidth": 1,
+        "minHeight": 48,
+        "states": {
+          "focused": {
+            "strokeWidth": 2
+          }
+        }
+      },
+      "userMessage": {
+        "shape": {
+          "type": "rounded",
+          "radius": 16
+        },
+        "fillColor": "#BAF0C9",
+        "contentColor": "#00210F",
+        "padding": {
+          "start": 2,
+          "top": 2,
+          "end": 2,
+          "bottom": 2
+        },
+        "messageWidth": 0.9
+      },
+      "userAvatar": {
+        "size": 36,
+        "shape": {
+          "type": "rounded",
+          "radius": 12
+        }
+      },
+      "assistantAvatar": {
+        "size": 36,
+        "shape": {
+          "type": "rounded",
+          "radius": 12
+        }
+      },
+      "button": {
+        "shape": {
+          "type": "rounded",
+          "radius": 12
+        },
+        "states": {
+          "pressed": {
+            "opacity": 0.85
+          },
+          "disabled": {
+            "opacity": 0.45
+          }
+        }
+      },
+      "navigationItem": {
+        "shape": {
+          "type": "rounded",
+          "radius": 12
+        },
+        "states": {
+          "selected": {
+            "strokeColor": "#80386A4C",
+            "strokeWidth": 1
+          }
+        }
+      }
+    },
+    "modes": {
+      "dark": {
+        "surfaces": {
+          "userMessage": {
+            "shape": {
+              "type": "rounded",
+              "radius": 16
+            },
+            "fillColor": "#205134",
+            "contentColor": "#BAF0C9",
+            "padding": {
+              "start": 2,
+              "top": 2,
+              "end": 2,
+              "bottom": 2
+            },
+            "messageWidth": 0.9
+          }
+        },
+        "typography": {
+          "family": "sans-serif",
+          "scale": 1,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "color": "#E0EBDD"
+        }
+      },
+      "light": {
+        "typography": {
+          "family": "sans-serif",
+          "scale": 1,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "color": "#26332B"
+        }
+      }
+    }
+  },
+  "studio": {
+    "id": "native_theme_starter",
+    "name": "原生主题入门示例",
+    "author": "示例制作者",
+    "version": "1.0.0",
+    "description": "无外部素材的静态外观与 JS 组合示例",
+    "license": "",
+    "folders": []
+  }
+}

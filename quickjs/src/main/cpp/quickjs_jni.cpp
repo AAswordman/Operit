@@ -1,6 +1,7 @@
 #include <jni.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <malloc.h>
@@ -480,6 +481,15 @@ public:
         return executed;
     }
 
+    // 资源约束按实例设置，未设置的现有执行器保持原有行为。
+    void SetLimits(int64_t memory_bytes, int64_t timeout_ms) {
+        std::lock_guard<std::mutex> guard(lock_);
+        memory_limit_bytes_.store(memory_bytes);
+        execution_timeout_ms_.store(timeout_ms);
+        JS_SetMemoryLimit(runtime_, static_cast<size_t>(memory_bytes));
+        JS_SetMaxStackSize(runtime_, 256 * 1024);
+    }
+
     void Interrupt() {
         interrupted_.store(true);
     }
@@ -504,6 +514,8 @@ public:
 
 private:
     static void* JsMalloc(JSMallocState* state, size_t size) {
+        auto* owner = static_cast<QuickJsVm*>(state->opaque);
+        if (!owner->CanAllocate(size, 0)) return nullptr;
         void* pointer = std::malloc(size);
         if (pointer != nullptr) {
             auto* vm = static_cast<QuickJsVm*>(state->opaque);
@@ -531,6 +543,8 @@ private:
             return nullptr;
         }
 
+        auto* owner = static_cast<QuickJsVm*>(state->opaque);
+        if (!owner->CanAllocate(size, old_size)) return nullptr;
         void* new_pointer = std::realloc(pointer, size);
         if (new_pointer != nullptr) {
             auto* vm = static_cast<QuickJsVm*>(state->opaque);
@@ -542,6 +556,15 @@ private:
 
     static size_t MallocUsableSize(const void* pointer) {
         return pointer == nullptr ? 0U : malloc_usable_size(pointer);
+    }
+
+    bool CanAllocate(size_t requested, size_t released) const {
+        const int64_t limit = memory_limit_bytes_.load();
+        if (limit <= 0) return true;
+        const int64_t current = current_native_allocation_bytes_.load();
+        // 预留分配器对齐开销；自定义分配器必须自行执行实例内存上限。
+        const int64_t available = limit - current + static_cast<int64_t>(released) - 64;
+        return available >= 0 && requested <= static_cast<size_t>(available);
     }
 
     void RecordAllocation(size_t size) {
@@ -576,6 +599,10 @@ private:
         const std::string& script_preview
     ) {
         interrupted_.store(false);
+        const int64_t timeout = execution_timeout_ms_.load();
+        execution_deadline_ = timeout > 0
+            ? std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout)
+            : std::chrono::steady_clock::time_point::max();
         current_file_name_ = file_name;
         current_script_length_ = script_length;
         current_script_preview_ = PreviewText(script_preview);
@@ -589,7 +616,9 @@ private:
         if (vm == nullptr) {
             return 0;
         }
-        return vm->interrupted_.load() ? 1 : 0;
+        return vm->interrupted_.load() ||
+            (vm->execution_timeout_ms_.load() > 0 &&
+             std::chrono::steady_clock::now() >= vm->execution_deadline_) ? 1 : 0;
     }
 
     static JSValue HostCallEntry(
@@ -806,6 +835,9 @@ private:
     jmethodID on_call_method_ = nullptr;
     std::mutex lock_;
     std::atomic_bool interrupted_;
+    std::atomic<int64_t> memory_limit_bytes_{0};
+    std::atomic<int64_t> execution_timeout_ms_{0};
+    std::chrono::steady_clock::time_point execution_deadline_{};
     std::atomic<int64_t> current_native_allocation_bytes_{0};
     std::atomic<int64_t> peak_native_allocation_bytes_{0};
     std::string current_file_name_;
@@ -980,4 +1012,23 @@ Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeIn
     if (vm != nullptr) {
         vm->Interrupt();
     }
+}
+
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeSetLimits(
+    JNIEnv* env,
+    jclass,
+    jlong handle,
+    jlong memory_bytes,
+    jlong timeout_ms
+) {
+    auto* vm = FromHandle(handle);
+    if (vm == nullptr || memory_bytes <= 0 || timeout_ms <= 0 || timeout_ms > 60000) {
+        jclass error = env->FindClass("java/lang/IllegalArgumentException");
+        env->ThrowNew(error, "Invalid QuickJS execution limits");
+        env->DeleteLocalRef(error);
+        return;
+    }
+    vm->SetLimits(memory_bytes, timeout_ms);
 }

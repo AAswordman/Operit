@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.workspace.browser
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close

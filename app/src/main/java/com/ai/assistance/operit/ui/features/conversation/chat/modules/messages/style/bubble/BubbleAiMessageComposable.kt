@@ -1,4 +1,13 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble
+
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeScriptMessageWidth
+import com.ai.assistance.operit.ui.theme.script.themeScriptAvatarSize
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import com.ai.assistance.operit.data.preferences.transparency.ThemeTransparencyPreferences
@@ -102,6 +111,7 @@ fun BubbleAiMessageComposable(
     onAvatarLongPressMention: ((String) -> Unit)? = null,
 ) {
     val slice = LocalChatMessageSlice.current
+    val themedTextColor = themeScriptContentColor("assistantMessage", textColor)
     val context = LocalContext.current
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
@@ -109,7 +119,8 @@ fun BubbleAiMessageComposable(
     val themeSnapshot = LocalThemePreferenceSnapshot.current
     val backgroundOpacity = themeSnapshot.values
         .float(ThemeTransparencyPreferences.BUBBLE_AI)?.coerceIn(0f, 1f)
-    val effectiveBackgroundColor = backgroundColor.copy(alpha = backgroundOpacity ?: backgroundColor.alpha)
+    val messageDecorationOpacity = backgroundOpacity ?: backgroundColor.alpha
+    val effectiveBackgroundColor = themeScriptFill("assistantMessage", backgroundColor, messageDecorationOpacity)
     val bubbleShowAvatar = themeSnapshot.bubbleShowAvatar
     val bubbleWideLayoutEnabled = themeSnapshot.bubbleWideLayoutEnabled
     val showThinkingProcess = themeSnapshot.showThinkingProcess
@@ -284,8 +295,8 @@ fun BubbleAiMessageComposable(
         if (bubbleWideLayoutEnabled) {
         val headerVisible = bubbleShowAvatar || roleNameText.isNotEmpty() || metadataText.isNotEmpty()
         val avatarModifier = Modifier
-            .size(32.dp)
-            .clip(avatarShape)
+            .size(themeScriptAvatarSize("assistantAvatar", 32.dp))
+            .clip(themeScriptShape("assistantAvatar", avatarShape)).themeScriptDecoration("assistantAvatar", originalShape = avatarShape)
             .combinedClickable(
                 onClick = {},
                 onLongClick = {
@@ -362,7 +373,7 @@ fun BubbleAiMessageComposable(
             }
 
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val maxBubbleWidth = maxWidth
+                val maxBubbleWidth = themeScriptMessageWidth("assistantMessage", maxWidth)
                 if (imageUrl != null) {
                     AsyncImage(
                         model = Uri.parse(imageUrl),
@@ -398,7 +409,7 @@ fun BubbleAiMessageComposable(
                                 val charStream = remember(stream) { stream.toCharStream() }
                                 StreamMarkdownRenderer(
                                     markdownStream = charStream,
-                                    textColor = textColor,
+                                    textColor = themedTextColor,
                                     backgroundColor = effectiveBackgroundColor,
                                     onLinkClick = rememberedOnLinkClick,
                                     xmlRenderer = xmlRenderer,
@@ -417,7 +428,7 @@ fun BubbleAiMessageComposable(
                             } else {
                                 StreamMarkdownRenderer(
                                     sections = rememberDisplayMessageSections(message),
-                                    textColor = textColor,
+                                    textColor = themedTextColor,
                                     backgroundColor = effectiveBackgroundColor,
                                     onLinkClick = rememberedOnLinkClick,
                                     xmlRenderer = xmlRenderer,
@@ -440,11 +451,13 @@ fun BubbleAiMessageComposable(
                     if (effectiveBubbleImageStyle != null) {
                         BubbleImageBackgroundSurface(
                             imageStyle = effectiveBubbleImageStyle.copy(backgroundOpacity = backgroundOpacity ?: 1f),
-                            shape = bubbleShape,
+                            shape = themeScriptShape("assistantMessage", bubbleShape),
                             modifier = bubbleModifier,
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            renderContent()
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
+                                renderContent()
+                            }
                         }
                     } else {
                         Surface(
@@ -452,20 +465,20 @@ fun BubbleAiMessageComposable(
                                 bubbleModifier
                                     .waterGlass(
                                         enabled = waterGlassEnabled,
-                                        shape = bubbleShape,
+                                        shape = themeScriptShape("assistantMessage", bubbleShape),
                                         containerColor = effectiveBackgroundColor,
                                         backgroundOpacity = backgroundOpacity,
                                         region = GlassRegion.AI_MESSAGE,
                                     )
                                     .liquidGlass(
                                         enabled = liquidGlassEnabled,
-                                        shape = bubbleShape,
+                                        shape = themeScriptShape("assistantMessage", bubbleShape),
                                         containerColor = effectiveBackgroundColor,
                                         backgroundOpacity = backgroundOpacity,
                                         enableLens = false,
                                         region = GlassRegion.AI_MESSAGE,
                                     ),
-                            shape = bubbleShape,
+                            shape = themeScriptShape("assistantMessage", bubbleShape),
                             color =
                                 if (liquidGlassEnabled || waterGlassEnabled) {
                                     Color.Transparent
@@ -479,7 +492,9 @@ fun BubbleAiMessageComposable(
                                     2.dp
                                 },
                         ) {
-                            renderContent()
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
+                                renderContent()
+                            }
                         }
                     }
                 }
@@ -498,8 +513,8 @@ fun BubbleAiMessageComposable(
         if (bubbleShowAvatar) {
             if (slice?.first != false) {
             val avatarModifier = Modifier
-                .size(32.dp)
-                .clip(avatarShape)
+                .size(themeScriptAvatarSize("assistantAvatar", 32.dp))
+                .clip(themeScriptShape("assistantAvatar", avatarShape)).themeScriptDecoration("assistantAvatar", originalShape = avatarShape)
                 .combinedClickable(
                     onClick = {},
                     onLongClick = {
@@ -574,7 +589,7 @@ fun BubbleAiMessageComposable(
             }
 
             BoxWithConstraints {
-                val maxBubbleWidth = maxWidth * 0.85f
+                val maxBubbleWidth = themeScriptMessageWidth("assistantMessage", maxWidth) * 0.85f
                 if (imageUrl != null) {
                     AsyncImage(
                         model = Uri.parse(imageUrl),
@@ -613,7 +628,7 @@ fun BubbleAiMessageComposable(
                                 val charStream = remember(stream) { stream.toCharStream() }
                                 StreamMarkdownRenderer(
                                     markdownStream = charStream,
-                                    textColor = textColor,
+                                    textColor = themedTextColor,
                                     backgroundColor = effectiveBackgroundColor,
                                     onLinkClick = rememberedOnLinkClick,
                                     xmlRenderer = xmlRenderer,
@@ -634,7 +649,7 @@ fun BubbleAiMessageComposable(
                                 // 共享相同的state，避免重新计算nodes等状态
                                 StreamMarkdownRenderer(
                                     sections = rememberDisplayMessageSections(message),
-                                    textColor = textColor,
+                                    textColor = themedTextColor,
                                     backgroundColor = effectiveBackgroundColor,
                                     onLinkClick = rememberedOnLinkClick,
                                     xmlRenderer = xmlRenderer,
@@ -657,11 +672,13 @@ fun BubbleAiMessageComposable(
                     if (effectiveBubbleImageStyle != null) {
                         BubbleImageBackgroundSurface(
                             imageStyle = effectiveBubbleImageStyle.copy(backgroundOpacity = backgroundOpacity ?: 1f),
-                            shape = bubbleShape,
+                            shape = themeScriptShape("assistantMessage", bubbleShape),
                             modifier = bubbleModifier,
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            renderContent()
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = true, originalShape = bubbleShape) {
+                                renderContent()
+                            }
                         }
                     } else {
                         Surface(
@@ -669,20 +686,20 @@ fun BubbleAiMessageComposable(
                                 bubbleModifier
                                     .waterGlass(
                                         enabled = waterGlassEnabled,
-                                        shape = bubbleShape,
+                                        shape = themeScriptShape("assistantMessage", bubbleShape),
                                         containerColor = effectiveBackgroundColor,
                                         backgroundOpacity = backgroundOpacity,
                                         region = GlassRegion.AI_MESSAGE,
                                     )
                                     .liquidGlass(
                                         enabled = liquidGlassEnabled,
-                                        shape = bubbleShape,
+                                        shape = themeScriptShape("assistantMessage", bubbleShape),
                                         containerColor = effectiveBackgroundColor,
                                         backgroundOpacity = backgroundOpacity,
                                         enableLens = false,
                                         region = GlassRegion.AI_MESSAGE,
                                     ),
-                            shape = bubbleShape,
+                            shape = themeScriptShape("assistantMessage", bubbleShape),
                             color =
                                 if (liquidGlassEnabled || waterGlassEnabled) {
                                     Color.Transparent
@@ -696,7 +713,9 @@ fun BubbleAiMessageComposable(
                                     2.dp
                                 }
                         ) {
-                            renderContent()
+                            ThemeScriptSurface("assistantMessage", messageDecorationOpacity, drawFill = false, originalShape = bubbleShape) {
+                                renderContent()
+                            }
                         }
                     }
                 }

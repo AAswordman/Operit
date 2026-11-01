@@ -3,6 +3,9 @@ package com.ai.assistance.operit.data.themesharing
 import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
+import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
+import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
+import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
@@ -78,11 +81,18 @@ internal class ThemeTransferRepository(private val context: Context) {
         name: String,
         author: String,
         cache: File,
+        scriptBundle: ThemeScriptBundle? = null,
     ): File {
         val staging = File(cache, UUID.randomUUID().toString())
         if (!staging.mkdirs()) throw ThemeTransferException(ThemeTransferError.IO_ERROR)
         val archive = File(cache, "${UUID.randomUUID()}.oktheme")
         try {
+            val bundle = if (scriptBundle != null) scriptBundle else source.values.string(ThemePreferenceValues.SCRIPT_URI_KEY)?.let { reference ->
+                ThemeScriptBundleStore.read(ThemeScriptBundleStore.fileForReference(context.filesDir, reference))
+            }
+            bundle?.let { ThemeScriptContract.validate(it.manifest) }
+            val scriptPaths = bundle?.let { it.manifest.assets.values.toSet() + it.manifest.entry }.orEmpty()
+            val scriptFolders = bundle?.manifest?.studio?.folders.orEmpty()
             var values = source.values
             if (values.string("custom_user_avatar_uri") == null) {
                 values = values.withString("custom_user_avatar_uri", source.globalUserAvatar)
@@ -96,7 +106,8 @@ internal class ThemeTransferRepository(private val context: Context) {
                 val relative =
                     relativePaths.getOrPut(reference) {
                         val extension = resourceExtension(reference)
-                        val path = "assets/${relativePaths.size + 1}.$extension"
+                        // 普通主题资源独立分配目录，制作工程的原路径不因同名素材而改写。
+                        val path = ThemeResourcePaths.allocate(extension, scriptPaths + assets.keys, scriptFolders.toSet())
                         val file = File(staging, path)
                         file.parentFile?.mkdirs()
                         total +=
@@ -114,8 +125,13 @@ internal class ThemeTransferRepository(private val context: Context) {
                     }
                 values = values.withString(key, relative)
             }
+            val script = bundle?.let { project ->
+                val (manifest, files) = ThemeScriptBundleStore.exportFiles(project, staging)
+                assets.putAll(files)
+                manifest
+            }
             val document =
-                ThemeTransferSchema.create(name, author, values, source.layout, full = true)
+                ThemeTransferSchema.create(name, author, values, source.layout, full = true, script = script)
             archive.outputStream().use { ThemeArchive.write(it, document, assets) }
             if (archive.length() > ThemeArchive.MAX_ARCHIVE_BYTES)
                 throw ThemeTransferException(ThemeTransferError.TOO_LARGE)
@@ -206,6 +222,12 @@ internal class ThemeTransferRepository(private val context: Context) {
                                         else Uri.fromFile(target).toString(),
                                     )
                             }
+                    }
+                    theme.document.script?.let { manifest ->
+                        val bundle = ThemeScriptBundleStore.fromFiles(manifest, theme.assets)
+                        val file = ThemeScriptBundleStore.create(context.filesDir, bundle)
+                        copied += file
+                        values = values.withString(ThemePreferenceValues.SCRIPT_URI_KEY, Uri.fromFile(file).toString())
                     }
                     val document = theme.document.copy(values = values)
                     // 在同一笔 DataStore 写入中再次检查配置，并同时保存全局聊天布局。

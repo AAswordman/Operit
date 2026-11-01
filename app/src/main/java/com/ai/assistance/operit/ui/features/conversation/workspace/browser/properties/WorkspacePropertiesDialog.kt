@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.conversation.workspace.browser.properties
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context

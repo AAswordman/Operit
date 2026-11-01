@@ -256,4 +256,19 @@ class PrivateResourceCleanupTest {
         assertEquals("引用读取失败", failure?.message)
         assertTrue(old.exists())
     }
+
+    @Test
+    fun scriptReferencesIncludeCardsAndGroupsAndRetainSharedBundle() {
+        val root = temporaryFolder.newFolder()
+        val file = asset(root, "theme_script_shared.zip")
+        val reference = uri(file)
+        val retained = ManagedResourceFiles.references(mapOf(
+            "character_card_theme_card_custom_theme_script_uri" to reference,
+            "character_group_theme_group_custom_theme_script_uri" to reference,
+        ))
+        assertEquals(setOf(reference), retained)
+        assertTrue(ManagedResourceFiles(root).deleteUnreferenced(setOf(reference), retained) { fail("共享主题仍有引用") }.isEmpty())
+        assertEquals(setOf(file.canonicalFile), ManagedResourceFiles(root).deleteUnreferenced(setOf(reference), emptySet()) { fail("无引用资源应被删除") })
+        assertFalse(file.exists())
+    }
 }

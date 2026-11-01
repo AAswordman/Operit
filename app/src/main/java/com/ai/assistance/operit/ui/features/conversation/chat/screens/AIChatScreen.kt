@@ -1,5 +1,10 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.screens
 
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.chatMessageAppearance
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
+
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.voice.VoiceMessageSheet
 import com.ai.assistance.operit.core.chat.voice.canStartVoiceMessage
 
@@ -74,13 +79,10 @@ import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.ment
 import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubScreen
 import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubOverlay
 import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubPage
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.mentions.MentionSuggestionPanel
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.*
 import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.ChatViewModel
-import com.ai.assistance.operit.ui.main.LocalTopBarActions
 import com.ai.assistance.operit.ui.main.PendingChatDraftHandler
-import com.ai.assistance.operit.ui.main.components.LocalAppBarContentColor
 import com.ai.assistance.operit.ui.main.screens.GestureStateHolder
 import com.ai.assistance.operit.ui.main.SharedFileHandler
 import java.io.File
@@ -103,8 +105,6 @@ import com.ai.assistance.operit.plugins.chatview.ChatViewEvent
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookParams
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookPluginRegistry
 import java.util.UUID
-import com.ai.assistance.operit.ui.features.conversation.chat.modules.characters.CharacterSelectorPanel
-import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.CharacterSelectorTarget
 import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.ChatStyle
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.memory.MemoryFolderSelectionDialog
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.imports.SharedIncomingContentHandler
@@ -116,7 +116,6 @@ import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.Lo
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalOpenMainChatSidebar
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.rememberChatSidebarState
 
-
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,7 +125,6 @@ fun AIChatScreen(
         viewModel: ChatViewModel? = null,
         isFloatingMode: Boolean = false,
         embedded: Boolean = false,
-        useMainSidebar: Boolean = false,
         onLoading: (Boolean) -> Unit = {},
         onError: (String) -> Unit = {},
         hasBackgroundImage: Boolean = false,
@@ -271,7 +269,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val disableUserPreferenceDescription by
             actualViewModel.disableUserPreferenceDescription.collectAsState()
     val summaryTokenThreshold by actualViewModel.summaryTokenThreshold.collectAsState()
-    val showChatHistorySelector by actualViewModel.showChatHistorySelector.collectAsState()
     val chatHistories by actualViewModel.chatHistories.collectAsState()
     val currentChatId by actualViewModel.currentChatId.collectAsState()
     val hasNewerDisplayHistory by actualViewModel.hasNewerDisplayHistory.collectAsState()
@@ -391,7 +388,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         PendingChatDraftHandler.clearPendingDraft()
     }
 
-
     // 添加WebView刷新相关状态
     val webViewRefreshCounter by actualViewModel.webViewRefreshCounter.collectAsState()
 
@@ -401,12 +397,11 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
 
     // UI state
     val scrollState = rememberLazyListState()
-    val historyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    val historySidebarState = if (useMainSidebar) {
-        LocalMainChatSidebarState.current
-    } else {
+    val historySidebarState = if (embedded) {
         rememberChatSidebarState(actualViewModel)
+    } else {
+        LocalMainChatSidebarState.current
     }
     val activePrompt = historySidebarState.activePrompt
     val activeCharacterCard = historySidebarState.activeCharacterCard
@@ -431,156 +426,19 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                     !it.memoryProfileId.isNullOrBlank()
             }
             ?.memoryProfileId
-    
 
 
-    val defaultUserMessageColor = MaterialTheme.colorScheme.primaryContainer
-    val defaultAiMessageColor = MaterialTheme.colorScheme.surface
-    val cursorCustomUserMessageColor = cursorUserBubbleColorValue?.let(::Color)
-    val bubbleCustomUserMessageColor = bubbleUserBubbleColorValue?.let(::Color)
-    val bubbleCustomAiMessageColor = bubbleAiBubbleColorValue?.let(::Color)
-    val bubbleCustomUserTextColor = bubbleUserTextColorValue?.let(::Color)
-    val bubbleCustomAiTextColor = bubbleAiTextColorValue?.let(::Color)
-
-    val userMessageColor =
-        when (userChatStyle) {
-            ChatStyle.CURSOR -> {
-                if (cursorUserBubbleFollowTheme) {
-                    defaultUserMessageColor
-                } else {
-                    cursorCustomUserMessageColor ?: defaultUserMessageColor
-                }
-            }
-
-            ChatStyle.BUBBLE -> bubbleCustomUserMessageColor ?: defaultUserMessageColor
-        }.let { color ->
-            val key = if (userChatStyle == ChatStyle.CURSOR) {
-                ThemeTransparencyPreferences.CURSOR_USER
-            } else {
-                ThemeTransparencyPreferences.BUBBLE_USER
-            }
-            color.copy(alpha = ThemeTransparencyPreferences.opacity(themeSnapshot.values, key, color.alpha))
-        }
-    val aiMessageColor =
-        when (aiChatStyle) {
-            ChatStyle.BUBBLE -> bubbleCustomAiMessageColor ?: defaultAiMessageColor
-            ChatStyle.CURSOR -> defaultAiMessageColor
-        }.let { color ->
-            val key = if (aiChatStyle == ChatStyle.CURSOR) {
-                ThemeTransparencyPreferences.CURSOR_AI
-            } else {
-                ThemeTransparencyPreferences.BUBBLE_AI
-            }
-            color.copy(alpha = ThemeTransparencyPreferences.opacity(themeSnapshot.values, key, color.alpha))
-        }
-    val userTextColor =
-        when {
-            userChatStyle == ChatStyle.CURSOR && cursorUserBubbleFollowTheme ->
-                MaterialTheme.colorScheme.onPrimaryContainer
-            userChatStyle == ChatStyle.BUBBLE && bubbleCustomUserTextColor != null ->
-                bubbleCustomUserTextColor
-            else -> getTextColorForBackground(userMessageColor.copy(alpha = 1f))
-        }
-    val aiTextColor =
-        when {
-            aiChatStyle == ChatStyle.BUBBLE && bubbleCustomAiTextColor != null ->
-                bubbleCustomAiTextColor
-            aiChatStyle == ChatStyle.BUBBLE ->
-                getTextColorForBackground(aiMessageColor.copy(alpha = 1f))
-            else -> MaterialTheme.colorScheme.onSurface
-        }
-    val systemMessageColor = MaterialTheme.colorScheme.surfaceVariant
-    val systemTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val thinkingBackgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-    val thinkingTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-
-    val bubbleUserImageStyle =
-        remember(
-            userChatStyle,
-            bubbleUserBubbleLiquidGlass,
-            bubbleUserBubbleWaterGlass,
-            bubbleUserUseImage,
-            bubbleUserImageUri,
-            bubbleUserImageCropLeft,
-            bubbleUserImageCropTop,
-            bubbleUserImageCropRight,
-            bubbleUserImageCropBottom,
-            bubbleUserImageRepeatStart,
-            bubbleUserImageRepeatEnd,
-            bubbleUserImageRepeatYStart,
-            bubbleUserImageRepeatYEnd,
-            bubbleUserImageScale,
-            bubbleImageRenderMode,
-        ) {
-            val imageUri = bubbleUserImageUri
-            if (
-                userChatStyle == ChatStyle.BUBBLE &&
-                    !bubbleUserBubbleLiquidGlass &&
-                    !bubbleUserBubbleWaterGlass &&
-                    bubbleUserUseImage &&
-                    !imageUri.isNullOrBlank()
-            ) {
-                BubbleImageStyleConfig(
-                    imageUri = imageUri,
-                    cropLeftRatio = bubbleUserImageCropLeft,
-                    cropTopRatio = bubbleUserImageCropTop,
-                    cropRightRatio = bubbleUserImageCropRight,
-                    cropBottomRatio = bubbleUserImageCropBottom,
-                    repeatXStartRatio = bubbleUserImageRepeatStart,
-                    repeatXEndRatio = bubbleUserImageRepeatEnd,
-                    repeatYStartRatio = bubbleUserImageRepeatYStart,
-                    repeatYEndRatio = bubbleUserImageRepeatYEnd,
-                    imageScale = bubbleUserImageScale,
-                    renderMode = bubbleImageRenderMode,
-                )
-            } else {
-                null
-            }
-        }
-
-    val bubbleAiImageStyle =
-        remember(
-            aiChatStyle,
-            bubbleAiUseImage,
-            bubbleAiBubbleLiquidGlass,
-            bubbleAiBubbleWaterGlass,
-            bubbleAiImageUri,
-            bubbleAiImageCropLeft,
-            bubbleAiImageCropTop,
-            bubbleAiImageCropRight,
-            bubbleAiImageCropBottom,
-            bubbleAiImageRepeatStart,
-            bubbleAiImageRepeatEnd,
-            bubbleAiImageRepeatYStart,
-            bubbleAiImageRepeatYEnd,
-            bubbleAiImageScale,
-            bubbleImageRenderMode,
-        ) {
-            val imageUri = bubbleAiImageUri
-            if (
-                aiChatStyle == ChatStyle.BUBBLE &&
-                    !bubbleAiBubbleLiquidGlass &&
-                    !bubbleAiBubbleWaterGlass &&
-                    bubbleAiUseImage &&
-                    !imageUri.isNullOrBlank()
-            ) {
-                BubbleImageStyleConfig(
-                    imageUri = imageUri,
-                    cropLeftRatio = bubbleAiImageCropLeft,
-                    cropTopRatio = bubbleAiImageCropTop,
-                    cropRightRatio = bubbleAiImageCropRight,
-                    cropBottomRatio = bubbleAiImageCropBottom,
-                    repeatXStartRatio = bubbleAiImageRepeatStart,
-                    repeatXEndRatio = bubbleAiImageRepeatEnd,
-                    repeatYStartRatio = bubbleAiImageRepeatYStart,
-                    repeatYEndRatio = bubbleAiImageRepeatYEnd,
-                    imageScale = bubbleAiImageScale,
-                    renderMode = bubbleImageRenderMode,
-                )
-            } else {
-                null
-            }
-        }
+    val messageAppearance = chatMessageAppearance()
+    val userMessageColor = messageAppearance.userMessageColor
+    val aiMessageColor = messageAppearance.aiMessageColor
+    val userTextColor = messageAppearance.userTextColor
+    val aiTextColor = messageAppearance.aiTextColor
+    val systemMessageColor = messageAppearance.systemMessageColor
+    val systemTextColor = messageAppearance.systemTextColor
+    val thinkingBackgroundColor = messageAppearance.thinkingBackgroundColor
+    val thinkingTextColor = messageAppearance.thinkingTextColor
+    val bubbleUserImageStyle = messageAppearance.bubbleUserImageStyle
+    val bubbleAiImageStyle = messageAppearance.bubbleAiImageStyle
 
     // 滚动状态
     var autoScrollToBottom by remember { mutableStateOf(true) }
@@ -619,7 +477,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         ErrorDialog(errorMessage = message, onDismiss = { actualViewModel.dismissErrorDialog() })
     }
 
-
     // Save chat on app exit
     DisposableEffect(Unit) {
         onDispose {
@@ -639,15 +496,9 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     var verticalDrag by remember { mutableStateOf(0f) }
     val onVerticalDragChange = remember { { it: Float -> verticalDrag = it } }
     val dragThreshold = 40f // 与PhoneLayout保持一致
-    val onSwitchCharacter = remember(actualViewModel) {
-        { target: CharacterSelectorTarget ->
-            actualViewModel.switchActiveCharacterTarget(target)
-        }
-    }
 
     val workspaceHubPage by actualViewModel.workspaceHubPage.collectAsState()
     val isWorkspaceHubOpen = workspaceHubPage != WorkspaceHubPage.CHAT
-    val keyboardController = LocalSoftwareKeyboardController.current
     // 聊天输入框和工作台终端各自维护 IME 位移；终端不能再叠加外层 imePadding。
     val shouldUseChatLocalImeHandling =
         (embedded &&
@@ -682,16 +533,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         fileChooserRequest?.let { fileChooserLauncher.launch(it) }
     }
 
-    // 从CompositionLocal获取设置TopBar Actions的函数
-    val openMainSidebar = LocalOpenMainChatSidebar.current
-    LaunchedEffect(useMainSidebar, isCurrentScreen, showChatHistorySelector) {
-        if (useMainSidebar && isCurrentScreen && showChatHistorySelector) {
-            actualViewModel.showChatHistorySelector(false)
-            openMainSidebar()
-        }
-    }
-    val setTopBarActions = LocalTopBarActions.current
-    val appBarContentColor = LocalAppBarContentColor.current
     val setScreenSoftInputMode = LocalSetScreenSoftInputMode.current
     val setUseScreenImePadding = LocalSetUseScreenImePadding.current
     val requestedSoftInputMode =
@@ -701,7 +542,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
             android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
     val shouldUseGlobalImePadding = !shouldUseChatLocalImeHandling
-    val hasBoundWorkspace = !currentChatView?.workspace.isNullOrBlank()
 
     SideEffect {
         if (isCurrentScreen && !embedded) {
@@ -711,33 +551,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     }
 
 
-    // 统一入口随绑定状态和页面状态更新；准备中仍可点击以取消打开。
-    LaunchedEffect(isCurrentScreen, embedded, useMainSidebar, isWorkspaceHubOpen, isWorkspacePreparing, appBarContentColor, hasBoundWorkspace) {
-        if (isCurrentScreen && !embedded && !useMainSidebar) {
-            setTopBarActions {
-                IconButton(
-                    onClick = {
-                        keyboardController?.hide()
-                        actualViewModel.onWorkspaceHubButtonClick()
-                    }
-                ) {
-                    if (isWorkspacePreparing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = appBarContentColor
-                        )
-                    } else {
-                        Icon(
-                            imageVector = if (hasBoundWorkspace) Icons.Default.Code else Icons.Default.CodeOff,
-                            contentDescription = stringResource(R.string.workspace_hub_entry),
-                            tint = if (isWorkspaceHubOpen) MaterialTheme.colorScheme.primary else appBarContentColor,
-                        )
-                    }
-                }
-            }
-        }
-    }
     // 导出相关状态
     var showExportPlatformDialog by remember { mutableStateOf(false) }
     var showAndroidExportDialog by remember { mutableStateOf(false) }
@@ -750,7 +563,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     var exportFilePath by remember { mutableStateOf<String?>(null) }
     var exportErrorMessage by remember { mutableStateOf<String?>(null) }
     var webContentDir by remember { mutableStateOf<File?>(null) }
-    var showCharacterSelector by remember { mutableStateOf(false) }
 
     var bottomBarHeightPx by remember { mutableStateOf(0) }
     val bottomBarHeightDp = with(density) { bottomBarHeightPx.toDp() }
@@ -767,7 +579,10 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
             0f
         }
     val chatViewportTranslationYPx = inputBarTranslationYPx
-    Box(modifier = Modifier.fillMaxSize()) {
+    ChatScreenShell(
+        embedded = embedded, viewModel = actualViewModel, sidebarState = historySidebarState,
+        onOpenCharacterSettings = onNavigateToModelPrompts,
+    ) {
         CustomScaffold(
                 containerColor = Color.Transparent,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -792,8 +607,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                             bottomInset = bottomBarHeightDp,
                             actualViewModel = actualViewModel,
                             enableMessageDialogs = !isFloatingMode,
-                            showChatHeader = !useMainSidebar,
-                            showChatHistorySelector = showChatHistorySelector,
                             chatHistory = chatHistory,
                             isLoading = isLoading,
                             userMessageColor = userMessageColor,
@@ -828,11 +641,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                             bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
                             bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
                             bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
-                            historyListState = historyListState,
-                            showCharacterSelector = showCharacterSelector,
-                            onShowCharacterSelectorChange = { showCharacterSelector = it },
-                            onSwitchCharacter = onSwitchCharacter,
-                            onOpenCharacterSettings = onNavigateToModelPrompts,
                             chatAreaHorizontalPadding = chatAreaHorizontalPadding,
                             bubbleUserImageStyle = bubbleUserImageStyle,
                             bubbleAiImageStyle = bubbleAiImageStyle,
@@ -975,69 +783,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                     )
                 }
 
-                if (!useMainSidebar) {
-                    CharacterSelectorPanel(
-                        isVisible = showCharacterSelector,
-                        onDismiss = { showCharacterSelector = false },
-                        onSelectCharacter = onSwitchCharacter,
-                        onOpenCharacterSettings = onNavigateToModelPrompts
-                    )
-
-                    AnimatedVisibility(
-                        visible = showChatHistorySelector,
-                        enter = fadeIn(animationSpec = tween(300)),
-                        exit = fadeOut(animationSpec = tween(300)),
-                        modifier = Modifier.matchParentSize()
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.3f))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    actualViewModel.toggleChatHistorySelector()
-                                }
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = showChatHistorySelector,
-                        enter = androidx.compose.animation.slideInHorizontally(
-                            initialOffsetX = { -it },
-                            animationSpec = tween(300)
-                        ),
-                        exit = androidx.compose.animation.slideOutHorizontally(
-                            targetOffsetX = { -it },
-                            animationSpec = tween(300)
-                        ),
-                        modifier = Modifier.matchParentSize()
-                    ) {
-                        val chatHistorySearchQuery by actualViewModel.chatHistorySearchQuery.collectAsState()
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Box(modifier = Modifier.align(Alignment.TopStart)) {
-                                ChatHistorySelectorPanel(
-                                    actualViewModel = actualViewModel,
-                                    chatHistories = historySidebarState.displayedChatHistories,
-                                    currentChatId = currentChatId ?: "",
-                                    showChatHistorySelector = showChatHistorySelector,
-                                    historyListState = historyListState,
-                                    onChatScreenGestureConsumed = onChatScreenGestureConsumedChange,
-                                    searchQuery = chatHistorySearchQuery,
-                                    onSearchQueryChange = actualViewModel::onChatHistorySearchQueryChange,
-                                    activePrompt = activePrompt,
-                                    historyDisplayMode = historySidebarState.historyDisplayMode,
-                                    onDisplayModeChange = historySidebarState.onDisplayModeChange,
-                                    autoSwitchCharacterCard = historySidebarState.autoSwitchCharacterCard,
-                                    onAutoSwitchCharacterCardChange = historySidebarState.onAutoSwitchCharacterCardChange,
-                                    autoSwitchChatOnCharacterSelect = historySidebarState.autoSwitchChatOnCharacterSelect,
-                                    onAutoSwitchChatOnCharacterSelectChange = historySidebarState.onAutoSwitchChatOnCharacterSelectChange
-                                )
-                            }
-                        }
-                    }
-                }
             }
 
         }
@@ -1065,7 +810,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                     chatHistories = chatHistories,
                     isVisible = overlayVisible,
                     onOpenHtmlPackager = onNavigateToHtmlPackager,
-                    reserveChatControlsSpace = useMainSidebar,
+                    reserveChatControlsSpace = true,
                     onExportClick = { workDir ->
                         webContentDir = workDir
                         showExportPlatformDialog = true
@@ -1228,7 +973,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
 
         com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.motion.NewChatIntro(
             requestId = newChatIntroId, currentChatId = currentChatId,
-            ready = loadedChatId == currentChatId && currentChatId != null && !isLoading && !isLoadingDisplayWindow && !showChatHistorySelector, empty = chatHistory.isEmpty(),
+            ready = loadedChatId == currentChatId && currentChatId != null && !isLoading && !isLoadingDisplayWindow, empty = chatHistory.isEmpty(),
             hasDraft = introDraft.text.isNotEmpty(), onConsumed = actualViewModel.chatListMotion::consumeIntro,
             modifier = Modifier.fillMaxSize().padding(bottom = bottomBarHeightDp),
         )

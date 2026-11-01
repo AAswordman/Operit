@@ -1,5 +1,9 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.screens
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
+
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
 
 import android.annotation.SuppressLint
@@ -38,11 +42,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.model.ActivePrompt
 
 import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.features.conversation.workspace.links.WorkspaceFileLinkHost
-import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.ChatHistoryDisplayMode
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.conversation.workspace.WorkspaceBackupManager
 import java.io.File
@@ -71,7 +73,6 @@ import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.e
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.translation.MessageTranslationDialog
 import com.ai.assistance.operit.ui.main.screens.GestureStateHolder
 import com.ai.assistance.operit.util.markdown.LatexMathMlConverter
-import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.CharacterSelectorTarget
 import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.ChatStyle
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.AndroidExportDialog
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.ExportCompleteDialog
@@ -80,7 +81,6 @@ import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.Exp
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.WindowsExportDialog
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.exportAndroidApp
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.exportWindowsApp
-import com.ai.assistance.operit.ui.features.conversation.chat.modules.history.ChatHistorySelector
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.ChatArea
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.actions.WorkspaceChangeConfirmDialog
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.actions.WorkspaceChangeConfirmMode
@@ -105,8 +105,6 @@ fun ChatScreenContent(
         bottomInset: Dp = 0.dp,
         actualViewModel: ChatViewModel,
         enableMessageDialogs: Boolean = true,
-        showChatHeader: Boolean = true,
-        showChatHistorySelector: Boolean,
         chatHistory: List<ChatMessage>,
         isLoading: Boolean,
         userMessageColor: Color,
@@ -141,11 +139,6 @@ fun ChatScreenContent(
         bubbleUserBubbleWaterGlass: Boolean = false,
         bubbleAiBubbleLiquidGlass: Boolean = false,
         bubbleAiBubbleWaterGlass: Boolean = false,
-        historyListState: LazyListState,
-        showCharacterSelector: Boolean,
-        onShowCharacterSelectorChange: (Boolean) -> Unit,
-        onSwitchCharacter: (CharacterSelectorTarget) -> Unit,
-        onOpenCharacterSettings: () -> Unit,
         chatAreaHorizontalPadding: Float = 16f,
         bubbleUserImageStyle: BubbleImageStyleConfig? = null,
         bubbleAiImageStyle: BubbleImageStyleConfig? = null,
@@ -270,14 +263,8 @@ fun ChatScreenContent(
         modifier = modifier.fillMaxSize().padding(paddingValues),
     ) {
         // 主聊天透明控件行固定占用菜单高度，滚动消息也不会覆盖标题和操作。
-        Column(modifier = Modifier.fillMaxSize().padding(top = if (showChatHeader) 0.dp else 52.dp)) {
-            if (showChatHeader) {
-                ChatScreenHeader(
-                        actualViewModel = actualViewModel,
-                        showChatHistorySelector = showChatHistorySelector,
-                        onCharacterSwitcherClick = { onShowCharacterSelectorChange(true) }
-                )
-            }
+        Column(modifier = Modifier.fillMaxSize().padding(top = 52.dp)) {
+
             androidx.compose.runtime.CompositionLocalProvider(
                 com.ai.assistance.operit.ui.common.a2ui.LocalA2uiSubmit provides
                     if (enableMessageDialogs && !isMultiSelectMode) actualViewModel::submitA2ui else null,
@@ -1124,85 +1111,5 @@ fun ChatScreenContent(
                 }
             )
         }
-    }
-}
-
-@Composable
-fun ChatHistorySelectorPanel(
-        actualViewModel: ChatViewModel,
-        chatHistories: List<ChatHistory>,
-        currentChatId: String,
-        showChatHistorySelector: Boolean,
-        historyListState: LazyListState,
-        onChatScreenGestureConsumed: (Boolean) -> Unit,
-        searchQuery: String,
-        onSearchQueryChange: (String) -> Unit,
-        activePrompt: ActivePrompt,
-        historyDisplayMode: ChatHistoryDisplayMode,
-        onDisplayModeChange: (ChatHistoryDisplayMode) -> Unit,
-        autoSwitchCharacterCard: Boolean,
-        onAutoSwitchCharacterCardChange: (Boolean) -> Unit,
-        autoSwitchChatOnCharacterSelect: Boolean,
-        onAutoSwitchChatOnCharacterSelectChange: (Boolean) -> Unit
-) {
-    // 历史选择器面板（不再包含遮罩层，遮罩层已在外部处理）
-    Box(
-            modifier =
-                    Modifier.width(280.dp)
-                            .fillMaxHeight()
-                            .background(
-                                    color =
-                                            MaterialTheme.colorScheme.surface.copy(
-                                                    alpha = 0.95f
-                                            ),
-                                    shape = RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp)
-                            )
-    ) {
-        val activeStreamingChatIds by actualViewModel.activeStreamingChatIds.collectAsState()
-        // 直接使用ChatHistorySelector
-        ChatHistorySelector(
-                modifier = Modifier.fillMaxSize().padding(top = 8.dp),
-                onNewChat = { characterCardName, characterGroupId, folderId ->
-                    actualViewModel.createNewChat(characterCardName, characterGroupId, folderId, inheritGroupFromCurrent = false)
-                    // 创建新对话后自动收起侧边框
-                    actualViewModel.showChatHistorySelector(false)
-                },
-                onSelectChat = { chatId ->
-                    actualViewModel.switchChat(chatId)
-                    // 切换聊天后也自动收起侧边框
-                    actualViewModel.showChatHistorySelector(false)
-                },
-                onDeleteChat = actualViewModel::deleteChatHistory,
-                deletionProgress = actualViewModel.chatListMotion.deletions.collectAsState().value,
-                batchProgress = actualViewModel.chatBatchProgress.collectAsState().value,
-                onRunBatch = actualViewModel::runChatBatch,
-                onUpdateChatTitle = { chatId, newTitle ->
-                    actualViewModel.updateChatTitle(chatId, newTitle)
-                },
-                onSummarizeChatTitle = { chatId ->
-                    actualViewModel.summarizeChatTitle(chatId)
-                },
-                onUpdateChatBinding = { chatId, characterCardName, characterGroupId ->
-                    actualViewModel.updateChatCharacterBinding(chatId, characterCardName, characterGroupId)
-                },
-                chatHistories = chatHistories,
-                currentId = currentChatId,
-                activeStreamingChatIds = activeStreamingChatIds,
-                lazyListState = historyListState,
-                onBack = { actualViewModel.toggleChatHistorySelector() },
-                searchQuery = searchQuery,
-                onSearchQueryChange = onSearchQueryChange,
-                historyDisplayMode = historyDisplayMode,
-                onDisplayModeChange = onDisplayModeChange,
-                autoSwitchCharacterCard = autoSwitchCharacterCard,
-                onAutoSwitchCharacterCardChange = onAutoSwitchCharacterCardChange,
-                autoSwitchChatOnCharacterSelect = autoSwitchChatOnCharacterSelect,
-                onAutoSwitchChatOnCharacterSelectChange = onAutoSwitchChatOnCharacterSelectChange,
-                onQuickScrollInteractionChange = { consumed ->
-                    GestureStateHolder.isChatScreenGestureConsumed = consumed
-                    onChatScreenGestureConsumed(consumed)
-                },
-                activePrompt = activePrompt
-        )
     }
 }

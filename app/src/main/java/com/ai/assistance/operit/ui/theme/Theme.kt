@@ -1,5 +1,9 @@
 package com.ai.assistance.operit.ui.theme
 
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptHost
+
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.net.Uri
@@ -240,6 +244,10 @@ fun OperitTheme(content: @Composable () -> Unit) {
     }
 
     // 应用主题和自定义背景
+    MaterialTheme(colorScheme = colorScheme, typography = customTypography) {
+    ThemeScriptHost(snapshot = themeSnapshot) {
+    val renderedColors = MaterialTheme.colorScheme
+    val renderedTypography = MaterialTheme.typography
     ThemeRevealHost(darkTheme = darkTheme) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val liquidGlassBackdrop = rememberLayerBackdrop()
@@ -260,7 +268,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .background(colorScheme.background)
+                            .background(renderedColors.background)
                 )
 
                 if (useBackgroundImage && backgroundImageUri != null) {
@@ -272,7 +280,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                                 model = uri,
                                 error =
                                     rememberAsyncImagePainter(
-                                        colorScheme.background
+                                        renderedColors.background
                                     ),
                             )
 
@@ -319,7 +327,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                         )
                     } else {
                         exoPlayer?.let { player ->
-                            val videoBackgroundColor = colorScheme.background.toArgb()
+                            val videoBackgroundColor = renderedColors.background.toArgb()
                             AndroidView(
                                 factory = { ctx ->
                                     (LayoutInflater.from(ctx).inflate(
@@ -337,7 +345,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                                         setKeepContentOnPlayerReset(true)
                                         foreground =
                                             android.graphics.drawable.ColorDrawable(
-                                                colorScheme.background
+                                                renderedColors.background
                                                     .copy(alpha = 1f - backgroundImageOpacity)
                                                     .toArgb()
                                             )
@@ -353,7 +361,7 @@ fun OperitTheme(content: @Composable () -> Unit) {
                                     view.setKeepContentOnPlayerReset(true)
                                     view.foreground =
                                         android.graphics.drawable.ColorDrawable(
-                                            colorScheme.background
+                                            renderedColors.background
                                                 .copy(alpha = 1f - backgroundImageOpacity)
                                                 .toArgb()
                                         )
@@ -364,36 +372,39 @@ fun OperitTheme(content: @Composable () -> Unit) {
                         }
                     }
                 }
+                Box(Modifier.fillMaxSize().themeScriptDecoration("background", backgroundImageOpacity))
             }
 
             if (useBackgroundImage && backgroundImageUri != null) {
                 MaterialTheme(
                     colorScheme =
-                        colorScheme.copy(
-                            surface = colorScheme.surface.copy(alpha = 1f),
-                            surfaceVariant = colorScheme.surfaceVariant.copy(alpha = 1f),
-                            background = colorScheme.background.copy(alpha = 1f),
-                            surfaceContainer = colorScheme.surfaceContainer.copy(alpha = 1f),
+                        renderedColors.copy(
+                            surface = renderedColors.surface.copy(alpha = 1f),
+                            surfaceVariant = renderedColors.surfaceVariant.copy(alpha = 1f),
+                            background = renderedColors.background.copy(alpha = 1f),
+                            surfaceContainer = renderedColors.surfaceContainer.copy(alpha = 1f),
                             surfaceContainerHigh =
-                                colorScheme.surfaceContainerHigh.copy(alpha = 1f),
+                                renderedColors.surfaceContainerHigh.copy(alpha = 1f),
                             surfaceContainerHighest =
-                                colorScheme.surfaceContainerHighest.copy(alpha = 1f),
+                                renderedColors.surfaceContainerHighest.copy(alpha = 1f),
                             surfaceContainerLow =
-                                colorScheme.surfaceContainerLow.copy(alpha = 1f),
+                                renderedColors.surfaceContainerLow.copy(alpha = 1f),
                             surfaceContainerLowest =
-                                colorScheme.surfaceContainerLowest.copy(alpha = 1f),
+                                renderedColors.surfaceContainerLowest.copy(alpha = 1f),
                         ),
-                    typography = customTypography,
+                    typography = renderedTypography,
                     content = content,
                 )
             } else {
                 MaterialTheme(
-                    colorScheme = colorScheme,
-                    typography = customTypography,
+                    colorScheme = renderedColors,
+                    typography = renderedTypography,
                     content = content,
                 )
             }
         }
+    }
+    }
     }
     }
 }
