@@ -68,10 +68,11 @@ internal fun StudioNativeMessage(state: ThemeStudioState, user: Boolean, content
                     aiBubbleImageStyle = bubbleAiImageStyle,
                     bubbleUserRoundedCornersEnabled = values.requiredBoolean("bubble_rounded_corners_enabled"),
                     bubbleAiRoundedCornersEnabled = values.requiredBoolean("bubble_ai_rounded_corners_enabled"),
-                    bubbleUserContentPaddingLeft = values.requiredFloat("bubble_user_content_padding_left"),
-                    bubbleUserContentPaddingRight = values.requiredFloat("bubble_user_content_padding_right"),
-                    bubbleAiContentPaddingLeft = values.requiredFloat("bubble_ai_content_padding_left"),
-                    bubbleAiContentPaddingRight = values.requiredFloat("bubble_ai_content_padding_right"),
+                    // 与正式消息共用类型化偏好；用户气泡的历史键名不带 user 前缀。
+                    bubbleUserContentPaddingLeft = snapshot.bubbleUserContentPaddingLeft,
+                    bubbleUserContentPaddingRight = snapshot.bubbleUserContentPaddingRight,
+                    bubbleAiContentPaddingLeft = snapshot.bubbleAiContentPaddingLeft,
+                    bubbleAiContentPaddingRight = snapshot.bubbleAiContentPaddingRight,
                     enableDialogs = false,
                 )
             }
