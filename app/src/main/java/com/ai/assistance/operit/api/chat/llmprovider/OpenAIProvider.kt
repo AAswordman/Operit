@@ -801,6 +801,14 @@ open class OpenAIProvider(
         }
     }
 
+    /** 音频内容类型由服务商协议决定，兼容接口不一定接受 OpenAI 的 input_audio。 */
+    protected open fun buildAudioContentPart(link: MediaLink): JSONObject {
+        return JSONObject().apply {
+            put("type", "input_audio")
+            put("input_audio", buildInputAudioPayload(link))
+        }
+    }
+
     protected open fun buildInputAudioPayload(link: MediaLink): JSONObject {
         return JSONObject().apply {
             put("data", link.base64Data)
@@ -955,10 +963,7 @@ open class OpenAIProvider(
 
         if (allowUserRichContent && supportsAudio) {
             audioLinks.forEach { link ->
-                contentArray.put(JSONObject().apply {
-                    put("type", "input_audio")
-                    put("input_audio", buildInputAudioPayload(link))
-                })
+                contentArray.put(buildAudioContentPart(link))
             }
         }
 

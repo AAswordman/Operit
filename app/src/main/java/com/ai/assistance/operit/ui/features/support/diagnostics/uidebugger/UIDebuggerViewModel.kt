@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.UIPageResultData
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.core.tools.system.action.ActionListener

@@ -3,11 +3,12 @@ package com.ai.assistance.operit.core.tools.packTool
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 
 class PackageDebugRefreshReceiver : BroadcastReceiver() {
 

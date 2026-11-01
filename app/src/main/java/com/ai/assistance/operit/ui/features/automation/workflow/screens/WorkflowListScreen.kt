@@ -81,7 +81,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.model.ExecutionStatus
 import com.ai.assistance.operit.data.model.Workflow
 import com.ai.assistance.operit.ui.components.CustomScaffold

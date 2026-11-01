@@ -6,10 +6,10 @@ import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.skill.SkillRepository
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process.WorkspaceRuleFileReader
+import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceRuleFileReader
 import com.ai.assistance.operit.util.android.LocaleUtils
 
 object SystemPromptConfig {

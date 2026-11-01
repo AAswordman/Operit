@@ -18,8 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.packTool.PackageTemplateFactory
-import com.ai.assistance.operit.core.tools.packTool.PackageTemplateKind
+import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateFactory
+import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateKind
 
 /** 新建模板前填写显示名和包标识，避免落盘出未命名垃圾包。 */
 @Composable

@@ -13,9 +13,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.AlertDialog
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,7 +34,7 @@ import androidx.lifecycle.lifecycleScope
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.core.application.OperitApplication
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.data.preferences.AgreementPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.OrientationReloadPolicy

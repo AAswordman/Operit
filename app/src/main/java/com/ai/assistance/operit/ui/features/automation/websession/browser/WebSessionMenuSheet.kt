@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.UserscriptPageMenuCommand
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.UserscriptPageMenuCommand
 
 @Composable
 internal fun WebSessionMenuSheet(

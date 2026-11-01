@@ -38,7 +38,7 @@ EXCLUDED_PATH_SUBSTRINGS = [
     '\\ui\\features\\settings\\screens\\TagMarketBilingualData.kt',
     '\\data\\preferences\\CharacterCardBilingualData.kt',
     '\\data\\preferences\\PromptBilingualData.kt',
-    '\\core\\tools\\defaultTool\\standard\\StandardUITools.kt'
+    '\\core\\tools\\builtin\\ui\\StandardUITools.kt'
 ]
 
 def _should_skip_file(file_path: Path) -> bool:

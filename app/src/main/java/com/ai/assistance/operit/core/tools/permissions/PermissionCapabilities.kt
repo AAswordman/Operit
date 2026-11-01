@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.tools.permissions
 
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.ShellIdentity
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.system.shell.ShellIdentity
 
 /** 执行后端与用户模式分开，新增授权来源不需要新增用户模式。 */
 enum class PermissionBackend { STANDARD, ACCESSIBILITY, SHIZUKU, ROOT }

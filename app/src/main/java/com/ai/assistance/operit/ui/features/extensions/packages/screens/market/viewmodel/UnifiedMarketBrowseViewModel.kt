@@ -8,8 +8,8 @@ import com.ai.assistance.operit.data.api.MarketStatsApiService
 import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.api.MarketV2ManifestCategory
 import com.ai.assistance.operit.data.api.MarketV2Notification
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketEntryInstallController
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketInstallProgress
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketInstallStateStore

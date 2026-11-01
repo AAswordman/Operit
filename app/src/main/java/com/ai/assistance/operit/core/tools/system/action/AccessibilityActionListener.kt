@@ -5,7 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import com.ai.assistance.operit.util.logging.AppLogger
 import android.view.accessibility.AccessibilityEvent
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

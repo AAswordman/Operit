@@ -87,4 +87,14 @@ class VoiceAnalysisTest {
         assertTrue(analysis.toModelText(parsed.requestContext).contains("额外请求文字"))
         assertEquals(saved, VoiceMessageMarkup.withResolvedAnalysis(saved, hooked, analysis))
     }
+    @Test
+    fun resolvedAudioReusesTranscriptWhileUnresolvedAudioHonorsCapability() {
+        assertTrue(source.canSendNativeAudio(true))
+        assertFalse(source.canSendNativeAudio(false))
+        val recognized = source.copy(transcript = "已识别原话", transcriptResolved = true)
+        assertFalse(recognized.canSendNativeAudio(true))
+        assertFalse(recognized.canSendNativeAudio(false))
+        val hookText = source.copy(transcript = "额外提示", transcriptResolved = false)
+        assertTrue(hookText.canSendNativeAudio(true))
+    }
 }

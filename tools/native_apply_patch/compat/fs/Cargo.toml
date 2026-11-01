@@ -1,0 +1,13 @@
+[package]
+name = "operit-patch-fs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+codex-utils-path-uri.workspace = true
+codex-utils-absolute-path.workspace = true
+tokio = { workspace = true, features = ["fs", "rt", "io-util"] }
+tokio-util = { workspace = true, features = ["rt"] }
+rustix = { workspace = true, features = ["fs"] }
+libc.workspace = true

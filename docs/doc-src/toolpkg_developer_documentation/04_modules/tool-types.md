@@ -312,7 +312,7 @@ disable_workflow
 - `examples/types/core.d.ts`
 - `examples/types/results.d.ts`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
 - [公共结果类型](results.md)
 - [Files 参考](files.md)
 - [Network 参考](network.md)

@@ -3,8 +3,8 @@ package com.ai.assistance.operit.core.tools.system.shell
 import android.content.Context
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.ShellIdentity
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.system.shell.ShellIdentity
 import com.ai.assistance.operit.data.preferences.AndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.RootCommandExecutionMode
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences

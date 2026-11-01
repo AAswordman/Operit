@@ -5,7 +5,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.data.model.SystemToolPromptCategory
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.ToolParameterSchema
-import com.ai.assistance.operit.core.tools.defaultTool.a2ui.A2uiToolDefinitions
+import com.ai.assistance.operit.core.tools.builtin.a2ui.A2uiToolDefinitions
 
 /**
  * 系统工具提示词管理器

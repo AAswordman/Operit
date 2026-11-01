@@ -22,7 +22,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TextFieldValue.Companion
 import androidx.core.content.FileProvider
-import com.ai.assistance.operit.ui.features.conversation.chat.components.ChatStyle
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.ChatStyle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.core.chat.runtime.ChatRuntimeHolder
@@ -30,7 +30,7 @@ import com.ai.assistance.operit.core.chat.runtime.ChatRuntimeSlot
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.context.ContextWindowBreakdown
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.AttachmentInfo
@@ -45,7 +45,7 @@ import com.ai.assistance.operit.data.repository.MessageTranslationRepository
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.LocalWebServer
+import com.ai.assistance.operit.ui.features.conversation.workspace.preview.LocalWebServer
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import com.ai.assistance.operit.ui.permissions.ToolPermissionSystem
@@ -72,9 +72,9 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.filterNotNull
 import com.ai.assistance.operit.ui.features.automation.terminal.EmbeddedTerminalPage
-import com.ai.assistance.operit.ui.features.conversation.chat.workspace.WorkspaceHubPage
-import com.ai.assistance.operit.ui.features.conversation.chat.workspace.WorkspaceEntryAction
-import com.ai.assistance.operit.ui.features.conversation.chat.workspace.WorkspaceEntryRequest
+import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubPage
+import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceEntryAction
+import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceEntryRequest
 import com.ai.assistance.operit.util.text.XmlTagCleaner
 import com.ai.assistance.operit.api.speech.tts.TtsService
 import com.ai.assistance.operit.api.speech.tts.prefetch.PrefetchingTtsService
@@ -88,28 +88,28 @@ import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.util.WaifuMessageProcessor
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.WorkspaceBackupManager
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.CommandConfig
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.WorkspaceCommandExecutionState
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.WorkspaceConfigReader
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.WorkspacePreviewRefreshBus
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.WorkspacePreviewRefreshEvent
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.toWorkspaceCommandOutputEntries
-import com.ai.assistance.operit.core.tools.system.Terminal
+import com.ai.assistance.operit.ui.features.conversation.workspace.WorkspaceBackupManager
+import com.ai.assistance.operit.ui.features.conversation.workspace.CommandConfig
+import com.ai.assistance.operit.ui.features.conversation.workspace.WorkspaceCommandExecutionState
+import com.ai.assistance.operit.ui.features.conversation.workspace.WorkspaceConfigReader
+import com.ai.assistance.operit.ui.features.conversation.workspace.preview.WorkspacePreviewRefreshBus
+import com.ai.assistance.operit.ui.features.conversation.workspace.preview.WorkspacePreviewRefreshEvent
+import com.ai.assistance.operit.ui.features.conversation.workspace.toWorkspaceCommandOutputEntries
+import com.ai.assistance.operit.core.tools.system.terminal.Terminal
 import com.ai.assistance.operit.core.speech.text.TtsCleaner
 import com.ai.assistance.operit.core.speech.text.TtsSegmenter
-import com.ai.assistance.operit.ui.features.conversation.chat.util.findMentionTokens
-import com.ai.assistance.operit.ui.features.conversation.chat.util.findMentionTokenEndingAtCursor
-import com.ai.assistance.operit.ui.features.conversation.chat.util.isMentionContinuation
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.findMentionTokens
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.findMentionTokenEndingAtCursor
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.isMentionContinuation
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import java.io.File
 // 使用 services/core 的 Delegate 类
 import com.ai.assistance.operit.services.core.MessageProcessingDelegate
-import com.ai.assistance.operit.ui.features.conversation.chat.batch.ChatBatchAction
-import com.ai.assistance.operit.ui.features.conversation.chat.batch.ChatBatchController
-import com.ai.assistance.operit.ui.features.conversation.chat.batch.ChatBatchItemResult
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.ChatBatchAction
+import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.history.ChatBatchController
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.ChatBatchItemResult
 import com.ai.assistance.operit.services.core.ChatHistoryDelegate
 import com.ai.assistance.operit.services.core.ApiConfigDelegate
 import com.ai.assistance.operit.services.core.TokenStatisticsDelegate
@@ -120,22 +120,11 @@ import com.ai.assistance.operit.data.model.WorkspaceRenameResult
 import com.ai.assistance.operit.services.ChatServiceCore
 import com.ai.assistance.operit.services.ChatServiceUiBridge
 import com.ai.assistance.operit.services.EmptyChatServiceUiBridge
-import com.ai.assistance.operit.ui.features.conversation.chat.util.MessageImageGenerator
-import com.ai.assistance.operit.ui.features.conversation.chat.components.CharacterSelectorTarget
-import com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common.PendingQueueMessageItem
-enum class ChatHistoryDisplayMode {
-    BY_CHARACTER_CARD,
-    BY_FOLDER,
-    CURRENT_CHARACTER_ONLY
-}
-
-data class TranslationUiState(
-    val isLoading: Boolean = false,
-    val translatedText: String? = null,
-    val errorMessage: String? = null,
-    val isFromCache: Boolean = false,
-)
-
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sharing.MessageImageGenerator
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.CharacterSelectorTarget
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.PendingQueueMessageItem
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.ChatHistoryDisplayMode
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.TranslationUiState
 class ChatViewModel(context: Context) : ViewModel() {
     private val context: Context = LocaleUtils.getLocalizedContext(context.applicationContext)
 
@@ -404,9 +393,6 @@ class ChatViewModel(context: Context) : ViewModel() {
 
     // 聊天历史相关
     val chatHistory: StateFlow<List<ChatMessage>> by lazy { chatHistoryDelegate.chatHistory }
-    val showChatHistorySelector: StateFlow<Boolean> by lazy {
-        chatHistoryDelegate.showChatHistorySelector
-    }
     val chatHistories: StateFlow<List<ChatHistory>> by lazy { chatHistoryDelegate.chatHistories }
     val currentChatId: StateFlow<String?> by lazy { chatHistoryDelegate.currentChatId }
     val loadedChatId: StateFlow<String?> by lazy { chatHistoryDelegate.loadedChatId }
@@ -791,7 +777,7 @@ class ChatViewModel(context: Context) : ViewModel() {
     }
 
     // 聊天历史相关方法
-    val chatListMotion = com.ai.assistance.operit.ui.features.conversation.chat.motion.ChatListMotionState()
+    val chatListMotion = com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.history.ChatListMotionState()
 
     fun createNewChat(
         characterCardName: String? = null, characterGroupId: String? = null,
@@ -809,7 +795,6 @@ class ChatViewModel(context: Context) : ViewModel() {
         if (trimmedDraft.isBlank()) return
 
         viewModelScope.launch {
-            showChatHistorySelector(false)
             val previousChatId = chatHistoryDelegate.currentChatId.value
             chatHistoryDelegate.createNewChat()
             chatHistoryDelegate.currentChatId
@@ -914,10 +899,7 @@ class ChatViewModel(context: Context) : ViewModel() {
         }
         OKToast.typed(context, context.getString(message), if (result == ChatDeletionResult.LOCKED || result == ChatDeletionResult.NOT_FOUND) OKToast.Kind.Warning else OKToast.Kind.Error).show()
     }
-    fun toggleChatHistorySelector() = chatHistoryDelegate.toggleChatHistorySelector()
-    fun showChatHistorySelector(show: Boolean) {
-        chatHistoryDelegate.showChatHistorySelector(show)
-    }
+
 
     fun switchActiveCharacterTarget(target: CharacterSelectorTarget) {
         viewModelScope.launch {
@@ -1014,9 +996,9 @@ class ChatViewModel(context: Context) : ViewModel() {
 
     private fun performInsertSummary(message: ChatMessage) {
         viewModelScope.launch {
+            // 固定总结所属会话，异步生成结束后不能把插入或清理操作写到新切换的会话。
+            val currentChatId = chatHistoryDelegate.currentChatId.value
             try {
-                // 获取当前会话ID并绑定
-                val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId == null) {
                     OKToast.warning(context, context.getString(R.string.chat_please_create_new_chat), OKToast.LENGTH_SHORT).show()
                     return@launch
@@ -1077,7 +1059,9 @@ class ChatViewModel(context: Context) : ViewModel() {
                         messagesToSummarize,
                         autoContinue = false,
                         isGroupChat = isGroupChat,
-                        summaryConfig = summaryConfig
+                        summaryConfig = summaryConfig,
+                        onProgress = { messageCoordinationDelegate.reportSummaryProgress(currentChatId, it) },
+                        onNonFatalError = { messageCoordinationDelegate.reportSummaryRetry(it) },
                     )
                 }
 
@@ -1088,20 +1072,20 @@ class ChatViewModel(context: Context) : ViewModel() {
                             summaryMessage = summaryMessage,
                             beforeTimestamp = beforeTimestamp,
                             afterTimestamp = afterTimestamp,
+                            chatIdOverride = currentChatId,
                         )
                     }
                     messageCoordinationDelegate.scheduleStableContextWindowRefresh(chatId = currentChatId)
 
                     OKToast.success(context, context.getString(R.string.chat_summary_inserted)).show()
                 } else {
-                    OKToast.error(context, context.getString(R.string.chat_summary_generation_failed)).show()
+                    OKToast.requestError(context, context.getString(R.string.chat_summary_generation_failed)).show()
                 }
                 
                 // 清除输入处理状态
                 messageProcessingDelegate.setInputProcessingStateForChat(currentChatId, InputProcessingState.Idle)
             } catch (e: CancellationException) {
                 AppLogger.d(TAG, "插入总结已取消")
-                val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId != null) {
                     messageProcessingDelegate.setInputProcessingStateForChat(
                         currentChatId,
@@ -1110,9 +1094,8 @@ class ChatViewModel(context: Context) : ViewModel() {
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "插入总结时发生错误", e)
-                OKToast.error(context, context.getString(R.string.chat_insert_summary_failed, e.message ?: "")).show()
+                OKToast.requestError(context, context.getString(R.string.chat_insert_summary_failed, e.message ?: "")).show()
                 // 发生错误时也需要清除状态
-                val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId != null) {
                     messageProcessingDelegate.setInputProcessingStateForChat(currentChatId, InputProcessingState.Idle)
                 }
@@ -2366,7 +2349,7 @@ class ChatViewModel(context: Context) : ViewModel() {
                 messageProcessingDelegate.setInputProcessingStateForChat(chatId, InputProcessingState.Idle)
                 
                 AppLogger.d(TAG, "Successfully processed shared files")
-                OKToast.success(context, context.getString(R.string.chat_added_files_count, uris.size)).show()
+                OKToast.success(context, R.string.attachment_added).show()
             } catch (e: Exception) {
                 AppLogger.e(TAG, "处理分享文件失败", e)
                 uiStateDelegate.showErrorMessage(context.getString(R.string.chat_process_shared_files_failed, e.message ?: ""))

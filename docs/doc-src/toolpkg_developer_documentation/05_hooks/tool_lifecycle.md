@@ -104,7 +104,7 @@ ToolPkg.registerToolLifecycleHook({
 ## 实现依据
 
 - `plugins/toolpkg/ToolPkgToolLifecycleBridge.kt`：事件构造、队列投递、拦截返回解析和 fail-closed 行为。
-- `core/tools/AIToolHook.kt`、`AIToolHandler.kt`：拦截发生在权限检查与 executor 激活前。
+- `core/tools/runtime/AIToolHook.kt`、`AIToolHandler.kt`：拦截发生在权限检查与 executor 激活前。
 - `examples/types/toolpkg.d.ts`：当前声明形状。
 
 相关页面：[ToolPkg 注册 API](../03_runtime/registry.md)、[Hook 总索引](./index.md)、[接口覆盖索引](../09_compatibility/coverage.md)。

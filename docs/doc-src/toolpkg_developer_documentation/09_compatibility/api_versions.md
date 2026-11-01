@@ -74,8 +74,8 @@ status: complete
 
 ## 权威实现
 
-- `app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgApiVersion.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgParser.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgApiVersion.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/packTool/parser/ToolPkgParser.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsEngine.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsToolPkgApiRuntime.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsToolPkgRegistration.kt`

@@ -7,18 +7,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import com.ai.assistance.operit.util.logging.AppLogger
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_ACTIVITY_ON_CREATE
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_ACTIVITY_ON_DESTROY
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_ACTIVITY_ON_PAUSE
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_ACTIVITY_ON_RESUME
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_ACTIVITY_ON_START
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_ACTIVITY_ON_STOP
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_APPLICATION_ON_BACKGROUND
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_APPLICATION_ON_CREATE
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_APPLICATION_ON_FOREGROUND
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_APPLICATION_ON_LOW_MEMORY
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_APPLICATION_ON_TERMINATE
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_APPLICATION_ON_TRIM_MEMORY
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_ACTIVITY_ON_CREATE
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_ACTIVITY_ON_DESTROY
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_ACTIVITY_ON_PAUSE
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_ACTIVITY_ON_RESUME
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_ACTIVITY_ON_START
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_ACTIVITY_ON_STOP
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_APPLICATION_ON_BACKGROUND
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_APPLICATION_ON_CREATE
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_APPLICATION_ON_FOREGROUND
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_APPLICATION_ON_LOW_MEMORY
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_APPLICATION_ON_TERMINATE
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_APPLICATION_ON_TRIM_MEMORY
 
 enum class AppLifecycleEvent(val wireName: String) {
     APPLICATION_CREATE(TOOLPKG_EVENT_APPLICATION_ON_CREATE),

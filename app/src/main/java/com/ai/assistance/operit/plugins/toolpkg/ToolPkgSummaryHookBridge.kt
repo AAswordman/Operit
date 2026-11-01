@@ -6,9 +6,9 @@ import com.ai.assistance.operit.core.chat.hooks.SummaryGenerateHook
 import com.ai.assistance.operit.core.chat.hooks.SummaryHookContext
 import com.ai.assistance.operit.core.chat.hooks.SummaryHookMutation
 import com.ai.assistance.operit.core.chat.hooks.SummaryHookRegistry
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_SUMMARY_GENERATE
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgContainerRuntime
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_SUMMARY_GENERATE
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean

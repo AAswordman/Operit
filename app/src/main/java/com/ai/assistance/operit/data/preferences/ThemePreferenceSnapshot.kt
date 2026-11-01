@@ -49,6 +49,7 @@ data class ThemePreferenceValues(
         copy(floats = floats + (name to value))
 
     companion object {
+        const val SCRIPT_URI_KEY = "custom_theme_script_uri"
         fun defaultVisual(): ThemePreferenceValues =
             ThemePreferenceValues(
                 strings = mapOf(

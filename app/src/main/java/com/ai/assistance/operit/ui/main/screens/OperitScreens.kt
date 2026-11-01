@@ -27,8 +27,8 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.NavItem
 import com.ai.assistance.operit.ui.features.support.about.screens.AboutScreen
 import com.ai.assistance.operit.ui.features.conversation.chat.screens.AIChatScreen
-import com.ai.assistance.operit.ui.features.conversation.chat.sidebar.LocalMainChatViewModel
-import com.ai.assistance.operit.ui.features.conversation.chat.sidebar.LocalRunMainChatAction
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalMainChatViewModel
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalRunMainChatAction
 import com.ai.assistance.operit.ui.features.support.demo.screens.ShizukuDemoScreen
 import com.ai.assistance.operit.ui.features.support.help.screens.HelpScreen
 import com.ai.assistance.operit.ui.features.conversation.memory.screens.MemoryScreen
@@ -82,7 +82,7 @@ import com.ai.assistance.operit.ui.features.automation.terminal.EmbeddedTerminal
 import com.ai.assistance.operit.ui.features.automation.terminal.TerminalEntryScreen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
 import com.ai.assistance.operit.ui.main.screens.UIDebuggerToolScreen
-import com.ai.assistance.operit.ui.features.conversation.chat.export.htmlpackager.HtmlPackagerScreen
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.htmlpackager.HtmlPackagerScreen
 import com.ai.assistance.operit.ui.features.management.settings.speech.stt.SpeechToTextToolScreen
 import com.ai.assistance.operit.ui.features.management.update.screens.UpdateScreen
 import com.ai.assistance.operit.ui.features.automation.workflow.screens.WorkflowListScreen
@@ -156,7 +156,6 @@ sealed class Screen(
                     padding = PaddingValues(0.dp),
                     viewModel = LocalMainChatViewModel.current,
                     isFloatingMode = false,
-                    useMainSidebar = true,
                     hasBackgroundImage = hasBackgroundImage,
                     onNavigateToSettings = { navigateTo(Settings) },
                     onNavigateToMemoryBase = { navigateTo(MemoryBase) },

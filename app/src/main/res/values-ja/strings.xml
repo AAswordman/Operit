@@ -7183,7 +7183,7 @@
     <string name="attachment_photo_added">写真を添付しました：%1$s</string>
     <string name="attachment_photo_process_failed">撮影した写真を処理できません。もう一度お試しください。</string>
     <string name="attachment_photo_add_failed">写真を添付できませんでした：%1$s</string>
-    <string name="attachment_added">ファイルを添付しました：%1$s</string>
+    <string name="attachment_added">ファイルを添付しました</string>
     <string name="attachment_media_process_failed">メディアファイルを処理できません。別の方法を試してください。</string>
     <string name="attachment_cannot_attach">ファイルを添付できません：%1$s</string>
     <string name="attachment_file_not_exist">ファイルが存在しません</string>
@@ -7805,7 +7805,7 @@
     <string name="url_config_profile">プロフィール</string>
     <string name="floating_chat_window_title">AI アシスタントのフローティングウィンドウ</string>
     <string name="floating_chat_running_in_background">AI アシスタントはバックグラウンドで動作しています</string>
-    <string name="debugger_ui_listener_started">デバッガーによる UI 操作の監視を開始しました</string>
+    <string name="shizuku_ui_listener_started">Shizuku による UI 操作の監視を開始しました</string>
     <string name="model_config_config_id">設定 %1$s</string>
     <string name="prompt_tag_unnamed">名前のないタグ</string>
     <string name="message_workspace_backing_up">ワークスペースをバックアップしています...</string>

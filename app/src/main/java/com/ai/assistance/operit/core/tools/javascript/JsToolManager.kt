@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.tools.javascript
 import android.content.Context
 import com.ai.assistance.operit.core.tools.ScriptExecutionTraceData
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger

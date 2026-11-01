@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionBookmark
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionBookmark
 
 @Composable
 internal fun WebSessionBookmarkSheet(

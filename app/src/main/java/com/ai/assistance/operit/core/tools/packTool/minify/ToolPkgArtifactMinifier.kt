@@ -1,9 +1,9 @@
 package com.ai.assistance.operit.core.tools.packTool.minify
 
 import android.content.Context
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgArchiveParser
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOriginCodec
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgArchiveParser
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOrigin
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOriginCodec
 import com.ai.assistance.operit.ui.features.extensions.packages.market.PUBLISH_LOGO_MAX_BYTES
 import com.ai.assistance.operit.ui.features.extensions.packages.market.ToolPkgLogoAsset
 import java.io.ByteArrayOutputStream

@@ -102,7 +102,7 @@ ToolPkg.registerInputMenuTogglePlugin({
 ## 权威实现
 
 - `plugins/toolpkg/ToolPkgCommonBridgePlugin.kt`：tag 匹配、渲染结果消费、输入 toggle 缓存和 create/toggle 调度。
-- `core/tools/packTool/ToolPkgParser.kt`、`ToolPkgMainRegistrationScriptParser.kt`：注册定义解析。
+- `core/tools/packTool/parser/ToolPkgParser.kt`、`ToolPkgMainRegistrationScriptParser.kt`：注册定义解析。
 - `examples/types/toolpkg.d.ts`：公开 payload、定义和返回类型。
 
 相关页面：[ToolPkg 注册 API](../03_runtime/registry.md)、[Compose DSL](../06_ui_and_compose/compose_dsl.md)、[Hook 总索引](./index.md)。

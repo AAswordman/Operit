@@ -4,9 +4,9 @@ import com.ai.assistance.operit.core.chat.hooks.ChatRuntimeHook
 import com.ai.assistance.operit.core.chat.hooks.ChatRuntimeHookContext
 import com.ai.assistance.operit.core.chat.hooks.ChatRuntimeHookEvent
 import com.ai.assistance.operit.core.chat.hooks.ChatRuntimeHookRegistry
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_RUNTIME
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_CHAT_RUNTIME
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgContainerRuntime
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean

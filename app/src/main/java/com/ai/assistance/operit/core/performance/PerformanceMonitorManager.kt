@@ -8,7 +8,7 @@ import android.os.Process
 import android.os.SystemClock
 import android.system.Os
 import android.system.OsConstants
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.terminal.TerminalManager
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File

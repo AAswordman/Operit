@@ -192,6 +192,14 @@ class ApiRequestRetryPolicyTest {
         assertEquals(ApiRequestRetryMode.RETRY, ApiRequestRetryPolicy.mode(timeout))
     }
 
+    @Test
+    fun unsupportedAudioContentStopsEvenWhenGatewayReports503() {
+        val body = """{"error":{"code":"no_healthy_account","message":"{\"code\":11101,\"msg\":\"Parse message failed: unsupported content type at index 0: input_audio\",\"retry_policy\":{\"retry\":false}}"}}"""
+        assertEquals(ApiRequestRetryMode.STOP, ApiRequestRetryPolicy.mode(HttpFailure(503, body)))
+        assertEquals(ApiRequestRetryMode.STOP, ApiRequestRetryPolicy.mode(IOException("请求失败", HttpFailure(503, body))))
+        assertEquals(ApiRequestRetryMode.RETRY, ApiRequestRetryPolicy.mode(HttpFailure(503, "no_healthy_account")))
+    }
+
     private class HttpFailure(
         override val statusCode: Int,
         message: String,

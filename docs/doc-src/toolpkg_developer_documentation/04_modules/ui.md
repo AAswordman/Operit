@@ -262,7 +262,8 @@ await Tools.UI.clickElement({
 - `examples/types/results.d.ts`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
 - `app/src/main/assets/js/UINode.js`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardUITools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/accessbility/AccessibilityUITools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ui/StandardUITools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ui/AdminUITools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ui/RootUITools.kt`
 - `docs/doc-src/toolpkg_developer_documentation/04_modules/results.md`

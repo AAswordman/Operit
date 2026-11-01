@@ -3,9 +3,9 @@ package com.ai.assistance.operit.ui.main.navigation
 import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_NAV_SURFACE_MAIN_SIDEBAR_PLUGINS
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_NAV_SURFACE_MAIN_SIDEBAR_PLUGINS
 import com.ai.assistance.operit.ui.common.icons.MaterialIconNameResolver
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.main.screens.ScreenRouteRegistry

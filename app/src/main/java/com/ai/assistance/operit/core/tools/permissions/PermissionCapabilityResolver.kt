@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.core.tools.permissions
 
 import android.content.Context
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.authorization.ShizukuAuthorizer
 import com.ai.assistance.operit.core.tools.system.shell.ShellExecutorFactory
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.data.repository.UIHierarchyManager

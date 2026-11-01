@@ -3,12 +3,18 @@ package com.ai.assistance.operit.data.themesharing
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
 import kotlinx.serialization.json.*
+import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
 
-/** 协议 v1 使用固定字段白名单；新增应用偏好不会自动进入已发布的分享格式。 */
+/** 分享采用固定字段白名单，新格式用独立数字校验结构，并显式读取已发布格式。 */
 internal object ThemeTransferSchema {
-    const val PARAMS_FORMAT = "operit-theme-params-v1"
-    const val PACKAGE_FORMAT = "operit-theme-v1"
+    const val PARAMS_FORMAT = "oktheme-params"
+    const val PACKAGE_FORMAT = "oktheme"
+    private const val SCHEMA = 1
+    private const val LEGACY_PARAMS_FORMAT = "operit-theme-params-v1"
+    private const val LEGACY_PACKAGE_FORMAT = "operit-theme-v1"
     const val MAX_JSON_BYTES = 65536
+    const val MAX_PACKAGE_JSON_BYTES = 196608
     val assetKeys =
         setOf(
             "background_image_uri",
@@ -258,7 +264,10 @@ internal object ThemeTransferSchema {
         values: ThemePreferenceValues,
         layout: ChatLayoutSettings,
         full: Boolean,
+        script: ThemeScriptManifest? = null,
     ): ThemeTransferDocument {
+        checkValue(script == null || full)
+        script?.let(ThemeScriptContract::validate)
         var fields = if (full) allKeys else ordinaryKeys
         if (!full) {
             // 文件字体的选择属于媒体设置，分享码不携带它的启用状态。
@@ -267,7 +276,7 @@ internal object ThemeTransferSchema {
                 .forEach { fields = fields - fontKeys(it) }
         }
         val document =
-            ThemeTransferDocument(name.trim(), author.trim(), values, fields, layout, full)
+            ThemeTransferDocument(name.trim(), author.trim(), values, fields, layout, full, script)
         return decode(encode(document), full)
     }
 
@@ -288,6 +297,12 @@ internal object ThemeTransferSchema {
         val layout = document.layout
         return buildJsonObject {
                 put("format", if (document.full) PACKAGE_FORMAT else PARAMS_FORMAT)
+                put("schema", SCHEMA)
+                document.script?.let {
+                    checkValue(document.full)
+                    ThemeScriptContract.validate(it)
+                    put("script", ThemeScriptContract.json.encodeToJsonElement(ThemeScriptManifest.serializer(), it))
+                }
                 put("name", document.name)
                 put("author", document.author)
                 put("config", config)
@@ -310,18 +325,31 @@ internal object ThemeTransferSchema {
     }
 
     fun decode(bytes: ByteArray, full: Boolean): ThemeTransferDocument {
-        if (bytes.size > MAX_JSON_BYTES) throw ThemeTransferException(ThemeTransferError.TOO_LARGE)
+        val limit = if (full) MAX_PACKAGE_JSON_BYTES else MAX_JSON_BYTES
+        if (bytes.size > limit) throw ThemeTransferException(ThemeTransferError.TOO_LARGE)
         try {
             checkJsonDepth(bytes)
             val root =
                 Json.parseToJsonElement(
                     Charsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(bytes)).toString()
                 ) as? JsonObject ?: invalid()
-            checkValue(root.keys == setOf("format", "name", "author", "config", "layout"))
             val format = text(root.getValue("format"))
-            val expected = if (full) PACKAGE_FORMAT else PARAMS_FORMAT
-            if (format != expected)
-                throw ThemeTransferException(ThemeTransferError.UNSUPPORTED_VERSION)
+            val current = format == if (full) PACKAGE_FORMAT else PARAMS_FORMAT
+            val legacy = format == if (full) LEGACY_PACKAGE_FORMAT else LEGACY_PARAMS_FORMAT
+            if (!current && !legacy) throw ThemeTransferException(ThemeTransferError.UNSUPPORTED_VERSION)
+            if (current) {
+                val schema = root["schema"] as? JsonPrimitive ?: invalid()
+                checkValue(!schema.isString)
+                if (schema.intOrNull != SCHEMA) throw ThemeTransferException(ThemeTransferError.UNSUPPORTED_VERSION)
+            }
+            val hasScript = current && full && "script" in root
+            val required = setOf("format", "name", "author", "config", "layout") +
+                (if (current) setOf("schema") else emptySet()) + (if (hasScript) setOf("script") else emptySet())
+            checkValue(root.keys == required)
+            val script = if (hasScript) {
+                ThemeScriptContract.json.decodeFromJsonElement(ThemeScriptManifest.serializer(), root.getValue("script"))
+                    .also(ThemeScriptContract::validate)
+            } else null
             val name = text(root.getValue("name"))
             val author = text(root.getValue("author"))
             checkValue(name.isNotBlank() && name.length <= 80 && author.length <= 80)
@@ -412,7 +440,7 @@ internal object ThemeTransferSchema {
             return ThemeTransferDocument(
                 name, author, values,
                 config.keys + com.ai.assistance.operit.data.preferences.messagestyle.MessageStylePreferences.sideKeys,
-                settings, full,
+                settings, full, script,
             )
         } catch (e: ThemeTransferException) {
             throw e

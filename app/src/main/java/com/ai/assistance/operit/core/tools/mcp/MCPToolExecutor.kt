@@ -3,8 +3,8 @@ package com.ai.assistance.operit.core.tools.mcp
 import android.content.Context
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.core.tools.ToolExecutionLimits
-import com.ai.assistance.operit.core.tools.ToolExecutor
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutionLimits
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ToolValidationResult

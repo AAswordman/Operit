@@ -15,7 +15,7 @@ import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.agent.PhoneAgentJobRegistry
 import com.ai.assistance.operit.data.model.*
 import com.ai.assistance.operit.data.repository.ChatDraftRepository
@@ -33,7 +33,7 @@ import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.WorkspaceBackupManager
+import com.ai.assistance.operit.ui.features.conversation.workspace.WorkspaceBackupManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +52,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import com.ai.assistance.operit.core.tools.ToolProgressBus
+import com.ai.assistance.operit.core.tools.runtime.ToolProgressBus
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.coroutineContext
@@ -229,7 +229,7 @@ class MessageProcessingDelegate(
     private val chatRuntimes = ConcurrentHashMap<String, ChatRuntime>()
     private val lastScrollEmitMsByChatKey = ConcurrentHashMap<String, AtomicLong>()
     private val suppressIdleCompletedStateByChatId = ConcurrentHashMap<String, Boolean>()
-    private val pendingAsyncSummaryUiByChatId = ConcurrentHashMap<String, Boolean>()
+    private val pendingAsyncSummaryUiByChatId = ConcurrentHashMap<String, EnhancedInputProcessingState.Summarizing>()
 
     private fun chatKey(chatId: String?): String = chatId ?: "__DEFAULT_CHAT__"
 
@@ -304,9 +304,18 @@ class MessageProcessingDelegate(
 
     fun setPendingAsyncSummaryUiForChat(chatId: String, pending: Boolean) {
         if (pending) {
-            pendingAsyncSummaryUiByChatId[chatId] = true
+            pendingAsyncSummaryUiByChatId[chatId] = EnhancedInputProcessingState.Summarizing(context.getString(R.string.chat_compressing_history))
         } else {
             pendingAsyncSummaryUiByChatId.remove(chatId)
+        }
+    }
+
+    /** 并行总结也记录最新标签，正常回复结束后使用该进度，不恢复成固定的“总结中”。 */
+    fun setSummaryProgressForChat(chatId: String, message: String) {
+        val state = EnhancedInputProcessingState.Summarizing(message)
+        pendingAsyncSummaryUiByChatId.computeIfPresent(chatId) { _, _ -> state }
+        if (_inputProcessingStateByChatId.value[chatId] is EnhancedInputProcessingState.Summarizing) {
+            setChatInputProcessingState(chatId, state)
         }
     }
 
@@ -1659,12 +1668,10 @@ class MessageProcessingDelegate(
                         shouldNotifyTurnComplete = true
                         finalInputStateAfterSend = EnhancedInputProcessingState.Completed
 
-                        if (pendingAsyncSummaryUiByChatId.containsKey(chatId)) {
+                        val summaryState = pendingAsyncSummaryUiByChatId[chatId]
+                        if (summaryState != null) {
                             setSuppressIdleCompletedStateForChat(chatId, true)
-                            finalInputStateAfterSend =
-                                EnhancedInputProcessingState.Summarizing(
-                                    context.getString(R.string.message_summarizing)
-                                )
+                            finalInputStateAfterSend = summaryState
                         }
 
                         logMessageTiming(

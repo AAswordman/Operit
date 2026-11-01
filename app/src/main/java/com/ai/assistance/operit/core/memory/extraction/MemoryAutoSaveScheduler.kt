@@ -2,7 +2,7 @@ package com.ai.assistance.operit.core.memory.extraction
 
 import android.content.Context
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.MemoryAutoSaveCandidate

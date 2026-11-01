@@ -1,0 +1,226 @@
+{
+  "apiVersion": 1,
+  "entry": "assets/main.js",
+  "assets": {
+    "settings": "assets/settings.svg",
+    "attachment": "assets/attachment.svg",
+    "microphone": "assets/microphone.svg",
+    "send": "assets/send.svg",
+    "stop": "assets/stop.svg",
+    "texture": "assets/texture.svg"
+  },
+  "appearance": {
+    "apiVersion": 1,
+    "palette": {
+      "light": {
+        "primary": "#73553B",
+        "onPrimary": "#FFFFFF",
+        "primaryContainer": "#F8DFC1",
+        "onPrimaryContainer": "#2B1705",
+        "secondary": "#705E4B",
+        "onSecondary": "#FFFFFF",
+        "secondaryContainer": "#D9E8D6",
+        "onSecondaryContainer": "#182A1B",
+        "background": "#FBF4E7",
+        "onBackground": "#1F2B22",
+        "surface": "#FBF4E7",
+        "onSurface": "#1F2B22",
+        "surfaceVariant": "#EEE1CF",
+        "onSurfaceVariant": "#435044",
+        "surfaceContainerLowest": "#FFFFFF",
+        "surfaceContainerLow": "#F0F3E8",
+        "surfaceContainer": "#EAEFE3",
+        "surfaceContainerHigh": "#E4EADD",
+        "surfaceContainerHighest": "#DDE5D6",
+        "outline": "#8C7965",
+        "outlineVariant": "#C4CEBE",
+        "tertiary": "#7D6040",
+        "onTertiary": "#FFFFFF",
+        "tertiaryContainer": "#F4DFC2",
+        "onTertiaryContainer": "#2D1A05",
+        "error": "#BA1A1A",
+        "onError": "#FFFFFF",
+        "errorContainer": "#FFDAD6",
+        "onErrorContainer": "#410002",
+        "inversePrimary": "#A5D3B1",
+        "inverseSurface": "#2E382F",
+        "inverseOnSurface": "#EEF2E7",
+        "surfaceTint": "#315F45",
+        "scrim": "#000000",
+        "surfaceBright": "#F6F7EE",
+        "surfaceDim": "#D6DDD0"
+      },
+      "dark": {
+        "primary": "#E4BC94",
+        "onPrimary": "#432A11",
+        "primaryContainer": "#5B4027",
+        "onPrimaryContainer": "#FFDEBB",
+        "secondary": "#D9C3AB",
+        "onSecondary": "#253525",
+        "secondaryContainer": "#3C4D3A",
+        "onSecondaryContainer": "#D5E8CF",
+        "background": "#1F1913",
+        "onBackground": "#DDE7D8",
+        "surface": "#1F1913",
+        "onSurface": "#DDE7D8",
+        "surfaceVariant": "#4E4439",
+        "onSurfaceVariant": "#C1CDBA",
+        "surfaceContainerLowest": "#0D170F",
+        "surfaceContainerLow": "#19241C",
+        "surfaceContainer": "#1D291F",
+        "surfaceContainerHigh": "#273329",
+        "surfaceContainerHighest": "#323E33",
+        "outline": "#A99985",
+        "outlineVariant": "#3F4D3E",
+        "tertiary": "#E9BE8B",
+        "onTertiary": "#442B0C",
+        "tertiaryContainer": "#5D4120",
+        "onTertiaryContainer": "#FFDCB4",
+        "error": "#FFB4AB",
+        "onError": "#690005",
+        "errorContainer": "#93000A",
+        "onErrorContainer": "#FFDAD6",
+        "inversePrimary": "#315F45",
+        "inverseSurface": "#DDE7D8",
+        "inverseOnSurface": "#253127",
+        "surfaceTint": "#A5D3B1",
+        "scrim": "#000000",
+        "surfaceBright": "#38443A",
+        "surfaceDim": "#121C15"
+      }
+    },
+    "typography": {
+      "family": "serif",
+      "lineHeight": 1.05
+    },
+    "icons": {
+      "composer.settings": {
+        "asset": "settings",
+        "size": 24,
+        "useContentTint": true
+      },
+      "composer.attachment": {
+        "asset": "attachment",
+        "size": 24,
+        "useContentTint": true
+      },
+      "composer.microphone": {
+        "asset": "microphone",
+        "size": 24,
+        "useContentTint": true
+      },
+      "composer.send": {
+        "asset": "send",
+        "size": 24,
+        "useContentTint": true
+      },
+      "composer.stop": {
+        "asset": "stop",
+        "size": 24,
+        "useContentTint": true
+      }
+    },
+    "surfaces": {
+      "userMessage": {
+        "shape": {
+          "type": "rounded",
+          "radius": 18
+        },
+        "padding": {
+          "start": 4,
+          "end": 4,
+          "top": 2,
+          "bottom": 2
+        },
+        "messageWidth": 0.9
+      },
+      "assistantMessage": {
+        "shape": {
+          "type": "rounded",
+          "radius": 18
+        },
+        "padding": {
+          "start": 4,
+          "end": 4,
+          "top": 2,
+          "bottom": 2
+        },
+        "messageWidth": 0.95
+      },
+      "composer": {
+        "shape": {
+          "type": "rounded",
+          "radius": 24
+        },
+        "strokeColor": "#A68A6A",
+        "strokeWidth": 1,
+        "padding": {
+          "start": 2,
+          "end": 2
+        }
+      },
+      "userAvatar": {
+        "shape": {
+          "type": "rounded",
+          "radius": 12
+        },
+        "size": 36
+      },
+      "assistantAvatar": {
+        "shape": {
+          "type": "circle",
+          "radius": 0
+        },
+        "size": 36
+      },
+      "button": {
+        "shape": {
+          "type": "rounded",
+          "radius": 14
+        },
+        "textStyle": {
+          "scale": 1.02
+        }
+      },
+      "settingsCard": {
+        "shape": {
+          "type": "rounded",
+          "radius": 18
+        }
+      },
+      "dialog": {
+        "shape": {
+          "type": "rounded",
+          "radius": 22
+        }
+      },
+      "navigationItem": {
+        "shape": {
+          "type": "rounded",
+          "radius": 12
+        },
+        "layers": [
+          {
+            "type": "rect",
+            "state": "selected",
+            "placement": "foreground",
+            "strokeColor": "#7E9B7A",
+            "strokeWidth": 1,
+            "radius": 12
+          }
+        ]
+      },
+      "background": {
+        "layers": [
+          {
+            "type": "image",
+            "id": "editorTexture",
+            "asset": "texture",
+            "opacity": 0.18,
+            "fit": "crop"
+          }
+        ]
+      }
+    }
+  }
+}

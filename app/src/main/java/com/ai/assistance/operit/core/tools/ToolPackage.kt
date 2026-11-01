@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.tools
  import android.content.Context
  import android.os.Build
  import com.ai.assistance.operit.core.tools.javascript.JsToolManager
- import com.ai.assistance.operit.core.tools.packTool.PackageManager
+ import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
  import com.ai.assistance.operit.data.model.AITool
  import com.ai.assistance.operit.data.model.ToolResult
  import com.ai.assistance.operit.data.model.ToolValidationResult
@@ -32,6 +32,7 @@ import kotlinx.serialization.json.JsonPrimitive
  import kotlinx.coroutines.runBlocking
  import kotlinx.coroutines.flow.last
  import java.util.Locale
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
  
  /**
   * Represents a package of tools that can be imported by the AI

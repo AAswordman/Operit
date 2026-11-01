@@ -53,7 +53,7 @@ internal class VoiceAudioRequest(
     private val resolved = mutableMapOf<VoiceMessageData, VoiceTextResult>()
 
     fun formatForEstimate(value: String, nativeAudio: Boolean): String = VoiceMessageMarkup.rewrite(value) { voice ->
-        val input = if (voice.inputMode == VoiceInputMode.AUDIO && nativeAudio && File(voice.attachment.filePath).isFile) {
+        val input = if (voice.inputMode == VoiceInputMode.AUDIO && voice.canSendNativeAudio(nativeAudio) && File(voice.attachment.filePath).isFile) {
             listOf(audioLink(voice), voice.transcript, voice.requestContext).filter { it.isNotBlank() }.joinToString("\n")
         } else {
             VoiceAnalysis(voice.transcript.ifBlank { "[Voice message]" }, voice.audioContext).toModelText(voice.requestContext)
@@ -65,7 +65,7 @@ internal class VoiceAudioRequest(
         val replacements = mutableMapOf<VoiceMessageData, String>()
         for (voice in VoiceMessageMarkup.messages(value)) {
             if (voice.inputMode != VoiceInputMode.AUDIO || voice in replacements) continue
-            val text = if (nativeAudio) {
+            val text = if (voice.canSendNativeAudio(nativeAudio) && voice !in resolved) {
                 try {
                     val link = audioLink(voice)
                     val input = VoiceMessageMarkup.withRequestAttachment(
@@ -92,17 +92,18 @@ internal class VoiceAudioRequest(
 
     suspend fun send(
         history: List<PromptTurn>,
-        request: suspend (List<PromptTurn>) -> Stream<String>,
+        request: suspend (List<PromptTurn>, suspend (String) -> Unit) -> Stream<String>,
+        onNonFatalError: suspend (String) -> Unit,
         onHistoryResolved: suspend (List<PromptTurn>) -> Unit,
     ): Stream<String> {
         currentCoroutineContext().ensureActive()
         val active = nativeEntries.filterKeys { input -> history.any { input in it.content } }
-        if (active.isEmpty()) return request(history)
+        if (active.isEmpty()) return request(history, onNonFatalError)
         val events = MutableSharedStream<TextStreamEvent>(replay = Int.MAX_VALUE)
         return stream<String> {
             collectVoiceResponse(
-                native = { forward -> collectAttempt(request(history), events, forward) },
-                text = { forward ->
+                native = { forward, notices -> collectAttempt(request(history, notices), events, forward) },
+                text = { forward, notices ->
                     val replacements = mutableMapOf<String, String>()
                     for ((input, voice) in active) replacements[input] = resolvedInput(voice)
                     val textHistory = history.map { turn ->
@@ -111,9 +112,10 @@ internal class VoiceAudioRequest(
                         turn.copy(content = content)
                     }
                     onHistoryResolved(textHistory)
-                    collectAttempt(request(textHistory), events, forward)
+                    collectAttempt(request(textHistory, notices), events, forward)
                 },
                 emit = { emit(it) },
+                onNonFatalError = onNonFatalError,
                 onNativeFailure = { error ->
                     AppLogger.e("VoiceAudioRequest", "对话模型直接音频请求失败，尝试音频理解功能模型和 STT", error)
                 },

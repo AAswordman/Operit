@@ -15,7 +15,7 @@ import android.os.RemoteException
 import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.core.content.FileProvider
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.system.AccessibilityProviderInstaller
+import com.ai.assistance.operit.core.tools.permissions.authorization.AccessibilityProviderInstaller
 import com.ai.assistance.operit.provider.IAccessibilityProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -6,7 +6,7 @@ import kotlinx.coroutines.ensureActive
 
 internal enum class VoiceTextSource { AUDIO_MODEL, STT, CACHED }
 internal data class VoiceTextResult(val text: String, val source: VoiceTextSource, val audioContext: String = "")
-internal typealias VoiceResponseAttempt = suspend (suspend (String) -> Unit) -> Unit
+internal typealias VoiceResponseAttempt = suspend (suspend (String) -> Unit, suspend (String) -> Unit) -> Unit
 
 /** 用户指定的音频理解功能模型与 STT 顺序，取消不触发下一条路径。 */
 internal suspend fun resolveVoiceText(
@@ -51,15 +51,27 @@ internal suspend fun collectVoiceResponse(
     text: VoiceResponseAttempt,
     emit: suspend (String) -> Unit,
     onNativeFailure: (Exception) -> Unit = {},
+    onNonFatalError: suspend (String) -> Unit = {},
 ) {
     currentCoroutineContext().ensureActive()
     var producedContent = false
     var nativeError: Exception
+    val pendingNotices = mutableListOf<String>()
     try {
-        native { value ->
-            if (value.isNotEmpty()) producedContent = true
-            emit(value)
-        }
+        native(
+            { value ->
+                if (value.isNotEmpty() && !producedContent) {
+                    producedContent = true
+                    // 只有采用该音频响应时才发布其重试通知，避免转写成功后仍留下失败卡片。
+                    for (notice in pendingNotices) onNonFatalError(notice)
+                    pendingNotices.clear()
+                }
+                emit(value)
+            },
+            { notice ->
+                if (producedContent) onNonFatalError(notice) else pendingNotices.add(notice)
+            },
+        )
         check(producedContent) { "Direct audio request returned no content" }
         return
     } catch (error: CancellationException) {
@@ -70,13 +82,17 @@ internal suspend fun collectVoiceResponse(
         nativeError = error
         onNativeFailure(error)
     }
+    pendingNotices.clear()
     try {
         currentCoroutineContext().ensureActive()
         var producedText = false
-        text { value ->
-            if (value.isNotEmpty()) producedText = true
-            emit(value)
-        }
+        text(
+            { value ->
+                if (value.isNotEmpty()) producedText = true
+                emit(value)
+            },
+            onNonFatalError,
+        )
         check(producedText) { "Voice text request returned no content" }
     } catch (error: CancellationException) {
         throw error

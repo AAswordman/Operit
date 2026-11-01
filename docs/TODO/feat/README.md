@@ -6,6 +6,7 @@
 
 ## 计划索引
 
+- [终端内置 apply_patch 命令](terminal-apply-patch/index.md)
 - [A2A Server](a2a_server_20260807/index.md) · `a2a_server_20260807`
 - [已发布用户协议版本确认](agreement_version_confirmation/index.md) · `agreement_version_confirmation`
 - [SoftwareSettings 角色卡管理接口](character_card_software_settings_20260805/index.md) · `character_card_software_settings_20260805`

@@ -152,5 +152,5 @@ console.log(result.action, result.result);
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsLibraries.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsInitRuntimeScriptBuilder.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardIntentToolExecutor.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/system/StandardIntentToolExecutor.kt`
 - `docs/doc-src/toolpkg_developer_documentation/04_modules/system.md`

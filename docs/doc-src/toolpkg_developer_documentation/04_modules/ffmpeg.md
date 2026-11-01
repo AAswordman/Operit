@@ -255,5 +255,5 @@ interface RuntimeStreamInfo {
 - `examples/types/tool-types.d.ts`
 - `app/src/main/assets/packages/ffmpeg.js`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardFFmpegTool.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/media/StandardFFmpegTool.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/ToolResultDataClasses.kt`

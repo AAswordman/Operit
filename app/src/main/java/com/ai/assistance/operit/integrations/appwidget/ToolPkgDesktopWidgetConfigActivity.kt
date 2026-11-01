@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.lifecycle.lifecycleScope
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.ui.theme.OperitTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

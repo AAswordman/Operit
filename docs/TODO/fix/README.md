@@ -1,10 +1,16 @@
 # 缺陷、崩溃与性能修复
 
+- [硅基流动音频格式、请求重试与临时错误显示](voice-input-audio-retry/index.md)
+
 修复既有行为、兼容性、崩溃和资源开销问题。
 
 [返回 TODO 总览](../README.md)
 
 ## 计划索引
+
+- [密钥池错误的实际请求范围](key-pool-error-scope/index.md)
+
+- [工作区复制内存与文件操作进度](workspace-copy-streaming-progress/index.md)
 
 - [流式气泡停更修复](streaming-bubble-freeze/index.md)
 - [提示、插件配置入口与 Waifu 首次展示](ux-stream-ui-followup/index.md)
@@ -63,6 +69,7 @@
 - [移除内置表情与恢复默认](remove-builtin-emoji/index.md) · `remove-builtin-emoji`
 - [预编译删除思考正则](remove_thinking_regex_anr_20260913/index.md) · `remove_thinking_regex_anr_20260913`
 - [替换资源后的私有文件清理](replaced-resource-cleanup/index.md) · `replaced-resource-cleanup`
+- [总结请求的实时进度与错误提示](summary-retry-notices/index.md)
 - [请求终止错误传播与重试规则](request-error-feedback/index.md) · `request-error-feedback`
 - [重试状态与显示设置转场修复](retry-status-settings-transition/index.md) · `retry-status-settings-transition`
 - [设置页提醒与协议阅读显示修复](settings-display-feedback/index.md) · `settings-display-feedback`

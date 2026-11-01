@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.management.settings.display
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptFilledTonalButton as FilledTonalButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptOutlinedButton as OutlinedButton
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

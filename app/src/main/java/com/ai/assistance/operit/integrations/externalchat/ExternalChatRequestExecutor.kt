@@ -3,9 +3,9 @@ package com.ai.assistance.operit.integrations.externalchat
 import android.content.Context
 import com.ai.assistance.operit.core.tools.ChatListResultData
 import com.ai.assistance.operit.core.tools.MessageSendResultData
-import com.ai.assistance.operit.core.tools.defaultTool.standard.MessageSendStreamSession
-import com.ai.assistance.operit.core.tools.defaultTool.standard.MessageSendStreamStartResult
-import com.ai.assistance.operit.core.tools.defaultTool.standard.StandardChatManagerTool
+import com.ai.assistance.operit.core.tools.builtin.chat.MessageSendStreamSession
+import com.ai.assistance.operit.core.tools.builtin.chat.MessageSendStreamStartResult
+import com.ai.assistance.operit.core.tools.builtin.chat.StandardChatManagerTool
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ToolParameter

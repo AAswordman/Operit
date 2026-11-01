@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.conversation.memory.screens
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi

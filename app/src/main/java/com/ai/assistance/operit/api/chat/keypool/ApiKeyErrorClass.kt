@@ -73,6 +73,8 @@ data class ApiKeyRetryDecision(
 )
 
 interface ApiKeyRequestSession {
+    /** 仅实际使用池内密钥的请求发布密钥池耗尽文案，单密钥失败统计仍保留。 */
+    val poolMode: Boolean get() = false
     suspend fun nextKey(): ApiKeySelection
 
     suspend fun reportOutcome(report: ApiKeyAttemptReport)

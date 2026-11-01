@@ -56,11 +56,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import com.ai.assistance.operit.ui.features.conversation.chat.components.AttachmentChip
-import com.ai.assistance.operit.ui.features.conversation.chat.components.ChatMessageHeightMemory
-import com.ai.assistance.operit.ui.features.conversation.chat.components.ScrollToBottomButton
-import com.ai.assistance.operit.ui.features.conversation.chat.components.rememberChatMessageHeightMemory
-import com.ai.assistance.operit.ui.features.conversation.chat.components.style.cursor.CursorStyleChatMessage
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.AttachmentChip
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.list.ChatMessageHeightMemory
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.navigation.ScrollToBottomButton
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.list.rememberChatMessageHeightMemory
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor.CursorStyleChatMessage
 import com.ai.assistance.operit.ui.floating.ui.window.components.*
 import com.ai.assistance.operit.ui.floating.ui.window.models.*
 import com.ai.assistance.operit.ui.floating.ui.window.viewmodel.*

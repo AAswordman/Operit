@@ -4,7 +4,7 @@ import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.memory.resolveChatMemorySpaceId
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.preferences.CharacterCardManager

@@ -5,7 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ai.assistance.operit.api.chat.AIForegroundService
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.OrientationReloadPolicy

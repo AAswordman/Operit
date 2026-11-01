@@ -49,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslNode
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslParser
 
 /**
  * AUTO-GENERATED from Compose Material3/Foundation component bindings.

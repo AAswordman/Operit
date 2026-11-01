@@ -25,10 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.BrowserDownloadFilter
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.BrowserDownloadItem
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.BrowserDownloadUiState
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.formatBytes
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.BrowserDownloadFilter
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.BrowserDownloadItem
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.BrowserDownloadUiState
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.formatBytes
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

@@ -46,6 +46,19 @@ class QwenAIProvider(
     ) {
     private val configuredApiEndpoint = apiEndpoint
 
+    /** 硅基流动的 Qwen3-Omni 使用 audio_url，不能复用阿里云或 OpenAI 的 input_audio。 */
+    override fun buildAudioContentPart(link: MediaLink): JSONObject {
+        if (qwenProviderType != ApiProviderType.SILICONFLOW) {
+            return super.buildAudioContentPart(link)
+        }
+        return JSONObject().apply {
+            put("type", "audio_url")
+            put("audio_url", JSONObject().apply {
+                put("url", "data:${link.mimeType};base64,${link.base64Data}")
+            })
+        }
+    }
+
     override fun buildInputAudioPayload(link: MediaLink): JSONObject {
         val payload = super.buildInputAudioPayload(link)
         if (qwenProviderType == ApiProviderType.ALIYUN) {

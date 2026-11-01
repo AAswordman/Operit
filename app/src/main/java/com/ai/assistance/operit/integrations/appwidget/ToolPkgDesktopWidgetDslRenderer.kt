@@ -23,11 +23,11 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslNode
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslParser
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslRenderResult
 import com.ai.assistance.operit.ui.common.composedsl.normalizeToken
 import com.ai.assistance.operit.util.logging.AppLogger
 

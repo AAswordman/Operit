@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

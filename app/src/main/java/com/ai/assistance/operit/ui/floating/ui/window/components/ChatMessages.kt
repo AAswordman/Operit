@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.ui.features.conversation.chat.components.style.cursor.CursorStyleChatMessage
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor.CursorStyleChatMessage
 
 /** 单个消息项组件 将消息渲染逻辑提取到单独的组件，减少重组范围 */
 @Composable

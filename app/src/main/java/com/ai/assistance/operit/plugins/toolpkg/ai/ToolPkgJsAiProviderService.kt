@@ -2,10 +2,10 @@ package com.ai.assistance.operit.plugins.toolpkg.ai
 
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_AI_PROVIDER_CALCULATE_INPUT_TOKENS
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_AI_PROVIDER_LIST_MODELS
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_AI_PROVIDER_SEND_MESSAGE
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_AI_PROVIDER_TEST_CONNECTION
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PROVIDER_CALCULATE_INPUT_TOKENS
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PROVIDER_LIST_MODELS
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PROVIDER_SEND_MESSAGE
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PROVIDER_TEST_CONNECTION
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter

@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.system.action
 
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 
 /** 通用UI操作监听接口 定义了不同权限级别UI操作监听的统一接口 */
 interface ActionListener {

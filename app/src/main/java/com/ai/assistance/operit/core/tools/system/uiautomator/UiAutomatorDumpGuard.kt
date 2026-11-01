@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.system.uiautomator
 
-import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
+import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 

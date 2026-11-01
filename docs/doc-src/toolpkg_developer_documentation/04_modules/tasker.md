@@ -19,7 +19,7 @@ triggerEvent: (params) => toolCall('trigger_tasker_event', params || {})
 相关实现位于：
 
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
 - `app/src/main/java/com/ai/assistance/operit/integrations/tasker/AIAgentTasker.kt`
 
 ## `Tasker.TriggerTaskerEventParams`
@@ -155,6 +155,6 @@ await Tools.Tasker.triggerEvent({
 
 - `examples/types/tasker.d.ts`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
 - `app/src/main/java/com/ai/assistance/operit/integrations/tasker/AIAgentTasker.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsInitRuntimeScriptBuilder.kt`

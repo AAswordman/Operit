@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.ui.common.composedsl
 
 import android.content.Context
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslNode
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslRenderResult
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener

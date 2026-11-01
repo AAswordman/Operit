@@ -1,5 +1,6 @@
- 
 package com.ai.assistance.operit.ui.features.management.settings.components
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptOutlinedButton as OutlinedButton
 
 import android.net.Uri
 import androidx.compose.foundation.Image

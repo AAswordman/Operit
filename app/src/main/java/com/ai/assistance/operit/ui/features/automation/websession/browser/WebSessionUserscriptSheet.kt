@@ -40,12 +40,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.UserscriptInstallPreview
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.UserscriptListItem
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.UserscriptPageMenuCommand
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.UserscriptPageRuntimeState
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.UserscriptPageRuntimeStatus
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.ui.WebSessionUserscriptUiState
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.UserscriptInstallPreview
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.UserscriptListItem
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.UserscriptPageMenuCommand
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.UserscriptPageRuntimeState
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.UserscriptPageRuntimeStatus
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.ui.WebSessionUserscriptUiState
 
 @Composable
 internal fun WebSessionUserscriptSheet(

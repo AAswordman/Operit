@@ -29,6 +29,8 @@ on:
       - terminal/**
       - terminal
       - tools/native_ripgrep/**
+      - tools/native_apply_patch/**
+      - .github/actions/native-apply-patch/**
       - tools/packages_whitelist.txt
       - tools/example_packages/sync_example_packages.py
       - web-chat/**
@@ -123,6 +125,11 @@ jobs:
             --profile full \
             --archives "$MANUAL_DEPS_DIR" \
             --repository "$GITHUB_WORKSPACE"
+
+      - name: Prepare terminal apply_patch
+        uses: ./.github/actions/native-apply-patch
+        with:
+          run-tests: 'true'
 
       - name: Restore native ripgrep cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5

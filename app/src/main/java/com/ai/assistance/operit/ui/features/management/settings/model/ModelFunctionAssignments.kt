@@ -1,5 +1,9 @@
 package com.ai.assistance.operit.ui.features.management.settings.model
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.runtime.saveable.rememberSaveable

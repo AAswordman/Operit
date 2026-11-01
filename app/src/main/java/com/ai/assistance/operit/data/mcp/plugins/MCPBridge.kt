@@ -5,8 +5,8 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.files.OperitPaths
 import com.ai.assistance.operit.util.network.PortProcessKiller
-import com.ai.assistance.operit.core.tools.system.Terminal
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.system.terminal.Terminal
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import java.io.BufferedReader

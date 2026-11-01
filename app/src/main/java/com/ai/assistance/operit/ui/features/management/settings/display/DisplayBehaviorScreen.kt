@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.management.settings.display
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

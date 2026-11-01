@@ -1,5 +1,9 @@
 package com.ai.assistance.operit.ui.features.management.settings.components.speech.workbench
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton as Button
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState

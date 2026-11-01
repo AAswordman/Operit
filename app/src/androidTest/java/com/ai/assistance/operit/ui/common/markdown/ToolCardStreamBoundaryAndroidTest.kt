@@ -24,8 +24,9 @@ class ToolCardStreamBoundaryAndroidTest {
     @get:Rule val composeRule = createComposeRule()
 
     private fun chars(text: String): Stream<Char> = stream { text.forEach { emit(it) } }
+    // XML 属性含双引号，使用原始字符串避免测试样例被误解析为 Kotlin 代码。
     private fun tool(value: String): String =
-        "<tool name="create_file"><param name="new">$value</param></tool>"
+        """<tool name="create_file"><param name="new">$value</param></tool>"""
 
     private fun render(prefix: String?, tail: String): StreamMarkdownRendererState {
         val state = StreamMarkdownRendererState()
@@ -52,13 +53,13 @@ class ToolCardStreamBoundaryAndroidTest {
 
     @Test fun closedToolPrefixKeepsFollowingRequestAndResultSeparate() {
         val first = tool("首次")
-        val result = "<tool_result name="create_file" status="success"><content>已创建</content></tool_result>"
+        val result = """<tool_result name="create_file" status="success"><content>已创建</content></tool_result>"""
         val next = tool("第二次")
         assertBlocks(render(first, result + next), listOf(first, result, next))
     }
 
     @Test fun unfinishedToolContinuesOnceAndNewToolsStartNewCards() {
-        val prefix = "<tool name="create_file"><param name="new">开始"
+        val prefix = """<tool name="create_file"><param name="new">开始"""
         val close = "继续</param></tool>"
         val next = listOf(tool("第二次"), tool("第三次"))
         assertBlocks(render(prefix, close + next.joinToString("")), listOf(prefix + close) + next)
@@ -96,7 +97,7 @@ class ToolCardStreamBoundaryAndroidTest {
     }
 
     @Test fun xmlReplayIncludesRestoredPrefixAndEndsBeforeMessageCompletion() {
-        val prefix = "<tool name="create_file"><param name="new">开始"
+        val prefix = """<tool name="create_file"><param name="new">开始"""
         val body = "继续"
         val end = "</param></tool>"
         val source = MutableSharedStreamImpl<Char>(replay = Int.MAX_VALUE)

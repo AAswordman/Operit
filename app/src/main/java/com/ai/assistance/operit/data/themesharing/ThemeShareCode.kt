@@ -9,7 +9,7 @@ import java.util.zip.Inflater
 
 /** 分享码只使用标准 zlib 包装；编码标识明确，避免猜测或尝试多种压缩格式。 */
 internal object ThemeShareCode {
-    const val PREFIX = "operit://theme/import?v=1&encoding=zlib-base64url&data="
+    const val PREFIX = "oktheme://theme/import?schema=1&encoding=zlib-base64url&data="
     private const val MAX_COMPRESSED_BYTES = 32768
 
     fun encode(document: ThemeTransferDocument): String {
@@ -33,10 +33,10 @@ internal object ThemeShareCode {
             if (text.length > MAX_COMPRESSED_BYTES * 2)
                 throw ThemeTransferException(ThemeTransferError.TOO_LARGE)
             val data =
-                if (text.startsWith("operit:")) {
+                if (text.startsWith("oktheme:") || text.startsWith("operit:")) {
                     val uri = URI(text)
                     if (
-                        uri.scheme != "operit" ||
+                        uri.scheme !in setOf("oktheme", "operit") ||
                             uri.host != "theme" ||
                             uri.path != "/import" ||
                             uri.fragment != null ||
@@ -44,16 +44,17 @@ internal object ThemeShareCode {
                             uri.userInfo != null
                     )
                         invalid()
+                    val versionKey = if (uri.scheme == "oktheme") "schema" else "v"
                     val pairs =
                         uri.rawQuery?.split('&')?.map { it.split('=', limit = 2) } ?: invalid()
                     if (
                         pairs.size != 3 ||
                             pairs.any { it.size != 2 } ||
-                            pairs.map { it[0] }.toSet() != setOf("v", "encoding", "data")
+                            pairs.map { it[0] }.toSet() != setOf(versionKey, "encoding", "data")
                     )
                         invalid()
                     val query = pairs.associate { it[0] to it[1] }
-                    if (query["v"] != "1")
+                    if (query[versionKey] != "1")
                         throw ThemeTransferException(ThemeTransferError.UNSUPPORTED_VERSION)
                     if (query["encoding"] != "zlib-base64url") invalid()
                     query.getValue("data")

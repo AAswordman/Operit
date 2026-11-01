@@ -25,9 +25,9 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.chat.plugins.MessageProcessingController
 import com.ai.assistance.operit.core.chat.plugins.MessageProcessingHookParams
 import com.ai.assistance.operit.core.chat.plugins.MessageProcessingPluginRegistry
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.MemoryQueryResultData
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
@@ -36,8 +36,8 @@ import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process.WorkspaceAttachmentProcessor
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process.WorkspaceChangeTracker
+import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceAttachmentProcessor
+import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceChangeTracker
 import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.util.media.MediaPoolManager
 import com.ai.assistance.operit.core.chat.context.ChatUtils
@@ -633,7 +633,9 @@ object AIMessageManager {
         messages: List<ChatMessage>,
         autoContinue: Boolean = false,
         isGroupChat: Boolean = false,
-        summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig()
+        summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
+        onProgress: (String) -> Unit = {},
+        onNonFatalError: suspend (String) -> Unit = {},
     ): ChatMessage? {
         val lastSummaryIndex = messages.indexOfLast { it.sender == "summary" }
         val previousSummary = if (lastSummaryIndex != -1) messages[lastSummaryIndex].content.trim() else null
@@ -990,7 +992,9 @@ object AIMessageManager {
                 enhancedAiService.generateSummary(
                     conversationToSummarize,
                     previousSummary,
-                    summaryConfig
+                    summaryConfig,
+                    onProgress = onProgress,
+                    onNonFatalError = onNonFatalError,
                 )
             AppLogger.d(TAG, "AI生成总结完成: ${summary.take(50)}...")
 

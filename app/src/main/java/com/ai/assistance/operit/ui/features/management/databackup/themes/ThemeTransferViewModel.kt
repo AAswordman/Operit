@@ -204,6 +204,9 @@ internal class ThemeTransferViewModel(application: Application) : AndroidViewMod
                             )
                     }
             }
+            theme.scriptPreviewFile?.let { file ->
+                values = values.withString(ThemePreferenceValues.SCRIPT_URI_KEY, Uri.fromFile(file).toString())
+            }
             values
         }
 

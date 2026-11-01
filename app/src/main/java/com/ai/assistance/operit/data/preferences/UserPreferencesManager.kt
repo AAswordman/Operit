@@ -822,7 +822,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
             CUSTOM_FONT_PATH, BUBBLE_USER_FONT_TYPE, BUBBLE_USER_SYSTEM_FONT_NAME,
             BUBBLE_USER_CUSTOM_FONT_PATH, BUBBLE_AI_FONT_TYPE, BUBBLE_AI_SYSTEM_FONT_NAME,
             BUBBLE_AI_CUSTOM_FONT_PATH, BUBBLE_USER_IMAGE_URI, BUBBLE_AI_IMAGE_URI,
-            BUBBLE_IMAGE_RENDER_MODE
+            BUBBLE_IMAGE_RENDER_MODE, stringPreferencesKey(ThemePreferenceValues.SCRIPT_URI_KEY)
         )
     }
 

@@ -457,7 +457,7 @@ await Tools.Files.download({
 - `examples/types/files.d.ts`
 - `examples/types/results.d.ts`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardFileSystemTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/LinuxFileSystemTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/SafFileSystemTools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/StandardFileSystemTools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/LinuxFileSystemTools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/SafFileSystemTools.kt`

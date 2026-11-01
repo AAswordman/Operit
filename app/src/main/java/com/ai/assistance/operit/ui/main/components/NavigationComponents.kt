@@ -1,4 +1,14 @@
 package com.ai.assistance.operit.ui.main.components
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
+import com.ai.assistance.operit.ui.theme.script.ThemeSurfaceStateScope
+import com.ai.assistance.operit.ui.theme.script.themeSurface
+import androidx.compose.ui.draw.alpha
+import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import androidx.compose.foundation.background
@@ -24,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.ui.theme.liquidGlass
 
-/** Displays a header in the navigation drawer */
+/** 导航抽屉的分组标题。 */
 @Composable
 fun NavigationDrawerItemHeader(title: String, appearance: NavigationDrawerAppearance) {
     Text(
@@ -36,7 +46,7 @@ fun NavigationDrawerItemHeader(title: String, appearance: NavigationDrawerAppear
     )
 }
 
-/** Displays a navigation item in the drawer with icon and label */
+/** 图标与文字共用导航项的选中状态，业务点击仍由原生 Surface 持有。 */
 @Composable
 fun CompactNavigationDrawerItem(
         icon: ImageVector,
@@ -45,62 +55,60 @@ fun CompactNavigationDrawerItem(
         appearance: NavigationDrawerAppearance,
         onClick: () -> Unit
 ) {
-    val itemShape = MaterialTheme.shapes.small
-    val glassBaseColor = appearance.buttonContainerColor
-    val selectedGlassOverlayColor =
-            if (selected) {
-                    appearance.selectedContainerColor.copy(alpha = 0.18f)
-            } else {
-                    Color.Transparent
-            }
-    Surface(
-            modifier =
-                    Modifier.fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                            .height(40.dp)
-                            .liquidGlass(
-                                    enabled = appearance.buttonLiquidGlassEnabled,
-                                    shape = itemShape,
-                                    containerColor = glassBaseColor,
-                                    enableLens = false,
-                                region = GlassRegion.SIDEBAR_BUTTONS,
-                            )
-                            .clip(itemShape)
-                            .background(selectedGlassOverlayColor),
-            onClick = onClick,
-            color =
-                    if (appearance.buttonLiquidGlassEnabled) {
-                            Color.Transparent
-                    } else if (selected) {
-                            appearance.selectedContainerColor
-                    } else {
-                            Color.Transparent
-                    },
-            shape = itemShape
-    ) {
-        Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+    ThemeSurfaceStateScope("navigationItem", selected, handlesOpacity = true) {
+        val itemShape = themeScriptShape("navigationItem", MaterialTheme.shapes.small)
+        val glassBaseColor = themeScriptFill("navigationItem", appearance.buttonContainerColor)
+        val selectedGlassOverlayColor =
+                if (selected) {
+                        appearance.selectedContainerColor.copy(alpha = 0.18f)
+                } else {
+                        Color.Transparent
+                }
+        Surface(
+                modifier =
+                        Modifier.fillMaxWidth()
+                                .alpha(themeSurface("navigationItem")?.opacity ?: 1f)
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .height(40.dp)
+                                .liquidGlass(
+                                        enabled = appearance.buttonLiquidGlassEnabled,
+                                        shape = itemShape,
+                                        containerColor = glassBaseColor,
+                                        enableLens = false,
+                                    region = GlassRegion.SIDEBAR_BUTTONS,
+                                )
+                                .clip(itemShape)
+                                .background(selectedGlassOverlayColor),
+                onClick = onClick,
+                color =
+                        if (appearance.buttonLiquidGlassEnabled) {
+                                Color.Transparent
+                        } else themeScriptFill("navigationItem", if (selected) appearance.selectedContainerColor else Color.Transparent),
+                shape = itemShape
         ) {
-            Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint =
-                            if (selected) appearance.selectedContentColor
-                            else appearance.itemColor,
-                    modifier = Modifier.size(20.dp)
-            )
+            Row(
+                    modifier = Modifier.fillMaxSize().themeScriptDecoration("navigationItem", selected = selected, drawFill = false, originalShape = itemShape).padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                ThemeScriptIcon(
+                        id = "navigation.item",
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint =
+                                themeScriptContentColor("navigationItem", if (selected) appearance.selectedContentColor else appearance.itemColor),
+                        modifier = Modifier.size(20.dp)
+                )
 
-            Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
-            Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                    color =
-                            if (selected) appearance.selectedContentColor
-                            else appearance.itemColor
-            )
+                Text(
+                        text = label,
+                        style = themeScriptTextStyle("navigationItem", MaterialTheme.typography.bodyMedium),
+                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                        color =
+                                themeScriptContentColor("navigationItem", if (selected) appearance.selectedContentColor else appearance.itemColor)
+                )
+            }
         }
     }
 }

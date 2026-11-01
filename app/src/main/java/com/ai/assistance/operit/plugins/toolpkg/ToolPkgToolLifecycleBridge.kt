@@ -1,12 +1,12 @@
 package com.ai.assistance.operit.plugins.toolpkg
 
 import com.ai.assistance.operit.core.application.OperitApplication
-import com.ai.assistance.operit.core.tools.AIToolHook
-import com.ai.assistance.operit.core.tools.AIToolHookDecision
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_TOOL_LIFECYCLE
+import com.ai.assistance.operit.core.tools.runtime.AIToolHook
+import com.ai.assistance.operit.core.tools.runtime.AIToolHookDecision
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgContainerRuntime
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_TOOL_LIFECYCLE
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger

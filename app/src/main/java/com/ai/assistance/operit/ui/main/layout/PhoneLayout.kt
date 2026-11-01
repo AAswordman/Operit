@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.main.layout
+
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import androidx.activity.compose.BackHandler
@@ -275,20 +277,22 @@ fun PhoneLayout(
                                 else drawerAppearance.containerColor,
                         shadowElevation = 0.dp
                 ) {
-                        DrawerContent(
-                                navItems = navItems,
-                                pluginEntries = pluginSidebarEntries,
-                                selectedItem = selectedItem,
-                                selectedRouteId = selectedRouteId,
-                                isNetworkAvailable = isNetworkAvailable,
-                                networkType = networkType,
-                                appearance = drawerAppearance,
-                                topContentPadding = 0.dp,
-                                scope = scope,
-                                drawerState = drawerState,
-                                onScreenSelected = onDrawerItemSelected,
-                                onNavigationEntrySelected = onNavigationEntrySelected
-                        )
+                    ThemeScriptSurface("navigation", originalShape = drawerShape) {
+                            DrawerContent(
+                                    navItems = navItems,
+                                    pluginEntries = pluginSidebarEntries,
+                                    selectedItem = selectedItem,
+                                    selectedRouteId = selectedRouteId,
+                                    isNetworkAvailable = isNetworkAvailable,
+                                    networkType = networkType,
+                                    appearance = drawerAppearance,
+                                    topContentPadding = 0.dp,
+                                    scope = scope,
+                                    drawerState = drawerState,
+                                    onScreenSelected = onDrawerItemSelected,
+                                    onNavigationEntrySelected = onNavigationEntrySelected
+                            )
+                    }
                 }
 
                 // 在主内容上方放置遮罩层，阻止右侧内容继续响应点击

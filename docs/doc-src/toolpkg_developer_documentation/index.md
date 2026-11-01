@@ -75,8 +75,8 @@ ToolPkg API 版本表示包所依赖的宿主接口契约，独立于包自身�
 - 全局声明与导出入口：[`examples/types/index.d.ts`](../../../examples/types/index.d.ts)
 - ToolPkg 注册、Hook、IPC 和 WASM 类型：[`examples/types/toolpkg.d.ts`](../../../examples/types/toolpkg.d.ts)
 - 各模块声明：[`examples/types/`](../../../examples/types/)
-- 包 Manifest 与解析行为：`app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgParser.kt`
-- API 版本支持策略：`app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgApiVersion.kt`
+- 包 Manifest 与解析行为：`app/src/main/java/com/ai/assistance/operit/core/tools/packTool/parser/ToolPkgParser.kt`
+- API 版本支持策略：`app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgApiVersion.kt`
 - JS 侧版本门禁与 ToolPkg facade：`app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsToolPkgApiRuntime.kt`、`JsToolPkgRegistration.kt`
 - Hook 触发及结果消费：`app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/`
 

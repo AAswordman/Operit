@@ -1,8 +1,15 @@
 package com.ai.assistance.operit.ui.main.components
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeSurface
+
 import androidx.compose.foundation.background
-import com.ai.assistance.operit.ui.features.conversation.chat.workspace.WorkspaceHubPage
-import com.ai.assistance.operit.ui.features.conversation.chat.sidebar.LocalMainChatViewModel
+import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubPage
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalMainChatViewModel
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -22,14 +29,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
-import com.ai.assistance.operit.ui.features.conversation.chat.sidebar.MainChatControls
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.MainChatControls
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -79,6 +86,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -187,6 +195,10 @@ fun AppContent(
     val useBackgroundImage = themeSnapshot.useBackgroundImage
     val backgroundImageUri = themeSnapshot.backgroundImageUri
     val hasBackgroundImage = useBackgroundImage && backgroundImageUri != null
+    val backgroundDecoration = themeSurface("background")
+    // 工作室背景与媒体背景共用底层画布，内容底色不能盖住已声明的填色或图层。
+    val hasBackgroundDecoration = backgroundDecoration != null &&
+        (backgroundDecoration.fillColor != null || backgroundDecoration.layers.isNotEmpty())
 
     // 标准页面顶栏连同状态栏统一使用主题底色，避免聊天壁纸透出。
     val appBarContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 1f)
@@ -248,6 +260,9 @@ fun AppContent(
                     // 单一工具栏 - 使用小型化的设计
                     // 使用 windowInsets 参数让 TopAppBar 自己处理状态栏的 insets
                     TopAppBar(
+                        modifier = Modifier.clip(themeScriptShape("appBar", androidx.compose.ui.graphics.RectangleShape))
+                            .background(themeScriptFill("appBar", appBarContainerColor))
+                            .themeScriptDecoration("appBar", drawFill = false),
                         expandedHeight = 48.dp,
                         windowInsets = WindowInsets.statusBars,
                         title = {
@@ -284,8 +299,9 @@ fun AppContent(
                                     }
                                 }
                             ) {
-                                Icon(
-                                    if (canGoBack) Icons.Default.ArrowBack
+                                ThemeScriptIcon(
+                                    id = if (canGoBack) "appBar.back" else "appBar.menu",
+                                    imageVector = if (canGoBack) Icons.Default.ArrowBack
                                     else if (useTabletLayout)
                                     // 平板模式下使用开关图标表示收起/展开
                                         if (isTabletSidebarExpanded) Icons.Filled.ChevronLeft
@@ -306,8 +322,8 @@ fun AppContent(
                         actions = actions,
                         colors =
                         TopAppBarDefaults.topAppBarColors(
-                            containerColor = appBarContainerColor,
-                            scrolledContainerColor = appBarContainerColor,
+                            containerColor = Color.Transparent,
+                            scrolledContainerColor = Color.Transparent,
                             titleContentColor = appBarContentColor,
                             navigationIconContentColor = appBarContentColor,
                             actionIconContentColor = appBarContentColor
@@ -338,7 +354,7 @@ fun AppContent(
                     .fillMaxSize(),
                 color =
                 if (workspaceVisible) MaterialTheme.colorScheme.surface.copy(alpha = 1f)
-                else if (hasBackgroundImage) Color.Transparent
+                else if (hasBackgroundImage || hasBackgroundDecoration) Color.Transparent
                 else MaterialTheme.colorScheme.background
             ) {
                 if (isLoading) {

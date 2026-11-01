@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.data.storage
 
 import android.content.Context
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.tools.skill.SkillManager
 import com.ai.assistance.operit.data.mcp.MCPRepository
 import com.ai.assistance.operit.util.files.OperitPaths

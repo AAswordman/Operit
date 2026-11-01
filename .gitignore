@@ -79,6 +79,7 @@ app/src/main/assets/web-chat/
 debug_output
 .sync_example_packages_local_state.json
 tools/native_ripgrep/target/
+tools/native_apply_patch/target/
 
 
 # windows拉的屎

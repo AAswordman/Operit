@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.permissions
 
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

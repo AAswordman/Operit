@@ -27,14 +27,14 @@ import androidx.compose.material.icons.filled.Loop
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.Loop
-import androidx.compose.material3.Button
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton as Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptOutlinedButton as OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable

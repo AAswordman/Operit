@@ -4,7 +4,7 @@ import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import java.util.Locale
 
 /** 只更新旧模式名称，保留 Root 设置以及其他偏好。 */

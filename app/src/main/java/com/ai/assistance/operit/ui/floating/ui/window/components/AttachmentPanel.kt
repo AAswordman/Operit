@@ -46,7 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.ui.features.conversation.chat.components.PackageSelectorDialog
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.PackageSelectorDialog
 
 /**
  * 专为浮动窗口设计的简化附件选择面板

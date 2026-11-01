@@ -49,7 +49,8 @@ private fun getOpenSourceLibraries(): List<OpenSourceLibrary> {
         OpenSourceLibrary("Reorderable", "Drag-and-drop reorderable list for Compose", "Apache-2.0", "https://github.com/Calvin-LL/Reorderable"),
         OpenSourceLibrary("Swipe", "Swipe-to-reveal actions for Compose", "Apache-2.0", "https://github.com/saket/swipe"),
 
-        // File & Archive Processing
+        // 文件与归档处理
+        OpenSourceLibrary("Codex apply_patch", "终端补丁命令", "Apache-2.0", "https://github.com/openai/codex/tree/main/codex-rs/apply-patch"),
         OpenSourceLibrary("Apache Commons Compress", "Library for working with archives", "Apache-2.0", "https://commons.apache.org/proper/commons-compress/"),
         OpenSourceLibrary("Apache Commons IO", "Library of I/O utilities", "Apache-2.0", "https://commons.apache.org/proper/commons-io/"),
         OpenSourceLibrary("junrar", "RAR archive extraction library", "The Unlicense", "https://github.com/junrar/junrar"),

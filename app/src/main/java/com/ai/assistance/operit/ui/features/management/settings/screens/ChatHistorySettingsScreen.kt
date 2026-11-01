@@ -1,5 +1,9 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton as Button
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptOutlinedButton as OutlinedButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
 
 import android.app.Activity

@@ -1,7 +1,10 @@
 package com.ai.assistance.operit.api.chat.keypool
 
 import com.ai.assistance.operit.api.chat.error.FirstTokenTimeoutException
+import com.ai.assistance.operit.api.chat.error.RequestFailure
 import android.content.Context
+import com.ai.assistance.operit.R
+import org.mockito.kotlin.whenever
 import com.ai.assistance.operit.api.chat.error.HttpStatusCodeException
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.IOException
@@ -212,16 +215,89 @@ class ApiKeyRetryNoticeTest {
         assertEquals(1_000L, testScheduler.currentTime)
     }
 
+    @Test
+    fun singleAndPassthroughFailuresNeverClaimToHaveTriedAPool() = runTest {
+        val errorText = "HTTP 409: tool_continuation_lineage_mismatch"
+        val finalMessage = "request failed: $errorText"
+        whenever(context.getString(R.string.openai_error_connection_timeout, 5, errorText))
+            .thenReturn(finalMessage)
+        val passthrough = object : ApiKeyProvider {
+            override suspend fun getApiKey() = "sk-single"
+            override suspend fun getCandidateKeyCount() = 1
+        }
+        for (provider in listOf(SingleApiKeyProvider("sk-single"), passthrough)) {
+            val session = provider.createRequestSession("model", false)
+            val notices = mutableListOf<String>()
+            val failure = runCatching {
+                withContext(ApiKeyRequestElement(session)) {
+                    for (attempt in 1..6) {
+                        val exception = httpFailure(409, errorText)
+                        reportKeyAwareFailure(exception, "model", false, attempt)
+                        handleKeyAwareRetry(
+                            context = context, exception = exception, enableRetry = true,
+                            onNonFatalError = { notices += it }, onRetryAccepted = {},
+                            buildRetryMessage = { error, _, _ -> error },
+                            logTag = "test", attemptNumber = attempt,
+                        )
+                    }
+                }
+            }.exceptionOrNull()
+            assertEquals(false, session.poolMode)
+            assertEquals(6, session.triedSummary().attempted)
+            assertEquals(List(5) { errorText }, notices)
+            assertEquals(finalMessage, failure?.message)
+            assertHttpFailurePreserved(failure, expectedStatus = 409, expectedMessage = errorText)
+        }
+    }
+    @Test
+    fun actualPoolExhaustionKeepsItsPoolSummaryAndLastError() = runTest {
+        val errorText = "HTTP 503: maintenance"
+        val finalMessage = "pool exhausted: $errorText"
+        whenever(context.getString(R.string.api_key_pool_exhausted, 2, 0, 0, errorText))
+            .thenReturn(finalMessage)
+        val session = RetrySession(
+            ApiKeyRetryDecision(exhausted = true, delayMs = 0L, switchedKey = false),
+            poolMode = true, summary = ApiKeyTriedSummary(attempted = 2, server = 2),
+        )
+        val failure = runCatching {
+            withContext(ApiKeyRequestElement(session)) {
+                handleKeyAwareRetry(
+                    context = context, exception = httpFailure(503, errorText), enableRetry = true,
+                    onNonFatalError = { error("耗尽后不能继续发布重试") }, onRetryAccepted = {},
+                    buildRetryMessage = { _, _, _ -> error("耗尽后不能继续构造重试") },
+                    logTag = "test", attemptNumber = 2,
+                )
+            }
+        }.exceptionOrNull()
+        assertEquals(finalMessage, failure?.message)
+        assertHttpFailurePreserved(failure, expectedStatus = 503, expectedMessage = errorText)
+    }
+    private fun assertHttpFailurePreserved(
+        failure: Throwable?,
+        expectedStatus: Int,
+        expectedMessage: String,
+    ) {
+        // 协程恢复堆栈时可能增加异常包装层，按类型定位原始 HTTP 原因，不固定 cause 层数。
+        val httpCause = RequestFailure.causeChain(requireNotNull(failure))
+            .first { it is HttpStatusCodeException }
+        assertEquals(expectedStatus, (httpCause as HttpStatusCodeException).statusCode)
+        assertEquals(expectedMessage, httpCause.message)
+    }
+
     private fun httpFailure(code: Int, message: String): Exception =
         object : IOException(message), HttpStatusCodeException {
             override val statusCode: Int = code
         }
 
-    private class RetrySession(private val decision: ApiKeyRetryDecision) : ApiKeyRequestSession {
+    private class RetrySession(
+        private val decision: ApiKeyRetryDecision,
+        override val poolMode: Boolean = false,
+        private val summary: ApiKeyTriedSummary = ApiKeyTriedSummary(),
+    ) : ApiKeyRequestSession {
         override suspend fun nextKey(): ApiKeySelection = error("本用例不选择密钥")
         override suspend fun reportOutcome(report: ApiKeyAttemptReport) = Unit
         override suspend fun maxAttempts(): Int = 6
-        override fun triedSummary(): ApiKeyTriedSummary = ApiKeyTriedSummary()
+        override fun triedSummary(): ApiKeyTriedSummary = summary
         override suspend fun decideRetry(errorClass: ApiKeyErrorClass, retryAfterMs: Long?) = decision
     }
 }

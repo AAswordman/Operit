@@ -30,6 +30,9 @@ internal fun WorkbenchSlider(
     onValueChangeFinished: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
+    // 九宫格切片可固定为单一值，零长度区间按零比例绘制，避免 0/0 产生 NaN。
+    val length = valueRange.endInclusive - valueRange.start
+    val fraction = if (length == 0f) 0f else (value - valueRange.start) / length
     Slider(
         value = value,
         onValueChange = onValueChange,
@@ -44,7 +47,7 @@ internal fun WorkbenchSlider(
         track = {
             WorkbenchSliderTrack(
                 0f,
-                (value - valueRange.start) / (valueRange.endInclusive - valueRange.start),
+                fraction,
                 enabled,
             )
         },

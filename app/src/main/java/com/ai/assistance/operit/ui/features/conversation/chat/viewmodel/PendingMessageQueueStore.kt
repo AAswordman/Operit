@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.viewmodel
 
-import com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common.PendingQueueMessageItem
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.model.PendingQueueMessageItem
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

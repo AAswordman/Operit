@@ -26,12 +26,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.main.screens.ScreenNavigationHandler
-import com.ai.assistance.operit.core.tools.system.AccessibilityProviderInstaller
-import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
-import com.ai.assistance.operit.core.tools.system.ShizukuInstaller
+import com.ai.assistance.operit.core.tools.permissions.authorization.AccessibilityProviderInstaller
+import com.ai.assistance.operit.core.tools.permissions.authorization.ShizukuAuthorizer
+import com.ai.assistance.operit.core.tools.permissions.authorization.ShizukuInstaller
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import com.ai.assistance.operit.ui.features.support.demo.components.*
 import com.ai.assistance.operit.ui.features.support.demo.permissions.SystemPermissionSettings

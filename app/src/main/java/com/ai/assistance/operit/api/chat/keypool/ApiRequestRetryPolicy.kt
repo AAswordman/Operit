@@ -20,6 +20,7 @@ internal object ApiRequestRetryPolicy {
         "invalid type for",
         "unsupported value",
         "unsupported parameter",
+        "unsupported content type",
         "unknown parameter",
         "unrecognized request argument",
         "missing required parameter",

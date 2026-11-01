@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.system.uiautomator
 
-import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
+import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
 import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger

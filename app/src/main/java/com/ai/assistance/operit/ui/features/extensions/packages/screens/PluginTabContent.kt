@@ -49,7 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.tools.packTool.metadata.PluginActivity
 import com.ai.assistance.operit.ui.common.icons.rememberLogoPainter
 import com.ai.assistance.operit.ui.features.extensions.packages.components.EmptyState

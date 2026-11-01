@@ -57,7 +57,7 @@ internal fun WebSessionMinimizedIndicator(
     contentDescription: String,
     activeDownloadCount: Int,
     hasFailedDownloads: Boolean,
-    externalOpenPrompt: com.ai.assistance.operit.core.tools.defaultTool.websession.browser.ExternalOpenPromptState?,
+    externalOpenPrompt: com.ai.assistance.operit.core.tools.builtin.web.session.browser.ExternalOpenPromptState?,
     onToggleFullscreen: () -> Unit,
     onDragBy: (dx: Int, dy: Int) -> Unit,
     onConfirmExternalOpen: (String) -> Unit,

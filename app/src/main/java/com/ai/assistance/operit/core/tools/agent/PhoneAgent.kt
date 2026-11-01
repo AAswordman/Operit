@@ -13,11 +13,11 @@ import androidx.core.content.FileProvider
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIService
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.AppListData
-import com.ai.assistance.operit.core.tools.defaultTool.standard.StandardUITools
+import com.ai.assistance.operit.core.tools.builtin.ui.StandardUITools
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult

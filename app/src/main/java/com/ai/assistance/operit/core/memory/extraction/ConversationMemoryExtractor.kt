@@ -6,7 +6,7 @@ import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.core.chat.protocol.ThinkingMarkup
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIService
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.data.model.Memory
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences

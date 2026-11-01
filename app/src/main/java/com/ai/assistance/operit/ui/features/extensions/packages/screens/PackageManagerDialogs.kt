@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.EnvVar
 import com.ai.assistance.operit.core.tools.ToolPackage
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 
 @Composable
 fun PackageLoadErrorsDialog(

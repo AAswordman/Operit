@@ -34,8 +34,8 @@ import com.ai.assistance.operit.ui.features.extensions.packages.components.dialo
 import com.ai.assistance.operit.ui.features.extensions.packages.components.dialogs.packageui.PackageEnvironmentSection
 import com.ai.assistance.operit.ui.features.extensions.packages.components.dialogs.packageui.PackageToolCard
 import com.ai.assistance.operit.core.tools.ToolPackage
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgRuntimeMonitor
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.ToolPkgRuntimeMonitor
 import com.ai.assistance.operit.ui.common.icons.rememberLogoPainter
 import java.text.SimpleDateFormat
 import java.util.Date

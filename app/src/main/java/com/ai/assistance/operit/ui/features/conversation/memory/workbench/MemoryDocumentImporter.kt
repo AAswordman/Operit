@@ -3,7 +3,7 @@ package com.ai.assistance.operit.ui.features.conversation.memory.workbench
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter

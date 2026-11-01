@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.common.markdown
 
-import com.ai.assistance.operit.ui.features.conversation.chat.voicemessages.VoiceMessageXmlPlugin
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.voice.VoiceMessageXmlPlugin
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,10 +24,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslParser
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslRenderResult
 import com.ai.assistance.operit.ui.common.composedsl.LocalComposeDslXmlStream
 import com.ai.assistance.operit.ui.common.composedsl.RenderToolPkgComposeDslNode
 import com.ai.assistance.operit.ui.common.composedsl.RetainToolPkgComposeDslActions

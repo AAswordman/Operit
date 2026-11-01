@@ -9,8 +9,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.system.RootAuthorizer
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.permissions.authorization.RootAuthorizer
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.support.demo.state.DemoStateManager
 import kotlinx.coroutines.Dispatchers

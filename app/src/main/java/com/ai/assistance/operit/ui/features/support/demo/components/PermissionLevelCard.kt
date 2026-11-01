@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilities
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.ui.features.support.demo.permissions.SystemPermission
 import com.ai.assistance.operit.ui.features.support.demo.permissions.SystemPermissionStatus
@@ -861,7 +861,7 @@ private fun ShizukuPermissionSection(
     // 检查Shizuku是否需要更新
     val isShizukuUpdateNeeded = remember(isShizukuInstalled, isShizukuRunning, hasShizukuPermission) {
         try {
-            com.ai.assistance.operit.core.tools.system.ShizukuInstaller.isShizukuUpdateNeeded(
+            com.ai.assistance.operit.core.tools.permissions.authorization.ShizukuInstaller.isShizukuUpdateNeeded(
                     context
             )
         } catch (e: Exception) {

@@ -29,7 +29,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslNode
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule

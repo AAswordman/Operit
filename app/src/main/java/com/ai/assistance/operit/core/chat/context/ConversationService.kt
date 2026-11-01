@@ -20,8 +20,8 @@ import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
 import com.ai.assistance.operit.core.config.SystemPromptConfig
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.model.FunctionType
@@ -47,7 +47,7 @@ import com.ai.assistance.operit.util.stream.TextStreamEventType
 import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import com.ai.assistance.operit.core.tools.ToolProgressBus
+import com.ai.assistance.operit.core.tools.runtime.ToolProgressBus
 import com.ai.assistance.operit.util.streamnative.NativeXmlSplitter
 import com.github.difflib.DiffUtils
 import com.github.difflib.UnifiedDiffUtils
@@ -125,6 +125,8 @@ class ConversationService(
             multiServiceManager: MultiServiceManager,
             summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
+            onProgress: (String) -> Unit = {},
+            onNonFatalError: suspend (String) -> Unit = {},
     ): String {
         try {
             val useEnglish = !LocaleUtils.usesChineseContent(context)
@@ -214,11 +216,13 @@ class ConversationService(
             // 使用summaryService发送请求，收集完整响应
             val contentBuilder = StringBuilder()
 
-            ToolProgressBus.update(
-                ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
-                0.05f,
-                context.getString(R.string.conversation_summary_preparing)
+            val progressReporter = SummaryProgressReporter(
+                preparingMessage = context.getString(R.string.conversation_summary_preparing),
+                retryingMessage = context.getString(R.string.enhanced_retrying_request),
+                onProgress = onProgress,
+                onRetryError = onNonFatalError,
             )
+            progressReporter.start()
 
             data class Stage(
                 val matchers: List<(CharSequence) -> Boolean>,
@@ -268,11 +272,7 @@ class ConversationService(
                     val matched = next.matchers.any { it(contentBuilder) }
                     if (!matched) break
                     lastStageIndex += 1
-                    ToolProgressBus.update(
-                        ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
-                        next.progress,
-                        next.message
-                    )
+                    progressReporter.update(next.progress, next.message)
                 }
             }
 
@@ -285,27 +285,28 @@ class ConversationService(
                             enableThinking = summaryThinking.enableThinking,
                             thinkingOptionId = summaryThinking.thinkingOptionId,
                             recordTokenUsage = recordTokenUsage,
+                            onNonFatalError = progressReporter::retry,
                     )
 
             // 重试会发出回滚事件。这里按保存点截断，避免半截内容和完整重写拼进同一条摘要。
             collectRevisableContent(
                 stream = stream,
                 onChunk = { content ->
+                    if (content.isNotEmpty()) progressReporter.receivedContent()
                     contentBuilder.append(content)
                     updateStageIfNeeded()
                 },
                 onRollback = { content ->
                     contentBuilder.setLength(0)
                     contentBuilder.append(content)
+                    // 回滚后的内容可能不再包含旧阶段标记，不能沿用上一次的完成比例。
+                    lastStageIndex = -1
+                    progressReporter.rollback()
                     updateStageIfNeeded()
                 },
             )
 
-            ToolProgressBus.update(
-                ToolProgressBus.SUMMARY_PROGRESS_TOOL_NAME,
-                1f,
-                context.getString(R.string.conversation_summary_completed)
-            )
+            progressReporter.complete(context.getString(R.string.conversation_summary_completed))
 
             // 获取完整的总结内容
             var summaryContent = ChatUtils.removeThinkingContent(contentBuilder.toString().trim())

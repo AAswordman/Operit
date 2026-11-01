@@ -23,8 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionHistoryEntry
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionSessionHistoryItem
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionHistoryEntry
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionSessionHistoryItem
 import java.text.DateFormat
 import java.util.Date
 

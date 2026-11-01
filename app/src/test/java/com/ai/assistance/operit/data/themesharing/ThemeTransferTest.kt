@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.themesharing
 
+import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
+import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
 import java.io.ByteArrayOutputStream
@@ -111,7 +113,7 @@ class ThemeTransferTest {
     @Test
     fun rejectsNewLinkVersion() {
         failure(ThemeTransferError.UNSUPPORTED_VERSION) {
-            ThemeShareCode.decode(ThemeShareCode.encode(document()).replace("v=1", "v=2"))
+            ThemeShareCode.decode(ThemeShareCode.encode(document()).replace("schema=1", "schema=2"))
         }
     }
 
@@ -127,7 +129,7 @@ class ThemeTransferTest {
     @Test
     fun rejectsDuplicateQueryParameters() {
         failure(ThemeTransferError.INVALID_CODE) {
-            ThemeShareCode.decode(ThemeShareCode.encode(document()) + "&v=1")
+            ThemeShareCode.decode(ThemeShareCode.encode(document()) + "&schema=1")
         }
     }
 
@@ -189,7 +191,7 @@ class ThemeTransferTest {
 
     @Test
     fun rejectsNewManifestVersion() {
-        val bytes = edit(document(true)) { it["format"] = JsonPrimitive("operit-theme-v2") }
+        val bytes = edit(document(true)) { it["schema"] = JsonPrimitive(2) }
         failure(ThemeTransferError.UNSUPPORTED_VERSION) { ThemeTransferSchema.decode(bytes, true) }
     }
 
@@ -469,6 +471,104 @@ class ThemeTransferTest {
             val merged = ThemeTransferSchema.merge(current, decoded)
             assertEquals("bubble", merged.string("user_chat_style"))
             assertEquals("bubble", merged.string("ai_chat_style"))
+        }
+    }
+
+    @Test
+    fun scriptManifestUsesUnbrandedFormatAndNeverSharesPrivateReference() {
+        val privateValues = ThemePreferenceValues.defaultVisual()
+            .withString(ThemePreferenceValues.SCRIPT_URI_KEY, "file:///private/theme_script_example.zip")
+        val script = ThemeScriptManifest(1, "assets/main.js")
+        val source = ThemeTransferSchema.create("脚本主题", "", privateValues, ChatLayoutSettings(), true, script)
+        val bytes = ThemeTransferSchema.encode(source)
+        val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
+        assertEquals("oktheme", root.getValue("format").jsonPrimitive.content)
+        assertEquals(1, root.getValue("schema").jsonPrimitive.int)
+        assertFalse(bytes.toString(Charsets.UTF_8).contains("file:///private"))
+        assertEquals(script, ThemeTransferSchema.decode(bytes, true).script)
+        failure(ThemeTransferError.UNSUPPORTED_VERSION) { ThemeTransferSchema.decode(bytes, false) }
+    }
+
+    @Test
+    fun rejectsLegacyFilesWithNewScriptFieldsAndNewFilesWithoutSchema() {
+        failure(ThemeTransferError.INVALID_CONFIG) {
+            ThemeTransferSchema.decode(edit(document(true)) {
+                it["format"] = JsonPrimitive("operit-theme-v1")
+                it.remove("schema")
+                it["script"] = buildJsonObject { put("apiVersion", 1); put("entry", "assets/main.js") }
+            }, true)
+        }
+        failure(ThemeTransferError.INVALID_CONFIG) {
+            ThemeTransferSchema.decode(edit(document(true)) { it.remove("schema") }, true)
+        }
+    }
+
+    @Test
+    fun acceptsPublishedPackagesCodesAndLinksAndOnlyWritesNewNames() {
+        for (full in listOf(false, true)) {
+            val source = document(full)
+            val bytes = edit(source) {
+                it["format"] = JsonPrimitive(if (full) "operit-theme-v1" else "operit-theme-params-v1")
+                it.remove("schema")
+            }
+            assertEquals(source, ThemeTransferSchema.decode(bytes, full))
+            val exported = ThemeTransferSchema.encode(source).toString(Charsets.UTF_8)
+            assertFalse(exported.contains("operit"))
+            if (!full) {
+                val legacy = "operit://theme/import?v=1&encoding=zlib-base64url&data=" + compressed(bytes)
+                assertEquals(source, ThemeShareCode.decode(legacy))
+                assertTrue(ThemeShareCode.encode(source).startsWith("oktheme://"))
+            }
+        }
+    }
+
+    @Test
+    fun rejectsStringSchemaAndExtraLegacySchema() {
+        failure(ThemeTransferError.INVALID_CONFIG) {
+            ThemeTransferSchema.decode(edit(document(true)) { it["schema"] = JsonPrimitive("1") }, true)
+        }
+        failure(ThemeTransferError.INVALID_CONFIG) {
+            ThemeTransferSchema.decode(edit(document(true)) { it["format"] = JsonPrimitive("operit-theme-v1") }, true)
+        }
+    }
+
+    @Test
+    fun shareCodePreservesScriptButFullReplacementClearsIt() {
+        val current = ThemePreferenceValues.defaultVisual()
+            .withString(ThemePreferenceValues.SCRIPT_URI_KEY, "file:///private/theme_script_example.zip")
+        val code = ThemeShareCode.decode(ThemeShareCode.encode(document(values = current)))
+        assertEquals(current.string(ThemePreferenceValues.SCRIPT_URI_KEY), ThemeTransferSchema.merge(current, code).string(ThemePreferenceValues.SCRIPT_URI_KEY))
+        assertNull(ThemeTransferSchema.merge(current, document(true)).string(ThemePreferenceValues.SCRIPT_URI_KEY))
+        assertFalse(ThemeTransferSchema.isDefaultVisualTheme(current))
+    }
+
+    @Test
+    fun scriptPackageRoundTripsSourceAndDeletesPreviewOnClose() {
+        val script = ThemeScriptManifest(1, "assets/main.js")
+        val full = document(true).copy(script = script)
+        val source = folder.newFile().apply { writeText("module.exports = {apiVersion:1,render(){return {apiVersion:1}}}") }
+        val output = folder.newFile()
+        output.outputStream().use { ThemeArchive.write(it, full, mapOf(script.entry to source)) }
+        val prepared = ThemeArchive.read(output, staging())
+        val preview = requireNotNull(prepared.scriptPreviewFile)
+        assertEquals(source.readText(), ThemeScriptBundleStore.read(preview).source)
+        assertEquals(script, prepared.document.script)
+        prepared.close()
+        assertFalse(preview.exists())
+    }
+
+    @Test
+    fun rejectsMissingScriptEntryAndUnreferencedFiles() {
+        val full = document(true).copy(script = ThemeScriptManifest(1, "assets/main.js"))
+        failure(ThemeTransferError.MISSING_ASSET) {
+            ThemeArchive.read(archive(mapOf("manifest.json" to ThemeTransferSchema.encode(full))), staging())
+        }
+        failure(ThemeTransferError.INVALID_ARCHIVE) {
+            ThemeArchive.read(archive(mapOf(
+                "manifest.json" to ThemeTransferSchema.encode(full),
+                "assets/main.js" to "module.exports={}".toByteArray(),
+                "assets/unused.js" to "module.exports={}".toByteArray(),
+            )), staging())
         }
     }
 }

@@ -7,7 +7,7 @@ const {
   runSuite,
 } = require('./common');
 
-const AndroidShellExecutor = Java.com.ai.assistance.operit.core.tools.system.AndroidShellExecutor;
+const AndroidShellExecutor = Java.com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor;
 const StandardActionListener = Java.com.ai.assistance.operit.core.tools.system.action.StandardActionListener;
 const StreamBuildersKt = Java.type('com.ai.assistance.operit.util.stream.StreamBuildersKt');
 
@@ -28,7 +28,7 @@ function assertCommandResultProxy(result, label) {
   assert(result && typeof result === 'object', (label || 'result') + ' should be an object');
   assertEq(
     String(result.className),
-    'com.ai.assistance.operit.core.tools.system.AndroidShellExecutor$CommandResult',
+    'com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor$CommandResult',
     (label || 'result') + ' className mismatch'
   );
   assertEq(typeof result.success, 'boolean', (label || 'result') + ' success should be boolean');
@@ -51,7 +51,7 @@ exports.run = async function run() {
     test('Java.callSuspend awaits companion suspend method and returns proxy result', async () => {
       const result = await withTimeout(
         Java.callSuspend(
-          'com.ai.assistance.operit.core.tools.system.AndroidShellExecutor',
+          'com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor',
           'executeShellCommand',
           'echo bridge-contract-suspend-top-level'
         ),

@@ -18,7 +18,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 import com.ai.assistance.operit.data.preferences.transparency.ThemeTransparencyPreferences
-import com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble.BubbleImageStyleConfig
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.management.settings.components.ChatStyleOption
 import com.ai.assistance.operit.ui.features.management.settings.components.bubble.BubbleImageStyleEditor
 import com.ai.assistance.operit.ui.features.management.settings.components.transparency.BackgroundTransparencySlider

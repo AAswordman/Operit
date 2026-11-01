@@ -2,7 +2,7 @@ package com.ai.assistance.operit.ui.features.management.resources.hub
 
 import android.app.Application
 import android.os.SystemClock
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns

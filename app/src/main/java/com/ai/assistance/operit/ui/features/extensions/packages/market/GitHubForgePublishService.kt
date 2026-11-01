@@ -12,7 +12,7 @@ import com.ai.assistance.operit.data.api.MarketV2PublishRequest
 import com.ai.assistance.operit.data.api.MarketV2PublishVersion
 import com.ai.assistance.operit.data.api.MarketV2Version
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOrigin
 import com.ai.assistance.operit.core.tools.packTool.minify.ToolPkgArtifactMinifier
 import java.io.File
 import java.net.URI

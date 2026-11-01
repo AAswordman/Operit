@@ -511,8 +511,6 @@ class ChatHistoryDelegate(
         }
     }
 
-    private val _showChatHistorySelector = MutableStateFlow(false)
-    val showChatHistorySelector: StateFlow<Boolean> = _showChatHistorySelector.asStateFlow()
 
     private val _chatHistories = MutableStateFlow<List<ChatHistory>>(emptyList())
     val chatHistories: StateFlow<List<ChatHistory>> = _chatHistories.asStateFlow()
@@ -1632,15 +1630,9 @@ class ChatHistoryDelegate(
         return lastAiMessageIndex + 1
     }
 
-    /** 切换是否显示聊天历史选择器 */
-    fun toggleChatHistorySelector() {
-        _showChatHistorySelector.value = !_showChatHistorySelector.value
-    }
 
-    /** 显示或隐藏聊天历史选择器 */
-    fun showChatHistorySelector(show: Boolean) {
-        _showChatHistorySelector.value = show
-    }
+
+
 
     // This function is moved to AIMessageManager and renamed to getMemoryFromMessages
     /*

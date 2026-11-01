@@ -32,7 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.packTool.PackageTemplateKind
+import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateKind
 
 /**
  * 包管理加号弹出的中心选择面板。

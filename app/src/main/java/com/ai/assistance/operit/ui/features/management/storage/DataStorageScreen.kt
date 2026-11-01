@@ -75,7 +75,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.defaultTool.standard.CookiePrivacyManager
+import com.ai.assistance.operit.core.tools.builtin.web.CookiePrivacyManager
 import com.ai.assistance.operit.data.storage.CleanupTarget
 import com.ai.assistance.operit.data.storage.CleanupTargetUsage
 import com.ai.assistance.operit.data.storage.DataStorageSnapshot

@@ -3,7 +3,7 @@ package com.ai.assistance.operit.ui.common.composedsl
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslRenderResult
 import kotlinx.coroutines.yield
 
 @Composable

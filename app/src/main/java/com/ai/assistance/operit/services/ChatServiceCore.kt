@@ -16,9 +16,9 @@ import com.ai.assistance.operit.services.core.ChatHistoryDelegate
 import com.ai.assistance.operit.services.core.MessageCoordinationDelegate
 import com.ai.assistance.operit.services.core.MessageProcessingDelegate
 import com.ai.assistance.operit.services.core.TokenStatisticsDelegate
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.UiStateDelegate
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process.WorkspaceChangeTracker
+import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceChangeTracker
 import com.ai.assistance.operit.util.stream.SharedStream
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
@@ -473,8 +473,6 @@ class ChatServiceCore(
     val chatHistories: StateFlow<List<com.ai.assistance.operit.data.model.ChatHistory>>
         get() = chatHistoryDelegate.chatHistories
 
-    val showChatHistorySelector: StateFlow<Boolean>
-        get() = chatHistoryDelegate.showChatHistorySelector
 
     // API 配置相关
     val enableThinkingMode: StateFlow<Boolean>

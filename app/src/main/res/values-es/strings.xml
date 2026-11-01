@@ -5454,7 +5454,7 @@
     <string name="attachment_photo_added">Adjunto de foto añadido: %1$s</string>
     <string name="attachment_photo_process_failed">No se puede procesar la foto tomada, inténtalo de nuevo</string>
     <string name="attachment_photo_add_failed">Error al añadir adjunto de foto: %1$s</string>
-    <string name="attachment_added">Adjunto añadido: %1$s</string>
+    <string name="attachment_added">Adjunto añadido</string>
     <string name="attachment_media_process_failed">No se puede procesar el archivo multimedia, prueba con otro método</string>
     <string name="attachment_cannot_attach">No se puede adjuntar el archivo: %1$s</string>
     <string name="attachment_file_not_exist">El archivo no existe</string>
@@ -6191,7 +6191,7 @@
     <string name="ocr_cannot_read_image">No se puede leer el archivo de imagen: %1$s</string>
     <string name="ocr_cannot_decode_bitmap_from_uri">No se puede decodificar Bitmap desde la URI</string>
     <string name="ocr_cannot_open_uri_stream">No se puede abrir el flujo de entrada de la URI</string>
-    <string name="debugger_ui_listener_started">Monitor de operaciones de UI del depurador iniciado</string>
+    <string name="shizuku_ui_listener_started">Monitor de operaciones de UI de Shizuku iniciado</string>
     <string name="model_config_default_name">Configuración predeterminada</string>
     <string name="model_config_config_id">Configuración %1$s</string>
     <string name="model_config_import_failed">Error al importar: %1$s</string>

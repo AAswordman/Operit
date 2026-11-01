@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.data.model.PromptFunctionType
-import com.ai.assistance.operit.ui.features.conversation.chat.components.AttachmentChip
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.AttachmentChip
 import com.ai.assistance.operit.ui.floating.FloatContext
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.floating.ui.window.viewmodel.FloatingChatWindowModeViewModel

@@ -7,7 +7,7 @@ import com.ai.assistance.operit.core.tools.mcp.MCPManager
 import com.ai.assistance.operit.core.tools.mcp.McpRuntimeDescriptor
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
 import com.ai.assistance.operit.data.mcp.MCPRepository
-import com.ai.assistance.operit.core.tools.system.Terminal
+import com.ai.assistance.operit.core.tools.system.terminal.Terminal
 import com.ai.assistance.operit.data.mcp.createMcpConfigGson
 import com.google.gson.JsonParser
 import kotlinx.coroutines.CancellationException

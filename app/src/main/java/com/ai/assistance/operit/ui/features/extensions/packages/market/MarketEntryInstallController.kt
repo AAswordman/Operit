@@ -4,8 +4,8 @@ import com.ai.assistance.operit.ui.common.oktoast.OKToast
 
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.api.MarketStatsApiService
 import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.mcp.InstallResult

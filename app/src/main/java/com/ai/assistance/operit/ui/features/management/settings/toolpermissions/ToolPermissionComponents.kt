@@ -1,5 +1,10 @@
 package com.ai.assistance.operit.ui.features.management.settings.toolpermissions
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton as Button
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptOutlinedButton as OutlinedButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll

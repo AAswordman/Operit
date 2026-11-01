@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble.BubbleImageStyleConfig
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble.BubbleImageStyleConfig
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.ThemeEditorSession
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.*
 import kotlin.math.max

@@ -133,7 +133,7 @@ def main():
     native_files = [path for path in tree if path.endswith(('.aidl', '.cpp', '.h', '.rs'))]
     for path in native_files:
         require(blob_hash((ROOT / path).read_bytes()) == tree[path][1], 'JNI 或 Binder 协议文件发生变化：' + path)
-    parser_text = (ROOT / 'app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMainRegistrationScriptParser.kt').read_text()
+    parser_text = (ROOT / 'app/src/main/java/com/ai/assistance/operit/core/tools/packTool/parser/ToolPkgMainRegistrationScriptParser.kt').read_text()
     require(parser_text.count('item.optString("runtime").trim().ifBlank { TOOLPKG_RUNTIME_COMPOSE_DSL }') == 2, '界面模块或路由的默认 Compose DSL 被修改')
     require('return@forEachIndexed' in parser_text, '旧导航声明未忽略')
     result = {

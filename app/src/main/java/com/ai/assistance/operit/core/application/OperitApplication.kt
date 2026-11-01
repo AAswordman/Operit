@@ -28,9 +28,9 @@ import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleEvent
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookParams
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookPluginRegistry
 import com.ai.assistance.operit.core.config.SystemPromptConfig
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
-import com.ai.assistance.operit.core.tools.system.Terminal
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
+import com.ai.assistance.operit.core.tools.system.terminal.Terminal
 import com.ai.assistance.operit.core.workflow.WorkflowSchedulerInitializer
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupPreferences
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupScheduler
@@ -43,8 +43,8 @@ import com.ai.assistance.operit.data.preferences.initUserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.stats.TokenUsageRepository
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.LocalWebServer
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language.LanguageFactory
+import com.ai.assistance.operit.ui.features.conversation.workspace.preview.LocalWebServer
+import com.ai.assistance.operit.ui.features.conversation.workspace.editor.language.LanguageFactory
 import com.ai.assistance.operit.core.diagnostics.GlobalExceptionHandler
 import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.util.android.LocaleUtils
@@ -122,6 +122,9 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         appStartupTimeMs = startTime
         instance = this
         AppLogger.bindContext(this)
+        com.ai.assistance.operit.terminal.TerminalManager.setLocalSessionInitializer { context ->
+            com.ai.assistance.operit.core.terminal.commands.NativeTerminalCommands.sessionInitializer(context)
+        }
         com.ai.assistance.operit.terminal.TerminalManager.setUbuntuArchivePreparer { context, destination ->
             com.ai.assistance.operit.data.resources.OfflineResources.prepareUbuntuArchive(context, destination)
         }

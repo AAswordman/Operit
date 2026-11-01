@@ -500,7 +500,7 @@ await Tools.Net.browserClick({
 - `examples/types/network.d.ts`
 - `examples/types/results.d.ts`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardHttpTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardWebVisitTool.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardBrowserSessionTools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/StandardHttpTools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/StandardWebVisitTool.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/StandardBrowserSessionTools.kt`

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.storage.ConfigurationResourceEntry
 import com.ai.assistance.operit.data.storage.ConfigurationResourceInventory
 import com.ai.assistance.operit.data.storage.ConfigurationResourceSnapshot

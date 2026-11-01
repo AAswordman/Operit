@@ -254,8 +254,8 @@ console.log(response.text());
 - `app/src/main/assets/js/OkHttp3.js`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsAssetLoader.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsLibraries.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardHttpTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/StandardHttpTools.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/ToolResultDataClasses.kt`
 - [网络模块参考](./network.md)
 - [结果类型参考](./results.md)

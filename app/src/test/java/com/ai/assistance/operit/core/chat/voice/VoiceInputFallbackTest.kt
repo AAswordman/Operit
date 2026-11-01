@@ -124,8 +124,8 @@ class VoiceInputFallbackTest {
     fun directAudioSuccessNeverStartsTextPath() = runBlocking {
         val output = mutableListOf<String>()
         collectVoiceResponse(
-            native = { emit -> emit("回答"); emit("完成") },
-            text = { throw AssertionError("直接音频成功后不应切换") },
+            native = { emit, _ -> emit("回答"); emit("完成") },
+            text = { _, _ -> throw AssertionError("直接音频成功后不应切换") },
             emit = { output.add(it) },
         )
         assertEquals(listOf("回答", "完成"), output)
@@ -136,8 +136,8 @@ class VoiceInputFallbackTest {
         val calls = mutableListOf<String>()
         val output = mutableListOf<String>()
         collectVoiceResponse(
-            native = { calls.add("native"); throw IOException("不支持音频") },
-            text = { emit -> calls.add("text"); emit("文字回答") },
+            native = { _, _ -> calls.add("native"); throw IOException("不支持音频") },
+            text = { emit, _ -> calls.add("text"); emit("文字回答") },
             emit = { output.add(it) },
         )
         assertEquals(listOf("native", "text"), calls)
@@ -148,8 +148,8 @@ class VoiceInputFallbackTest {
     fun emptyDirectAudioCompletionStartsTextPath() = runBlocking {
         val output = mutableListOf<String>()
         collectVoiceResponse(
-            native = { emit -> emit("") },
-            text = { emit -> emit("文字回答") },
+            native = { emit, _ -> emit("") },
+            text = { emit, _ -> emit("文字回答") },
             emit = { if (it.isNotEmpty()) output.add(it) },
         )
         assertEquals(listOf("文字回答"), output)
@@ -162,8 +162,8 @@ class VoiceInputFallbackTest {
             val output = mutableListOf<String>()
             val error = failure {
                 collectVoiceResponse(
-                    native = { emit -> emit(content); throw connectionError },
-                    text = { throw AssertionError("已有内容时不能重放") },
+                    native = { emit, _ -> emit(content); throw connectionError },
+                    text = { _, _ -> throw AssertionError("已有内容时不能重放") },
                     emit = { output.add(it) },
                 )
             }
@@ -177,8 +177,8 @@ class VoiceInputFallbackTest {
         val cancelled = CancellationException("用户取消")
         val error = failure {
             collectVoiceResponse(
-                native = { throw cancelled },
-                text = { throw AssertionError("取消后不能重试") },
+                native = { _, _ -> throw cancelled },
+                text = { _, _ -> throw AssertionError("取消后不能重试") },
                 emit = {},
             )
         }
@@ -189,7 +189,7 @@ class VoiceInputFallbackTest {
     fun emptyTextResponseFailsWithOriginalDirectAudioError() = runBlocking {
         val audioError = IOException("直接音频不可用")
         val error = failure {
-            collectVoiceResponse(native = { throw audioError }, text = {}, emit = {})
+            collectVoiceResponse(native = { _, _ -> throw audioError }, text = { _, _ -> }, emit = {})
         }
         assertTrue(error is IllegalStateException)
         assertEquals(listOf(audioError), error.suppressed.toList())
@@ -200,8 +200,8 @@ class VoiceInputFallbackTest {
         val cancelled = CancellationException("用户取消")
         val error = failure {
             collectVoiceResponse(
-                native = { throw IOException("直接音频不可用") },
-                text = { throw cancelled },
+                native = { _, _ -> throw IOException("直接音频不可用") },
+                text = { _, _ -> throw cancelled },
                 emit = {},
             )
         }
@@ -214,8 +214,8 @@ class VoiceInputFallbackTest {
         val calls = mutableListOf<String>()
         val output = mutableListOf<String>()
         collectVoiceResponse(
-            native = { calls.add("chat-audio"); throw IOException("直接音频失败") },
-            text = { emit ->
+            native = { _, _ -> calls.add("chat-audio"); throw IOException("直接音频失败") },
+            text = { emit, _ ->
                 val resolved = resolveVoiceText(
                     hasAudioModel = { true },
                     audioModel = { calls.add("audio-model"); throw IOException("音频理解失败") },
@@ -228,5 +228,67 @@ class VoiceInputFallbackTest {
         )
         assertEquals(listOf("chat-audio", "audio-model", "stt", "chat-text"), calls)
         assertEquals(listOf("转写内容"), output)
+    }
+    @Test
+    fun recoveredVoiceTextDoesNotPublishRejectedAudioRetryNotice() = runBlocking {
+        val notices = mutableListOf<String>()
+        val output = mutableListOf<String>()
+        collectVoiceResponse(
+            native = { _, notice ->
+                notice("503 input_audio")
+                throw IOException("unsupported content type at index 0: input_audio")
+            },
+            text = { emit, _ -> emit("转写后的回答") },
+            emit = { output.add(it) },
+            onNonFatalError = { notices.add(it) },
+        )
+        assertEquals(listOf("转写后的回答"), output)
+        assertTrue(notices.isEmpty())
+    }
+
+    @Test
+    fun acceptedNativeAnswerPublishesItsNoticesBeforeContent() = runBlocking {
+        val events = mutableListOf<String>()
+        collectVoiceResponse(
+            native = { emit, notice ->
+                notice("第一次重试")
+                emit("回答")
+                notice("回答后的重试")
+            },
+            text = { _, _ -> throw AssertionError("音频响应成功时不应再转写") },
+            emit = { events.add(it) },
+            onNonFatalError = { events.add(it) },
+        )
+        assertEquals(listOf("第一次重试", "回答", "回答后的重试"), events)
+    }
+
+    @Test
+    fun textRequestRetriesStillPublishTheirOwnNotice() = runBlocking {
+        val notices = mutableListOf<String>()
+        collectVoiceResponse(
+            native = { _, notice -> notice("音频重试"); throw IOException("音频拒绝") },
+            text = { emit, notice -> notice("文字重试"); emit("成功") },
+            emit = {},
+            onNonFatalError = { notices.add(it) },
+        )
+        assertEquals(listOf("文字重试"), notices)
+    }
+
+    @Test
+    fun finalFailureKeepsBothAttemptsWithoutPublishingIntermediateNotice() = runBlocking {
+        val audioError = IOException("音频拒绝")
+        val textError = IOException("识别请求失败")
+        val notices = mutableListOf<String>()
+        val error = failure {
+            collectVoiceResponse(
+                native = { _, notice -> notice("音频重试"); throw audioError },
+                text = { _, _ -> throw textError },
+                emit = {},
+                onNonFatalError = { notices.add(it) },
+            )
+        }
+        assertSame(textError, error)
+        assertEquals(listOf(audioError), error.suppressed.toList())
+        assertTrue(notices.isEmpty())
     }
 }

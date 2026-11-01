@@ -5,7 +5,7 @@ import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.PackageToolParameter
 import com.ai.assistance.operit.core.tools.ToolPackage
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.SystemToolPromptCategory

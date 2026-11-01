@@ -17,7 +17,7 @@ import com.ai.assistance.operit.data.repository.MemoryRepository
 import com.ai.assistance.operit.ui.features.conversation.memory.screens.graph.model.Edge
 import com.ai.assistance.operit.ui.features.conversation.memory.screens.graph.model.Graph
 import com.ai.assistance.operit.ui.features.conversation.memory.screens.graph.model.Node
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.R

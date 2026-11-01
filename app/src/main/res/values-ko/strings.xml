@@ -5553,7 +5553,7 @@
     <string name="attachment_photo_added">사진 첨부 파일이 추가되었습니다: %1$s</string>
     <string name="attachment_photo_process_failed">촬영한 사진을 처리할 수 없습니다. 다시 시도해 주세요.</string>
     <string name="attachment_photo_add_failed">사진 첨부 파일 추가 실패: %1$s</string>
-    <string name="attachment_added">첨부파일 추가됨: %1$s</string>
+    <string name="attachment_added">첨부파일 추가됨</string>
     <string name="attachment_media_process_failed">미디어 파일을 처리할 수 없습니다. 다른 방법을 시도해 보십시오.</string>
     <string name="attachment_cannot_attach">파일을 첨부할 수 없습니다: %1$s</string>
     <string name="attachment_file_not_exist">파일이 존재하지 않습니다.</string>
@@ -6294,7 +6294,7 @@
     <string name="ocr_cannot_read_image">이미지 파일을 읽을 수 없습니다: %1$s</string>
     <string name="ocr_cannot_decode_bitmap_from_uri">URI에서 비트맵을 디코딩할 수 없습니다.</string>
     <string name="ocr_cannot_open_uri_stream">URI에 대한 입력 스트림을 열 수 없습니다.</string>
-    <string name="debugger_ui_listener_started">디버거 UI 작업 리스너가 시작되었습니다.</string>
+    <string name="shizuku_ui_listener_started">Shizuku UI 작업 리스너가 시작되었습니다.</string>
     <string name="model_config_default_name">기본 구성</string>
     <string name="model_config_config_id">%1$s 구성</string>
     <string name="model_config_import_failed">가져오기 실패: %1$s</string>

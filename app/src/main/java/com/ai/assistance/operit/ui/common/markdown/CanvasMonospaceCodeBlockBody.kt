@@ -47,8 +47,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.editorCellWidth
-import com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.editorNextSymbolOffset
+import com.ai.assistance.operit.ui.features.conversation.workspace.editor.editorCellWidth
+import com.ai.assistance.operit.ui.features.conversation.workspace.editor.editorNextSymbolOffset
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.ceil

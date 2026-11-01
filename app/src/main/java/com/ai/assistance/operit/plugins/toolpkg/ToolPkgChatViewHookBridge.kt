@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.plugins.toolpkg
 
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_VIEW
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_CHAT_VIEW
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgContainerRuntime
 import com.ai.assistance.operit.plugins.chatview.ChatViewEvent
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookParams
 import com.ai.assistance.operit.plugins.chatview.ChatViewHookPlugin

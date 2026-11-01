@@ -1,9 +1,9 @@
 package com.ai.assistance.operit.core.tools.javascript
 
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_REGISTRATION_CHAT_MESSAGE_MENU_ITEM
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_REGISTRATION_CHAT_RUNTIME_HOOK
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOriginCodec
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_REGISTRATION_CHAT_MESSAGE_MENU_ITEM
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_REGISTRATION_CHAT_RUNTIME_HOOK
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOrigin
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOriginCodec
 import org.json.JSONObject
 import org.json.JSONTokener
 

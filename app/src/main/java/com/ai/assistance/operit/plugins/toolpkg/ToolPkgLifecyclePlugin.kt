@@ -1,9 +1,9 @@
 package com.ai.assistance.operit.plugins.toolpkg
 
 import com.ai.assistance.operit.core.application.OperitApplication
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgContainerRuntime
 import com.ai.assistance.operit.plugins.toolpkg.sortedByToolPkgLoadOrder
 import com.ai.assistance.operit.plugins.OperitPlugin
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleEvent

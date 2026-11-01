@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_transfer_copying">Copiando...</string>
+    <string name="workspace_transfer_moving">Movendo...</string>
+    <string name="workspace_transfer_scanning">Contando arquivos...</string>
+    <string name="workspace_transfer_processing">Processando...</string>
+    <string name="workspace_transfer_finishing">Removendo origem...</string>
+    <string name="workspace_transfer_name">Nome</string>
+    <string name="workspace_transfer_source">Origem</string>
+    <string name="workspace_transfer_destination">Destino</string>
+    <string name="workspace_transfer_copied">Copiado</string>
+    <string name="workspace_transfer_remaining">Restante</string>
+    <string name="workspace_transfer_speed">Velocidade</string>
+    <string name="workspace_transfer_item">Item %1$d / %2$d · Progresso do item atual</string>
+    <string name="workspace_transfer_files">Arquivos: %1$d / %2$d</string>
+    <string name="workspace_transfer_percent">%1$d%%</string>
+    <string name="workspace_transfer_cancelling">Cancelando...</string>
+    <string name="workspace_transfer_deleting">Excluindo...</string>
+    <string name="workspace_transfer_deleted_items">%1$d / %2$d itens excluídos</string>
+    <string name="workspace_transfer_delete_scope">O progresso conta os itens selecionados, não os arquivos de cada pasta.</string>
+    <string name="workspace_transfer_delete_cancel_note">Cancelar interrompe os próximos itens após a exclusão atual retornar. O conteúdo excluído não é restaurado.</string>
+</resources>

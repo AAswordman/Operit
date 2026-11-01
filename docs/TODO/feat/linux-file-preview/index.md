@@ -23,7 +23,7 @@ branch: feat/linux-file-preview
 
 ## 实现范围与结构
 
-- 在现有 `ui/features/chat/webview/workspace/` 下扩展文件浏览器、工作区管理器和选择工作区页；文件操作菜单与排序对话框拆为同一功能包下的辅助组件。
+- 文件浏览器、工作区管理器和选择工作区页位于 `ui/features/conversation/workspace/`；文件操作菜单与排序对话框归入其 `browser/` 子包。
 - 复用 `FileUtils` 的文本类型判断、已有 `CodeEditor`，以及图片、播放器、PDF、Word 和表格预览组件。
 - 绑定后的 `WorkspaceManager` 默认显示 `FileBrowser`，预览通过顶部标签进入；导出、重命名和解绑移到顶部菜单，编辑操作显示在编辑页面上方。
 - 未绑定状态通过 `WorkspaceScreen` 临时打开文件，保存按文件携带的来源环境执行，返回时恢复目录选择页，不修改聊天绑定。

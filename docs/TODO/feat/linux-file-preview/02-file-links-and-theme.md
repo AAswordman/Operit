@@ -4,7 +4,7 @@
 
 ## 聊天文件入口
 
-新增 `ui/features/chat/webview/workspace/links/` 功能目录。WorkspaceFileLink 解析路径、来源环境与行号，WorkspaceFileLinkHost 作为 ChatScreenContent 的文件入口容器；Cursor 与 Bubble 共用的 LinkPreviewDialog 在点击“访问”后把文件请求交给该容器。
+文件链接功能位于 `ui/features/conversation/workspace/links/`。WorkspaceFileLink 解析路径、来源环境与行号，WorkspaceFileLinkHost 作为 ChatScreenContent 的文件入口容器；Cursor 与 Bubble 共用的 LinkPreviewDialog 在点击“访问”后把文件请求交给该容器。
 
 | 链接形式 | 来源与打开行为 |
 | --- | --- |

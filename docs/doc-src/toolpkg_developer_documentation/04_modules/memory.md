@@ -395,8 +395,8 @@ console.log(link.linkType, link.weight);
 
 - `examples/types/memory.d.ts`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsTools.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
-- `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/MemoryQueryToolExecutor.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
+- `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/memory/MemoryQueryToolExecutor.kt`
 - `app/src/main/java/com/ai/assistance/operit/core/tools/ToolResultDataClasses.kt`
 - [结果类型参考](./results.md)
 - [全局运行时 API](../03_runtime/global_api.md)

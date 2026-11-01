@@ -27,8 +27,8 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.ui.features.conversation.chat.components.rememberChatMessageHeightMemory
-import com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble.BubbleStyleChatMessage
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.list.rememberChatMessageHeightMemory
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble.BubbleStyleChatMessage
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 
 /**

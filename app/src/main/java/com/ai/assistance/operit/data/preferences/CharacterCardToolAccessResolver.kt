@@ -2,7 +2,7 @@ package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
 import com.ai.assistance.operit.core.config.SystemToolPrompts
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.model.CharacterCardToolAccessConfig
 import com.ai.assistance.operit.data.skill.SkillRepository
 import kotlinx.coroutines.flow.first

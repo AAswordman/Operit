@@ -35,3 +35,6 @@ internal object VoiceAnalysisCodec {
 internal fun VoiceMessageData.additionalRequestContext(): String =
     listOf(requestContext, if (transcriptResolved || inputMode != VoiceInputMode.AUDIO) "" else transcript)
         .filter { it.isNotBlank() }.distinct().joinToString("\n")
+
+/** 已完成转写的语音复用文字，历史消息和手动重试不再发送已拒绝的音频。 */
+internal fun VoiceMessageData.canSendNativeAudio(enabled: Boolean): Boolean = enabled && !transcriptResolved

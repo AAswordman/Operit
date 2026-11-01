@@ -37,11 +37,11 @@ import com.ai.assistance.operit.core.chat.hooks.mergeAdjacentTurns
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
 import com.ai.assistance.operit.core.chat.hooks.toRoleContentPairs
 import com.ai.assistance.operit.core.application.ActivityLifecycleManager
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilitySession
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.InputProcessingState
@@ -1217,7 +1217,8 @@ class EnhancedAIService private constructor(context: Context) {
                     var usageRequestHistory = requestHistory
                     val responseStream = voiceAudioRequest.send(
                         history = requestHistory,
-                        request = { voiceRequestHistory ->
+                        onNonFatalError = onNonFatalError,
+                        request = { voiceRequestHistory, attemptNotice ->
                             usageRequestHistory = voiceRequestHistory
                             serviceForFunction.sendMessage(
                                     context = this@EnhancedAIService.context,
@@ -1232,7 +1233,7 @@ class EnhancedAIService private constructor(context: Context) {
                                         currentRequestCachedInputTokenCount = cachedInput.coerceAtLeast(0)
                                         _perRequestTokenCounts.value = Pair(input, output)
                                     },
-                                     onNonFatalError = onNonFatalError,
+                                     onNonFatalError = attemptNotice,
                             )
                         },
                         onHistoryResolved = { textHistory ->
@@ -2826,8 +2827,13 @@ class EnhancedAIService private constructor(context: Context) {
     suspend fun generateSummary(
         messages: List<Pair<String, String>>,
         recordTokenUsage: Boolean = true,
+        onProgress: (String) -> Unit = {},
+        onNonFatalError: suspend (String) -> Unit = {},
     ): String {
-        return generateSummary(messages, null, recordTokenUsage = recordTokenUsage)
+        return generateSummary(
+            messages, null, recordTokenUsage = recordTokenUsage,
+            onProgress = onProgress, onNonFatalError = onNonFatalError,
+        )
     }
 
     /**
@@ -2841,12 +2847,16 @@ class EnhancedAIService private constructor(context: Context) {
             previousSummary: String?,
             summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
+            onProgress: (String) -> Unit = {},
+            onNonFatalError: suspend (String) -> Unit = {},
     ): String {
         return generateSummaryFromPromptTurns(
             messages.toPromptTurns(),
             previousSummary,
             summaryConfig,
             recordTokenUsage,
+            onProgress = onProgress,
+            onNonFatalError = onNonFatalError,
         )
     }
 
@@ -2855,6 +2865,8 @@ class EnhancedAIService private constructor(context: Context) {
             previousSummary: String?,
             summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
+            onProgress: (String) -> Unit = {},
+            onNonFatalError: suspend (String) -> Unit = {},
     ): String {
         // 调用ConversationService中的方法
         return conversationService.generateSummaryFromPromptTurns(
@@ -2863,6 +2875,8 @@ class EnhancedAIService private constructor(context: Context) {
             multiServiceManager,
             summaryConfig,
             recordTokenUsage,
+            onProgress = onProgress,
+            onNonFatalError = onNonFatalError,
         )
     }
 

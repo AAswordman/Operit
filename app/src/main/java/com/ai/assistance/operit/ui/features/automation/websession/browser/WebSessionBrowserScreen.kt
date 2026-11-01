@@ -41,13 +41,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionBookmark
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionBrowserHostState
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionBrowserSheetRoute
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionHistoryEntry
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionPendingDialogState
-import com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionWebViewHost
-import com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.ui.WebSessionUserscriptUiState
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionBookmark
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionBrowserHostState
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionBrowserSheetRoute
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionHistoryEntry
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionPendingDialogState
+import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionWebViewHost
+import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.ui.WebSessionUserscriptUiState
 import java.util.Locale
 
 @Composable
@@ -488,7 +488,7 @@ private fun PendingDialogOverlay(
 @Composable
 private fun WebSessionOverlaySheetContent(
     sheetRoute: WebSessionBrowserSheetRoute,
-    browserState: com.ai.assistance.operit.core.tools.defaultTool.websession.browser.WebSessionBrowserState,
+    browserState: com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionBrowserState,
     bookmarks: List<WebSessionBookmark>,
     globalHistory: List<WebSessionHistoryEntry>,
     userscriptUiState: WebSessionUserscriptUiState,

@@ -55,6 +55,16 @@ class ScopeClassificationTest(unittest.TestCase):
         self.assertFalse(plan.android_jvm)
         self.assertTrue(plan.android_full)
 
+    def test_terminal_command_sources_use_full_lane(self) -> None:
+        for path in (
+            "tools/native_apply_patch/src/lib.rs",
+            "tools/native_apply_patch/install.sh",
+            "tools/native_apply_patch/Cargo.lock",
+            ".github/actions/native-apply-patch/action.yml",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(classify_paths([path]).android_full)
+
     def test_android_workflow_changes_use_full_lane(self) -> None:
         for path in (
             ".github/workflows/build.yml",

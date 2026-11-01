@@ -77,7 +77,9 @@
         <package android:name="com.ai.assistance.operit.provider" />
     </queries>
 
+    <!-- QuickJS 使用 47 位地址保存 JSValue，须在进程启动前关闭会丢失的堆顶字节标记。 -->
     <application
+        android:allowNativeHeapPointerTagging="false"
         android:name=".core.application.OperitApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -120,7 +122,7 @@
             tools:node="remove" />
 
         <activity
-            android:name=".core.tools.defaultTool.websession.browser.WebSessionPermissionRequestActivity"
+            android:name=".core.tools.builtin.web.session.browser.WebSessionPermissionRequestActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:finishOnTaskLaunch="true"
@@ -128,7 +130,7 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <activity
-            android:name=".core.tools.defaultTool.websession.userscript.install.UserscriptImportPickerActivity"
+            android:name=".core.tools.builtin.web.session.userscript.install.UserscriptImportPickerActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:finishOnTaskLaunch="true"
@@ -314,7 +316,7 @@
         </activity>
 
         <activity
-            android:name=".core.tools.system.ScreenCaptureActivity"
+            android:name=".core.tools.system.capture.ScreenCaptureActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:excludeFromRecents="true"
             android:exported="false" />
@@ -327,7 +329,7 @@
             android:foregroundServiceType="dataSync" />
 
         <service
-            android:name=".core.tools.system.ScreenCaptureService"
+            android:name=".core.tools.system.capture.ScreenCaptureService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />

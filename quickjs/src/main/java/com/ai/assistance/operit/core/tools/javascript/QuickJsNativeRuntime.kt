@@ -13,6 +13,9 @@ internal object QuickJsNativeBridge {
     external fun nativeCreate(hostBridge: QuickJsNativeRuntime.HostBridge): Long
 
     @JvmStatic
+    external fun nativeSetLimits(handle: Long, memoryBytes: Long, timeoutMs: Long)
+
+    @JvmStatic
     external fun nativeDestroy(handle: Long)
 
     @JvmStatic
@@ -72,6 +75,12 @@ class QuickJsNativeRuntime private constructor(
 
     private val closed = AtomicBoolean(false)
     private val lifecycleLock = Any()
+
+    /** 限制仅属于当前实例，每次同步求值重新计时。 */
+    fun setExecutionLimits(memoryBytes: Long, timeoutMs: Long) {
+        require(memoryBytes > 0 && timeoutMs in 1..60_000)
+        QuickJsNativeBridge.nativeSetLimits(requireHandle(), memoryBytes, timeoutMs)
+    }
 
     fun eval(script: String, fileName: String = "<eval>"): EvalResult {
         val resultJson = QuickJsNativeBridge.nativeEvaluate(requireHandle(), script, fileName)

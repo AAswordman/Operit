@@ -3,7 +3,7 @@ package com.ai.assistance.operit.ui.features.extensions.packages.screens
 import android.content.Context
 import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.ToolPackage
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 
 fun packageMatchesSearch(
     context: Context,

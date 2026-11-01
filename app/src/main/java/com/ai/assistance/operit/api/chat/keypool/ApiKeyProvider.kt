@@ -240,6 +240,8 @@ private class MultiApiKeyRequestSession(
     private val mutex: Mutex,
     private val attemptRepository: ApiKeyAttemptRepository,
 ) : ApiKeyRequestSession {
+    override var poolMode: Boolean = false
+        private set
     private val excludedIds = linkedSetOf<String>()
     private var current: ApiKeySelection? = null
     private var sameKeyAttempts = 0
@@ -307,6 +309,8 @@ private class MultiApiKeyRequestSession(
                         )
                     }
                 }
+            // 兼容现有的单密钥选择分支，不能仅凭提供者类型把请求标成池模式。
+            poolMode = pick is ApiKeyPick.Selected
             resolveAttemptBudgetLocked(config)
             current = selection
             sameKeyAttempts = 0

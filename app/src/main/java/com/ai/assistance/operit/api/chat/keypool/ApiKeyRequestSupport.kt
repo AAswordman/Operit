@@ -132,7 +132,7 @@ internal suspend fun handleKeyAwareRetry(
             )
 
     if (decision.exhausted) {
-        val summary = session?.triedSummary()
+        val summary = session?.takeIf { it.poolMode }?.triedSummary()
         val message =
             requestFailure?.json(
                 attempt = attemptNumber,

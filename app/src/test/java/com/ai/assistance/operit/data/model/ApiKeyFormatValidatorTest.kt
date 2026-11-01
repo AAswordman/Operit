@@ -61,4 +61,27 @@ class ApiKeyFormatValidatorTest {
 
         assertFalse(ApiKeyFormatValidator.hasUsableKey(config))
     }
+    @Test
+    fun disabledPoolIgnoresStoredInvalidEntries() {
+        val config = ModelConfigData(
+            id = "single", name = "单密钥", apiKey = "sk-single",
+            useMultipleApiKeys = false,
+            apiKeyPool = listOf(ApiKeyInfo("old", "中文")),
+        )
+        assertTrue(ApiKeyFormatValidator.hasUsableKey(config))
+    }
+    @Test
+    fun emptyAndBlankPoolsValidateTheSingleKey() {
+        for (pool in listOf(emptyList(), listOf(ApiKeyInfo(
+            id = "blank", key = "  ", availabilityStatus = ApiKeyAvailabilityStatus.UNAVAILABLE,
+        )))) {
+            val config = ModelConfigData(
+                id = "empty", name = "空池", apiKey = "sk-single",
+                useMultipleApiKeys = true, apiKeyPool = pool,
+            )
+            assertTrue(ApiKeyFormatValidator.hasUsableKey(config))
+            assertFalse(ApiKeyFormatValidator.hasUsableKey(config.copy(apiKey = "")))
+        }
+    }
+
 }

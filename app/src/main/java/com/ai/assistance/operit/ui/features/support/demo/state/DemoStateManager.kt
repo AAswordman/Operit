@@ -9,8 +9,8 @@ import android.provider.Settings
 import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import com.ai.assistance.operit.core.tools.system.OperitTerminalManager
-import com.ai.assistance.operit.core.tools.system.RootAuthorizer
+import com.ai.assistance.operit.core.tools.system.terminal.OperitTerminalManager
+import com.ai.assistance.operit.core.tools.permissions.authorization.RootAuthorizer
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -23,9 +23,9 @@ import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.ai.assistance.operit.core.tools.system.AccessibilityProviderInstaller
-import com.ai.assistance.operit.core.tools.system.ShizukuAuthorizer
-import com.ai.assistance.operit.core.tools.system.Terminal
+import com.ai.assistance.operit.core.tools.permissions.authorization.AccessibilityProviderInstaller
+import com.ai.assistance.operit.core.tools.permissions.authorization.ShizukuAuthorizer
+import com.ai.assistance.operit.core.tools.system.terminal.Terminal
 import com.ai.assistance.operit.data.mcp.plugins.MCPSharedSession
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.support.demo.permissions.SystemPermissionSettings

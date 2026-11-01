@@ -3,8 +3,8 @@ package com.ai.assistance.operit.integrations.appwidget
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.ui.main.MainActivity
 import kotlinx.coroutines.runBlocking
 import androidx.glance.appwidget.updateAll

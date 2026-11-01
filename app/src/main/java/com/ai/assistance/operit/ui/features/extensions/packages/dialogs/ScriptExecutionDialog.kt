@@ -25,7 +25,7 @@ import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.ScriptExecutionTraceData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.javascript.JsToolManager
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult

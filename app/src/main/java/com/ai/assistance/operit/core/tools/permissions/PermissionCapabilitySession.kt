@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.permissions
 
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
 import kotlinx.coroutines.sync.Mutex
 
 /** 保存一次工具执行会话内的授权能力快照，避免每个工具重复探测系统授权。 */
