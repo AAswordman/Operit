@@ -87,8 +87,7 @@ object EndpointCompleter {
                 return completeResponsesEndpoint(endpoint)
             }
 
-            ApiProviderType.OPENAI_CODEX,
-            ApiProviderType.ANTIGRAVITY, -> {
+            ApiProviderType.OPENAI_CODEX -> {
                 return endpoint
             }
 
