@@ -50,6 +50,9 @@ internal data class StudioTarget(
         "dialog" -> Icons.Default.Comment
         "sheet" -> Icons.Default.OpenInBrowser
         "menu" -> Icons.Default.MoreVert
+        "attachmentMenu" -> Icons.Default.AttachFile
+        "modelMenu" -> Icons.Default.SmartToy
+        "chatSettingsMenu" -> Icons.Default.Settings
         "listItem" -> Icons.Default.ViewList
         "status" -> Icons.Default.CheckCircle
         "toolCard" -> Icons.Default.Terminal

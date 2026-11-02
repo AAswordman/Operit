@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.*
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering.CompactToolDisplay
 import com.ai.assistance.operit.ui.theme.script.*
@@ -22,6 +23,10 @@ import com.ai.assistance.operit.ui.theme.script.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun StudioComponentsPreview(state: ThemeStudioState) {
+    if (state.target.id in ThemeScriptContract.popupSurfaceIds) {
+        StudioChatPopupPreview(state)
+        return
+    }
     var showPanel by remember(state.target.id) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         StudioPick(state, "settingsCard", Modifier.fillMaxWidth()) {

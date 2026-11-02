@@ -6,6 +6,7 @@ import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupPanel
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
@@ -1774,10 +1775,11 @@ private fun AgentModelSelectorPopup(
                     ),
             contentAlignment = Alignment.BottomEnd,
         ) {
-            Card(
+            ThemeScriptPopupPanel(
+                surfaceId = "modelMenu",
+                containerColor = popupContainerColor,
                 modifier =
                     Modifier
-                        .padding(bottom = 44.dp, end = 12.dp)
                         .width(300.dp)
                         .heightIn(max = 420.dp)
                         .clickable(
@@ -1785,12 +1787,6 @@ private fun AgentModelSelectorPopup(
                             indication = null,
                             onClick = {},
                         ),
-                shape = RoundedCornerShape(8.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = popupContainerColor,
-                    ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(
                     modifier =
@@ -2290,10 +2286,11 @@ private fun AgentExtraSettingsPopup(
                     ),
             contentAlignment = Alignment.BottomEnd,
         ) {
-            Card(
+            ThemeScriptPopupPanel(
+                surfaceId = "chatSettingsMenu",
+                containerColor = popupContainerColor,
                 modifier =
                     Modifier
-                        .padding(bottom = 44.dp, end = 12.dp)
                         .width(300.dp)
                         .heightIn(max = 420.dp)
                         .clickable(
@@ -2301,12 +2298,6 @@ private fun AgentExtraSettingsPopup(
                             indication = null,
                             onClick = {},
                         ),
-                shape = RoundedCornerShape(8.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = popupContainerColor,
-                    ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(
                     modifier =

@@ -2,7 +2,7 @@
 export type SurfaceId = "background" | "userMessage" | "assistantMessage" | "composer" |
     "userAvatar" | "assistantAvatar" | "appBar" | "navigation" | "navigationItem" |
     "button" | "iconButton" | "input" | "settingsCard" | "dialog" | "sheet" | "menu" |
-    "listItem" | "status" | "toolCard";
+    "listItem" | "status" | "toolCard" | "attachmentMenu" | "modelMenu" | "chatSettingsMenu";
 export type IconId = "composer.settings" | "composer.attachment" | "composer.microphone" |
     "composer.send" | "composer.stop" | "composer.fullscreen" | "composer.queue" |
     "composer.expand" | "appBar.back" | "appBar.menu" | "appBar.workspace" |
@@ -64,7 +64,11 @@ export interface NineSliceLayer extends BaseLayer {
     slices: Insets;
 }
 export type Layer = PaintLayer | ImageLayer | NineSliceLayer;
+/** 仅三个聊天弹起菜单使用；每项为 0..256 dp，向上与向下取差，不提供向右偏移。 */
+export interface PopupOffset { up?: number; down?: number; left?: number; }
 export interface Surface {
+    /** 整个弹起菜单的物理位置偏移，窗口边缘限制与实际命中区域同步生效。 */
+    popupOffset?: PopupOffset;
     padding?: Insets;
     layers?: readonly Layer[];
     opacity?: number;

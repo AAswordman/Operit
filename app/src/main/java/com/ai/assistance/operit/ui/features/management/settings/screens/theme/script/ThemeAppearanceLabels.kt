@@ -22,6 +22,9 @@ internal fun themeAppearanceAreaLabel(id: String): String = stringResource(when 
     "dialog" -> R.string.theme_area_dialog
     "sheet" -> R.string.theme_area_sheet
     "menu" -> R.string.theme_area_menu
+    "attachmentMenu" -> R.string.theme_area_attachment_menu
+    "modelMenu" -> R.string.theme_area_model_menu
+    "chatSettingsMenu" -> R.string.theme_area_chat_settings_menu
     "listItem" -> R.string.theme_area_list_item
     "status" -> R.string.theme_area_status
     "toolCard" -> R.string.theme_area_tool_card

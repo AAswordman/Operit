@@ -222,4 +222,12 @@
     <string name="studio_agent_preview">Chat · Agent</string>
     <string name="studio_open_component_preview">Open native component preview</string>
     <string name="studio_stroke_hint">A custom border needs a visible color and a width above 0; transparent colors or zero width draw no border.</string>
+    <string name="theme_area_attachment_menu">Attachment popup menu</string>
+    <string name="theme_area_model_menu">Model selection popup menu</string>
+    <string name="theme_area_chat_settings_menu">Chat settings popup menu</string>
+    <string name="studio_popup_position">Position offset</string>
+    <string name="studio_popup_up">Move up</string>
+    <string name="studio_popup_down">Move down</string>
+    <string name="studio_popup_left">Move left</string>
+    <string name="studio_popup_position_hint">Moves the entire menu; adjust content padding separately. Up and down offsets subtract from each other. Movement stops at the window edge.</string>
 </resources>

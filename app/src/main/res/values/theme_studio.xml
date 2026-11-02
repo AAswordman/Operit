@@ -222,4 +222,12 @@
     <string name="studio_agent_preview">聊天 · 智能体</string>
     <string name="studio_open_component_preview">打开真实组件预览</string>
     <string name="studio_stroke_hint">自定义描边需要可见颜色和大于 0 的宽度；完全透明或零宽度不绘制。</string>
+    <string name="theme_area_attachment_menu">附件弹起菜单</string>
+    <string name="theme_area_model_menu">模型选择弹起菜单</string>
+    <string name="theme_area_chat_settings_menu">聊天设置弹起菜单</string>
+    <string name="studio_popup_position">位置偏移</string>
+    <string name="studio_popup_up">向上偏移</string>
+    <string name="studio_popup_down">向下偏移</string>
+    <string name="studio_popup_left">向左偏移</string>
+    <string name="studio_popup_position_hint">移动整个菜单，内容留白单独调整。向上与向下取差值，菜单到达窗口边缘后停止移动。</string>
 </resources>

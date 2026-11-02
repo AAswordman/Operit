@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments
 
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupPanel
 
 import android.Manifest
 import android.content.Context
@@ -482,13 +483,11 @@ fun AttachmentSelectorPopupPanel(
                                 ),
                 contentAlignment = Alignment.BottomEnd
         ) {
-            Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = containerColor,
-                    shadowElevation = 4.dp,
+            ThemeScriptPopupPanel(
+                    surfaceId = "attachmentMenu",
+                    containerColor = containerColor,
                     modifier =
-                            Modifier.padding(bottom = 44.dp, end = 12.dp)
-                                    .width(200.dp)
+                            Modifier.width(200.dp)
                                     .heightIn(max = 420.dp)
                                     .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
