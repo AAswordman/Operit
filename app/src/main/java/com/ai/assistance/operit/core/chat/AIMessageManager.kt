@@ -42,6 +42,7 @@ import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.util.media.MediaPoolManager
 import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.protocolMetaDisplayText
 import com.ai.assistance.operit.util.android.LocaleUtils
 import com.ai.assistance.operit.util.stream.SharedStream
 import com.ai.assistance.operit.util.stream.share
@@ -792,7 +793,8 @@ object AIMessageManager {
         }
 
         fun condenseAssistantForReview(text: String): String {
-            val cleaned = ChatUtils.removeThinkingContent(text)
+            // 必须先删协议块，再去除 XML 标签和压缩，否则负载会变成无法识别的普通文本。
+            val cleaned = ChatUtils.removeThinkingContent(protocolMetaDisplayText(text))
             val normalized = normalizeForReview(cleaned)
             if (normalized.isBlank()) return "[Empty]"
 
@@ -1317,11 +1319,11 @@ object AIMessageManager {
                         isRoleScopedMode,
                         groupOrchestrationMode
                     )
+                    // 读取时清理历史摘要，已保存的协议负载不能再进入后续聊天上下文。
                     "summary" ->
-                        PromptTurn(
-                            kind = PromptTurnKind.SUMMARY,
-                            content = message.content
-                        )
+                        protocolMetaDisplayText(message.content).takeIf { it.isNotBlank() }?.let { content ->
+                            PromptTurn(kind = PromptTurnKind.SUMMARY, content = content)
+                        }
                     else -> null
                 }
             }

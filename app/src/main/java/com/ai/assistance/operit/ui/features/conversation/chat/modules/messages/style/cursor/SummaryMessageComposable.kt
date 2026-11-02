@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.core.chat.protocol.protocolMetaDisplayText
 
 /**
  * A composable function for rendering memory summarization messages as a compact divider. This
@@ -105,6 +106,7 @@ fun SummaryMessageComposable(
 
     // 显示详细内容的对话框 - 仅在启用弹窗时显示
     if (showSummaryDialog && enableDialog) {
+        val summaryContent = remember(message.content) { protocolMetaDisplayText(message.content) }
         Dialog(onDismissRequest = { showSummaryDialog = false }) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -141,7 +143,7 @@ fun SummaryMessageComposable(
                                 .verticalScroll(scrollState)
                     ) {
                         Text(
-                            text = message.content,
+                            text = summaryContent,
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -156,7 +158,10 @@ fun SummaryMessageComposable(
                         if (onEdit != null) {
                             TextButton(
                                 onClick = {
-                                    onEdit.invoke(message)
+                                    onEdit.invoke(message.copy(
+                                        content = summaryContent,
+                                        sections = message.resolvedSections(summaryContent),
+                                    ))
                                     showSummaryDialog = false
                                 }
                             ) {
