@@ -29,6 +29,7 @@ operit_editor.js
 browser.js
 context_limiter_c
 windows_control
+floating_window_demo
 zhipu_draw.js
 zhipu_search.js
 linux_ssh
