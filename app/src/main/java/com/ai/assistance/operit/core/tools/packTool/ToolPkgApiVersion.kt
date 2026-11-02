@@ -75,11 +75,19 @@ internal object ToolPkgApiCompatibility {
     const val LEGACY_API_VERSION = "1.0.0"
     const val API_VERSION_1_0_1 = "1.0.1"
     const val API_VERSION_1_0_1_INTRODUCED_IN_OPERIT = "1.12.1+4"
+    const val API_VERSION_1_1_0 = "1.1.0"
+
+    // 悬浮窗 API（Registry.ui.floatingWindows）随本特性引入；包含该代码的构建
+    // VERSION_NAME 均 >= 1.12.2，而已发布的 v1.12.2 tag 不含此代码、不会声称支持。
+    const val API_VERSION_1_1_0_INTRODUCED_IN_OPERIT = "1.12.2"
 
     private val legacyApiVersion = ToolPkgApiVersion.parse(LEGACY_API_VERSION)
     private val apiVersion101 = ToolPkgApiVersion.parse(API_VERSION_1_0_1)
     private val apiVersion101IntroducedIn =
         OperitVersion.parse(API_VERSION_1_0_1_INTRODUCED_IN_OPERIT)
+    private val apiVersion110 = ToolPkgApiVersion.parse(API_VERSION_1_1_0)
+    private val apiVersion110IntroducedIn =
+        OperitVersion.parse(API_VERSION_1_1_0_INTRODUCED_IN_OPERIT)
 
     fun parseDeclaredApiVersion(apiVersion: String): ToolPkgApiVersion {
         return ToolPkgApiVersion.parse(apiVersion.trim().ifBlank { LEGACY_API_VERSION })
@@ -91,6 +99,9 @@ internal object ToolPkgApiCompatibility {
             add(legacyApiVersion)
             if (currentVersion >= apiVersion101IntroducedIn) {
                 add(apiVersion101)
+            }
+            if (currentVersion >= apiVersion110IntroducedIn) {
+                add(apiVersion110)
             }
         }
     }
@@ -109,7 +120,9 @@ internal object ToolPkgApiCompatibility {
             "ToolPkg API version '$declaredVersion' is not supported by Operit $operitVersion. " +
                 "Supported ToolPkg API versions: ${supportedVersions.joinToString(", ")}. " +
                 "ToolPkg API $API_VERSION_1_0_1 requires Operit " +
-                "$API_VERSION_1_0_1_INTRODUCED_IN_OPERIT or newer."
+                "$API_VERSION_1_0_1_INTRODUCED_IN_OPERIT or newer, and " +
+                "$API_VERSION_1_1_0 requires Operit " +
+                "$API_VERSION_1_1_0_INTRODUCED_IN_OPERIT or newer."
         }
         return declaredVersion
     }

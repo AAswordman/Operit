@@ -1045,6 +1045,154 @@ export namespace ToolPkg {
         ): Promise<WasmCallResult>;
     }
 
+    /**
+     * Window geometry in logical pixels; position uses the host's top-left origin.
+     *
+     * @since ToolPkg API 1.1.0
+     */
+    export interface FloatingWindowOptions {
+        /**
+         * Sets the left coordinate, when positioning is supported.
+         */
+        x?: number;
+        /**
+         * Sets the top coordinate, when positioning is supported.
+         */
+        y?: number;
+        /**
+         * Sets content width (16 through 4096 logical pixels).
+         */
+        width?: number;
+        /**
+         * Sets content height (16 through 4096 logical pixels).
+         */
+        height?: number;
+        /**
+         * Keeps the surface above ordinary application windows; defaults to true.
+         */
+        alwaysOnTop?: boolean;
+        /**
+         * Passes pointer input through the entire surface; defaults to false.
+         */
+        clickThrough?: boolean;
+        /**
+         * Allows the surface to accept keyboard focus; defaults to false.
+         */
+        focusable?: boolean;
+        /**
+         * Moves directly in the host using pointer-down screen/window anchors; defaults to false.
+         */
+        draggable?: boolean;
+    }
+
+    /**
+     * Opens a transparent live UI surface owned by the executing plugin.
+     *
+     * @since ToolPkg API 1.1.0
+     */
+    export interface FloatingWindowOpenOptions {
+        /**
+         * Identifies the window within this plugin; opening an existing ID fails.
+         */
+        id: string;
+        /**
+         * Selects one of this plugin's registered Compose UI routes.
+         */
+        route: string;
+        /**
+         * Supplies the UI session's initial state.
+         */
+        state?: JsonObject;
+        /**
+         * Configures geometry and interaction flags.
+         */
+        options?: FloatingWindowOptions;
+    }
+
+    /**
+     * Reports the actual presentation scope and host capabilities.
+     *
+     * @since ToolPkg API 1.1.0
+     */
+    export interface FloatingWindowCapabilities {
+        /**
+         * "system", "application", or "unsupported". Application scope stays inside the host app.
+         */
+        scope: string;
+        systemOverlay: boolean;
+        applicationOverlay: boolean;
+        supported: boolean;
+        permissionGranted: boolean;
+        positioning: boolean;
+        alwaysOnTop: boolean;
+        clickThrough: boolean;
+        focusable: boolean;
+    }
+
+    /**
+     * Describes a live window owned by the executing plugin.
+     *
+     * @since ToolPkg API 1.1.0
+     */
+    export interface FloatingWindowInfo {
+        id: string;
+        route: string;
+        visible: boolean;
+        options: FloatingWindowOptions;
+    }
+
+    /**
+     * Controls general floating windows independently of launcher widgets.
+     *
+     * @since ToolPkg API 1.1.0
+     */
+    export interface FloatingWindowApi {
+        /**
+         * Queries capabilities without opening a window or displaying a permission prompt.
+         */
+        capabilities(): Promise<FloatingWindowCapabilities>;
+        /**
+         * Opens the host's overlay permission settings when required; query capabilities again afterwards.
+         */
+        requestPermission(): Promise<boolean>;
+        /**
+         * Creates a transparent live route session. IDs are local to the executing plugin.
+         */
+        open(options: FloatingWindowOpenOptions): Promise<FloatingWindowInfo>;
+        /**
+         * Applies partial window options and shallow-merges optional UI state without recreating the session.
+         */
+        update(id: string, options: FloatingWindowOptions, state?: JsonObject): Promise<FloatingWindowInfo>;
+        /**
+         * Shows an owned window without resetting its UI session.
+         */
+        show(id: string): Promise<FloatingWindowInfo>;
+        /**
+         * Hides an owned window while retaining its UI session.
+         */
+        hide(id: string): Promise<FloatingWindowInfo>;
+        /**
+         * Closes an owned window and releases its UI session and engine.
+         */
+        close(id: string): Promise<void>;
+        /**
+         * Lists only the executing plugin's live windows.
+         */
+        list(): Promise<FloatingWindowInfo[]>;
+    }
+
+    /**
+     * Groups runtime presentation services for plugin-owned user interfaces.
+     *
+     * @since ToolPkg API 1.1.0
+     */
+    export interface UiApi {
+        /**
+         * Controls live floating windows independently of launcher widgets.
+         */
+        floatingWindows: FloatingWindowApi;
+    }
+
     export interface Registry {
         /** @since ToolPkg API 1.0.0 */
         registerToolboxUiModule(definition: ToolboxUiModuleRegistration): void;
@@ -1094,6 +1242,8 @@ export namespace ToolPkg {
         registerAiProvider(definition: AiProviderRegistration): void;
         readResource(key: string, outputFileName?: string, internal?: boolean): Promise<string>;
         getConfigDir(pluginId?: string): string;
+        /** @since ToolPkg API 1.1.0 */
+        ui: UiApi;
         ipc: IpcApi;
         wasm: WasmApi;
     }
