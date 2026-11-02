@@ -43,3 +43,5 @@
 - [1.12.2+18 发行集成](release-plus18/index.md)
 
 - [1.12.2+19 发行集成](release-plus19/index.md)
+
+- [1.12.2+20 发行集成](release-plus20/index.md)
