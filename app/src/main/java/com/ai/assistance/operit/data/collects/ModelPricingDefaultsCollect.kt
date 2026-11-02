@@ -157,7 +157,6 @@ object DefaultModelPricingCollect {
         "OPENAI" to zeroPricing(PricingCurrency.USD),
         "OPENAI_RESPONSES" to zeroPricing(PricingCurrency.USD),
         "OPENAI_CODEX" to zeroPricing(PricingCurrency.USD),
-        "ANTIGRAVITY" to zeroPricing(PricingCurrency.USD),
         "OPENAI_RESPONSES_GENERIC" to zeroPricing(PricingCurrency.USD),
         "OPENAI_GENERIC" to zeroPricing(PricingCurrency.USD),
         "ANTHROPIC" to zeroPricing(PricingCurrency.USD),
