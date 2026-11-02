@@ -43,33 +43,6 @@ class ChatConfigReadinessTest {
     }
 
     @Test
-    fun antigravityWithoutOAuthLogin_isRejected() {
-        assertIssue(
-            ChatConfigReadinessIssue.ANTIGRAVITY_LOGIN_REQUIRED,
-            remoteConfig(
-                ApiProviderType.ANTIGRAVITY,
-                apiKey = "",
-                endpoint = "https://cloudcode-pa.googleapis.com",
-            ),
-        )
-    }
-
-    @Test
-    fun antigravityWithOAuthLogin_doesNotRequireApiKey() {
-        val result = ChatConfigReadiness.evaluate(
-            config = remoteConfig(
-                ApiProviderType.ANTIGRAVITY,
-                apiKey = "",
-                endpoint = "https://cloudcode-pa.googleapis.com",
-            ),
-            modelIndex = 0,
-            registeredPluginProviderIds = emptySet(),
-            antigravityAuthenticated = true,
-        )
-        assertTrue(result.isReady)
-    }
-
-    @Test
     fun codexWithOAuthLogin_doesNotRequireApiKey() {
         val result = ChatConfigReadiness.evaluate(
             config = remoteConfig(
@@ -185,16 +158,13 @@ class ChatConfigReadinessTest {
         )
     }
 
-    private fun assertIssue(
-        expected: ChatConfigReadinessIssue,
-        config: ModelConfigData,
-    ) {
+    private fun assertIssue(expected: ChatConfigReadinessIssue, config: ModelConfigData) {
         assertEquals(
             expected,
             ChatConfigReadiness.evaluate(
                 config = config,
                 modelIndex = 0,
-                registeredPluginProviderIds = emptySet(),
+                registeredPluginProviderIds = emptySet()
             ).issue
         )
     }

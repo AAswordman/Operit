@@ -14,7 +14,6 @@ enum class ChatConfigReadinessIssue {
     ENDPOINT_INVALID,
     MODEL_MISSING,
     CODEX_LOGIN_REQUIRED,
-    ANTIGRAVITY_LOGIN_REQUIRED,
     API_KEY_MISSING,
     API_KEY_INVALID
 }
@@ -29,7 +28,6 @@ object ChatConfigReadiness {
         setOf(
             ApiProviderType.OPENAI_RESPONSES_GENERIC,
             ApiProviderType.OPENAI_CODEX,
-            ApiProviderType.ANTIGRAVITY,
             ApiProviderType.OPENAI_GENERIC,
             ApiProviderType.ANTHROPIC_GENERIC,
             ApiProviderType.GEMINI_GENERIC,
@@ -41,7 +39,6 @@ object ChatConfigReadiness {
         modelIndex: Int,
         registeredPluginProviderIds: Set<String>,
         codexAuthenticated: Boolean = false,
-        antigravityAuthenticated: Boolean = false,
     ): ChatConfigReadinessResult {
         val providerTypeId = config.apiProviderTypeId.trim()
         if (providerTypeId.isEmpty()) {
@@ -60,9 +57,6 @@ object ChatConfigReadiness {
         if (providerType == ApiProviderType.OPENAI_CODEX && !codexAuthenticated) {
             return ChatConfigReadinessResult(ChatConfigReadinessIssue.CODEX_LOGIN_REQUIRED)
         }
-        if (providerType == ApiProviderType.ANTIGRAVITY && !antigravityAuthenticated) {
-            return ChatConfigReadinessResult(ChatConfigReadinessIssue.ANTIGRAVITY_LOGIN_REQUIRED)
-        }
         val validModelIndex = getValidModelIndex(config.modelName, modelIndex)
         if (getModelByIndex(config.modelName, validModelIndex).isBlank()) {
             return ChatConfigReadinessResult(ChatConfigReadinessIssue.MODEL_MISSING)
@@ -70,16 +64,14 @@ object ChatConfigReadiness {
 
         if (providerType == ApiProviderType.MNN || providerType == ApiProviderType.LLAMA_CPP) {
             return ChatConfigReadinessResult()
-        }
+        }
 
         val completedEndpoint = EndpointCompleter.completeEndpoint(config.apiEndpoint, providerType)
         if (!isHttpEndpoint(completedEndpoint)) {
             return ChatConfigReadinessResult(ChatConfigReadinessIssue.ENDPOINT_INVALID)
         }
 
-        if (providerType == ApiProviderType.OPENAI_CODEX ||
-            providerType == ApiProviderType.ANTIGRAVITY
-        ) {
+        if (providerType == ApiProviderType.OPENAI_CODEX) {
             return ChatConfigReadinessResult()
         }
 

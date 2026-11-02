@@ -383,18 +383,6 @@ object AIServiceFactory {
                     thinkingOptionId = config.thinkingOptionId,
                 )
 
-            ApiProviderType.ANTIGRAVITY ->
-                AntigravityProvider(
-                    authManager = com.ai.assistance.operit.data.api.AntigravityAuthManager.getInstance(context),
-                    apiEndpoint = config.apiEndpoint,
-                    modelName = config.modelName,
-                    client = httpClient,
-                    customHeaders = customHeaders,
-                    enableToolCall = enableToolCall,
-                    thinkingConfigurations = config.thinkingConfigurations,
-                    thinkingOptionId = config.thinkingOptionId,
-                )
-
             ApiProviderType.OPENAI_CODEX ->
                 CodexProvider(
                     authManager = com.ai.assistance.operit.data.api.CodexAuthManager.getInstance(context),
