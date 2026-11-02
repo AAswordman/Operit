@@ -198,8 +198,8 @@ class OpenAIRealtimeVoiceProvider(
                 }
             }
 
-            override fun onMessage(webSocket: WebSocket, textMessage: String) {
-                val json = runCatching { JSONObject(textMessage) }.getOrNull() ?: return
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                val json = runCatching { JSONObject(text) }.getOrNull() ?: return
                 val type = json.optString("type")
 
                 when (type) {
@@ -237,7 +237,7 @@ class OpenAIRealtimeVoiceProvider(
                         val responseJson = json.optJSONObject("response")
                         val status = responseJson?.optString("status").orEmpty()
                         if (status.equals("failed", ignoreCase = true)) {
-                            val details = responseJson.optJSONObject("status_details")
+                            val details = responseJson?.optJSONObject("status_details")
                             val errorMessage = details?.optString("error").orEmpty()
                                 .ifBlank { context.getString(R.string.openai_realtime_tts_error_request_failed) }
                             failResponse(deferred, errorMessage)

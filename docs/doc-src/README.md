@@ -7,7 +7,7 @@
 - `architecture/`：整体架构、核心模块和运行流程设计
 - `dev-core/`：核心开发资料，包括构建、贡献指南和底层接口说明
 - `feature-protocol/`：具体功能与协议流程，例如意图触发、工具调用和聊天导入
-- `package-dev/`：各功能包和业务模块的开发说明，同时用于给用户及其agent开发包
+- `toolpkg_developer_documentation/`：完整的 ToolPkg 开发者参考，按入门、包模型、运行时、模块、Hook、UI、类型/库、示例和兼容性组织
 - `research/`：对引入、接入的外部依赖或api等的调研记录和技术验证结果
 - `test-example/`：对项目内功能的测试示例、实验记录和问题分析
 

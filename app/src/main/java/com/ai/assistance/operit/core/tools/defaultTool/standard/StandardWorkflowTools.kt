@@ -1004,7 +1004,9 @@ class StandardWorkflowTools(private val context: Context) {
                     } else {
                         emptyMap()
                     }
-                    val jsCode = nodeObj.optString("jsCode", null)
+                    val jsCode = nodeObj.optString("jsCode").takeIf {
+                        nodeObj.has("jsCode") && !nodeObj.isNull("jsCode")
+                    }
 
                     ExecuteNode(
                         id = id,
@@ -1177,7 +1179,9 @@ class StandardWorkflowTools(private val context: Context) {
             val id = connObj.optString("id", UUID.randomUUID().toString())
             val sourceNodeId = resolveNodeId(connObj, true, nodeIdList, nodeIdSet, nodeNameToIds)
             val targetNodeId = resolveNodeId(connObj, false, nodeIdList, nodeIdSet, nodeNameToIds)
-            val condition = connObj.optString("condition", null)
+            val condition = connObj.optString("condition").takeIf {
+                connObj.has("condition") && !connObj.isNull("condition")
+            }
 
             if (sourceNodeId.isBlank() || targetNodeId.isBlank()) {
                 AppLogger.w(TAG, "Connection missing source or target node ID")

@@ -80,6 +80,8 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         private const val TOOLPKG_EXTENSION = ".toolpkg"
         private const val TOOLPKG_CACHE_DIR = "toolpkg_cache"
         private const val TOOLPKG_CACHE_SIGNATURE_FILE = ".toolpkg-cache-signature"
+        private const val RENAMED_PACKAGES_MIGRATION_V1_KEY = "renamed_packages_migration_v1"
+        private val RENAMED_PACKAGE_NAMES_V1 = mapOf("xai_draw" to "spacexai_draw")
 
         @Volatile
         private var INSTANCE: PackageManager? = null
@@ -368,6 +370,40 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error decoding enabled package names", e)
             emptyList()
+        }
+    }
+
+    private fun migrateRenamedPackagePreferencesIfNeeded() {
+        val prefs = context.getSharedPreferences(PACKAGE_PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(RENAMED_PACKAGES_MIGRATION_V1_KEY, false)) return
+        if (RENAMED_PACKAGE_NAMES_V1.values.any { !availablePackages.containsKey(it) }) return
+
+        fun migrate(packageNames: List<String>): List<String> {
+            val migratedNames = LinkedHashSet<String>()
+            packageNames.forEach { packageName ->
+                val normalizedName = packageName.trim()
+                if (normalizedName.isNotBlank()) {
+                    migratedNames.add(RENAMED_PACKAGE_NAMES_V1[normalizedName] ?: normalizedName)
+                }
+            }
+            return migratedNames.toList()
+        }
+
+        val enabledPackages = decodeEnabledPackageNamesFromPrefs()
+        val disabledPackages = getDisabledPackagesInternal()
+        val migratedEnabledPackages = migrate(enabledPackages)
+        val migratedDisabledPackages = migrate(disabledPackages)
+        val editor = prefs.edit()
+        if (migratedEnabledPackages != enabledPackages) {
+            editor.putString(ENABLED_PACKAGES_KEY, Json.encodeToString(migratedEnabledPackages))
+        }
+        if (migratedDisabledPackages != disabledPackages) {
+            editor.putString(DISABLED_PACKAGES_KEY, Json.encodeToString(migratedDisabledPackages))
+        }
+        editor.putBoolean(RENAMED_PACKAGES_MIGRATION_V1_KEY, true).apply()
+
+        if (migratedEnabledPackages != enabledPackages || migratedDisabledPackages != disabledPackages) {
+            AppLogger.d(TAG, "Migrated renamed package preferences: $RENAMED_PACKAGE_NAMES_V1")
         }
     }
 
@@ -669,6 +705,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
 
                     // Load available packages info (metadata only) from assets and external storage
                     loadAvailablePackages()
+                    migrateRenamedPackagePreferencesIfNeeded()
 
                     // Automatically import built-in packages that are enabled by default
                     initializeDefaultPackages()

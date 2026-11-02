@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.stats
 
 import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.model.FunctionType
 
 internal data class ReleasedProviderModelKey(
     val storedProviderModel: String,
@@ -11,11 +12,15 @@ internal data class ReleasedProviderModelKey(
 /** Decodes released `provider:model` keys stored as `provider_model`. */
 internal object ReleasedProviderModelKeyDecoder {
     private val builtInProviderAliases = ApiProviderType.entries.associate { it.name to it.name }
+    private val preProviderFunctionKeys = FunctionType.entries.map { it.name }.toSet() + "FILE_BINDING"
 
     fun decode(
         encoded: String,
         additionalProviderAliases: Map<String, String> = emptyMap(),
     ): ReleasedProviderModelKey {
+        require(encoded !in preProviderFunctionKeys) {
+            "released token key is a pre-provider function key: $encoded"
+        }
         val aliases = buildMap {
             putAll(builtInProviderAliases)
             additionalProviderAliases.forEach { (rawAlias, rawIdentity) ->
