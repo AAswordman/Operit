@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat.voice
 
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import org.junit.Assert.*
 import org.junit.Test
 

@@ -6,9 +6,9 @@ import com.ai.assistance.operit.core.tools.ADBResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
 import com.ai.assistance.operit.core.tools.permissions.authorization.ShizukuAuthorizer
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.ToolValidationResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolValidationResult
 import kotlinx.coroutines.runBlocking
 
 /**

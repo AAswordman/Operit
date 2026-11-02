@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.ai.assistance.operit.data.model.theme.*
 import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
@@ -31,6 +30,20 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceIcon
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceMode
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceState
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceText
+import com.ai.assistance.operit.data.theme.script.ThemeAssetPaths
+import com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptDefaults
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.theme.script.ThemeStudioMetadata
+import com.ai.assistance.operit.data.theme.script.forMode
+import com.ai.assistance.operit.data.theme.script.forState
 
 /** 工作室只编辑不可变资源束；应用时才把新引用交给当前角色草稿。 */
 internal class ThemeStudioState(

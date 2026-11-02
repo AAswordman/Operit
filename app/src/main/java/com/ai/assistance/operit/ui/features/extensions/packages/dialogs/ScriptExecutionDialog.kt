@@ -26,9 +26,9 @@ import com.ai.assistance.operit.core.tools.ScriptExecutionTraceData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.javascript.JsToolManager
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.ui.features.extensions.packages.components.dialogs.packageui.PackageDialogHeader
 import com.ai.assistance.operit.ui.features.extensions.packages.components.dialogs.packageui.PackageDialogLayout
 import com.ai.assistance.operit.ui.features.extensions.packages.components.dialogs.packageui.PackageEnvironmentNotice

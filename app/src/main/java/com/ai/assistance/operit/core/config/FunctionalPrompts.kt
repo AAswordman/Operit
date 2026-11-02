@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.core.config
 
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
-import com.ai.assistance.operit.data.model.SummarySectionConfig
-import com.ai.assistance.operit.data.model.SummarySectionOverride
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
+import com.ai.assistance.operit.data.config.model.SummarySectionConfig
+import com.ai.assistance.operit.data.config.model.SummarySectionOverride
 
 /**
  * A centralized repository for system prompts used across various functional services.

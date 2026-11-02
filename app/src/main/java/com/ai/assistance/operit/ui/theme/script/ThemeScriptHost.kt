@@ -23,9 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.theme.ThemeScriptAppearance
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContext
-import com.ai.assistance.operit.data.model.theme.ThemeScriptSettings
+import com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContext
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSettings
 import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle

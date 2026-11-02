@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.api.chat.model
 
 import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

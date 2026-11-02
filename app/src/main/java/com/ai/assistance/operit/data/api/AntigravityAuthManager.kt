@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.api
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelOption
 import com.ai.assistance.operit.data.preferences.AntigravityAuthPreferences
 import com.ai.assistance.operit.data.preferences.AntigravityAuthState
 import com.ai.assistance.operit.data.preferences.AntigravityQuotaPreferences

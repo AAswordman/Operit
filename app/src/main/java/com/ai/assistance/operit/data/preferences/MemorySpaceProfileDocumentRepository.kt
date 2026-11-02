@@ -2,7 +2,7 @@ package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
 import android.util.AtomicFile
-import com.ai.assistance.operit.data.model.LegacyUserProfile
+import com.ai.assistance.operit.data.memory.profile.LegacyUserProfile
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File
 import java.io.FileOutputStream

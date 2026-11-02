@@ -3,7 +3,7 @@ package com.ai.assistance.operit.api.chat.llmprovider
 import android.content.Context
 import android.util.Base64
 import com.ai.assistance.operit.api.chat.keypool.SingleApiKeyProvider
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import com.ai.assistance.operit.util.files.OperitPaths
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.media.MediaPoolManager

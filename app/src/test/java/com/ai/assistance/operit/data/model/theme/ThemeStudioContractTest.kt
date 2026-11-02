@@ -2,6 +2,20 @@ package com.ai.assistance.operit.data.model.theme
 
 import org.junit.Assert.*
 import org.junit.Test
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceIcon
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceMode
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceState
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceText
+import com.ai.assistance.operit.data.theme.script.ThemeAssetPaths
+import com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptInsets
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.theme.script.ThemeStudioMetadata
+import com.ai.assistance.operit.data.theme.script.forMode
+import com.ai.assistance.operit.data.theme.script.forState
 
 class ThemeStudioContractTest {
     private val manifest = ThemeScriptManifest(

@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.model
 
-import com.ai.assistance.operit.data.model.ApiKeyInfo
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int

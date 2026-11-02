@@ -63,10 +63,10 @@ import com.ai.assistance.operit.core.memory.extraction.ChatMemoryWindowPlanner
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.CharacterCardChatStats
-import com.ai.assistance.operit.data.model.CharacterGroupCard
+import com.ai.assistance.operit.data.character.CharacterGroupCard
 import com.ai.assistance.operit.data.model.CharacterGroupChatStats
-import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.MemorySpace
+import com.ai.assistance.operit.data.memory.export.ImportStrategy
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager

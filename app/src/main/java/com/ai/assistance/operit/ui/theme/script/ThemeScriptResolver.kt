@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.ui.theme.script
 
 import com.ai.assistance.operit.core.tools.javascript.QuickJsNativeRuntime
-import com.ai.assistance.operit.data.model.theme.forMode
-import com.ai.assistance.operit.data.model.theme.ThemeScriptAppearance
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContext
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.forMode
+import com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContext
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

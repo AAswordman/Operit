@@ -10,10 +10,10 @@ import com.ai.assistance.operit.api.chat.request.RateLimiterRegistry
 import com.ai.assistance.operit.api.chat.request.RequestConcurrencyRegistry
 import com.ai.assistance.operit.api.chat.model.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.getModelByIndex
-import com.ai.assistance.operit.data.model.getValidModelIndex
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.getModelByIndex
+import com.ai.assistance.operit.data.config.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import kotlinx.coroutines.NonCancellable
@@ -402,7 +402,7 @@ class MultiServiceManager(private val context: Context) {
      */
     suspend fun getModelParametersForFunction(
             functionType: FunctionType
-    ): List<com.ai.assistance.operit.data.model.ModelParameter<*>> {
+    ): List<com.ai.assistance.operit.data.config.model.ModelParameter<*>> {
         ensureInitialized()
         val configMapping = functionalConfigManager.getConfigMappingForFunction(functionType)
         return modelConfigManager.getModelParametersForConfig(configMapping.configId)
@@ -428,7 +428,7 @@ class MultiServiceManager(private val context: Context) {
     /** 获取指定配置ID的模型参数 */
     suspend fun getModelParametersForConfig(
         configId: String
-    ): List<com.ai.assistance.operit.data.model.ModelParameter<*>> {
+    ): List<com.ai.assistance.operit.data.config.model.ModelParameter<*>> {
         ensureInitialized()
         return modelConfigManager.getModelParametersForConfig(configId)
     }

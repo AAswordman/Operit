@@ -1,11 +1,11 @@
 package com.ai.assistance.operit.api.chat.model
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ToolParameterSchema
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.model.getModelByIndex
-import com.ai.assistance.operit.data.model.getValidModelIndex
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.data.config.model.getModelByIndex
+import com.ai.assistance.operit.data.config.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind

@@ -38,7 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images.AttachmentImagePreviewDialog
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images.AttachmentPreviewImage
 import java.io.File

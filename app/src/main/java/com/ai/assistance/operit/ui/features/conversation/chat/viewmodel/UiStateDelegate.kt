@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.viewmodel
 
 import android.content.Intent
-import com.ai.assistance.operit.data.model.AiReference
+import com.ai.assistance.operit.core.chat.reference.AiReference
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

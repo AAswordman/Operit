@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.api.chat.keypool
 
-import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 
 /** 配置修正与主动复测后解除相关旧冷却，避免已恢复的密钥继续等待。 */
 internal object ApiKeyCooldownRecovery {

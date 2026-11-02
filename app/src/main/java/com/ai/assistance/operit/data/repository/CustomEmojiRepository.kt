@@ -5,8 +5,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.CustomEmoji
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.emoji.CustomEmoji
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CustomEmojiPreferences
 import com.ai.assistance.operit.util.logging.AppLogger

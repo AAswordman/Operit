@@ -14,9 +14,9 @@ import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.memory.extraction.ChatMemoryRebuildManager
 import com.ai.assistance.operit.core.memory.extraction.ChatMemoryRebuildTimeScope
-import com.ai.assistance.operit.data.model.EmbeddingDimensionUsage
-import com.ai.assistance.operit.data.model.EmbeddingRebuildProgress
-import com.ai.assistance.operit.data.model.MemorySearchConfig
+import com.ai.assistance.operit.data.embedding.EmbeddingDimensionUsage
+import com.ai.assistance.operit.data.embedding.EmbeddingRebuildProgress
+import com.ai.assistance.operit.data.memory.search.MemorySearchConfig
 import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences
 import com.ai.assistance.operit.data.repository.MemoryRepository
 import com.ai.assistance.operit.ui.common.dialogs.ContentSizedTabbedDialog

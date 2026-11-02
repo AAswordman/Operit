@@ -10,7 +10,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.ai.assistance.operit.data.model.theme.forMode
+import com.ai.assistance.operit.data.theme.script.forMode
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 
 /** 部件选择器显示当前头像和已绑定图标，未绑定时使用各自的语义图标。 */

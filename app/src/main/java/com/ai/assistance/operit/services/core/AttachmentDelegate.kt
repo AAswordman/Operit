@@ -15,9 +15,9 @@ import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.DirectoryListingData
 import com.ai.assistance.operit.core.tools.FileContentData
 import com.ai.assistance.operit.core.tools.FileExistsData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.AttachmentInfo
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.data.skill.SkillRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

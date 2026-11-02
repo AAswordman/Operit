@@ -11,11 +11,11 @@ import com.ai.assistance.operit.util.media.FFmpegUtil
 import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.util.media.MediaPoolManager
 import com.ai.assistance.mnn.MNNLlmSession
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterValueType
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterValueType
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.data.storage.LocalModelRuntimeRegistry
 import com.ai.assistance.operit.data.storage.LocalModelUsageHandle
 import com.ai.assistance.operit.util.stream.Stream

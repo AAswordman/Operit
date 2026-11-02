@@ -11,19 +11,19 @@ import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.workflow.NodeExecutionState
-import com.ai.assistance.operit.data.model.ConditionNode
-import com.ai.assistance.operit.data.model.ConditionOperator
-import com.ai.assistance.operit.data.model.ExecuteNode
-import com.ai.assistance.operit.data.model.ExtractMode
-import com.ai.assistance.operit.data.model.ExtractNode
-import com.ai.assistance.operit.data.model.LogicNode
-import com.ai.assistance.operit.data.model.LogicOperator
-import com.ai.assistance.operit.data.model.NodePosition
-import com.ai.assistance.operit.data.model.ParameterValue
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.WorkflowNodeConnection
-import com.ai.assistance.operit.data.model.Workflow
-import com.ai.assistance.operit.data.model.WorkflowExecutionRecord
+import com.ai.assistance.operit.core.workflow.model.ConditionNode
+import com.ai.assistance.operit.core.workflow.model.ConditionOperator
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.ExtractMode
+import com.ai.assistance.operit.core.workflow.model.ExtractNode
+import com.ai.assistance.operit.core.workflow.model.LogicNode
+import com.ai.assistance.operit.core.workflow.model.LogicOperator
+import com.ai.assistance.operit.core.workflow.model.NodePosition
+import com.ai.assistance.operit.core.workflow.model.ParameterValue
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection
+import com.ai.assistance.operit.core.workflow.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionRecord
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.repository.WorkflowRepository
 import kotlinx.coroutines.CancellationException
@@ -1458,7 +1458,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
     /**
      * 添加节点到工作流
      */
-    fun addNode(workflowId: String, node: com.ai.assistance.operit.data.model.WorkflowNode, onSuccess: () -> Unit = {}) {
+    fun addNode(workflowId: String, node: com.ai.assistance.operit.core.workflow.model.WorkflowNode, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             isLoading = true
             error = null
@@ -1523,7 +1523,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
     /**
      * 更新节点
      */
-    fun updateNode(workflowId: String, nodeId: String, updatedNode: com.ai.assistance.operit.data.model.WorkflowNode, onSuccess: () -> Unit = {}) {
+    fun updateNode(workflowId: String, nodeId: String, updatedNode: com.ai.assistance.operit.core.workflow.model.WorkflowNode, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             isLoading = true
             error = null
@@ -1554,7 +1554,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
     /**
      * 更新节点（重载方法，直接接受节点对象）
      */
-    fun updateNode(workflowId: String, updatedNode: com.ai.assistance.operit.data.model.WorkflowNode, onSuccess: () -> Unit = {}) {
+    fun updateNode(workflowId: String, updatedNode: com.ai.assistance.operit.core.workflow.model.WorkflowNode, onSuccess: () -> Unit = {}) {
         updateNode(workflowId, updatedNode.id, updatedNode, onSuccess)
     }
     
@@ -1586,7 +1586,7 @@ class WorkflowViewModel(application: Application) : AndroidViewModel(application
                         return@fold
                     }
                     
-                    val newConnection = com.ai.assistance.operit.data.model.WorkflowNodeConnection(
+                    val newConnection = com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection(
                         sourceNodeId = sourceId,
                         targetNodeId = targetId
                     )

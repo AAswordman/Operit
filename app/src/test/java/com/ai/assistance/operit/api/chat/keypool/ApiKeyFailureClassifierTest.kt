@@ -200,9 +200,9 @@ class ApiKeyPoolSelectorTest {
     fun skipsExcludedAndCoolingKeys() {
         val pool =
             listOf(
-                com.ai.assistance.operit.data.model.ApiKeyInfo(id = "a", key = "sk-a"),
-                com.ai.assistance.operit.data.model.ApiKeyInfo(id = "b", key = "sk-b"),
-                com.ai.assistance.operit.data.model.ApiKeyInfo(id = "c", key = "sk-c"),
+                com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo(id = "a", key = "sk-a"),
+                com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo(id = "b", key = "sk-b"),
+                com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo(id = "c", key = "sk-c"),
             )
         val pick =
             ApiKeyPoolSelector.select(
@@ -317,8 +317,8 @@ class ApiKeyPoolSelectorWeightedTest {
     fun failoverSortsByScoreInsteadOfRoundRobin() {
         val pool =
             listOf(
-                com.ai.assistance.operit.data.model.ApiKeyInfo(id = "a", key = "sk-a"),
-                com.ai.assistance.operit.data.model.ApiKeyInfo(id = "b", key = "sk-b"),
+                com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo(id = "a", key = "sk-a"),
+                com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo(id = "b", key = "sk-b"),
             )
         val pick =
             ApiKeyPoolSelector.select(

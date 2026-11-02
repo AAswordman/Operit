@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.chat.media
 
 import com.ai.assistance.operit.util.media.ImagePoolManager
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.util.media.MediaBase64Limiter
 import com.ai.assistance.operit.util.media.MediaPoolManager
 

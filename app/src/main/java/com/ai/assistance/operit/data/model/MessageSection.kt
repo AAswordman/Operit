@@ -1,10 +1,11 @@
 package com.ai.assistance.operit.data.model
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Transient
 import com.ai.assistance.operit.core.chat.protocol.ThinkingMarkup
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 
 /** 一条消息里按顺序排列的完整片段。 */
 @Serializable

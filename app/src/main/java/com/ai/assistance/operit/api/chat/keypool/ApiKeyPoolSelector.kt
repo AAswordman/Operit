@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.api.chat.keypool
 
-import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
-import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
 import kotlin.random.Random
 
 sealed class ApiKeyPick {

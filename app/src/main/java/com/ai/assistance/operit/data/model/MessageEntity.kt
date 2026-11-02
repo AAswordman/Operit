@@ -4,6 +4,8 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
 
 /** 消息实体类，用于Room数据库存储聊天消息 */
 @Entity(

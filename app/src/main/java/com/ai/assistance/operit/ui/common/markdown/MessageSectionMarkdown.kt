@@ -5,7 +5,7 @@ import androidx.compose.runtime.remember
 import com.ai.assistance.operit.core.chat.protocol.protocolMetaDisplayText
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.MessageSection
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment
 import com.ai.assistance.operit.util.markdown.MarkdownNode
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType

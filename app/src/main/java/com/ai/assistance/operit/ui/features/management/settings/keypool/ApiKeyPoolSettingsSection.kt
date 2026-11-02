@@ -75,10 +75,10 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.keypool.ApiKeyCooldownStore
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.keypool.ApiKeyPoolAvailabilityTester
-import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
-import com.ai.assistance.operit.data.model.ApiKeyInfo
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.features.management.settings.ModelConfigSaveCoordinator
 import com.ai.assistance.operit.ui.features.management.settings.RegisterModelConfigSaveAction

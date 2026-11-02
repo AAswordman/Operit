@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.workflow.runtime
 
-import com.ai.assistance.operit.data.model.ExecuteNode
-import com.ai.assistance.operit.data.model.WorkflowNodeExecutionReport
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeExecutionReport
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*

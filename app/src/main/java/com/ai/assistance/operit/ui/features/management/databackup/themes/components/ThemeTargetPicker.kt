@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.ui.common.themetarget.ThemeTargetAvatar
 import com.ai.assistance.operit.ui.common.themetarget.ThemeTargetOption

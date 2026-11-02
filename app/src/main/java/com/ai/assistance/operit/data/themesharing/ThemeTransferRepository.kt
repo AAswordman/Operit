@@ -5,8 +5,8 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager

@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.stats
 
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import com.ai.assistance.operit.data.model.FunctionType
 
 internal data class ReleasedProviderModelKey(

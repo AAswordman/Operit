@@ -10,8 +10,8 @@ import android.webkit.CookieManager
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.BinaryFileContentData
 import com.ai.assistance.operit.core.tools.DirectoryListingData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.ui.features.conversation.workspace.ensureWorkspaceDirExists
 import fi.iki.elonen.NanoHTTPD

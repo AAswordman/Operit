@@ -4,6 +4,20 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.ai.assistance.operit.core.chat.reference.AiReference
+import com.ai.assistance.operit.core.chat.runtime.ChatTurnOptions
+import com.ai.assistance.operit.core.tools.system.uiautomator.OperitNodeInfo
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionRecord
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.embedding.DimensionCount
+import com.ai.assistance.operit.data.embedding.EmbeddingDimensionUsage
+import com.ai.assistance.operit.data.embedding.EmbeddingRebuildProgress
+import com.ai.assistance.operit.data.emoji.CustomEmoji
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
+import com.ai.assistance.operit.data.memory.search.MemoryScoreMode
+import com.ai.assistance.operit.data.memory.search.MemorySearchConfig
+import com.ai.assistance.operit.data.memory.search.MemorySearchDebugInfo
+import com.ai.assistance.operit.data.stats.BillingMode
 
 class MiscModelTest {
 

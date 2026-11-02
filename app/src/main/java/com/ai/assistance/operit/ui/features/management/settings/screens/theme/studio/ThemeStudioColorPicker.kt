@@ -36,12 +36,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.components.slider.WorkbenchSlider
-import com.ai.assistance.operit.data.model.theme.*
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptImage
 import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt
+import com.ai.assistance.operit.data.theme.script.forMode
 
 internal fun studioHex(value: Int): String = String.format(Locale.ROOT, "#%08X", value)
 

@@ -1989,8 +1989,8 @@ data class WorkflowDetailResultData(
     val id: String,
     val name: String,
     val description: String,
-    val nodes: List<com.ai.assistance.operit.data.model.WorkflowNode>,
-    val connections: List<com.ai.assistance.operit.data.model.WorkflowNodeConnection>,
+    val nodes: List<com.ai.assistance.operit.core.workflow.model.WorkflowNode>,
+    val connections: List<com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection>,
     val enabled: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
@@ -2012,35 +2012,35 @@ data class WorkflowDetailResultData(
         sb.appendLine("Nodes (${nodes.size}):")
         nodes.forEach { node ->
             when (node) {
-                is com.ai.assistance.operit.data.model.TriggerNode -> {
+                is com.ai.assistance.operit.core.workflow.model.TriggerNode -> {
                     sb.appendLine("  - [Trigger] ${node.name} (${node.id})")
                     sb.appendLine("    Type: ${node.triggerType}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.ExecuteNode -> {
+                is com.ai.assistance.operit.core.workflow.model.ExecuteNode -> {
                     sb.appendLine("  - [Execute] ${node.name} (${node.id})")
                     sb.appendLine("    Action: ${node.actionType}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.ConditionNode -> {
+                is com.ai.assistance.operit.core.workflow.model.ConditionNode -> {
                     sb.appendLine("  - [Condition] ${node.name} (${node.id})")
                     sb.appendLine("    Operator: ${node.operator}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.LogicNode -> {
+                is com.ai.assistance.operit.core.workflow.model.LogicNode -> {
                     sb.appendLine("  - [Logic] ${node.name} (${node.id})")
                     sb.appendLine("    Operator: ${node.operator}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.ExtractNode -> {
+                is com.ai.assistance.operit.core.workflow.model.ExtractNode -> {
                     sb.appendLine("  - [Extract] ${node.name} (${node.id})")
                     sb.appendLine("    Mode: ${node.mode}")
                     if (node.expression.isNotBlank()) {

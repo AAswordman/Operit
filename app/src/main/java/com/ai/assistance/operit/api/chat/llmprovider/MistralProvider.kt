@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import okhttp3.OkHttpClient
 import org.json.JSONArray

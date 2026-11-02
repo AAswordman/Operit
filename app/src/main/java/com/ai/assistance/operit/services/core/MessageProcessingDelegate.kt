@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.services.core
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolTimingState
+import com.ai.assistance.operit.core.chat.tools.timing.ToolTimingState
 import com.ai.assistance.operit.core.chat.voice.VoiceAnalysis
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageMarkup
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageData
@@ -17,10 +17,9 @@ import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.agent.PhoneAgentJobRegistry
-import com.ai.assistance.operit.data.model.*
 import com.ai.assistance.operit.data.repository.ChatDraftRepository
 import com.ai.assistance.operit.data.model.InputProcessingState as EnhancedInputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.util.stream.SharedStream
 import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
 import com.ai.assistance.operit.util.stream.TextStreamEventType
@@ -56,6 +55,14 @@ import com.ai.assistance.operit.core.tools.runtime.ToolProgressBus
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.coroutineContext
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
+import com.ai.assistance.operit.core.chat.runtime.ChatTurnOptions
+import com.ai.assistance.operit.data.model.InputProcessingState
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 
 /** 委托类，负责处理消息处理相关功能 */
 class MessageProcessingDelegate(

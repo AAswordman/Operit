@@ -5,7 +5,7 @@ import com.ai.assistance.operit.core.tools.PackageActivationErrorData
 import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.core.tools.FileApplyResultData
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

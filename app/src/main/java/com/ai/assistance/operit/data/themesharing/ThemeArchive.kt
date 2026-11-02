@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.themesharing
 
-import com.ai.assistance.operit.data.model.theme.ThemeAssetPaths
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeAssetPaths
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
 import java.io.File
 import java.io.InputStream

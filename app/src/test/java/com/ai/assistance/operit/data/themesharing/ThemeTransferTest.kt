@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.themesharing
 
-import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings

@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.storage
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.getModelByIndex
+import com.ai.assistance.operit.data.config.model.getModelByIndex
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager

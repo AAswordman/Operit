@@ -63,7 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.SummarySectionConfig
+import com.ai.assistance.operit.data.config.model.SummarySectionConfig
 
 @Composable
 internal fun RenderContextSummaryConfigSections(

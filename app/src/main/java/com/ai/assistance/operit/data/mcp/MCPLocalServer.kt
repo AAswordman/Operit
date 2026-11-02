@@ -9,8 +9,8 @@ import com.ai.assistance.operit.core.tools.mcp.MCPManager
 import com.ai.assistance.operit.core.tools.DirectoryListingData
 import com.ai.assistance.operit.core.tools.FileExistsData
 import com.ai.assistance.operit.data.mcp.plugins.MCPStarter
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.util.files.OperitPaths
 import com.google.gson.Gson
 import com.google.gson.JsonObject

@@ -3,9 +3,9 @@ package com.ai.assistance.operit.data.stats
 import android.content.Context
 import com.ai.assistance.operit.data.collects.DefaultModelPricingCollect
 import com.ai.assistance.operit.data.collects.PricingCurrency
-import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.stats.BillingMode
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
-import com.ai.assistance.operit.data.model.normalizeProviderTypeId
+import com.ai.assistance.operit.data.stats.normalizeProviderTypeId
 
 enum class TokenStatsPriceScope { PROVIDER_MODEL, CONFIG }
 

@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.workflow.runtime
 
-import com.ai.assistance.operit.data.model.WorkflowExecutionIssue
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionIssue
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

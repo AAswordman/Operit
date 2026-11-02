@@ -14,9 +14,9 @@ import com.ai.assistance.operit.core.tools.GrepResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.runtime.ToolProgressBus
 import com.ai.assistance.operit.core.tools.runtime.ToolExecutionLimits
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.files.FileUtils
 import com.ai.assistance.operit.core.tools.builtin.filesystem.PathValidator
 import kotlinx.coroutines.*

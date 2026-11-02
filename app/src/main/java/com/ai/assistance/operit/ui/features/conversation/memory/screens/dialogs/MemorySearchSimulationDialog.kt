@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.MemorySearchDebugInfo
+import com.ai.assistance.operit.data.memory.search.MemorySearchDebugInfo
 
 @Composable
 fun MemorySearchSimulationDialog(

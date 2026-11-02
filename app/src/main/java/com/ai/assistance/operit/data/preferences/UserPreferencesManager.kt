@@ -17,10 +17,10 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.LegacyUserProfile
-import com.ai.assistance.operit.data.model.MemorySpace
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.memory.profile.LegacyUserProfile
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged

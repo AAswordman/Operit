@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering.tooltiming
 
 import com.ai.assistance.operit.core.chat.tools.timing.ToolExecutionTiming
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import com.ai.assistance.operit.util.markdown.MarkdownNodeStable
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import org.junit.Assert.*

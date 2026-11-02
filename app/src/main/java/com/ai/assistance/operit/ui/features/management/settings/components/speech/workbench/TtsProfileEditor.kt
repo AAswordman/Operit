@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.model.ModelListFetcher
 import com.ai.assistance.operit.api.speech.tts.TtsServiceFactory.VoiceServiceType
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import com.ai.assistance.operit.data.preferences.SpeechServiceProfilesPreferences.TtsProfile
 import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences.TtsHttpConfig
 import com.ai.assistance.operit.ui.components.slider.WorkbenchSlider

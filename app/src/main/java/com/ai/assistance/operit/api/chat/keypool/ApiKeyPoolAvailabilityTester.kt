@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.api.chat.keypool
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
-import com.ai.assistance.operit.data.model.ApiKeyInfo
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.getModelByIndex
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.getModelByIndex
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

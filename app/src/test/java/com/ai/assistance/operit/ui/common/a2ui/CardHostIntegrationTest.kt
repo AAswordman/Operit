@@ -2,7 +2,7 @@ package com.ai.assistance.operit.ui.common.a2ui
 
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.MessageSection
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import org.junit.Assert.*
 import org.junit.Test
 

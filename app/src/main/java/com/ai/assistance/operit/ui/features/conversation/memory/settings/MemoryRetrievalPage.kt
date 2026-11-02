@@ -14,10 +14,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.DimensionCount
-import com.ai.assistance.operit.data.model.EmbeddingDimensionUsage
-import com.ai.assistance.operit.data.model.EmbeddingRebuildProgress
-import com.ai.assistance.operit.data.model.MemorySearchConfig
+import com.ai.assistance.operit.data.embedding.DimensionCount
+import com.ai.assistance.operit.data.embedding.EmbeddingDimensionUsage
+import com.ai.assistance.operit.data.embedding.EmbeddingRebuildProgress
+import com.ai.assistance.operit.data.memory.search.MemorySearchConfig
 import kotlin.math.roundToInt
 
 @Composable

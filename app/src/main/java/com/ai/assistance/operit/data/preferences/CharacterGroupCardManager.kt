@@ -15,9 +15,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.CharacterGroupCard
-import com.ai.assistance.operit.data.model.GroupMemberConfig
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.character.CharacterGroupCard
+import com.ai.assistance.operit.data.character.GroupMemberConfig
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.google.gson.Gson

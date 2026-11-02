@@ -9,6 +9,7 @@ import io.objectbox.relation.ToMany
 import io.objectbox.relation.ToOne
 import java.util.Date
 import java.util.UUID
+import com.ai.assistance.operit.data.db.converter.EmbeddingConverter
 
 /**
  * 核心记忆单元 (Memory Unit)

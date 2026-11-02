@@ -10,7 +10,7 @@ import com.ai.assistance.operit.core.tools.FileInfoData
 import com.ai.assistance.operit.core.tools.FindFilesResultData
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.runtime.AIToolHook
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -19,8 +19,8 @@ import kotlinx.serialization.json.Json
 import java.security.MessageDigest
 import com.ai.assistance.operit.ui.features.conversation.workspace.process.GitIgnoreFilter
 import com.ai.assistance.operit.util.files.FileUtils
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.github.difflib.DiffUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking

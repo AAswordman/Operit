@@ -3,8 +3,8 @@ package com.ai.assistance.operit.api.chat.protocol
 import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.data.model.ToolParameterSchema
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.core.chat.context.ChatUtils

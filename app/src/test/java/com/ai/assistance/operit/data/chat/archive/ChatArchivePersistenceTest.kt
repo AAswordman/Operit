@@ -4,8 +4,8 @@ import com.ai.assistance.operit.data.converter.ChatHistoryCsv
 import com.ai.assistance.operit.core.chat.context.TokenUsageBreakdown
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.ChatHistory
-import com.ai.assistance.operit.data.model.OperitArchivedChat
-import com.ai.assistance.operit.data.model.OperitChatArchive
+import com.ai.assistance.operit.data.chat.archive.OperitArchivedChat
+import com.ai.assistance.operit.data.chat.archive.OperitChatArchive
 import com.ai.assistance.operit.data.stats.JvmSupportSQLiteDatabase
 import java.io.StringReader
 import java.io.StringWriter

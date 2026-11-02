@@ -12,7 +12,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import android.net.Uri
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.theme.*
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
@@ -25,6 +24,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceMode
+import com.ai.assistance.operit.data.theme.script.ThemeScriptDefaults
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.forMode
 
 /** 两个入口编辑同一份 typography.color，不另外建立一套颜色偏好。 */
 @Composable

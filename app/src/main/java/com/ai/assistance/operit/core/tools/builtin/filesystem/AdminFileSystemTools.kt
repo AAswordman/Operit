@@ -23,9 +23,9 @@ import com.ai.assistance.operit.core.tools.builtin.filesystem.StandardFileSystem
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.permissions.PermissionOperationRouter
 import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.files.AndroidUserPathUtils
 import com.ai.assistance.operit.util.files.FileUtils
 import com.ai.assistance.operit.util.logging.AppLogger

@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.chat.tools.timing
 
 import android.os.SystemClock
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import java.util.UUID
 
 /** 只记录实际执行区间，通过类型化事件交给消息持有者，不写入文本流。 */

@@ -58,9 +58,9 @@ import com.ai.assistance.operit.ui.features.conversation.workspace.hub.Workspace
 import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceEntryRequest
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileContentData
-import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.core.tools.protocol.AITool
 import com.ai.assistance.operit.data.model.ChatHistory
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.ui.common.rememberLocal
 import com.ai.assistance.operit.ui.features.conversation.chat.foundation.layout.rememberCompactDialogMetrics
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.preview.AudioAttachmentPlayer

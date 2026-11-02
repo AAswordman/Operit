@@ -3,8 +3,8 @@ package com.ai.assistance.operit.data.resources.theme
 import android.content.res.AssetManager
 import android.graphics.BitmapFactory
 import android.net.Uri
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
-import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream

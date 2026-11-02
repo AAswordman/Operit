@@ -54,15 +54,15 @@ import com.ai.assistance.operit.api.chat.model.ModelConnectionTestType
 import com.ai.assistance.operit.ui.features.management.settings.components.ExpandableStatusText
 import com.ai.assistance.operit.api.chat.model.ThinkingQualityMappingRegistry
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelConfigGroup
-import com.ai.assistance.operit.data.model.ModelConfigSummary
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigGroup
+import com.ai.assistance.operit.data.config.model.ModelConfigSummary
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.ui.features.management.settings.DebouncedModelConfigAutoSaveEffect
 import com.ai.assistance.operit.ui.features.management.settings.ModelConfigSaveCoordinator
 import com.ai.assistance.operit.ui.features.management.settings.contextsummary.ModelContextSummaryContent
@@ -201,7 +201,7 @@ fun ModelConfigScreen(
     var savingSelection by remember { mutableStateOf(false) }
     val saveCoordinator = rememberModelConfigSaveCoordinator()
     // 分组、候选和编辑记忆使用同一次持久化快照，避免异步列表将选择重置为首项。
-    var workspaceSelection by remember { mutableStateOf<com.ai.assistance.operit.data.model.ModelConfigSelection?>(null) }
+    var workspaceSelection by remember { mutableStateOf<com.ai.assistance.operit.data.config.model.ModelConfigSelection?>(null) }
     val configSummaries = workspaceSelection?.allConfigs.orEmpty()
     val configList = configSummaries.map { it.id }
     val configGroups = workspaceSelection?.groups.orEmpty()

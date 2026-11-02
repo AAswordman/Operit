@@ -68,8 +68,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.collects.PricingCurrency
-import com.ai.assistance.operit.data.model.normalizeProviderModel
-import com.ai.assistance.operit.data.model.normalizeProviderTypeId
+import com.ai.assistance.operit.data.stats.normalizeProviderModel
+import com.ai.assistance.operit.data.stats.normalizeProviderTypeId
 import com.ai.assistance.operit.data.stats.TokenActivityViewMode
 import com.ai.assistance.operit.data.stats.TokenPriceResolver
 import com.ai.assistance.operit.data.stats.TokenCostCalculator

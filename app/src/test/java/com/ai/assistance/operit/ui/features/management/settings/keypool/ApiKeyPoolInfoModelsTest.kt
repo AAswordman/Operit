@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.ui.features.management.settings.keypool
 
 import com.ai.assistance.operit.data.model.ApiKeyAttemptRecordEntity
-import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
-import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
