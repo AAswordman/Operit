@@ -29,3 +29,7 @@ capabilities 反映 Android 真实能力；requestPermission 行为对齐 Operit
   `permissionGranted` 语义对齐
 
 
+
+注：capabilities 与 requestPermission 实现位于 ToolPkgFloatingWindowRuntime（随 03 的装配门面落地）。
+
+[DONE]

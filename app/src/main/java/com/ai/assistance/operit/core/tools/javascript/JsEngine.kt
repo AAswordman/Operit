@@ -42,6 +42,7 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
+import com.ai.assistance.operit.services.floating.ToolPkgFloatingWindowRuntime
 
 /**
  * JavaScript 引擎 - 通过 QuickJS 执行 JavaScript 脚本并提供与 Android 原生代码的交互机制
@@ -1779,6 +1780,46 @@ class JsEngine(private val context: Context) {
         }
 
         @JavascriptInterface
+        fun invokeToolPkgFloatingWindowCommand(
+            callbackId: String,
+            owner: String,
+            operation: String,
+            argsJson: String
+        ) {
+            val normalizedCallback = callbackId.trim()
+            if (normalizedCallback.isEmpty()) {
+                return
+            }
+            Thread {
+                try {
+                    val resultText = ToolPkgFloatingWindowRuntime.command(
+                        engineContext = context,
+                        owner = owner,
+                        operation = operation,
+                        argsJson = argsJson
+                    )
+                    val value = JSONTokener(resultText).nextValue()
+                    val envelope = JSONObject()
+                        .put("success", true)
+                        .put("value", value ?: JSONObject.NULL)
+                    sendToolPkgFloatingWindowResult(normalizedCallback, envelope.toString(), false)
+                } catch (error: Throwable) {
+                    AppLogger.e(
+                        TAG,
+                        "ToolPkg.ui.floatingWindows invoke failed: ${error.message}",
+                        error
+                    )
+                    sendToolPkgFloatingWindowResult(
+                        normalizedCallback,
+                        error.message?.trim().orEmpty()
+                            .ifBlank { "ToolPkg.ui.floatingWindows call failed" },
+                        true
+                    )
+                }
+            }.start()
+        }
+
+        @JavascriptInterface
         fun measureComposeText(payloadJson: String): String {
             return JsNativeInterfaceDelegates.measureComposeText(
                 context = context,
@@ -2517,6 +2558,30 @@ class JsEngine(private val context: Context) {
                 )
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Error sending ToolPkg.ipc result to JavaScript: ${e.message}", e)
+            }
+        }
+
+        /** ToolPkg.ui.floatingWindows 复用 ipc 的 JSON 信封与字符串回调脚本模式。 */
+        private fun sendToolPkgFloatingWindowResult(callbackId: String, result: String, isError: Boolean) {
+            if (!canScheduleQuickJsWork()) {
+                return
+            }
+            try {
+                ensureQuickJs()
+                val jsCode =
+                    JsNativeInterfaceDelegates.buildStringResultCallbackScript(
+                        callbackId = callbackId,
+                        result = result,
+                        isError = isError
+                    )
+                launchQuickJsEvaluation(
+                    script = jsCode,
+                    onError = { e ->
+                        AppLogger.e(TAG, "Error sending floating window result to JavaScript: ${e.message}", e)
+                    }
+                )
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Error sending floating window result to JavaScript: ${e.message}", e)
             }
         }
 

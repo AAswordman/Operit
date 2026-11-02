@@ -588,6 +588,106 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
             }
 
             var toolPkgApi = requireToolPkgApiRuntime();
+
+            function invokeFloatingWindowCommand(operation, args) {
+                return new Promise(function(resolve, reject) {
+                    var target = resolveCurrentToolPkgTarget();
+                    if (!target) {
+                        reject(new Error('package/toolpkg runtime target is empty'));
+                        return;
+                    }
+                    var callbackId =
+                        '__operit_toolpkg_float_' +
+                        Date.now() +
+                        '_' +
+                        Math.random().toString(36).slice(2, 10);
+                    root[callbackId] = function(resultJson, isError) {
+                        try {
+                            delete root[callbackId];
+                        } catch (_deleteFloatCallbackError) {
+                            root[callbackId] = undefined;
+                        }
+                        var rawText = resultJson === null || resultJson === undefined
+                            ? ''
+                            : String(resultJson);
+                        if (isError) {
+                            reject(new Error(
+                                rawText.trim() || 'ToolPkg.ui.floatingWindows call failed'
+                            ));
+                            return;
+                        }
+                        var parsed;
+                        try {
+                            parsed = JSON.parse(rawText || 'null');
+                        } catch (error) {
+                            reject(new Error(
+                                'ToolPkg.ui.floatingWindows returned invalid JSON: ' +
+                                (error && error.message ? error.message : error)
+                            ));
+                            return;
+                        }
+                        if (parsed && parsed.success === true) {
+                            resolve(parsed.value);
+                            return;
+                        }
+                        reject(new Error(
+                            parsed && typeof parsed.message === 'string' && parsed.message.trim().length > 0
+                                ? parsed.message.trim()
+                                : 'ToolPkg.ui.floatingWindows call failed'
+                        ));
+                    };
+                    try {
+                        requireNative('invokeToolPkgFloatingWindowCommand')(
+                            callbackId,
+                            target,
+                            operation,
+                            JSON.stringify(args || {})
+                        );
+                    } catch (error) {
+                        try {
+                            delete root[callbackId];
+                        } catch (_deleteFloatInvokeError) {
+                            root[callbackId] = undefined;
+                        }
+                        reject(new Error(
+                            error && error.message ? error.message : String(error)
+                        ));
+                    }
+                });
+            }
+
+            // 嵌套命名空间必须先经 namespace() 构建版本化方法，再挂到外层 ToolPkg.ui。
+            var floatingWindowsApi = toolPkgApi.namespace('ToolPkg.ui.floatingWindows', {
+                capabilities: toolPkgApi.method().since('1.1.0', function() {
+                    return invokeFloatingWindowCommand('capabilities', {});
+                }),
+                requestPermission: toolPkgApi.method().since('1.1.0', function() {
+                    return invokeFloatingWindowCommand('requestPermission', {});
+                }),
+                open: toolPkgApi.method().since('1.1.0', function(options) {
+                    return invokeFloatingWindowCommand('open', options || {});
+                }),
+                update: toolPkgApi.method().since('1.1.0', function(id, options, state) {
+                    var args = { id: id, options: options || {} };
+                    if (state !== undefined && state !== null) {
+                        args.state = state;
+                    }
+                    return invokeFloatingWindowCommand('update', args);
+                }),
+                show: toolPkgApi.method().since('1.1.0', function(id) {
+                    return invokeFloatingWindowCommand('show', { id: id });
+                }),
+                hide: toolPkgApi.method().since('1.1.0', function(id) {
+                    return invokeFloatingWindowCommand('hide', { id: id });
+                }),
+                close: toolPkgApi.method().since('1.1.0', function(id) {
+                    return invokeFloatingWindowCommand('close', { id: id });
+                }),
+                list: toolPkgApi.method().since('1.1.0', function() {
+                    return invokeFloatingWindowCommand('list', {});
+                })
+            });
+
             var api = toolPkgApi.namespace('ToolPkg', {
                 _m: captureMarketOrigin,
                 registerToolboxUiModule: function(definition) {
@@ -622,6 +722,7 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
                 },
                 readResource: readToolPkgResource,
                 getConfigDir: getToolPkgConfigDir,
+                ui: { floatingWindows: floatingWindowsApi },
                 registerChatMessageMenuItem: toolPkgApi.method().since(
                     '1.0.1',
                     buildCustomRegistration(
