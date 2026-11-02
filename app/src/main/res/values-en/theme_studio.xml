@@ -229,5 +229,5 @@
     <string name="studio_popup_up">Move up</string>
     <string name="studio_popup_down">Move down</string>
     <string name="studio_popup_left">Move left</string>
-    <string name="studio_popup_position_hint">Moves the entire menu; adjust content padding separately. Up and down offsets subtract from each other. Movement stops at the window edge.</string>
+    <string name="studio_popup_position_hint">Moves the entire menu; adjust content padding separately. Up and down are mutually exclusive. Reset the active direction to zero to unlock the other. Movement stops at the window edge.</string>
 </resources>

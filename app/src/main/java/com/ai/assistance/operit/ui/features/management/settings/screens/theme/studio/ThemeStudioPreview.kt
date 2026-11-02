@@ -21,8 +21,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.LocalThemePreviewUserName
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemePreviewBackground
 import com.ai.assistance.operit.ui.theme.*
@@ -34,23 +36,20 @@ import io.github.fletchmckee.liquid.rememberLiquidState
 
 /** 与正式页面共用脚本宿主、角色参数、字体和绘制函数，点击样例只选择制作对象。 */
 @Composable
-internal fun StudioPreview(state: ThemeStudioState, modifier: Modifier = Modifier) {
+internal fun StudioPreview(state: ThemeStudioState, viewport: IntSize, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val values by state.session.values.collectAsState()
     val userName by state.session.globalUserNameFlow.collectAsState()
     val current = LocalThemePreferenceSnapshot.current
-    val snapshot = remember(current, values, state.mode, state.previewInputStyle) { current.copy(values = values.withBoolean("use_system_theme", false).withString("theme_mode", state.mode).withString("input_style", state.previewInputStyle)) }
+    val inputStyle = if (state.target.id in ThemeScriptContract.popupSurfaceIds) "agent" else state.previewInputStyle
+    val snapshot = remember(current, values, state.mode, inputStyle) { current.copy(values = values.withBoolean("use_system_theme", false).withString("theme_mode", state.mode).withString("input_style", inputStyle)) }
     val colors = remember(context, snapshot) { resolveThemeColorScheme(context, snapshot) }
     val typography = remember(context, values) {
         createCustomTypography(context, values.requiredBoolean("use_custom_font"), values.requiredString("font_type"), values.requiredString("system_font_name"), values.string("custom_font_path"), values.requiredFloat("font_scale"))
     }
     val backdrop = rememberLayerBackdrop()
     val water = if (isWaterGlassSupported()) rememberLiquidState() else null
-    Box(
-        modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
-            .clip(RoundedCornerShape(18.dp)),
-    ) {
+    StudioPreviewCanvas(viewport, modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
         CompositionLocalProvider(LocalThemePreferenceSnapshot provides snapshot, LocalLiquidGlassBackdrop provides backdrop, LocalWaterGlassState provides water) {
             MaterialTheme(colorScheme = colors, typography = typography) {
                 ThemeScriptHost(snapshot, draft = state.bundle) {
@@ -95,21 +94,24 @@ internal fun StudioPick(state: ThemeStudioState, id: String, modifier: Modifier 
 }
 
 @Composable
-private fun StudioChatPreview(state: ThemeStudioState) {
-    Column(Modifier.fillMaxSize()) {
-        StudioPreviewAppBar(state)
-        Box(Modifier.fillMaxWidth().weight(1f)) {
-            Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().verticalScroll(rememberScrollState()).padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                StudioPick(state, if (state.target.id == "userAvatar") "userAvatar" else "userMessage", Modifier.fillMaxWidth()) {
-                    StudioNativeMessage(state, true, stringResource(R.string.studio_preview_user_message))
-                }
-                StudioPick(state, when (state.target.id) { "assistantAvatar" -> "assistantAvatar"; "status" -> "status"; else -> "assistantMessage" }, Modifier.fillMaxWidth()) {
-                    StudioNativeMessage(state, false, stringResource(R.string.studio_preview_assistant_message))
+internal fun StudioChatPreview(state: ThemeStudioState) {
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            StudioPreviewAppBar(state)
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().verticalScroll(rememberScrollState()).padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    StudioPick(state, if (state.target.id == "userAvatar") "userAvatar" else "userMessage", Modifier.fillMaxWidth()) {
+                        StudioNativeMessage(state, true, stringResource(R.string.studio_preview_user_message))
+                    }
+                    StudioPick(state, when (state.target.id) { "assistantAvatar" -> "assistantAvatar"; "status" -> "status"; else -> "assistantMessage" }, Modifier.fillMaxWidth()) {
+                        StudioNativeMessage(state, false, stringResource(R.string.studio_preview_assistant_message))
+                    }
                 }
             }
+            val inputTarget = state.target.id.takeIf { it == "input" || it == "iconButton" || it.startsWith("composer.") } ?: "composer"
+            StudioPick(state, inputTarget, Modifier.fillMaxWidth()) { StudioNativeInput(state) }
         }
-        val inputTarget = state.target.id.takeIf { it == "input" || it == "iconButton" || it.startsWith("composer.") } ?: "composer"
-        StudioPick(state, inputTarget, Modifier.fillMaxWidth()) { StudioNativeInput(state) }
+        if (state.target.id in ThemeScriptContract.popupSurfaceIds) StudioChatPopupPreview(state)
     }
 }
 
@@ -137,7 +139,7 @@ internal fun StudioPreviewAppBar(state: ThemeStudioState) {
             )
         } else {
             com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.MainChatControlsContent(
-                title = stringResource(R.string.new_chat), runningTaskCount = 0,
+                title = state.targetName, runningTaskCount = 0,
                 isFloatingMode = false, isWorkspacePreparing = false,
                 workspacePage = com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubPage.CHAT,
                 hasWorkspace = false, onOpenSidebar = {}, onLaunchFloatingWindow = {}, onOpenWorkspace = {},

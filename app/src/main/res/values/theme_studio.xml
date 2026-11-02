@@ -229,5 +229,5 @@
     <string name="studio_popup_up">向上偏移</string>
     <string name="studio_popup_down">向下偏移</string>
     <string name="studio_popup_left">向左偏移</string>
-    <string name="studio_popup_position_hint">移动整个菜单，内容留白单独调整。向上与向下取差值，菜单到达窗口边缘后停止移动。</string>
+    <string name="studio_popup_position_hint">移动整个菜单，内容留白单独调整。上下偏移互斥，当前方向归零后解锁另一方向；菜单到达窗口边缘后停止移动。</string>
 </resources>

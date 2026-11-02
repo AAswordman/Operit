@@ -110,18 +110,18 @@ internal fun <T> StudioChoices(value: T, options: List<Pair<T, String>>, onChang
 }
 
 @Composable
-internal fun StudioSlider(state: ThemeStudioState, label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String = "", onChange: (Float) -> Unit) {
+internal fun StudioSlider(state: ThemeStudioState, label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String = "", enabled: Boolean = true, onChange: (Float) -> Unit) {
     fun formatted(number: Float) = String.format(Locale.ROOT, if (range.endInclusive <= 2f) "%.2f" else "%.0f", number)
     var input by remember(label) { mutableStateOf(formatted(value)) }
     var focused by remember { mutableStateOf(false) }
-    LaunchedEffect(value, focused) { if (!focused) input = formatted(value) }
+    LaunchedEffect(value, focused, enabled) { if (!focused || !enabled) input = formatted(value) }
     val parsed = input.toFloatOrNull()
     val invalid = parsed == null || !parsed.isFinite() || parsed !in range
     DisposableEffect(state) { onDispose { state.endGesture() } }
     Column {
         Text(label + if (unit.isEmpty()) "" else " · $unit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            WorkbenchSlider(value = value.coerceIn(range.start, range.endInclusive), onValueChange = { state.beginGesture(); onChange(it) }, valueRange = range, onValueChangeFinished = state::endGesture, modifier = Modifier.weight(1f))
+            WorkbenchSlider(value = value.coerceIn(range.start, range.endInclusive), enabled = enabled, onValueChange = { if (enabled) { state.beginGesture(); onChange(it) } }, valueRange = range, onValueChangeFinished = state::endGesture, modifier = Modifier.weight(1f))
             OutlinedTextField(
                 value = input,
                 onValueChange = { text ->
@@ -129,6 +129,7 @@ internal fun StudioSlider(state: ThemeStudioState, label: String, value: Float, 
                     text.toFloatOrNull()?.takeIf { it.isFinite() && it in range }?.let { state.beginGesture(); onChange(it) }
                 },
                 singleLine = true,
+                enabled = enabled,
                 isError = focused && invalid,
                 textStyle = MaterialTheme.typography.labelSmall,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

@@ -226,10 +226,13 @@ private fun StudioSurfaceProperties(state: ThemeStudioState, onColor: (String, S
     }
     if (target.supports(StudioSurfaceControl.PopupOffset)) {
         StudioSection(stringResource(R.string.studio_popup_position)) {
+            val editedOffset = s.popupOffset.exclusiveVertical()
             listOf("up" to R.string.studio_popup_up, "down" to R.string.studio_popup_down, "left" to R.string.studio_popup_left).forEach { (direction, label) ->
-                val current = when (direction) { "up" -> s.popupOffset.up; "down" -> s.popupOffset.down; else -> s.popupOffset.left }
-                StudioSlider(state, stringResource(label), current, 0f..ThemeScriptContract.MAX_POPUP_OFFSET_DP, "dp") { value -> state.updateSurface {
-                    val offset = when (direction) { "up" -> it.popupOffset.copy(up = value); "down" -> it.popupOffset.copy(down = value); else -> it.popupOffset.copy(left = value) }
+                val current = when (direction) { "up" -> editedOffset.up; "down" -> editedOffset.down; else -> editedOffset.left }
+                val enabled = when (direction) { "up" -> editedOffset.down == 0f; "down" -> editedOffset.up == 0f; else -> true }
+                StudioSlider(state, stringResource(label), current, 0f..ThemeScriptContract.MAX_POPUP_OFFSET_DP, "dp", enabled = enabled) { value -> state.updateSurface {
+                    val before = it.popupOffset.exclusiveVertical()
+                    val offset = when (direction) { "up" -> before.copy(up = value, down = 0f); "down" -> before.copy(down = value, up = 0f); else -> before.copy(left = value) }
                     it.copy(popupOffset = offset)
                 } }
             }

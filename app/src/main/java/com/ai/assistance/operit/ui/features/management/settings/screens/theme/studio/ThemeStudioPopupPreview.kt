@@ -1,84 +1,133 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupPanel
+import com.ai.assistance.operit.data.model.FunctionType
+import com.ai.assistance.operit.data.model.MemorySpace
+import com.ai.assistance.operit.data.model.ModelConfigSelection
+import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
+import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
+import com.ai.assistance.operit.data.preferences.ModelConfigManager
+import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.data.preferences.transparency.ThemeTransparencyPreferences
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.AttachmentSelectorPopupPanel
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.agent.AgentExtraSettingsPopup
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.agent.AgentModelSelectorPopup
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.agent.agentInputPopupContainerColor
+import com.ai.assistance.operit.ui.permissions.PermissionLevel
+import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import kotlinx.coroutines.flow.first
 
-/** 样例内容复用真实弹起菜单容器，位置、形状和描边随当前工程立即变化。 */
+/** 正式菜单作为聊天场景的覆盖层，沿用原图标、分组、尺寸与底色；宿主阻止业务点击。 */
 @Composable
 internal fun StudioChatPopupPreview(state: ThemeStudioState) {
-    val id = state.target.id
-    val items = when (id) {
-        "attachmentMenu" -> listOf(
-            R.string.attachment_photo,
-            R.string.attachment_camera,
-            R.string.attachment_memory,
-            R.string.attachment_file,
-            R.string.attachment_screen_content,
-            R.string.attachment_notifications,
-            R.string.attachment_location,
-            R.string.chat_continue_generation,
-            R.string.floating_voice_call,
-            R.string.attachment_package,
+    val snapshot = LocalThemePreferenceSnapshot.current
+    val color = agentInputPopupContainerColor(
+        hasBackgroundImage = snapshot.values.requiredBoolean("use_background_image"),
+        chatInputTransparent = snapshot.chatInputTransparent,
+        chatInputOpacity = snapshot.values.float(ThemeTransparencyPreferences.INPUT),
+    )
+    when (state.target.id) {
+        "attachmentMenu" -> AttachmentSelectorPopupPanel(
+            visible = true,
+            containerColor = color,
+            onContinueGeneration = {},
+            continueGenerationEnabled = false,
+            onAttachImage = {},
+            onAttachFile = {},
+            onAttachScreenContent = {},
+            onTakePhoto = {},
+            embedded = true,
+            onDismiss = {},
         )
-        "modelMenu" -> listOf(R.string.thinking_quality, R.string.model_config, R.string.studio_sample_action)
-        "chatSettingsMenu" -> listOf(R.string.memory, R.string.agent_menu_tools, R.string.agent_menu_plugins)
-        else -> error("Unknown chat popup preview: $id")
+        "modelMenu" -> StudioModelPopupPreview(color)
+        "chatSettingsMenu" -> StudioSettingsPopupPreview(color)
+        else -> error("Unknown chat popup preview: ${state.target.id}")
     }
-    val icon = when (id) {
-        "attachmentMenu" -> Icons.Default.AttachFile
-        "modelMenu" -> Icons.Default.SmartToy
-        else -> Icons.Default.Settings
+}
+
+@Composable
+private fun StudioModelPopupPreview(color: Color) {
+    val context = LocalContext.current
+    val modelManager = remember(context) { ModelConfigManager(context) }
+    val functionManager = remember(context) { FunctionalConfigManager(context) }
+    val selection by modelManager.configSelectionFlow.collectAsState(initial = ModelConfigSelection())
+    val mappings by functionManager.functionConfigMappingWithIndexFlow.collectAsState(initial = emptyMap())
+    val mapping = mappings[FunctionType.CHAT] ?: FunctionConfigMapping(FunctionalConfigManager.DEFAULT_CONFIG_ID, 0)
+    val currentConfig = selection.allConfigs.find { it.id == mapping.configId }
+    val ungrouped = stringResource(R.string.ungrouped)
+    val boundGroup = if (currentConfig != null && currentConfig.groupId != selection.selectedGroupId) {
+        selection.groups.firstOrNull { it.id == currentConfig.groupId }?.name ?: ungrouped
+    } else null
+    AgentModelSelectorPopup(
+        visible = true,
+        popupContainerColor = color,
+        configSummaries = selection.allConfigs,
+        currentConfigMapping = mapping,
+        selectedGroupName = selection.selectedGroup?.name ?: ungrouped,
+        availableConfigs = selection.availableConfigs,
+        boundConfigGroupName = boundGroup,
+        enableThinkingMode = false,
+        onToggleThinkingMode = {},
+        thinkingOptionId = "",
+        onThinkingOptionIdChange = {},
+        currentChatId = null,
+        featureStates = emptyMap(),
+        onToggleFeature = {},
+        inputMenuRuntime = "theme-preview",
+        onSelectModel = { _, _ -> },
+        onManageModels = {},
+        embedded = true,
+        onDismiss = {},
+    )
+}
+
+@Composable
+private fun StudioSettingsPopupPreview(color: Color) {
+    val context = LocalContext.current
+    val preferences = remember(context) { UserPreferencesManager.getInstance(context) }
+    val activeProfile by preferences.activeMemorySpaceIdFlow.collectAsState(initial = "default")
+    var profiles by remember { mutableStateOf<List<MemorySpace>>(emptyList()) }
+    LaunchedEffect(preferences) {
+        profiles = preferences.memorySpaceListFlow.first().map { preferences.getMemorySpaceFlow(it).first() }
     }
-    Box(Modifier.fillMaxSize()) {
-        Text(
-            state.target.label(),
-            modifier = Modifier.padding(12.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        ThemeScriptPopupPanel(
-            surfaceId = id,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.width(if (id == "attachmentMenu") 200.dp else 300.dp).heightIn(max = 420.dp),
-        ) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 4.dp)) {
-                items.forEach { label ->
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = 36.dp).padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start,
-                    ) {
-                        Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
-        }
-    }
+    AgentExtraSettingsPopup(
+        visible = true,
+        runtime = rememberStudioChatInputRuntime(),
+        onContextUsageClick = {},
+        popupContainerColor = color,
+        preferenceProfiles = profiles,
+        currentProfileId = activeProfile,
+        onSelectMemory = {},
+        onManageMemory = {},
+        enableMemoryAutoUpdate = false,
+        onToggleMemoryAutoUpdate = {},
+        currentChatId = null,
+        featureStates = emptyMap(),
+        onToggleFeature = {},
+        inputMenuRuntime = "theme-preview",
+        permissionLevel = PermissionLevel.ASK,
+        onSetPermissionLevel = {},
+        enableTools = true,
+        onToggleTools = {},
+        disableStreamOutput = false,
+        onToggleDisableStreamOutput = {},
+        disableUserPreferenceDescription = false,
+        onToggleDisableUserPreferenceDescription = {},
+        toolPromptVisibility = emptyMap(),
+        onSaveToolPromptVisibilityMap = {},
+        onNavigateToPackageManager = {},
+        onManualMemoryUpdate = {},
+        embedded = true,
+        onDismiss = {},
+    )
 }

@@ -16,6 +16,7 @@ import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.M
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble.BubbleStyleChatMessage
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor.CursorStyleChatMessage
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.usage.ChatContextUsageEntryContent
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 
 /** 两种消息风格直接使用正式消息，字体、头像、图片气泡和元信息随草稿变化。 */
@@ -89,10 +90,10 @@ internal fun StudioNativeMessage(state: ThemeStudioState, user: Boolean, content
 internal fun StudioNativeInput(state: ThemeStudioState) {
     val snapshot = LocalThemePreferenceSnapshot.current
     val values = snapshot.values
-    val runtime = remember { ChatInputRuntime(0L, 128f, "Operit", {}, { _ -> }, { _ -> }) }
+    val runtime = rememberStudioChatInputRuntime()
     val text = TextFieldValue(if (state.target.id in setOf("composer.stop", "composer.microphone")) "" else stringResource(R.string.studio_preview_input))
     val processing = state.target.id in setOf("composer.stop", "composer.queue")
-    if (state.previewInputStyle == "agent") {
+    if (values.requiredString("input_style") == "agent") {
         AgentChatInputContent(
             runtime = runtime, userMessage = text, onUserMessageChange = {},
             onSendMessage = {}, onRecordVoiceMessage = {}, onContinueGeneration = {}, continueGenerationEnabled = false,
@@ -133,4 +134,16 @@ internal fun StudioNativeInput(state: ThemeStudioState) {
             )
         }
     }
+}
+/** 固定样例会话只提供展示，不触发发送、语音和统计明细业务。 */
+@Composable
+internal fun rememberStudioChatInputRuntime(): ChatInputRuntime = remember {
+    ChatInputRuntime(
+        currentWindowSize = 0L,
+        maxWindowSizeInK = 128f,
+        modelName = "Operit",
+        onVoiceCall = {},
+        contextUsageEntry = { onClick -> ChatContextUsageEntryContent(0L, 128f, 0L, 0L, false, .8f, onClick) },
+        contextUsageDialog = {},
+    )
 }

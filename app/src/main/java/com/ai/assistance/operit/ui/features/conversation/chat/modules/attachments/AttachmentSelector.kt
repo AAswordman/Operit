@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.features.conversation.chat.modules.attachmen
 
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupPanel
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupHost
 
 import android.Manifest
 import android.content.Context
@@ -76,8 +77,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images.ChatImagePickerDialog
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
@@ -361,6 +360,7 @@ fun AttachmentSelectorPopupPanel(
         onAttachMemory: () -> Unit = {},
         onAttachPackage: (String) -> Unit = {},
         onTakePhoto: (Uri) -> Unit,
+        embedded: Boolean = false,
         onDismiss: () -> Unit
 ) {
     if (!visible) return
@@ -463,16 +463,7 @@ fun AttachmentSelectorPopupPanel(
                     )
             )
 
-    Popup(
-            alignment = Alignment.TopStart,
-            onDismissRequest = onDismiss,
-            properties =
-                    PopupProperties(
-                            focusable = true,
-                            dismissOnBackPress = true,
-                            dismissOnClickOutside = false
-                    )
-    ) {
+    ThemeScriptPopupHost(embedded = embedded, onDismiss = onDismiss) {
         Box(
                 modifier =
                         Modifier.fillMaxSize()

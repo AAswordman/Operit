@@ -40,6 +40,21 @@ fun ChatContextUsageEntry(
     val outputTokens by actualViewModel.outputTokenCount.collectAsState()
     val enableSummary by actualViewModel.enableSummary.collectAsState()
     val summaryThreshold by actualViewModel.summaryTokenThreshold.collectAsState()
+    ChatContextUsageEntryContent(windowTokens, maxWindowSizeInK, inputTokens, outputTokens, enableSummary, summaryThreshold, onClick, modifier)
+}
+
+/** 正式入口与主题预览共用展示，统计数值由各自的会话状态提供。 */
+@Composable
+internal fun ChatContextUsageEntryContent(
+    windowTokens: Long,
+    maxWindowSizeInK: Float,
+    inputTokens: Long,
+    outputTokens: Long,
+    enableSummary: Boolean,
+    summaryThreshold: Float,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val maxTokens = (maxWindowSizeInK * 1024f).toLong()
     val ratio = if (maxTokens > 0L) windowTokens.toFloat() / maxTokens.toFloat() else 0f
     val indicatorColor = when {

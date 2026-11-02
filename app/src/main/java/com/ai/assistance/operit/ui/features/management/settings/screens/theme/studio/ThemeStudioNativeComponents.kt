@@ -24,7 +24,7 @@ import com.ai.assistance.operit.ui.theme.script.*
 @Composable
 internal fun StudioComponentsPreview(state: ThemeStudioState) {
     if (state.target.id in ThemeScriptContract.popupSurfaceIds) {
-        StudioChatPopupPreview(state)
+        StudioChatPreview(state)
         return
     }
     var showPanel by remember(state.target.id) { mutableStateOf(false) }

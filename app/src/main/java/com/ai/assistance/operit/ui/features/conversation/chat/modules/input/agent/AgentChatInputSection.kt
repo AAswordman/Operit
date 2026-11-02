@@ -7,6 +7,7 @@ import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupPanel
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupHost
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
@@ -686,12 +687,7 @@ internal fun AgentChatInputContent(
         else -> 1f
     }
     val inputContainerColor = themeScriptFill("composer", inputBaseColor, inputDecorationOpacity)
-    val popupContainerColor =
-        when {
-            isDarkTheme && hasTransparentBackground -> darkModeInputColor
-            isDarkTheme -> inputContainerColor
-            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-        }
+    val popupContainerColor = agentInputPopupContainerColor(hasBackgroundImage, chatInputTransparent, chatInputOpacity)
     val queueContainerColor =
         when {
             hasTransparentBackground -> MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
@@ -1685,7 +1681,7 @@ internal fun AgentChatInputContent(
 }
 
 @Composable
-private fun AgentModelSelectorPopup(
+internal fun AgentModelSelectorPopup(
     visible: Boolean,
     popupContainerColor: Color,
     configSummaries: List<ModelConfigSummary>,
@@ -1703,6 +1699,7 @@ private fun AgentModelSelectorPopup(
     inputMenuRuntime: String,
     onSelectModel: (String, Int) -> Unit,
     onManageModels: () -> Unit,
+    embedded: Boolean = false,
     onDismiss: () -> Unit,
 ) {
     if (!visible) return
@@ -1754,16 +1751,7 @@ private fun AgentModelSelectorPopup(
         }
     }
 
-    Popup(
-        alignment = Alignment.TopStart,
-        onDismissRequest = onDismiss,
-        properties =
-            PopupProperties(
-                focusable = true,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = false,
-            ),
-    ) {
+    ThemeScriptPopupHost(embedded = embedded, onDismiss = onDismiss) {
         Box(
             modifier =
                 Modifier
@@ -2196,7 +2184,7 @@ private fun AgentModelSelectorItem(
 }
 
 @Composable
-private fun AgentExtraSettingsPopup(
+internal fun AgentExtraSettingsPopup(
     visible: Boolean,
     runtime: ChatInputRuntime,
     onContextUsageClick: () -> Unit,
@@ -2225,6 +2213,7 @@ private fun AgentExtraSettingsPopup(
     onSaveToolOrder: (List<String>) -> Unit = {},
     onNavigateToPackageManager: () -> Unit,
     onManualMemoryUpdate: () -> Unit,
+    embedded: Boolean = false,
     onDismiss: () -> Unit,
 ) {
     if (!visible) return
@@ -2265,16 +2254,7 @@ private fun AgentExtraSettingsPopup(
         )
     }
 
-    Popup(
-        alignment = Alignment.TopStart,
-        onDismissRequest = onDismiss,
-        properties =
-            PopupProperties(
-                focusable = true,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = false,
-            ),
-    ) {
+    ThemeScriptPopupHost(embedded = embedded, onDismiss = onDismiss) {
         Box(
             modifier =
                 Modifier

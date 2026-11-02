@@ -75,7 +75,7 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 - `fillColor/contentColor/strokeColor/strokeWidth`：底色、前景色、描边；宽度 `0..16 dp`
 - `elevation/minHeight`：阴影 `0..24 dp` 和最小高度 `0..256 dp`
 - `padding`：`start/top/end/bottom` 各 `0..48 dp`，与原有内容内距叠加；背景必须保持零内距
-- `popupOffset`：只用于三个聊天弹起菜单，`up/down/left` 各 `0..256 dp`，默认零；纵向按 `down - up` 计算，向左是物理方向，不提供 `right`。偏移移动完整容器及命中区域，按当前窗口和实际菜单尺寸限制范围；内容留白仍使用 `padding`
+- `popupOffset`：只用于三个聊天弹起菜单，`up/down/left` 各 `0..256 dp`，默认零；纵向按 `down - up` 计算，向左是物理方向，不提供 `right`。偏移移动完整容器及命中区域，按当前窗口和实际菜单尺寸限制范围；内容留白仍使用 `padding`。工作室的上下滑杆与数字输入互斥，归零后解锁另一方向；既有双向数值按净位移编辑
 - `textStyle`：与全局排版同结构的局部排版；字号比例 `0.5..2`，行高倍数 `0.8..2`，字间距 `-2..8 sp`
 - `size`：只用于头像，`16..96 dp`
 - `messageWidth`：只用于消息，为现有最大宽度的 `0.3..1` 倍
