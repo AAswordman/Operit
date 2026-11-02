@@ -1043,3 +1043,10 @@ dependencies {
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     systemProperty("operit.repositoryRoot", rootProject.projectDir.absolutePath)
 }
+
+// 终端库使用独立仓库，宿主 JVM 检查必须一并执行其生命周期回归。
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    if (name == "testDebugUnitTest") {
+        dependsOn(":terminal:testDebugUnitTest")
+    }
+}

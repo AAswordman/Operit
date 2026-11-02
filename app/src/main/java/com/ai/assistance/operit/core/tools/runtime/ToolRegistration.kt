@@ -328,9 +328,12 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 val sessionId = tool.parameters.find { it.name == "session_id" }?.value
                 s(R.string.toolreg_execute_in_terminal_session_desc, sessionId ?: "", command)
             },
-            executor = { tool ->
-                val terminalTool = ToolGetter.getTerminalCommandExecutor(context)
-                terminalTool.executeCommandInSession(tool)
+            executor = object : ToolExecutor {
+                override fun invoke(tool: AITool): ToolResult =
+                    ToolGetter.getTerminalCommandExecutor(context).executeCommandInSession(tool)
+
+                override fun invokeAndStream(tool: AITool): kotlinx.coroutines.flow.Flow<ToolResult> =
+                    ToolGetter.getTerminalCommandExecutor(context).executeCommandInSessionResult(tool)
             }
     )
 
@@ -356,6 +359,24 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                         }
                     }
     )
+
+    // 托管操作查询任务状态，命令成败由返回的 status 与 exitCode 表达。
+    for (action in listOf("start", "poll", "cancel")) {
+        handler.registerTool(
+            name = "${action}_terminal_task",
+            descriptionGenerator = { s(R.string.toolreg_terminal_task_desc, action) },
+            executor = object : ToolExecutor {
+                override fun invoke(tool: AITool): ToolResult = kotlinx.coroutines.runBlocking {
+                    ToolGetter.getTerminalCommandExecutor(context).terminalTask(tool, action)
+                }
+
+                override fun invokeAndStream(tool: AITool): kotlinx.coroutines.flow.Flow<ToolResult> =
+                    kotlinx.coroutines.flow.flow {
+                        emit(ToolGetter.getTerminalCommandExecutor(context).terminalTask(tool, action))
+                    }
+            },
+        )
+    }
 
     handler.registerTool(
             name = "execute_hidden_terminal_command",

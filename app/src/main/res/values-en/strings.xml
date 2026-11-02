@@ -9228,4 +9228,5 @@
     <string name="theme_icon_floating">Floating window</string>
     <string name="theme_icon_navigation">Common navigation icon</string>
     <string name="theme_appearance_disabled">Disabled</string>
+    <string name="toolreg_terminal_task_desc">Terminal managed task operation: %1$s</string>
 </resources>

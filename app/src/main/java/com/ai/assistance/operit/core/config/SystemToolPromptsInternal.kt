@@ -6,6 +6,35 @@ import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
 
 object SystemToolPromptsInternal {
 
+    private fun managedTerminalTaskPrompts(english: Boolean): List<ToolPrompt> {
+        fun text(en: String, zh: String) = if (english) en else zh
+        val runId = ToolParameterSchema("run_id", "string",
+            text("ID returned by start_terminal_task", "start_terminal_task 返回的任务 ID"), true)
+        val yieldMs = ToolParameterSchema("yield_ms", "integer",
+            text("Wait 0..30000 ms without cancelling the task", "单次等待 0～30000 毫秒，等待结束不取消任务"), false, default = "10000")
+        return listOf(
+            ToolPrompt(
+                name = "start_terminal_task",
+                description = text(
+                    "Start a managed terminal command and return a runId. Poll the same ID; never restart a running command. Output and screen are replacement snapshots.",
+                    "启动托管终端命令并返回 runId；后续查询同一 ID，不要重复启动。output 和 screen 均为替换快照。"),
+                parametersStructured = listOf(
+                    ToolParameterSchema("session_id", "string", text("Terminal session ID", "终端会话 ID"), true),
+                    ToolParameterSchema("command", "string", text("Command to execute", "要执行的命令"), true),
+                    ToolParameterSchema("timeout_ms", "integer",
+                        text("Execution deadline including queue time; at least 3000 ms", "包含排队时间的执行期限，至少 3000 毫秒"), false, default = "1800000"),
+                    yieldMs,
+                ),
+            ),
+            ToolPrompt("poll_terminal_task", text(
+                "Query the same managed task without submitting a probe command or interrupting execution.",
+                "查询同一托管任务，不排入探测命令，也不中断正在运行的命令。"), parametersStructured = listOf(runId, yieldMs)),
+            ToolPrompt("cancel_terminal_task", text(
+                "Cancel exactly one managed task. Check status and cancellationOutcome for the cleanup result.",
+                "精确取消一个托管任务，通过 status 和 cancellationOutcome 查看清理结果。"), parametersStructured = listOf(runId)),
+        )
+    }
+
     val internalToolCategoriesEn: List<SystemToolPromptCategory> =
         listOf(
             SystemToolPromptCategory(
@@ -93,6 +122,7 @@ object SystemToolPromptsInternal {
                                     )
                                 )
                         ),
+                        *managedTerminalTaskPrompts(true).toTypedArray(),
                         ToolPrompt(
                             name = "execute_hidden_terminal_command",
                             description = "Execute a command in a hidden non-PTY terminal executor. Commands using the same executor_key reuse the same hidden login context and are not shown in the visible terminal UI.",
@@ -3115,6 +3145,7 @@ object SystemToolPromptsInternal {
                                     )
                                 )
                         ),
+                        *managedTerminalTaskPrompts(false).toTypedArray(),
                         ToolPrompt(
                             name = "execute_hidden_terminal_command",
                             description = "在隐藏的非 PTY 终端执行器中执行命令。使用相同 executor_key 的命令会复用同一个后台登录上下文，且不会显示在可见终端 UI 中。",

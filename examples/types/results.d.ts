@@ -673,6 +673,24 @@ export interface TerminalCommandResultData {
     toString(): string;
 }
 
+/** 托管任务的输出与画面均为替换快照，查询时不能重复拼接。 */
+export interface TerminalTaskResultData {
+    runId: string;
+    sessionId: string;
+    command: string;
+    status: 'queued' | 'running' | 'cancelling' | 'completed' | 'failed' | 'cancelled' | 'timed_out';
+    output: string;
+    outputTruncated: boolean;
+    exitCode: number | null;
+    sessionExitCode: number | null;
+    terminationReason: string | null;
+    screen: string | null;
+    timedOut: boolean;
+    cancellationOutcome?: 'removed_from_queue' | 'interrupted' | 'session_closed' | 'cleanup_incomplete' | 'already_finished' | null;
+    outputMode: 'tail_snapshot';
+    toString(): string;
+}
+
 /**
  * Terminal command streaming event data
  */
