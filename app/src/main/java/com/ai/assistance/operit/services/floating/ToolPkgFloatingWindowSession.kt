@@ -92,6 +92,9 @@ class ToolPkgFloatingWindowSession private constructor(
             }
             renderResult = parsed
         } catch (error: Exception) {
+            // 首渲染失败：窗口在 host 构造时已 addView，必须一并关闭再抛错，
+            // 否则会留下一个空窗口泄漏在屏幕上。
+            host.close()
             releaseEngine()
             if (error is IllegalStateException || error is IllegalArgumentException) throw error
             throw IllegalStateException("Floating window route failed to render: ${error.message}", error)
