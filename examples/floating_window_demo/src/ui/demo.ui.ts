@@ -1,7 +1,7 @@
 import type {
   ComposeDslContext,
   ComposeNode,
-} from "../../../../types/compose-dsl";
+} from "../../../types/compose-dsl";
 
 /**
  * 工具箱控制页：驱动悬浮窗全生命周期。

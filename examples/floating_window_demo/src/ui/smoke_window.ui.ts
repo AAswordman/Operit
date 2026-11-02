@@ -1,7 +1,7 @@
 import type {
   ComposeDslContext,
   ComposeNode,
-} from "../../../../types/compose-dsl";
+} from "../../../types/compose-dsl";
 
 /**
  * 悬浮窗内容页。count 的初值来自 open({ state: { count } }) 注入的
