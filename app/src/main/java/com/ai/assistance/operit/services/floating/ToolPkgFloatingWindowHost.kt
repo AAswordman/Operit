@@ -26,6 +26,7 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ai.assistance.operit.core.tools.packTool.floating.ToolPkgFloatingWindowOptions
 import com.ai.assistance.operit.core.tools.packTool.floating.ToolPkgFloatingWindowSurface
+import com.ai.assistance.operit.services.ServiceLifecycleOwner
 import com.ai.assistance.operit.util.AppLogger
 import org.json.JSONObject
 import kotlin.math.roundToInt
