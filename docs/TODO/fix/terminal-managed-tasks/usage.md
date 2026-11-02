@@ -31,6 +31,8 @@ const runId = task.runId;
 task = await Tools.System.terminal.poll(runId, { yieldMs: 10000 });
 ```
 
+开发构建仍引用已经发布的固定扩展包。本轮 `super_admin` 新入口已写入源码，包资源需要在后续显式准备并发布固定资源后才能通过资源管理器下载；本轮没有发布资源。原生托管工具和 JS 桥属于应用源码改动。
+
 ## 状态和结果
 
 `queued` 表示尚未执行，`running` 表示已开始，`cancelling` 表示正在清理。终态为 `completed`、`failed`、`cancelled` 和 `timed_out`。只有确认命令退出码为 0 且无异常终止原因时才是 `completed`；非零退出、缺失命令退出码和会话退出都不能当作命令成功。工具调用的 `success` 表示任务操作成功，命令成败由 `status` 和 `exitCode` 表达。

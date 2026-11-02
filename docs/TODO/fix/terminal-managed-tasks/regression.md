@@ -6,6 +6,8 @@
 
 应用 `TerminalCommandFlowTest` 覆盖即时完成的订阅握手、忽略其他命令事件和取消后退订；`TerminalTaskRegistryTest` 覆盖查询超时、查询方取消、执行期限、取消结果、调度前取消、退出码、画面替换、输出截断、容量淘汰、失效 ID 与缺失完成事件。
 
+CI 的 `FixedCatalogSourceSnapshotTest` 另覆盖开发构建与当前索引分离、发布源码不匹配、快照标签不匹配和文件摘要被改动四项校验。
+
 核心 `SessionProcessStatTest` 覆盖带括号的进程名和无效 stat；`TerminalExitMonitorTest` 覆盖主进程退出但读取仍不结束，以及读取已排空；`ClosedSessionCompletionTest` 覆盖运行与多个排队命令恰好完成一次。
 
 CI 入口为 `./gradlew :app:testDebugUnitTest --stacktrace --no-daemon`，该任务通过 Gradle 依赖同时执行 `:terminal:testDebugUnitTest`。Debug 构建由工作分支上的 Build 工作流执行。

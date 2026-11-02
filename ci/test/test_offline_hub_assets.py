@@ -17,6 +17,8 @@ sys.path.insert(0, str(ROOT / "ci/distribution/resources"))
 import prepare_hub
 import builtin_packages
 import verify_packaged_resources
+import verify_hub_catalog
+import builtin_source_snapshot
 
 
 class OfflineHubAssetPreparationTest(unittest.TestCase):
@@ -191,6 +193,63 @@ class BuiltInSourceFingerprintTest(unittest.TestCase):
         (self.repository / "examples/sample.js").write_bytes(b"updated source script")
         self.git("add", "examples/sample.js")
         self.assertNotEqual(expected, builtin_packages.source_fingerprint("sample.js"))
+
+
+class FixedCatalogSourceSnapshotTest(unittest.TestCase):
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.config = self.root / "app/config"
+        self.config.mkdir(parents=True)
+        self.files = {"examples/sample.js": hashlib.sha256(b"published script").hexdigest()}
+        self.source_fingerprint = builtin_source_snapshot.fingerprint(self.files, "sample.js")
+        packs = []
+        for group in ("sandbox-sample", "engine-sherpa-onnx", "ocr-google-mlkit"):
+            identity = {"id": group, "files": [], "loadOrder": []}
+            if group == "sandbox-sample":
+                identity["files"] = [{"path": "packages/sample.js"}]
+                identity["extension"] = {"kind": "sandbox", "path": "packages/sample.js",
+                    "packageNames": ["sample"], "source": "sample.js", "sourceFingerprint": self.source_fingerprint}
+            version = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:20]
+            packs.append({**identity, "version": version, "archive": {"path": group + ".zip", "bytes": 1, "sha256": "0" * 64}})
+        tag = "resources-v2-" + hashlib.sha256(json.dumps(packs, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:20]
+        for pack in packs:
+            pack["archive"]["url"] = f"https://github.com/{verify_hub_catalog.RESOURCE_REPOSITORY}/releases/download/{tag}/{pack['archive']['path']}"
+        (self.config / "offline-packs.json").write_text(json.dumps({"schemaVersion": 1, "releaseTag": tag, "packs": packs}))
+        self.snapshot = {"schemaVersion": 1, "releaseTag": tag, "sourceRevision": "a" * 40,
+            "sources": ["sample.js"], "files": list(self.files.items())}
+        self.write_snapshot()
+        for target, name, value in ((verify_hub_catalog, "ROOT", self.root),
+                (verify_hub_catalog, "TEMPLATES", [])):
+            mocked = patch.object(target, name, value)
+            mocked.start()
+            self.addCleanup(mocked.stop)
+
+    def write_snapshot(self) -> None:
+        (self.config / "offline-pack-sources.json").write_text(json.dumps(self.snapshot))
+
+    def test_development_verifies_published_snapshot_without_current_index_or_history(self) -> None:
+        with patch.object(verify_hub_catalog, "source_fingerprint", side_effect=AssertionError("开发校验不应读取当前索引")), redirect_stdout(io.StringIO()):
+            verify_hub_catalog.main()
+
+    def test_publication_rejects_changed_current_source(self) -> None:
+        with patch.object(verify_hub_catalog, "whitelist", return_value=["sample.js"]), \
+                patch.object(verify_hub_catalog, "source_fingerprint", return_value="b" * 64):
+            with self.assertRaisesRegex(ValueError, "源码变动后必须重新准备并发布"):
+                verify_hub_catalog.main(current_source=True)
+
+    def test_wrong_snapshot_tag_is_rejected(self) -> None:
+        self.snapshot["releaseTag"] = "resources-v2-wrong"
+        self.write_snapshot()
+        with self.assertRaisesRegex(ValueError, "快照与资源标签不一致"):
+            verify_hub_catalog.main()
+
+    def test_changed_snapshot_file_hash_is_rejected(self) -> None:
+        self.snapshot["files"] = [("examples/sample.js", "c" * 64)]
+        self.write_snapshot()
+        with self.assertRaisesRegex(ValueError, "快照与扩展指纹不一致"):
+            verify_hub_catalog.main()
 
 
 if __name__ == "__main__":
