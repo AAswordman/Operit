@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.chat.tools.timing
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
-import com.ai.assistance.operit.data.model.tooltiming.ToolTimingState
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolTimingState
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test

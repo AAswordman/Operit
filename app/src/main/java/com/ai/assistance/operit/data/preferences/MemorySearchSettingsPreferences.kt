@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.MemoryScoreMode
-import com.ai.assistance.operit.data.model.MemorySearchConfig
+import com.ai.assistance.operit.data.memory.search.MemoryScoreMode
+import com.ai.assistance.operit.data.memory.search.MemorySearchConfig
 
 class MemorySearchSettingsPreferences(context: Context, profileId: String) {
     private val searchPrefs = context.applicationContext.getSharedPreferences(

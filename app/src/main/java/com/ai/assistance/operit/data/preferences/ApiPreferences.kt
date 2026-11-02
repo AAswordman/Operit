@@ -11,12 +11,12 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.data.collects.PricingCurrency
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.stats.BillingMode
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterCategory
-import com.ai.assistance.operit.data.model.ParameterValueType
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterCategory
+import com.ai.assistance.operit.data.config.model.ParameterValueType
 import com.ai.assistance.operit.data.stats.ModelPriceSettings
 import com.ai.assistance.operit.data.stats.ReleasedProviderModelKey
 import com.ai.assistance.operit.data.stats.ReleasedProviderModelKeyDecoder

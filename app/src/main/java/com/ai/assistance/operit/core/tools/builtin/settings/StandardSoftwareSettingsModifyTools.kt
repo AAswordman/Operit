@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.builtin.settings
 
-import com.ai.assistance.operit.data.model.ModelConfigDefaults
+import com.ai.assistance.operit.data.config.model.ModelConfigDefaults
 
 import android.content.Context
 import com.ai.assistance.operit.api.chat.EnhancedAIService
@@ -50,19 +50,19 @@ import com.ai.assistance.operit.core.tools.ToolPermissionModeResultData
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
 import com.ai.assistance.operit.core.tools.javascript.JsExecutionTraceRecorder
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import com.ai.assistance.operit.data.model.CharacterCard
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.EnvPreferences
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.getModelByIndex
-import com.ai.assistance.operit.data.model.getModelList
-import com.ai.assistance.operit.data.model.getValidModelIndex
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.data.config.model.getModelByIndex
+import com.ai.assistance.operit.data.config.model.getModelList
+import com.ai.assistance.operit.data.config.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.ModelConfigManager

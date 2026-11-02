@@ -18,9 +18,9 @@ import com.ai.assistance.operit.core.tools.AppListData
 import com.ai.assistance.operit.core.tools.builtin.ui.StandardUITools
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.data.preferences.AndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences

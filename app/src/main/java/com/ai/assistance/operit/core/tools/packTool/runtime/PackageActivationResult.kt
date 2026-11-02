@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.tools.packTool.runtime
 import com.ai.assistance.operit.core.tools.PackageActivationErrorCode
 import com.ai.assistance.operit.core.tools.PackageActivationErrorData
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 
 /** 激活结果在产生错误的分支确定状态，不根据描述文字猜测成功与否。 */
 internal sealed class PackageActivationResult {

@@ -70,8 +70,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.ui.floating.FloatContext
 import com.ai.assistance.operit.util.OCRUtils
 import kotlinx.coroutines.Dispatchers

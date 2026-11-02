@@ -34,7 +34,7 @@ class SentImageSourcesTest {
         val path = "/cleanOnExit/a & \"b\".jpg"
         val source = sentImageSources(
             com.ai.assistance.operit.core.chat.media.mediaAttachmentMarkup(
-                com.ai.assistance.operit.data.model.AttachmentInfo(path, "a & \"b\".jpg", "image/jpeg", fileSize = 1024L)
+                com.ai.assistance.operit.core.chat.attachment.AttachmentInfo(path, "a & \"b\".jpg", "image/jpeg", fileSize = 1024L)
             )
         ).single()
         assertEquals(path, source.id)

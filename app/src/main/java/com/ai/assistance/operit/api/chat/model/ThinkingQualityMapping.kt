@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.api.chat.model
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterCategory
-import com.ai.assistance.operit.data.model.ParameterValueType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterCategory
+import com.ai.assistance.operit.data.config.model.ParameterValueType
 import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject

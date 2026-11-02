@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.keypool
 
 import com.ai.assistance.operit.data.model.ApiKeyAttemptRecordEntity
-import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
 
 internal const val API_KEY_POOL_INFO_WINDOW_MS = 24L * 60L * 60L * 1000L
 

@@ -11,8 +11,8 @@ import android.provider.Settings
 import com.ai.assistance.operit.core.tools.DeviceInfoResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 
 /**
  * Device information tool that collects comprehensive system details Provides information about

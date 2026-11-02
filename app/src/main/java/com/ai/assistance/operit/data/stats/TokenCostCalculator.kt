@@ -2,7 +2,7 @@ package com.ai.assistance.operit.data.stats
 
 import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.dao.TokenUsageModelAggregateRow
-import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.stats.BillingMode
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
 
 object TokenCostCalculator {

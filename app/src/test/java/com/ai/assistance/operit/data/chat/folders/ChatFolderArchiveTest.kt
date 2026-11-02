@@ -2,8 +2,8 @@ package com.ai.assistance.operit.data.chat.folders
 
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.ChatHistory
-import com.ai.assistance.operit.data.model.OperitArchivedChat
-import com.ai.assistance.operit.data.model.OperitChatArchive
+import com.ai.assistance.operit.data.chat.archive.OperitArchivedChat
+import com.ai.assistance.operit.data.chat.archive.OperitChatArchive
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

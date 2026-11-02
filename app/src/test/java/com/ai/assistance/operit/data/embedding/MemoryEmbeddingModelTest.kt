@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.embedding
 
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.remapDeletedConfigReferences
 import org.junit.Assert.assertEquals

@@ -18,8 +18,8 @@ import com.ai.assistance.operit.ui.features.management.settings.model.ModelWorks
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.model.ThinkingQualityControl
 import com.ai.assistance.operit.api.chat.model.ThinkingQualityMappingRegistry
-import com.ai.assistance.operit.data.model.ModelConfigSummary
-import com.ai.assistance.operit.data.model.getModelByIndex
+import com.ai.assistance.operit.data.config.model.ModelConfigSummary
+import com.ai.assistance.operit.data.config.model.getModelByIndex
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 
 @Composable

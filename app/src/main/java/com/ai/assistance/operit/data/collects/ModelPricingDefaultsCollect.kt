@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.collects
 
-import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.stats.BillingMode
 
 enum class PricingCurrency(
     val code: String,

@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat.protocol
 
-import com.ai.assistance.operit.data.model.AiReference
+import com.ai.assistance.operit.core.chat.reference.AiReference
 
 /**
  * Utility for extracting references from content

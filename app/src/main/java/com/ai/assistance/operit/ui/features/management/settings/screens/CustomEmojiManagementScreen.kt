@@ -32,8 +32,8 @@ import com.ai.assistance.operit.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.CustomEmoji
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.emoji.CustomEmoji
 import com.ai.assistance.operit.ui.features.management.settings.viewmodels.CustomEmojiViewModel
 import kotlinx.coroutines.launch
 

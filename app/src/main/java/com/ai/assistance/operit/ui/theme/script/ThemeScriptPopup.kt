@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.data.model.theme.ThemeScriptPopupOffset
+import com.ai.assistance.operit.data.theme.script.ThemeScriptPopupOffset
 
 /** 聊天弹起菜单与制作预览共用定位；内容尺寸改变后重新计算，不能只平移绘制图层。 */
 @Composable

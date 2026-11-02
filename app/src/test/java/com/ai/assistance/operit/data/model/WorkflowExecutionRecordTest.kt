@@ -7,6 +7,12 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.*
 import org.junit.Test
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionIssue
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionLogEntry
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionRecord
+import com.ai.assistance.operit.core.workflow.model.WorkflowLogLevel
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeExecutionReport
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeRunStatus
 
 class WorkflowExecutionRecordTest {
     private val json = Json { ignoreUnknownKeys = true }

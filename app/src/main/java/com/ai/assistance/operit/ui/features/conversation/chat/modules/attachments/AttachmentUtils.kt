@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments
 
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 
 /** Utility functions for working with attachments in the chat feature */
 object AttachmentUtils {

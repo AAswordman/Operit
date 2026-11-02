@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat.media
 
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 
 /** 媒体链接用于模型输入，原文件描述独立保存在消息中供聊天预览使用。 */
 internal fun mediaAttachmentMarkup(attachment: AttachmentInfo, content: String = attachment.content): String {

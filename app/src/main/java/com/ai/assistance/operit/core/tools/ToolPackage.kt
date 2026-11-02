@@ -4,9 +4,9 @@ package com.ai.assistance.operit.core.tools
  import android.os.Build
  import com.ai.assistance.operit.core.tools.javascript.JsToolManager
  import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
- import com.ai.assistance.operit.data.model.AITool
- import com.ai.assistance.operit.data.model.ToolResult
- import com.ai.assistance.operit.data.model.ToolValidationResult
+ import com.ai.assistance.operit.core.tools.protocol.AITool
+ import com.ai.assistance.operit.core.tools.protocol.ToolResult
+ import com.ai.assistance.operit.core.tools.protocol.ToolValidationResult
  import kotlinx.coroutines.flow.Flow
  import kotlinx.serialization.builtins.MapSerializer
  import kotlinx.serialization.builtins.serializer

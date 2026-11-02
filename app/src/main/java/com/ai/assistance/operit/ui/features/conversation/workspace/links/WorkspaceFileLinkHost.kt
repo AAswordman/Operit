@@ -24,9 +24,9 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileContentData
 import com.ai.assistance.operit.core.tools.FileExistsData
-import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.core.tools.protocol.AITool
 import com.ai.assistance.operit.data.model.ChatHistory
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.features.conversation.workspace.FileBrowser
 import com.ai.assistance.operit.ui.features.conversation.workspace.OpenFileInfo

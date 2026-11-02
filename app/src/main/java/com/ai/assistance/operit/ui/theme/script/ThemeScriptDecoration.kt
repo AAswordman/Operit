@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.data.model.theme.ThemeScriptLayer
-import com.ai.assistance.operit.data.model.theme.forState
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.forState
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min

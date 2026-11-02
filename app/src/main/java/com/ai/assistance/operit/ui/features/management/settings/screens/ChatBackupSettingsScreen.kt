@@ -77,8 +77,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatHistory
-import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.MemorySpace
+import com.ai.assistance.operit.data.memory.export.ImportStrategy
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
 import com.ai.assistance.operit.data.backup.OperitBackupDirs
 import com.ai.assistance.operit.data.backup.RawSnapshotBackupManager
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupManager

@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.core.tools.builtin.a2ui
 
-import com.ai.assistance.operit.data.model.SystemToolPromptCategory
-import com.ai.assistance.operit.data.model.ToolParameterSchema
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.core.tools.prompt.SystemToolPromptCategory
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 
 /** 基础定义只说明接口；详细用法由可选外部引导包提供。 */
 internal object A2uiToolDefinitions {

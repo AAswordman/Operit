@@ -32,8 +32,8 @@ import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.SystemSettingData
 import com.ai.assistance.operit.core.tools.builtin.web.session.browser.WebSessionPermissionRequestCoordinator
 import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

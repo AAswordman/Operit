@@ -31,11 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import com.ai.assistance.operit.ui.features.management.settings.model.ModelWorkspaceMenu
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterCategory
-import com.ai.assistance.operit.data.model.ParameterValueType
-import com.ai.assistance.operit.data.model.StandardModelParameters
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterCategory
+import com.ai.assistance.operit.data.config.model.ParameterValueType
+import com.ai.assistance.operit.data.config.model.StandardModelParameters
 import com.ai.assistance.operit.ui.features.management.settings.ModelConfigSaveCoordinator
 import com.ai.assistance.operit.ui.features.management.settings.RegisterModelConfigSaveAction
 import com.ai.assistance.operit.ui.features.management.settings.model.ModelWorkspaceSection
@@ -162,7 +162,7 @@ fun ModelParametersSection(
                     isLenient = true
                 }
                 val customParamsList =
-                    json.decodeFromString<List<com.ai.assistance.operit.data.model.CustomParameterData>>(
+                    json.decodeFromString<List<com.ai.assistance.operit.data.config.model.CustomParameterData>>(
                         config.customParameters
                     )
                 for (customParam in customParamsList) {
@@ -405,7 +405,7 @@ fun ModelParametersSection(
     val customParams = parameters.filter { it.isCustom }
 
     // 状态
-    var parameterToEdit by remember { mutableStateOf<com.ai.assistance.operit.data.model.CustomParameterData?>(null) }
+    var parameterToEdit by remember { mutableStateOf<com.ai.assistance.operit.data.config.model.CustomParameterData?>(null) }
 
     if (showAddParameterDialog || parameterToEdit != null) {
         AddCustomParameterDialog(
@@ -520,7 +520,7 @@ fun ModelParametersSection(
 }
 // 自定义参数与原数据模型间的转换继续沿用现有实现。
 private fun convertCustomParameterDataToModelParameter(
-    customParam: com.ai.assistance.operit.data.model.CustomParameterData
+    customParam: com.ai.assistance.operit.data.config.model.CustomParameterData
 ): ModelParameter<*> {
     return when (ParameterValueType.valueOf(customParam.valueType)) {
         ParameterValueType.INT -> {
@@ -607,8 +607,8 @@ private fun convertCustomParameterDataToModelParameter(
 // Helper function to convert ModelParameter<*> to CustomParameterData
 private fun modelParameterToCustomParameterData(
     param: ModelParameter<*>
-): com.ai.assistance.operit.data.model.CustomParameterData {
-    return com.ai.assistance.operit.data.model.CustomParameterData(
+): com.ai.assistance.operit.data.config.model.CustomParameterData {
+    return com.ai.assistance.operit.data.config.model.CustomParameterData(
         id = param.id,
         name = param.name,
         apiName = param.apiName,
@@ -628,8 +628,8 @@ private fun modelParameterToCustomParameterData(
 @Composable
 private fun AddCustomParameterDialog(
     onDismiss: () -> Unit,
-    onSave: (com.ai.assistance.operit.data.model.CustomParameterData) -> Unit,
-    existingParam: com.ai.assistance.operit.data.model.CustomParameterData? = null
+    onSave: (com.ai.assistance.operit.data.config.model.CustomParameterData) -> Unit,
+    existingParam: com.ai.assistance.operit.data.config.model.CustomParameterData? = null
 ) {
     val isEditing = existingParam != null
 
@@ -955,7 +955,7 @@ private fun AddCustomParameterDialog(
                     if (hasError) return@Button
 
                     val newParam =
-                        com.ai.assistance.operit.data.model.CustomParameterData(
+                        com.ai.assistance.operit.data.config.model.CustomParameterData(
                             id = existingParam?.id ?: UUID.randomUUID().toString(),
                             name = name,
                             apiName = if (apiName.isBlank()) name.replace(" ", "_").lowercase() else apiName,

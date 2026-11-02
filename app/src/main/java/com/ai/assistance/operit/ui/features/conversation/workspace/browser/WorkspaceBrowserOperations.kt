@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.BinaryFileContentData
 import com.ai.assistance.operit.core.tools.FileExistsData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.ui.features.conversation.workspace.preview.workspaceMimeTypeForPath
 import java.io.File
 import kotlinx.coroutines.Dispatchers

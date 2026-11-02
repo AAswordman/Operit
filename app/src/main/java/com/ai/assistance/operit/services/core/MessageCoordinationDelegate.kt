@@ -14,18 +14,18 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.api.chat.runtime.MultiServiceManager
 import com.ai.assistance.operit.api.chat.AIService
-import com.ai.assistance.operit.data.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ModelParameter
 import com.ai.assistance.operit.data.model.CharacterCard
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
-import com.ai.assistance.operit.data.model.ChatTurnOptions
+import com.ai.assistance.operit.core.chat.runtime.ChatTurnOptions
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.core.tools.runtime.ToolProgressBus
 import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.UiStateDelegate
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
@@ -153,7 +153,7 @@ class MessageCoordinationDelegate(
 
 
 
-    private fun fallbackConversationTitle(userText: String, attachments: List<com.ai.assistance.operit.data.model.AttachmentInfo>): String {
+    private fun fallbackConversationTitle(userText: String, attachments: List<com.ai.assistance.operit.core.chat.attachment.AttachmentInfo>): String {
         return attachments.firstOrNull()?.fileName?.trim()?.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.new_conversation)
     }
@@ -161,7 +161,7 @@ class MessageCoordinationDelegate(
     private fun launchConversationTitleGeneration(
         chatId: String,
         userText: String,
-        attachments: List<com.ai.assistance.operit.data.model.AttachmentInfo>,
+        attachments: List<com.ai.assistance.operit.core.chat.attachment.AttachmentInfo>,
         fallbackTitle: String
     ) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -1324,7 +1324,7 @@ class MessageCoordinationDelegate(
 
     private suspend fun planResponseOrder(
         userText: String,
-        members: List<com.ai.assistance.operit.data.model.GroupMemberConfig>,
+        members: List<com.ai.assistance.operit.data.character.GroupMemberConfig>,
         memberCardsById: Map<String, CharacterCard>
     ): PlannedRounds? {
         val service = getEnhancedAiService() ?: return null
@@ -1467,7 +1467,7 @@ class MessageCoordinationDelegate(
     }
 
     private suspend fun buildGroupParticipantNamesText(
-        members: List<com.ai.assistance.operit.data.model.GroupMemberConfig>,
+        members: List<com.ai.assistance.operit.data.character.GroupMemberConfig>,
         memberCardsById: Map<String, CharacterCard>
     ): String {
         val useEnglish = !LocaleUtils.usesChineseContent(context)
@@ -1501,7 +1501,7 @@ class MessageCoordinationDelegate(
         )
     }
 
-    private suspend fun resolveTargetGroupForChat(chatId: String): com.ai.assistance.operit.data.model.CharacterGroupCard? {
+    private suspend fun resolveTargetGroupForChat(chatId: String): com.ai.assistance.operit.data.character.CharacterGroupCard? {
         val activePrompt = activePromptManager.getActivePrompt()
         val activeGroupId = (activePrompt as? ActivePrompt.CharacterGroup)
             ?.id

@@ -1,12 +1,14 @@
 package com.ai.assistance.operit.data.model
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
-import com.ai.assistance.operit.data.model.tooltiming.ToolTimingState
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolTimingState
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
 
 class ToolTimingPersistenceTest {
     private val content = "<tool name=\"read_file\"><param name=\"path\">/a</param></tool>"

@@ -8,7 +8,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.keypool.ApiKeyCooldownStore
-import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
 import kotlinx.coroutines.delay
 
 internal data class ApiKeyCooldownRemaining(val model: String, val seconds: Long)

@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 
 /** 只列出实际接入的属性；固定尺寸、位图和原生浮层不展示没有消费入口的控件。 */
 internal enum class StudioSurfaceControl {

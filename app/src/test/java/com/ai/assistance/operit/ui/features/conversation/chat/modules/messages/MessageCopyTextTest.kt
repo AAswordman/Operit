@@ -3,7 +3,7 @@ package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.model.MessageSection
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -145,7 +145,7 @@ class MessageCopyTextTest {
                 buildMessageCopyContent(message),
             )
             assertEquals(raw, message.content)
-            assertEquals(raw, com.ai.assistance.operit.data.model.MessageSectionCodec.render(message.resolvedSections()))
+            assertEquals(raw, com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec.render(message.resolvedSections()))
         }
     }
 

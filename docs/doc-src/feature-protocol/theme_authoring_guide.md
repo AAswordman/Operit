@@ -715,9 +715,9 @@ QuickJS 计算预算和 Android 绘制成本分别受约束。即使没有超过
 
 <details><summary>源码核对入口</summary>
 
-- [工程与上下文模型](../../../app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeScriptDefinition.kt)、[外观、区域、图层、留白与坐标](../../../app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeScriptAppearance.kt)
-- [配色、字体、形状与图标](../../../app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeAppearanceStyle.kt)、[模式、状态、工程信息与路径](../../../app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeStudioMetadata.kt)
-- [字段校验和容量限制](../../../app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeScriptContract.kt)、[资源格式与 SVG 限制](../../../app/src/main/java/com/ai/assistance/operit/data/resources/theme/ThemeScriptBundleStore.kt)
+- [工程与上下文模型](../../../app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeScriptDefinition.kt)、[外观、区域、图层、留白与坐标](../../../app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeScriptAppearance.kt)
+- [配色、字体、形状与图标](../../../app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeAppearanceStyle.kt)、[模式、状态、工程信息与路径](../../../app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeStudioMetadata.kt)
+- [字段校验和容量限制](../../../app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeScriptContract.kt)、[资源格式与 SVG 限制](../../../app/src/main/java/com/ai/assistance/operit/data/resources/theme/ThemeScriptBundleStore.kt)
 - [JS 执行器](../../../app/src/main/java/com/ai/assistance/operit/ui/theme/script/ThemeScriptResolver.kt)、[上下文和求值触发](../../../app/src/main/java/com/ai/assistance/operit/ui/theme/script/ThemeScriptHost.kt)
 - [图层绘制](../../../app/src/main/java/com/ai/assistance/operit/ui/theme/script/ThemeScriptDecoration.kt)、[排版和图标消费](../../../app/src/main/java/com/ai/assistance/operit/ui/theme/script/ThemeAppearanceRuntime.kt)、[资源加载与实物校验](../../../app/src/main/java/com/ai/assistance/operit/ui/theme/script/ThemeScriptAssets.kt)
 - [工作室状态与源码同步](../../../app/src/main/java/com/ai/assistance/operit/ui/features/management/settings/screens/theme/studio/ThemeStudioState.kt)、[编辑能力目录](../../../app/src/main/java/com/ai/assistance/operit/ui/features/management/settings/screens/theme/studio/ThemeStudioCatalog.kt)

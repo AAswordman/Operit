@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.tools.builtin.filesystem
 
 import com.ai.assistance.operit.core.tools.FileOperationData
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.core.tools.StringResultData
 
 object PathValidator {

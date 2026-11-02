@@ -32,18 +32,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
-import com.ai.assistance.operit.data.model.Workflow
-import com.ai.assistance.operit.data.model.WorkflowNode
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.ExecuteNode
-import com.ai.assistance.operit.data.model.ConditionNode
-import com.ai.assistance.operit.data.model.ConditionOperator
-import com.ai.assistance.operit.data.model.LogicNode
-import com.ai.assistance.operit.data.model.LogicOperator
-import com.ai.assistance.operit.data.model.ExtractNode
-import com.ai.assistance.operit.data.model.ExtractMode
-import com.ai.assistance.operit.data.model.ParameterValue
-import com.ai.assistance.operit.data.model.ToolParameterSchema
+import com.ai.assistance.operit.core.workflow.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.WorkflowNode
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.ConditionNode
+import com.ai.assistance.operit.core.workflow.model.ConditionOperator
+import com.ai.assistance.operit.core.workflow.model.LogicNode
+import com.ai.assistance.operit.core.workflow.model.LogicOperator
+import com.ai.assistance.operit.core.workflow.model.ExtractNode
+import com.ai.assistance.operit.core.workflow.model.ExtractMode
+import com.ai.assistance.operit.core.workflow.model.ParameterValue
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.features.automation.workflow.viewmodel.WorkflowViewModel
 import com.ai.assistance.operit.ui.features.automation.workflow.components.GridWorkflowCanvas
@@ -631,9 +631,9 @@ fun NodeDialog(
     val initialActionConfigPairs = if (node is ExecuteNode) {
         node.actionConfig.map { (key, paramValue) ->
             when (paramValue) {
-                is com.ai.assistance.operit.data.model.ParameterValue.StaticValue -> 
+                is com.ai.assistance.operit.core.workflow.model.ParameterValue.StaticValue ->
                     ParameterConfig(key, false, paramValue.value)
-                is com.ai.assistance.operit.data.model.ParameterValue.NodeReference -> 
+                is com.ai.assistance.operit.core.workflow.model.ParameterValue.NodeReference ->
                     ParameterConfig(key, true, paramValue.nodeId)
             }
         }

@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.*
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering.CompactToolDisplay
 import com.ai.assistance.operit.ui.theme.script.*

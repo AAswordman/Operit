@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.features.management.settings.sections
 
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

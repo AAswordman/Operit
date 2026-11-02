@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.data.model.theme.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
 import kotlin.math.ceil
 
 /** 素材独立录制；只有图层、图片、尺寸或密度改变时重新生成显示列表。 */

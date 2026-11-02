@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.chat.protocol
 import com.ai.assistance.operit.core.tools.FileApplyResultData
 import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.core.tools.PackageActivationErrorData
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 
 /** 在结果生成阶段分开错误说明和独立输出，最终正文只组装一次。 */
 internal data class ToolFailurePayload(val message: String, val output: String) {

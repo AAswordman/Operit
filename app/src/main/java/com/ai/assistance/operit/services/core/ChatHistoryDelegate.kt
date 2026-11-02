@@ -4,7 +4,7 @@ import com.ai.assistance.operit.core.chat.context.TokenUsageBreakdown
 import com.ai.assistance.operit.core.chat.voice.VoiceAnalysis
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageData
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageMarkup
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.data.chat.deletion.ChatDeletionResult
 import android.content.Context
 import com.ai.assistance.operit.util.logging.AppLogger
@@ -14,7 +14,7 @@ import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessagePageMetadata
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
-import com.ai.assistance.operit.data.model.WorkspaceRenameResult
+import com.ai.assistance.operit.core.files.workspace.WorkspaceRenameResult
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
@@ -31,8 +31,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgChatMessageHookBridge
 import kotlinx.coroutines.withTimeoutOrNull
 

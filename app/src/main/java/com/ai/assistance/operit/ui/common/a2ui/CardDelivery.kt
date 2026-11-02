@@ -2,7 +2,7 @@ package com.ai.assistance.operit.ui.common.a2ui
 
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.data.model.MessageSection
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.util.markdown.MarkdownFence
 import java.util.UUID
 import kotlinx.serialization.json.*

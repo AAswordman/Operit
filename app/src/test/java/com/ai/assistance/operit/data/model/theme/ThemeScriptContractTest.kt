@@ -2,6 +2,19 @@ package com.ai.assistance.operit.data.model.theme
 
 import org.junit.Assert.*
 import org.junit.Test
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceIcon
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceMode
+import com.ai.assistance.operit.data.theme.script.ThemeAppearancePalette
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceShape
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceText
+import com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance
+import com.ai.assistance.operit.data.theme.script.ThemeScriptBounds
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptInsets
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.theme.script.forMode
 
 class ThemeScriptContractTest {
     private val manifest = ThemeScriptManifest(1, "assets/main.js", mapOf("badge" to "assets/badge.svg"))

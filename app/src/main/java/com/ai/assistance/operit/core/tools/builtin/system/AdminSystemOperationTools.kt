@@ -8,8 +8,8 @@ import com.ai.assistance.operit.core.tools.SystemSettingData
 import com.ai.assistance.operit.core.tools.builtin.system.StandardSystemOperationTools
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.tools.builtin.filesystem.AdminFileSystemTools
 

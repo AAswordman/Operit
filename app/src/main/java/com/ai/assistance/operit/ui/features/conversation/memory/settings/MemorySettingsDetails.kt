@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.memory.settings
 
-import com.ai.assistance.operit.data.model.MemoryAutoSaveQueueStatus
+import com.ai.assistance.operit.core.memory.extraction.MemoryAutoSaveQueueStatus
 
 data class MemorySettingsPolicy(
     val profileAutoUpdateEnabled: Boolean = true,

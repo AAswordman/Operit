@@ -3,7 +3,7 @@ package com.ai.assistance.operit.data.dao
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.model.MessageEntity
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 import org.junit.Assert.assertEquals
 import org.junit.Test

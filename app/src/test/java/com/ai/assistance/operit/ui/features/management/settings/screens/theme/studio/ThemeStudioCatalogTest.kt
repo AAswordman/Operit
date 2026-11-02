@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 import org.junit.Assert.*
 import org.junit.Test
 

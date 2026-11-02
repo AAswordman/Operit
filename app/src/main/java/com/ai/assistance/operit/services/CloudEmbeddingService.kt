@@ -2,7 +2,7 @@ package com.ai.assistance.operit.services
 
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.embedding.isEmbeddingReady
 import com.ai.assistance.operit.data.embedding.memoryEmbeddingEndpoint
 import com.ai.assistance.operit.data.preferences.ModelConfigManager

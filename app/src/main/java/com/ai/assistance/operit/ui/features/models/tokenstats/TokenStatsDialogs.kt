@@ -42,7 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.collects.PricingCurrency
-import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.stats.BillingMode
 import com.ai.assistance.operit.data.stats.TokenStatsPriceDraft
 import com.ai.assistance.operit.data.stats.TokenStatsPriceScope
 import com.ai.assistance.operit.data.stats.TokenStatsPriceSetting

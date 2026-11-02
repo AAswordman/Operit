@@ -26,8 +26,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
-import com.ai.assistance.operit.data.model.theme.*
-
+import com.ai.assistance.operit.data.theme.script.ThemeAppearancePalette
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceShape
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceText
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
 internal fun themeColor(value: String): Color = Color(android.graphics.Color.parseColor(value))
 
 /** 显式声明的 token 覆盖原配色，其余角色沿用当前角色主题。 */

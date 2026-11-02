@@ -5,8 +5,8 @@ import com.ai.assistance.operit.api.chat.error.RequestPhase
 import android.content.Context
 import com.ai.assistance.operit.api.chat.decorator.ConfiguredStreamingAIService
 import com.ai.assistance.llama.LlamaSession
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
 import com.ai.assistance.operit.util.logging.AppLogger

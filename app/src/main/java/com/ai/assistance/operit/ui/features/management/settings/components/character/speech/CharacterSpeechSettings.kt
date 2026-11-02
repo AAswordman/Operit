@@ -24,7 +24,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemeWorkbenchSlider
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.preferences.WaifuSettings
 import com.ai.assistance.operit.ui.features.management.settings.components.CompactTextFieldWithExpand
 import com.ai.assistance.operit.ui.features.management.settings.screens.CustomEmojiManagementScreen

@@ -2,7 +2,7 @@ package com.ai.assistance.operit.data.stats
 
 import com.ai.assistance.operit.data.collects.DefaultModelPricingCollect
 import com.ai.assistance.operit.data.collects.PricingCurrency
-import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.stats.BillingMode
 
 data class ModelPriceSettings(
     val billingMode: BillingMode? = null,

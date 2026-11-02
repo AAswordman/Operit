@@ -22,8 +22,13 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.components.ActionSheetItem
 import com.ai.assistance.operit.ui.components.menu.WorkbenchDropdownMenu
-import com.ai.assistance.operit.data.model.theme.*
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptImage
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceIcon
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceShape
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceState
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptInsets
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
 
 private data class StudioColorRequest(val title: String, val initial: String?, val seed: Color, val apply: (String?) -> Unit)
 

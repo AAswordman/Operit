@@ -30,7 +30,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.*
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.MemorySpaceProfileDocumentRepository
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -45,6 +44,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
+import com.ai.assistance.operit.data.memory.profile.MemorySpaceSummary
+import com.ai.assistance.operit.data.model.CharacterCard
 
 @Composable
 internal fun MemorySpaceOverview(onOpenSpace: (String) -> Unit, onOpenRecent: (String, String?) -> Unit) {

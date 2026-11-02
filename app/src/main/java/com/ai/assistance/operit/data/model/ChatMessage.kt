@@ -1,11 +1,15 @@
 package com.ai.assistance.operit.data.model
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolTimingState
+import com.ai.assistance.operit.core.chat.tools.timing.ToolTimingState
 import android.os.Parcel
 import android.os.Parcelable
 import com.ai.assistance.operit.util.stream.Stream
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.data.chat.archive.ChatMessageSerializer
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
 
 @Serializable(with = ChatMessageSerializer::class)
 data class ChatMessage(

@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import com.ai.assistance.operit.core.chat.voice.VoiceAnalysis
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageMarkup
 import com.ai.assistance.operit.core.chat.media.currentTurnMediaHistory
@@ -28,13 +28,13 @@ import com.ai.assistance.operit.core.chat.plugins.MessageProcessingPluginRegistr
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.MemoryQueryResultData
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
-import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceAttachmentProcessor
 import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceChangeTracker

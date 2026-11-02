@@ -3,6 +3,7 @@ package com.ai.assistance.operit.data.model
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.ai.assistance.operit.core.config.PromptFunctionType
 
 class FunctionTypeTest {
 

@@ -4,8 +4,8 @@ import android.content.Context
 import com.ai.assistance.operit.core.chat.tools.ToolExecutionManager
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.ui.common.a2ui.CardAuthoringCatalog
 import com.ai.assistance.operit.ui.common.a2ui.CardIcons
 import com.ai.assistance.operit.util.android.LocaleUtils

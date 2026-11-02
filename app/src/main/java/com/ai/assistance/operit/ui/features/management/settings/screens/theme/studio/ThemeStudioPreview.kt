@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.LocalThemePreviewUserName
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemePreviewBackground
 import com.ai.assistance.operit.ui.theme.*

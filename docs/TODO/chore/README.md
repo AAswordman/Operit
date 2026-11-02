@@ -45,3 +45,5 @@
 - [1.12.2+19 发行集成](release-plus19/index.md)
 
 - [1.12.2+20 发行集成](release-plus20/index.md)
+
+- [持久化模型与业务领域归属整理](model-domain-layout/index.md)

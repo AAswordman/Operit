@@ -11,7 +11,7 @@ import android.os.IBinder
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Typography
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.toSerializable
+import com.ai.assistance.operit.ui.theme.serialization.toSerializable
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.ui.floating.FloatingMode

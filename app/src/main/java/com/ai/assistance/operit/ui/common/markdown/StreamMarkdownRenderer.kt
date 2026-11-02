@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.common.markdown
 
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownCardStateStore
 import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment

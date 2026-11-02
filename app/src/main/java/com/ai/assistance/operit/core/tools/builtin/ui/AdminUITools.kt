@@ -15,8 +15,8 @@ import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResol
 import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
 import com.ai.assistance.operit.core.tools.system.shell.ShellIdentity
 import com.ai.assistance.operit.core.tools.system.uiautomator.UiAutomatorDumpGuard
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import com.ai.assistance.operit.util.files.OperitPaths
 import com.ai.assistance.operit.util.logging.AppLogger
@@ -332,11 +332,11 @@ open class AdminUITools(context: Context) : StandardUITools(context) {
                                 name = "tap",
                                 parameters =
                                         listOf(
-                                                com.ai.assistance.operit.data.model.ToolParameter(
+                                                com.ai.assistance.operit.core.tools.protocol.ToolParameter(
                                                         "x",
                                                         centerX.toString()
                                                 ),
-                                                com.ai.assistance.operit.data.model.ToolParameter(
+                                                com.ai.assistance.operit.core.tools.protocol.ToolParameter(
                                                         "y",
                                                         centerY.toString()
                                                 )

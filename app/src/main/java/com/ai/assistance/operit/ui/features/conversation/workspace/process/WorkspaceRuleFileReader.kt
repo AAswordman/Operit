@@ -3,8 +3,8 @@ package com.ai.assistance.operit.ui.features.conversation.workspace.process
 import android.content.Context
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileContentData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

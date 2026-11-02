@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.core.workflow.scheduling
 
-import com.ai.assistance.operit.data.model.NodePosition
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.NodePosition
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.Workflow
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import org.junit.Assert.*

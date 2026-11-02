@@ -3,6 +3,10 @@ package com.ai.assistance.operit.data.model
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyFormatValidator
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 
 class ApiKeyFormatValidatorTest {
     @Test

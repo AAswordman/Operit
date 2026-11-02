@@ -6,10 +6,10 @@ import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PR
 import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PROVIDER_LIST_MODELS
 import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PROVIDER_SEND_MESSAGE
 import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_AI_PROVIDER_TEST_CONNECTION
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistration
 import com.ai.assistance.operit.plugins.toolpkg.decodeToolPkgHookResult
 import com.ai.assistance.operit.plugins.toolpkg.jsonObjectToMap

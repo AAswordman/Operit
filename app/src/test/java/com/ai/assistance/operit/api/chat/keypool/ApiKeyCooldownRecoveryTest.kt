@@ -1,8 +1,8 @@
 package com.ai.assistance.operit.api.chat.keypool
 
-import com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus
-import com.ai.assistance.operit.data.model.ApiKeyInfo
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

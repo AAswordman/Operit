@@ -105,7 +105,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.AiReference
+import com.ai.assistance.operit.core.chat.reference.AiReference
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.MessageGenerationDetails
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.formatMessageCompletionTime
@@ -113,7 +113,7 @@ import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.d
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.hasDisplayableTimingStats
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.hasDisplayableTokenSpeedStats
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.hasDisplayableTokenStats
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
