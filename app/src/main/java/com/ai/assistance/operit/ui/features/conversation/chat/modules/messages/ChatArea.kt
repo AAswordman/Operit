@@ -1299,12 +1299,11 @@ private fun MessageCopyPreviewBottomSheet(
         MessageCopyMode.XML_SOURCE -> stringResource(R.string.copy_xml_source)
     }
 
+    // 原生面板持有填色和轮廓，避免外层裁剪截断位移后的正文与操作按钮。
     ModalBottomSheet(
-        modifier = Modifier.clip(themeScriptShape("sheet", androidx.compose.material3.BottomSheetDefaults.ExpandedShape))
-                    .background(themeScriptFill("sheet", androidx.compose.material3.BottomSheetDefaults.ContainerColor))
-                    .themeScriptDecoration("sheet", drawFill = false, originalShape = androidx.compose.material3.BottomSheetDefaults.ExpandedShape),
         shape = themeScriptShape("sheet", androidx.compose.material3.BottomSheetDefaults.ExpandedShape),
-        containerColor = Color.Transparent,
+        containerColor = themeScriptFill("sheet", androidx.compose.material3.BottomSheetDefaults.ContainerColor),
+        contentColor = themeScriptContentColor("sheet", MaterialTheme.colorScheme.onSurface),
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
@@ -1312,6 +1311,8 @@ private fun MessageCopyPreviewBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = sheetMaxHeight)
+                // 装饰在面板内部绘制，随原生容器一起移动，不占用屏幕顶部区域。
+                .themeScriptDecoration("sheet", drawFill = false, originalShape = androidx.compose.material3.BottomSheetDefaults.ExpandedShape)
                 .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
         ) {
             Text(
