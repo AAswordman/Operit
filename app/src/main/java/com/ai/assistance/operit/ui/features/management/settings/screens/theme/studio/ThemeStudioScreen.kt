@@ -175,7 +175,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
             }
             if (picker) StudioTargetPicker(state) { picker = false }
             if (info) StudioProjectInfo(state) { info = false }
-            if (expandedPreview) StudioFullSheet(stringResource(R.string.studio_preview), { expandedPreview = false }) { StudioPreview(state, viewport, Modifier.fillMaxWidth().weight(1f)) }
+            if (expandedPreview) StudioFullSheet(stringResource(R.string.studio_preview), { expandedPreview = false }) { StudioPreview(state, viewport, Modifier.fillMaxWidth().weight(1f), fullScreen = true) }
             if (leaving) AlertDialog(
                 onDismissRequest = { leaving = false },
                 title = { Text(stringResource(R.string.studio_unsaved_title)) },

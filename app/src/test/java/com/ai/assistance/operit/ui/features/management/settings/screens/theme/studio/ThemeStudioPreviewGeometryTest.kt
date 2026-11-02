@@ -9,14 +9,38 @@ import org.junit.Test
 
 class ThemeStudioPreviewGeometryTest {
     @Test
-    fun compactAndFullPreviewsFitTheSameCompletePortraitScene() {
+    fun compactUsesWidthWhileFullFitsTheSamePortraitScene() {
         val viewport = IntSize(360, 800)
-        val compact = studioPreviewTransform(viewport, IntSize(360, 300))
-        assertEquals(.375f, compact.scale, .0001f)
-        assertEquals(IntOffset(113, 0), compact.position)
+        val compact = studioPreviewTransform(viewport, IntSize(360, 300), fitWidth = true)
+        assertEquals(1f, compact.scale, 0f)
+        assertEquals(IntOffset.Zero, compact.position)
+        assertEquals(800, compact.contentHeight)
         val full = studioPreviewTransform(viewport, IntSize(360, 744))
         assertEquals(.93f, full.scale, .0001f)
         assertEquals(IntOffset(13, 0), full.position)
+        assertEquals(744, full.contentHeight)
+    }
+
+    @Test
+    fun compactHeightDoesNotShrinkTheSceneOrChangeItsContentHeight() {
+        val viewport = IntSize(360, 800)
+        val short = studioPreviewTransform(viewport, IntSize(360, 240), fitWidth = true)
+        val tall = studioPreviewTransform(viewport, IntSize(360, 340), fitWidth = true)
+        assertEquals(short, tall)
+        assertEquals(800, short.contentHeight)
+        assertTrue(short.contentHeight > 340)
+    }
+
+    @Test
+    fun compactKeepsTheAspectRatioAndCentersShortScenes() {
+        val portrait = studioPreviewTransform(IntSize(360, 800), IntSize(320, 260), fitWidth = true)
+        assertEquals(320f / 360f, portrait.scale, .0001f)
+        assertEquals(IntOffset.Zero, portrait.position)
+        assertEquals(712, portrait.contentHeight)
+        val landscape = studioPreviewTransform(IntSize(800, 360), IntSize(360, 300), fitWidth = true)
+        assertEquals(.45f, landscape.scale, .0001f)
+        assertEquals(IntOffset(0, 69), landscape.position)
+        assertEquals(300, landscape.contentHeight)
     }
 
     @Test
@@ -39,6 +63,10 @@ class ThemeStudioPreviewGeometryTest {
         assertEquals(0f, result.scale, 0f)
         assertTrue(result.scale.isFinite())
         assertEquals(IntOffset(140, 0), result.position)
+        val compact = studioPreviewTransform(IntSize(360, 800), IntSize(280, 0), fitWidth = true)
+        assertTrue(compact.scale.isFinite())
+        assertEquals(280f / 360f, compact.scale, .0001f)
+        assertEquals(623, compact.contentHeight)
     }
 
     @Test

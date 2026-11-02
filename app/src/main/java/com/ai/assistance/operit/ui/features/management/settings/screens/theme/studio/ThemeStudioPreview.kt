@@ -36,7 +36,7 @@ import io.github.fletchmckee.liquid.rememberLiquidState
 
 /** 与正式页面共用脚本宿主、角色参数、字体和绘制函数，点击样例只选择制作对象。 */
 @Composable
-internal fun StudioPreview(state: ThemeStudioState, viewport: IntSize, modifier: Modifier = Modifier) {
+internal fun StudioPreview(state: ThemeStudioState, viewport: IntSize, modifier: Modifier = Modifier, fullScreen: Boolean = false) {
     val context = LocalContext.current
     val values by state.session.values.collectAsState()
     val userName by state.session.globalUserNameFlow.collectAsState()
@@ -49,7 +49,7 @@ internal fun StudioPreview(state: ThemeStudioState, viewport: IntSize, modifier:
     }
     val backdrop = rememberLayerBackdrop()
     val water = if (isWaterGlassSupported()) rememberLiquidState() else null
-    StudioPreviewCanvas(viewport, modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+    StudioPreviewCanvas(viewport, modifier.padding(horizontal = 12.dp, vertical = 8.dp), fitWidth = !fullScreen, focusTarget = state.target.id) {
         CompositionLocalProvider(LocalThemePreferenceSnapshot provides snapshot, LocalLiquidGlassBackdrop provides backdrop, LocalWaterGlassState provides water) {
             MaterialTheme(colorScheme = colors, typography = typography) {
                 ThemeScriptHost(snapshot, draft = state.bundle) {
@@ -84,7 +84,7 @@ internal fun StudioPick(state: ThemeStudioState, id: String, modifier: Modifier 
     val target = ThemeStudioTargets.first { it.id == id }
     val label = target.label()
     val selectionShape = if (id == "appBar" || id.startsWith("appBar.")) themeScriptShape("appBar", androidx.compose.ui.graphics.RectangleShape) else RoundedCornerShape(14.dp)
-    Box(modifier.focusProperties { canFocus = false }.clearAndSetSemantics {
+    Box(modifier.themePreviewFocus(id).focusProperties { canFocus = false }.clearAndSetSemantics {
         contentDescription = label
         onClick { state.select(target); true }
     }) {

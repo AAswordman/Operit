@@ -33,7 +33,7 @@ fun ThemeScriptPopupPanel(
             // 原生容器统一合成不透明度，填色和内部装饰不再重复相乘。
             CompositionLocalProvider(LocalThemeHandledOpacity provides (LocalThemeHandledOpacity.current + surfaceId)) {
                 Surface(
-                    modifier = modifier.alpha(style?.opacity ?: 1f),
+                    modifier = modifier.themePreviewFocus(surfaceId).alpha(style?.opacity ?: 1f),
                     shape = shape,
                     color = themeScriptFill(surfaceId, containerColor),
                     shadowElevation = style?.elevation?.dp ?: 4.dp,
