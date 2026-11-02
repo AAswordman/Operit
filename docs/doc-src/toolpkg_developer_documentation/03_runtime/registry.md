@@ -213,5 +213,6 @@ registerAiProvider(definition: AiProviderRegistration): void
 - 插件被禁用后，宿主在最长约 5 秒的审计周期内强制关闭其全部悬浮窗。
 - 窗口内容是插件注册的 Compose UI 路由；`open` 的 `state` 作为初始 state 进入渲染会话，页面通过 `ctx.useState` 读取，`update` 的浅合并 state 会体现在重渲染中。
 - Android 的 overlay 窗口天然位于普通应用之上：`alwaysOnTop: false` 会被记录与回显，但布局上不生效。
+- 完整示例见仓库 `examples/floating_window_demo/`（工具箱控制页 + 悬浮窗内容页）。
 
 相关页面：[包 Manifest 与资源格式](../02_package_model/package_format.md)、[Hook 参考](../05_hooks/index.md)、[API 版本规则](../09_compatibility/api_versions.md)。

@@ -643,7 +643,7 @@ await ToolPkg.ui.floatingWindows.close('dashboard');
 
 `options` 支持 `x` / `y` / `width` / `height`（16-4096 逻辑像素）与 `alwaysOnTop` / `clickThrough` / `focusable` / `draggable`。Android 的 overlay 窗口天然位于普通应用之上，`alwaysOnTop: false` 会被记录但无法生效。
 
-参数约束与错误语义的完整清单见[ToolPkg 注册 API](../03_runtime/registry.md) 的悬浮窗一节。
+参数约束与错误语义的完整清单见[ToolPkg 注册 API](../03_runtime/registry.md) 的悬浮窗一节；可安装的完整示例在仓库 `examples/floating_window_demo/`。
 
 ## ToolPkg Logo
 
