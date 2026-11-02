@@ -13,6 +13,18 @@ class ThemeStudioCatalogTest {
     }
 
     @Test
+    fun onlyChatPopupMenusOfferPositionEditing() {
+        val surfaces = ThemeStudioTargets.filter { it.kind == StudioKind.Surface }
+        assertEquals(ThemeScriptContract.popupSurfaceIds, surfaces.filter { it.supports(StudioSurfaceControl.PopupOffset) }.map { it.id }.toSet())
+        surfaces.filter { it.id in ThemeScriptContract.popupSurfaceIds }.forEach {
+            assertTrue(it.supports(StudioSurfaceControl.Shape))
+            assertTrue(it.supports(StudioSurfaceControl.Stroke))
+            assertTrue(it.supports(StudioSurfaceControl.Padding))
+            assertEquals(StudioScene.Components, it.scene)
+        }
+    }
+
+    @Test
     fun catalogCoversAllSurfacesAndOnlyInteractiveTargetsOfferStateEditing() {
         assertEquals(ThemeScriptContract.surfaceIds, ThemeStudioTargets.filter { it.kind == StudioKind.Surface }.map { it.id }.toSet())
         assertEquals(ThemeScriptContract.iconIds, ThemeStudioTargets.filter { it.kind == StudioKind.Icon }.map { it.id }.toSet())

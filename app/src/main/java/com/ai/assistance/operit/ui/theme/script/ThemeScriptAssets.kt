@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontFamily
 import com.ai.assistance.operit.data.model.theme.ThemeScriptAppearance
+import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
 import com.ai.assistance.operit.data.model.theme.forMode
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
 import com.caverock.androidsvg.SVG
@@ -49,14 +50,14 @@ internal object ThemeScriptAssets {
                 else -> {
                     val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-                    require(options.outWidth > 0 && options.outHeight > 0 && options.outWidth.toLong() * options.outHeight <= 4_194_304L) { "Theme bitmap exceeds the decoded pixel budget" }
+                    require(options.outWidth > 0 && options.outHeight > 0 && options.outWidth.toLong() * options.outHeight <= ThemeScriptContract.MAX_BITMAP_PIXELS) { "Theme bitmap exceeds the decoded pixel budget" }
                     val bitmap = requireNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size)) { "Cannot decode theme bitmap" }
                     ThemeScriptImage.Bitmap(bitmap.asImageBitmap())
                 }
             }
             if (image is ThemeScriptImage.Bitmap) {
                 bitmapPixels += image.image.width.toLong() * image.image.height
-                require(bitmapPixels <= 4_194_304L) { "Theme drawing assets exceed the decoded pixel budget" }
+                require(bitmapPixels <= ThemeScriptContract.MAX_BITMAP_PIXELS) { "Theme drawing assets exceed the decoded pixel budget" }
             }
             image
         }

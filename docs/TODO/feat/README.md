@@ -51,7 +51,8 @@
 - [Summary Section Overrides](summary-section-overrides/index.md) · `summary-section-overrides`
 - [主题布局页签与对话批量移动](theme-layout-batch-move/index.md) · `theme-layout-batch-move`
 - [主题导入与导出](theme-sharing/index.md) · `theme-sharing`
-- [主题背景透明度](theme-transparency/index.md) · `theme-transparency`
+- [主题背景透明度](theme-transparency/index.md)
+- [聊天弹起菜单的主题形状与位置](chat-popup-theme-layout/index.md) · `theme-transparency`
 - [主题设置工作区](theme-workbench/index.md) · `theme-workbench`
 - [Theme Target Menu Avatars](theme_target_menu_avatars_20260805/index.md) · `theme_target_menu_avatars_20260805`
 - [Thinking quality slider UI](thinking_quality_slider_ui/index.md) · `thinking_quality_slider_ui`

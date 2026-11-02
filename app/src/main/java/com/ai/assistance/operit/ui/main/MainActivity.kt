@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Observer
@@ -43,7 +42,6 @@ import com.ai.assistance.operit.data.updates.UpdateManager
 import com.ai.assistance.operit.data.updates.UpdateStatus
 import com.ai.assistance.operit.ui.common.NavItem
 import com.ai.assistance.operit.ui.features.support.onboarding.screens.WelcomeScreen
-import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loading.McpLoadingScreenWithState
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loading.McpLoadingState
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loading.LocalMcpLoadingState
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loading.McpLoadingStateRegistry
@@ -84,7 +82,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var anrMonitor: AnrMonitor
     private lateinit var mcpRepository: MCPRepository
 
-    // ======== 模型上下文协议手动加载状态 ========
+    // ======== 模型上下文协议后台加载状态 ========
     private val mcpLoadingState = McpLoadingState()
 
     // ======== 双击返回退出相关变量 ========
@@ -189,15 +187,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // 仅为手动加载入口提供状态与日志，不在应用启动时运行服务。
+        // 后台检查已配置且启用的服务，整个加载过程不挂载界面浮层。
         mcpLoadingState.setAppContext(this)
         McpLoadingStateRegistry.bind(mcpLoadingState, lifecycleScope)
 
-        // 设置跳过加载的回调
-        mcpLoadingState.setOnSkipCallback {
-            AppLogger.d(TAG, "用户跳过了模型上下文协议加载面板")
-            OKToast.info(this, getString(R.string.plugin_loading_skipped), OKToast.LENGTH_SHORT).show()
-        }
+        mcpLoadingState.startConfiguredServers(applicationContext, lifecycleScope)
 
         // 设置初始界面
         setAppContent()
@@ -425,8 +419,8 @@ class MainActivity : ComponentActivity() {
 
         McpLoadingStateRegistry.unbind(mcpLoadingState)
 
-        // 确保隐藏加载界面
-        mcpLoadingState.hide()
+        // 主界面销毁时取消其加载批次，停止尚未完成的服务启动。
+        mcpLoadingState.cancel()
 
         // 主界面销毁时，确保关闭虚拟屏幕 Overlay 并断开 Shower WebSocket 连接
         try {
@@ -441,9 +435,6 @@ class MainActivity : ComponentActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         AppLogger.d(TAG, "onConfigurationChanged: new orientation=${newConfig.orientation}, last orientation=${lastOrientation}")
-
-        // 屏幕方向变化时，确保加载界面不可见
-        mcpLoadingState.hide()
 
         // 仅当方向确实发生变化时才处理
         if (newConfig.orientation != lastOrientation) {
@@ -587,11 +578,6 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                    // 用户手动启动服务时显示进度，开屏保持隐藏。
-                    McpLoadingScreenWithState(
-                            loadingState = mcpLoadingState,
-                            modifier = Modifier.zIndex(10f) // 确保加载界面在最上层
-                    )
                 }
 
                 // 方向改变时显示对话框

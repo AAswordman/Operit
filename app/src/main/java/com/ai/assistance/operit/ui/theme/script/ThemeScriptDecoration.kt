@@ -61,6 +61,7 @@ fun ThemeScriptSurface(
     drawFill: Boolean = true,
     drawStroke: Boolean = true,
     originalShape: Shape = RectangleShape,
+    drawElevation: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     var pressed by remember(surfaceId) { mutableStateOf(false) }
@@ -84,7 +85,7 @@ fun ThemeScriptSurface(
                             }
                         } finally { pressed = false }
                     }.onFocusChanged { focused = it.hasFocus }
-                        .themeScriptDecoration(surfaceId, backgroundOpacity, selected, enabled, error, drawFill, drawStroke, originalShape),
+                        .themeScriptDecoration(surfaceId, backgroundOpacity, selected, enabled, error, drawFill, drawStroke, originalShape, drawElevation),
                     propagateMinConstraints = true,
                 ) { content() }
             }
@@ -103,6 +104,7 @@ fun Modifier.themeScriptDecoration(
     drawFill: Boolean = true,
     drawStroke: Boolean = true,
     originalShape: Shape = RectangleShape,
+    drawElevation: Boolean = true,
 ): Modifier {
     val state = LocalThemeScriptState.current
     if (state !is ThemeScriptState.Ready) return this
@@ -126,7 +128,7 @@ fun Modifier.themeScriptDecoration(
     } else Modifier
     return this.heightIn(min = surface.minHeight.dp)
         .alpha(opacity)
-        .then(if (surface.elevation == null) Modifier else Modifier.shadow(surface.elevation.dp, shape, clip = false))
+        .then(if (!drawElevation || surface.elevation == null) Modifier else Modifier.shadow(surface.elevation.dp, shape, clip = false))
         .clip(shape)
         .then(pointer).onFocusChanged { focused = it.hasFocus }
         // border 在形状内侧绘制，避免居中描边被裁掉半宽；原生边框由宿主选择单独绘制。

@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.model.theme
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -28,6 +30,18 @@ data class ThemeScriptSurface(
     val textStyle: ThemeAppearanceText = ThemeAppearanceText(),
     val states: Map<String, ThemeAppearanceState> = emptyMap(),
     val opacity: Float = 1f,
+    // 零偏移不写入导出结果，未使用此扩展的主题保持原有字段集合。
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val popupOffset: ThemeScriptPopupOffset = ThemeScriptPopupOffset(),
+)
+
+/** 弹起菜单的位置偏移，单位 dp；只提供上、下、左三个物理方向。 */
+@Serializable
+data class ThemeScriptPopupOffset(
+    val up: Float = 0f,
+    val down: Float = 0f,
+    val left: Float = 0f,
 )
 
 @Serializable

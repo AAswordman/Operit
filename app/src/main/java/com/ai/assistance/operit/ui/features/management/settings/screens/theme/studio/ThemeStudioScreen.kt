@@ -32,6 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.IntSize
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.components.ActionSheetItem
 import com.ai.assistance.operit.ui.components.menu.WorkbenchDropdownMenu
@@ -66,6 +70,15 @@ internal fun ThemeStudioEntry(session: ThemeEditorSession, projectKey: String, t
 @Composable
 private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, targetName: String, onClose: () -> Unit) {
     val context = LocalContext.current
+    // 在打开工作室窗口之前确定参照尺寸，嵌入预览和全屏预览共用它。
+    val window = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    val systemBars = WindowInsets.systemBars
+    val viewport = IntSize(
+        (window.width - systemBars.getLeft(density, direction) - systemBars.getRight(density, direction)).coerceAtLeast(1),
+        (window.height - systemBars.getTop(density) - systemBars.getBottom(density)).coerceAtLeast(1),
+    )
     val state = remember(session, projectKey) { ThemeStudioState(context, session, projectKey, targetName) }
     val snapshot = LocalThemePreferenceSnapshot.current
     val scope = rememberCoroutineScope()
@@ -137,7 +150,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                         }
                         Box(Modifier.weight(1f).fillMaxWidth()) {
                             when (state.workspace) {
-                                StudioWorkspace.Design -> StudioDesign(state, onPickTarget = { picker = true }, onFullPreview = { expandedPreview = true })
+                                StudioWorkspace.Design -> StudioDesign(state, viewport, onPickTarget = { picker = true }, onFullPreview = { expandedPreview = true })
                                 StudioWorkspace.Source -> StudioSource(state, onImport = { importSource.launch(arrayOf("*/*")) })
                                 StudioWorkspace.Resources -> StudioResources(state, onImport = { importAsset.launch(arrayOf("*/*")) })
                             }
@@ -162,7 +175,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
             }
             if (picker) StudioTargetPicker(state) { picker = false }
             if (info) StudioProjectInfo(state) { info = false }
-            if (expandedPreview) StudioFullSheet(stringResource(R.string.studio_preview), { expandedPreview = false }) { StudioPreview(state, Modifier.fillMaxWidth().weight(1f)) }
+            if (expandedPreview) StudioFullSheet(stringResource(R.string.studio_preview), { expandedPreview = false }) { StudioPreview(state, viewport, Modifier.fillMaxWidth().weight(1f), fullScreen = true) }
             if (leaving) AlertDialog(
                 onDismissRequest = { leaving = false },
                 title = { Text(stringResource(R.string.studio_unsaved_title)) },
@@ -181,13 +194,13 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
 }
 
 @Composable
-private fun StudioDesign(state: ThemeStudioState, onPickTarget: () -> Unit, onFullPreview: () -> Unit) {
+private fun StudioDesign(state: ThemeStudioState, viewport: IntSize, onPickTarget: () -> Unit, onFullPreview: () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val previewHeight = (maxHeight * .44f).coerceIn(260.dp, 340.dp)
             .coerceAtMost((maxHeight - 160.dp).coerceAtLeast(0.dp))
         Column(Modifier.fillMaxSize()) {
             StudioPreviewToolbar(state, onFullPreview)
-            if (!state.previewCollapsed) StudioPreview(state, Modifier.fillMaxWidth().height(previewHeight))
+            if (!state.previewCollapsed) StudioPreview(state, viewport, Modifier.fillMaxWidth().height(previewHeight))
             Row(Modifier.fillMaxWidth().clickable(onClick = onPickTarget).background(StudioPanel).padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StudioTargetThumbnail(state, state.target)
                 Column(Modifier.weight(1f)) { Text(state.target.label(), style = MaterialTheme.typography.titleSmall); Text(stringResource(R.string.studio_select_component), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

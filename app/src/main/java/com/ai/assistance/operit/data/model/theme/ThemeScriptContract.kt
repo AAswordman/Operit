@@ -6,16 +6,20 @@ import kotlinx.serialization.json.Json
 object ThemeScriptContract {
     const val API_VERSION = 1
     const val MAX_BLUR_DP = 8f
+    const val MAX_POPUP_OFFSET_DP = 256f
     const val MAX_SOURCE_BYTES = 65536
     const val MAX_RESULT_BYTES = 131072
-    const val MAX_BUNDLE_BYTES = 16 * 1024 * 1024
-    const val MAX_ASSET_BYTES = 4 * 1024 * 1024
+    const val MAX_BUNDLE_BYTES = 64 * 1024 * 1024
+    const val MAX_ASSET_BYTES = 8 * 1024 * 1024
+    const val MAX_SVG_BYTES = 512 * 1024
+    const val MAX_BITMAP_PIXELS = 41_943_040L
     const val MAX_MANIFEST_BYTES = 65536
+    val popupSurfaceIds = setOf("attachmentMenu", "modelMenu", "chatSettingsMenu")
     val surfaceIds = setOf(
         "background", "userMessage", "assistantMessage", "composer", "userAvatar", "assistantAvatar",
         "appBar", "navigation", "navigationItem", "button", "iconButton", "input",
         "settingsCard", "dialog", "sheet", "menu", "listItem", "status", "toolCard",
-    )
+    ) + popupSurfaceIds
     val iconIds = setOf(
         "composer.settings", "composer.attachment", "composer.microphone", "composer.send",
         "composer.stop", "composer.fullscreen", "composer.queue", "composer.expand",
@@ -133,6 +137,11 @@ object ThemeScriptContract {
             surface.size?.let { require(id in setOf("userAvatar", "assistantAvatar") && it.isFinite() && it in 16f..96f) { "Invalid avatar size" } }
             require(surface.messageWidth.isFinite() && surface.messageWidth in 0.3f..1f) { "Invalid message width" }
             require(id in setOf("userMessage", "assistantMessage") || surface.messageWidth == 1f) { "Width fraction belongs to messages" }
+            val offset = surface.popupOffset
+            require(listOf(offset.up, offset.down, offset.left).all { it.isFinite() && it in 0f..MAX_POPUP_OFFSET_DP }) {
+                "Popup offset is outside 0..256 dp"
+            }
+            require(id in popupSurfaceIds || offset == ThemeScriptPopupOffset()) { "Position offset belongs to chat popup menus" }
             val inset = surface.padding
             require(listOf(inset.start, inset.top, inset.end, inset.bottom).all { it.isFinite() && it in 0f..48f }) {
                 "Theme script padding is outside 0..48 dp"
