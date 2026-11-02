@@ -10,6 +10,8 @@ ToolPkg manifest 可以使用 `api_version` 声明包依赖的宿主 API 版本�
 
 `1.0.1` 包含 `1.12.1+4` 之后新增的 ToolPkg 公开能力，目前包括聊天运行态 Hook、消息长按菜单注册、Compose DSL 弹窗组件和 `Tools.Chat.call` 功能模型调用。
 
+`1.1.0` 引入插件悬浮窗 API `ToolPkg.ui.floatingWindows`，需要包含该能力的 `1.12.2` 或更新构建。接口形状与 Operit2 v2 类型中的同名定义同形；但 Operit2 将该能力标记为 `2.0.0`，两个宿主的版本号相互独立——Operit 未实现 v2 的其余接口，声明 `2.0.0` 的包无法在 Operit 加载，跨平台包需要按两端各自的 `api_version` 门禁声明。
+
 `examples/types/toolpkg.d.ts` 保持一份最新版声明，并用 `@since ToolPkg API x.y.z` 标注公开能力的引入版本。使用这些能力时，manifest 的 `api_version` 需要不低于对应版本。
 
 发布到市场时，市场版本信息会记录 manifest 中的 `api_version`。市场列表、详情和历史版本也会展示这个值；它与包自身的 `version` 以及归档格式的 `formatVer` 是不同的字段。对于缺失或空白的 `apiVersion`，按旧规范的 `1.0.0` 解释。
@@ -590,6 +592,7 @@ interface PromptTurn {
 - `getConfigDir(pluginId?)`
 - `ipc.on(channel, handler)`, `ipc.off(channel, handler?)`, `ipc.call(channel, payload?, options?)`
 - `wasm.call(moduleId, exportName, args?)`
+- `ui.floatingWindows.capabilities()` / `requestPermission()` / `open(options)` / `update(id, options, state?)` / `show(id)` / `hide(id)` / `close(id)` / `list()`
 
 注册方法、资源/配置、IPC 和 WASM 的完整参数约束、运行时路由、错误语义与返回解码见[ToolPkg 注册 API](../03_runtime/registry.md)。
 
@@ -608,6 +611,39 @@ const jarPath = await ToolPkg.readResource('apktool_lib_jar', 'apktool-lib.jar')
 - 如果资源 `mime` 是目录类型（例如 `inode/directory`、`vnd.android.document/directory`），运行时会先把该目录压成 zip，再返回这个 zip 文件的绝对路径；默认文件名会自动补 `.zip`。
 - `registerToolPkg()` 执行期间不可调用；调用会立即抛出异常。
 - 资源 key、目标包解析、已启用容器和失败路径的完整规则见[ToolPkg 注册 API](../03_runtime/registry.md)。
+
+## ToolPkg.ui.floatingWindows 悬浮窗
+
+`@since ToolPkg API 1.1.0`。插件可以在系统 overlay 层打开自己注册的 Compose UI 路由作为悬浮窗，行为契约与 Operit2 对齐：
+
+- `capabilities()` 查询宿主能力，不弹权限提示；`requestPermission()` 跳系统 overlay 权限设置页，返回后复查 capabilities
+- `open({ id, route, state?, options? })` 建立窗口会话；`route` 必须是本包经 `registerUiRoute` 注册的 Compose DSL 路由，`state` 作为初始状态传入渲染会话
+- `update(id, options, state?)` 对 options 做补丁合并、对 state 做浅合并，不重建会话
+- `show` / `hide` 切换可见性并保留会话，`close` 释放会话与引擎
+- 窗口 `id` 为 trim 后 1-128 字符，仅在本包命名空间内生效；单个插件最多 16 个窗口
+- 插件被禁用后宿主会强制关闭其全部悬浮窗
+
+```ts
+const caps = await ToolPkg.ui.floatingWindows.capabilities();
+if (!caps.permissionGranted) {
+    await ToolPkg.ui.floatingWindows.requestPermission();
+}
+
+const info = await ToolPkg.ui.floatingWindows.open({
+    id: 'dashboard',
+    route: 'screens/dashboard',
+    state: { count: 0 },
+    options: { width: 320, height: 240, draggable: true },
+});
+
+await ToolPkg.ui.floatingWindows.update('dashboard', { x: 100 }, { count: 1 });
+await ToolPkg.ui.floatingWindows.hide('dashboard');
+await ToolPkg.ui.floatingWindows.close('dashboard');
+```
+
+`options` 支持 `x` / `y` / `width` / `height`（16-4096 逻辑像素）与 `alwaysOnTop` / `clickThrough` / `focusable` / `draggable`。Android 的 overlay 窗口天然位于普通应用之上，`alwaysOnTop: false` 会被记录但无法生效。
+
+参数约束与错误语义的完整清单见[ToolPkg 注册 API](../03_runtime/registry.md) 的悬浮窗一节。
 
 ## ToolPkg Logo
 

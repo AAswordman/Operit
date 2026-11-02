@@ -21,6 +21,7 @@ status: complete
 
 - ToolPkg API `1.0.0` 是旧版基线。
 - ToolPkg API `1.0.1` 从 Operit `1.12.1+4` 起支持。
+- ToolPkg API `1.1.0` 从包含悬浮窗能力的 `1.12.2` 构建起支持。
 - 当前实现没有把其他 ToolPkg API 版本列入支持集合。
 
 支持集合按运行中的 `BuildConfig.VERSION_NAME` 计算。Operit 版本比较依次比较 major、minor、patch 和可选 build 数字；ToolPkg API 版本只接受严格的 `major.minor.patch` 三段格式，不接受前缀、后缀或缺段。
@@ -56,12 +57,13 @@ status: complete
 - 存在多段实现时，选择 `since <= 当前 API 版本` 的最高版本实现。
 - 重复版本、无效版本、非函数实现或没有适用实现会在 facade 构建/调用时抛出错误。
 
-当前代码通过 `JsToolPkgApiRuntime.method().since(version, implementation).build(name)` 实现版本化方法。`ToolPkg.registerChatMessageMenuItem` 和 `ToolPkg.registerChatRuntimeHook` 目前有 `1.0.1` 调用门禁。其他方法应以各自页面的源码版本标注与宿主实现为准；不得仅因类型声明存在 `@since` 就假设运行时也会延迟隐藏成员。
+当前代码通过 `JsToolPkgApiRuntime.method().since(version, implementation).build(name)` 实现版本化方法。`ToolPkg.registerChatMessageMenuItem` 和 `ToolPkg.registerChatRuntimeHook` 目前有 `1.0.1` 调用门禁；`ToolPkg.ui.floatingWindows` 的全部七个方法有 `1.1.0` 调用门禁。其他方法应以各自页面的源码版本标注与宿主实现为准；不得仅因类型声明存在 `@since` 就假设运行时也会延迟隐藏成员。
 
 ## 给插件作者的兼容策略
 
 - 仅使用 `1.0.0` 成员的包声明 `api_version: "1.0.0"`。
 - 使用 `1.0.1` 新成员的包声明 `api_version: "1.0.1"`，并要求用户运行 Operit `1.12.1+4` 或更新版本。
+- 使用悬浮窗 API 的包声明 `api_version: "1.1.0"`。注意 Operit2 将同形接口标记为 `2.0.0` 且两宿主版本号相互独立：跨平台包在两端需分别满足各自门禁。
 - 不要用运行时探测未声明的新成员来代替版本声明；版本门禁依据 manifest，而不是包版本或市场来源。
 - 如果同一份源码需要面向不同 API 版本发布，应构建分别声明兼容版本的产物，并确保每个产物只注册该版本可用的成员。
 - 升级 `api_version` 前逐项检查新版本引入的参数、返回结构、Hook 阶段与副作用变化。
@@ -70,6 +72,7 @@ status: complete
 
 - ToolPkg 注册 API 的 namespace 基线声明为 `1.0.0`。
 - `ChatMessageMenuItemEventName`、`ChatMessageSender`、`ChatRuntimeEventName`、`ChatRuntimeSlotName`、`ChatRuntimeStateName`、消息长按菜单相关 payload/return/registration 类型及其注册方法标记为 `1.0.1`。
+- `FloatingWindowOptions`、`FloatingWindowOpenOptions`、`FloatingWindowCapabilities`、`FloatingWindowInfo`、`FloatingWindowApi`、`UiApi` 与 `Registry.ui` 标记为 `1.1.0`。
 - `core.d.ts`、`chat.d.ts`、`compose-dsl.d.ts` 与 `results.d.ts` 也含有 `@since ToolPkg API 1.0.1` 的成员；逐项清单持续维护于[接口覆盖索引](./coverage.md)，模块页面会分别标出。
 
 ## 权威实现
