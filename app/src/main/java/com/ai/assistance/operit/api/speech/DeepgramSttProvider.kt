@@ -577,7 +577,7 @@ class DeepgramSttProvider(
                 val firstChannel = channels?.optJSONObject(0)
                 val alternatives = firstChannel?.optJSONArray("alternatives")
                 val firstAlt = alternatives?.optJSONObject(0)
-                val transcript = firstAlt?.optString("transcript", null)
+                val transcript = firstAlt?.optString("transcript", "")
                 if (!transcript.isNullOrBlank()) return transcript
                 return trimmed
             }

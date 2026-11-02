@@ -15,7 +15,7 @@
 3. **工具执行实现**（Kotlin 侧真正做事的逻辑）
 4. **脚本侧封装（JS Tools）**（给 JS/TS 脚本更好用的 API）
 5. **示例与类型定义**（examples/types 与 examples/**）
-6. **文档**（docs/doc-src/package-dev 等）
+6. **文档**（docs/doc-src/toolpkg_developer_documentation 等）
 7. **打包资源 / 产物**（app/src/main/assets/packages/*.js 等）
 
 其中 (1)(4)(5)(6) 是“对外契约”，(2)(3) 是“实现”。
@@ -143,7 +143,7 @@
 ### 2.8 必改：文档
 
 - **常见位置**：
-  - `docs/doc-src/package-dev/*.md`
+  - `docs/doc-src/toolpkg_developer_documentation/**/*.md`
   - `docs/doc-src/**/*.md`
 - **你要做的事**：
   - 更新 API 描述、参数说明、示例

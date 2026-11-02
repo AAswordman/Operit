@@ -1595,4 +1595,4 @@ ls -lh app/src/main/assets/packages/windows_control.toolpkg
 ## 12. 参考资料
 
 - [脚本开发指南](./SCRIPT_DEV_GUIDE.md)：了解如何编写子包脚本
-- [ToolPkg API 文档](./doc-src/package-dev/toolpkg.md)：了解注册 API
+- [ToolPkg API 文档](./doc-src/toolpkg_developer_documentation/04_modules/toolpkg.md)：了解注册 API

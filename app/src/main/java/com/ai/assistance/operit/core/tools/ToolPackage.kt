@@ -11,6 +11,7 @@ package com.ai.assistance.operit.core.tools
  import kotlinx.serialization.builtins.MapSerializer
  import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -297,6 +298,7 @@ object StringOrStringListSerializer : KSerializer<List<String>> {
      }
  }
  
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ToolPackage(
     val name: String,
