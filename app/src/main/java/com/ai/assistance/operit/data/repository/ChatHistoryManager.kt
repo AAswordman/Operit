@@ -1494,7 +1494,9 @@ class ChatHistoryManager private constructor(private val context: Context) {
         inheritGroupFromChatId: String? = null,
         characterCardName: String? = null,
         characterGroupId: String? = null,
-        setAsCurrentChat: Boolean = true
+        setAsCurrentChat: Boolean = true,
+        workspace: String? = null,
+        workspaceEnv: String? = null
     ): ChatHistory {
         val dateTime = LocalDateTime.now()
         val formattedTime =
@@ -1524,7 +1526,9 @@ class ChatHistoryManager private constructor(private val context: Context) {
                 outputTokens = 0,
                 group = finalGroup,
                 characterCardName = characterCardName, // 使用传入的角色卡名称，如果为null则不绑定
-                characterGroupId = characterGroupId // 绑定群组角色卡ID（可选）
+                characterGroupId = characterGroupId, // 绑定群组角色卡ID（可选）
+                workspace = workspace,
+                workspaceEnv = workspaceEnv
             )
 
         // 保存新聊天

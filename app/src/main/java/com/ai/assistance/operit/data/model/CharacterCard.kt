@@ -56,6 +56,7 @@ data class CharacterCard(
     val chatModelIndex: Int = 0, // 固定绑定时使用的模型索引
     val memoryProfileBindingMode: String = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL, // 记忆配置绑定模式
     val memoryProfileId: String? = null, // 固定绑定时使用的记忆配置ID
+    val defaultWorkspaceName: String? = null, // 默认工作区（SAF 仓库书签名称），留空表示不绑定
     val toolAccessConfig: CharacterCardToolAccessConfig = CharacterCardToolAccessConfig(), // 角色卡自定义工具白名单
     val isDefault: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
@@ -77,6 +78,33 @@ object CharacterCardMemoryProfileBindingMode {
 
     fun normalize(mode: String?): String {
         return if (mode == FIXED_PROFILE) FIXED_PROFILE else FOLLOW_GLOBAL
+    }
+}
+
+/**
+ * 角色卡默认工作区解析结果，字段语义与对话上的 workspace / workspaceEnv 一致。
+ */
+data class CharacterCardWorkspaceBinding(
+    val workspacePath: String,
+    val workspaceEnv: String
+) {
+    companion object {
+        private const val REPO_ENV_PREFIX = "repo:"
+        private const val REPO_ROOT_PATH = "/"
+
+        /**
+         * 只有书签仍然存在时才返回绑定，被删除或改名的书签解析为空，
+         * 让新对话保持未绑定状态而不是指向一个已经不存在的工作区。
+         */
+        fun resolveRepoBookmark(
+            defaultWorkspaceName: String?,
+            availableBookmarkNames: Collection<String>
+        ): CharacterCardWorkspaceBinding? {
+            val name = defaultWorkspaceName?.trim().orEmpty()
+            if (name.isEmpty()) return null
+            if (availableBookmarkNames.none { it == name }) return null
+            return CharacterCardWorkspaceBinding(REPO_ROOT_PATH, REPO_ENV_PREFIX + name)
+        }
     }
 }
 
@@ -136,6 +164,7 @@ data class OperitCharacterCardPayload(
     val chatModelIndex: Int = 0,
     val memoryProfileBindingMode: String = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL,
     val memoryProfileId: String? = null,
+    val defaultWorkspaceName: String? = null,
     val toolAccessConfig: CharacterCardToolAccessConfig? = null
 )
 

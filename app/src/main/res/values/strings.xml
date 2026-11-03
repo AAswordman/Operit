@@ -4515,6 +4515,11 @@
     <string name="character_card_memory_profile_fixed_profile">固定配置</string>
     <string name="character_card_memory_profile_specify_fixed_profile">指定固定记忆配置</string>
     <string name="character_card_memory_profile_select">选择记忆配置</string>
+    <string name="character_card_workspace_binding">默认工作区</string>
+    <string name="character_card_workspace_default">指定默认工作区</string>
+    <string name="character_card_workspace_none">不绑定</string>
+    <string name="character_card_workspace_select">选择默认工作区</string>
+    <string name="character_card_workspace_empty_hint">暂无可用工作区，请先在文件管理器中添加仓库</string>
     <string name="character_card_tool_access_title">自定义允许使用的工具</string>
     <string name="character_card_tool_access_enable">启用角色卡级工具白名单</string>
     <string name="character_card_tool_access_follow_global">当前跟随全局配置</string>

@@ -4566,6 +4566,11 @@
     <string name="character_card_memory_profile_fixed_profile">Fixed Config</string>
     <string name="character_card_memory_profile_specify_fixed_profile">Specify Fixed Memory Config</string>
     <string name="character_card_memory_profile_select">Select Memory Config</string>
+    <string name="character_card_workspace_binding">Default Workspace</string>
+    <string name="character_card_workspace_default">Specify Default Workspace</string>
+    <string name="character_card_workspace_none">No Workspace</string>
+    <string name="character_card_workspace_select">Select Default Workspace</string>
+    <string name="character_card_workspace_empty_hint">No workspace yet. Add a repository in the file manager first.</string>
     <string name="character_card_tool_access_title">Custom Allowed Tools</string>
     <string name="character_card_tool_access_enable">Enable role-card tool whitelist</string>
     <string name="character_card_tool_access_follow_global">Currently following global settings</string>
