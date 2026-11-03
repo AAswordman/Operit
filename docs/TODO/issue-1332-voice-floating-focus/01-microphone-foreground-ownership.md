@@ -3,7 +3,7 @@ step: 1
 scope: 麦克风前台资格的归属与生命周期
 ---
 
-# 麦克风前台资格归浮窗服务所有
+# 麦克风前台资格由浮窗服务在语音会话期间持有
 
 ## 旧实现
 
@@ -33,7 +33,15 @@ Android 9 起，进程在缺少合法收音资格时采集音频不会报错，`
 android:foregroundServiceType="dataSync|microphone"
 ```
 
-`onCreate` 组装前台类型时按录音授权状态带上 `microphone`。带类型调用要求 `RECORD_AUDIO` 已授予，否则系统抛 `SecurityException`，所以类型跟随授权状态组装，这是平台调用边界而不是回退分支。
+类型**不在** `onCreate` 申请。`microphone` 属于 while-in-use 权限，targetSdk ≥ 34 时应用在后台创建带该类型的前台服务会直接抛 `SecurityException`，`checkSelfPermission()` 在后台照样返回 `PERMISSION_GRANTED`，拦不住这个异常。而浮窗会被外部 HTTP、广播、intent 工作流、ToolPkg 等没有可见 Activity 的入口拉起；若在服务创建时就带上 microphone，这些入口在 Android 14+ 上会连浮窗都起不来。
+
+改为随语音会话追加类型。`FloatingChatService.setVoiceSessionForeground(active)` 用同一个通知重新调用 `startForeground`：语音会话开始时组装 `dataSync|microphone`，结束时降回 `dataSync`；类型按 `RECORD_AUDIO` 授权状态组装，未授予时不带 microphone。调用点全在浮窗 UI 侧：
+
+- `FloatingFullscreenModeViewModel.startVoiceCapture()` 在 `startListening()` 之前追加，保证采集开始时类型已经就位（波浪模式与底部按住说话共用这一入口）
+- `stopVoiceCapture()` 在底部按住说话这类单次采集结束后收回；波浪模式下回合间隙继续收音，不收回
+- `exitWaveMode()` / `cleanup()` / `enterWaveMode()` 启动采集失败时收回
+
+这样也顺带解决了「`RECORD_AUDIO` 在服务启动之后才授予」的时序问题：下一次进入语音会话时，类型按当时的授权状态重新组装。
 
 `SpeechInteractionManager.startListening()` 删掉 `ensureMicrophoneForeground(forceStart = true)` 调用。`ACTION_PREPARE_WAKE_HANDOFF` 保留，它负责让唤醒监听让出麦克风，与采集资格是两件事。
 
@@ -41,6 +49,12 @@ android:foregroundServiceType="dataSync|microphone"
 
 ## 结果
 
-浮窗打开即持有麦克风前台类型并保持到会话结束，多轮对话不再依赖 AI 回合间隙里某个服务是否还活着。唤醒监听那条链路保持原样，仍由 `tryPromoteToMicrophoneForeground()` 在 Activity 可见时补类型。
+浮窗语音会话期间进程持有 microphone 前台类型，多轮对话不再依赖 AI 回合间隙里某个服务是否还活着。非语音会话（被外部 HTTP / 广播 / intent 工作流拉起、只显示浮窗）仍然只有 `dataSync`，后台启动不会被 while-in-use 限制拦下。唤醒监听那条链路保持原样，仍由 `tryPromoteToMicrophoneForeground()` 在 Activity 可见时补类型。
+
+## 边界
+
+`setVoiceSessionForeground()` 对 `SecurityException` 只记录现场原因，不改写调用方请求的类型，也不做降级重试。
+
+追加类型时应用是否满足 while-in-use 条件取决于系统对「应用是否在前台」的判定：有可见 Activity 时可以申请；只有浮窗 overlay 可见、没有 resumed Activity 时能否通过，需要真机确认（包括报告机型所在的荣耀 ROM）。采集失败会由 `SpeechInteractionManager` 的启动失败回调呈现为界面提示。
 
 [DONE]
