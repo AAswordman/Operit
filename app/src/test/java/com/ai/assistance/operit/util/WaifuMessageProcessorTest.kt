@@ -4,11 +4,22 @@ import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeNoException
 import org.junit.Test
 
 class WaifuMessageProcessorTest {
+    @Test
+    fun isRenderableWaifuXmlBlock_keepsOnlyCompleteEmotionTags() {
+        assertTrue(WaifuMessageProcessor.isRenderableWaifuXmlBlock("<emotion>happy</emotion>"))
+        assertTrue(WaifuMessageProcessor.isRenderableWaifuXmlBlock("  <EMOTION>sad</EMOTION>\n"))
+
+        assertFalse(WaifuMessageProcessor.isRenderableWaifuXmlBlock("<status>busy</status>"))
+        assertFalse(WaifuMessageProcessor.isRenderableWaifuXmlBlock("<tool name=\"x\">y</tool>"))
+        assertFalse(WaifuMessageProcessor.isRenderableWaifuXmlBlock("<emotion>happy"))
+    }
+
     @Test
     fun calculateTypingDelayMs_firstSegmentIsImmediate() {
         assertEquals(
@@ -109,6 +120,16 @@ class WaifuMessageProcessorTest {
         } catch (e: UnsatisfiedLinkError) {
             assumeNoException(e)
         }
+    }
+
+    @Test
+    fun buildRenderableContentForWaifu_preservesEmotionXmlAndDropsControlXml() {
+        requireNativeStreamSplitter()
+        val content = "开头<status>busy</status><emotion>happy</emotion><tool name=\"x\">hidden</tool>结尾"
+        assertEquals(
+            "开头<emotion>happy</emotion>结尾",
+            WaifuMessageProcessor.buildRenderableContentForWaifu(content)
+        )
     }
 
     @Test
