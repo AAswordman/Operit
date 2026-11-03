@@ -8454,6 +8454,12 @@
     <string name="mcp_start_services">启动服务</string>
     <string name="mcp_starting_services">正在启动</string>
     <string name="mcp_start_services_failed">无法初始化模型上下文协议服务</string>
+    <string name="mcp_services_already_started">服务已启动，无需重复启动</string>
+    <string name="mcp_start_services_success">服务启动成功，共 %1$d 项</string>
+    <string name="mcp_start_services_partial">部分服务启动失败：成功 %1$d 项，失败 %2$d 项</string>
+    <string name="mcp_start_services_all_failed">服务启动失败，共 %1$d 项，请查看服务状态和配置</string>
+    <string name="mcp_start_services_error">服务启动失败：%1$s</string>
+    <string name="mcp_start_services_cancelled">服务启动已取消</string>
     <string name="mcp_services_ready_count">工具已就绪 %1$d/%2$d</string>
     <string name="theme_glass_requires_android13">玻璃效果需要 Android 13 或更高版本</string>
 
