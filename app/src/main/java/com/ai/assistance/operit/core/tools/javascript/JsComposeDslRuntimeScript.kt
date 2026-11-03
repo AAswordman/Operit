@@ -309,34 +309,6 @@ internal fun buildComposeDslRuntimeWrappedScript(script: String): String {
                     }
                 }
 
-                function __operit_snapshot_state() {
-                    var __state = __bundle.state;
-                    if (!__state || typeof __state !== 'object') {
-                        return null;
-                    }
-                    return Object.assign({}, __state);
-                }
-
-                function __operit_restore_state(__snapshot) {
-                    var __state = __bundle.state;
-                    if (!__snapshot || !__state || typeof __state !== 'object') {
-                        return;
-                    }
-                    Object.keys(__state).forEach(function(__key) {
-                        if (!Object.prototype.hasOwnProperty.call(__snapshot, __key)) {
-                            delete __state[__key];
-                        }
-                    });
-                    Object.keys(__snapshot).forEach(function(__key) {
-                        __state[__key] = __snapshot[__key];
-                    });
-                }
-
-                // The runtime bundle survives across dispatches, so state written by a handler
-                // that then fails would be rendered by the next successful action. Restoring the
-                // snapshot keeps a failed bridge write from leaking into the plugin's UI.
-                var __stateSnapshot = __operit_snapshot_state();
-
                 var __maybePromise;
                 try {
                     __maybePromise = __bundle.invokeAction(
@@ -345,7 +317,6 @@ internal fun buildComposeDslRuntimeWrappedScript(script: String): String {
                         __payloadIsArgumentList
                     );
                 } catch (__actionError) {
-                    __operit_restore_state(__stateSnapshot);
                     __operit_finalize_action();
                     throw __actionError;
                 }
@@ -361,7 +332,6 @@ internal fun buildComposeDslRuntimeWrappedScript(script: String): String {
                             return __finalResponse;
                         });
                     }, function(__actionError) {
-                        __operit_restore_state(__stateSnapshot);
                         __operit_finalize_action();
                         throw __actionError;
                     });

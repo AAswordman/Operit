@@ -14,8 +14,7 @@ import org.junit.Test
  * positional argument list as one payload, so `updateMemory(oldTitle, newTitle,
  * content)` saw `oldTitle` as an array and the other two parameters as
  * `undefined`. These tests pin the wire format that keeps the declared
- * `(...args: unknown[])` contract honest, plus the failure handling that keeps a
- * failed host write from repainting the plugin's UI.
+ * `(...args: unknown[])` contract honest.
  */
 class JsComposeDslBridgeArgumentsTest {
 
@@ -126,21 +125,16 @@ class JsComposeDslBridgeArgumentsTest {
     }
 
     @Test
-    fun `dispatch script rolls back plugin state when the action fails`() {
+    fun `dispatch script leaves plugin state alone when the action fails`() {
         val script = buildComposeDslRuntimeWrappedScript("")
 
+        // The dispatch function is shared by every Compose action, and async actions run
+        // concurrently. Rolling state back here would also undo writes made by actions that
+        // succeeded while this one was awaiting, so failure rollback stays out of this path.
         assertTrue(
-            "dispatch must snapshot state before invoking the handler",
-            script.contains("var __stateSnapshot = __operit_snapshot_state();")
-        )
-        assertEquals(
-            "state must be restored on both the sync-throw and async-reject paths",
-            2,
-            Regex(Regex.escape("__operit_restore_state(__stateSnapshot);")).findAll(script).count()
-        )
-        assertTrue(
-            "restoring state must clear keys the failed handler added",
-            script.contains("delete __state[__key];")
+            "dispatch must not snapshot or restore plugin state",
+            !script.contains("__operit_snapshot_state") &&
+                !script.contains("__operit_restore_state")
         )
     }
 }
