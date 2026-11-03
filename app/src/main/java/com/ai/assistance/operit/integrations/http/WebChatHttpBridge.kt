@@ -1232,11 +1232,11 @@ class WebChatHttpBridge(
                         }
                     }
                 } catch (e: CancellationException) {
-                    core.cancelMessage(activeChatId.get())
+                    core.cancelMessage(activeChatId.get(), "Web chat stream cancelled")
                     throw e
                 } catch (e: IOException) {
                     AppLogger.i(TAG, "Web SSE client disconnected for chatId=$chatId")
-                    core.cancelMessage(activeChatId.get())
+                    core.cancelMessage(activeChatId.get(), "Web chat client disconnected")
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "Web SSE stream failed for chatId=$chatId", e)
                     runCatching {
@@ -1249,20 +1249,20 @@ class WebChatHttpBridge(
                             )
                         )
                     }
-                    core.cancelMessage(activeChatId.get())
+                    core.cancelMessage(activeChatId.get(), "Web chat stream failed")
                 }
             }
         }
 
         val responseInput = object : FilterInputStream(pipeInput) {
-            override fun close() {
-                try {
-                    super.close()
-                } finally {
-                    streamJob.cancel()
-                    core.cancelMessage(activeChatId.get())
+                override fun close() {
+                    try {
+                        super.close()
+                    } finally {
+                        streamJob.cancel()
+                        core.cancelMessage(activeChatId.get(), "Web chat connection closed")
+                    }
                 }
-            }
         }
 
         return NanoHTTPD.newChunkedResponse(

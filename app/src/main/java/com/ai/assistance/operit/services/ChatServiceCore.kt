@@ -4,6 +4,7 @@ import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatTurnOptions
@@ -284,9 +285,9 @@ class ChatServiceCore(
         }
     }
 
-    fun cancelMessage(chatId: String) {
+    fun cancelMessage(chatId: String, reason: String = AIMessageManager.CANCELLATION_REASON_USER) {
         messageCoordinationDelegate.cancelSummaryForChat(chatId)
-        messageProcessingDelegate.cancelMessage(chatId)
+        messageProcessingDelegate.cancelMessage(chatId, reason)
     }
 
     suspend fun cancelMessageForDestructiveMutation(chatId: String) {

@@ -131,7 +131,7 @@ deleteChat(chatId: string): Promise<ChatDeleteResultData>
 - `message` 不能为空白。提供 `chatId` 时，宿主在该会话后台发送且不切换 UI；省略时发送到当前会话。
 - `roleCardId` 若非空会作为本次发送的角色卡覆盖值；`senderName` 的空白值会被忽略。
 - `persist_turn` 默认 `true`，`hide_user_message` 和 `disable_warning` 默认 `false`；四个布尔选项必须是 `true` 或 `false`。`notify_reply` 未提供时保持宿主默认值 `null`。
-- `timeout_ms` 必须是正整数，且覆盖从发起请求到获得回复的剩余等待时间；未提供时获取回复的默认上限为 180 秒。已有同一会话消息处理时，等待前一条处理结束也受该期限约束。
+- `timeout_ms` 必须是正整数，且覆盖从发起请求到获得回复的剩余等待时间；未提供时获取回复的默认上限为 180 秒。已有同一会话消息处理时，等待前一条处理结束也受该期限约束。等待超时只结束本次调用：返回带超时时长的错误，已收到的部分内容会放入 `aiResponse`，目标会话在后台继续生成回复，不会被取消，稍后可经 `getMessages` 读取最终结果。会话只会被用户主动取消打断，取消原因会如实传递给正在运行的工具执行，`User cancelled` 专属于用户操作。
 
 返回 `MessageSendResultData`，包含 `chatId`、原始 `message`、可为空的 `aiResponse`、`sentAt`，以及成功收到回复时的 `receivedAt`。
 

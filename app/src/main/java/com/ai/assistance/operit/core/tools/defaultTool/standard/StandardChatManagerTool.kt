@@ -37,6 +37,7 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
+import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.services.ChatServiceCore
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.floating.FloatingMode
@@ -47,7 +48,6 @@ import com.ai.assistance.operit.util.stream.SharedStream
 import java.time.ZoneId
 import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -73,12 +73,49 @@ data class MessageSendStreamSession(
     val responseStream: SharedStream<String>,
     val responseTimeoutMs: Long,
     private val currentStateProvider: () -> InputProcessingState,
-    private val cancelAction: () -> Unit
+    private val cancelAction: (reason: String) -> Unit
 ) {
     fun currentState(): InputProcessingState = currentStateProvider()
 
-    fun cancel() {
-        cancelAction()
+    /**
+     * 真正取消子会话的执行。仅供外部消费方在自身取消语义下调用（如客户端断连、A2A 任务取消），
+     * 必须传入真实取消原因；调用方等待超时不得调用此方法（见 #1225）。
+     */
+    fun cancel(reason: String = AIMessageManager.CANCELLATION_REASON_USER) {
+        cancelAction(reason)
+    }
+}
+
+/** send_message_to_ai 等待 AI 回复的结果：要么收齐回复，要么调用方等待超时。 */
+internal sealed interface AiResponseWaitResult {
+    data class Completed(val text: String) : AiResponseWaitResult
+
+    /** 调用方等待超时；[partialText] 为已收到的部分内容。子会话仍在后台继续执行。 */
+    data class WaitTimedOut(val partialText: String, val waitedMs: Long) : AiResponseWaitResult
+}
+
+/**
+ * 在 [timeoutMs] 预算内收集 [responseStream] 的全部内容。
+ *
+ * 超时只结束调用方这一次的等待：既不会取消生产端（子会话的流继续存在，可再次被收集），
+ * 也不会触发任何 cancelMessage。等待与执行解耦，见 #1225。
+ */
+internal suspend fun awaitAiResponseWithin(
+    responseStream: SharedStream<String>,
+    timeoutMs: Long,
+    onChunk: suspend (String) -> Unit = {}
+): AiResponseWaitResult {
+    val sb = StringBuilder()
+    return try {
+        withTimeout(timeoutMs) {
+            responseStream.collect { chunk: String ->
+                sb.append(chunk)
+                onChunk(chunk)
+            }
+        }
+        AiResponseWaitResult.Completed(sb.toString())
+    } catch (e: TimeoutCancellationException) {
+        AiResponseWaitResult.WaitTimedOut(partialText = sb.toString(), waitedMs = timeoutMs)
     }
 }
 
@@ -1936,30 +1973,38 @@ class StandardChatManagerTool(private val context: Context) {
                     )
                 }
 
-                val responseStream: SharedStream<String> = try {
+                val responseStream: SharedStream<String> = run {
                     var stream: SharedStream<String>? = core.getResponseStream(resolvedChatId)
-                    withTimeout(remainingTimeoutMs(RESPONSE_STREAM_ACQUIRE_TIMEOUT)) {
-                        while (stream == null || stream === preflightResponseStream) {
-                            val state = core.inputProcessingStateByChatId.value[resolvedChatId]
-                                ?: InputProcessingState.Idle
-                            if (state is InputProcessingState.Error) {
-                                throw IllegalStateException(state.message)
+                    val streamAcquireBudgetMs = remainingTimeoutMs(RESPONSE_STREAM_ACQUIRE_TIMEOUT)
+                    try {
+                        withTimeout(streamAcquireBudgetMs) {
+                            while (stream == null || stream === preflightResponseStream) {
+                                val state = core.inputProcessingStateByChatId.value[resolvedChatId]
+                                    ?: InputProcessingState.Idle
+                                if (state is InputProcessingState.Error) {
+                                    throw IllegalStateException(state.message)
+                                }
+                                delay(50)
+                                stream = core.getResponseStream(resolvedChatId)
                             }
-                            delay(50)
-                            stream = core.getResponseStream(resolvedChatId)
                         }
+                    } catch (e: TimeoutCancellationException) {
+                        // 等待与执行解耦（#1225）：响应流迟迟未出现只说明子会话启动较慢，
+                        // 调用方的等待到此结束，子会话继续在后台执行，不做 cancelMessage。
+                        AppLogger.d(
+                            TAG,
+                            "Timed out after ${streamAcquireBudgetMs}ms waiting for AI response stream to start: chatId=$resolvedChatId; sub-session continues in background"
+                        )
+                        return MessageSendStreamStartResult.Failed(
+                            ToolResult(
+                                toolName = tool.name,
+                                success = false,
+                                result = MessageSendResultData(chatId = resolvedChatId, message = message),
+                                error = "Timed out after ${streamAcquireBudgetMs}ms waiting for AI response to start; the message is still being processed in chat $resolvedChatId"
+                            )
+                        )
                     }
                     requireNotNull(stream)
-                } catch (e: TimeoutCancellationException) {
-                    runCatching { core.cancelMessage(resolvedChatId) }
-                    return MessageSendStreamStartResult.Failed(
-                        ToolResult(
-                            toolName = tool.name,
-                            success = false,
-                            result = MessageSendResultData(chatId = resolvedChatId, message = message),
-                            error = "Timeout waiting for AI response"
-                        )
-                    )
                 }
 
                 MessageSendStreamStartResult.Started(
@@ -1972,8 +2017,8 @@ class StandardChatManagerTool(private val context: Context) {
                             core.inputProcessingStateByChatId.value[resolvedChatId]
                                 ?: InputProcessingState.Idle
                         },
-                        cancelAction = {
-                            runCatching { core.cancelMessage(resolvedChatId) }
+                        cancelAction = { reason ->
+                            runCatching { core.cancelMessage(resolvedChatId, reason) }
                         }
                     )
                 )
@@ -1997,49 +2042,55 @@ class StandardChatManagerTool(private val context: Context) {
                 is MessageSendStreamStartResult.Failed -> startResult.result
                 is MessageSendStreamStartResult.Started -> {
                     val session = startResult.session
-                    val aiResponse =
-                        try {
-                            withTimeout(session.responseTimeoutMs) {
-                                val sb = StringBuilder()
-                                session.responseStream.collect { chunk: String ->
-                                    sb.append(chunk)
-                                }
-                                sb.toString()
-                            }
-                        } catch (e: TimeoutCancellationException) {
-                            runCatching { session.cancel() }
+                    // 等待与执行解耦（#1225）：超时只结束本次等待并返回准确的 timeout 结果，
+                    // 子会话与其正在运行的工具继续在后台执行，不做 session.cancel()。
+                    when (val waitResult = awaitAiResponseWithin(session.responseStream, session.responseTimeoutMs)) {
+                        is AiResponseWaitResult.WaitTimedOut -> {
+                            AppLogger.d(
+                                TAG,
+                                "Timed out after ${waitResult.waitedMs}ms waiting for AI reply: chatId=${session.chatId}; sub-session continues in background"
+                            )
                             return ToolResult(
                                 toolName = tool.name,
                                 success = false,
-                                result = MessageSendResultData(chatId = session.chatId, message = session.message),
-                                error = "Timeout waiting for AI reply"
+                                result = MessageSendResultData(
+                                    chatId = session.chatId,
+                                    message = session.message,
+                                    aiResponse = waitResult.partialText,
+                                    receivedAt = System.currentTimeMillis()
+                                ),
+                                error = "Timed out after ${waitResult.waitedMs}ms waiting for AI reply; the message is still being processed in chat ${session.chatId}"
                             )
                         }
+                        is AiResponseWaitResult.Completed -> {
+                            val aiResponse = waitResult.text
 
-                    val finalState = session.currentState()
-                    if (finalState is InputProcessingState.Error) {
-                        ToolResult(
-                            toolName = tool.name,
-                            success = false,
-                            result = MessageSendResultData(
-                                chatId = session.chatId,
-                                message = session.message,
-                                aiResponse = aiResponse,
-                                receivedAt = System.currentTimeMillis()
-                            ),
-                            error = finalState.message
-                        )
-                    } else {
-                        ToolResult(
-                            toolName = tool.name,
-                            success = true,
-                            result = MessageSendResultData(
-                                chatId = session.chatId,
-                                message = session.message,
-                                aiResponse = aiResponse,
-                                receivedAt = System.currentTimeMillis()
-                            )
-                        )
+                            val finalState = session.currentState()
+                            if (finalState is InputProcessingState.Error) {
+                                ToolResult(
+                                    toolName = tool.name,
+                                    success = false,
+                                    result = MessageSendResultData(
+                                        chatId = session.chatId,
+                                        message = session.message,
+                                        aiResponse = aiResponse,
+                                        receivedAt = System.currentTimeMillis()
+                                    ),
+                                    error = finalState.message
+                                )
+                            } else {
+                                ToolResult(
+                                    toolName = tool.name,
+                                    success = true,
+                                    result = MessageSendResultData(
+                                        chatId = session.chatId,
+                                        message = session.message,
+                                        aiResponse = aiResponse,
+                                        receivedAt = System.currentTimeMillis()
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -2101,7 +2152,6 @@ class StandardChatManagerTool(private val context: Context) {
                         )
                     )
 
-                    val fullResponse = StringBuilder()
                     var chunkIndex = 0
                     var receivedChars = 0
 
@@ -2126,59 +2176,66 @@ class StandardChatManagerTool(private val context: Context) {
                         chunkIndex += 1
                     }
 
-                    val aiResponse =
-                        try {
-                            coroutineScope {
-                                val rawStreamJob = async {
-                                    session.responseStream.collect { chunk: String ->
-                                        if (chunk.isEmpty()) {
-                                            return@collect
-                                        }
-                                        fullResponse.append(chunk)
-                                        receivedChars += chunk.length
-                                        if (!effectiveWaifuMode) {
-                                            sendChunk(chunk)
-                                        }
+                    // 等待与执行解耦（#1225）：超时只结束本次等待并发出准确的 timeout 事件，
+                    // 子会话与其正在运行的工具继续在后台执行，不做 session.cancel()。
+                    val waitResult = coroutineScope {
+                        val waifuStreamJob =
+                            if (effectiveWaifuMode) {
+                                launch {
+                                    WaifuMessageProcessor.streamSegmentsWithTypingQueue(
+                                        sourceStream = session.responseStream,
+                                        removePunctuation = waifuRemovePunctuation,
+                                        charDelayMs = waifuCharDelay
+                                    ).collect { segment ->
+                                        sendChunk(segment)
                                     }
-                                    fullResponse.toString()
                                 }
-
-                                val waifuStreamJob =
-                                    if (effectiveWaifuMode) {
-                                        launch {
-                                            WaifuMessageProcessor.streamSegmentsWithTypingQueue(
-                                                sourceStream = session.responseStream,
-                                                removePunctuation = waifuRemovePunctuation,
-                                                charDelayMs = waifuCharDelay
-                                            ).collect { segment ->
-                                                sendChunk(segment)
-                                            }
-                                        }
-                                    } else {
-                                        null
-                                    }
-
-                                val result = withTimeout(session.responseTimeoutMs) {
-                                    rawStreamJob.await()
-                                }
-                                waifuStreamJob?.join()
-                                result
+                            } else {
+                                null
                             }
-                        } catch (e: TimeoutCancellationException) {
-                            runCatching { session.cancel() }
+
+                        val result = awaitAiResponseWithin(
+                            responseStream = session.responseStream,
+                            timeoutMs = session.responseTimeoutMs
+                        ) { chunk: String ->
+                            if (chunk.isNotEmpty()) {
+                                receivedChars += chunk.length
+                                if (!effectiveWaifuMode) {
+                                    sendChunk(chunk)
+                                }
+                            }
+                        }
+
+                        when (result) {
+                            is AiResponseWaitResult.Completed -> waifuStreamJob?.join()
+                            is AiResponseWaitResult.WaitTimedOut -> waifuStreamJob?.cancel()
+                        }
+                        result
+                    }
+
+                    val aiResponse = when (waitResult) {
+                        is AiResponseWaitResult.Completed -> waitResult.text
+                        is AiResponseWaitResult.WaitTimedOut -> {
+                            AppLogger.d(
+                                TAG,
+                                "Timed out after ${waitResult.waitedMs}ms waiting for AI reply: chatId=${session.chatId}; sub-session continues in background"
+                            )
                             send(
                                 ToolResult(
                                     toolName = tool.name,
                                     success = false,
                                     result = MessageSendResultData(
                                         chatId = session.chatId,
-                                        message = session.message
+                                        message = session.message,
+                                        aiResponse = waitResult.partialText,
+                                        receivedAt = System.currentTimeMillis()
                                     ),
-                                    error = "Timeout waiting for AI reply"
+                                    error = "Timed out after ${waitResult.waitedMs}ms waiting for AI reply; the message is still being processed in chat ${session.chatId}"
                                 )
                             )
                             return@channelFlow
                         }
+                    }
 
                     val finalState = session.currentState()
                     val finalError =
