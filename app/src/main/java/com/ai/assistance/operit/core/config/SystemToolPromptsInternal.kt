@@ -2781,6 +2781,12 @@ object SystemToolPromptsInternal {
                                         type = "string",
                                         description = "notification body",
                                         required = true
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "chat_id",
+                                        type = "string",
+                                        description = "optional, chat session id to open when the notification is tapped",
+                                        required = false
                                     )
                                 )
                         ),
@@ -5804,6 +5810,12 @@ object SystemToolPromptsInternal {
                                         type = "string",
                                         description = "通知内容",
                                         required = true
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "chat_id",
+                                        type = "string",
+                                        description = "可选，点击通知时打开的会话 ID",
+                                        required = false
                                     )
                                 )
                         ),
