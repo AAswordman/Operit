@@ -108,7 +108,7 @@ class DistributionPublishingTest(unittest.TestCase):
             patch_summary = {"format": "apkraw-1", "fromPatchIndex": 6, "toPatchIndex": 7,
                              "patchFile": patch_file.name, "metaFile": metadata.name}
             with patch("sys.argv", arguments), patch.object(publisher, "inspect_apk", side_effect=[target, baseline]):
-                with patch.object(publisher, "prepare_patch", return_value=(patch_file, metadata, patch_summary)), patch.object(publisher, "ensure_source_tag"):
+                with patch.object(publisher, "prepare_patch", return_value=(patch_file, metadata, patch_summary)), patch.object(publisher, "ensure_source_tag"), patch.object(publisher, "release_prepared", return_value={"published": True}):
                     with patch.object(publisher, "run", side_effect=[json.dumps([release("1.12.2+6")]), "", "", ""]) as execute:
                         publisher.main()
             commands = [call.args for call in execute.call_args_list]
@@ -140,7 +140,9 @@ class DistributionPublishingTest(unittest.TestCase):
                 return json.dumps([release(version)] if prepare_only else []) if args[:2] == ("gh", "api") else ""
             with patch("sys.argv", arguments), patch.object(publisher, "inspect_apk", return_value=info):
                 with patch.object(publisher, "ensure_source_tag") as source_tag, patch.object(publisher, "run", side_effect=response) as execute:
-                    publisher.main()
+                    with patch.object(publisher, "release_prepared", return_value={"published": not prepare_only}) as resources:
+                        publisher.main()
+                    self.assertEqual(not prepare_only, resources.call_args.kwargs["publish_resources"])
             manifest = json.loads((root / "out/distribution-release.json").read_text())
             plan = json.loads((root / "out/release-plan.json").read_text())
             return [call.args for call in execute.call_args_list], source_tag.call_args_list, manifest, plan
@@ -172,6 +174,22 @@ class DistributionPublishingTest(unittest.TestCase):
         self.assertEqual([], tags)
         self.assertTrue(all(command[:2] == ("gh", "api") for command in commands))
         self.assertEqual("v1.12.2+15", plan["tag"])
+
+    def test_resource_publication_failure_stops_before_app_tag_or_release(self):
+        with tempfile.TemporaryDirectory() as folder:
+            apk = Path(folder) / publisher.APK_NAME
+            apk.write_bytes(b"signed apk fixture")
+            arguments = ["publish_release.py", "--apk", str(apk), "--build-tools", "sdk",
+                         "--repository", publisher.REPOSITORY, "--commit", "a" * 40,
+                         "--notes", "资源先于应用公开", "--output", str(Path(folder) / "out")]
+            info = {"versionName": "1.12.2+21", "versionCode": 77, "packageName": publisher.PACKAGE_NAME}
+            with patch("sys.argv", arguments), patch.object(publisher, "inspect_apk", return_value=info):
+                with patch.object(publisher, "run", return_value="[]") as execute, patch.object(publisher, "ensure_source_tag") as tag:
+                    with patch.object(publisher, "release_prepared", side_effect=ValueError("资源发布失败")):
+                        with self.assertRaisesRegex(ValueError, "资源发布失败"):
+                            publisher.main()
+            tag.assert_not_called()
+            self.assertTrue(all(call.args[:2] == ("gh", "api") for call in execute.call_args_list))
 
     def test_existing_source_tag_cannot_be_moved(self):
         refs = [{"ref": "refs/tags/v1.12.2+15"}]

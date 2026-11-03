@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -122,6 +123,18 @@ class RepositoryMigrationTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "OPERIT_DISTRIBUTION_TOKEN"):
                 check_publish_access.check("release")
         execute.assert_not_called()
+
+    def test_release_preflight_requires_resource_repository_write_access(self):
+        def response(command, **kwargs):
+            endpoint = command[2]
+            if '/git/ref/' in endpoint:
+                return SimpleNamespace(stdout='{}')
+            info = {"default_branch": "main", "permissions": {"push": RESOURCE_REPOSITORY not in endpoint}}
+            return SimpleNamespace(stdout=json.dumps(info))
+
+        with patch.dict("os.environ", {"GH_TOKEN": "fixture"}), patch.object(check_publish_access.subprocess, "run", side_effect=response):
+            with self.assertRaisesRegex(ValueError, RESOURCE_REPOSITORY):
+                check_publish_access.check("release")
 
 
 class ResourceArtifactTest(unittest.TestCase):
