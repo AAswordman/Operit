@@ -3,8 +3,8 @@ package com.ai.assistance.operit.data.repository
 import android.content.Context
 import com.ai.assistance.operit.data.db.ObjectBoxManager
 import com.ai.assistance.operit.data.model.MemoryAutoSaveCandidate
-import com.ai.assistance.operit.data.model.MemoryAutoSaveQueueStatus
-import com.ai.assistance.operit.data.model.summarizeMemoryAutoSaveQueue
+import com.ai.assistance.operit.core.memory.extraction.MemoryAutoSaveQueueStatus
+import com.ai.assistance.operit.core.memory.extraction.summarizeMemoryAutoSaveQueue
 import com.ai.assistance.operit.data.model.MemoryAutoSaveCandidate_
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor

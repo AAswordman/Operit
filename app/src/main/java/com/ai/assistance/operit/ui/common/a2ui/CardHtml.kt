@@ -1,6 +1,8 @@
 package com.ai.assistance.operit.ui.common.a2ui
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.MotionEvent
 import android.webkit.*
 import android.widget.FrameLayout
@@ -111,7 +113,8 @@ private fun HtmlVisual(source: String, styles: String, description: String?, hei
                     view.loadDataWithBaseURL(null, document, "text/html", "UTF-8", null)
                 }
             },
-            onReset = { it.releaseVisual() },
+            // 持有 WebView 的承载器不参与组合复用，避免标签切换时重置旧组合。
+            onReset = null,
             onRelease = { it.releaseVisual() },
         )
 }
@@ -119,6 +122,7 @@ private fun HtmlVisual(source: String, styles: String, description: String?, hei
 /** Only this empty, lightweight host survives offscreen; the WebView itself is destroyed. */
 internal class HtmlVisualHost(context: Context) : FrameLayout(context) {
     private var webView: OfflineCardWebView? = null
+    private val releaseHandler = Handler(Looper.getMainLooper())
 
     fun visual(): OfflineCardWebView = webView ?: OfflineCardWebView(context).also {
         webView = it
@@ -130,11 +134,14 @@ internal class HtmlVisualHost(context: Context) : FrameLayout(context) {
         webView = null
         view.onContentHeight = {}
         view.heightToken = null
-        // WebView must be detached before destroy; late height callbacks must not update the card.
+        // 先移除并解绑旧页面，迟到的高度通知不再触碰当前组合。
         removeView(view)
-        view.stopLoading()
-        view.onPause()
-        view.destroy()
+        // 销毁会触发平台视图回调，等当前 Compose 提交结束后再执行，避免重入。
+        releaseHandler.post {
+            view.stopLoading()
+            view.onPause()
+            view.destroy()
+        }
     }
 }
 

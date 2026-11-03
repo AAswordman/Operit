@@ -6912,6 +6912,7 @@
     <string name="gemini_error_cannot_connect">无法连接到服务器，请检查网络连接或API地址是否正确</string>
     <string name="gemini_error_max_retries">AI响应获取失败，已达最大重试次数: %1$s</string>
     <string name="gemini_error_response_failed">AI响应获取失败: %1$s</string>
+    <string name="gemini_error_empty_contents">没有可发送的消息内容：对话历史为空或只包含思考内容</string>
     <string name="gemini_error_connection_timeout">连接超时或中断，已重试 %1$d 次: %2$s</string>
     <string name="gemini_connection_success">连接成功！</string>
     <string name="gemini_connection_test_failed">连接测试失败: %1$s</string>
@@ -8453,6 +8454,12 @@
     <string name="mcp_start_services">启动服务</string>
     <string name="mcp_starting_services">正在启动</string>
     <string name="mcp_start_services_failed">无法初始化模型上下文协议服务</string>
+    <string name="mcp_services_already_started">服务已启动，无需重复启动</string>
+    <string name="mcp_start_services_success">服务启动成功，共 %1$d 项</string>
+    <string name="mcp_start_services_partial">部分服务启动失败：成功 %1$d 项，失败 %2$d 项</string>
+    <string name="mcp_start_services_all_failed">服务启动失败，共 %1$d 项，请查看服务状态和配置</string>
+    <string name="mcp_start_services_error">服务启动失败：%1$s</string>
+    <string name="mcp_start_services_cancelled">服务启动已取消</string>
     <string name="mcp_services_ready_count">工具已就绪 %1$d/%2$d</string>
     <string name="theme_glass_requires_android13">玻璃效果需要 Android 13 或更高版本</string>
 
@@ -9204,4 +9211,5 @@
     <string name="theme_icon_floating">悬浮窗口</string>
     <string name="theme_icon_navigation">导航项通用图标</string>
     <string name="theme_appearance_disabled">停用</string>
+    <string name="toolreg_terminal_task_desc">终端托管任务操作：%1$s</string>
 </resources>

@@ -80,7 +80,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.core.tools.runtime.ToolProgressBus

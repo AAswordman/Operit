@@ -8,8 +8,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import com.ai.assistance.operit.data.model.theme.ThemeScriptSurface
-import com.ai.assistance.operit.data.model.theme.forState
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.theme.script.forState
 
 /** 同一原生部件的颜色、正文和装饰必须读取同一个交互状态。 */
 internal val LocalThemeSurfaceStates = compositionLocalOf<Map<String, String>> { emptyMap() }

@@ -5,6 +5,7 @@ import io.objectbox.annotation.Entity
 import io.objectbox.annotation.Id
 import io.objectbox.relation.ToOne
 import java.io.Serializable
+import com.ai.assistance.operit.data.db.converter.EmbeddingConverter
 
 /**
  * 表示外部文档中的一个内容区块（例如，一个段落）。

@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.ui.features.management.settings.model.ModelWorkspaceDialog
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ApiKeyAttemptRecordEntity
-import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
 import com.ai.assistance.operit.data.stats.ApiKeyAttemptRepository
 import java.time.Instant
 import java.time.LocalDate

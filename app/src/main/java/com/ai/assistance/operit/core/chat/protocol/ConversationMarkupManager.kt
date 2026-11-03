@@ -6,7 +6,7 @@ import com.ai.assistance.operit.core.chat.media.MediaLinkParser
 import com.ai.assistance.operit.core.tools.runtime.ToolExecutionLimits
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.util.media.ImagePoolManager
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 
 /**
  * Manages the markup elements used in conversations with the AI assistant.

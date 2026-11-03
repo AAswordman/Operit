@@ -7,10 +7,10 @@ import com.ai.assistance.operit.core.tools.PackageToolParameter
 import com.ai.assistance.operit.core.tools.ToolPackage
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.SystemToolPromptCategory
-import com.ai.assistance.operit.data.model.ToolParameterSchema
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.core.tools.prompt.SystemToolPromptCategory
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.data.preferences.ResolvedCharacterCardToolAccess
 import com.ai.assistance.operit.data.skill.SkillRepository
 import java.util.Locale

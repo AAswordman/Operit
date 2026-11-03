@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.workflow.runtime
 
-import com.ai.assistance.operit.data.model.ExecuteNode
-import com.ai.assistance.operit.data.model.WorkflowNode
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNode
 
 
 /** 没有自定义名称的执行节点用真实动作标识，界面不使用节点序号或内部 ID。 */

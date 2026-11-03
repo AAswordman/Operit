@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.api.chat
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import com.ai.assistance.operit.core.chat.context.TokenUsageBreakdown
 import com.ai.assistance.operit.core.chat.voice.VoiceAnalysis
 import com.ai.assistance.operit.core.chat.voice.VoiceInputMode
@@ -45,13 +45,13 @@ import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilitySession
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
-import com.ai.assistance.operit.data.model.ToolInvocation
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
+import com.ai.assistance.operit.core.config.PromptFunctionType
+import com.ai.assistance.operit.core.tools.protocol.ToolInvocation
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
@@ -99,8 +99,8 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
 import com.ai.assistance.operit.core.config.SystemToolPrompts
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.model.ToolParameterSchema
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
 import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.util.android.LocaleUtils
 
@@ -682,7 +682,7 @@ class EnhancedAIService private constructor(context: Context) {
         functionType: FunctionType,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null
-    ): List<com.ai.assistance.operit.data.model.ModelParameter<*>> {
+    ): List<com.ai.assistance.operit.data.config.model.ModelParameter<*>> {
         ensureInitialized()
         val overrideConfigId = chatModelConfigIdOverride?.takeIf { it.isNotBlank() }
         return if (functionType == FunctionType.CHAT && overrideConfigId != null) {
@@ -2331,6 +2331,13 @@ class EnhancedAIService private constructor(context: Context) {
                 callerChatId = chatId,
                 callerCardId = roleCardId,
                 a2uiRunId = context.a2uiRunId,
+                onA2uiCard = { document ->
+                    // 等待工具返回前投递表单；显示正文和持久化正文必须保留同一份卡片。
+                    val suffix = "\n\n```a2ui\n$document\n```\n"
+                    context.streamBuffer.append(suffix)
+                    context.roundManager.appendChunk(suffix)
+                    collector.emit(suffix)
+                },
                 toolCallOffset = callOffset,
                 onToolTiming = context.onToolTiming,
             )
@@ -2995,7 +3002,7 @@ class EnhancedAIService private constructor(context: Context) {
     }
 
     private fun serializePromptHookModelParameters(
-        modelParameters: List<com.ai.assistance.operit.data.model.ModelParameter<*>>
+        modelParameters: List<com.ai.assistance.operit.data.config.model.ModelParameter<*>>
     ): List<Map<String, Any?>> {
         return modelParameters.map { parameter ->
             mapOf(

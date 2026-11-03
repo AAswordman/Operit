@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.theme.ThemeScriptBounds
-import com.ai.assistance.operit.data.model.theme.ThemeScriptInsets
+import com.ai.assistance.operit.data.theme.script.ThemeScriptBounds
+import com.ai.assistance.operit.data.theme.script.ThemeScriptInsets
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptImage
 import com.ai.assistance.operit.ui.theme.script.drawThemeLayer
 import kotlin.math.abs

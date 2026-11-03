@@ -2,7 +2,7 @@ package com.ai.assistance.operit.ui.features.management.settings.screens.theme.s
 
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import com.ai.assistance.operit.data.model.theme.ThemeScriptPopupOffset
+import com.ai.assistance.operit.data.theme.script.ThemeScriptPopupOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -28,12 +28,12 @@ import com.ai.assistance.operit.core.tools.MessageSendResultData
 import com.ai.assistance.operit.core.tools.MessageSendStreamEventData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.data.model.ChatHistory
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ChatTurnOptions
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.chat.runtime.ChatTurnOptions
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.config.PromptFunctionType
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager

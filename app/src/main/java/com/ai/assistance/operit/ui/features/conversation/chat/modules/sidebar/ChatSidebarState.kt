@@ -2,9 +2,9 @@ package com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterCard
-import com.ai.assistance.operit.data.model.CharacterGroupCard
+import com.ai.assistance.operit.data.character.CharacterGroupCard
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager

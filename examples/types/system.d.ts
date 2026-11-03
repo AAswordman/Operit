@@ -7,7 +7,7 @@ import {
     AppUsageTimeResultData, PerformanceMetricsResultData, DeviceInfoResultData, NotificationData, LocationData,
     BluetoothStateData, BluetoothBondedDevicesData, BluetoothScanResultData, BluetoothSessionData,
     BluetoothTransferData, BluetoothReadData, BluetoothBleServicesData, BluetoothBleNotificationData,
-    ADBResultData, IntentResultData, TerminalCommandResultData, TerminalStreamEventData, HiddenTerminalCommandResultData,
+    ADBResultData, IntentResultData, TerminalCommandResultData, TerminalTaskResultData, TerminalStreamEventData, HiddenTerminalCommandResultData,
     TerminalSessionCreationResultData, TerminalSessionCloseResultData, TerminalSessionScreenResultData,
     MusicPlaybackResultData
 } from './results';
@@ -282,12 +282,24 @@ export namespace System {
          */
         function create(sessionName?: string): Promise<TerminalSessionCreationResultData>;
 
+        /** 启动托管任务；yieldMs 只限制本次等待，timeoutMs 是包含排队时间的执行期限。 */
+        function start(sessionId: string, command: string, options?: {
+            timeoutMs?: number | string;
+            yieldMs?: number | string;
+        }): Promise<TerminalTaskResultData>;
+
+        /** 查询同一 runId；等待结束不会取消命令，yieldMs 范围为 0～30000。 */
+        function poll(runId: string, options?: { yieldMs?: number | string }): Promise<TerminalTaskResultData>;
+
+        /** 精确取消该任务，返回取消状态与底层清理结果。 */
+        function cancel(runId: string): Promise<TerminalTaskResultData>;
+
         /**
          * Execute a command in a terminal session.
          * @param sessionId The ID of the session.
          * @param command The command to execute.
          * @param timeoutMs Optional timeout in milliseconds. Strongly recommended to always pass explicitly.
-         * @returns 正常完成时返回命令结果；超时则取消当前命令并拒绝 Promise，会话保留，异常的 data 中保留输出及 timedOut === true。
+         * @returns 正常完成时返回命令结果；超时则精确取消本次命令并拒绝 Promise；无法恢复的会话会被关闭，异常的 data 中保留输出及 timedOut === true。
          */
         function exec(sessionId: string, command: string, timeoutMs?: number | string): Promise<TerminalCommandResultData>;
 

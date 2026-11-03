@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.script.themeAppearanceAreaLabel
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.script.themeAppearanceIconLabel
 

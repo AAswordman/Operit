@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.api
 
-import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelOption
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import org.junit.Assert.assertEquals

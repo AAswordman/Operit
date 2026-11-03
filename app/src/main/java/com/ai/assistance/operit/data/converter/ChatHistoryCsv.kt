@@ -3,10 +3,10 @@ package com.ai.assistance.operit.data.converter
 import com.ai.assistance.operit.data.chat.folders.ChatFolder
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import com.ai.assistance.operit.data.model.MessageSectionStorage
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.model.OperitArchivedChat
-import com.ai.assistance.operit.data.model.OperitArchivedMessageVariant
+import com.ai.assistance.operit.data.chat.archive.OperitArchivedChat
+import com.ai.assistance.operit.data.chat.archive.OperitArchivedMessageVariant
 import java.io.Reader
 import java.io.Writer
 import java.time.format.DateTimeFormatter

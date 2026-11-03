@@ -26,8 +26,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
-import com.ai.assistance.operit.data.model.theme.*
-
+import com.ai.assistance.operit.data.theme.script.ThemeAppearancePalette
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceShape
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceText
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
 internal fun themeColor(value: String): Color = Color(android.graphics.Color.parseColor(value))
 
 /** 显式声明的 token 覆盖原配色，其余角色沿用当前角色主题。 */
@@ -170,15 +173,17 @@ internal fun themeSurface(id: String): ThemeScriptSurface? =
 
 @Composable
 fun themeScriptShape(id: String, original: Shape): Shape {
-    val shape = themeSurface(id)?.shape ?: return original
-    return appearanceShape(shape)
+    val fragment = LocalThemeSurfaceFragments.current.getOrDefault(id, ThemeSurfaceFragment.Whole)
+    val shape = themeSurface(id)?.shape
+    return fragment.shape(if (shape == null) original else appearanceShape(shape))
 }
 
 /** 玻璃效果读取角点信息，解析结果需要保留原有角点形状的静态类型。 */
 @Composable
 fun themeScriptShape(id: String, original: CornerBasedShape): CornerBasedShape {
-    val shape = themeSurface(id)?.shape ?: return original
-    return appearanceShape(shape)
+    val fragment = LocalThemeSurfaceFragments.current.getOrDefault(id, ThemeSurfaceFragment.Whole)
+    val shape = themeSurface(id)?.shape
+    return fragment.shape(if (shape == null) original else appearanceShape(shape))
 }
 
 internal fun appearanceShape(shape: ThemeAppearanceShape): CornerBasedShape = when (shape.type) {

@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

@@ -2,14 +2,14 @@ package com.ai.assistance.operit.core.workflow
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.ai.assistance.operit.data.model.ConditionNode
-import com.ai.assistance.operit.data.model.ConditionOperator
-import com.ai.assistance.operit.data.model.ExecuteNode
-import com.ai.assistance.operit.data.model.NodePosition
-import com.ai.assistance.operit.data.model.ParameterValue
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.Workflow
-import com.ai.assistance.operit.data.model.WorkflowNodeConnection
+import com.ai.assistance.operit.core.workflow.model.ConditionNode
+import com.ai.assistance.operit.core.workflow.model.ConditionOperator
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.NodePosition
+import com.ai.assistance.operit.core.workflow.model.ParameterValue
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

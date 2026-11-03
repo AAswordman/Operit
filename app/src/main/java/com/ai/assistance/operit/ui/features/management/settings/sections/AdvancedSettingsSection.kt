@@ -24,7 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.features.management.settings.DebouncedModelConfigAutoSaveEffect
 import com.ai.assistance.operit.ui.features.management.settings.ModelConfigSaveCoordinator

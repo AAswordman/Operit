@@ -17,10 +17,10 @@ import com.ai.assistance.operit.core.tools.system.capture.MediaProjectionCapture
 import com.ai.assistance.operit.core.tools.system.capture.MediaProjectionHolder
 import com.ai.assistance.operit.core.tools.system.capture.ScreenCaptureActivity
 import kotlinx.coroutines.delay
-import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.core.tools.protocol.AITool
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.common.displays.UIOperationOverlay
 import com.ai.assistance.operit.ui.common.displays.UIAutomationProgressOverlay

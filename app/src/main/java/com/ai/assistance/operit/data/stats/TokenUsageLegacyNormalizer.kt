@@ -2,7 +2,7 @@ package com.ai.assistance.operit.data.stats
 
 import com.ai.assistance.operit.data.dao.TokenUsageModelAggregateRow
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
-import com.ai.assistance.operit.data.model.hasIndependentCacheWriteBilling
+import com.ai.assistance.operit.data.stats.hasIndependentCacheWriteBilling
 
 /**
  * Repairs only the in-memory shape of v20->v21 history rows.

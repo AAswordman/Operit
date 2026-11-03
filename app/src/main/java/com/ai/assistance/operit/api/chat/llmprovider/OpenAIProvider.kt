@@ -17,10 +17,10 @@ import android.util.Base64
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.api.chat.transport.EndpointCompleter
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
@@ -643,19 +643,19 @@ open class OpenAIProvider(
                         param.apiName
                     }
                 when (param.valueType) {
-                    com.ai.assistance.operit.data.model.ParameterValueType.INT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.INT ->
                         jsonObject.put(mappedApiName, param.currentValue as Int)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.FLOAT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.FLOAT ->
                         jsonObject.put(mappedApiName, param.currentValue as Float)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.STRING ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.STRING ->
                         jsonObject.put(mappedApiName, param.currentValue as String)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.BOOLEAN ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.BOOLEAN ->
                         jsonObject.put(mappedApiName, param.currentValue as Boolean)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.OBJECT -> {
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.OBJECT -> {
                         val raw = param.currentValue.toString().trim()
                         val parsed: Any? = try {
                             when {
@@ -1385,7 +1385,7 @@ open class OpenAIProvider(
     /**
      * 从结构化参数构建JSON Schema
      */
-    private fun buildSchemaFromStructured(params: List<com.ai.assistance.operit.data.model.ToolParameterSchema>): JSONObject {
+    private fun buildSchemaFromStructured(params: List<com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema>): JSONObject {
         val schema = JSONObject().apply {
             put("type", "object")
         }

@@ -3,8 +3,8 @@ package com.ai.assistance.operit.api.chat.model
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString

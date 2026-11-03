@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.ui.common.a2ui
 
 import android.content.Context
-import android.util.AtomicFile
+import androidx.core.util.AtomicFile
 import java.io.File
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 /**
  * Private, atomic sidecars. A conflated writer survives a card scrolling out of composition.
  * Never store protocol actions for replay, credentials, or a copy of the whole conversation.
+ * 同步发布、异步保存和恢复共用 AndroidX 原子文件协议。
  */
 internal object A2uiStateStore {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.workflow.scheduling
 
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.Workflow
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDate

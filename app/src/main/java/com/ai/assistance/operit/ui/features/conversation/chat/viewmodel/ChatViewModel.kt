@@ -32,9 +32,9 @@ import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.context.ContextWindowBreakdown
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileOperationData
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.AttachmentInfo
-import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
+import com.ai.assistance.operit.core.tools.protocol.AITool
 import com.ai.assistance.operit.data.chat.deletion.ChatDeletionResult
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
@@ -42,8 +42,8 @@ import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.repository.MessageTranslationRepository
-import com.ai.assistance.operit.data.model.PromptFunctionType
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.config.PromptFunctionType
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.conversation.workspace.preview.LocalWebServer
 import com.ai.assistance.operit.ui.floating.FloatingMode
@@ -86,7 +86,7 @@ import com.ai.assistance.operit.api.speech.tts.TtsServiceFactory
 import com.ai.assistance.operit.data.preferences.SpeechServiceProfilesPreferences
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.ui.features.conversation.workspace.WorkspaceBackupManager
 import com.ai.assistance.operit.ui.features.conversation.workspace.CommandConfig
@@ -100,7 +100,6 @@ import com.ai.assistance.operit.core.speech.text.TtsCleaner
 import com.ai.assistance.operit.core.speech.text.TtsSegmenter
 import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.findMentionTokens
 import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.findMentionTokenEndingAtCursor
-import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.isMentionContinuation
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -116,7 +115,7 @@ import com.ai.assistance.operit.services.core.TokenStatisticsDelegate
 import com.ai.assistance.operit.services.core.AttachmentDelegate
 import com.ai.assistance.operit.services.core.MessageCoordinationDelegate
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.WorkspaceRenameResult
+import com.ai.assistance.operit.core.files.workspace.WorkspaceRenameResult
 import com.ai.assistance.operit.services.ChatServiceCore
 import com.ai.assistance.operit.services.ChatServiceUiBridge
 import com.ai.assistance.operit.services.EmptyChatServiceUiBridge
@@ -2185,15 +2184,12 @@ class ChatViewModel(context: Context) : ViewModel() {
             if (currentChar.isWhitespace()) {
                 return null
             }
-            if (currentChar != '@' && currentChar != '/') {
+            // 选择菜单只由斜杠触发，普通 @ 输入不打开建议面板。
+            if (currentChar != '/') {
                 index -= 1
                 continue
             }
-            if (currentChar == '@' && index > 0 && isMentionContinuation(text[index - 1], '@')) {
-                index -= 1
-                continue
-            }
-            if (currentChar == '/' && index > 0 && !text[index - 1].isWhitespace()) {
+            if (index > 0 && !text[index - 1].isWhitespace()) {
                 index -= 1
                 continue
             }

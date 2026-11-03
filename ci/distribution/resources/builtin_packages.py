@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import zipfile
 from prepare_hub import ROOT, APK_FILES, digest, package
+from builtin_source_snapshot import fingerprint
 
 
 def whitelist() -> list[str]:
@@ -48,7 +49,7 @@ def source_fingerprint(source: str) -> str:
         if len(data) != size or stream.read(1) != b'\n':
             raise ValueError('内置扩展源码快照不完整：' + name)
         files.append((name, hashlib.sha256(data).hexdigest()))
-    return hashlib.sha256(json.dumps(files, ensure_ascii=False).encode()).hexdigest()
+    return fingerprint(dict(files), source)
 
 
 def normalize_plugin(source: Path, destination: Path, reverse: bool) -> dict:

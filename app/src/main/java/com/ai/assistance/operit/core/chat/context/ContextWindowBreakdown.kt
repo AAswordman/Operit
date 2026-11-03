@@ -2,7 +2,7 @@ package com.ai.assistance.operit.core.chat.context
 
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.core.chat.context.ChatUtils
 import java.util.Locale

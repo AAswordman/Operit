@@ -5501,6 +5501,7 @@
     <string name="gemini_error_cannot_connect">Tidak dapat menyambung ke pelayan, sila semak sambungan rangkaian atau alamat API</string>
     <string name="gemini_error_max_retries">Gagal mendapatkan respons AI, mencapai had percubaan semula: %1$s</string>
     <string name="gemini_error_response_failed">Gagal mendapatkan respons AI: %1$s</string>
+    <string name="gemini_error_empty_contents">Tiada kandungan mesej untuk dihantar: sejarah perbualan kosong atau hanya mengandungi teks pemikiran</string>
     <string name="gemini_error_connection_timeout">Sambungan tamat masa atau terputus, telah mencuba semula %1$d kali: %2$s</string>
     <string name="gemini_connection_success">Sambungan berjaya!</string>
     <string name="gemini_connection_test_failed">Ujian sambungan gagal: %1$s</string>

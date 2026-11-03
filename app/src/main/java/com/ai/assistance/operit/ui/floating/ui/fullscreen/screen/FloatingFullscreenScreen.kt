@@ -57,7 +57,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.ui.floating.FloatContext

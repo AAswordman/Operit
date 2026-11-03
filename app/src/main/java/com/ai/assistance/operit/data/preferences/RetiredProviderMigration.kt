@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.preferences
 
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement

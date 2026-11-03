@@ -6,9 +6,9 @@ import com.ai.assistance.operit.core.tools.MessageSendResultData
 import com.ai.assistance.operit.core.tools.builtin.chat.MessageSendStreamSession
 import com.ai.assistance.operit.core.tools.builtin.chat.MessageSendStreamStartResult
 import com.ai.assistance.operit.core.tools.builtin.chat.StandardChatManagerTool
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean

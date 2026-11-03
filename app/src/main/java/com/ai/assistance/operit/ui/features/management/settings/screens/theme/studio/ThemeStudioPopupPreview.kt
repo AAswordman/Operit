@@ -12,8 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.MemorySpace
-import com.ai.assistance.operit.data.model.ModelConfigSelection
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
+import com.ai.assistance.operit.data.config.model.ModelConfigSelection
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager

@@ -22,7 +22,7 @@ import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import kotlinx.coroutines.launch
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import kotlinx.coroutines.flow.flowOf

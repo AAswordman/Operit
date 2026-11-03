@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.workflow.runtime
 
-import com.ai.assistance.operit.data.model.WorkflowExecutionIssue
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionIssue
 
 /** 将工具和运行环境的错误归为稳定的语义；用户界面通过资源本地化，不展示异常类和堆栈。 */
 internal fun classifyWorkflowIssue(reason: String): WorkflowExecutionIssue {

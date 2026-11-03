@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.workflow
 import android.content.Context
 import androidx.work.*
 import com.ai.assistance.operit.core.workflow.scheduling.WorkflowSchedulePlan
-import com.ai.assistance.operit.data.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.Workflow
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException

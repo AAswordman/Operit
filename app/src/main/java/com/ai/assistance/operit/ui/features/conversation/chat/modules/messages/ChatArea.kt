@@ -19,6 +19,8 @@ import androidx.compose.runtime.collectAsState
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment
+import com.ai.assistance.operit.ui.theme.script.LocalThemeSurfaceFragments
+import com.ai.assistance.operit.ui.theme.script.ThemeSurfaceFragment
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.timeline.LocalChatMessageSlice
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.timeline.rememberChatTimelineEntries
 import androidx.compose.animation.core.RepeatMode
@@ -105,7 +107,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.AiReference
+import com.ai.assistance.operit.core.chat.reference.AiReference
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.MessageGenerationDetails
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.formatMessageCompletionTime
@@ -113,7 +115,7 @@ import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.d
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.hasDisplayableTimingStats
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.hasDisplayableTokenSpeedStats
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details.hasDisplayableTokenStats
-import com.ai.assistance.operit.data.model.MessageSectionCodec
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
@@ -693,6 +695,9 @@ private fun MessageItem(
                         currentChatId, message.timestamp, message.selectedVariantIndex, message.content,
                     )
                 } else null,
+            // 内容仍按原时间线懒加载，主题外壳只接收同一消息的真实首尾。
+            LocalThemeSurfaceFragments provides (LocalThemeSurfaceFragments.current +
+                ("assistantMessage" to ThemeSurfaceFragment(messageSlice?.first != false, messageSlice?.last != false))),
             LocalChatMessageSlice provides messageSlice,
             LocalMarkdownRenderFragment provides messageSlice?.fragment,
         ) {

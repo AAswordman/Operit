@@ -3,7 +3,7 @@ package com.ai.assistance.operit.api.chat.keypool
 import com.ai.assistance.operit.api.chat.keypool.*
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ApiKeyAttemptRecordEntity
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.stats.ApiKeyAttemptRepository
@@ -405,7 +405,7 @@ private class MultiApiKeyRequestSession(
     }
 
     private fun resolveAttemptBudgetLocked(
-        config: com.ai.assistance.operit.data.model.ModelConfigData,
+        config: com.ai.assistance.operit.data.config.model.ModelConfigData,
     ): Int {
         cachedMaxAttempts?.let { return it }
         val nowMs = System.currentTimeMillis()
@@ -444,7 +444,7 @@ private class MultiApiKeyRequestSession(
     }
 
     private fun scoreMap(
-        config: com.ai.assistance.operit.data.model.ModelConfigData,
+        config: com.ai.assistance.operit.data.config.model.ModelConfigData,
         nowMs: Long,
     ): Map<String, ApiKeyScore> {
         val keyIds = config.apiKeyPool.map { it.id }.filter { it.isNotBlank() }

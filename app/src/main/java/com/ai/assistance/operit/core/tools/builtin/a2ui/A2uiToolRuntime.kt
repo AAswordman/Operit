@@ -5,6 +5,8 @@ import com.ai.assistance.operit.ui.common.a2ui.CardDelivery
 import com.ai.assistance.operit.ui.common.a2ui.CardExpress
 import com.ai.assistance.operit.ui.common.a2ui.CardLiveStore
 import com.ai.assistance.operit.ui.common.a2ui.A2uiProtocol
+import com.ai.assistance.operit.ui.common.a2ui.submission.CardSubmissionStore
+import kotlinx.coroutines.CancellationException
 import java.io.File
 import kotlinx.serialization.json.*
 
@@ -28,9 +30,12 @@ internal object A2uiToolRuntime {
         context: ToolRuntimeContext?,
         source: String,
         live: Boolean = false,
+        waitTimeoutSeconds: Int = 0,
     ): JsonObject {
         val run = activeRun(context) ?: return inactive()
         return try {
+            require(waitTimeoutSeconds in 0..600) { "Wait timeout must be between 0 and 600 seconds." }
+            require(waitTimeoutSeconds == 0 || context?.publishA2ui != null) { "Waiting cards require an active streaming chat." }
             require(source.length <= 65_536) { "Express source exceeds 65536 characters." }
             val report = CardExpress.report(source)
             if (report["valid"]?.jsonPrimitive?.booleanOrNull != true) return report
@@ -42,11 +47,14 @@ internal object A2uiToolRuntime {
                 liveChat = if (live) chat else null,
                 // 普通卡片与 live 快照统一存入 a2ui 私有目录。
                 liveDirectory = if (live) File(filesDirectory, "a2ui/" + A2uiProtocol.fingerprint(chat)) else null,
+                waitChat = if (waitTimeoutSeconds > 0) chat else null,
+                waitTimeoutMillis = waitTimeoutSeconds * 1000L,
             )
             buildJsonObject {
                 put("valid", true)
                 put("reference", reference)
                 if (live) put("version", 0)
+                if (waitTimeoutSeconds > 0) put("wait_timeout_seconds", waitTimeoutSeconds)
                 report["repaired"]?.let { put("repaired", it) }
                 report["repair"]?.let { put("repair", it) }
                 put("message", "Card compiled and queued. Operit will render it automatically when this turn completes. To choose its position, optionally output this exact reference fence; never output a historical summary or rewrite the JSON:\n```a2ui-ref\n$reference\n```")
@@ -55,6 +63,37 @@ internal object A2uiToolRuntime {
             failure("invalid_card", error.message?.take(240) ?: "Invalid card data.")
         } catch (_: CardDelivery.InactiveRunException) {
             inactive()
+        }
+    }
+
+    suspend fun awaitSubmission(context: ToolRuntimeContext?, reference: String): JsonObject {
+        val run = activeRun(context) ?: return inactive()
+        val publish = context?.publishA2ui ?: return failure("stream_required", "Waiting cards require an active streaming chat.")
+        val id = CardDelivery.canonical(run, reference)
+            ?: return failure("unknown_reference", "No waiting card in this turn.")
+        return try {
+            val document = CardDelivery.resolve(run, reference) ?: error("Card could not be published.")
+            publish(document)
+            val outcome = CardSubmissionStore.current.await(run, id)
+            buildJsonObject {
+                put("valid", true)
+                put("reference", reference)
+                put("status", when (outcome.status) {
+                    CardSubmissionStore.Status.Submitted -> "submitted"
+                    CardSubmissionStore.Status.TimedOut -> "timed_out"
+                    CardSubmissionStore.Status.Cancelled -> "cancelled"
+                    else -> error("Waiting card did not reach a terminal state.")
+                })
+                outcome.action?.let { put("action", it) }
+                outcome.data?.let { put("data", it) }
+                put("message", "Form wait completed. The card was displayed during this tool call.")
+            }
+        } catch (cancelled: CancellationException) {
+            CardSubmissionStore.current.cancel(run, id)
+            throw cancelled
+        } catch (error: Exception) {
+            CardSubmissionStore.current.cancel(run, id)
+            failure("wait_failed", error.message?.take(240) ?: "The waiting card is unavailable.")
         }
     }
 

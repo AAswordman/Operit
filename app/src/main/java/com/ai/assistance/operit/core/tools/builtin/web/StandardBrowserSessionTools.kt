@@ -46,8 +46,8 @@ import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
 import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.UserscriptInstallSourceType
 import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.runtime.WebSessionUserscriptManager
 import com.ai.assistance.operit.core.tools.builtin.web.session.userscript.storage.UserscriptRepository
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File
 import java.io.FileOutputStream

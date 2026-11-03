@@ -6,9 +6,8 @@ import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.WorkflowDetailResultData
 import com.ai.assistance.operit.core.tools.WorkflowListResultData
 import com.ai.assistance.operit.core.tools.WorkflowResultData
-import com.ai.assistance.operit.data.model.*
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.data.repository.WorkflowRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -25,6 +24,19 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+import com.ai.assistance.operit.core.workflow.model.ConditionNode
+import com.ai.assistance.operit.core.workflow.model.ConditionOperator
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.ExtractMode
+import com.ai.assistance.operit.core.workflow.model.ExtractNode
+import com.ai.assistance.operit.core.workflow.model.LogicNode
+import com.ai.assistance.operit.core.workflow.model.LogicOperator
+import com.ai.assistance.operit.core.workflow.model.NodePosition
+import com.ai.assistance.operit.core.workflow.model.ParameterValue
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.WorkflowNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection
 
 /**
  * 工作流管理工具

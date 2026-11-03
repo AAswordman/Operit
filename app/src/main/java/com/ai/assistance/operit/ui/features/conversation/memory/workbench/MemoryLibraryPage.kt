@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.Memory
-import com.ai.assistance.operit.data.model.MemorySpace
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
 import com.ai.assistance.operit.ui.components.CustomScaffold

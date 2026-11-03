@@ -3,9 +3,9 @@ package com.ai.assistance.operit.services.core
 import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
-import com.ai.assistance.operit.data.model.ApiKeyFormatValidator
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyFormatValidator
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.util.logging.AppLogger
 import org.json.JSONException
 import org.json.JSONObject

@@ -18,8 +18,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.workflow.scheduling.WorkflowSchedulePlan
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.Workflow
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.math.BigDecimal
 import java.util.*

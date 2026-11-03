@@ -7,9 +7,9 @@ import android.os.Build
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontFamily
-import com.ai.assistance.operit.data.model.theme.ThemeScriptAppearance
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
-import com.ai.assistance.operit.data.model.theme.forMode
+import com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.forMode
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
 import com.caverock.androidsvg.SVG
 import java.io.File

@@ -13,8 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.data.model.SerializableColorScheme
 import com.ai.assistance.operit.data.model.SerializableTypography
-import com.ai.assistance.operit.data.model.toComposeColorScheme
-import com.ai.assistance.operit.data.model.toComposeTypography
+import com.ai.assistance.operit.ui.theme.serialization.toComposeColorScheme
+import com.ai.assistance.operit.ui.theme.serialization.toComposeTypography
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.floating.FloatingWindowTheme
 import com.google.gson.Gson

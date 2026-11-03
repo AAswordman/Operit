@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.tools.runtime
 
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 
 /** Decision returned by a tool hook before execution begins. */
 sealed class AIToolHookDecision {

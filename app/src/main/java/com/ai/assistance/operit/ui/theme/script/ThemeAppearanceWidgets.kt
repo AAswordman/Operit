@@ -243,7 +243,7 @@ fun ThemeScriptAlertDialog(
     val resolvedModifier = if (style == null) modifier else modifier
         .clip(resolvedShape).background(themeScriptFill("dialog", containerColor))
         .themeScriptDecoration("dialog", drawFill = false, originalShape = resolvedShape)
-    MaterialTheme(typography = applyThemeTypography(MaterialTheme.typography, style?.textStyle ?: com.ai.assistance.operit.data.model.theme.ThemeAppearanceText(), (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.images.orEmpty())) {
+    MaterialTheme(typography = applyThemeTypography(MaterialTheme.typography, style?.textStyle ?: com.ai.assistance.operit.data.theme.script.ThemeAppearanceText(), (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.images.orEmpty())) {
     NativeAlertDialog(
         onDismissRequest = onDismissRequest, confirmButton = confirmButton, modifier = resolvedModifier,
         dismissButton = dismissButton, icon = icon, title = title, text = text,

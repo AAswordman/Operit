@@ -15,10 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.ConditionNode
-import com.ai.assistance.operit.data.model.LogicNode
-import com.ai.assistance.operit.data.model.WorkflowNode
-import com.ai.assistance.operit.data.model.WorkflowNodeConnection
+import com.ai.assistance.operit.core.workflow.model.ConditionNode
+import com.ai.assistance.operit.core.workflow.model.LogicNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection
 
 /**
  * 连接菜单对话框

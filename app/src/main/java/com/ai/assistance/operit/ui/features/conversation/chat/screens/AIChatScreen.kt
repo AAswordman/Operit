@@ -50,12 +50,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -97,7 +97,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.PendingMessageQueueState
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.getTextColorForBackground

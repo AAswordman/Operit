@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.tools.packTool.runtime
 import android.content.Context
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
-import com.ai.assistance.operit.data.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.Workflow
 import com.ai.assistance.operit.data.repository.WorkflowRepository
 import com.ai.assistance.operit.ui.features.conversation.workspace.WorkspaceConfigReader
 import com.ai.assistance.operit.util.logging.AppLogger

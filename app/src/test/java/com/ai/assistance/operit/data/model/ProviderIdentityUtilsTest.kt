@@ -2,6 +2,9 @@ package com.ai.assistance.operit.data.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.ai.assistance.operit.data.stats.hasIndependentCacheWriteBilling
+import com.ai.assistance.operit.data.stats.normalizeProviderModel
+import com.ai.assistance.operit.data.stats.normalizeProviderTypeId
 
 class ProviderIdentityUtilsTest {
 

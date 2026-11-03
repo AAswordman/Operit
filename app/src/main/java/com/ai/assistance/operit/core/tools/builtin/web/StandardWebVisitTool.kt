@@ -70,9 +70,9 @@ import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
 import com.ai.assistance.operit.core.tools.VisitWebResultData
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.ToolValidationResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolValidationResult
 import com.ai.assistance.operit.util.files.OperitPaths
 import java.io.File
 import java.util.UUID

@@ -3,7 +3,7 @@ package com.ai.assistance.operit.data.themesharing
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
 import java.io.File
-import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
 
 internal enum class ThemeTransferError {
     INVALID_CODE,

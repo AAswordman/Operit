@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.ui.features.management.settings.contextsummary
 
-import com.ai.assistance.operit.data.model.ModelConfigDefaults
+import com.ai.assistance.operit.data.config.model.ModelConfigDefaults
 
 import com.ai.assistance.operit.core.config.FunctionalPrompts
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.SummarySectionConfig
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.SummarySectionConfig
 
 internal enum class ContextSummaryValidation {
     CONTEXT_LENGTH, MAX_CONTEXT_LENGTH, CONTEXT_LIMIT, SUMMARY_THRESHOLD, MESSAGE_COUNT

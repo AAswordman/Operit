@@ -2,7 +2,6 @@ package com.ai.assistance.operit.ui.theme.script
 
 import android.os.Build
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -43,8 +42,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.data.model.theme.ThemeScriptLayer
-import com.ai.assistance.operit.data.model.theme.forState
+import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.forState
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -109,6 +108,7 @@ fun Modifier.themeScriptDecoration(
     val state = LocalThemeScriptState.current
     if (state !is ThemeScriptState.Ready) return this
     val base = state.appearance.surfaces[surfaceId] ?: return this
+    val fragment = LocalThemeSurfaceFragments.current.getOrDefault(surfaceId, ThemeSurfaceFragment.Whole)
     var pressed by remember(surfaceId) { mutableStateOf(false) }
     var focused by remember(surfaceId) { mutableStateOf(false) }
     val active = LocalThemeSurfaceStates.current[surfaceId] ?: themeStateName(pressed, focused, selected, enabled, error)
@@ -121,18 +121,19 @@ fun Modifier.themeScriptDecoration(
         }
     }
     val opacity = if (surfaceId in LocalThemeHandledOpacity.current) 1f else surface.opacity
-    val shape = if (surface.shape == null) originalShape else appearanceShape(surface.shape)
+    val shape = fragment.shape(if (surface.shape == null) originalShape else appearanceShape(surface.shape))
     val border = if (drawStroke) appearanceBorder(surface, null, backgroundOpacity.coerceIn(0f, 1f)) else null
     val pointer = if (surface.layers.any { it.state == "pressed" } || "pressed" in surface.states) Modifier.pointerInput(surfaceId) {
         try { awaitPointerEventScope { while (true) pressed = awaitPointerEvent(PointerEventPass.Initial).changes.any { it.pressed } } } finally { pressed = false }
     } else Modifier
-    return this.heightIn(min = surface.minHeight.dp)
+    // 最小高度和投影属于整条容器，拆块后不能给每一行再加一份。
+    return this.heightIn(min = if (fragment.whole) surface.minHeight.dp else 0.dp)
         .alpha(opacity)
-        .then(if (!drawElevation || surface.elevation == null) Modifier else Modifier.shadow(surface.elevation.dp, shape, clip = false))
+        .then(if (!drawElevation || surface.elevation == null || !fragment.whole) Modifier else Modifier.shadow(surface.elevation.dp, shape, clip = false))
         .clip(shape)
         .then(pointer).onFocusChanged { focused = it.hasFocus }
         // border 在形状内侧绘制，避免居中描边被裁掉半宽；原生边框由宿主选择单独绘制。
-        .then(if (border == null) Modifier else Modifier.border(border, shape))
+        .then(if (border == null) Modifier else Modifier.themeFragmentBorder(border, shape, fragment))
         .drawWithContent {
             fun drawPlacement(placement: String) {
                 surface.layers.forEachIndexed { index, layer ->
@@ -147,8 +148,8 @@ fun Modifier.themeScriptDecoration(
                     }
                     if (visible && layer.placement == placement) {
                         if (layer.blur > 0f && Build.VERSION.SDK_INT >= 31) {
-                            clipRect { requireNotNull(recordingLayers[index]).draw(this, layer, state.images, backgroundOpacity.coerceIn(0f, 1f)) }
-                        } else clipRect { drawThemeLayer(layer, state.images, backgroundOpacity.coerceIn(0f, 1f)) }
+                            clipRect { requireNotNull(recordingLayers[index]).draw(this, layer, state.images, backgroundOpacity.coerceIn(0f, 1f), fragment) }
+                        } else clipRect { drawThemeLayer(layer, state.images, backgroundOpacity.coerceIn(0f, 1f), fragment = fragment) }
                     }
                 }
             }
@@ -156,10 +157,21 @@ fun Modifier.themeScriptDecoration(
             drawPlacement("background")
             drawContent()
             drawPlacement("foreground")
-        }.padding(surface.padding.start.dp, surface.padding.top.dp, surface.padding.end.dp, surface.padding.bottom.dp)
+        }.padding(
+            start = surface.padding.start.dp,
+            top = if (fragment.first) surface.padding.top.dp else 0.dp,
+            end = surface.padding.end.dp,
+            bottom = if (fragment.last) surface.padding.bottom.dp else 0.dp,
+        )
 }
 
-internal fun DrawScope.drawThemeLayer(layer: ThemeScriptLayer, images: Map<String, ThemeScriptImage>, backgroundOpacity: Float, tintColor: Color? = null) {
+internal fun DrawScope.drawThemeLayer(
+    layer: ThemeScriptLayer,
+    images: Map<String, ThemeScriptImage>,
+    backgroundOpacity: Float,
+    tintColor: Color? = null,
+    fragment: ThemeSurfaceFragment = ThemeSurfaceFragment.Whole,
+) {
     val b = layer.bounds
     val topLeft = Offset(size.width * b.x, size.height * b.y)
     val extent = Size(size.width * b.width, size.height * b.height)
@@ -184,11 +196,11 @@ internal fun DrawScope.drawThemeLayer(layer: ThemeScriptLayer, images: Map<Strin
             val bitmap = (images.getValue(requireNotNull(layer.asset)) as ThemeScriptImage.Bitmap).image
             val edge = layer.slices
             val sx = listOf(0, edge.start.roundToInt(), bitmap.width - edge.end.roundToInt(), bitmap.width)
-            val sy = listOf(0, edge.top.roundToInt(), bitmap.height - edge.bottom.roundToInt(), bitmap.height)
+            val vertical = themeNineSliceAxis(bitmap.height, edge.top, edge.bottom, extent.height, density, fragment)
+            val sy = vertical.source
             val scaleX = if (edge.start + edge.end > 0f) min(1f, extent.width / (edge.start + edge.end).dp.toPx()) else 1f
-            val scaleY = if (edge.top + edge.bottom > 0f) min(1f, extent.height / (edge.top + edge.bottom).dp.toPx()) else 1f
             val dx = listOf(topLeft.x, topLeft.x + edge.start.dp.toPx() * scaleX, topLeft.x + extent.width - edge.end.dp.toPx() * scaleX, topLeft.x + extent.width)
-            val dy = listOf(topLeft.y, topLeft.y + edge.top.dp.toPx() * scaleY, topLeft.y + extent.height - edge.bottom.dp.toPx() * scaleY, topLeft.y + extent.height)
+            val dy = vertical.destination.map { topLeft.y + it }
             for (row in 0..2) for (column in 0..2) {
                 val sw = sx[column + 1] - sx[column]; val sh = sy[row + 1] - sy[row]
                 val dw = (dx[column + 1] - dx[column]).roundToInt(); val dh = (dy[row + 1] - dy[row]).roundToInt()

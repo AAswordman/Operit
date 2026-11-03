@@ -1,0 +1,351 @@
+{
+  "base": "ed184e54d1132c263ec30ede54aa94f38ab0b0f7",
+  "branch": "refactor/model-domain-layout",
+  "moves": [
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/AITool.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/tools/protocol/AITool.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ActivePrompt.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/character/ActivePrompt.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/AiReference.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/chat/reference/AiReference.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ApiKeyFormatValidator.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/api/chat/keypool/ApiKeyFormatValidator.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ApiKeyInfo.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/api/chat/keypool/ApiKeyInfo.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/AttachmentInfo.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/chat/attachment/AttachmentInfo.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/BillingMode.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/stats/BillingMode.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/CharacterGroupCard.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/character/CharacterGroupCard.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ChatMessageTimestampAllocator.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/chat/message/ChatMessageTimestampAllocator.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ChatTurnOptions.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/chat/runtime/ChatTurnOptions.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/CustomEmoji.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/emoji/CustomEmoji.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/EmbeddingConverter.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/db/converter/EmbeddingConverter.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/EmbeddingDimensionUsage.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/embedding/EmbeddingDimensionUsage.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/LegacyUserProfile.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/memory/profile/LegacyUserProfile.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MemoryAutoSaveQueueStatus.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/memory/extraction/MemoryAutoSaveQueueStatus.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MemoryExportModel.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/memory/export/MemoryExportModel.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MemorySearchConfig.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/memory/search/MemorySearchConfig.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MemorySearchDebugInfo.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/memory/search/MemorySearchDebugInfo.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MemorySpace.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/memory/profile/MemorySpace.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MemorySpaceSummary.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/memory/profile/MemorySpaceSummary.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MessageArchiveSerializers.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/chat/archive/MessageArchiveSerializers.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MessageSectionCodec.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/chat/protocol/MessageSectionCodec.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/MessageSectionStorage.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/chat/serialization/MessageSectionStorage.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ModelConfigData.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/config/model/ModelConfigData.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ModelParameter.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/config/model/ModelParameter.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/OpenAIModels.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/config/model/OpenAIModels.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/OperitChatArchive.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/chat/archive/OperitChatArchive.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/OperitNodeInfo.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/tools/system/uiautomator/OperitNodeInfo.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/PromptFunctionType.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/config/PromptFunctionType.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ProviderIdentityUtils.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/stats/ProviderIdentityUtils.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/StandardModelParameters.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/config/model/StandardModelParameters.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/ToolPrompt.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/tools/prompt/ToolPrompt.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/Workflow.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/workflow/model/Workflow.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/WorkflowExecutionLog.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/workflow/model/WorkflowExecutionLog.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/WorkspaceRenameResult.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/files/workspace/WorkspaceRenameResult.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeAppearanceStyle.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeAppearanceStyle.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeScriptAppearance.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeScriptAppearance.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeScriptContract.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeScriptContract.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeScriptDefaults.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeScriptDefaults.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeScriptDefinition.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeScriptDefinition.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/theme/ThemeStudioMetadata.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/data/theme/script/ThemeStudioMetadata.kt"
+    },
+    {
+      "old": "app/src/main/java/com/ai/assistance/operit/data/model/tooltiming/ToolCallExecution.kt",
+      "new": "app/src/main/java/com/ai/assistance/operit/core/chat/tools/timing/ToolCallExecution.kt"
+    }
+  ],
+  "symbols": {
+    "com.ai.assistance.operit.data.model.AITool": "com.ai.assistance.operit.core.tools.protocol.AITool",
+    "com.ai.assistance.operit.data.model.ToolInvocation": "com.ai.assistance.operit.core.tools.protocol.ToolInvocation",
+    "com.ai.assistance.operit.data.model.ToolParameter": "com.ai.assistance.operit.core.tools.protocol.ToolParameter",
+    "com.ai.assistance.operit.data.model.ToolResult": "com.ai.assistance.operit.core.tools.protocol.ToolResult",
+    "com.ai.assistance.operit.data.model.ToolValidationResult": "com.ai.assistance.operit.core.tools.protocol.ToolValidationResult",
+    "com.ai.assistance.operit.data.model.ActivePrompt": "com.ai.assistance.operit.data.character.ActivePrompt",
+    "com.ai.assistance.operit.data.model.AiReference": "com.ai.assistance.operit.core.chat.reference.AiReference",
+    "com.ai.assistance.operit.data.model.ApiKeyFormatValidator": "com.ai.assistance.operit.api.chat.keypool.ApiKeyFormatValidator",
+    "com.ai.assistance.operit.data.model.ApiKeyAvailabilityStatus": "com.ai.assistance.operit.api.chat.keypool.ApiKeyAvailabilityStatus",
+    "com.ai.assistance.operit.data.model.ApiKeyInfo": "com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo",
+    "com.ai.assistance.operit.data.model.AttachmentInfo": "com.ai.assistance.operit.core.chat.attachment.AttachmentInfo",
+    "com.ai.assistance.operit.data.model.BillingMode": "com.ai.assistance.operit.data.stats.BillingMode",
+    "com.ai.assistance.operit.data.model.CharacterGroupCard": "com.ai.assistance.operit.data.character.CharacterGroupCard",
+    "com.ai.assistance.operit.data.model.GroupMemberConfig": "com.ai.assistance.operit.data.character.GroupMemberConfig",
+    "com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator": "com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator",
+    "com.ai.assistance.operit.data.model.ChatTurnOptions": "com.ai.assistance.operit.core.chat.runtime.ChatTurnOptions",
+    "com.ai.assistance.operit.data.model.CustomEmoji": "com.ai.assistance.operit.data.emoji.CustomEmoji",
+    "com.ai.assistance.operit.data.model.EmbeddingConverter": "com.ai.assistance.operit.data.db.converter.EmbeddingConverter",
+    "com.ai.assistance.operit.data.model.DimensionCount": "com.ai.assistance.operit.data.embedding.DimensionCount",
+    "com.ai.assistance.operit.data.model.EmbeddingDimensionUsage": "com.ai.assistance.operit.data.embedding.EmbeddingDimensionUsage",
+    "com.ai.assistance.operit.data.model.EmbeddingRebuildProgress": "com.ai.assistance.operit.data.embedding.EmbeddingRebuildProgress",
+    "com.ai.assistance.operit.data.model.LegacyUserProfile": "com.ai.assistance.operit.data.memory.profile.LegacyUserProfile",
+    "com.ai.assistance.operit.data.model.MemoryAutoSaveQueueStatus": "com.ai.assistance.operit.core.memory.extraction.MemoryAutoSaveQueueStatus",
+    "com.ai.assistance.operit.data.model.summarizeMemoryAutoSaveQueue": "com.ai.assistance.operit.core.memory.extraction.summarizeMemoryAutoSaveQueue",
+    "com.ai.assistance.operit.data.model.DateSerializer": "com.ai.assistance.operit.data.memory.export.DateSerializer",
+    "com.ai.assistance.operit.data.model.ImportStrategy": "com.ai.assistance.operit.data.memory.export.ImportStrategy",
+    "com.ai.assistance.operit.data.model.MemoryExportData": "com.ai.assistance.operit.data.memory.export.MemoryExportData",
+    "com.ai.assistance.operit.data.model.MemoryImportResult": "com.ai.assistance.operit.data.memory.export.MemoryImportResult",
+    "com.ai.assistance.operit.data.model.SerializableLink": "com.ai.assistance.operit.data.memory.export.SerializableLink",
+    "com.ai.assistance.operit.data.model.SerializableMemory": "com.ai.assistance.operit.data.memory.export.SerializableMemory",
+    "com.ai.assistance.operit.data.model.MemoryScoreMode": "com.ai.assistance.operit.data.memory.search.MemoryScoreMode",
+    "com.ai.assistance.operit.data.model.MemorySearchConfig": "com.ai.assistance.operit.data.memory.search.MemorySearchConfig",
+    "com.ai.assistance.operit.data.model.MemorySearchDebugCandidate": "com.ai.assistance.operit.data.memory.search.MemorySearchDebugCandidate",
+    "com.ai.assistance.operit.data.model.MemorySearchDebugInfo": "com.ai.assistance.operit.data.memory.search.MemorySearchDebugInfo",
+    "com.ai.assistance.operit.data.model.MemorySpace": "com.ai.assistance.operit.data.memory.profile.MemorySpace",
+    "com.ai.assistance.operit.data.model.MemorySpaceSummary": "com.ai.assistance.operit.data.memory.profile.MemorySpaceSummary",
+    "com.ai.assistance.operit.data.model.ArchivedMessageVariantSerializer": "com.ai.assistance.operit.data.chat.archive.ArchivedMessageVariantSerializer",
+    "com.ai.assistance.operit.data.model.ChatMessageSerializer": "com.ai.assistance.operit.data.chat.archive.ChatMessageSerializer",
+    "com.ai.assistance.operit.data.model.StoredChatMessage": "com.ai.assistance.operit.data.chat.archive.StoredChatMessage",
+    "com.ai.assistance.operit.data.model.StoredMessageVariant": "com.ai.assistance.operit.data.chat.archive.StoredMessageVariant",
+    "com.ai.assistance.operit.data.model.decodeSectionsObject": "com.ai.assistance.operit.data.chat.archive.decodeSectionsObject",
+    "com.ai.assistance.operit.data.model.MessageSectionCodec": "com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec",
+    "com.ai.assistance.operit.data.model.MessageSectionStorage": "com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage",
+    "com.ai.assistance.operit.data.model.ApiProviderType": "com.ai.assistance.operit.data.config.model.ApiProviderType",
+    "com.ai.assistance.operit.data.model.ConversationSummaryConfig": "com.ai.assistance.operit.data.config.model.ConversationSummaryConfig",
+    "com.ai.assistance.operit.data.model.ModelConfigData": "com.ai.assistance.operit.data.config.model.ModelConfigData",
+    "com.ai.assistance.operit.data.model.ModelConfigDefaults": "com.ai.assistance.operit.data.config.model.ModelConfigDefaults",
+    "com.ai.assistance.operit.data.model.ModelConfigExport": "com.ai.assistance.operit.data.config.model.ModelConfigExport",
+    "com.ai.assistance.operit.data.model.ModelConfigGroup": "com.ai.assistance.operit.data.config.model.ModelConfigGroup",
+    "com.ai.assistance.operit.data.model.ModelConfigSelection": "com.ai.assistance.operit.data.config.model.ModelConfigSelection",
+    "com.ai.assistance.operit.data.model.ModelConfigSummary": "com.ai.assistance.operit.data.config.model.ModelConfigSummary",
+    "com.ai.assistance.operit.data.model.SummarySectionConfig": "com.ai.assistance.operit.data.config.model.SummarySectionConfig",
+    "com.ai.assistance.operit.data.model.SummarySectionOverride": "com.ai.assistance.operit.data.config.model.SummarySectionOverride",
+    "com.ai.assistance.operit.data.model.applySavedModelOrder": "com.ai.assistance.operit.data.config.model.applySavedModelOrder",
+    "com.ai.assistance.operit.data.model.getModelByIndex": "com.ai.assistance.operit.data.config.model.getModelByIndex",
+    "com.ai.assistance.operit.data.model.getModelList": "com.ai.assistance.operit.data.config.model.getModelList",
+    "com.ai.assistance.operit.data.model.getValidModelIndex": "com.ai.assistance.operit.data.config.model.getValidModelIndex",
+    "com.ai.assistance.operit.data.model.CustomParameterData": "com.ai.assistance.operit.data.config.model.CustomParameterData",
+    "com.ai.assistance.operit.data.model.ModelParameter": "com.ai.assistance.operit.data.config.model.ModelParameter",
+    "com.ai.assistance.operit.data.model.ParameterCategory": "com.ai.assistance.operit.data.config.model.ParameterCategory",
+    "com.ai.assistance.operit.data.model.ParameterValueType": "com.ai.assistance.operit.data.config.model.ParameterValueType",
+    "com.ai.assistance.operit.data.model.ModelOption": "com.ai.assistance.operit.data.config.model.ModelOption",
+    "com.ai.assistance.operit.data.model.OperitArchivedChat": "com.ai.assistance.operit.data.chat.archive.OperitArchivedChat",
+    "com.ai.assistance.operit.data.model.OperitArchivedMessage": "com.ai.assistance.operit.data.chat.archive.OperitArchivedMessage",
+    "com.ai.assistance.operit.data.model.OperitArchivedMessageVariant": "com.ai.assistance.operit.data.chat.archive.OperitArchivedMessageVariant",
+    "com.ai.assistance.operit.data.model.OperitChatArchive": "com.ai.assistance.operit.data.chat.archive.OperitChatArchive",
+    "com.ai.assistance.operit.data.model.OperitNodeInfo": "com.ai.assistance.operit.core.tools.system.uiautomator.OperitNodeInfo",
+    "com.ai.assistance.operit.data.model.PromptFunctionType": "com.ai.assistance.operit.core.config.PromptFunctionType",
+    "com.ai.assistance.operit.data.model.hasIndependentCacheWriteBilling": "com.ai.assistance.operit.data.stats.hasIndependentCacheWriteBilling",
+    "com.ai.assistance.operit.data.model.normalizeProviderModel": "com.ai.assistance.operit.data.stats.normalizeProviderModel",
+    "com.ai.assistance.operit.data.model.normalizeProviderTypeId": "com.ai.assistance.operit.data.stats.normalizeProviderTypeId",
+    "com.ai.assistance.operit.data.model.ParameterDefinition": "com.ai.assistance.operit.data.config.model.ParameterDefinition",
+    "com.ai.assistance.operit.data.model.StandardModelParameters": "com.ai.assistance.operit.data.config.model.StandardModelParameters",
+    "com.ai.assistance.operit.data.model.PackageToolPromptCategory": "com.ai.assistance.operit.core.tools.prompt.PackageToolPromptCategory",
+    "com.ai.assistance.operit.data.model.SystemToolPromptCategory": "com.ai.assistance.operit.core.tools.prompt.SystemToolPromptCategory",
+    "com.ai.assistance.operit.data.model.ToolParameterSchema": "com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema",
+    "com.ai.assistance.operit.data.model.ToolPrompt": "com.ai.assistance.operit.core.tools.prompt.ToolPrompt",
+    "com.ai.assistance.operit.data.model.ConditionNode": "com.ai.assistance.operit.core.workflow.model.ConditionNode",
+    "com.ai.assistance.operit.data.model.ConditionOperator": "com.ai.assistance.operit.core.workflow.model.ConditionOperator",
+    "com.ai.assistance.operit.data.model.ExecuteNode": "com.ai.assistance.operit.core.workflow.model.ExecuteNode",
+    "com.ai.assistance.operit.data.model.ExecutionStatus": "com.ai.assistance.operit.core.workflow.model.ExecutionStatus",
+    "com.ai.assistance.operit.data.model.ExtractMode": "com.ai.assistance.operit.core.workflow.model.ExtractMode",
+    "com.ai.assistance.operit.data.model.ExtractNode": "com.ai.assistance.operit.core.workflow.model.ExtractNode",
+    "com.ai.assistance.operit.data.model.LogicNode": "com.ai.assistance.operit.core.workflow.model.LogicNode",
+    "com.ai.assistance.operit.data.model.LogicOperator": "com.ai.assistance.operit.core.workflow.model.LogicOperator",
+    "com.ai.assistance.operit.data.model.NodePosition": "com.ai.assistance.operit.core.workflow.model.NodePosition",
+    "com.ai.assistance.operit.data.model.ParameterValue": "com.ai.assistance.operit.core.workflow.model.ParameterValue",
+    "com.ai.assistance.operit.data.model.TriggerNode": "com.ai.assistance.operit.core.workflow.model.TriggerNode",
+    "com.ai.assistance.operit.data.model.Workflow": "com.ai.assistance.operit.core.workflow.model.Workflow",
+    "com.ai.assistance.operit.data.model.WorkflowNode": "com.ai.assistance.operit.core.workflow.model.WorkflowNode",
+    "com.ai.assistance.operit.data.model.WorkflowNodeConnection": "com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection",
+    "com.ai.assistance.operit.data.model.WorkflowExecutionFailureStage": "com.ai.assistance.operit.core.workflow.model.WorkflowExecutionFailureStage",
+    "com.ai.assistance.operit.data.model.WorkflowExecutionIssue": "com.ai.assistance.operit.core.workflow.model.WorkflowExecutionIssue",
+    "com.ai.assistance.operit.data.model.WorkflowExecutionLogEntry": "com.ai.assistance.operit.core.workflow.model.WorkflowExecutionLogEntry",
+    "com.ai.assistance.operit.data.model.WorkflowExecutionRecord": "com.ai.assistance.operit.core.workflow.model.WorkflowExecutionRecord",
+    "com.ai.assistance.operit.data.model.WorkflowLogLevel": "com.ai.assistance.operit.core.workflow.model.WorkflowLogLevel",
+    "com.ai.assistance.operit.data.model.WorkflowNodeExecutionReport": "com.ai.assistance.operit.core.workflow.model.WorkflowNodeExecutionReport",
+    "com.ai.assistance.operit.data.model.WorkflowNodeRunStatus": "com.ai.assistance.operit.core.workflow.model.WorkflowNodeRunStatus",
+    "com.ai.assistance.operit.data.model.WorkspaceRenameResult": "com.ai.assistance.operit.core.files.workspace.WorkspaceRenameResult",
+    "com.ai.assistance.operit.data.model.theme.ThemeAppearanceIcon": "com.ai.assistance.operit.data.theme.script.ThemeAppearanceIcon",
+    "com.ai.assistance.operit.data.model.theme.ThemeAppearancePalette": "com.ai.assistance.operit.data.theme.script.ThemeAppearancePalette",
+    "com.ai.assistance.operit.data.model.theme.ThemeAppearanceShape": "com.ai.assistance.operit.data.theme.script.ThemeAppearanceShape",
+    "com.ai.assistance.operit.data.model.theme.ThemeAppearanceText": "com.ai.assistance.operit.data.theme.script.ThemeAppearanceText",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptAppearance": "com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptBounds": "com.ai.assistance.operit.data.theme.script.ThemeScriptBounds",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptInsets": "com.ai.assistance.operit.data.theme.script.ThemeScriptInsets",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptLayer": "com.ai.assistance.operit.data.theme.script.ThemeScriptLayer",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptPopupOffset": "com.ai.assistance.operit.data.theme.script.ThemeScriptPopupOffset",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptSurface": "com.ai.assistance.operit.data.theme.script.ThemeScriptSurface",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptContract": "com.ai.assistance.operit.data.theme.script.ThemeScriptContract",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptDefaults": "com.ai.assistance.operit.data.theme.script.ThemeScriptDefaults",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptContext": "com.ai.assistance.operit.data.theme.script.ThemeScriptContext",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptManifest": "com.ai.assistance.operit.data.theme.script.ThemeScriptManifest",
+    "com.ai.assistance.operit.data.model.theme.ThemeScriptSettings": "com.ai.assistance.operit.data.theme.script.ThemeScriptSettings",
+    "com.ai.assistance.operit.data.model.theme.ThemeAppearanceMode": "com.ai.assistance.operit.data.theme.script.ThemeAppearanceMode",
+    "com.ai.assistance.operit.data.model.theme.ThemeAppearanceState": "com.ai.assistance.operit.data.theme.script.ThemeAppearanceState",
+    "com.ai.assistance.operit.data.model.theme.ThemeAssetPaths": "com.ai.assistance.operit.data.theme.script.ThemeAssetPaths",
+    "com.ai.assistance.operit.data.model.theme.ThemeStudioMetadata": "com.ai.assistance.operit.data.theme.script.ThemeStudioMetadata",
+    "com.ai.assistance.operit.data.model.theme.forMode": "com.ai.assistance.operit.data.theme.script.forMode",
+    "com.ai.assistance.operit.data.model.theme.forState": "com.ai.assistance.operit.data.theme.script.forState",
+    "com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution": "com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution",
+    "com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode": "com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode",
+    "com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode": "com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode",
+    "com.ai.assistance.operit.data.model.OperitAttachedTagPayload": "com.ai.assistance.operit.data.character.OperitAttachedTagPayload",
+    "com.ai.assistance.operit.data.model.OperitCharacterCardPayload": "com.ai.assistance.operit.data.character.OperitCharacterCardPayload",
+    "com.ai.assistance.operit.data.model.OperitTavernExtension": "com.ai.assistance.operit.data.character.OperitTavernExtension",
+    "com.ai.assistance.operit.data.model.TavernBookEntry": "com.ai.assistance.operit.data.character.TavernBookEntry",
+    "com.ai.assistance.operit.data.model.TavernCharacterBook": "com.ai.assistance.operit.data.character.TavernCharacterBook",
+    "com.ai.assistance.operit.data.model.TavernCharacterCard": "com.ai.assistance.operit.data.character.TavernCharacterCard",
+    "com.ai.assistance.operit.data.model.TavernCharacterData": "com.ai.assistance.operit.data.character.TavernCharacterData",
+    "com.ai.assistance.operit.data.model.TavernChubExtension": "com.ai.assistance.operit.data.character.TavernChubExtension",
+    "com.ai.assistance.operit.data.model.TavernDepthPrompt": "com.ai.assistance.operit.data.character.TavernDepthPrompt",
+    "com.ai.assistance.operit.data.model.TavernExtensions": "com.ai.assistance.operit.data.character.TavernExtensions",
+    "com.ai.assistance.operit.data.model.toComposeColorScheme": "com.ai.assistance.operit.ui.theme.serialization.toComposeColorScheme",
+    "com.ai.assistance.operit.data.model.toSerializable": "com.ai.assistance.operit.ui.theme.serialization.toSerializable",
+    "com.ai.assistance.operit.data.model.toComposeTextStyle": "com.ai.assistance.operit.ui.theme.serialization.toComposeTextStyle",
+    "com.ai.assistance.operit.data.model.toComposeTypography": "com.ai.assistance.operit.ui.theme.serialization.toComposeTypography",
+    "com.ai.assistance.operit.data.model.tooltiming.ToolTimingState": "com.ai.assistance.operit.core.chat.tools.timing.ToolTimingState"
+  },
+  "retained_model_files": [
+    "ApiKeyAttemptRecordEntity.kt",
+    "CharacterCard.kt",
+    "CharacterCardChatStats.kt",
+    "CharacterGroupChatStats.kt",
+    "ChatEntity.kt",
+    "ChatHistory.kt",
+    "ChatMessage.kt",
+    "ChatMessageDisplayMode.kt",
+    "ChatMessageLocatorPreview.kt",
+    "ChatMessagePageMetadata.kt",
+    "DocumentChunk.kt",
+    "Embedding.kt",
+    "FunctionType.kt",
+    "InputProcessingState.kt",
+    "Memory.kt",
+    "MemoryAutoSaveCandidate.kt",
+    "MessageEntity.kt",
+    "MessageSection.kt",
+    "MessageTranslationEntity.kt",
+    "MessageVariantEntity.kt",
+    "PromptTag.kt",
+    "SerializableColorScheme.kt",
+    "SerializableTypography.kt",
+    "TokenStatsModelEntity.kt",
+    "TokenUsageRecordEntity.kt"
+  ],
+  "splits": [
+    "CharacterCard.kt",
+    "SerializableColorScheme.kt",
+    "SerializableTypography.kt",
+    "tooltiming/ToolCallExecution.kt"
+  ],
+  "retained_script_contracts": {
+    "com.ai.assistance.operit.data.model.FunctionType": "现有 subagent 脚本通过 Java 桥接按完整类名获取枚举",
+    "com.ai.assistance.operit.data.model.InputProcessingState": "现有 message_insert 与 deepsearching 脚本按完整类名构建嵌套状态类型"
+  }
+}

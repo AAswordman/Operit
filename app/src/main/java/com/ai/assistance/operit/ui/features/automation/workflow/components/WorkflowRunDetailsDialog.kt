@@ -16,11 +16,13 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.workflow.runtime.classifyWorkflowIssue
 import com.ai.assistance.operit.core.workflow.runtime.readableWorkflowFailure
-import com.ai.assistance.operit.data.model.*
 import com.ai.assistance.operit.data.repository.WorkflowRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionIssue
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionRecord
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeRunStatus
 
 @StringRes
 internal fun WorkflowExecutionIssue.descriptionRes(): Int = when (this) {

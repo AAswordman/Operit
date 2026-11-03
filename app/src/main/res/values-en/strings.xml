@@ -6362,6 +6362,7 @@
     <string name="gemini_error_cannot_connect">Cannot connect to server, please check network connection and API address</string>
     <string name="gemini_error_max_retries">Failed to get AI response, max retries reached: %1$s</string>
     <string name="gemini_error_response_failed">Failed to get AI response: %1$s</string>
+    <string name="gemini_error_empty_contents">No message content to send: the conversation history is empty or contains only thinking text</string>
     <string name="gemini_error_connection_timeout">Connection timeout or interrupted, retried %1$d times: %2$s</string>
     <string name="gemini_connection_success">Connection successful!</string>
     <string name="gemini_connection_test_failed">Connection test failed: %1$s</string>
@@ -8224,6 +8225,12 @@
     <string name="mcp_start_services">Start services</string>
     <string name="mcp_starting_services">Starting</string>
     <string name="mcp_start_services_failed">Unable to start MCP service initialization</string>
+    <string name="mcp_services_already_started">Services are already running. No need to start them again.</string>
+    <string name="mcp_start_services_success">Started %1$d services successfully</string>
+    <string name="mcp_start_services_partial">Some services failed to start: %1$d succeeded, %2$d failed</string>
+    <string name="mcp_start_services_all_failed">Failed to start %1$d services. Check their status and configuration.</string>
+    <string name="mcp_start_services_error">Failed to start services: %1$s</string>
+    <string name="mcp_start_services_cancelled">Service startup cancelled</string>
     <string name="mcp_services_ready_count">Tools ready %1$d/%2$d</string>
     <string name="theme_glass_requires_android13">Glass effects require Android 13 or later</string>
 
@@ -9228,4 +9235,5 @@
     <string name="theme_icon_floating">Floating window</string>
     <string name="theme_icon_navigation">Common navigation icon</string>
     <string name="theme_appearance_disabled">Disabled</string>
+    <string name="toolreg_terminal_task_desc">Terminal managed task operation: %1$s</string>
 </resources>

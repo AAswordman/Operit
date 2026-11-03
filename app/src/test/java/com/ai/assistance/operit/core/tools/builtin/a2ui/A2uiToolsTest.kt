@@ -2,9 +2,9 @@ package com.ai.assistance.operit.core.tools.builtin.a2ui
 
 import com.ai.assistance.operit.core.chat.tools.ToolExecutionManager.ToolRuntimeContext
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.ui.common.a2ui.CardDelivery
 import com.ai.assistance.operit.ui.common.a2ui.A2uiProtocol
 import java.util.UUID

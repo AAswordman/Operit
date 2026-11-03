@@ -75,8 +75,8 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.services.ServiceLifecycleOwner
 import com.ai.assistance.operit.ui.floating.FloatingWindowTheme
 import kotlinx.coroutines.delay

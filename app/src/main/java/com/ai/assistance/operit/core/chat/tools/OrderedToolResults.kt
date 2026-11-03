@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat.tools
 
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.ai.assistance.operit.core.chat.protocol.ConversationMarkupManager

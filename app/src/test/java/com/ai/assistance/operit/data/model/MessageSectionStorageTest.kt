@@ -6,6 +6,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
 
 class MessageSectionStorageTest {
     @Test fun encode_writesReadableSectionsArray() {

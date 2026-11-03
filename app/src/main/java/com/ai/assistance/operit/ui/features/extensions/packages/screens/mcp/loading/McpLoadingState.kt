@@ -2,6 +2,8 @@ package com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loa
 
 import android.content.Context
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.tools.mcp.MCPManager
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
 import com.ai.assistance.operit.data.mcp.MCPRepository
 import com.ai.assistance.operit.data.mcp.plugins.MCPStarter
@@ -240,15 +242,22 @@ class McpLoadingState {
         mcpInitJob?.cancel()
     }
 
-    /** 检查配置后静默加载；没有启用的服务时不初始化启动器和桥接。 */
-    fun startConfiguredServers(context: Context, lifecycleScope: CoroutineScope) {
+    /** 自动加载保持静默，管理页手动启动时明确反馈进度与结果。 */
+    fun startConfiguredServers(
+        context: Context,
+        lifecycleScope: CoroutineScope,
+        showFeedback: Boolean = false,
+    ) {
         if (!mcpInitInProgress.compareAndSet(false, true)) {
             AppLogger.d("McpLoadingState", "模型上下文协议服务正在加载，复用当前批次")
+            if (showFeedback) OKToast.info(context, R.string.mcp_starting_services).show()
             return
         }
 
+        if (showFeedback) OKToast.info(context, R.string.mcp_starting_services).show()
         resetProgress()
         _isLoading.value = true
+        val startupFinished = AtomicBoolean(false)
         mcpInitJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
                 updateMessage(context.getString(R.string.plugin_loading_list))
@@ -265,13 +274,25 @@ class McpLoadingState {
                     AppLogger.d("McpLoadingState", "没有可启动的模型上下文协议服务")
                     updateMessage(context.getString(R.string.plugin_no_plugins_to_start))
                     updateProgress(1f)
+                    if (showFeedback) OKToast.info(context, _message.value).show()
+                    return@launch
+                }
+
+                // 手动点击时核对当前会话，不能用工具缓存或历史时间戳推断已经启动。
+                if (showFeedback && pluginsToStart.all { MCPManager.getInstance(context).isSessionActive(it) }) {
+                    mcpRepository.unregisterToolsForPlugins(disabledPlugins)
+                    val alreadyStarted = context.getString(R.string.mcp_services_already_started)
+                    pluginsToStart.forEach { setPluginSuccess(it, alreadyStarted) }
+                    updateMessage(alreadyStarted)
+                    updateProgress(1f)
+                    OKToast.info(context, alreadyStarted).show()
                     return@launch
                 }
 
                 updateMessage(context.getString(R.string.plugin_preparing, pluginsToStart.size))
                 updateProgress(0.35f)
                 val mcpStarter = MCPStarter(context)
-                val listener = createPluginStartProgressListener(mcpLocalServer, context)
+                val listener = createPluginStartProgressListener(mcpLocalServer, context, showFeedback, startupFinished)
                 val startupJob = mcpStarter.startAllDeployedPlugins(listener)
                 try {
                     startupJob.join()
@@ -280,11 +301,21 @@ class McpLoadingState {
                     throw cancelled
                 }
             } catch (cancelled: CancellationException) {
+                if (showFeedback && !startupFinished.get()) {
+                    OKToast.info(context, R.string.mcp_start_services_cancelled).show()
+                }
                 throw cancelled
             } catch (error: Exception) {
                 AppLogger.e("McpLoadingState", "加载模型上下文协议服务失败", error)
                 updateMessage(error.message ?: context.getString(R.string.plugin_loading_failed))
                 updateProgress(1f)
+                if (showFeedback && !startupFinished.get()) {
+                    OKToast.error(
+                        context,
+                        context.getString(R.string.mcp_start_services_error, _message.value),
+                        OKToast.LENGTH_LONG,
+                    ).show()
+                }
             } finally {
                 _isLoading.value = false
                 mcpInitInProgress.set(false)
@@ -295,7 +326,9 @@ class McpLoadingState {
     // 创建模型上下文协议服务启动进度监听器
     private fun createPluginStartProgressListener(
             mcpLocalServer: MCPLocalServer,
-            context: Context
+            context: Context,
+            showFeedback: Boolean,
+            startupFinished: AtomicBoolean,
     ): MCPStarter.PluginStartProgressListener {
         return object : MCPStarter.PluginStartProgressListener {
             override fun onPluginStarting(pluginId: String, index: Int, total: Int) {
@@ -357,8 +390,13 @@ class McpLoadingState {
                     totalCount: Int,
                     status: MCPStarter.PluginInitStatus
             ) {
-                // 汇总状态供管理页和工具读取，失败不触发弹窗或操作引导
+                // 后续描述生成不改变启动结果，同一批次只汇总一次。
+                if (!startupFinished.compareAndSet(false, true)) return
+                // 自动加载只更新状态；手动启动在完成验证时立即给出结果。
                 when (status) {
+                    MCPStarter.PluginInitStatus.TERMINAL_SERVICE_UNAVAILABLE -> {
+                        updateMessage(context.getString(R.string.plugin_terminal_service_unavailable))
+                    }
                     MCPStarter.PluginInitStatus.NODEJS_MISSING -> {
                         updateMessage(context.getString(R.string.plugin_nodejs_missing))
                     }
@@ -366,7 +404,7 @@ class McpLoadingState {
                         updateMessage(context.getString(R.string.plugin_bridge_failed))
                     }
                     MCPStarter.PluginInitStatus.OTHER_ERROR -> {
-                        updateMessage(context.getString(R.string.plugin_other_error))
+                        updateMessage(context.getString(R.string.mcp_start_services_failed))
                     }
                     else -> {
                         // 所有模型上下文协议服务加载完成
@@ -398,6 +436,31 @@ class McpLoadingState {
                 }
 
                 updateProgress(1.0f)
+                if (showFeedback) {
+                    when {
+                        status != MCPStarter.PluginInitStatus.SUCCESS ->
+                            OKToast.error(context, _message.value, OKToast.LENGTH_LONG).show()
+                        totalCount == 0 ->
+                            OKToast.info(context, R.string.plugin_no_plugins_to_start).show()
+                        successCount == totalCount ->
+                            OKToast.success(
+                                context,
+                                context.getString(R.string.mcp_start_services_success, successCount),
+                            ).show()
+                        successCount > 0 ->
+                            OKToast.warning(
+                                context,
+                                context.getString(R.string.mcp_start_services_partial, successCount, totalCount - successCount),
+                                OKToast.LENGTH_LONG,
+                            ).show()
+                        else ->
+                            OKToast.error(
+                                context,
+                                context.getString(R.string.mcp_start_services_all_failed, totalCount),
+                                OKToast.LENGTH_LONG,
+                            ).show()
+                    }
+                }
             }
         }
     }

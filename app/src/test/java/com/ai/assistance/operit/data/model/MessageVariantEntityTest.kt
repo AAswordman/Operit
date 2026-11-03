@@ -3,6 +3,9 @@ package com.ai.assistance.operit.data.model
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
+import com.ai.assistance.operit.data.chat.archive.OperitArchivedMessageVariant
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
 
 class MessageVariantEntityTest {
 

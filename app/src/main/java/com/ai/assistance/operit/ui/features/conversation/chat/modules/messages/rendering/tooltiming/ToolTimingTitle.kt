@@ -6,7 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.MessageSection
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.staticCompositionLocalOf

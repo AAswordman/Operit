@@ -75,10 +75,10 @@ import com.ai.assistance.operit.data.api.CodexAuthManager
 import com.ai.assistance.operit.data.api.CodexUsageSnapshot
 import com.ai.assistance.operit.data.api.CodexUsageWindow
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.applySavedModelOrder
-import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.applySavedModelOrder
+import com.ai.assistance.operit.data.config.model.ModelOption
 import com.ai.assistance.operit.data.preferences.AntigravityAuthState
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.data.preferences.ModelConfigManager

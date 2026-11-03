@@ -3,13 +3,13 @@ package com.ai.assistance.operit.ui.theme.script
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ai.assistance.operit.core.tools.javascript.QuickJsNativeRuntime
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContext
-import com.ai.assistance.operit.data.model.theme.ThemeAppearanceShape
-import com.ai.assistance.operit.data.model.theme.ThemeAppearanceText
-import com.ai.assistance.operit.data.model.theme.ThemeScriptDefaults
-import com.ai.assistance.operit.data.model.theme.ThemeScriptSurface
-import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
-import com.ai.assistance.operit.data.model.theme.ThemeScriptSettings
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContext
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceShape
+import com.ai.assistance.operit.data.theme.script.ThemeAppearanceText
+import com.ai.assistance.operit.data.theme.script.ThemeScriptDefaults
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptSettings
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
 import kotlinx.coroutines.runBlocking
@@ -61,11 +61,11 @@ class ThemeScriptAndroidTest {
     fun nineSliceRequiresBitmapAndAVisibleCenterAfterPixelRounding() {
         val bitmap = ThemeScriptImage.Bitmap(androidx.compose.ui.graphics.ImageBitmap(16, 16))
         val vector = ThemeScriptImage.Vector(android.graphics.Picture())
-        fun appearance(edge: Float) = com.ai.assistance.operit.data.model.theme.ThemeScriptAppearance(
-            1, mapOf("assistantMessage" to com.ai.assistance.operit.data.model.theme.ThemeScriptSurface(
-                layers = listOf(com.ai.assistance.operit.data.model.theme.ThemeScriptLayer(
+        fun appearance(edge: Float) = com.ai.assistance.operit.data.theme.script.ThemeScriptAppearance(
+            1, mapOf("assistantMessage" to com.ai.assistance.operit.data.theme.script.ThemeScriptSurface(
+                layers = listOf(com.ai.assistance.operit.data.theme.script.ThemeScriptLayer(
                     "nineSlice", asset = "badge",
-                    slices = com.ai.assistance.operit.data.model.theme.ThemeScriptInsets(edge, edge, edge, edge),
+                    slices = com.ai.assistance.operit.data.theme.script.ThemeScriptInsets(edge, edge, edge, edge),
                 )),
             )),
         )

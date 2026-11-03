@@ -6499,6 +6499,7 @@
     <string name="gemini_error_cannot_connect">Nu se poate stabili conexiunea cu serverul. Vă rugăm să verificați conexiunea la internet sauAPIAdresa este corectă?</string>
     <string name="gemini_error_max_retries">AIEșecul solicitării; s-a atins numărul maxim de încercări: %1$s</string>
     <string name="gemini_error_response_failed">AIEșec la preluarea răspunsului: %1$s</string>
+    <string name="gemini_error_empty_contents">Nu există conținut de mesaj de trimis: istoricul conversației este gol sau conține doar text de gândire</string>
     <string name="gemini_error_connection_timeout">Timpul de așteptare pentru conexiune a expirat sau conexiunea a fost întreruptă; s-a încercat din nou %1$d a doua oară: %2$s</string>
     <string name="gemini_connection_success">Conectarea s-a realizat cu succes!</string>
     <string name="gemini_connection_test_failed">Testul de conexiune a eșuat: %1$s</string>

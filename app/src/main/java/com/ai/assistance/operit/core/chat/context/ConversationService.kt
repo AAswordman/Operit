@@ -17,16 +17,18 @@ import com.ai.assistance.operit.core.chat.hooks.SummaryHookContext
 import com.ai.assistance.operit.core.chat.hooks.SummaryHookRegistry
 import com.ai.assistance.operit.core.chat.hooks.buildActivePromptHookMetadata
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
+import com.ai.assistance.operit.core.chat.hooks.withContent
+import com.ai.assistance.operit.core.chat.protocol.protocolMetaDisplayText
 import com.ai.assistance.operit.core.config.SystemPromptConfig
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.core.tools.UIPageResultData
 import com.ai.assistance.operit.core.tools.SimplifiedUINode
 import com.ai.assistance.operit.core.config.FunctionalPrompts
@@ -36,7 +38,7 @@ import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.data.preferences.MemorySpaceProfileDocumentRepository
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
@@ -131,9 +133,11 @@ class ConversationService(
         try {
             val useEnglish = !LocaleUtils.usesChineseContent(context)
             val activePromptMetadata = buildActivePromptHookMetadata(context)
+            // 旧摘要也可能保存了协议负载，在拼接提示词和分发钩子前统一移除。
+            val sanitizedPreviousSummary = previousSummary?.let(::protocolMetaDisplayText)
             var systemPrompt =
                 FunctionalPrompts.buildSummarySystemPrompt(
-                    previousSummary = previousSummary,
+                    previousSummary = sanitizedPreviousSummary,
                     useEnglish = useEnglish,
                     summaryConfig = summaryConfig
                 )
@@ -162,7 +166,7 @@ class ConversationService(
                     SummaryHookContext(
                         stage = "before_prepare_summary_prompt",
                         useEnglish = useEnglish,
-                        previousSummary = previousSummary,
+                        previousSummary = sanitizedPreviousSummary,
                         chatHistory = summaryHistory,
                         systemPrompt = systemPrompt,
                         summaryPrompt = summaryPrompt,
@@ -187,7 +191,7 @@ class ConversationService(
                     SummaryHookContext(
                         stage = "before_send_to_model",
                         useEnglish = useEnglish,
-                        previousSummary = previousSummary,
+                        previousSummary = sanitizedPreviousSummary,
                         chatHistory = summaryHistory,
                         preparedHistory = preparedHistory,
                         systemPrompt = systemPrompt,
@@ -212,6 +216,11 @@ class ConversationService(
                         summaryPrompt = summaryPrompt
                     )
                 }
+
+            // 钩子可以替换准备好的历史，请求边界仍需过滤旧摘要及消息中的协议负载。
+            preparedHistory = preparedHistory.map { turn ->
+                turn.withContent(protocolMetaDisplayText(turn.content))
+            }
 
             // 使用summaryService发送请求，收集完整响应
             val contentBuilder = StringBuilder()
@@ -309,7 +318,9 @@ class ConversationService(
             progressReporter.complete(context.getString(R.string.conversation_summary_completed))
 
             // 获取完整的总结内容
-            var summaryContent = ChatUtils.removeThinkingContent(contentBuilder.toString().trim())
+            var summaryContent = ChatUtils.removeThinkingContent(
+                protocolMetaDisplayText(contentBuilder.toString())
+            )
 
             // 获取本次总结生成的token统计
             val inputTokens = summaryService.inputTokenCount
@@ -321,7 +332,7 @@ class ConversationService(
                     SummaryHookContext(
                         stage = "after_generate_summary",
                         useEnglish = useEnglish,
-                        previousSummary = previousSummary,
+                        previousSummary = sanitizedPreviousSummary,
                         chatHistory = summaryHistory,
                         preparedHistory = preparedHistory,
                         systemPrompt = systemPrompt,
@@ -337,7 +348,9 @@ class ConversationService(
                             )
                     )
                 )
-            summaryContent = afterGenerateContext.summaryResult ?: summaryContent
+            summaryContent = ChatUtils.removeThinkingContent(
+                protocolMetaDisplayText(afterGenerateContext.summaryResult ?: summaryContent)
+            )
 
             // 如果内容为空，返回默认消息
             if (summaryContent.isBlank()) {

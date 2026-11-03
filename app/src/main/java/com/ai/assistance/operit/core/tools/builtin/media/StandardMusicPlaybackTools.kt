@@ -4,8 +4,8 @@ import android.content.Context
 import android.net.Uri
 import com.ai.assistance.operit.core.tools.MusicPlaybackResultData
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlayer

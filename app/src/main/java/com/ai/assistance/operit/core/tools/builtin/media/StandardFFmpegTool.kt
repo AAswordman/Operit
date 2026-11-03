@@ -4,9 +4,9 @@ import android.content.Context
 import com.ai.assistance.operit.core.tools.FFmpegResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.ToolValidationResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolValidationResult
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit

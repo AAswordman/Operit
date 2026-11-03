@@ -40,13 +40,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.workflow.NodeExecutionState
-import com.ai.assistance.operit.data.model.ConditionNode
-import com.ai.assistance.operit.data.model.ExecuteNode
-import com.ai.assistance.operit.data.model.ExtractNode
-import com.ai.assistance.operit.data.model.LogicNode
-import com.ai.assistance.operit.data.model.ParameterValue
-import com.ai.assistance.operit.data.model.WorkflowNode
-import com.ai.assistance.operit.data.model.WorkflowNodeConnection
+import com.ai.assistance.operit.core.workflow.model.ConditionNode
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.ExtractNode
+import com.ai.assistance.operit.core.workflow.model.LogicNode
+import com.ai.assistance.operit.core.workflow.model.ParameterValue
+import com.ai.assistance.operit.core.workflow.model.WorkflowNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection
 import kotlin.math.roundToInt
 
 // 画布配置常量

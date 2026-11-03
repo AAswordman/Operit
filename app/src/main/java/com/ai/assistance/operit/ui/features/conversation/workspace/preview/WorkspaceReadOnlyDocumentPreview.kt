@@ -37,8 +37,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.BinaryFileContentData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.document.DocumentConversionUtil
 import com.ai.assistance.operit.ui.features.conversation.workspace.OpenFileInfo

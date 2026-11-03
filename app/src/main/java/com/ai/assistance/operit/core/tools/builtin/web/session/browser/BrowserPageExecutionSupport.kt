@@ -21,8 +21,8 @@ import android.webkit.WebView
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.builtin.web.StandardBrowserSessionTools
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File
 import java.io.FileOutputStream

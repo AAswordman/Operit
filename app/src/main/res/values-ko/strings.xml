@@ -5655,6 +5655,7 @@
     <string name="gemini_error_cannot_connect">서버에 연결할 수 없습니다. 네트워크 연결 및 API 주소를 확인하세요.</string>
     <string name="gemini_error_max_retries">AI 응답을 받지 못했습니다. 최대 재시도 횟수에 도달했습니다: %1$s</string>
     <string name="gemini_error_response_failed">AI 응답을 받지 못했습니다: %1$s</string>
+    <string name="gemini_error_empty_contents">보낼 메시지 내용이 없습니다: 대화 기록이 비어 있거나 사고 내용만 있습니다</string>
     <string name="gemini_error_connection_timeout">연결 시간 초과 또는 중단, %1$d회 재시도: %2$s</string>
     <string name="gemini_connection_success">연결 성공!</string>
     <string name="gemini_connection_test_failed">연결 테스트 실패: %1$s</string>

@@ -5,8 +5,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

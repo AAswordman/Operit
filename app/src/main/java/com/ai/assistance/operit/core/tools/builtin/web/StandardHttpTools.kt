@@ -5,8 +5,8 @@ import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.tools.HttpStreamEventData
 import com.ai.assistance.operit.core.tools.HttpResponseData
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import java.io.File
 import java.io.StringReader
 import java.net.InetSocketAddress

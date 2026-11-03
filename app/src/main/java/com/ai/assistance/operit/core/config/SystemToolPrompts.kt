@@ -2,9 +2,9 @@ package com.ai.assistance.operit.core.config
 
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
-import com.ai.assistance.operit.data.model.SystemToolPromptCategory
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.model.ToolParameterSchema
+import com.ai.assistance.operit.core.tools.prompt.SystemToolPromptCategory
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
 import com.ai.assistance.operit.core.tools.builtin.a2ui.A2uiToolDefinitions
 
 /**

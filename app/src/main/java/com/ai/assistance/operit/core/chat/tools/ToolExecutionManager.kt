@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat.tools
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import com.ai.assistance.operit.ui.common.a2ui.CardFences
 import android.content.Context
 import com.ai.assistance.operit.R
@@ -12,8 +12,8 @@ import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
-import com.ai.assistance.operit.data.model.ToolInvocation
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolInvocation
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
 import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilitySession
@@ -28,8 +28,8 @@ import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.ui.common.displays.MessageContentParser
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
@@ -56,7 +56,8 @@ object ToolExecutionManager {
         val callerCardId: String? = null,
         val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         val callerChatId: String? = null,
-        val a2uiRunId: String? = null
+        val a2uiRunId: String? = null,
+        val publishA2ui: (suspend (String) -> Unit)? = null,
     )
 
     private data class ResolvedToolTarget(
@@ -512,6 +513,7 @@ object ToolExecutionManager {
         callerChatId: String? = null,
         callerCardId: String? = null,
         a2uiRunId: String? = null,
+        onA2uiCard: (suspend (String) -> Unit)? = null,
         toolCallOffset: Int = 0,
         onToolTiming: suspend (ToolCallExecution) -> Unit = {},
     ): ToolExecutionBatch = PermissionCapabilityResolver.withSession(permissionSession) {
@@ -545,12 +547,17 @@ object ToolExecutionManager {
                 AppLogger.e(TAG, "角色卡工具权限解析失败: callerCardId=$callerCardId", error)
             }.getOrNull()
         }
+        val publishA2ui: (suspend (String) -> Unit)? = if (onA2uiCard == null) null else { document ->
+            // 卡片和工具结果共用输出锁，避免并行工具交错破坏消息栅栏。
+            outputMutex.withLock { onA2uiCard(document) }
+        }
         val toolRuntimeContext =
             ToolRuntimeContext(
                 callerCardId = callerCardId,
                 toolExposureMode = toolExposureMode,
                 callerChatId = callerChatId,
-                a2uiRunId = a2uiRunId
+                a2uiRunId = a2uiRunId,
+                publishA2ui = publishA2ui,
             )
 
         // 1. 顶层工具暴露模式拦截

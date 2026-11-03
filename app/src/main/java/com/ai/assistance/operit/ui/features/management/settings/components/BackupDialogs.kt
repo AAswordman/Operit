@@ -45,8 +45,8 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.converter.ChatFormat
 import com.ai.assistance.operit.data.converter.ExportFormat
 import com.ai.assistance.operit.data.model.ChatHistory
-import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.MemorySpace
+import com.ai.assistance.operit.data.memory.export.ImportStrategy
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
 
 @Composable
 fun MemoryImportStrategyDialog(

@@ -3,8 +3,8 @@ package com.ai.assistance.operit.data.themesharing
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
 import kotlinx.serialization.json.*
-import com.ai.assistance.operit.data.model.theme.ThemeScriptContract
-import com.ai.assistance.operit.data.model.theme.ThemeScriptManifest
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
 
 /** 分享采用固定字段白名单，新格式用独立数字校验结构，并显式读取已发布格式。 */
 internal object ThemeTransferSchema {

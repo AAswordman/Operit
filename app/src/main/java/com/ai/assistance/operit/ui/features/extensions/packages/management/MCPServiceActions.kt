@@ -37,7 +37,7 @@ fun MCPServiceActions(
         }
         FilledTonalButton(
             onClick = onStart,
-            enabled = enabledCount > 0 && !isLoading && !isRefreshing,
+            enabled = !isLoading && !isRefreshing,
             shape = RoundedCornerShape(12.dp),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         ) {

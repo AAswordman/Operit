@@ -11,12 +11,12 @@ import com.ai.assistance.operit.data.model.MemoryTag_
 import com.ai.assistance.operit.data.model.Memory_
 import com.ai.assistance.operit.data.model.DocumentChunk
 import com.ai.assistance.operit.data.model.Embedding
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.embedding.MemoryEmbeddingModelResolver
 import com.ai.assistance.operit.data.embedding.isEmbeddingReady
-import com.ai.assistance.operit.data.model.DimensionCount
-import com.ai.assistance.operit.data.model.EmbeddingDimensionUsage
-import com.ai.assistance.operit.data.model.EmbeddingRebuildProgress
+import com.ai.assistance.operit.data.embedding.DimensionCount
+import com.ai.assistance.operit.data.embedding.EmbeddingDimensionUsage
+import com.ai.assistance.operit.data.embedding.EmbeddingRebuildProgress
 import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences
 import com.ai.assistance.operit.services.CloudEmbeddingService
 import com.ai.assistance.operit.ui.features.conversation.memory.screens.graph.model.Edge
@@ -33,14 +33,14 @@ import io.objectbox.query.QueryCondition
 import java.util.UUID
 import java.util.Date
 import java.util.Locale
-import com.ai.assistance.operit.data.model.MemoryExportData
-import com.ai.assistance.operit.data.model.SerializableMemory
-import com.ai.assistance.operit.data.model.SerializableLink
-import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.MemoryImportResult
-import com.ai.assistance.operit.data.model.MemorySearchDebugCandidate
-import com.ai.assistance.operit.data.model.MemorySearchDebugInfo
-import com.ai.assistance.operit.data.model.MemoryScoreMode
+import com.ai.assistance.operit.data.memory.export.MemoryExportData
+import com.ai.assistance.operit.data.memory.export.SerializableMemory
+import com.ai.assistance.operit.data.memory.export.SerializableLink
+import com.ai.assistance.operit.data.memory.export.ImportStrategy
+import com.ai.assistance.operit.data.memory.export.MemoryImportResult
+import com.ai.assistance.operit.data.memory.search.MemorySearchDebugCandidate
+import com.ai.assistance.operit.data.memory.search.MemorySearchDebugInfo
+import com.ai.assistance.operit.data.memory.search.MemoryScoreMode
 import com.ai.assistance.operit.util.files.OperitPaths
 import com.ai.assistance.operit.util.text.TextSegmenter
 import com.ai.assistance.operit.util.vector.IndexItem
@@ -2514,10 +2514,10 @@ class MemoryRepository(private val context: Context, profileId: String) {
         memoryBox.all
     }
 
-    suspend fun getSpaceSummary(): com.ai.assistance.operit.data.model.MemorySpaceSummary = withContext(Dispatchers.IO) {
+    suspend fun getSpaceSummary(): com.ai.assistance.operit.data.memory.profile.MemorySpaceSummary = withContext(Dispatchers.IO) {
         cleanupDanglingLinksIfNeeded()
         val memories = memoryBox.all
-        com.ai.assistance.operit.data.model.MemorySpaceSummary(
+        com.ai.assistance.operit.data.memory.profile.MemorySpaceSummary(
             memoryCount = memories.size,
             linkCount = linkBox.count().toInt(),
             folderCount = memories.map { normalizeFolderPath(it.folderPath) }.distinct().size,

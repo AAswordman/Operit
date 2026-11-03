@@ -2,6 +2,7 @@ package com.ai.assistance.operit.data.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.ai.assistance.operit.data.config.model.applySavedModelOrder
 
 class SavedModelOrderTest {
     @Test

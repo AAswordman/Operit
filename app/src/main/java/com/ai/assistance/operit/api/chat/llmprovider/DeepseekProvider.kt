@@ -4,10 +4,10 @@ import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.util.logging.AppLogger
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
@@ -163,15 +163,15 @@ class DeepseekProvider(
         for (param in modelParameters) {
             if (param.isEnabled) {
                 when (param.valueType) {
-                    com.ai.assistance.operit.data.model.ParameterValueType.INT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.INT ->
                         jsonObject.put(param.apiName, param.currentValue as Int)
-                    com.ai.assistance.operit.data.model.ParameterValueType.FLOAT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.FLOAT ->
                         jsonObject.put(param.apiName, param.currentValue as Float)
-                    com.ai.assistance.operit.data.model.ParameterValueType.STRING ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.STRING ->
                         jsonObject.put(param.apiName, param.currentValue as String)
-                    com.ai.assistance.operit.data.model.ParameterValueType.BOOLEAN ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.BOOLEAN ->
                         jsonObject.put(param.apiName, param.currentValue as Boolean)
-                    com.ai.assistance.operit.data.model.ParameterValueType.OBJECT -> {
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.OBJECT -> {
                         val raw = param.currentValue.toString().trim()
                         val parsed: Any? = try {
                             when {

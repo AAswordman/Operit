@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.components.ActionSheetItem
 import com.ai.assistance.operit.ui.components.menu.WorkbenchDropdownMenu
-import com.ai.assistance.operit.data.model.theme.forMode
+import com.ai.assistance.operit.data.theme.script.forMode
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptImage
 
 @Composable

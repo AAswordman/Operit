@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.features.management.settings.contextsummary
 
-import com.ai.assistance.operit.data.model.SummarySectionConfig
+import com.ai.assistance.operit.data.config.model.SummarySectionConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

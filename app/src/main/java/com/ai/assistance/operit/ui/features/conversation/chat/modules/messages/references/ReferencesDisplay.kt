@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.data.model.AiReference
+import com.ai.assistance.operit.core.chat.reference.AiReference
 import com.ai.assistance.operit.ui.common.animations.SimpleAnimatedVisibility
 
 /**

@@ -24,9 +24,9 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigSelection
-import com.ai.assistance.operit.data.model.getModelByIndex
-import com.ai.assistance.operit.data.model.getValidModelIndex
+import com.ai.assistance.operit.data.config.model.ModelConfigSelection
+import com.ai.assistance.operit.data.config.model.getModelByIndex
+import com.ai.assistance.operit.data.config.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.common.oktoast.OKToast

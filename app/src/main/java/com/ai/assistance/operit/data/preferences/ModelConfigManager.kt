@@ -10,22 +10,22 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
-import com.ai.assistance.operit.data.model.CustomParameterData
+import com.ai.assistance.operit.data.config.model.CustomParameterData
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigData
 import com.ai.assistance.operit.data.stats.TokenUsageRepository
-import com.ai.assistance.operit.data.model.ModelConfigDefaults
-import com.ai.assistance.operit.data.model.ModelConfigExport
-import com.ai.assistance.operit.data.model.ModelConfigGroup
-import com.ai.assistance.operit.data.model.ModelConfigSelection
-import com.ai.assistance.operit.data.model.ModelConfigSummary
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterCategory
-import com.ai.assistance.operit.data.model.ParameterValueType
-import com.ai.assistance.operit.data.model.StandardModelParameters
-import com.ai.assistance.operit.data.model.SummarySectionOverride
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.data.config.model.ModelConfigDefaults
+import com.ai.assistance.operit.data.config.model.ModelConfigExport
+import com.ai.assistance.operit.data.config.model.ModelConfigGroup
+import com.ai.assistance.operit.data.config.model.ModelConfigSelection
+import com.ai.assistance.operit.data.config.model.ModelConfigSummary
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterCategory
+import com.ai.assistance.operit.data.config.model.ParameterValueType
+import com.ai.assistance.operit.data.config.model.StandardModelParameters
+import com.ai.assistance.operit.data.config.model.SummarySectionOverride
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
 import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -971,7 +971,7 @@ class ModelConfigManager(
             apiKey: String,
             apiEndpoint: String,
             modelName: String,
-            apiProviderType: com.ai.assistance.operit.data.model.ApiProviderType,
+            apiProviderType: com.ai.assistance.operit.data.config.model.ApiProviderType,
             apiProviderTypeId: String = apiProviderType.name
     ): ModelConfigData {
         return updateConfigInternal(configId) {
@@ -993,7 +993,7 @@ class ModelConfigManager(
             apiKey: String,
             apiEndpoint: String,
             modelName: String,
-            apiProviderType: com.ai.assistance.operit.data.model.ApiProviderType,
+            apiProviderType: com.ai.assistance.operit.data.config.model.ApiProviderType,
             apiProviderTypeId: String = apiProviderType.name,
             mnnForwardType: Int,
             mnnThreadCount: Int
@@ -1367,7 +1367,7 @@ class ModelConfigManager(
         ) {
             try {
                 val customParamsData =
-                        json.decodeFromString<List<com.ai.assistance.operit.data.model.CustomParameterData>>(
+                        json.decodeFromString<List<com.ai.assistance.operit.data.config.model.CustomParameterData>>(
                                 config.customParameters
                         )
                 customParamsData.forEach { data ->
@@ -1541,8 +1541,8 @@ class ModelConfigManager(
 }
 
 // 扩展函数，用于将ModelParameter转换为CustomParameterData
-private fun ModelParameter<*>.toCustomParameterData(): com.ai.assistance.operit.data.model.CustomParameterData {
-    return com.ai.assistance.operit.data.model.CustomParameterData(
+private fun ModelParameter<*>.toCustomParameterData(): com.ai.assistance.operit.data.config.model.CustomParameterData {
+    return com.ai.assistance.operit.data.config.model.CustomParameterData(
         id = this.id,
         name = this.name,
         apiName = this.apiName,

@@ -65,9 +65,9 @@ import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.mcp.MCPManager
 import com.ai.assistance.operit.core.tools.mcp.McpRuntimeTool
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

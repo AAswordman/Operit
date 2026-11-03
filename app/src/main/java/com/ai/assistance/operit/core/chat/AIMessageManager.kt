@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat
 
-import com.ai.assistance.operit.data.model.tooltiming.ToolCallExecution
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
 import com.ai.assistance.operit.core.chat.voice.VoiceAnalysis
 import com.ai.assistance.operit.core.chat.voice.VoiceMessageMarkup
 import com.ai.assistance.operit.core.chat.media.currentTurnMediaHistory
@@ -28,13 +28,13 @@ import com.ai.assistance.operit.core.chat.plugins.MessageProcessingPluginRegistr
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.MemoryQueryResultData
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
-import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceAttachmentProcessor
 import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceChangeTracker
@@ -42,6 +42,7 @@ import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.util.media.MediaPoolManager
 import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.protocolMetaDisplayText
 import com.ai.assistance.operit.util.android.LocaleUtils
 import com.ai.assistance.operit.util.stream.SharedStream
 import com.ai.assistance.operit.util.stream.share
@@ -792,7 +793,8 @@ object AIMessageManager {
         }
 
         fun condenseAssistantForReview(text: String): String {
-            val cleaned = ChatUtils.removeThinkingContent(text)
+            // 必须先删协议块，再去除 XML 标签和压缩，否则负载会变成无法识别的普通文本。
+            val cleaned = ChatUtils.removeThinkingContent(protocolMetaDisplayText(text))
             val normalized = normalizeForReview(cleaned)
             if (normalized.isBlank()) return "[Empty]"
 
@@ -1317,11 +1319,11 @@ object AIMessageManager {
                         isRoleScopedMode,
                         groupOrchestrationMode
                     )
+                    // 读取时清理历史摘要，已保存的协议负载不能再进入后续聊天上下文。
                     "summary" ->
-                        PromptTurn(
-                            kind = PromptTurnKind.SUMMARY,
-                            content = message.content
-                        )
+                        protocolMetaDisplayText(message.content).takeIf { it.isNotBlank() }?.let { content ->
+                            PromptTurn(kind = PromptTurnKind.SUMMARY, content = content)
+                        }
                     else -> null
                 }
             }
