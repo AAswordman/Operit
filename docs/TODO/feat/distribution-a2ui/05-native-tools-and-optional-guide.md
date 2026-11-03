@@ -13,7 +13,7 @@
 
 - A2uiToolRuntime、A2uiTools 和 A2uiToolDefinitions 直接注册五个原生工具；JsEngine 中的 A2UI 生成桥接与专用上下文捕获已经移除。
 - 41 个宿主 Kotlin 文件、23 个宿主测试文件和 29 个测试资源位于 a2ui 路径；普通卡片与 live 快照的私有状态目录统一为 `files/a2ui/`，命名与目录整理见[后续步骤](06-a2ui-naming-and-storage.md)。
-- 旧内置生成脚本已从 assets 和打包白名单移除。外部 `a2ui_guide.js` 仅提供 read_guide/read_example，不调用 NativeInterface 或生成函数；原始完整脚本已单独备份到手机。
+- 旧内置生成脚本已从 assets 和打包白名单移除。后续 +21 已移除外部示例引导脚本，语法通过原生 `a2ui_catalog` 获取；原始完整脚本的手机备份不属于仓库发行文件。
 - 原生入口有 8 个 JVM 用例，覆盖无需引导包生成、可信上下文、请求结束、无效输入、引用隔离、修订和 live 版本控制。完整人工清单保留 40 项。
 
 验证：原生入口的活动请求、输入校验、引用隔离与修订由现有用例覆盖。静态核对后派发 Debug 和 Android Tests，不执行本地构建或测试；正式发布等待用户 Debug 验收。

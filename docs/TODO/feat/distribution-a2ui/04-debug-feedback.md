@@ -19,7 +19,7 @@
 - `WorkspaceHubScreen.kt` 的统一入口覆盖主页、加号和会话页签，先检查已安装环境或已验证归档，再导航终端；缺少资源时显式进入离线资源页。
 - `WorkspaceHubOverlay.kt` 使用 240ms 水平滑动和不透明背景。退出期间保留最后页面，隐藏后保留工作区组合状态，支持动画中反向切换。
 - `FunctionalConfigScreen.kt` 在绑定、思考设置、重置的保存协程完成后直接显示短 Toast，移除列表末尾成功提示及定时状态。
-- `BuiltInPackageDefaults.kt` 在资产扫描时收敛默认值。八个默认沙盒包为 `system_tools`、`super_admin`、`various_search`、`extended_http_tools`、`extended_memory_tools`、`extended_file_tools`、`code_runner`、`operit_editor`；所有内置 ToolPkg 容器关闭。只影响首次默认值，保留已保存开关和外部导入语义。后续原生入口迭代已移除内置生成包，A2UI 由原生工具提供，可选 a2ui_guide 仅用于说明。
+- `BuiltInPackageDefaults.kt` 在资产扫描时收敛默认值。八个默认沙盒包为 `system_tools`、`super_admin`、`various_search`、`extended_http_tools`、`extended_memory_tools`、`extended_file_tools`、`code_runner`、`operit_editor`；所有内置 ToolPkg 容器关闭。只影响首次默认值，保留已保存开关和外部导入语义。后续原生入口迭代已移除内置生成包，A2UI 由原生工具提供，后续 +21 移除可选引导脚本，说明改由 `a2ui_catalog` 按需返回。
 - 两处官方 A2UI Compose 文件使用带键 `LaunchedEffect` 报告错误；来源清单分别记录上游和适配后 SHA-256。
 
 源码实现完成。[DONE]
