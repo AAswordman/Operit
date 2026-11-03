@@ -118,7 +118,7 @@ def engine_libraries(cache: Path, work: Path) -> tuple[list[tuple[str, Path]], l
     return [(name, destinations[name]) for name in sorted(destinations)], order
 
 
-def prepare(output: Path, cache: Path, packages: Path, base_assets: Path | None = None) -> dict:
+def prepare(output: Path, cache: Path, packages: Path, base_assets: Path | None = None, source_snapshot: Path | None = None) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     groups = []
     for template in TEMPLATES:
@@ -147,6 +147,16 @@ def prepare(output: Path, cache: Path, packages: Path, base_assets: Path | None 
     for group in groups:
         group['archive']['url'] = f'https://github.com/{RESOURCE_REPOSITORY}/releases/download/{tag}/{group["archive"]["path"]}'
     result = {'schemaVersion': 1, 'releaseTag': tag, 'packs': groups}
+    if source_snapshot is not None:
+        from builtin_source_snapshot import create_snapshot, fingerprint as source_snapshot_fingerprint
+        revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        snapshot = create_snapshot(ROOT, [group['extension']['source'] for group in groups if 'extension' in group], tag, revision)
+        for group in groups:
+            extension = group.get('extension')
+            if extension is not None and extension['sourceFingerprint'] != source_snapshot_fingerprint(dict(snapshot['files']), extension['source']):
+                raise ValueError('准备资源前必须提交源码输入：' + extension['source'])
+        source_snapshot.parent.mkdir(parents=True, exist_ok=True)
+        source_snapshot.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + '\n')
     metadata = output / 'offline-packs.json'
     metadata.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
     sums = [f'{digest(path)}  {path.name}' for path in sorted(output.glob('*.zip'))]
@@ -175,6 +185,7 @@ if __name__ == '__main__':
     parser.add_argument('--slim-assets', type=Path)
     parser.add_argument('--packages', type=Path)
     parser.add_argument('--base-assets', type=Path)
+    parser.add_argument('--source-snapshot', type=Path, help='单独写入随源码维护的固定资源输入摘要')
     args = parser.parse_args()
     if args.slim_assets:
         slim_assets(args.slim_assets)
@@ -183,4 +194,4 @@ if __name__ == '__main__':
             parser.error('需要 --output')
         if not args.packages:
             parser.error('需要 --packages 指定已构建的完整白名单扩展产物')
-        prepare(args.output, args.cache, args.packages, args.base_assets)
+        prepare(args.output, args.cache, args.packages, args.base_assets, args.source_snapshot)

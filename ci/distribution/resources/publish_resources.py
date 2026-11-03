@@ -43,7 +43,7 @@ def main(artifact_id: int) -> None:
     commit = os.environ["GITHUB_SHA"]
     if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         raise ValueError("源码提交格式不正确")
-    verify_catalog()
+    verify_catalog(current_source=True)
     existing = existing_publication(ROOT / "app/config/offline-packs.json", RESOURCE_REPOSITORY)
     if existing is not None:
         print(json.dumps(existing, ensure_ascii=False), flush=True)

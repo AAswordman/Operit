@@ -818,6 +818,18 @@ fun getJsToolsDefinition(): String {
                 // 执行终端命令 - 一次性收集输出
                 terminal: {
                     create: (sessionName) => toolCall("create_terminal_session", { session_name: sessionName }),
+                    start: (sessionId, command, options = {}) => {
+                        const params = { session_id: sessionId, command };
+                        if (options.timeoutMs !== undefined && options.timeoutMs !== null) params.timeout_ms = String(options.timeoutMs);
+                        if (options.yieldMs !== undefined && options.yieldMs !== null) params.yield_ms = String(options.yieldMs);
+                        return toolCall("start_terminal_task", params);
+                    },
+                    poll: (runId, options = {}) => {
+                        const params = { run_id: runId };
+                        if (options.yieldMs !== undefined && options.yieldMs !== null) params.yield_ms = String(options.yieldMs);
+                        return toolCall("poll_terminal_task", params);
+                    },
+                    cancel: (runId) => toolCall("cancel_terminal_task", { run_id: runId }),
                     exec: (sessionId, command, timeoutMs) => {
                         const params = { session_id: sessionId, command };
                         if (timeoutMs !== undefined && timeoutMs !== null) {

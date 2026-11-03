@@ -433,6 +433,8 @@ val syncMainAssets by tasks.registering(Sync::class) {
     inputs.file(rootProject.file("ci/distribution/resources/prepare_hub.py"))
     inputs.file(rootProject.file("ci/distribution/resources/verify_hub_catalog.py"))
     inputs.file(rootProject.file("ci/distribution/resources/builtin_packages.py"))
+    inputs.file(rootProject.file("ci/distribution/resources/builtin_source_snapshot.py"))
+    inputs.file(file("config/offline-pack-sources.json"))
     inputs.dir(rootProject.file("examples"))
     inputs.file(rootProject.file("tools/example_packages/packages_whitelist.txt"))
     inputs.dir(file("src/main/assets/templates"))
@@ -1042,4 +1044,24 @@ dependencies {
 // 向 JVM 回归提供明确的源码根目录，供 Compose DSL 运行时用例读取宿主脚本。
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     systemProperty("operit.repositoryRoot", rootProject.projectDir.absolutePath)
+}
+
+// 终端库使用独立仓库，宿主 JVM 检查必须一并执行其生命周期回归。
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    if (name == "testDebugUnitTest") {
+        dependsOn(":terminal:testDebugUnitTest")
+    }
+}
+
+// 开发构建使用固定资源快照，正式发行仍要求当前源码与该资源版本一致。
+val verifyCurrentOfflinePackSources by tasks.registering {
+    group = "verification"
+    doLast {
+        runResourceScript("verify_hub_catalog.py", listOf("--current-source"))
+    }
+}
+tasks.configureEach {
+    if (name == "verifyCiPreviewRelease" || name == "bundleRelease") {
+        dependsOn(verifyCurrentOfflinePackSources)
+    }
 }
