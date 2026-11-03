@@ -50,6 +50,8 @@ class RemoteMcpRuntimeSession(
     private var client: Client? = null
     private var connected = false
 
+    @Volatile private var lastFailureDetail: String? = null
+
     override suspend fun connect(): Boolean = withContext(Dispatchers.IO) {
         if (connected && client != null) return@withContext true
 
@@ -77,16 +79,22 @@ class RemoteMcpRuntimeSession(
             mcpClient.connect(transport)
             client = mcpClient
             connected = true
+            lastFailureDetail = null
             true
         } catch (e: Exception) {
             connected = false
             client = null
+            // Remote failures are otherwise only written to logcat; startup verification
+            // needs the concrete reason to report something actionable.
+            lastFailureDetail = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
             Log.e(TAG, "Failed to connect remote MCP plugin $pluginId: ${e.message}", e)
             false
         }
     }
 
     override fun isConnected(): Boolean = connected && client != null
+
+    override fun getLastFailureDetail(): String? = lastFailureDetail
 
     override suspend fun isActive(): Boolean = isConnected()
 
