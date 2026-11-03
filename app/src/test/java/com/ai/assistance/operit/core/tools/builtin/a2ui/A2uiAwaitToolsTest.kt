@@ -65,17 +65,32 @@ class A2uiAwaitToolsTest {
     }
 
     @Test fun liveAndWaitingCardsKeepVersionChecksAndAgentOwnership() = runBlocking {
+        lateinit var snapshot: java.io.File
         withRun { context ->
             val runtime = context.copy(publishA2ui = { document ->
                 val surface = A2uiProtocol.parse(document, true).surfaceIds.single()
                 assertTrue(CardLiveStore.isLive(surface))
                 assertTrue(CardSubmissionStore.isAwaitable(surface))
                 val patched = A2uiToolRuntime.patchData(context, "card-1", 0, buildJsonObject { put("progress", 50) })
+                assertEquals(patched.toString(), JsonPrimitive(true), patched["valid"])
                 assertEquals(1, patched.getValue("version").jsonPrimitive.int)
+                // 联用路径必须真实保存快照，确认发布成功后再检查版本与提交结果。
+                snapshot = java.io.File(temporary.root, "a2ui/${A2uiProtocol.fingerprint(owner.chatId)}/$surface.json")
+                assertTrue(snapshot.path, snapshot.isFile)
+                val persisted = Json.parseToJsonElement(snapshot.readText()).jsonObject
+                assertEquals(buildJsonObject { put("progress", 50) }, persisted.getValue("agent"))
+                assertEquals(1, persisted.getValue("version").jsonPrimitive.int)
                 assertTrue(CardSubmissionStore.current.submit(owner, document, surface, "ai_submit", answer))
             })
-            assertEquals("submitted", payload(A2uiTools.executeStreaming(tool(live = true), temporary.root, runtime)).getValue("status").jsonPrimitive.content)
+            val result = A2uiTools.executeStreaming(tool(live = true), temporary.root, runtime)
+            val report = payload(result)
+            assertTrue(report.toString(), result.success)
+            assertEquals("submitted", report.getValue("status").jsonPrimitive.content)
+            assertEquals(answer, report["data"])
         }
+        val frozen = Json.parseToJsonElement(snapshot.readText()).jsonObject
+        assertFalse(frozen.getValue("active").jsonPrimitive.boolean)
+        assertEquals(1, frozen.getValue("version").jsonPrimitive.int)
     }
 
     @Test fun missingStreamingPublisherDoesNotConsumeACardReference() = runBlocking {
