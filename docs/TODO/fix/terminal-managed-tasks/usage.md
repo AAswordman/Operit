@@ -10,6 +10,8 @@ status: DRAFT
 
 已有 `Tools.System.terminal.exec`、`execStreaming` 和对应旧结果格式继续可用。它们的请求超时会按自己的命令 ID 取消；排队中的命令仅移除自己，运行中的命令无法恢复时关闭会话。工具创建的新本地自动化会话关闭分页和 Git 密码提示，人工创建的会话保持原环境。
 
+本地取消时通过带随机令牌的 shell 回复确认恢复；旧完成标记被 Ctrl+C 清空时，确认成功仍保留原 sessionId、目录和变量。提示符或输入回显本身不会作为完成证据；仅确认恢复时不伪造命令退出码。可见执行结果的可选 `contextPreserved` 记录结果返回时原会话的实际存活状态，`super_admin.context_preserved` 使用同一观测值，执行超时不等于会话已经丢失。
+
 新增脚本方法与原生工具对应如下：
 
 - `Tools.System.terminal.start(sessionId, command, { timeoutMs, yieldMs })` 对应 `start_terminal_task`

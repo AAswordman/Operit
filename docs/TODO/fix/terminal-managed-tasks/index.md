@@ -1,6 +1,6 @@
 ---
 repo: https://github.com/3316891527/Operit
-status: COMPLETED
+status: IMPLEMENTED_CI_PENDING
 ---
 
 # 终端命令生命周期与托管任务
@@ -19,6 +19,8 @@ status: COMPLETED
 4. 新建托管任务包，实现 start、poll、cancel，分别处理单次等待和命令执行期限
 5. 接入原生工具、JavaScript 桥、TypeScript 类型和 super_admin 工具包，维护兼容接口、来源记录及完整回归表
 6. 本地静态检查后提交到个人仓库，在工作分支派发 Debug 与仓库检查，再创建关联 PR；不等待或轮询 CI
+
+7. 补齐 Ctrl+C 清空尾部标记后的本地 shell 恢复确认，修正会话保留状态报告
 
 ## 兼容边界
 
@@ -39,10 +41,11 @@ status: COMPLETED
 - [接口说明](usage.md)
 - [参考适配来源](sources.md)
 - [完整回归清单与结果表](regression.md)
+- [取消恢复确认](cancellation-recovery.md)
 
 ## 实现交付状态
 
-应用与核心源码、兼容接口、来源文档及 16 个 JVM 回归用例已实现。核心固定提交为 `e6946a38a4afa1d4a4459daf5fc85777cc50d5e3`；应用使用该 gitlink。仓库工作流负责执行 JVM 单测和 Debug 构建，运行结果与设备回归结果待确认，本地未执行编译、构建或测试。
+主体实现已通过应用 PR #114 与核心 PR #1 交付。本次补充取消恢复确认及状态报告，应用与核心合计 29 个 JVM 回归用例；核心固定版本以应用 `terminal` gitlink 为准。仓库工作流负责执行 JVM 单测和 Debug 构建，运行结果与设备回归结果待确认，本地未执行编译、构建或测试。
 
 ## 固定资源构建校验
 

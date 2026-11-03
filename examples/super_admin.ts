@@ -299,7 +299,7 @@ const superAdmin = (function () {
             exitCode: result?.exitCode,
             sessionId: result?.sessionId,
             timedOut: result?.timedOut === true,
-            context_preserved: result?.timedOut !== true,
+            context_preserved: result?.contextPreserved,
             output_saved_to: filePath,
             output_chars: outputStr.length,
             operit_clean_on_exit_dir: OPERIT_CLEAN_ON_EXIT_DIR,
@@ -384,13 +384,14 @@ const superAdmin = (function () {
                 sessionId: result.sessionId,
                 timedOut: timedOut,
                 timeoutMsUsed: timeout,
-                context_preserved: !timedOut
+                context_preserved: result.contextPreserved
             };
         } catch (error) {
             console.error(`[terminal] 错误: ${error.message}`);
             console.error(error.stack);
             // 保留终端失败的结构化结果，让外层显示失败并保留输出和退出码。
             if (error.data && typeof error.data.exitCode === "number" && error.data.exitCode !== 0) {
+                error.data.context_preserved = error.data.contextPreserved;
                 return { success: false, message: error.message, data: error.data };
             }
             throw error;
@@ -445,7 +446,7 @@ const superAdmin = (function () {
                 waitCompleted: !timedOut && markerSeen,
                 markerSeen,
                 exitCode: result?.exitCode,
-                context_preserved: !timedOut
+                context_preserved: result.contextPreserved
             };
         } catch (error) {
             console.error(`[terminal_wait] 错误: ${error.message}`);

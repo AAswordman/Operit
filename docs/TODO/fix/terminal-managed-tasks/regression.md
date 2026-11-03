@@ -10,6 +10,8 @@ CI 的 `FixedCatalogSourceSnapshotTest` 另覆盖开发构建与当前索引分�
 
 核心 `SessionProcessStatTest` 覆盖带括号的进程名和无效 stat；`TerminalExitMonitorTest` 覆盖主进程退出但读取仍不结束，以及读取已排空；`ClosedSessionCompletionTest` 覆盖运行与多个排队命令恰好完成一次。
 
+核心新增 `CommandCancellationRecoveryTest`、`ShellPromptStreamTest` 和 `CancellationRecoveryCompletionTest`，13 个用例覆盖中断前提示符、发送确认顺序、旧令牌、输入回显、所有分块边界、缺失完成标记后的取消、未知退出码、队列保留和关闭后的迟到回复。以上为已编写用例，执行结果由 Actions 确认。
+
 CI 入口为 `./gradlew :app:testDebugUnitTest --stacktrace --no-daemon`，该任务通过 Gradle 依赖同时执行 `:terminal:testDebugUnitTest`。Debug 构建由工作分支上的 Build 工作流执行。
 
 ## Android 设备检查
@@ -33,6 +35,11 @@ CI 入口为 `./gradlew :app:testDebugUnitTest --stacktrace --no-daemon`，该�
 - T17：交互提示、Ctrl+C、组合按键和方向键；输入进入目标会话，文本与回车保持顺序
 - T18：人工本地会话、工具本地会话及 SSH；自动化环境只作用于新建本地工具会话，SSH 不使用本地 PID 清理
 - T19：宿主初始化、环境删除及重新初始化；初始化仍先于就绪，维护期间不得新建终端
+
+- T20：同一 session 先执行 `cd /tmp; OPERIT_CANCEL_CHECK=kept`，再让 `sleep 60` 超时；原 sessionId 不变，`pwd` 为 `/tmp`、变量为 `kept`，`contextPreserved=true`
+- T21：使用前台程序清空 PTY 待消费输入，确认尾部完成标记未输出后触发取消；随机令牌回复完成取消、保留原会话，退出码不伪造为 0
+- T22：命令输出类似提示符或存在旧提示符，再触发取消；提示符与确认行回显不能提前完成命令，下一条命令按序执行且不收到前次取消输入
+- T23：分别检查普通执行、长输出和结构化失败结果；`context_preserved` 与同一 sessionId 的实际存活状态一致；无法恢复的路径仍按 T06 关闭会话
 
 ## 结果填写
 
@@ -60,4 +67,8 @@ T16：
 T17：
 T18：
 T19：
+T20：
+T21：
+T22：
+T23：
 ```

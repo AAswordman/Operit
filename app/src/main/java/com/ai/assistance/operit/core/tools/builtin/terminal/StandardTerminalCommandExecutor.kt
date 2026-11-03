@@ -268,7 +268,11 @@ class StandardTerminalCommandExecutor(private val context: Context) {
                             output = fullOutput,
                             exitCode = exitCode,
                             sessionId = sessionId,
-                            timedOut = didTimeout
+                            timedOut = didTimeout,
+                            // 取消清理已经返回，按原会话实际存活状态报告，不能由超时标志推断。
+                            contextPreserved = terminal.terminalState.value.sessions.any {
+                                it.id == sessionId && !it.commandLifecycle.closed
+                            }
                         ),
                     error = errorMessage
                 )
