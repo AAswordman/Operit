@@ -5,9 +5,9 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.data.config.model.ModelParameter
 import com.ai.assistance.operit.api.chat.keypool.SingleApiKeyProvider
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ImagePoolManager
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.media.ImagePoolManager
+import com.ai.assistance.operit.util.files.OperitPaths
 import java.io.File
 import java.lang.reflect.InvocationTargetException
 import java.nio.file.Files
