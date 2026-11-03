@@ -16,6 +16,8 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "ci/distribution"))
 from repositories.config import SOURCE_REPOSITORY, UPDATE_REPOSITORY, release_repositories, source_info
+sys.path.insert(0, str(ROOT / "ci/distribution/resources"))
+from prepare_current_resources import release_prepared
 
 REPOSITORY = SOURCE_REPOSITORY
 APK_NAME = "app-kong.apk"
@@ -180,6 +182,9 @@ def main() -> None:
         print(f"增量包 {patch.stat().st_size} 字节，完整 APK {args.apk.stat().st_size} 字节", flush=True)
     else:
         print("当前基础版本尚无已发布 APK，本次建立完整包基线", flush=True)
+    # 资源必须与 APK 内的目录和本轮提交一致，先公开资源再创建应用发行草稿。
+    summary["offlineResources"] = release_prepared(
+        args.apk, args.commit, ROOT / ".ci-current-resources", publish_resources=not args.prepare_only)
     manifest = args.output / "distribution-release.json"
     manifest.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     assets.append(manifest)

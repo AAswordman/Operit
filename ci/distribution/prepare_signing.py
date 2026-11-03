@@ -4,6 +4,8 @@ import base64
 import binascii
 import os
 from pathlib import Path
+import subprocess
+import sys
 
 
 def main():
@@ -23,7 +25,14 @@ def main():
     descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "wb") as output:
         output.write(key_bytes)
-    print("独立发行签名密钥已准备")
+    print("独立发行签名密钥已准备", flush=True)
+    # 既有工作流在扩展构建后调用此入口，严格校验需要读取本轮生成的资源目录。
+    root = Path(__file__).resolve().parents[2]
+    subprocess.run([
+        sys.executable, str(root / "ci/distribution/resources/prepare_current_resources.py"),
+        "--packages", str(root / "app/src/main/assets/packages"),
+        "--output", str(root / ".ci-current-resources"),
+    ], check=True)
 
 
 if __name__ == "__main__":
