@@ -5,6 +5,7 @@ import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.util.markdown.MarkdownFence
 import java.util.UUID
+import com.ai.assistance.operit.ui.common.a2ui.submission.CardSubmissionStore
 import kotlinx.serialization.json.*
 
 /** Temporary capabilities: never resolve another run's card or use history as a fallback.
@@ -24,16 +25,26 @@ internal object CardDelivery {
     @Synchronized fun begin(run: String) {
         if (runs.size < 64) runs.putIfAbsent(run, linkedMapOf())
     }
-    @Synchronized fun end(run: String) { runs.remove(run); CardLiveStore.end(run) }
+    @Synchronized fun end(run: String) {
+        runs.remove(run)
+        CardLiveStore.end(run)
+        CardSubmissionStore.current.end(run)
+    }
     @Synchronized fun register(run: String, document: String, source: String = "",
-        liveChat: String? = null, liveDirectory: java.io.File? = null, supersedesReference: String? = null): String {
+        liveChat: String? = null, liveDirectory: java.io.File? = null, supersedesReference: String? = null,
+        waitChat: String? = null, waitTimeoutMillis: Long = 0): String {
         val cards = runs[run] ?: throw InactiveRunException()
         val id = UUID.randomUUID().toString()
-        val stored = if (liveChat == null) document else document.lines().filter(String::isNotBlank).joinToString("\n") { line ->
+        val surface = when {
+            waitChat != null -> CardSubmissionStore.surface(id, live = liveChat != null)
+            liveChat != null -> CardLiveStore.surface(id)
+            else -> null
+        }
+        val stored = if (surface == null) document else document.lines().filter(String::isNotBlank).joinToString("\n") { line ->
             val event = Json.parseToJsonElement(line).jsonObject
             val kind = event.keys.single { it != "version" }
             val body = event.getValue(kind).jsonObject
-            JsonObject(event + (kind to JsonObject(body + ("surfaceId" to JsonPrimitive(CardLiveStore.surface(id)))))).toString()
+            JsonObject(event + (kind to JsonObject(body + ("surfaceId" to JsonPrimitive(surface))))).toString()
         }
         val revision = Revision(stored, source)
         require(cards.size < 16 && cards.values.sumOf { it.size } + revision.size <= 524_288) {
@@ -43,8 +54,12 @@ internal object CardDelivery {
             "Card generation is busy. Try again after other tasks finish."
         }
         if (liveChat != null) CardLiveStore.register(run, id, liveChat, requireNotNull(liveDirectory), source, stored)
+        if (waitChat != null) CardSubmissionStore.current.register(run, id, waitChat, stored, waitTimeoutMillis)
         cards[id] = revision
-        supersedesReference?.let { canonical(run, it) }?.let { cards[it]?.superseded = true }
+        supersedesReference?.let { canonical(run, it) }?.let {
+            cards[it]?.superseded = true
+            CardSubmissionStore.current.cancel(run, it)
+        }
         return "card-${cards.size}"
     }
     /** Maps a model-facing name (or an internal UUID from this run) to the internal UUID. */

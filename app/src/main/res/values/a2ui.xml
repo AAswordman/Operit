@@ -53,4 +53,12 @@
     <string name="a2ui_clear">清空</string>
     <string name="a2ui_date_outside_range">日期超出允许范围。</string>
     <string name="a2ui_close_details">关闭详情</string>
+    <string name="a2ui_waiting_submission">当前任务正在等待填写，确认提交后会立即继续</string>
+    <string name="a2ui_wait_submitted">已提交给当前任务</string>
+    <string name="a2ui_wait_timed_out">等待已超时，本次表单不再接收提交</string>
+    <string name="a2ui_wait_cancelled">已取消等待</string>
+    <string name="a2ui_wait_inactive">等待已结束，历史表单不能提交</string>
+    <string name="a2ui_cancel_wait">取消等待</string>
+    <string name="a2ui_confirm_wait">将以下内容提交给当前任务？</string>
+    <string name="a2ui_submit_wait">提交并继续</string>
 </resources>

@@ -7,11 +7,11 @@ import kotlinx.serialization.json.*
 
 /** Current-run write capabilities. Historical cards can only read the final chat-scoped snapshot. */
 internal object CardLiveStore {
-    private data class Entry(val run: String, val chat: String, val source: String, val fingerprint: String,
+    private data class Entry(val run: String, val reference: String, val chat: String, val source: String, val fingerprint: String,
         val file: File, val state: MutableStateFlow<JsonObject>, var published: Boolean = false, var failed: Boolean = false)
     private val entries = mutableMapOf<String, Entry>()
 
-    fun isLive(surface: String) = surface.matches(Regex("live_[0-9a-f]{32}"))
+    fun isLive(surface: String) = surface.matches(Regex("(live|await_live)_[0-9a-f]{32}"))
     fun surface(reference: String) = "live_${reference.replace("-", "")}"
     private fun fingerprint(document: String) = A2uiProtocol.fingerprint(document.trimEnd('\r', '\n'))
     fun userData(data: JsonObject) = JsonObject(data.filterKeys { it != "agent" })
@@ -24,8 +24,9 @@ internal object CardLiveStore {
 
     @Synchronized fun register(run: String, reference: String, chat: String, directory: File,
         source: String, document: String) {
-        val id = surface(reference)
         val batch = A2uiProtocol.parse(document, true)
+        val id = batch.surfaceIds.single()
+        require(isLive(id))
         // 缺少 Agent 数据属于源码输入错误，不能误报为聊天轮次失效。
         val data = requireNotNull(CardRepeat.initialData(batch.lines, id)["agent"] as? JsonObject) {
             "Live source must initialize $/agent as an object, for example $/agent={progress:10}."
@@ -44,7 +45,7 @@ internal object CardLiveStore {
             require(path == null || !protectedPath(path)) { "User controls cannot write Agent data" }
         }
         val fingerprint = fingerprint(document)
-        entries[id] = Entry(run, chat, source, fingerprint, File(directory, "$id.json"),
+        entries[id] = Entry(run, reference, chat, source, fingerprint, File(directory, "$id.json"),
             MutableStateFlow(record(fingerprint, data, 0, true)))
     }
 
@@ -52,7 +53,7 @@ internal object CardLiveStore {
         buildJsonObject { put("fingerprint", fingerprint); put("agent", data); put("version", version); put("active", active) }
 
     @Synchronized fun publish(run: String, reference: String): Boolean {
-        val e = entries[surface(reference)]?.takeIf { it.run == run } ?: return true
+        val e = entries.values.singleOrNull { it.run == run && it.reference == reference } ?: return true
         if (e.failed) return false
         if (!e.published) {
             try {
@@ -68,7 +69,7 @@ internal object CardLiveStore {
     }
 
     @Synchronized fun patch(run: String, reference: String, expected: Int, data: JsonObject): Int {
-        val e = entries[surface(reference)]?.takeIf { it.run == run } ?: error("No live card in this turn")
+        val e = entries.values.singleOrNull { it.run == run && it.reference == reference } ?: error("No live card in this turn")
         check(!e.failed) { "Live data could not be saved; prepare a new card after checking storage" }
         val version = e.state.value.getValue("version").jsonPrimitive.int
         require(expected == version) { "Card data version conflict; current version=$version" }

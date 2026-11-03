@@ -16,6 +16,7 @@ internal object A2uiToolDefinitions {
                     description = text("Compile Express and queue a native card for automatic display when this turn completes. The returned reference can optionally choose its position.", "编译 Express 并安排本轮结束时自动展示原生卡片；返回的引用可用于指定展示位置。"),
                     parametersStructured = listOf(
                         ToolParameterSchema("source", "string", text("Express source, up to 65536 characters; query a2ui_catalog for signatures. Progress.number uses a 0 to 1 ratio.", "Express 源码，最多 65536 字符；组件参数见 a2ui_catalog。Progress.number 使用 0～1 的比例。")),
+                        ToolParameterSchema("wait_timeout_seconds", "integer", text("Form wait timeout, 0 to 600 seconds; 0 disables waiting. See a2ui_catalog.", "本轮表单等待秒数，0～600；0 表示不等待，详见 a2ui_catalog。"), required = false, default = "0"),
                         ToolParameterSchema("live", "boolean", text("Enable updates during this turn. Initialize $/agent as an object and bind model-owned values below $/agent/.", "允许本轮请求内更新数据；需初始化 $/agent 对象，并将模型拥有的数据绑定到 $/agent/ 下。"), required = false, default = "false"),
                     ),
                 ),
