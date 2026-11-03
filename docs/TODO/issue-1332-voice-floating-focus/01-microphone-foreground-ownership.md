@@ -38,8 +38,8 @@ android:foregroundServiceType="dataSync|microphone"
 改为随语音会话追加类型。`FloatingChatService.setVoiceSessionForeground(active)` 用同一个通知重新调用 `startForeground`：语音会话开始时组装 `dataSync|microphone`，结束时降回 `dataSync`；类型按 `RECORD_AUDIO` 授权状态组装，未授予时不带 microphone。调用点全在浮窗 UI 侧：
 
 - `FloatingFullscreenModeViewModel.startVoiceCapture()` 在 `startListening()` 之前追加，保证采集开始时类型已经就位（波浪模式与底部按住说话共用这一入口）
-- `stopVoiceCapture()` 在底部按住说话这类单次采集结束后收回；波浪模式下回合间隙继续收音，不收回
-- `exitWaveMode()` / `cleanup()` / `enterWaveMode()` 启动采集失败时收回
+- `observeVoiceForegroundIdle()` 用 `snapshotFlow { isWaveActive || isRecording || isProcessingSpeech }` 观测语音管线真正空闲后再收回：波浪模式下整段会话持有类型，底部按住说话在最终识别结果处理完后收回。不能在 `stopListening()` 时同步收回，停止动作是异步投递给识别器的，早于它真正停下会抽走采集资格、拦掉最后一次收音的尾音
+- `exitWaveMode()` / `cleanup()` 在整段语音会话结束、组件销毁时收回
 
 这样也顺带解决了「`RECORD_AUDIO` 在服务启动之后才授予」的时序问题：下一次进入语音会话时，类型按当时的授权状态重新组装。
 

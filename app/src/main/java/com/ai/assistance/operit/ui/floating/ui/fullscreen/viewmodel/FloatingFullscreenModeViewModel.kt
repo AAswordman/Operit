@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
@@ -112,6 +113,7 @@ class FloatingFullscreenModeViewModel(
 
     private var wakeEnterJob: Job? = null
     private var resumeVoiceCaptureJob: Job? = null
+    private var voiceForegroundJob: Job? = null
     private var shouldResumeVoiceCaptureAfterAiTurn: Boolean = false
     private var suppressRecognitionUntilMs: Long = 0L
     private var waveModeAutoTimeoutEnabled: Boolean = false
@@ -369,10 +371,28 @@ class FloatingFullscreenModeViewModel(
 
     fun stopVoiceCapture(isCancel: Boolean) {
         speechManager.stopListening(isCancel)
-        // 波浪模式是整段语音会话，回合间隙还要继续收音，类型由 exitWaveMode 收回；
-        // 底部按住说话只有这一次采集，停止即回收类型。
-        if (!isWaveActive) {
-            floatContext.chatService?.setVoiceSessionForeground(false)
+    }
+
+    /**
+     * 语音管线真正空闲时收回 microphone 前台类型。
+     *
+     * 不能在 [stopVoiceCapture] 里同步收回：`stopListening()` 只是把停止动作投递给
+     * 协程，立刻降级会在识别器仍持有 AudioRecord 时抽走采集资格，最后一次收音的尾音
+     * 可能被系统拦掉。这里以「波浪模式 / 采集中 / 识别结果处理中」三者都结束为准：
+     * 波浪模式下整段会话继续持有类型，底部按住说话则在最终结果处理完后收回。
+     */
+    private fun observeVoiceForegroundIdle() {
+        voiceForegroundJob?.cancel()
+        voiceForegroundJob = coroutineScope.launch {
+            snapshotFlow {
+                isWaveActive || speechManager.isRecording || speechManager.isProcessingSpeech
+            }
+                .distinctUntilChanged()
+                .collect { active ->
+                    if (!active) {
+                        floatContext.chatService?.setVoiceSessionForeground(false)
+                    }
+                }
         }
     }
 
@@ -398,7 +418,6 @@ class FloatingFullscreenModeViewModel(
                 if (!speechManager.isRecording) {
                     isWaveActive = false
                     showBottomControls = true
-                    floatContext.chatService?.setVoiceSessionForeground(false)
                 }
             }
         }
@@ -478,6 +497,7 @@ class FloatingFullscreenModeViewModel(
 
      suspend fun initialize(autoEnterVoiceChat: Boolean = false, wakeLaunched: Boolean = false) {
          speechManager.initialize()
+         observeVoiceForegroundIdle()
          cancelPendingVoiceCaptureResume()
          prefsJob?.cancel()
          prefsJob = coroutineScope.launch {
@@ -510,6 +530,8 @@ class FloatingFullscreenModeViewModel(
         ttsSpeakJob = null
         cancelPendingVoiceCaptureResume()
         // 语音组件被销毁后不再有采集需求，收回 microphone 前台类型。
+        voiceForegroundJob?.cancel()
+        voiceForegroundJob = null
         floatContext.chatService?.setVoiceSessionForeground(false)
 
         prefsJob?.cancel()
