@@ -28,11 +28,12 @@ internal class ThemeBlurRecording {
         val density: Float,
         val direction: LayoutDirection,
         val opacity: Float,
+        val fragment: ThemeSurfaceFragment,
     )
 
-    fun draw(scope: DrawScope, layer: ThemeScriptLayer, images: Map<String, ThemeScriptImage>, opacity: Float) {
+    fun draw(scope: DrawScope, layer: ThemeScriptLayer, images: Map<String, ThemeScriptImage>, opacity: Float, fragment: ThemeSurfaceFragment) {
         if (scope.size.width <= 0f || scope.size.height <= 0f) return
-        val frame = Frame(layer, layer.asset?.let(images::get), scope.size, scope.density, scope.layoutDirection, opacity)
+        val frame = Frame(layer, layer.asset?.let(images::get), scope.size, scope.density, scope.layoutDirection, opacity, fragment)
         if (frame != previous) {
             val radius = with(scope) { layer.blur.dp.toPx() }
             node.setPosition(0, 0, ceil(scope.size.width).toInt(), ceil(scope.size.height).toInt())
@@ -41,7 +42,7 @@ internal class ThemeBlurRecording {
             try {
                 // 显式使用独立 CanvasDrawScope，录制内容不包含当前正文或自身渲染节点。
                 recordingScope.draw(scope, scope.layoutDirection, Canvas(canvas), scope.size) {
-                    clipRect { drawThemeLayer(layer, images, opacity) }
+                    clipRect { drawThemeLayer(layer, images, opacity, fragment = fragment) }
                 }
             } finally {
                 node.endRecording()
