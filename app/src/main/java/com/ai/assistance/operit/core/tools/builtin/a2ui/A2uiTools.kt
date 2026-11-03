@@ -3,6 +3,9 @@ package com.ai.assistance.operit.core.tools.builtin.a2ui
 import android.content.Context
 import com.ai.assistance.operit.core.chat.tools.ToolExecutionManager
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.protocol.AITool
 import com.ai.assistance.operit.core.tools.protocol.ToolResult
@@ -22,7 +25,14 @@ internal object A2uiTools {
             handler.registerTool(
                 name = definition.name,
                 descriptionGenerator = { definition.description },
-                executor = { tool -> execute(tool, context.filesDir, ToolExecutionManager.currentToolRuntimeContext()) },
+                executor = object : ToolExecutor {
+                    override fun invoke(tool: AITool): ToolResult =
+                        execute(tool, context.filesDir, ToolExecutionManager.currentToolRuntimeContext())
+
+                    override fun invokeAndStream(tool: AITool): Flow<ToolResult> = flow {
+                        emit(executeStreaming(tool, context.filesDir, ToolExecutionManager.currentToolRuntimeContext()))
+                    }
+                },
             )
         }
     }
@@ -31,6 +41,7 @@ internal object A2uiTools {
         tool: AITool,
         filesDirectory: File,
         runtimeContext: ToolExecutionManager.ToolRuntimeContext?,
+        allowWait: Boolean = false,
     ): ToolResult {
         val report = try {
             val definition = requireNotNull(definitions[tool.name]) { "Unknown A2UI operation." }
@@ -48,7 +59,10 @@ internal object A2uiTools {
                     val live = values["live"]?.let {
                         requireNotNull(it.toBooleanStrictOrNull()) { "Parameter live must be a boolean." }
                     } ?: false
-                    A2uiToolRuntime.prepare(filesDirectory, runtimeContext, required("source"), live)
+                    val timeout = integer("wait_timeout_seconds", 0)
+                    require(timeout in 0..600) { "Wait timeout must be between 0 and 600 seconds." }
+                    require(timeout == 0 || allowWait) { "Waiting cards require streaming tool execution." }
+                    A2uiToolRuntime.prepare(filesDirectory, runtimeContext, required("source"), live, timeout)
                 }
                 "a2ui_revise" -> {
                     val remove = values["remove"]?.let { json ->
@@ -82,9 +96,26 @@ internal object A2uiTools {
         } catch (error: IllegalArgumentException) {
             A2uiToolRuntime.failure("invalid_arguments", error.message?.take(240) ?: "Invalid A2UI parameters.")
         }
+        return result(tool.name, report)
+    }
+
+    internal suspend fun executeStreaming(
+        tool: AITool,
+        filesDirectory: File,
+        runtimeContext: ToolExecutionManager.ToolRuntimeContext?,
+    ): ToolResult {
+        val prepared = execute(tool, filesDirectory, runtimeContext, allowWait = true)
+        if (!prepared.success || tool.name != "a2ui_prepare") return prepared
+        val report = Json.parseToJsonElement((prepared.result as StringResultData).value).jsonObject
+        if ((report["wait_timeout_seconds"]?.jsonPrimitive?.intOrNull ?: 0) == 0) return prepared
+        val completed = A2uiToolRuntime.awaitSubmission(runtimeContext, report.getValue("reference").jsonPrimitive.content)
+        return result(tool.name, JsonObject(report + completed))
+    }
+
+    private fun result(toolName: String, report: JsonObject): ToolResult {
         val success = report["valid"]?.jsonPrimitive?.booleanOrNull != false
         return ToolResult(
-            toolName = tool.name,
+            toolName = toolName,
             success = success,
             result = StringResultData(report.toString()),
             error = if (success) null else report["message"]?.jsonPrimitive?.content,

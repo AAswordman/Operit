@@ -2331,6 +2331,13 @@ class EnhancedAIService private constructor(context: Context) {
                 callerChatId = chatId,
                 callerCardId = roleCardId,
                 a2uiRunId = context.a2uiRunId,
+                onA2uiCard = { document ->
+                    // 等待工具返回前投递表单；显示正文和持久化正文必须保留同一份卡片。
+                    val suffix = "\n\n```a2ui\n$document\n```\n"
+                    context.streamBuffer.append(suffix)
+                    context.roundManager.appendChunk(suffix)
+                    collector.emit(suffix)
+                },
                 toolCallOffset = callOffset,
                 onToolTiming = context.onToolTiming,
             )

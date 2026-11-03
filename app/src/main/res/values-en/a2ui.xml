@@ -53,4 +53,12 @@
     <string name="a2ui_clear">Clear</string>
     <string name="a2ui_date_outside_range">Date is outside the allowed range.</string>
     <string name="a2ui_close_details">Close details</string>
+    <string name="a2ui_waiting_submission">The current task is waiting for this form. Confirm your submission to continue.</string>
+    <string name="a2ui_wait_submitted">Submitted to the current task</string>
+    <string name="a2ui_wait_timed_out">The wait timed out. This form no longer accepts submissions.</string>
+    <string name="a2ui_wait_cancelled">Waiting cancelled</string>
+    <string name="a2ui_wait_inactive">This wait has ended. Historical forms cannot be submitted.</string>
+    <string name="a2ui_cancel_wait">Cancel waiting</string>
+    <string name="a2ui_confirm_wait">Submit the following data to the current task?</string>
+    <string name="a2ui_submit_wait">Submit and continue</string>
 </resources>

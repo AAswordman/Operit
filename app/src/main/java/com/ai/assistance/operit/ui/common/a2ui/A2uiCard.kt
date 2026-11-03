@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.markdown.EnhancedCodeBlock
 import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.ui.common.a2ui.submission.CardSubmissionStore
+import com.ai.assistance.operit.ui.common.a2ui.submission.CardSubmissionNotice
+import com.ai.assistance.operit.ui.common.a2ui.submission.rememberCardSubmissionStatus
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.*
@@ -410,10 +413,21 @@ private fun A2uiCardContent(source: String, closed: Boolean, streaming: Boolean,
                 surfaces.forEach { surface ->
                     key(surface.id) {
                         val readOnly = results[surface.id] == true
-                        val enabled = closed && ready[surface.id] == true && pending == null && !readOnly && surface.id !in surfaceErrors
+                        val awaitable = CardSubmissionStore.isAwaitable(surface.id)
+                        val submissionStatus = rememberCardSubmissionStatus(owner, source, surface.id)
+                        val accepting = !awaitable || submissionStatus == CardSubmissionStore.Status.Waiting
+                        LaunchedEffect(surface.id, submissionStatus) {
+                            if (awaitable && !accepting && pending?.surfaceId == surface.id) pending = null
+                        }
+                        if (awaitable) CardSubmissionNotice(submissionStatus) {
+                            currentOwner?.let { identity ->
+                                if (CardSubmissionStore.current.cancel(identity, source, surface.id)) pending = null
+                            }
+                        }
+                        val enabled = closed && ready[surface.id] == true && pending == null && !readOnly && accepting && surface.id !in surfaceErrors
                         CompositionLocalProvider(
                             LocalCardInteractive provides enabled,
-                            LocalCardBrowse provides (closed && ready[surface.id] == true && pending == null && surface.id !in surfaceErrors),
+                            LocalCardBrowse provides (closed && ready[surface.id] == true && pending == null && accepting && surface.id !in surfaceErrors),
                             LocalCardReadOnly provides readOnly,
                             LocalCardValueResolver provides { path ->
                                 A2uiProtocol.toJson((surface as A2uiCoreSurfaceModel).dataModel[A2uiDataPath(path)])
@@ -422,7 +436,7 @@ private fun A2uiCardContent(source: String, closed: Boolean, streaming: Boolean,
                                 val core = surface as A2uiCoreSurfaceModel
                                 updateCardField({ logIssue("field_update", surface.id); notice = failedText }) {
                                     androidx.compose.runtime.snapshots.Snapshot.withMutableSnapshot {
-                                        require(ready[surface.id] == true && results[surface.id] != true &&
+                                        require(accepting && ready[surface.id] == true && results[surface.id] != true &&
                                             pending == null && surface.id !in surfaceErrors)
                                         val before = model(core)
                                         try {
@@ -458,7 +472,7 @@ private fun A2uiCardContent(source: String, closed: Boolean, streaming: Boolean,
                         )
                         if (readOnly) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.a2ui_saved), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                            TextButton(enabled = pending == null && surface.id !in surfaceErrors, onClick = { safely { results[surface.id] = false; persist(surface as A2uiCoreSurfaceModel, model(surface)) } }) {
+                            if (!awaitable) TextButton(enabled = pending == null && surface.id !in surfaceErrors, onClick = { safely { results[surface.id] = false; persist(surface as A2uiCoreSurfaceModel, model(surface)) } }) {
                                 Text(stringResource(R.string.a2ui_edit))
                             }
                         } else {
@@ -480,7 +494,11 @@ private fun A2uiCardContent(source: String, closed: Boolean, streaming: Boolean,
                     color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(if (event.type == "tool_action") R.string.a2ui_confirm_tool else R.string.a2ui_confirm_send))
+                Text(stringResource(when {
+                    CardSubmissionStore.isAwaitable(event.surfaceId) -> R.string.a2ui_confirm_wait
+                    event.type == "tool_action" -> R.string.a2ui_confirm_tool
+                    else -> R.string.a2ui_confirm_send
+                }))
                 val graph = components[event.surfaceId].orEmpty()
                 val definition = (graph[event.componentId]?.get("action") as? JsonObject)?.get("event")
                     ?.jsonObject?.get("context")
@@ -515,15 +533,25 @@ private fun A2uiCardContent(source: String, closed: Boolean, streaming: Boolean,
                             put("card", event.surfaceId); put("action", event.type)
                             put("data", A2uiProtocol.toJson(event.context))
                         }
-                        val accepted = identity != null && submit?.invoke(identity,
-                            resources.getString(R.string.a2ui_request) + "\n" + request.toString()) == true
+                        val awaitable = CardSubmissionStore.isAwaitable(surface.id)
+                        val accepted = identity != null && if (awaitable) {
+                            submit != null && CardSubmissionStore.current.submit(identity, source, surface.id,
+                                event.type, A2uiProtocol.toJson(event.context).jsonObject)
+                        } else {
+                            submit?.invoke(identity, resources.getString(R.string.a2ui_request) + "\n" + request.toString()) == true
+                        }
                         if (accepted) {
                             saved[surface.id] = submittedState
                             results[surface.id] = true
                             persist(surface, submittedState)
                         }
-                        notice = if (accepted) sentText else submitFailedText
-                    } }) { Text(stringResource(R.string.a2ui_send)) }
+                        notice = when {
+                            accepted && awaitable -> null
+                            accepted -> sentText
+                            awaitable -> resources.getString(R.string.a2ui_wait_inactive)
+                            else -> submitFailedText
+                        }
+                    } }) { Text(stringResource(if (CardSubmissionStore.isAwaitable(event.surfaceId)) R.string.a2ui_submit_wait else R.string.a2ui_send)) }
                     TextButton(onClick = { pending = null }) { Text(stringResource(android.R.string.cancel)) }
                 }
                 }
