@@ -29,6 +29,7 @@ import com.ai.assistance.operit.data.mcp.MCPRepository
 import com.ai.assistance.operit.data.security.PluginDenylistRepository
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.preferences.RemoteAnnouncementPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.common.NavItem
@@ -91,6 +92,9 @@ fun OperitApp(
     routeNavRequest: String? = null,
     routeNavArgs: Map<String, Any?> = emptyMap(),
     routeNavRequestId: Long = 0L,
+    chatOpenRequest: String? = null,
+    chatOpenRequestId: Long = 0L,
+    onChatOpenHandled: (Long) -> Unit = {},
     onShortcutNavHandled: (Long) -> Unit = {},
     onCurrentNavItemChanged: (NavItem) -> Unit = {},
     onRouteNavHandled: (Long) -> Unit = {}
@@ -141,6 +145,7 @@ fun OperitApp(
     var topBarTitleContent by remember { mutableStateOf<TopBarTitleContent?>(null) }
     var lastHandledShortcutRequestId by remember { mutableStateOf(0L) }
     var lastHandledRouteRequestId by remember { mutableStateOf(0L) }
+    var lastHandledChatOpenRequestId by remember { mutableStateOf(0L) }
     var isRouteTransitionInProgress by remember { mutableStateOf(false) }
     var queuedRouteTransition by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -229,6 +234,37 @@ fun OperitApp(
                 )
             )
         }
+    }
+    LaunchedEffect(chatOpenRequestId, chatOpenRequest) {
+        val requestChatId = chatOpenRequest?.trim().orEmpty()
+        if (requestChatId.isBlank() || chatOpenRequestId == 0L) {
+            return@LaunchedEffect
+        }
+        if (chatOpenRequestId == lastHandledChatOpenRequestId) {
+            return@LaunchedEffect
+        }
+        lastHandledChatOpenRequestId = chatOpenRequestId
+        val chatHistoryManager = ChatHistoryManager.getInstance(context)
+        val chatExists = runCatching { chatHistoryManager.chatExists(requestChatId) }
+            .getOrDefault(false)
+        if (!chatExists) {
+            AppLogger.w(TAG, "Ignored chat open request for missing chatId=$requestChatId")
+            onChatOpenHandled(chatOpenRequestId)
+            return@LaunchedEffect
+        }
+        runCatching {
+            chatHistoryManager.setCurrentChatId(requestChatId)
+        }.onFailure { e ->
+            AppLogger.e(TAG, "Failed to open chat from notification: ${e.message}", e)
+            onChatOpenHandled(chatOpenRequestId)
+            return@LaunchedEffect
+        }
+        requestRouteTransition {
+            isNavigatingBack = false
+            navigationTransitionSource = NavigationTransitionSource.DEFAULT
+            routerState.resetTo(AppRouteCatalog.initialEntry(NavItem.AiChat))
+        }
+        onChatOpenHandled(chatOpenRequestId)
     }
 
     // 当currentScreen改变时，检查是否需要清空TopBarActions
