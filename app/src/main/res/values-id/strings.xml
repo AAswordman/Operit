@@ -5500,6 +5500,7 @@
     <string name="gemini_error_cannot_connect">Tidak dapat terhubung ke server, periksa koneksi jaringan atau apakah alamat API benar</string>
     <string name="gemini_error_max_retries">Gagal mendapatkan respons AI, telah mencapai jumlah percobaan ulang maksimum: %1$s</string>
     <string name="gemini_error_response_failed">Gagal mendapatkan respons AI: %1$s</string>
+    <string name="gemini_error_empty_contents">Tidak ada konten pesan untuk dikirim: riwayat percakapan kosong atau hanya berisi teks pemikiran</string>
     <string name="gemini_error_connection_timeout">Koneksi timeout atau terputus, telah dicoba ulang %1$d kali: %2$s</string>
     <string name="gemini_connection_success">Koneksi berhasil!</string>
     <string name="gemini_connection_test_failed">Tes koneksi gagal: %1$s</string>
