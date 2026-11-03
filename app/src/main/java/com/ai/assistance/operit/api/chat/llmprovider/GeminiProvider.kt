@@ -192,6 +192,13 @@ open class GeminiProvider(
 
     private class PromptBlockedException(message: String) : IOException(message)
 
+    /**
+     * A request whose history serializes to no usable Gemini content is rejected by the API
+     * ("Unable to submit request because it must include at least one parts field"), so it is
+     * reported locally instead of being sent and retried.
+     */
+    internal class EmptyContentsException(message: String) : IOException(message)
+
     // Token计数
     private val tokenCacheManager = TokenCacheManager()
     
@@ -605,8 +612,12 @@ open class GeminiProvider(
                     put("text", textWithoutLinks)
                 })
             }
-        } else {
-            // 纯文本消息
+        } else if (text.isNotBlank()) {
+            // Plain text message. Gemini's Part.data is a proto3 oneof, so an empty `text`
+            // leaves the field uninitialized and the endpoint rejects the whole request with
+            // HTTP 400 "required oneof field 'data' must have one initialized field". A blank
+            // body therefore contributes no Part; the caller drops the content when nothing
+            // else (media, function call, function response) is left.
             partsArray.put(JSONObject().apply {
                 put("text", text)
             })
@@ -663,16 +674,21 @@ open class GeminiProvider(
         // Find and process system message first
         val systemMessages = effectiveHistory.filter { it.kind == PromptTurnKind.SYSTEM }
         if (systemMessages.isNotEmpty()) {
-            val systemContent =
-                systemMessages.joinToString("\n\n") { turn ->
-                    ChatUtils.stripOpenAiResponsesProtocolMarkup(turn.content)
-                }
-            logDebug("发现系统消息: ${systemContent.take(50)}...")
+            val systemTexts =
+                systemMessages
+                    .map { turn -> ChatUtils.stripOpenAiResponsesProtocolMarkup(turn.content) }
+                    .filter { text -> text.isNotBlank() }
+            // A blank system prompt would serialize to {"text": ""}, which is the same
+            // uninitialized oneof Part the endpoint rejects, so it contributes no instruction.
+            if (systemTexts.isNotEmpty()) {
+                val systemContent = systemTexts.joinToString("\n\n")
+                logDebug("发现系统消息: ${systemContent.take(50)}...")
 
-            systemInstruction = JSONObject().apply {
-                put("parts", JSONArray().apply {
-                    put(JSONObject().apply { put("text", systemContent) })
-                })
+                systemInstruction = JSONObject().apply {
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply { put("text", systemContent) })
+                    })
+                }
             }
         }
 
@@ -687,6 +703,25 @@ open class GeminiProvider(
             for (index in 0 until parts.length()) {
                 target.put(parts.get(index))
             }
+        }
+
+        /**
+         * Emits one Gemini content only when it carries at least one Part. The API rejects a
+         * Content whose parts array is empty ("contents.parts must not be empty"), so a turn
+         * that serializes to nothing (a thinking-only reply whose body is empty, or a message
+         * whose media links no longer resolve) is dropped instead of sent as an invalid content.
+         */
+        fun putContent(role: String, parts: JSONArray) {
+            if (parts.length() == 0) {
+                logDebug("跳过没有有效 Part 的 Gemini content: role=$role")
+                return
+            }
+            contentsArray.put(
+                JSONObject().apply {
+                    put("role", role)
+                    put("parts", parts)
+                }
+            )
         }
 
         fun appendQueuedAssistantToolText(text: String) {
@@ -728,12 +763,7 @@ open class GeminiProvider(
                 )
             }
 
-            contentsArray.put(
-                JSONObject().apply {
-                    put("role", "model")
-                    put("parts", partsArray)
-                }
-            )
+            putContent("model", partsArray)
 
             queuedFunctionCalls.forEach { functionCall ->
                 val functionName = functionCall.optString("name", "").trim()
@@ -785,12 +815,7 @@ open class GeminiProvider(
         fun flushOpenFunctionCallsAsUnmatched(reason: String) {
             val partsArray = JSONArray()
             if (!appendUnmatchedOpenFunctionResponses(partsArray, reason)) return
-            contentsArray.put(
-                JSONObject().apply {
-                    put("role", "user")
-                    put("parts", partsArray)
-                }
-            )
+            putContent("user", partsArray)
         }
 
         for (turn in historyWithoutSystem) {
@@ -818,12 +843,7 @@ open class GeminiProvider(
                             )
                         } else {
                             flushOpenFunctionCallsAsUnmatched("assistant_boundary")
-                            contentsArray.put(
-                                JSONObject().apply {
-                                    put("role", "model")
-                                    put("parts", buildPartsArray(contentWithoutGeminiMeta))
-                                }
-                            )
+                            putContent("model", buildPartsArray(contentWithoutGeminiMeta))
                         }
                     }
 
@@ -840,12 +860,7 @@ open class GeminiProvider(
                             )
                         } else {
                             flushOpenFunctionCallsAsUnmatched("typed_tool_call_without_payload")
-                            contentsArray.put(
-                                JSONObject().apply {
-                                    put("role", "model")
-                                    put("parts", buildPartsArray(contentWithoutGeminiMeta))
-                                }
-                            )
+                            putContent("model", buildPartsArray(contentWithoutGeminiMeta))
                         }
                     }
 
@@ -854,12 +869,7 @@ open class GeminiProvider(
                         val partsArray = JSONArray()
                         appendUnmatchedOpenFunctionResponses(partsArray, "user_boundary")
                         appendParts(partsArray, buildPartsArray(contentWithoutGeminiMeta))
-                        contentsArray.put(
-                            JSONObject().apply {
-                                put("role", "user")
-                                put("parts", partsArray)
-                            }
-                        )
+                        putContent("user", partsArray)
                     }
 
                     PromptTurnKind.TOOL_RESULT -> {
@@ -899,26 +909,14 @@ open class GeminiProvider(
                                 appendParts(partsArray, buildPartsArray(textContent))
                             }
 
-                            contentsArray.put(
-                                JSONObject().apply {
-                                    put("role", "user")
-                                    put("parts", partsArray)
-                                }
-                            )
+                            putContent("user", partsArray)
                         } else {
                             val partsArray = JSONArray()
                             appendUnmatchedOpenFunctionResponses(partsArray, "tool_result_without_structured_match")
                             if (textContent.isNotEmpty()) {
                                 appendParts(partsArray, buildPartsArray(textContent))
                             }
-                            if (partsArray.length() > 0) {
-                                contentsArray.put(
-                                    JSONObject().apply {
-                                        put("role", "user")
-                                        put("parts", partsArray)
-                                    }
-                                )
-                            }
+                            putContent("user", partsArray)
                         }
                     }
 
@@ -931,12 +929,7 @@ open class GeminiProvider(
                         PromptTurnKind.TOOL_CALL -> "model"
                         else -> "user"
                     }
-                contentsArray.put(
-                    JSONObject().apply {
-                        put("role", geminiRole)
-                        put("parts", buildPartsArray(contentWithoutGeminiMeta))
-                    }
-                )
+                putContent(geminiRole, buildPartsArray(contentWithoutGeminiMeta))
             }
         }
 
@@ -1126,7 +1119,7 @@ open class GeminiProvider(
         if (exception is UserCancellationException || exception is kotlinx.coroutines.CancellationException) {
             throw exception
         }
-        if (exception is PromptBlockedException) {
+        if (exception is PromptBlockedException || exception is EmptyContentsException) {
             throw exception
         }
         if (isManuallyCancelled) {
@@ -1387,6 +1380,14 @@ open class GeminiProvider(
 
         val (contentsResult, _) = buildContentsAndCountTokens(chatHistory, toolsJson, preserveThinkInHistory)
         val (contentsArray, systemInstruction) = contentsResult
+
+        // Gemini needs at least one Content, and every Content needs at least one Part. When the
+        // whole history is empty after dropping blank parts, sending "contents": [] only buys an
+        // opaque HTTP 400 that is retried identically, so report the real cause instead.
+        if (contentsArray.length() == 0) {
+            logError("Gemini 请求没有任何可发送的 content：历史消息全部为空或只有思考内容")
+            throw EmptyContentsException(context.getString(R.string.gemini_error_empty_contents))
+        }
 
         if (systemInstruction != null) {
             json.put("systemInstruction", systemInstruction)

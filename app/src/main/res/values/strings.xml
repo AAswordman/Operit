@@ -7322,6 +7322,7 @@
     <string name="gemini_error_cannot_connect">无法连接到服务器，请检查网络连接或API地址是否正确</string>
     <string name="gemini_error_max_retries">AI响应获取失败，已达最大重试次数: %1$s</string>
     <string name="gemini_error_response_failed">AI响应获取失败: %1$s</string>
+    <string name="gemini_error_empty_contents">没有可发送的消息内容：对话历史为空或只包含思考内容</string>
     <string name="gemini_error_connection_timeout">连接超时或中断，已重试 %1$d 次: %2$s</string>
     <string name="gemini_connection_success">连接成功！</string>
     <string name="gemini_connection_test_failed">连接测试失败: %1$s</string>

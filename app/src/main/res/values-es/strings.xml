@@ -6443,6 +6443,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="gemini_error_cannot_connect">No se puede conectar al servidor. Verifique la conexión de red o la dirección de la API.</string>
     <string name="gemini_error_max_retries">Error al obtener la respuesta de la IA: se alcanzó el máximo de reintentos: %1$s</string>
     <string name="gemini_error_response_failed">Error al obtener la respuesta de la IA: %1$s</string>
+    <string name="gemini_error_empty_contents">No hay contenido de mensaje para enviar: el historial de la conversación está vacío o solo contiene texto de razonamiento</string>
     <string name="gemini_error_connection_timeout">Tiempo de espera agotado o conexión interrumpida. Reintentos: %1$d. Detalles: %2$s</string>
     <string name="gemini_connection_success">¡Conexión exitosa!</string>
     <string name="gemini_connection_test_failed">Prueba de conexión fallida: %1$s</string>

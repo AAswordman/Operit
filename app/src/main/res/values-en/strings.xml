@@ -6806,6 +6806,7 @@
     <string name="gemini_error_cannot_connect">Cannot connect to server, please check network connection and API address</string>
     <string name="gemini_error_max_retries">Failed to get AI response, max retries reached: %1$s</string>
     <string name="gemini_error_response_failed">Failed to get AI response: %1$s</string>
+    <string name="gemini_error_empty_contents">No message content to send: the conversation history is empty or contains only thinking text</string>
     <string name="gemini_error_connection_timeout">Connection timeout or interrupted, retried %1$d times: %2$s</string>
     <string name="gemini_connection_success">Connection successful!</string>
     <string name="gemini_connection_test_failed">Connection test failed: %1$s</string>
