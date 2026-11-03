@@ -173,15 +173,17 @@ internal fun themeSurface(id: String): ThemeScriptSurface? =
 
 @Composable
 fun themeScriptShape(id: String, original: Shape): Shape {
-    val shape = themeSurface(id)?.shape ?: return original
-    return appearanceShape(shape)
+    val fragment = LocalThemeSurfaceFragments.current.getOrDefault(id, ThemeSurfaceFragment.Whole)
+    val shape = themeSurface(id)?.shape
+    return fragment.shape(if (shape == null) original else appearanceShape(shape))
 }
 
 /** 玻璃效果读取角点信息，解析结果需要保留原有角点形状的静态类型。 */
 @Composable
 fun themeScriptShape(id: String, original: CornerBasedShape): CornerBasedShape {
-    val shape = themeSurface(id)?.shape ?: return original
-    return appearanceShape(shape)
+    val fragment = LocalThemeSurfaceFragments.current.getOrDefault(id, ThemeSurfaceFragment.Whole)
+    val shape = themeSurface(id)?.shape
+    return fragment.shape(if (shape == null) original else appearanceShape(shape))
 }
 
 internal fun appearanceShape(shape: ThemeAppearanceShape): CornerBasedShape = when (shape.type) {

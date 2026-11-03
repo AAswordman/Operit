@@ -541,7 +541,8 @@ fun BubbleAiMessageComposable(
                 )
             }
             } else {
-                Spacer(modifier = Modifier.width(32.dp))
+                // 续段与首段使用同一头像占位，避免自定义头像尺寸使气泡左右跳动。
+                Spacer(modifier = Modifier.width(themeScriptAvatarSize("assistantAvatar", 32.dp)))
             }
             Spacer(modifier = Modifier.width(8.dp))
         }
