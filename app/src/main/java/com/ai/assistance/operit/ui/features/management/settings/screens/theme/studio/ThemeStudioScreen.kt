@@ -44,6 +44,7 @@ import com.ai.assistance.operit.ui.features.management.settings.screens.theme.Th
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemeWorkbenchCard
 import com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench.ThemeWorkbenchRow
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 /** 入口只打开所选角色的制作工程，正式持久化仍经过主题页保存。 */
@@ -91,6 +92,16 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
     var notice by remember { mutableStateOf<Int?>(null) }
     fun close() { if (!state.busy) { if (state.hasChanges) leaving = true else onClose() } }
     LaunchedEffect(state) { state.load() }
+    // 工程加载和位置恢复完成后才开始记忆，避免初始值覆盖上次选择。
+    LaunchedEffect(state, state.project != null) {
+        if (state.project != null) snapshotFlow { state.location() }.collect { state.rememberLocation(it) }
+    }
+    DisposableEffect(state) {
+        onDispose {
+            // 关闭前再保存一次，覆盖同一帧内切换组件后立即退出的情况。
+            if (state.project != null) state.rememberLocation()
+        }
+    }
     val importAsset = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch { state.importResource(uri) }
     }
