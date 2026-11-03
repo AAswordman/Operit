@@ -31,6 +31,7 @@ import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.MediaPoolManager
 import com.ai.assistance.operit.util.ChatUtils
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.util.stream.SharedStream
 import com.ai.assistance.operit.util.stream.share
@@ -319,6 +320,10 @@ object AIMessageManager {
             stage = "buildUserMessageContent.total",
             startTimeMs = totalStartTime,
             details = "messageLength=${processedMessageText.length}, finalLength=${finalMessageContent.length}, attachments=${attachments.size}"
+        )
+        AppLogger.d(
+            TAG,
+            "buildUserMessageContent original=${ChatTrace.describe(messageText)} processed=${ChatTrace.describe(processedMessageText)} final=${ChatTrace.describe(finalMessageContent)}"
         )
         return finalMessageContent
     }
@@ -1379,6 +1384,11 @@ object AIMessageManager {
             }
         val assistantCount = processedMessages.count { it.kind == PromptTurnKind.ASSISTANT }
         val userCount = processedMessages.count { it.kind == PromptTurnKind.USER }
+        val lastUserTurn = processedMessages.lastOrNull { it.kind == PromptTurnKind.USER }
+        AppLogger.d(
+            TAG,
+            "getMemoryFromMessages source=${messages.size} result=${processedMessages.size} lastUser=${ChatTrace.describe(lastUserTurn?.content.orEmpty())}"
+        )
         logMessageTiming(
             stage = "getMemoryFromMessages.total",
             startTimeMs = totalStartTime,

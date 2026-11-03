@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.api.chat.enhance.ConversationMarkupManager
 import com.ai.assistance.operit.api.chat.enhance.ConversationRoundManager
 import com.ai.assistance.operit.api.chat.enhance.ConversationService
@@ -48,6 +49,7 @@ import com.ai.assistance.operit.util.stream.TextStreamEvent
 import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
 import com.ai.assistance.operit.util.stream.TextStreamEventType
 import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
+import com.ai.assistance.operit.util.stream.shiftedBy
 import com.ai.assistance.operit.util.stream.withEventChannel
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
 import com.ai.assistance.operit.util.stream.splitBy
@@ -430,7 +432,16 @@ class EnhancedAIService private constructor(private val context: Context) {
         val isConversationActive: AtomicBoolean = AtomicBoolean(true),
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
-        var modelExecutionSnapshot: ModelExecutionSnapshot? = null
+        var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
+        /**
+         * Characters of this execution's response already emitted to the consumer.
+         *
+         * Providers number revision events from the start of their own round only, while one
+         * execution publishes every tool round into a single response stream. Relaying an event
+         * must therefore add the length of everything emitted before the round started, otherwise a
+         * later round's rollback would address the beginning of the whole response.
+         */
+        var emittedLength: Int = 0
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -969,6 +980,18 @@ class EnhancedAIService private constructor(private val context: Context) {
                     eventChannel = eventChannel
                 )
             registerExecutionContext(execContext)
+            // One execution publishes every tool round into a single response stream, while each
+            // provider numbers its revision events from the start of its own round. Counting every
+            // emitted character lets the relay translate a round-local offset into an offset of the
+            // whole response.
+            val outerCollector = this
+            val countingCollector =
+                object : StreamCollector<String> {
+                    override suspend fun emit(value: String) {
+                        execContext.emittedLength += value.length
+                        outerCollector.emit(value)
+                    }
+                }
             var hadFatalError = false
             var providerStreamCollectionStarted = false
             try {
@@ -1108,6 +1131,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                         }
                     execContext.conversationHistory.clear()
                     execContext.conversationHistory.addAll(requestHistory)
+                    AppLogger.d(
+                        TAG,
+                        "sendMessage requestHistory turns=${requestHistory.size} original=${ChatTrace.describe(message)} finalized=${ChatTrace.describe(finalProcessedInput)} lastUser=${ChatTrace.describe(requestHistory.lastOrNull { it.kind == PromptTurnKind.USER }?.content.orEmpty())}"
+                    )
                     estimatePreparedRequestWindow(
                         serviceForFunction = serviceForFunction,
                         preparedHistory = requestHistory,
@@ -1118,6 +1145,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
                     val requestStartTime = messageTimingNow()
+                    val roundStartLength = execContext.emittedLength
                     val responseStream =
                             serviceForFunction.sendMessage(
                                     context = this@EnhancedAIService.context,
@@ -1155,21 +1183,29 @@ class EnhancedAIService private constructor(private val context: Context) {
                             revisableStream?.let { carrier ->
                                 launch {
                                     carrier.eventChannel.collect { event ->
-                                        execContext.eventChannel.emit(event)
+                                        // Relayed events are expressed in the coordinate space of the
+                                        // whole response; the local tracker stays in this round's
+                                        // space because roundManager holds one round per entry.
+                                        execContext.eventChannel.emit(event.shiftedBy(roundStartLength))
                                         when (event.eventType) {
                                             TextStreamEventType.SAVEPOINT -> {
                                                 revisionMutex.withLock {
-                                                    revisionTracker.savepoint(event.id)
+                                                    revisionTracker.savepoint(
+                                                        event.id,
+                                                        event.contentLength
+                                                    )
                                                 }
                                             }
 
                                             TextStreamEventType.ROLLBACK -> {
                                                 val snapshot =
                                                     revisionMutex.withLock {
-                                                        revisionTracker.rollback(event.id)?.toString()
+                                                        revisionTracker.rollback(
+                                                            event.id,
+                                                            event.contentLength,
+                                                            event.discardedLength
+                                                        )?.toString()
                                                     } ?: return@collect
-                                                execContext.streamBuffer.clear()
-                                                execContext.streamBuffer.append(snapshot)
                                                 execContext.roundManager.updateContent(snapshot)
                                             }
                                         }
@@ -1210,16 +1246,26 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     revisionTracker.append(content)
                                 }
 
-                                // Keep both mutable accumulators synchronized without rebuilding
-                                // the complete response for every streamed chunk.
-                                execContext.streamBuffer.append(content)
-                                execContext.roundManager.appendChunk(content)
+                                // The revision tracker is the only accumulator. Appending raw
+                                // chunks to streamBuffer/roundManager here re-inserts text that a
+                                // ROLLBACK already discarded whenever the text channel runs ahead
+                                // of the event channel; both buffers are assigned from the tracker
+                                // once the stream ends.
 
                                 // 发射当前内容片段
-                                emit(content)
+                                countingCollector.emit(content)
                             }
                         } finally {
                             revisionJob?.cancelAndJoin()
+                            val finalRoundContent =
+                                revisionMutex.withLock {
+                                    revisionTracker.applyEventHistory(
+                                        revisableStream?.eventChannel?.replayCache ?: emptyList()
+                                    ).toString()
+                                }
+                            execContext.streamBuffer.setLength(0)
+                            execContext.streamBuffer.append(finalRoundContent)
+                            execContext.roundManager.updateContent(finalRoundContent)
                         }
                     }
                     providerStreamCollectionStarted = false
@@ -1282,7 +1328,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 try {
                     // 确保流处理完成后调用；如果本轮已被取消，则不能再继续跑完成逻辑。
                     if (!hadFatalError && isExecutionContextActive(execContext)) {
-                        val collector = this
+                        val collector = countingCollector
                         withContext(Dispatchers.IO) {
                             processStreamCompletion(
                                 execContext,
@@ -2267,6 +2313,9 @@ class EnhancedAIService private constructor(private val context: Context) {
 
         // Start new round - ensure tool execution response will be shown in a new message
         startAssistantResponseRound(context)
+        // Events of this round are numbered from its own start, while the enclosing response stream
+        // already contains every previous round. Translate before relaying them upward.
+        val roundStartLength = context.emittedLength
 
         // Clearly show we're preparing to send tool result to AI
         if (!isSubTask) {
@@ -2372,21 +2421,29 @@ class EnhancedAIService private constructor(private val context: Context) {
                         revisableStream?.let { carrier ->
                             launch {
                                 carrier.eventChannel.collect { event ->
-                                    context.eventChannel.emit(event)
+                                    // Relayed events use whole-response coordinates; the local
+                                    // tracker stays in this round's coordinates because
+                                    // roundManager stores one entry per round.
+                                    context.eventChannel.emit(event.shiftedBy(roundStartLength))
                                     when (event.eventType) {
                                         TextStreamEventType.SAVEPOINT -> {
                                             revisionMutex.withLock {
-                                                revisionTracker.savepoint(event.id)
+                                                revisionTracker.savepoint(
+                                                    event.id,
+                                                    event.contentLength
+                                                )
                                             }
                                         }
 
                                         TextStreamEventType.ROLLBACK -> {
                                             val snapshot =
                                                 revisionMutex.withLock {
-                                                    revisionTracker.rollback(event.id)?.toString()
+                                                    revisionTracker.rollback(
+                                                        event.id,
+                                                        event.contentLength,
+                                                        event.discardedLength
+                                                    )?.toString()
                                                 } ?: return@collect
-                                            context.streamBuffer.clear()
-                                            context.streamBuffer.append(snapshot)
                                             context.roundManager.updateContent(snapshot)
                                         }
                                     }
@@ -2409,9 +2466,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                                 revisionTracker.append(content)
                             }
 
-                            // 更新streamBuffer
-                            context.streamBuffer.append(content)
-                            context.roundManager.appendChunk(content)
+                            // streamBuffer/roundManager are assigned from the revision tracker
+                            // after the stream ends; appending the raw chunk here would restore
+                            // text that a ROLLBACK discarded.
 
                             // 累计统计
                             chunkCount++
@@ -2428,6 +2485,15 @@ class EnhancedAIService private constructor(private val context: Context) {
                         }
                     } finally {
                         revisionJob?.cancelAndJoin()
+                        val finalRoundContent =
+                            revisionMutex.withLock {
+                                revisionTracker.applyEventHistory(
+                                    revisableStream?.eventChannel?.replayCache ?: emptyList()
+                                ).toString()
+                            }
+                        context.streamBuffer.setLength(0)
+                        context.streamBuffer.append(finalRoundContent)
+                        context.roundManager.updateContent(finalRoundContent)
                     }
                 }
 

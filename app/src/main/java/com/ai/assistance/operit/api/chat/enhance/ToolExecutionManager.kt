@@ -3,6 +3,7 @@ package com.ai.assistance.operit.api.chat.enhance
 import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.AIToolHookDecision
 import com.ai.assistance.operit.core.tools.StringResultData
@@ -344,7 +345,7 @@ object ToolExecutionManager {
 
         AppLogger.d(
             TAG,
-            "Found ${invocations.size} tool invocations: ${invocations.map { resolveDisplayToolName(it.tool) }}"
+            "Found ${invocations.size} tool invocations: ${invocations.map { resolveDisplayToolName(it.tool) }}, response=${ChatTrace.describe(response)}"
         )
         return invocations
     }
