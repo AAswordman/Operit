@@ -3880,6 +3880,17 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         return selectToolPackageState(toolPackage)
     }
 
+    /** 权限目录只读取已加载且父子开关有效的执行包，不在读取时激活脚本。 */
+    internal fun getEnabledExecutablePackages(): List<ToolPackage> {
+        ensureInitialized()
+        return synchronized(initLock) {
+            availablePackages.asSequence()
+                .filter { (name, _) -> !toolPkgContainers.containsKey(name) && isPackageEnabled(name) }
+                .map { (_, toolPackage) -> selectToolPackageState(toolPackage) }
+                .toList()
+        }
+    }
+
     /** Checks if a package is enabled */
     fun isPackageEnabled(packageName: String): Boolean {
         ensureInitialized()

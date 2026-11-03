@@ -21,6 +21,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import com.ai.assistance.operit.core.tools.StringResultData
@@ -47,6 +50,9 @@ class AIToolHandler private constructor(private val context: Context) {
     // Available tools registry
     private val availableTools = ConcurrentHashMap<String, ToolExecutor>()
     private val toolHooks = CopyOnWriteArrayList<AIToolHook>()
+    // 原生、包和 MCP 注册都会经过这里，权限页面用版本变化刷新当前可用目录。
+    private val registryRevisionState = MutableStateFlow(0L)
+    internal val registryRevision = registryRevisionState.asStateFlow()
 
     private val defaultToolsRegistered = AtomicBoolean(false)
     private val registrationLock = Any()
@@ -60,7 +66,9 @@ class AIToolHandler private constructor(private val context: Context) {
     }
     
     fun unregisterTool(toolName: String) {
-        availableTools.remove(toolName)
+        if (availableTools.remove(toolName) != null) {
+            registryRevisionState.update { it + 1 }
+        }
     }
 
     /**
@@ -195,6 +203,7 @@ class AIToolHandler private constructor(private val context: Context) {
         if (descriptionGenerator != null) {
             toolPermissionSystem.registerOperationDescription(name, descriptionGenerator)
         }
+        registryRevisionState.update { it + 1 }
     }
 
     // 添加重载方法接受函数式接口作为executor的便捷写法
@@ -285,6 +294,7 @@ class AIToolHandler private constructor(private val context: Context) {
             packageManagerInstance = null
             defaultToolsRegistered.set(false)
         }
+        registryRevisionState.update { it + 1 }
         PermissionCapabilityResolver.invalidateSession()
     }
 

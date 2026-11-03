@@ -264,9 +264,11 @@ internal fun AddPermissionSheet(
     var target by remember { mutableStateOf(PermissionLevel.ALLOW) }
     var selected by remember { mutableStateOf(setOf<String>()) }
     var selectedOnly by remember { mutableStateOf(false) }
+    val applicableSelection = selected.intersect(tools.toSet())
+    LaunchedEffect(tools) { selected = selected.intersect(tools.toSet()) }
     val visible =
         tools.filter { name ->
-            (!selectedOnly || name in selected) &&
+            (!selectedOnly || name in applicableSelection) &&
                 (name.contains(query, true) || descriptions.getValue(name).contains(query, true))
         }
     ModalBottomSheet(
@@ -288,15 +290,15 @@ internal fun AddPermissionSheet(
                 FilterChip(
                     selectedOnly,
                     onClick = { selectedOnly = !selectedOnly },
-                    label = { Text(stringResource(R.string.tp_selected_count, selected.size)) },
+                    label = { Text(stringResource(R.string.tp_selected_count, applicableSelection.size)) },
                 )
                 Spacer(Modifier.weight(1f))
                 TextButton(
                     enabled = visible.isNotEmpty(),
                     onClick = {
                         selected =
-                            if (selected.containsAll(visible)) selected - visible.toSet()
-                            else selected + visible
+                            if (applicableSelection.containsAll(visible)) applicableSelection - visible.toSet()
+                            else applicableSelection + visible
                     },
                 ) {
                     Text(stringResource(R.string.tp_select_visible))
@@ -317,9 +319,9 @@ internal fun AddPermissionSheet(
                         descriptions.getValue(name),
                         rules[name],
                         master,
-                        selected = name in selected,
+                        selected = name in applicableSelection,
                         onClick = {
-                            selected = if (name in selected) selected - name else selected + name
+                            selected = if (name in applicableSelection) applicableSelection - name else applicableSelection + name
                         },
                     )
                     if (rules[name] == target)
@@ -342,11 +344,11 @@ internal fun AddPermissionSheet(
                     Text(stringResource(R.string.cancel_action))
                 }
                 Button(
-                    enabled = selected.isNotEmpty(),
-                    onClick = { onApply(selected, target) },
+                    enabled = applicableSelection.isNotEmpty(),
+                    onClick = { onApply(applicableSelection, target) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(R.string.tp_apply_count, selected.size))
+                    Text(stringResource(R.string.tp_apply_count, applicableSelection.size))
                 }
             }
         }
