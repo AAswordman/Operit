@@ -1133,9 +1133,10 @@ fun MCPConfigScreen(
             onStart = {
                 val lifecycleScope = activity?.lifecycleScope
                 if (lifecycleScope != null) {
-                    mcpLoadingState.startConfiguredServers(context, lifecycleScope)
+                    mcpLoadingState.startConfiguredServers(context, lifecycleScope, showFeedback = true)
                 } else {
                     AppLogger.e("MCPConfigScreen", "无法获取主界面生命周期，未启动模型上下文协议服务")
+                    OKToast.error(context, R.string.mcp_start_services_failed).show()
                 }
             },
             onRefresh = {

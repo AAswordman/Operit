@@ -516,6 +516,9 @@ class MCPManager(private val context: Context) {
         }
     }
 
+    /** 只检查已有会话，不在“已启动”判断中创建或重连服务。 */
+    suspend fun isSessionActive(pluginId: String): Boolean = sessionCache[pluginId]?.isActive() == true
+
     fun getOrCreateSession(pluginId: String): McpRuntimeSession? {
         val cachedSession = sessionCache[pluginId]
         if (cachedSession != null) {

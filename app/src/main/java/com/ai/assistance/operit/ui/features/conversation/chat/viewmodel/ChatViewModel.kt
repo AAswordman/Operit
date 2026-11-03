@@ -100,7 +100,6 @@ import com.ai.assistance.operit.core.speech.text.TtsCleaner
 import com.ai.assistance.operit.core.speech.text.TtsSegmenter
 import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.findMentionTokens
 import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.findMentionTokenEndingAtCursor
-import com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions.isMentionContinuation
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -2185,15 +2184,12 @@ class ChatViewModel(context: Context) : ViewModel() {
             if (currentChar.isWhitespace()) {
                 return null
             }
-            if (currentChar != '@' && currentChar != '/') {
+            // 选择菜单只由斜杠触发，普通 @ 输入不打开建议面板。
+            if (currentChar != '/') {
                 index -= 1
                 continue
             }
-            if (currentChar == '@' && index > 0 && isMentionContinuation(text[index - 1], '@')) {
-                index -= 1
-                continue
-            }
-            if (currentChar == '/' && index > 0 && !text[index - 1].isWhitespace()) {
+            if (index > 0 && !text[index - 1].isWhitespace()) {
                 index -= 1
                 continue
             }
