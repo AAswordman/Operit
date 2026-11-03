@@ -82,6 +82,7 @@ internal class ThemeStudioState(
     private val draftDirectory = File(context.filesDir, "theme-studio")
     private val draftId = MessageDigest.getInstance("SHA-256").digest(projectKey.toByteArray()).joinToString("") { "%02x".format(it) }
     private val draftFile get() = File(draftDirectory, "draft_$draftId.zip")
+    private val locationStore = ThemeStudioLocationStore(context, draftId)
     val canUndo get() = undoStack.isNotEmpty() && !sourceDirty
     val canRedo get() = redoStack.isNotEmpty() && !sourceDirty
     val hasChanges get() = sourceDirty || project != baseline
@@ -102,6 +103,8 @@ internal class ThemeStudioState(
 
     suspend fun load() {
         task {
+            val initialLocation = location()
+            val savedLocation = withContext(Dispatchers.IO) { locationStore.read(initialLocation) }
             val loaded = withContext(Dispatchers.IO) {
                 when {
                     draftFile.isFile -> ThemeScriptBundleStore.read(draftFile)
@@ -116,11 +119,32 @@ internal class ThemeStudioState(
                 }
             }
             val prepared = withContext(Dispatchers.IO) { ThemeScriptAssets.prepare(loaded, fontDirectory).also { ThemeScriptAssets.validateAppearance(loaded.manifest.appearance, it) } }
+            restoreLocation(savedLocation)
             project = loaded
             images = prepared
             baseline = loaded
             refreshSource()
         }
+    }
+
+    fun location() = StudioLocation(mode, target.id, workspace, scene, property, previewState, previewInputStyle, previewCollapsed)
+
+    fun rememberLocation(location: StudioLocation = location()) = locationStore.write(location)
+
+    private fun restoreLocation(location: StudioLocation) {
+        val selected = ThemeStudioTargets.first { it.id == location.targetId }
+        require(location.mode in setOf("light", "dark")) { "Invalid studio preview mode" }
+        require(location.property in selected.properties) { "Invalid studio property" }
+        require(location.previewState == "always" || location.previewState in selected.states) { "Invalid studio preview state" }
+        require(location.inputStyle in setOf("classic", "agent")) { "Invalid studio input style" }
+        mode = location.mode
+        target = selected
+        workspace = location.workspace
+        scene = location.scene
+        property = location.property
+        previewState = location.previewState
+        previewInputStyle = location.inputStyle
+        previewCollapsed = location.previewCollapsed
     }
 
     fun select(next: StudioTarget) {
