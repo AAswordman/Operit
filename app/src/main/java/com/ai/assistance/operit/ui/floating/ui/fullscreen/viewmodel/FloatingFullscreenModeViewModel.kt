@@ -45,7 +45,8 @@ private const val FULLSCREEN_TTS_CAPTURE_SUPPRESS_MS = 1200L
  * 之所以用流而不是 delay 采样：采样版本要求「轮询到 busy=true 才接受 busy=false」，
  * 一旦回合的开始与结束落在同一个采样间隔内（发送被拒、快速失败、错误态立即收尾），
  * busy=true 永远观测不到，恢复标志会永久闩死——波浪模式退不出去，底部输入胶囊
- * 不参与组合，软键盘也就没有入口。流式观察不会漏掉中间态。
+ * 不参与组合，软键盘也就没有入口。流式观察的窗口远小于 120ms 采样间隔；即使极端
+ * 情况下相邻状态被合并，影响也只是这一轮不自动恢复，界面不会闩死。
  */
 internal suspend fun awaitAiTurnFinished(turnActive: Flow<Boolean>): Boolean {
     var observedActive = false
@@ -356,7 +357,11 @@ class FloatingFullscreenModeViewModel(
         if (isAiWorking) {
             floatContext.onCancelMessage?.invoke()
         }
-        
+
+        // 收音前先让浮窗服务持有 microphone 前台类型：浮窗不是 Activity，没有该类型
+        // 时 Android 会静默返回无声数据。必须早于 startListening，采集开始时类型
+        // 已经就位。
+        floatContext.chatService?.setVoiceSessionForeground(true)
         speechManager.startListening { errorMsg ->
             aiMessage = errorMsg
         }
@@ -364,6 +369,11 @@ class FloatingFullscreenModeViewModel(
 
     fun stopVoiceCapture(isCancel: Boolean) {
         speechManager.stopListening(isCancel)
+        // 波浪模式是整段语音会话，回合间隙还要继续收音，类型由 exitWaveMode 收回；
+        // 底部按住说话只有这一次采集，停止即回收类型。
+        if (!isWaveActive) {
+            floatContext.chatService?.setVoiceSessionForeground(false)
+        }
     }
 
     fun enterWaveMode(
@@ -388,6 +398,7 @@ class FloatingFullscreenModeViewModel(
                 if (!speechManager.isRecording) {
                     isWaveActive = false
                     showBottomControls = true
+                    floatContext.chatService?.setVoiceSessionForeground(false)
                 }
             }
         }
@@ -403,6 +414,8 @@ class FloatingFullscreenModeViewModel(
         coroutineScope.launch { speechManager.voiceService.stop() }
         isWaveActive = false
         showBottomControls = true
+        // 整段语音会话结束，收回 microphone 前台类型。
+        floatContext.chatService?.setVoiceSessionForeground(false)
         inactivityJob?.cancel()
         inactivityJob = null
         resetVoiceAvatarToIdle()
@@ -496,6 +509,8 @@ class FloatingFullscreenModeViewModel(
         ttsSpeakJob?.cancel()
         ttsSpeakJob = null
         cancelPendingVoiceCaptureResume()
+        // 语音组件被销毁后不再有采集需求，收回 microphone 前台类型。
+        floatContext.chatService?.setVoiceSessionForeground(false)
 
         prefsJob?.cancel()
         prefsJob = null
