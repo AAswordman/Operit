@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.common.a2ui
 
 import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.assertPropagatedException
 import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.TextStreamEvent
 import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
@@ -14,7 +15,6 @@ import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 
@@ -90,10 +90,12 @@ class CardReferenceStreamTest {
             source.collect { raw.append(it) }
             throw AssertionError("请求异常应继续传播")
         } catch (error: IOException) {
-            assertSame(failure, error)
+            // 协程堆栈恢复可能复制异常，按类型、消息和原始因果链核对传播。
+            assertPropagatedException(failure, error)
         }
         val history = (source as TextStreamEventCarrier).eventChannel.replayCache
         assertEquals("kept", applyRevisionEvents(raw.toString(), history))
+        assertEquals(0, events.subscriptionCount)
     }
 
     @Test fun successiveRetriesKeepRawOffsetsAfterEarlierDiscards() = runTest {

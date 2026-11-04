@@ -38,7 +38,11 @@ class WaifuMessageProcessorReviewTest {
         val content = "开头。<plan id=\"1\">私有插件内容</plan><emotion>happy</emotion>结尾。"
 
         assertEquals("开头。结尾。", WaifuMessageProcessor.cleanContentForWaifu(content))
-        assertEquals(content, WaifuMessageProcessor.cleanContentForWaifuDisplay(content))
+        // emotion 属于内部控制标签，即使已注册也不进入可见插件正文。
+        assertEquals(
+            "开头。<plan id="1">私有插件内容</plan>结尾。",
+            WaifuMessageProcessor.cleanContentForWaifuDisplay(content),
+        )
     }
 
     @Test
