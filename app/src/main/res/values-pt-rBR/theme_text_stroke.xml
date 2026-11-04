@@ -4,5 +4,5 @@
     <string name="studio_text_stroke_color">Cor do contorno do texto</string>
     <string name="studio_text_stroke_off">Desativado</string>
     <string name="studio_text_stroke_custom">Personalizado</string>
-    <string name="studio_text_stroke_hint">O contorno envolve as letras e a cor do texto permanece independente. Cada área pode herdar o contorno global ou desativá-lo. Uma largura de 0 o desativa. A borda do balão é independente.</string>
+    <string name="studio_text_stroke_hint">O contorno envolve as letras e a cor do texto permanece independente. Cada área pode herdar o contorno global ou desativá-lo. Uma largura de 0 o desativa. A borda do balão é independente. A largura aceita precisão de 0.01 dp; experimente primeiro os ajustes finos de 0.05 ou 0.10 dp.</string>
 </resources>

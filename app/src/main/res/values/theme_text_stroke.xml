@@ -4,5 +4,5 @@
     <string name="studio_text_stroke_color">文字描边颜色</string>
     <string name="studio_text_stroke_off">关闭</string>
     <string name="studio_text_stroke_custom">自定义</string>
-    <string name="studio_text_stroke_hint">描边包围文字，文字填充色保持独立。区域可继承全局，也可单独关闭；宽度为 0 表示关闭，与气泡边框无关。</string>
+    <string name="studio_text_stroke_hint">描边包围文字，文字填充色保持独立。区域可继承全局，也可单独关闭；宽度为 0 表示关闭，与气泡边框无关。 支持 0.01 dp 精度；可先试用 0.05 或 0.10 dp 细线预设。</string>
 </resources>

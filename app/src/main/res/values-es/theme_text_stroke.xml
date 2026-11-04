@@ -4,5 +4,5 @@
     <string name="studio_text_stroke_color">Color del contorno del texto</string>
     <string name="studio_text_stroke_off">Desactivado</string>
     <string name="studio_text_stroke_custom">Personalizado</string>
-    <string name="studio_text_stroke_hint">El contorno rodea las letras y el color del texto es independiente. Cada área puede heredar el contorno global o desactivarlo. Un ancho de 0 lo desactiva. El borde de la burbuja es independiente.</string>
+    <string name="studio_text_stroke_hint">El contorno rodea las letras y el color del texto es independiente. Cada área puede heredar el contorno global o desactivarlo. Un ancho de 0 lo desactiva. El borde de la burbuja es independiente. Admite una precisión de 0.01 dp; prueba primero los ajustes finos de 0.05 o 0.10 dp.</string>
 </resources>

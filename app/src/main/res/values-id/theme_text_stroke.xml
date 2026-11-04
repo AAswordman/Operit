@@ -4,5 +4,5 @@
     <string name="studio_text_stroke_color">Warna garis tepi teks</string>
     <string name="studio_text_stroke_off">Nonaktif</string>
     <string name="studio_text_stroke_custom">Kustom</string>
-    <string name="studio_text_stroke_hint">Garis tepi mengelilingi huruf; warna isi teks tetap terpisah. Setiap area dapat mengikuti pengaturan global atau menonaktifkannya. Lebar 0 menonaktifkan garis tepi. Bingkai gelembung diatur terpisah.</string>
+    <string name="studio_text_stroke_hint">Garis tepi mengelilingi huruf; warna isi teks tetap terpisah. Setiap area dapat mengikuti pengaturan global atau menonaktifkannya. Lebar 0 menonaktifkan garis tepi. Bingkai gelembung diatur terpisah. Lebar mendukung presisi 0.01 dp; coba prasetel tipis 0.05 atau 0.10 dp terlebih dahulu.</string>
 </resources>
