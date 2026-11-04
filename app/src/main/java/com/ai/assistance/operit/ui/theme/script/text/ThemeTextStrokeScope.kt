@@ -7,6 +7,7 @@ import androidx.compose.ui.UiComposable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.ai.assistance.operit.data.theme.script.ThemeTextStroke
 import com.ai.assistance.operit.data.theme.script.resolveThemeTextStroke
 import com.ai.assistance.operit.ui.theme.script.LocalThemeScriptState
@@ -14,6 +15,10 @@ import com.ai.assistance.operit.ui.theme.script.ThemeScriptState
 
 /** 已解析的文字轮廓只参与绘制，不改变文字测量、点击和选择语义。 */
 data class ResolvedThemeTextStroke(val color: Color, val widthDp: Float) {
+    // 原生富文本同样在整层合成时着色，避免逐段画笔或系统文字绘制改变轮廓色。
+    internal val nativeTintPaint = android.graphics.Paint().apply {
+        colorFilter = android.graphics.PorterDuffColorFilter(this@ResolvedThemeTextStroke.color.toArgb(), android.graphics.PorterDuff.Mode.SRC_IN)
+    }
     internal val tintPaint = androidx.compose.ui.graphics.Paint().apply {
         colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(this@ResolvedThemeTextStroke.color, androidx.compose.ui.graphics.BlendMode.SrcIn)
     }

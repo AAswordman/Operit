@@ -33,6 +33,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -92,7 +94,10 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
     var more by remember { mutableStateOf(false) }
     var preset by remember { mutableStateOf<String?>(null) }
     var notice by remember { mutableStateOf<Int?>(null) }
-    fun close() { if (!state.busy) { if (state.hasChanges) leaving = true else onClose() } }
+    var editorFocusManager by remember { mutableStateOf<FocusManager?>(null) }
+    // 工作室有独立窗口，必须清除该窗口的焦点，才能在持久化前提交当前数值草稿。
+    fun finishEditing() { editorFocusManager?.clearFocus(force = true) }
+    fun close() { if (!state.busy) { finishEditing(); if (state.hasChanges) leaving = true else onClose() } }
     LaunchedEffect(state) { state.load() }
     // 工程加载和位置恢复完成后才开始记忆，避免初始值覆盖上次选择。
     LaunchedEffect(state, state.project != null) {
@@ -118,6 +123,11 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
     }
     Dialog(onDismissRequest = ::close, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         StudioTheme {
+            val focusManager = LocalFocusManager.current
+            DisposableEffect(focusManager) {
+                editorFocusManager = focusManager
+                onDispose { editorFocusManager = null }
+            }
             Box(Modifier.fillMaxSize().background(StudioBackground).systemBarsPadding().imePadding()) {
                 Column(Modifier.fillMaxSize()) {
                     Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -126,16 +136,17 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                             Text(state.project?.manifest?.studio?.name?.ifBlank { targetName } ?: targetName, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(stringResource(R.string.studio_title), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = state::undo, enabled = !state.busy && state.canUndo) { Icon(Icons.AutoMirrored.Filled.Undo, stringResource(R.string.studio_undo)) }
-                        IconButton(onClick = state::redo, enabled = !state.busy && state.canRedo) { Icon(Icons.AutoMirrored.Filled.Redo, stringResource(R.string.studio_redo)) }
+                        IconButton(onClick = { finishEditing(); state.undo() }, enabled = !state.busy && state.canUndo) { Icon(Icons.AutoMirrored.Filled.Undo, stringResource(R.string.studio_undo)) }
+                        IconButton(onClick = { finishEditing(); state.redo() }, enabled = !state.busy && state.canRedo) { Icon(Icons.AutoMirrored.Filled.Redo, stringResource(R.string.studio_redo)) }
                         Box {
-                            IconButton(onClick = { more = true }, enabled = !state.busy && state.project != null) { Icon(Icons.Default.MoreVert, stringResource(R.string.studio_project_actions)) }
+                            IconButton(onClick = { finishEditing(); more = true }, enabled = !state.busy && state.project != null) { Icon(Icons.Default.MoreVert, stringResource(R.string.studio_project_actions)) }
                             WorkbenchDropdownMenu(expanded = more, onDismissRequest = { more = false }) {
                                 ActionSheetItem(label = stringResource(R.string.studio_project_info), icon = Icons.Default.Settings, onClick = { more = false; info = true })
-                                ActionSheetItem(label = stringResource(R.string.studio_save_draft), icon = Icons.Default.Save, onClick = { more = false; scope.launch { if (state.saveProjectDraft()) notice = R.string.studio_draft_saved } })
+                                ActionSheetItem(label = stringResource(R.string.studio_save_draft), icon = Icons.Default.Save, onClick = { more = false; finishEditing(); scope.launch { if (state.saveProjectDraft()) notice = R.string.studio_draft_saved } })
                                 ActionSheetItem(label = stringResource(R.string.studio_import_project), icon = Icons.Default.Upload, onClick = { more = false; if (!state.sourceDirty || state.synchronizeSource()) importProject.launch(arrayOf("*/*")) })
                                 ActionSheetItem(label = stringResource(R.string.studio_export_project), icon = Icons.Default.Download, onClick = {
                                     more = false
+                                    finishEditing()
                                     if (!state.sourceDirty || state.synchronizeSource()) exportProject.launch("theme.oktheme")
                                 })
                                 HorizontalDivider()
@@ -147,7 +158,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                     HorizontalDivider(color = StudioLine)
                     if (state.project != null) {
                         TabRow(selectedTabIndex = state.workspace.ordinal, containerColor = StudioBackground) {
-                            StudioWorkspace.entries.forEach { workspace -> Tab(selected = workspace == state.workspace, onClick = { state.enterWorkspace(workspace) }, text = { Text(stringResource(workspace.label)) }) }
+                            StudioWorkspace.entries.forEach { workspace -> Tab(selected = workspace == state.workspace, onClick = { finishEditing(); state.enterWorkspace(workspace) }, text = { Text(stringResource(workspace.label)) }) }
                         }
                         state.error?.let { message ->
                             Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -163,7 +174,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                         }
                         Box(Modifier.weight(1f).fillMaxWidth()) {
                             when (state.workspace) {
-                                StudioWorkspace.Design -> StudioDesign(state, viewport, onPickTarget = { picker = true }, onFullPreview = { expandedPreview = true })
+                                StudioWorkspace.Design -> StudioDesign(state, viewport, onPickTarget = { finishEditing(); picker = true }, onFullPreview = { finishEditing(); expandedPreview = true })
                                 StudioWorkspace.Source -> StudioSource(state, onImport = { importSource.launch(arrayOf("*/*")) })
                                 StudioWorkspace.Resources -> StudioResources(state, onImport = { importAsset.launch(arrayOf("*/*")) })
                             }
@@ -174,8 +185,8 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                                 Text(targetName, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(stringResource(R.string.studio_role_draft_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { scope.launch { if (state.saveProjectDraft()) notice = R.string.studio_draft_saved } }, enabled = !state.busy) { Icon(Icons.Default.Save, stringResource(R.string.studio_save_draft)) }
-                            Button(onClick = { scope.launch { if (state.applyToRole(snapshot)) onClose() } }, enabled = !state.busy) { Text(stringResource(R.string.studio_apply_to_role)) }
+                            IconButton(onClick = { finishEditing(); scope.launch { if (state.saveProjectDraft()) notice = R.string.studio_draft_saved } }, enabled = !state.busy) { Icon(Icons.Default.Save, stringResource(R.string.studio_save_draft)) }
+                            Button(onClick = { finishEditing(); scope.launch { if (state.applyToRole(snapshot)) onClose() } }, enabled = !state.busy) { Text(stringResource(R.string.studio_apply_to_role)) }
                         }
                     } else if (!state.busy) {
                         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -193,7 +204,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                 onDismissRequest = { leaving = false },
                 title = { Text(stringResource(R.string.studio_unsaved_title)) },
                 text = { Column { Text(stringResource(R.string.studio_unsaved_message)); state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) } } },
-                confirmButton = { TextButton(onClick = { scope.launch { if (state.saveProjectDraft()) onClose() } }, enabled = !state.busy) { Text(stringResource(R.string.studio_save_and_close)) } },
+                confirmButton = { TextButton(onClick = { finishEditing(); scope.launch { if (state.saveProjectDraft()) onClose() } }, enabled = !state.busy) { Text(stringResource(R.string.studio_save_and_close)) } },
                 dismissButton = { Row { TextButton(onClick = onClose, enabled = !state.busy) { Text(stringResource(R.string.studio_discard)) }; TextButton(onClick = { leaving = false }) { Text(stringResource(R.string.studio_cancel)) } } },
             )
             preset?.let { id -> AlertDialog(
@@ -208,6 +219,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
 
 @Composable
 private fun StudioDesign(state: ThemeStudioState, viewport: IntSize, onPickTarget: () -> Unit, onFullPreview: () -> Unit) {
+    val focusManager = LocalFocusManager.current
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val previewHeight = (maxHeight * .44f).coerceIn(260.dp, 340.dp)
             .coerceAtMost((maxHeight - 160.dp).coerceAtLeast(0.dp))
@@ -221,7 +233,7 @@ private fun StudioDesign(state: ThemeStudioState, viewport: IntSize, onPickTarge
             }
             val properties = state.target.properties
             if (properties.size > 1) TabRow(selectedTabIndex = properties.indexOf(state.property), containerColor = StudioBackground) {
-                properties.forEach { property -> Tab(selected = state.property == property, onClick = { state.property = property; if (property != StudioProperty.States) state.previewState = "always" }, text = { Text(stringResource(property.label)) }) }
+                properties.forEach { property -> Tab(selected = state.property == property, onClick = { focusManager.clearFocus(force = true); state.property = property; if (property != StudioProperty.States) state.previewState = "always" }, text = { Text(stringResource(property.label)) }) }
             }
             Box(Modifier.fillMaxWidth().weight(1f)) { key(state.target.id, state.property, state.mode) { StudioProperties(state) } }
         }

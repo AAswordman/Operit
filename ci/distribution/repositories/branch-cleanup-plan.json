@@ -18,6 +18,7 @@
     "fix/tool-permission-availability",
     "fix/tool-permission-localization",
     "feat/integration-open-prs-20261104",
-    "chore/release-1.12.2-22"
+    "chore/release-1.12.2-22",
+    "fix/theme-text-stroke-editing-and-coverage"
   ]
 }
