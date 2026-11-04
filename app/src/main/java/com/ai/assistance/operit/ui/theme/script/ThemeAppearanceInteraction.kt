@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.theme.script
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -38,6 +40,7 @@ internal fun ThemeInteractionScope(
     val state = LocalThemeSurfaceStates.current[id] ?: themeStateName(pressed, focused, selected = false, enabled = enabled, error = false)
     CompositionLocalProvider(
         LocalThemeSurfaceStates provides (LocalThemeSurfaceStates.current + (id to state)),
+        LocalThemeTextStroke provides themeTextStroke(id),
         LocalThemeHandledOpacity provides (LocalThemeHandledOpacity.current + id),
     ) { content(source) }
 }
@@ -54,6 +57,7 @@ internal fun ThemeSurfaceStateScope(id: String, selected: Boolean, handlesOpacit
     val handled = LocalThemeHandledOpacity.current
     CompositionLocalProvider(
         LocalThemeSurfaceStates provides (states + (id to active)),
+        LocalThemeTextStroke provides themeTextStroke(id),
         LocalThemeHandledOpacity provides (if (handlesOpacity) handled + id else handled),
         content = content,
     )

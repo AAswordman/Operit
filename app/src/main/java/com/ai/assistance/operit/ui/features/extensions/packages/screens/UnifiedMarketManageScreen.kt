@@ -28,7 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -150,7 +150,7 @@ fun UnifiedMarketManageScreen(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
                         text = {
-                            androidx.compose.material3.Text(
+                            com.ai.assistance.operit.ui.theme.script.text.ThemeText(
                                 text = stringResource(tab.labelRes),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis

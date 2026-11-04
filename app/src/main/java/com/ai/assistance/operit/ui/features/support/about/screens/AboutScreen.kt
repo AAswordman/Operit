@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.support.about.screens
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager

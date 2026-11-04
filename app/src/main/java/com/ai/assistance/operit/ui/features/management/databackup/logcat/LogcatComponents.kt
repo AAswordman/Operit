@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.management.databackup.logcat
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,7 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeBasicTextField as BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*

@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.screens
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import com.ai.assistance.operit.ui.common.oktoast.OKToast

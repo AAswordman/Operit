@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.theme.script
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.resolved
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -9,7 +11,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -95,6 +97,7 @@ fun ThemeScriptHost(
     val textColor = ready?.appearance?.typography?.color?.let(::themeColor)
     CompositionLocalProvider(
         LocalThemeScriptState provides state,
+        LocalThemeTextStroke provides ready?.appearance?.typography?.stroke?.takeIf { it.width > 0f }?.resolved(),
         LocalContentColor provides (textColor ?: LocalContentColor.current),
         LocalTextStyle provides (if (textColor == null) LocalTextStyle.current else LocalTextStyle.current.copy(color = textColor)),
     ) {

@@ -8314,7 +8314,7 @@
     <string name="resource_ubuntu_not_installed">Lingkungan Ubuntu tidak diinstal. Setelah menyiapkan sumber daya terminal, masuk ke terminal untuk menyelesaikan instalasi.</string>
     <string name="resource_delete_error">Penghapusan gagal: %1$s</string>
     <string name="resource_ubuntu_delete_pending">Lingkungan Ubuntu belum diinstal dan pembersihan terminal belum selesai. Anda dapat mengimpornya kembali setelah selesai; jika pembersihan gagal, klik Hapus lagi.</string>
-    <string name="theme_background_transparency_hint">0% sepenuhnya buram, 100% sepenuhnya transparan; hanya mempengaruhi latar belakang.</string>
+    <string name="theme_background_transparency_hint" formatted="false">0% sepenuhnya buram, 100% sepenuhnya transparan; hanya mempengaruhi latar belakang.</string>
     <string name="theme_input_background_transparency">Transparansi latar belakang kotak masukan</string>
     <string name="theme_user_background_transparency">Transparansi latar belakang gelembung pengguna</string>
     <string name="theme_ai_background_transparency">Transparansi latar belakang gelembung AI</string>

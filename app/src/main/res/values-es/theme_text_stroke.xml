@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">Contorno del texto</string>
+    <string name="studio_text_stroke_color">Color del contorno del texto</string>
+    <string name="studio_text_stroke_off">Desactivado</string>
+    <string name="studio_text_stroke_custom">Personalizado</string>
+    <string name="studio_text_stroke_hint">El contorno rodea las letras y el color del texto es independiente. Cada área puede heredar el contorno global o desactivarlo. Un ancho de 0 lo desactiva. El borde de la burbuja es independiente.</string>
+</resources>

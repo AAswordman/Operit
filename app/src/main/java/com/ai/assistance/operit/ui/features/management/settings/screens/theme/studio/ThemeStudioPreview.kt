@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -129,7 +131,7 @@ internal fun StudioPreviewAppBar(state: ThemeStudioState) {
                     .themeScriptDecoration("appBar", drawFill = false),
                 expandedHeight = 48.dp,
                 windowInsets = WindowInsets(0, 0, 0, 0),
-                title = { Text(state.targetName, style = themeScriptTextStyle("appBar", MaterialTheme.typography.titleSmall), color = contentColor) },
+                title = { Text(state.targetName, style = themeScriptTextStyle("appBar", MaterialTheme.typography.titleSmall), color = contentColor, textStroke = themeTextStroke("appBar")) },
                 navigationIcon = {
                     ThemeScriptIconButton(onClick = {}) {
                         ThemeScriptIcon(id, Icons.Default.ArrowBack, null, tint = contentColor)

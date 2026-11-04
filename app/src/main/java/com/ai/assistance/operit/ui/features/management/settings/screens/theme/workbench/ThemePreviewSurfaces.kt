@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptAvatarSize
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
@@ -199,7 +201,7 @@ internal fun ThemePreviewMessageSample(
                     style = themeScriptTextStyle(if (user) "userMessage" else "assistantMessage", MaterialTheme.typography.bodyMedium),
                     color = textColor,
                     fontFamily = themeScriptTextStyle(if (user) "userMessage" else "assistantMessage", MaterialTheme.typography.bodyMedium.copy(fontFamily = family)).fontFamily,
-                )
+                 textStroke = themeTextStroke(if (user) "userMessage" else "assistantMessage"))
             }
             val uri = values.string(prefix + "_image_uri")
             if (
@@ -402,7 +404,7 @@ internal fun ThemePreviewInput(values: ThemePreferenceValues) {
                     Modifier.weight(1f),
                     style = themeScriptTextStyle("composer", MaterialTheme.typography.bodySmall),
                     color = themeScriptContentColor("composer", MaterialTheme.colorScheme.onSurface),
-                )
+                 textStroke = themeTextStroke("composer"))
                 IconButton(onClick = { generating = true }, enabled = !generating) {
                     ThemeScriptIcon(
                         id = "composer.send",

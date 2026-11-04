@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">Conturul textului</string>
+    <string name="studio_text_stroke_color">Culoarea conturului textului</string>
+    <string name="studio_text_stroke_off">Dezactivat</string>
+    <string name="studio_text_stroke_custom">Personalizat</string>
+    <string name="studio_text_stroke_hint">Conturul înconjoară literele, iar culoarea textului rămâne independentă. Fiecare zonă poate moșteni setarea globală sau o poate dezactiva. Lățimea 0 dezactivează conturul. Chenarul mesajului este separat.</string>
+</resources>

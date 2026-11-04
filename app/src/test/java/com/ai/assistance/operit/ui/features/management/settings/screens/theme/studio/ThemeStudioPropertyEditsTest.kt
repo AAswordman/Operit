@@ -14,6 +14,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.ai.assistance.operit.data.theme.script.ThemeTextStroke
 
 /** 直接检查保存后的主题声明，不依赖 Android 颜色解析或 Compose 渲染。 */
 class ThemeStudioPropertyEditsTest {
@@ -94,5 +95,19 @@ class ThemeStudioPropertyEditsTest {
         assertEquals(light.padding, restoredLight.padding)
         assertEquals(light.messageWidth, restoredLight.messageWidth, 0f)
         assertEquals(1f, restoredLight.strokeWidth, 0f)
+    }
+    @Test fun editingAndClearingMessageTextColorKeepsTheTextOutline() {
+        val outline = ThemeTextStroke("#FF225588", 2f)
+        val font = ThemeAppearanceText(family = "serif", color = "#FF111111", stroke = outline)
+        val original = ThemeScriptSurface(contentColor = "#FF222222", textStyle = font)
+        val edited = original.withStudioColor("contentColor", "#FF333333")
+        assertEquals("#FF333333", edited.contentColor)
+        assertNull(edited.textStyle.color)
+        assertEquals(outline, edited.textStyle.stroke)
+        val cleared = edited.withStudioColor("contentColor", null)
+        assertNull(cleared.contentColor)
+        assertNull(cleared.textStyle.color)
+        assertEquals(outline, cleared.textStyle.stroke)
+        assertEquals("serif", cleared.textStyle.family)
     }
 }

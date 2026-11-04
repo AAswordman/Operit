@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.error.report
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll

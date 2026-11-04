@@ -8382,7 +8382,7 @@
     <string name="resource_ubuntu_not_installed">El entorno Ubuntu no está instalado. Después de preparar los recursos del terminal, ingrese al terminal para completar la instalación.</string>
     <string name="resource_delete_error">Error al eliminar: %1$s</string>
     <string name="resource_ubuntu_delete_pending">El entorno Ubuntu no está instalado y no se ha completado la limpieza del terminal. Puede volver a importarlo una vez finalizado; Si la limpieza falla, haga clic en Eliminar nuevamente.</string>
-    <string name="theme_background_transparency_hint">0% totalmente opaco, 100% totalmente transparente; afecta sólo al fondo.</string>
+    <string name="theme_background_transparency_hint" formatted="false">0% totalmente opaco, 100% totalmente transparente; afecta sólo al fondo.</string>
     <string name="theme_input_background_transparency">Transparencia del fondo del cuadro de entrada</string>
     <string name="theme_user_background_transparency">Transparencia del fondo de la burbuja del usuario</string>
     <string name="theme_ai_background_transparency">Transparencia del fondo de la burbuja AI</string>

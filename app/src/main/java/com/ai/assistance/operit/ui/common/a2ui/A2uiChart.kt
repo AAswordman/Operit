@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.common.a2ui
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures

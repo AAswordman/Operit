@@ -1,9 +1,9 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeTypographyScope
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptMessageFraction
 import com.ai.assistance.operit.ui.theme.script.themeScriptMessageWidth
-import com.ai.assistance.operit.ui.theme.script.themeScriptTypography
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
 
@@ -57,7 +57,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -172,7 +172,7 @@ fun UserMessageComposable(
         }
 
     val effectiveTextColor = themeScriptContentColor("userMessage", nativeTextColor)
-    MaterialTheme(typography = themeScriptTypography("userMessage", MaterialTheme.typography)) {
+    ThemeTypographyScope("userMessage") {
     Column(modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = 16.dp, vertical = if (isHiddenPlaceholder) 0.dp else 4.dp)) {

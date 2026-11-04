@@ -8313,7 +8313,7 @@
     <string name="resource_ubuntu_not_installed">Persekitaran Ubuntu tidak dipasang. Selepas menyediakan sumber terminal, masukkan terminal untuk melengkapkan pemasangan.</string>
     <string name="resource_delete_error">Pemadaman gagal: %1$s</string>
     <string name="resource_ubuntu_delete_pending">Persekitaran Ubuntu tidak dipasang dan pembersihan terminal belum selesai. Anda boleh mengimportnya semula selepas selesai; jika pembersihan gagal, klik Padam sekali lagi.</string>
-    <string name="theme_background_transparency_hint">0% legap sepenuhnya, 100% telus sepenuhnya; hanya mempengaruhi latar belakang.</string>
+    <string name="theme_background_transparency_hint" formatted="false">0% legap sepenuhnya, 100% telus sepenuhnya; hanya mempengaruhi latar belakang.</string>
     <string name="theme_input_background_transparency">Ketelusan latar belakang kotak input</string>
     <string name="theme_user_background_transparency">Ketelusan latar belakang gelembung pengguna</string>
     <string name="theme_ai_background_transparency">Ketelusan latar belakang gelembung AI</string>
