@@ -28,15 +28,26 @@ object MCPSharedSession {
      * @return 会话ID，如果创建失败返回null
      */
     suspend fun getOrCreateSharedSession(context: Context): String? {
-        // 快速检查，避免不必要的锁定
-        sharedSessionId?.let { return it }
+        val terminal = Terminal.getInstance(context)
+
+        // 快速检查，避免不必要的锁定。这里必须同时校验会话是否仍然存活：终端的 PTY 进程
+        // 异常退出后会话 ID 仍会被保留，如果直接复用这个已失效的 ID，所有基于它的命令都
+        // 不会收到完成事件，MCP 桥接器的部署/启动流程就会永久挂起。
+        sharedSessionId?.let { existing ->
+            if (isSessionAlive(terminal, existing)) return existing
+            AppLogger.w(TAG, "缓存的共享会话 $existing 已不存在，将重新创建")
+            sharedSessionId = null
+        }
         
         // 使用互斥锁来确保线程安全，避免在synchronized块中调用suspend函数
         return mutex.withLock {
             // 再次检查，防止在等待锁的过程中其他线程已经创建了会话
-            sharedSessionId?.let { return@withLock it }
+            sharedSessionId?.let { existing ->
+                if (isSessionAlive(terminal, existing)) return@withLock existing
+                AppLogger.w(TAG, "缓存的共享会话 $existing 已不存在，将重新创建")
+                sharedSessionId = null
+            }
             
-            val terminal = Terminal.getInstance(context)
             if (!terminal.isConnected()) {
                 if (!terminal.initialize()) {
                     AppLogger.e(TAG, "Failed to initialize Terminal")
@@ -54,6 +65,17 @@ object MCPSharedSession {
             }
             
             sessionId
+        }
+    }
+
+    /** 会话 ID 是否仍存在于终端会话表中。 */
+    private fun isSessionAlive(terminal: Terminal, sessionId: String): Boolean {
+        return try {
+            terminal.terminalState.value.sessions.any { it.id == sessionId }
+        } catch (e: Exception) {
+            // 无法判断时按"存活"处理，避免因为一次读取失败而反复重建会话。
+            AppLogger.w(TAG, "校验会话 $sessionId 存活状态失败: ${e.message}")
+            true
         }
     }
     

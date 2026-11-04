@@ -89,7 +89,7 @@ object SystemToolPromptsInternal {
                                         type = "integer",
                                         description = "optional, command timeout in milliseconds",
                                         required = false,
-                                        default = "1800000"
+                                        default = "600000"
                                     )
                                 )
                         ),
@@ -3087,7 +3087,7 @@ object SystemToolPromptsInternal {
                                         type = "integer",
                                         description = "可选，超时时间（毫秒）",
                                         required = false,
-                                        default = "1800000"
+                                        default = "600000"
                                     )
                                 )
                         ),
