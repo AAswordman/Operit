@@ -366,13 +366,20 @@ class McpLoadingState {
                     pluginId: String,
                     success: Boolean,
                     index: Int,
-                    total: Int
+                    total: Int,
+                    failureDetail: String?
             ) {
                 // 记录模型上下文协议服务加载结果
                 if (success) {
                     setPluginSuccess(pluginId)
                 } else {
-                    setPluginFailed(pluginId, context.getString(R.string.plugin_verification_failed))
+                    // 具体启动原因随回调传递，避免被通用验证失败提示覆盖。
+                    val detail = failureDetail?.trim().orEmpty()
+                    setPluginFailed(
+                        pluginId,
+                        detail.ifBlank { context.getString(R.string.plugin_verification_failed) }
+                    )
+                    if (detail.isNotBlank()) appendPluginLog(pluginId, detail)
                 }
 
                 // 更新总体进度

@@ -50,5 +50,10 @@ interface McpRuntimeSession {
 
     suspend fun callTool(name: String, arguments: Map<String, Any?>): McpRuntimeCallResult
 
+    /**
+     * 最近一次连接失败的具体原因，供启动验证直接展示。
+     */
+    fun getLastFailureDetail(): String? = null
+
     suspend fun close()
 }

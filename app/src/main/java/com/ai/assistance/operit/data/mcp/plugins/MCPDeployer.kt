@@ -110,6 +110,21 @@ class MCPDeployer(private val context: Context) {
                         val serverConfig = mcpLocalServer.getMCPServer(pluginId)
                         val command = serverConfig?.command?.lowercase() ?: "npx/uvx/uv"
 
+                        val usesAppManagedDirectory = serverConfig != null &&
+                            com.ai.assistance.operit.data.mcp.McpStdioConfigResolver
+                                .usesAppManagedRuntimeDirectory(
+                                    command = serverConfig.command,
+                                    args = serverConfig.args.orEmpty(),
+                                    cwd = serverConfig.cwd
+                                )
+                        if (!usesAppManagedDirectory) {
+                            // 绝对命令、绝对入口或显式外部 cwd：文件已在终端中，创建目录反而会
+                            // 触碰用户自己的路径，因此这里只确认配置可用。
+                            AppLogger.d(TAG, "插件 $pluginId 使用终端中已有的命令/目录，无需部署")
+                            statusCallback(DeploymentStatus.Success(context.getString(R.string.mcp_deployment_minimal_complete, command)))
+                            return@withContext true
+                        }
+
                         AppLogger.d(TAG, "插件 $pluginId 使用 $command 命令（虚拟路径），开始最小化部署...")
                         statusCallback(DeploymentStatus.InProgress(context.getString(R.string.mcp_deployment_virtual_plugin_detected, command)))
 
@@ -457,6 +472,8 @@ class MCPDeployer(private val context: Context) {
                 val args = serverConfig.getAsJsonArray("args")?.map { it.asString } ?: emptyList()
                 val disabled = serverConfig.get("disabled")?.asBoolean ?: false
                 val autoApprove = serverConfig.getAsJsonArray("autoApprove")?.map { it.asString } ?: emptyList()
+                // cwd 是标准 MCP stdio 字段；丢失它会让相对入口脚本在错误目录下启动。
+                val cwd = serverConfig.get("cwd")?.takeIf { !it.isJsonNull }?.asString
 
                 // 提取环境变量
                 val env = mutableMapOf<String, String>()
@@ -466,7 +483,7 @@ class MCPDeployer(private val context: Context) {
                     }
                 }
 
-                AppLogger.d(TAG, "解析MCP配置 - 服务器: $serverName, 命令: $command, 参数: $args")
+                AppLogger.d(TAG, "解析MCP配置 - 服务器: $serverName, 命令: $command, 参数: $args, cwd: $cwd")
 
                 // 保存到MCPLocalServer
                 mcpLocalServer.addOrUpdateMCPServer(
@@ -475,7 +492,8 @@ class MCPDeployer(private val context: Context) {
                     args = args,
                     env = env,
                     disabled = disabled,
-                    autoApprove = autoApprove
+                    autoApprove = autoApprove,
+                    cwd = cwd
                 )
 
                 true
