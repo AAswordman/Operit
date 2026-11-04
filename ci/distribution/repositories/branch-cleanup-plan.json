@@ -1,0 +1,23 @@
+{
+  "repository": "3316891527/Operit",
+  "version": "1.12.2+22",
+  "branches": [
+    "fix/code-runner-execution-isolation",
+    "fix/summary-empty-result-retry",
+    "feat/theme-text-outline",
+    "feat/theme-action-icon-entries",
+    "fix/theme-studio-property-controls",
+    "fix/theme-studio-localization",
+    "fix/upstream-stream-revisions",
+    "fix/upstream-browser-click-navigation",
+    "fix/upstream-mcp-stdio-startup",
+    "fix/upstream-nul-message-read",
+    "fix/upstream-document-editor",
+    "fix/send-summary-anr",
+    "feat/web-chat-cli",
+    "fix/tool-permission-availability",
+    "fix/tool-permission-localization",
+    "feat/integration-open-prs-20261104",
+    "chore/release-1.12.2-22"
+  ]
+}

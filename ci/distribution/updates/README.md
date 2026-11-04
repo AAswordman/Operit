@@ -2,7 +2,7 @@
 
 客户端统一查询 `3316891527/Operit-Kong-patch` 的 GitHub Releases。该仓库保存所有正式版和补丁版；`3316891527/Operit` 只保留源码和开发协作，不发布应用或离线资源；固定离线资源位于 `3316891527/Operit-Kong-resources`。更新检查、补丁生成和 APK 还原仍在源码仓库实现。
 
-`1.12.2+15` 已完成发行分仓，本次发行版本为 `1.12.2+21`、versionCode 77。沿用统一更新仓库与现有签名，使用 `v1.12.2+20` 的完整 APK 生成增量包。仓库创建、历史迁移、权限和完整回归见[分仓计划](../../../docs/TODO/chore/release-repositories/index.md)。
+`1.12.2+15` 已完成发行分仓，本次发行版本为 `1.12.2+22`、versionCode 78。沿用统一更新仓库与现有签名，使用 `v1.12.2+21` 的完整 APK 生成增量包。仓库创建、历史迁移、权限和完整回归见[分仓计划](../../../docs/TODO/chore/release-repositories/index.md)。
 
 ## 渠道与安装
 
@@ -12,7 +12,7 @@
 
 ## 发布方法
 
-源码仓库的 [Build 工作流](../../../.github/workflows/build.yml)选择 `main`、任务 `:app:verifyCiPreviewRelease`，勾选 `publish_release`，填写非空 Markdown 更新说明和可选 `previous_tag`。本次使用已发布的 `v1.12.2+20` 为基础；留空时选择补丁仓库中同一基础版本且低于目标的最新已公开 APK。普通构建保持 `publish_release=false`。
+源码仓库的 [Build 工作流](../../../.github/workflows/build.yml)选择 `main`、任务 `:app:verifyCiPreviewRelease`，勾选 `publish_release`，填写非空 Markdown 更新说明和可选 `previous_tag`。本次使用已发布的 `v1.12.2+21` 为基础；留空时选择补丁仓库中同一基础版本且低于目标的最新已公开 APK。普通构建保持 `publish_release=false`。
 
 工作流需要源码仓库的 Actions secret `OPERIT_DISTRIBUTION_TOKEN`，授予源码、补丁、资源仓库的 Contents 写入权限及源码仓库 Actions 读取权限。内置 `github.token` 不能向另外两个仓库发布。权限预检在签名构建前执行；缺少配置时明确失败。既有发行仓库和专用 secret 继续使用；本次保持 `complete_repository_migration=false`，不重复执行历史迁移清理。
 
@@ -51,3 +51,10 @@ python3 ci/distribution/updates/publish_release.py \
 原有发布回归继续覆盖版本、基线、包名、签名、原始记录复用及逐字节还原。新增回归覆盖发行分流、草稿上传顺序、只准备模式、源码标签保护、迁移完整性、资源清单改址及产物检查。客户端 JVM 回归继续覆盖完整包、增量、渠道、数字排序、草稿过滤和文案提取。
 
 本次未在本地执行编译、构建或测试。工作分支派发、不公开版本的构建结果及真实迁移收据分别记录；准备好的回归用例不等于通过结果。早期更新实现的已通过验证属于历史证据：[Android Build](https://github.com/3316891527/Operit/actions/runs/40199253010) 与 [Android Tests](https://github.com/3316891527/Operit/actions/runs/40198980173)，不覆盖本次分仓。
+
+
+## 发布后清理本轮工作分支
+
+本次 `1.12.2+22` 从 `main` 发布时启用 `cleanup_merged_branches`。该选项默认关闭，只在应用及配套资源正式公开后执行，按 branch-cleanup-plan.json 清理 15 个功能修复分支、联合测试分支和本轮发行准备分支。保留 `dev`、`main`、1.13.0 日志草稿及本轮未列出的分支。
+
+清理先核对公开 Release 与本次 release-plan.json 的版本、源码提交、附件大小和 SHA-256；仍有开放 PR 或包含本次发行未合入提交的分支会保留。实际删除使用观察到的分支头作为租约，构建期间新增的提交不会被误删。结果写入 branch-cleanup-report.json 并随发行报告上传，不需要持续轮询工作流。
