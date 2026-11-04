@@ -401,13 +401,19 @@ tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
 
 val generatedTerminalCommandAssetsDir = layout.buildDirectory.dir("generated/terminal-command-assets")
 val verifyTerminalCommandAssets by tasks.registering {
-    description = "Verifies the ARM64 Linux terminal command and its asset manifest."
+    description = "Verifies the ARM64 Linux terminal commands and their asset manifests."
     inputs.dir(generatedTerminalCommandAssetsDir)
-    inputs.file(rootProject.file("tools/native_apply_patch/package_assets.py"))
+    inputs.files(
+        rootProject.file("tools/terminal_commands/verify_assets.py"),
+        rootProject.file("tools/native_apply_patch/package_assets.py"),
+        rootProject.file("tools/native_apply_patch/install.sh"),
+        rootProject.file("tools/web_chat_cli/package_assets.py"),
+        rootProject.file("tools/web_chat_cli/install.sh"),
+    )
     doLast {
         val execution = providers.exec {
             commandLine(
-                "python3", rootProject.file("tools/native_apply_patch/package_assets.py").path,
+                "python3", rootProject.file("tools/terminal_commands/verify_assets.py").path,
                 "--verify", "--output", generatedTerminalCommandAssetsDir.get().asFile.path,
             )
         }

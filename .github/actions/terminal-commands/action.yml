@@ -1,0 +1,70 @@
+name: Prepare terminal commands
+description: 构建并打包 Ubuntu ARM64 的 apply_patch 与 web-chat 命令
+inputs:
+  run-tests:
+    description: 执行 apply_patch、web-chat 及 ARM64 分发安装回归
+    required: false
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Install Ubuntu ARM64 toolchain
+      shell: bash
+      env:
+        RUN_TERMINAL_TESTS: ${{ inputs.run-tests }}
+      run: |
+        set -euo pipefail
+        # 禁用推荐包后仍须显式安装 ARM64 glibc 开发文件，否则链接缺少 Scrt1.o 和 crti.o。
+        packages=(gcc-aarch64-linux-gnu libc6-dev-arm64-cross)
+        if [[ "$RUN_TERMINAL_TESTS" == 'true' ]]; then packages+=(qemu-user); fi
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends "${packages[@]}"
+
+    - name: Restore terminal command build cache
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          tools/native_apply_patch/target
+          tools/web_chat_cli/target
+        key: terminal-commands-gnu-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/native_apply_patch/**/Cargo.toml', 'tools/native_apply_patch/Cargo.lock', 'tools/terminal_commands/rust-toolchain.toml', 'tools/native_apply_patch/**/*.rs', 'tools/web_chat_cli/Cargo.toml', 'tools/web_chat_cli/Cargo.lock', 'tools/web_chat_cli/**/*.rs') }}
+
+    - name: Build Ubuntu ARM64 terminal commands
+      shell: bash
+      env:
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+      run: |
+        set -euo pipefail
+        terminal_commands_rust=$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("tools/terminal_commands/rust-toolchain.toml").read_text())["toolchain"]["channel"])')
+        rustup toolchain install "$terminal_commands_rust" --profile minimal
+        rustup target add --toolchain "$terminal_commands_rust" aarch64-unknown-linux-gnu
+        cargo "+$terminal_commands_rust" build \
+          --manifest-path tools/native_apply_patch/Cargo.toml \
+          --release --target aarch64-unknown-linux-gnu --locked
+        python3 tools/native_apply_patch/package_assets.py \
+          --binary tools/native_apply_patch/target/aarch64-unknown-linux-gnu/release/apply_patch \
+          --output app/build/generated/terminal-command-assets
+        cargo "+$terminal_commands_rust" build \
+          --manifest-path tools/web_chat_cli/Cargo.toml \
+          --release --target aarch64-unknown-linux-gnu --locked
+        python3 tools/web_chat_cli/package_assets.py \
+          --binary tools/web_chat_cli/target/aarch64-unknown-linux-gnu/release/web-chat \
+          --output app/build/generated/terminal-command-assets
+
+    - name: Check terminal command semantics and installation
+      if: inputs.run-tests == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        terminal_commands_rust=$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("tools/terminal_commands/rust-toolchain.toml").read_text())["toolchain"]["channel"])')
+        cargo "+$terminal_commands_rust" test \
+          --manifest-path tools/native_apply_patch/Cargo.toml --workspace --locked
+        cargo "+$terminal_commands_rust" test \
+          --manifest-path tools/web_chat_cli/Cargo.toml --locked
+        python3 tools/web_chat_cli/tests/check_distribution.py \
+          --binary tools/web_chat_cli/target/aarch64-unknown-linux-gnu/release/web-chat \
+          --sysroot /usr/aarch64-linux-gnu
+        python3 tools/native_apply_patch/tests/check_distribution.py \
+          --binary tools/native_apply_patch/target/aarch64-unknown-linux-gnu/release/apply_patch \
+          --sysroot /usr/aarch64-linux-gnu

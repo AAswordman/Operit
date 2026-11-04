@@ -21,6 +21,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.Process
+import android.os.ResultReceiver
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
@@ -44,6 +45,7 @@ import com.ai.assistance.operit.data.preferences.ExternalHttpApiConfig
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.integrations.http.ExternalChatHttpServer
 import com.ai.assistance.operit.integrations.http.ExternalChatHttpState
+import com.ai.assistance.operit.integrations.http.commands.WebChatForegroundControl
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.services.UIDebuggerService
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
@@ -447,6 +449,21 @@ class AIForegroundService : Service() {
             startServiceForAction(context, ACTION_START_OR_REFRESH_EXTERNAL_HTTP)
         }
 
+        internal fun requestExternalHttpControl(context: Context, start: Boolean, receiver: ResultReceiver) {
+            if (!start && !isRunning.get()) {
+                WebChatForegroundControl.deliver(receiver, externalHttpStateFlow.value.copy(isRunning = false))
+                return
+            }
+            val appContext = context.applicationContext
+            val intent = Intent(appContext, AIForegroundService::class.java).apply {
+                action = if (start) ACTION_START_OR_REFRESH_EXTERNAL_HTTP else ACTION_STOP_EXTERNAL_HTTP
+                putExtra(WebChatForegroundControl.RESULT_EXTRA, receiver)
+            }
+            if (isRunning.get()) appContext.startService(intent)
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) appContext.startForegroundService(intent)
+            else appContext.startService(intent)
+        }
+
         fun refreshBackgroundKeepAlive(context: Context) {
             val appContext = context.applicationContext
             val keepAliveEnabled = runCatching {
@@ -471,15 +488,6 @@ class AIForegroundService : Service() {
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to refresh background keep alive: ${e.message}", e)
             }
-        }
-
-        fun stopExternalHttp(context: Context) {
-            externalHttpStateFlow.value =
-                externalHttpStateFlow.value.copy(isRunning = false, lastError = null)
-            if (!isRunning.get()) {
-                return
-            }
-            startServiceForAction(context, ACTION_STOP_EXTERNAL_HTTP)
         }
 
         private fun startServiceForAction(context: Context, action: String) {
@@ -1161,12 +1169,14 @@ class AIForegroundService : Service() {
 
         if (intent?.action == ACTION_START_OR_REFRESH_EXTERNAL_HTTP || intent == null) {
             startOrRefreshExternalHttpServer()
+            WebChatForegroundControl.reply(intent, externalHttpStateFlow.value)
             return if (externalHttpStateFlow.value.isRunning) START_STICKY else START_NOT_STICKY
         }
 
         if (intent?.action == ACTION_STOP_EXTERNAL_HTTP) {
             val configuredPort = runCatching { externalHttpPreferences.getPort() }.getOrNull()
             stopExternalHttpServer(portOverride = configuredPort, lastError = null)
+            WebChatForegroundControl.reply(intent, externalHttpStateFlow.value)
             stopSelfIfIdle(ignoreAppForeground = true)
             return START_NOT_STICKY
         }
