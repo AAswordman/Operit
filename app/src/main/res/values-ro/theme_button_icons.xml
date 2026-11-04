@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Pictogramele butoanelor</string>
+    <string name="studio_button_icons_hint">Fiecare rând reprezintă un buton. Selectați resursa luminoasă sau întunecată pentru a personaliza separat imaginea, dimensiunea, opacitatea și culoarea.</string>
+</resources>

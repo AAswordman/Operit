@@ -81,6 +81,11 @@ internal fun StudioProperties(state: ThemeStudioState) {
         } else if (state.target.kind == StudioKind.Icon) {
             val icon = state.icon()
             StudioSection(stringResource(R.string.studio_icon_binding)) {
+                if (state.target in ThemeStudioButtonIcons) {
+                    TextButton(onClick = { state.select(ThemeStudioTargets.single { it.id == "iconButton" }) }) {
+                        Text(stringResource(R.string.studio_button_icons))
+                    }
+                }
                 TextButton(onClick = { bindIcon = true }) { Text(icon?.asset?.let { state.bundle.manifest.assets.getValue(it).substringAfterLast('/') } ?: stringResource(R.string.studio_choose_icon)) }
                 if (icon != null) {
                     StudioAssetThumbnail(state.images.getValue(icon.asset), Modifier.size(72.dp))
@@ -146,6 +151,7 @@ internal fun StudioProperties(state: ThemeStudioState) {
             StudioHint(stringResource(R.string.studio_layer_opacity_hint))
         } else {
             StudioSurfaceProperties(state, onColor = ::color, onFont = { fontPicker = true })
+            if (state.target.id == "iconButton") StudioButtonIcons(state)
         }
     }
     colorRequest?.let { request -> StudioColorPicker(state, request.title, request.initial, request.seed, onChange = request.apply, onClose = { colorRequest = null }) }

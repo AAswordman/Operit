@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">버튼 아이콘</string>
+    <string name="studio_button_icons_hint">각 행은 하나의 버튼입니다. 밝은 테마 또는 어두운 테마의 리소스를 선택하여 이미지, 크기, 불투명도와 색상을 개별적으로 설정하세요.</string>
+</resources>

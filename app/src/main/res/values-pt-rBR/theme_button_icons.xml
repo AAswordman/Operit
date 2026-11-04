@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Ícones dos botões</string>
+    <string name="studio_button_icons_hint">Cada linha corresponde a um botão. Selecione o recurso claro ou escuro para personalizar a imagem, o tamanho, a opacidade e a cor separadamente.</string>
+</resources>
