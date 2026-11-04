@@ -289,7 +289,27 @@ JSON 使用 UTF-8，不支持注释、尾随逗号、单引号或 `undefined`。
 | `scale` | 数值 | `1` | `0.5..2`，乘在已有字号上 |
 | `lineHeight` | 数值 | `1` | `0.8..2`，额外行高倍数 |
 | `letterSpacing` | 数值 | `0` | `-2..8 sp`；当前实现中 0 表示保留原样式字距 |
+| `stroke` | 对象或 `null` | 未设置 | 文字描边；`color` 为 RGB 或 ARGB，`width` 为 `0..8 dp`，默认 `1dp`；宽度为 0 时明确关闭 |
 | `color` | 颜色或 `null` | `null` | 全局或区域文字颜色，支持六位 RGB 和八位 ARGB；可在浅深模式分别配置 |
+
+文字描边属于自定义主题能力，工作室的全局字体和所有已支持区域字体中均可编辑，普通主题设置不新增控件。文字填充色和描边色分别绘制，气泡的 `strokeColor/strokeWidth` 继续控制气泡边框。区域未声明 `stroke` 时继承所在字体作用域，最外层使用全局字体；输入框按全局、输入区、文本输入框的顺序应用声明。`stroke: { width: 0 }` 明确关闭当前区域的描边，`stroke: null` 恢复继承。
+
+```json
+{
+  "apiVersion": 1,
+  "typography": { "stroke": { "color": "#FF000000", "width": 1 } },
+  "surfaces": {
+    "userMessage": {
+      "contentColor": "#FFFFFFFF",
+      "textStyle": { "stroke": { "color": "#FF225588", "width": 2 } }
+    },
+    "assistantMessage": { "textStyle": { "stroke": { "width": 0 } } }
+  }
+}
+```
+
+绘制不改变文字的字号、排版宽度或容器留白；较宽描边需要配合现有行高和留白设置留出显示空间。消息段落、表格、代码块与工具摘要使用同一主题声明。原生输入保留文字编辑器、选择和滚动，描边只作用于内部编辑层。未配置描边的既有主题保持原有显示，导出不会额外写入默认的空描边字段。
+
 
 普通主题页的“字体设置”也可分别编辑浅深文字颜色，和工作室使用同一份 `typography.color`，不会新增另一套配色偏好。工作室必须先应用到角色草稿，主题页再保存；普通字体窗口的改动同样支持保存和放弃。区域或状态的 `contentColor` 优先于区域 `textStyle.color`，其次是全局 `typography.color`，没有声明时沿用入口原色。全局色进入 Material 排版、默认正文角色 onBackground/onSurface/onSurfaceVariant 和原生主题颜色消费入口；业务代码显式指定的独立语义颜色仍由相应入口控制。自定义 JS 需要保留要编辑的外观字段。
 
@@ -724,3 +744,14 @@ QuickJS 计算预算和 Android 绘制成本分别受约束。即使没有超过
 - [完整分享清单](../../../app/src/main/java/com/ai/assistance/operit/data/themesharing/ThemeTransferSchema.kt)、[归档规则](../../../app/src/main/java/com/ai/assistance/operit/data/themesharing/ThemeArchive.kt)
 
 </details>
+
+
+## 独立动作按钮容器
+
+自定义主题现在可以在 `surfaces` 中以动作图标同名标识声明完整按钮容器：`composer.settings`、`composer.attachment`、`composer.microphone`、`composer.send`、`composer.stop`、`composer.fullscreen`、`composer.queue`、`composer.expand`、`appBar.back`、`appBar.menu`、`appBar.workspace`、`appBar.floating`。
+
+`surfaces[id]` 管理填充、内容色、形状、边框、内边距、前后景图层、透明度和交互状态；`icons[id]` 管理图像、尺寸、透明度和着色。两者分别保存。未声明独立容器时继承共用 `iconButton`；开始编辑时复制当前继承样式为独立声明。恢复共用外观只清除当前明暗模式的该按钮容器，保留另一模式和图标素材。
+
+编辑器为每个按钮开放外观、图层、状态三个页签。按下、聚焦、选中和禁用状态使用实际按钮交互。经典与 Agent 输入区的自绘按钮、两种 Agent 外观、全屏入口和顶栏入口均接入，预览使用相同组件。发送、停止、排队和录音通过当前动作标识分别读取样式；原有业务回调及启用条件保留。
+
+包含独立按钮容器声明的主题需要支持此扩展的应用版本；既有主题及图标素材声明保持可用。

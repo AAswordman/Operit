@@ -5,7 +5,7 @@ import androidx.a2ui.compose.ui.A2uiComponent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.ui.res.stringResource
 import com.ai.assistance.operit.R
 import androidx.compose.runtime.*

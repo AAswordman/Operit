@@ -1,0 +1,17 @@
+[package]
+name = "operit-web-chat-cli"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+
+[[bin]]
+name = "web-chat"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+
+[profile.release]
+strip = true
+lto = "thin"

@@ -12,6 +12,7 @@ on:
       - build.gradle.kts
       - ci/script/download_android_dependencies.sh
       - ci/script/prepare_android_dependencies.py
+      - ci/test/code_runner.test.cjs
       - cmake/**
       - examples/**
       - gradle/**
@@ -30,7 +31,9 @@ on:
       - terminal
       - tools/native_ripgrep/**
       - tools/native_apply_patch/**
-      - .github/actions/native-apply-patch/**
+      - tools/web_chat_cli/**
+      - tools/terminal_commands/**
+      - .github/actions/terminal-commands/**
       - tools/packages_whitelist.txt
       - tools/example_packages/sync_example_packages.py
       - web-chat/**
@@ -52,6 +55,33 @@ env:
   MANUAL_DEPS_DIR: manual-deps
 
 jobs:
+  code-runner:
+    name: Code Runner regression tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+
+      - name: Run Code Runner regression tests
+        run: node --test ci/test/code_runner.test.cjs
+
   tests:
     name: Android JVM tests
     runs-on: ubuntu-24.04
@@ -127,7 +157,7 @@ jobs:
             --repository "$GITHUB_WORKSPACE"
 
       - name: Prepare terminal apply_patch
-        uses: ./.github/actions/native-apply-patch
+        uses: ./.github/actions/terminal-commands
         with:
           run-tests: 'true'
 

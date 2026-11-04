@@ -133,11 +133,11 @@ class ProtocolMetaDisplayFilterTest {
         val rawPrefix = "前<meta provider=\"$provider\">saved-secret"
         tracker.append(rawPrefix)
         assertEquals("前", filter.append(rawPrefix))
-        tracker.savepoint("retry")
+        tracker.savepoint("retry", rawPrefix.length)
         tracker.append("discarded</meta>错误")
         filter.append("discarded</meta>错误")
 
-        val restored = tracker.rollback("retry")!!.toString()
+        val restored = tracker.rollback("retry", rawPrefix.length, "discarded</meta>错误".length)!!.toString()
         assertEquals(rawPrefix, restored)
         assertEquals("前", filter.reset(restored))
         assertEquals("正确", filter.append("continued-secret</meta>正确"))
@@ -154,6 +154,27 @@ class ProtocolMetaDisplayFilterTest {
 
     @Test fun escapedCodeMarkerDoesNotTurnProtocolIntoAnExample() {
         assertEquals("\\`前后", protocolMetaDisplayText("\\`前" + tag() + "后"))
+    }
+
+    @Test fun largeNestedXmlKeepsCodeExamplesWithoutExposingFollowingProtocol() {
+        val xml = buildString {
+            append("<tool name='render' note='a>b'>")
+            repeat(2_048) {
+                append("<tool>`内部代码`<!-- </tool> --><![CDATA[</tool>]]></tool>")
+            }
+            append("</tool>")
+        }
+        val example = "\n```xml\n" + tag("example") + "\n```\n"
+        val raw = xml + example + tag() + "正文"
+        assertEquals(xml + example + "正文", protocolMetaDisplayText(raw))
+    }
+
+    @Test fun unfinishedXmlWithInternalBackticksStillHidesProtocolAcrossChunks() {
+        val prefix = "<tool note='a>b'><!-- </tool> --><![CDATA[`</tool>]]><node/>`内部代码"
+        val filter = ProtocolMetaDisplayFilter()
+        val raw = prefix + tag() + "正文"
+        val visible = raw.chunked(11).joinToString("") { filter.append(it) } + filter.finish()
+        assertEquals(prefix + "正文", visible)
     }
 
     @Test fun ordinaryTextIsPublishedWithoutWaitingForCompletion() {

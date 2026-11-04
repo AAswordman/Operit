@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">ボタンのアイコン</string>
+    <string name="studio_button_icons_hint">各行が1つのボタンです。ライトまたはダークを選び、塗り、アイコン色、形状、枠線、内側余白、前後のレイヤー、操作状態、アイコン素材を個別に編集できます。</string>
+    <string name="studio_button_style_hint">ボタンごとに外観を保存します。個別設定がない場合は共通スタイルを継承します。継承の復元は現在のボタンと明暗モードだけに適用され、アイコン素材は保持されます。</string>
+    <string name="studio_button_style_inherit">共通ボタン外観を継承</string>
+</resources>

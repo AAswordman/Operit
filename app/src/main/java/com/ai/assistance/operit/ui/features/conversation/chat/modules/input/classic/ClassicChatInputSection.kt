@@ -1,30 +1,26 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.input.classic
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptActionButton
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.ChatInputRuntime
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.rememberChatInputRuntime
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
-
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
-
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
-
 import com.ai.assistance.operit.ui.theme.script.themeScriptBorder
 import com.ai.assistance.operit.ui.theme.script.ThemeInteractionScope
 import com.ai.assistance.operit.ui.theme.script.themeSurface
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
-
 import androidx.compose.material.icons.filled.Mic
-
 import com.ai.assistance.operit.core.chat.voice.canStartVoiceMessage
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
-
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
-
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -35,7 +31,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeBasicTextField as BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -684,12 +680,13 @@ internal fun ClassicChatInputContent(
                                                 },
                                             style = themeScriptTextStyle("input", modernTextStyle),
                                             color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
-                                        )
+                                         textStroke = themeTextStroke("input", "composer"))
                                     }
                                     innerTextField()
                                 }
 
                                 IconButton(
+                                    actionId = "composer.fullscreen",
                                     onClick = { showFullscreenInput.value = true },
                                     modifier = Modifier.size(30.dp),
                                 ) {
@@ -703,35 +700,31 @@ internal fun ClassicChatInputContent(
                                 }
                             }
                         },
-                    )
+                     textStroke = themeTextStroke("input", "composer"))
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Attachment button (+ 按钮) - 确保圆形
+                // 附件按钮保留原生配色，独立主题可覆盖容器外观。
 
-                Box(
-                    modifier =
-                    Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (showAttachmentPanel)
-                                MaterialTheme.colorScheme
-                                    .primary
-                            else
-                                MaterialTheme.colorScheme
-                                    .surfaceVariant
+                ThemeScriptActionButton(
+                    actionId = "composer.attachment",
+                    modifier = Modifier
+                        .size(36.dp),
+                    onClick = {
+                        setShowAttachmentPanel(
+                            !showAttachmentPanel
                         )
-                        .clickable(
-                            enabled = true,
-                            onClick = {
-                                setShowAttachmentPanel(
-                                    !showAttachmentPanel
-                                )
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
+                    },
+                    enabled = true,
+                    color = if (showAttachmentPanel)
+                        MaterialTheme.colorScheme
+                            .primary
+                    else
+                        MaterialTheme.colorScheme
+                            .surfaceVariant,
+                    shape = CircleShape,
+                    selected = showAttachmentPanel,
                 ) {
                     ThemeScriptIcon(
                 id = "composer.attachment",
@@ -749,61 +742,62 @@ internal fun ClassicChatInputContent(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Send button (发送按钮) - 确保圆形
-                Box(
-                    modifier =
-                    Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(
-                            when {
-                                showCancelAction ->
-                                    MaterialTheme
-                                        .colorScheme
-                                        .error
-                                showQueueAction ->
-                                    MaterialTheme.colorScheme.tertiary
-
-                                canSendMessage ->
-                                    if (isOverTokenLimit)
-                                        MaterialTheme.colorScheme.secondary // Warning color
-                                    else
-                                        MaterialTheme.colorScheme.primary
-
-                                showVoiceRecordAction -> MaterialTheme.colorScheme.primary
-
-                                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                // 发送入口按当前动作读取独立外观，点击条件与原逻辑一致。
+                ThemeScriptActionButton(
+                    actionId = when {
+                        showCancelAction -> "composer.stop"
+                        showQueueAction -> "composer.queue"
+                        canSendMessage -> "composer.send"
+                        showVoiceRecordAction -> "composer.microphone"
+                        else -> "composer.send"
+                    },
+                    modifier = Modifier
+                        .size(36.dp),
+                    onClick = {
+                        when {
+                            showCancelAction ->
+                                onCancelMessage()
+                            showQueueAction -> {
+                                onQueueMessage()
+                                setShowAttachmentPanel(false)
                             }
-                        )
-                        .clickable(
-                            enabled = sendButtonEnabled,
-                            onClick = {
-                                when {
-                                    showCancelAction ->
-                                        onCancelMessage()
-                                    showQueueAction -> {
-                                        onQueueMessage()
-                                        setShowAttachmentPanel(false)
-                                    }
 
-                                    showVoiceRecordAction -> onRecordVoiceMessage?.invoke()
+                            showVoiceRecordAction -> onRecordVoiceMessage?.invoke()
 
-                                    canSendMessage -> {
-                                        if (isOverTokenLimit) {
-                                            showTokenLimitDialog.value = true
-                                        } else {
-                                            onSendMessage()
-                                            // 发送消息后关闭附件面板
-                                            setShowAttachmentPanel(
-                                                false
-                                            )
-                                        }
-                                    }
-
+                            canSendMessage -> {
+                                if (isOverTokenLimit) {
+                                    showTokenLimitDialog.value = true
+                                } else {
+                                    onSendMessage()
+                                    // 发送消息后关闭附件面板
+                                    setShowAttachmentPanel(
+                                        false
+                                    )
                                 }
                             }
-                        ),
-                    contentAlignment = Alignment.Center
+
+                        }
+                    },
+                    enabled = sendButtonEnabled,
+                    color = when {
+                        showCancelAction ->
+                            MaterialTheme
+                                .colorScheme
+                                .error
+                        showQueueAction ->
+                            MaterialTheme.colorScheme.tertiary
+
+                        canSendMessage ->
+                            if (isOverTokenLimit)
+                                MaterialTheme.colorScheme.secondary // 超出上下文限制时保留警示配色
+                            else
+                                MaterialTheme.colorScheme.primary
+
+                        showVoiceRecordAction -> MaterialTheme.colorScheme.primary
+
+                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    },
+                    shape = CircleShape,
                 ) {
                     val iconTint =
                         when {

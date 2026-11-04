@@ -25,6 +25,11 @@ on:
         required: true
         default: false
         type: boolean
+      cleanup_merged_branches:
+        description: 正式发布成功后清理本轮已合入的工作分支
+        required: true
+        default: false
+        type: boolean
       previous_tag:
         description: 可选的基础 Release 标签；留空选择同一基础版本的最新正式包
         required: false
@@ -71,7 +76,9 @@ on:
       - terminal
       - tools/native_ripgrep/**
       - tools/native_apply_patch/**
-      - .github/actions/native-apply-patch/**
+      - tools/web_chat_cli/**
+      - tools/terminal_commands/**
+      - .github/actions/terminal-commands/**
       - tools/packages_whitelist.txt
       - tools/example_packages/sync_example_packages.py
       - web-chat/**
@@ -132,6 +139,16 @@ jobs:
         run: |
           if [ "$PUBLISH_RELEASE" != 'true' ] || [ "$DISPATCH_GRADLE_TASK" != ':app:verifyCiPreviewRelease' ]; then
             echo '完成迁移必须同时发布 +15 签名发行版' >&2
+            exit 1
+          fi
+      - name: Validate merged branch cleanup inputs
+        if: github.event_name == 'workflow_dispatch' && inputs.cleanup_merged_branches
+        env:
+          PUBLISH_RELEASE: ${{ inputs.publish_release }}
+        shell: bash
+        run: |
+          if [ "$PUBLISH_RELEASE" != 'true' ] || [ "$GITHUB_REF" != 'refs/heads/main' ]; then
+            echo '分支清理必须由 main 的正式发布触发' >&2
             exit 1
           fi
       - name: Validate cross-repository release access
@@ -218,7 +235,7 @@ jobs:
             --repository "$GITHUB_WORKSPACE"
 
       - name: Prepare terminal apply_patch
-        uses: ./.github/actions/native-apply-patch
+        uses: ./.github/actions/terminal-commands
 
       - name: Restore native ripgrep cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
@@ -295,7 +312,7 @@ jobs:
       - name: Verify packaged terminal command
         if: github.event_name == 'push' || inputs.gradle_task != ':app:bundleRelease'
         run: |
-          python3 tools/native_apply_patch/package_assets.py \
+          python3 tools/terminal_commands/verify_assets.py \
             --verify-apks app/build/outputs/apk \
             --output app/build/generated/terminal-command-assets
 
@@ -373,6 +390,16 @@ jobs:
             --previous-tag "$PREVIOUS_TAG" \
             --notes "$RELEASE_NOTES"
 
+      - name: Clean merged work branches after verified publication
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release && inputs.cleanup_merged_branches
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+        run: |
+          python3 ci/distribution/repositories/cleanup_merged_branches.py \
+            --plan ci/distribution/repositories/branch-cleanup-plan.json \
+            --release-plan .ci-release/release-plan.json \
+            --commit "$GITHUB_SHA"
+
       - name: Complete verified repository migration
         if: github.event_name == 'workflow_dispatch' && inputs.publish_release && inputs.complete_repository_migration
         env:
@@ -392,6 +419,7 @@ jobs:
             .ci-release/release-plan.json
             .ci-release/distribution-release.json
             .ci-release/cleanup-report.json
+            .ci-release/branch-cleanup-report.json
             .ci-repository-migration/source-releases.json
             .ci-repository-migration/migration-plan.json
             .ci-repository-migration/verified-receipts.json

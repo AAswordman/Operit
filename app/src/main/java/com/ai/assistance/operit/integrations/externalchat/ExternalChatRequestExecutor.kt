@@ -10,6 +10,8 @@ import com.ai.assistance.operit.core.tools.protocol.AITool
 import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.logging.ChatTrace
+
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.runBlocking
@@ -127,6 +129,11 @@ class ExternalChatRequestExecutor(context: Context) {
         }
 
         val chatTool = StandardChatManagerTool(appContext)
+
+        AppLogger.d(
+            TAG,
+            "prepareRequest resolved=${requestId != null} ${ChatTrace.describe(message)}"
+        )
 
         if (request.showFloating) {
             val params = mutableListOf<ToolParameter>()

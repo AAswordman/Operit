@@ -15,11 +15,16 @@ object ThemeScriptContract {
     const val MAX_BITMAP_PIXELS = 41_943_040L
     const val MAX_MANIFEST_BYTES = 65536
     val popupSurfaceIds = setOf("attachmentMenu", "modelMenu", "chatSettingsMenu")
+    val actionButtonIds = setOf(
+        "composer.settings", "composer.attachment", "composer.microphone", "composer.send",
+        "composer.stop", "composer.fullscreen", "composer.queue", "composer.expand",
+        "appBar.back", "appBar.menu", "appBar.workspace", "appBar.floating",
+    )
     val surfaceIds = setOf(
         "background", "userMessage", "assistantMessage", "composer", "userAvatar", "assistantAvatar",
         "appBar", "navigation", "navigationItem", "button", "iconButton", "input",
         "settingsCard", "dialog", "sheet", "menu", "listItem", "status", "toolCard",
-    ) + popupSurfaceIds
+    ) + popupSurfaceIds + actionButtonIds
     val iconIds = setOf(
         "composer.settings", "composer.attachment", "composer.microphone", "composer.send",
         "composer.stop", "composer.fullscreen", "composer.queue", "composer.expand",
@@ -177,6 +182,10 @@ object ThemeScriptContract {
         }
     }
     private fun validateText(text: ThemeAppearanceText, manifest: ThemeScriptManifest) {
+        text.stroke?.let { stroke ->
+            require(color.matches(stroke.color)) { "Invalid text stroke color" }
+            require(stroke.width.isFinite() && stroke.width in 0f..8f) { "Text stroke width must be 0..8 dp" }
+        }
         require(text.color == null || color.matches(text.color)) { "Invalid text color" }
         val family = text.family
         if (family != null && family.startsWith("asset:")) {

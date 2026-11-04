@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.memory.screens
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 
@@ -503,7 +505,7 @@ private fun FolderCreateDialog(
             Column {
                 Text(stringResource(R.string.memory_folder_path_hint), style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(8.dp))
-                androidx.compose.material3.OutlinedTextField(
+                com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField(
                     value = folderName,
                     onValueChange = { folderName = it },
                     label = { Text(stringResource(R.string.memory_folder_path_label)) },
@@ -546,7 +548,7 @@ private fun FolderRenameDialog(
             Column {
                 Text("${stringResource(R.string.memory_current_path)}: $currentPath", style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(8.dp))
-                androidx.compose.material3.OutlinedTextField(
+                com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
                     label = { Text(stringResource(R.string.memory_new_path)) },

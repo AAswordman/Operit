@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.main.components
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
 import com.ai.assistance.operit.ui.theme.script.ThemeSurfaceStateScope
 import com.ai.assistance.operit.ui.theme.script.themeSurface
@@ -24,7 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,7 +108,7 @@ fun CompactNavigationDrawerItem(
                         fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
                         color =
                                 themeScriptContentColor("navigationItem", if (selected) appearance.selectedContentColor else appearance.itemColor)
-                )
+                , textStroke = themeTextStroke("navigationItem"))
             }
         }
     }

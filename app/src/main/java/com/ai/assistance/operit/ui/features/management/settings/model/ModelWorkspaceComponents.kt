@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.management.settings.model
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 
 import androidx.compose.foundation.BorderStroke

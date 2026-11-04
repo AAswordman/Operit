@@ -189,6 +189,9 @@ class ChatServiceCore(
             resolveVoiceMessage = { chatId, source, text ->
                 chatHistoryDelegate.resolveVoiceMessage(chatId, source, text)
             },
+            retractStreamingMessages = { chatId, timestamps ->
+                chatHistoryDelegate.retractStreamingMessages(chatId, timestamps)
+            },
             saveCurrentChat = { chatId ->
                 chatHistoryDelegate.saveChatStatistics(chatId)
             },

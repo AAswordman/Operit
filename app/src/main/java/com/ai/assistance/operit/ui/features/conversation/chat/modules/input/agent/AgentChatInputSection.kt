@@ -1,10 +1,11 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.input.agent
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptActionButton
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.ChatInputRuntime
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.rememberChatInputRuntime
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
-
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupPanel
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptPopupHost
@@ -14,12 +15,9 @@ import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
 
 
 import androidx.compose.material.icons.filled.Mic
-
 import com.ai.assistance.operit.core.chat.voice.canStartVoiceMessage
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
-
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
-
 import androidx.compose.material3.HorizontalDivider
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.usage.ChatContextUsageEntry
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.usage.ChatContextUsageDialog
@@ -68,12 +66,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -1014,7 +1012,7 @@ internal fun AgentChatInputContent(
                                 },
                                 style = themeScriptTextStyle("input", inputTextStyle),
                                 color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
-                            )
+                             textStroke = themeTextStroke("input", "composer"))
                         },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input", enabled = !isProcessing || allowTextInputWhileProcessing, originalShape = RoundedCornerShape(14.dp)).onPreviewKeyEvent(onEnterToSendKeyEvent),
                         textStyle = themeScriptTextStyle("input", themeScriptTextStyle("composer", inputTextStyle)),
@@ -1042,7 +1040,10 @@ internal fun AgentChatInputContent(
                             ),
                         shape = themeScriptShape("input", RoundedCornerShape(14.dp)),
                         trailingIcon = {
-                            IconButton(onClick = { showFullscreenInput.value = true }) {
+                            IconButton(
+                                actionId = "composer.fullscreen",
+                                onClick = { showFullscreenInput.value = true },
+                            ) {
                                 ThemeScriptIcon(
                 id = "composer.fullscreen",
                                     imageVector = Icons.Default.Fullscreen,
@@ -1052,7 +1053,7 @@ internal fun AgentChatInputContent(
                             }
                         },
                         enabled = !isProcessing || allowTextInputWhileProcessing,
-                    )
+                     textStroke = themeTextStroke("input", "composer"))
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -1064,19 +1065,16 @@ internal fun AgentChatInputContent(
                             modifier = Modifier.weight(1f),
                             contentAlignment = Alignment.CenterStart,
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
+                            ThemeScriptActionButton(
+                                actionId = "composer.expand",
+                                modifier = Modifier
+                                    .widthIn(min = 0.dp, max = 220.dp),
+                                onClick = onModelSelectorClick,
+                                enabled = true,
                                 color = Color.Transparent,
-                                modifier =
-                                    Modifier
-                                        .widthIn(min = 0.dp, max = 220.dp)
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                            shape = RoundedCornerShape(12.dp),
-                                        )
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .clickable(onClick = onModelSelectorClick),
+                                shape = RoundedCornerShape(12.dp),
+                                selected = showModelSelectorPopup.value,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1111,19 +1109,19 @@ internal fun AgentChatInputContent(
                             }
                         }
 
-                        Box(
-                            modifier =
-                                Modifier
-                                    .padding(start = 6.dp)
-                                    .size(34.dp)
-                                    .clickable(
-                                        enabled = true,
-                                        onClick = {
-                                            showModelSelectorPopup.value = false
-                                            showExtraSettingsPopup.value = !showExtraSettingsPopup.value
-                                        },
-                                    ),
-                            contentAlignment = Alignment.Center,
+                        ThemeScriptActionButton(
+                            actionId = "composer.settings",
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .size(34.dp),
+                            onClick = {
+                                showModelSelectorPopup.value = false
+                                showExtraSettingsPopup.value = !showExtraSettingsPopup.value
+                            },
+                            enabled = true,
+                            color = Color.Transparent,
+                            shape = CircleShape,
+                            selected = showExtraSettingsPopup.value,
                         ) {
                             ThemeScriptIcon(
                 id = "composer.settings",
@@ -1139,20 +1137,20 @@ internal fun AgentChatInputContent(
                             )
                         }
 
-                        Box(
-                            modifier =
-                                Modifier
-                                    .padding(start = 8.dp)
-                                    .size(36.dp)
-                                    .clickable(
-                                        enabled = true,
-                                        onClick = {
-                                            showModelSelectorPopup.value = false
-                                            showExtraSettingsPopup.value = false
-                                            setShowAttachmentPanel(!showAttachmentPanel)
-                                        },
-                                    ),
-                            contentAlignment = Alignment.Center,
+                        ThemeScriptActionButton(
+                            actionId = "composer.attachment",
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .size(36.dp),
+                            onClick = {
+                                showModelSelectorPopup.value = false
+                                showExtraSettingsPopup.value = false
+                                setShowAttachmentPanel(!showAttachmentPanel)
+                            },
+                            enabled = true,
+                            color = Color.Transparent,
+                            shape = CircleShape,
+                            selected = showAttachmentPanel,
                         ) {
                             ThemeScriptIcon(
                 id = "composer.attachment",
@@ -1212,33 +1210,37 @@ internal fun AgentChatInputContent(
                                 )
                             }
 
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(36.dp)
-                                        .background(actionButtonBackground, CircleShape)
-                                        .clickable(
-                                            enabled = sendButtonEnabled,
-                                            onClick = {
-                                                when {
-                                                    showCancelAction -> onCancelMessage()
-                                                    showQueueAction -> {
-                                                        onQueueMessage()
-                                                        setShowAttachmentPanel(false)
-                                                    }
-                                                    showVoiceRecordAction -> onRecordVoiceMessage?.invoke()
-                                                    canSendMessage -> {
-                                                        if (isOverTokenLimit) {
-                                                            showTokenLimitDialog.value = true
-                                                        } else {
-                                                            onSendMessage()
-                                                            setShowAttachmentPanel(false)
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                        ),
-                                contentAlignment = Alignment.Center,
+                            ThemeScriptActionButton(
+                                actionId = when {
+                                    showCancelAction -> "composer.stop"
+                                    showQueueAction -> "composer.queue"
+                                    canSendMessage -> "composer.send"
+                                    showVoiceRecordAction -> "composer.microphone"
+                                    else -> "composer.send"
+                                },
+                                modifier = Modifier
+                                    .size(36.dp),
+                                onClick = {
+                                    when {
+                                        showCancelAction -> onCancelMessage()
+                                        showQueueAction -> {
+                                            onQueueMessage()
+                                            setShowAttachmentPanel(false)
+                                        }
+                                        showVoiceRecordAction -> onRecordVoiceMessage?.invoke()
+                                        canSendMessage -> {
+                                            if (isOverTokenLimit) {
+                                                showTokenLimitDialog.value = true
+                                            } else {
+                                                onSendMessage()
+                                                setShowAttachmentPanel(false)
+                                            }
+                                        }
+                                    }
+                                },
+                                enabled = sendButtonEnabled,
+                                color = actionButtonBackground,
+                                shape = CircleShape,
                             ) {
                                 ThemeScriptIcon(
                 id = when {
@@ -1325,7 +1327,7 @@ internal fun AgentChatInputContent(
                                     },
                                     style = themeScriptTextStyle("input", inputTextStyle),
                                     color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
-                                )
+                                 textStroke = themeTextStroke("input", "composer"))
                             },
                             modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input", enabled = !isProcessing || allowTextInputWhileProcessing, originalShape = RoundedCornerShape(14.dp)).onPreviewKeyEvent(onEnterToSendKeyEvent),
                             textStyle = themeScriptTextStyle("input", themeScriptTextStyle("composer", inputTextStyle)),
@@ -1353,7 +1355,10 @@ internal fun AgentChatInputContent(
                                 ),
                             shape = themeScriptShape("input", RoundedCornerShape(14.dp)),
                             trailingIcon = {
-                                IconButton(onClick = { showFullscreenInput.value = true }) {
+                                IconButton(
+                                    actionId = "composer.fullscreen",
+                                    onClick = { showFullscreenInput.value = true },
+                                ) {
                                     ThemeScriptIcon(
                 id = "composer.fullscreen",
                                         imageVector = Icons.Default.Fullscreen,
@@ -1363,7 +1368,7 @@ internal fun AgentChatInputContent(
                                 }
                             },
                             enabled = !isProcessing || allowTextInputWhileProcessing,
-                        )
+                         textStroke = themeTextStroke("input", "composer"))
 
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -1375,19 +1380,16 @@ internal fun AgentChatInputContent(
                                 modifier = Modifier.weight(1f),
                                 contentAlignment = Alignment.CenterStart,
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
+                                ThemeScriptActionButton(
+                                    actionId = "composer.expand",
+                                    modifier = Modifier
+                                        .widthIn(min = 0.dp, max = 220.dp),
+                                    onClick = onModelSelectorClick,
+                                    enabled = true,
                                     color = Color.Transparent,
-                                    modifier =
-                                        Modifier
-                                            .widthIn(min = 0.dp, max = 220.dp)
-                                            .border(
-                                                width = 1.dp,
-                                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                                shape = RoundedCornerShape(12.dp),
-                                            )
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .clickable(onClick = onModelSelectorClick),
+                                    shape = RoundedCornerShape(12.dp),
+                                    selected = showModelSelectorPopup.value,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1422,20 +1424,20 @@ internal fun AgentChatInputContent(
                                 }
                             }
 
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .padding(start = 6.dp)
-                                            .size(34.dp)
-                                            .clickable(
-                                                enabled = true,
-                                                onClick = {
-                                                    showModelSelectorPopup.value = false
-                                                    showExtraSettingsPopup.value = !showExtraSettingsPopup.value
-                                                },
-                                            ),
-                                contentAlignment = Alignment.Center,
-                            ) {
+                                ThemeScriptActionButton(
+                                    actionId = "composer.settings",
+                                    modifier = Modifier
+                                        .padding(start = 6.dp)
+                                        .size(34.dp),
+                                    onClick = {
+                                        showModelSelectorPopup.value = false
+                                        showExtraSettingsPopup.value = !showExtraSettingsPopup.value
+                                    },
+                                    enabled = true,
+                                    color = Color.Transparent,
+                                    shape = CircleShape,
+                                    selected = showExtraSettingsPopup.value,
+                                ) {
                                 ThemeScriptIcon(
                 id = "composer.settings",
                                     imageVector = Icons.Outlined.Tune,
@@ -1450,21 +1452,21 @@ internal fun AgentChatInputContent(
                                 )
                             }
 
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .padding(start = 8.dp)
-                                            .size(36.dp)
-                                            .clickable(
-                                                enabled = true,
-                                                onClick = {
-                                                    showModelSelectorPopup.value = false
-                                                    showExtraSettingsPopup.value = false
-                                                    setShowAttachmentPanel(!showAttachmentPanel)
-                                                },
-                                            ),
-                                contentAlignment = Alignment.Center,
-                            ) {
+                                ThemeScriptActionButton(
+                                    actionId = "composer.attachment",
+                                    modifier = Modifier
+                                        .padding(start = 8.dp)
+                                        .size(36.dp),
+                                    onClick = {
+                                        showModelSelectorPopup.value = false
+                                        showExtraSettingsPopup.value = false
+                                        setShowAttachmentPanel(!showAttachmentPanel)
+                                    },
+                                    enabled = true,
+                                    color = Color.Transparent,
+                                    shape = CircleShape,
+                                    selected = showAttachmentPanel,
+                                ) {
                                 ThemeScriptIcon(
                 id = "composer.attachment",
                                     imageVector = Icons.Default.Add,
@@ -1523,33 +1525,37 @@ internal fun AgentChatInputContent(
                                     )
                                 }
 
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(36.dp)
-                                            .background(actionButtonBackground, CircleShape)
-                                            .clickable(
-                                                enabled = sendButtonEnabled,
-                                                onClick = {
-                                                    when {
-                                                        showCancelAction -> onCancelMessage()
-                                                        showQueueAction -> {
-                                                            onQueueMessage()
-                                                            setShowAttachmentPanel(false)
-                                                        }
-                                                        showVoiceRecordAction -> onRecordVoiceMessage?.invoke()
-                                                        canSendMessage -> {
-                                                            if (isOverTokenLimit) {
-                                                                showTokenLimitDialog.value = true
-                                                            } else {
-                                                                onSendMessage()
-                                                                setShowAttachmentPanel(false)
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                            ),
-                                    contentAlignment = Alignment.Center,
+                                ThemeScriptActionButton(
+                                    actionId = when {
+                                        showCancelAction -> "composer.stop"
+                                        showQueueAction -> "composer.queue"
+                                        canSendMessage -> "composer.send"
+                                        showVoiceRecordAction -> "composer.microphone"
+                                        else -> "composer.send"
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp),
+                                    onClick = {
+                                        when {
+                                            showCancelAction -> onCancelMessage()
+                                            showQueueAction -> {
+                                                onQueueMessage()
+                                                setShowAttachmentPanel(false)
+                                            }
+                                            showVoiceRecordAction -> onRecordVoiceMessage?.invoke()
+                                            canSendMessage -> {
+                                                if (isOverTokenLimit) {
+                                                    showTokenLimitDialog.value = true
+                                                } else {
+                                                    onSendMessage()
+                                                    setShowAttachmentPanel(false)
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = sendButtonEnabled,
+                                    color = actionButtonBackground,
+                                    shape = CircleShape,
                                 ) {
                                     ThemeScriptIcon(
                 id = when {

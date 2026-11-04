@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.memory.settings
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 
 import androidx.compose.foundation.layout.*

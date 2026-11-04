@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering
 
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeText
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,7 +41,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +61,7 @@ internal fun CanvasExpandableHeaderRow(
     shimmerShiftPx: Float? = null,
     titleAlpha: Float = 1f,
 ) {
+    val textStroke = LocalThemeTextStroke.current
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val arrowPainter = rememberVectorPainter(Icons.AutoMirrored.Filled.KeyboardArrowRight)
@@ -147,7 +150,7 @@ internal fun CanvasExpandableHeaderRow(
                     )
                 }
 
-                drawText(titleLayout, topLeft = titleTopLeft)
+                drawThemeText(titleLayout, topLeft = titleTopLeft, textStroke = textStroke)
 
                 if (shimmerShiftPx != null) {
                     drawRect(
@@ -181,6 +184,7 @@ internal fun CanvasFontTextBlock(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
 ) {
+    val textStroke = LocalThemeTextStroke.current
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
 
@@ -219,10 +223,9 @@ internal fun CanvasFontTextBlock(
                 )
             }
 
-            drawText(
+            drawThemeText(
                 textLayout,
-                topLeft = Offset(horizontalPaddingPx.toFloat(), blockTop + innerVerticalPaddingPx),
-            )
+                topLeft = Offset(horizontalPaddingPx.toFloat(), blockTop + innerVerticalPaddingPx), textStroke = textStroke)
         }
     }
 }
@@ -235,6 +238,7 @@ internal fun CanvasPillLabel(
     borderColor: Color,
     modifier: Modifier = Modifier,
 ) {
+    val textStroke = LocalThemeTextStroke.current
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val textStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, color = textColor)
@@ -275,10 +279,9 @@ internal fun CanvasPillLabel(
                 cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
                 style = Stroke(width = borderWidthPx),
             )
-            drawText(
+            drawThemeText(
                 textLayout,
-                topLeft = Offset(horizontalPaddingPx.toFloat(), verticalPaddingPx.toFloat()),
-            )
+                topLeft = Offset(horizontalPaddingPx.toFloat(), verticalPaddingPx.toFloat()), textStroke = textStroke)
         }
     }
 }

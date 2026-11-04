@@ -195,10 +195,18 @@ jobs:
       - name: Set up Node.js
         if: >-
           steps.plan.outputs.web == 'true' ||
-          steps.plan.outputs.toolpkg == 'true'
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.ci == 'true'
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check Code Runner execution isolation
+        if: >-
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.ci == 'true'
+        timeout-minutes: 5
+        run: node --test ci/test/code_runner.test.cjs
 
       - name: Install JavaScript dependencies
         if: >-
@@ -359,7 +367,7 @@ jobs:
             --repository "$GITHUB_WORKSPACE"
 
       - name: Prepare terminal apply_patch
-        uses: ./.github/actions/native-apply-patch
+        uses: ./.github/actions/terminal-commands
 
       - name: Restore native ripgrep cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
@@ -420,7 +428,7 @@ jobs:
 
       - name: Verify packaged terminal command
         run: |
-          python3 tools/native_apply_patch/package_assets.py \
+          python3 tools/terminal_commands/verify_assets.py \
             --verify-apks app/build/outputs/apk \
             --output app/build/generated/terminal-command-assets
 
@@ -526,7 +534,7 @@ jobs:
             --repository "$GITHUB_WORKSPACE"
 
       - name: Prepare terminal apply_patch
-        uses: ./.github/actions/native-apply-patch
+        uses: ./.github/actions/terminal-commands
         with:
           run-tests: 'true'
 

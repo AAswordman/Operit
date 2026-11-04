@@ -8,6 +8,8 @@ import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.runtime.AIToolHookDecision
 import com.ai.assistance.operit.core.chat.protocol.toolFailurePayload
+import com.ai.assistance.operit.util.logging.ChatTrace
+
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
@@ -356,7 +358,7 @@ object ToolExecutionManager {
 
         AppLogger.d(
             TAG,
-            "Found ${invocations.size} tool invocations: ${invocations.map { resolveDisplayToolName(it.tool) }}"
+            "Found ${invocations.size} tool invocations: ${invocations.map { resolveDisplayToolName(it.tool) }}, response=${ChatTrace.describe(response)}"
         )
         return invocations
     }

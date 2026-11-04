@@ -69,4 +69,24 @@ class SummaryProgressReporterTest {
         request.join()
         assertEquals(listOf("preparing"), events)
     }
+
+    @Test
+    fun emptySummaryRegenerationResetsFinishingWithoutPublishingCompletion() = runBlocking {
+        val progress = mutableListOf<Pair<Float, String>>()
+        val errors = mutableListOf<String>()
+        val reporter = SummaryProgressReporter(
+            preparingMessage = "preparing", retryingMessage = "retrying",
+            onProgress = {}, onRetryError = { errors += it },
+            publishProgress = { value, message -> progress += value to message },
+        )
+        reporter.start()
+        reporter.update(0.95f, "finishing")
+        reporter.retry("empty summary; generating again once")
+        reporter.rollback()
+        assertEquals(0.05f to "retrying", progress.last())
+        reporter.receivedContent()
+        assertEquals(0.05f to "preparing", progress.last())
+        assertEquals(listOf("empty summary; generating again once"), errors)
+        assertEquals(false, progress.any { it.first == 1f })
+    }
 }

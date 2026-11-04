@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.management.resources.hub
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*

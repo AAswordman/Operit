@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Ícones dos botões</string>
+    <string name="studio_button_icons_hint">Cada linha corresponde a um botão. Escolha claro ou escuro para editar separadamente preenchimento, cor do ícone, forma, borda, espaçamento interno, camadas, estados e recurso do ícone.</string>
+    <string name="studio_button_style_hint">A aparência é salva por botão. Sem configuração própria, o botão herda o estilo comum. Restaurar a herança afeta apenas este botão e modo e preserva seu ícone.</string>
+    <string name="studio_button_style_inherit">Restaurar estilo comum</string>
+</resources>

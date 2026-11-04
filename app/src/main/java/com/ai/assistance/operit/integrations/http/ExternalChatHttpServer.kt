@@ -15,6 +15,9 @@ import com.ai.assistance.operit.integrations.externalchat.ExternalChatStreamEnve
 import com.ai.assistance.operit.integrations.externalchat.ExternalChatStreamingStartResult
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.logging.ChatTrace
+import com.ai.assistance.operit.util.stream.collectRevisionAppliedText
+
 import fi.iki.elonen.NanoHTTPD
 import java.io.BufferedWriter
 import java.io.FilterInputStream
@@ -283,12 +286,10 @@ class ExternalChatHttpServer(
                                         streamSession.responseStreamSession.responseStream,
                                         request.returnToolStatus
                                     )
-                                val finalResponse = StringBuilder()
                                 filteredResponseStream.collect { chunk ->
                                     if (chunk.isEmpty()) {
                                         return@collect
                                     }
-                                    finalResponse.append(chunk)
                                     writeSseEvent(
                                         writer,
                                         ExternalChatStreamEnvelope(
@@ -300,8 +301,15 @@ class ExternalChatHttpServer(
                                     )
                                 }
 
+                                val authoritativeResponse =
+                                    streamSession.responseStreamSession.responseStream
+                                        .collectRevisionAppliedText()
                                 val finalState = streamSession.responseStreamSession.currentState()
-                                val finalResponseText = finalResponse.toString().takeIf { it.isNotBlank() }
+                                val finalResponseText =
+                                    ExternalChatResponseSanitizer.sanitize(
+                                        authoritativeResponse,
+                                        request.returnToolStatus
+                                    )
                                 if (finalState is InputProcessingState.Error) {
                                     writeSseEvent(
                                         writer,
@@ -442,18 +450,8 @@ class ExternalChatHttpServer(
                 return RequestBodyResult(error = "Unsupported Content-Length: $contentLength")
             }
             if (contentLength == 0L) {
+                AppLogger.d(TAG, "readRequestBody empty body")
                 return RequestBodyResult(body = "")
-            }
-
-            val bodyBytes = ByteArray(contentLength.toInt())
-            var offset = 0
-            val inputStream = session.inputStream
-            while (offset < bodyBytes.size) {
-                val read = inputStream.read(bodyBytes, offset, bodyBytes.size - offset)
-                if (read < 0) {
-                    return RequestBodyResult(error = "Unexpected end of stream while reading request body")
-                }
-                offset += read
             }
 
             val charset = resolveRequestCharset(
@@ -461,7 +459,12 @@ class ExternalChatHttpServer(
                     it.key.equals("content-type", ignoreCase = true)
                 }?.value
             )
-            RequestBodyResult(body = String(bodyBytes, charset))
+            val body = ExternalChatRequestBodyReader.read(session.inputStream, contentLength, charset)
+            AppLogger.d(
+                TAG,
+                "readRequestBody declaredBytes=$contentLength charset=${charset.name()} ${ChatTrace.describe(body, byteLength = body.toByteArray(charset).size)}"
+            )
+            RequestBodyResult(body = body)
         } catch (e: Exception) {
             AppLogger.e(TAG, "Failed to read HTTP request body", e)
             RequestBodyResult(error = "Failed to read request body: ${e.message ?: "Unknown error"}")

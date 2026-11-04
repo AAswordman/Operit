@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.support.help.screens
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*

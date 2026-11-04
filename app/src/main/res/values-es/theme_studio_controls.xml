@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_color">Color del texto</string>
+    <string name="studio_message_background_color">Color del fondo del mensaje</string>
+    <string name="studio_message_text_color">Color del texto del mensaje</string>
+    <string name="studio_border">Borde</string>
+    <string name="studio_border_edit_hint">Al elegir un color con grosor cero, se establece en 1dp. Pon el grosor en 0 para ocultar el borde. La transparencia del fondo no afecta al borde.</string>
+    <string name="studio_line_color">Color de línea</string>
+    <string name="studio_padding_hint">Añade margen al espaciado existente del componente. El valor 0 no añade margen adicional.</string>
+    <string name="studio_text_color_priority_hint">Los colores de texto de mensajes y componentes tienen prioridad. El color global del texto reemplaza los colores del cuerpo en la paleta global.</string>
+    <string name="studio_message_color_hint">El color de fondo del mensaje sigue la transparencia de los ajustes de apariencia. El color del texto es independiente.</string>
+    <string name="studio_avatar_fill_hint">El relleno del avatar se dibuja detrás de la imagen. Una imagen opaca lo oculta.</string>
+    <string name="studio_min_height_hint">Establece un límite inferior de altura. No reduce el componente por debajo de su altura mínima nativa.</string>
+</resources>

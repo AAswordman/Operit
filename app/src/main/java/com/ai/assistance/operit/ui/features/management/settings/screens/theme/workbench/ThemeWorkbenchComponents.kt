@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.workbench
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton as Button
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 
@@ -85,13 +87,13 @@ internal fun ThemeWorkbenchCard(
                         title,
                         style = themeScriptTextStyle("settingsCard", MaterialTheme.typography.titleSmall),
                         color = themeScriptContentColor("settingsCard", MaterialTheme.colorScheme.onSurface),
-                    )
+                     textStroke = themeTextStroke("settingsCard"))
                     if (subtitle != null)
                         Text(
                             subtitle,
                             style = themeScriptTextStyle("settingsCard", MaterialTheme.typography.bodySmall),
                             color = themeScriptContentColor("settingsCard", MaterialTheme.colorScheme.onSurfaceVariant),
-                        )
+                         textStroke = themeTextStroke("settingsCard"))
                 }
                 trailing?.invoke()
             }

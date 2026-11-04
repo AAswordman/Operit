@@ -8,6 +8,8 @@ import com.ai.assistance.operit.integrations.externalchat.ExternalChatResponseSa
 import com.ai.assistance.operit.integrations.externalchat.ExternalChatStreamingSession
 import com.ai.assistance.operit.integrations.externalchat.ExternalChatStreamingStartResult
 import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.stream.collectRevisionAppliedText
+
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
@@ -136,8 +138,9 @@ class A2aTaskManager(
                         return
                     }
                     contextChats[record.contextId] = session.chatId
+                    val responseStream = session.responseStreamSession.responseStream
                     val sanitizedResponseStream = ExternalChatResponseSanitizer.sanitizeStream(
-                        session.responseStreamSession.responseStream,
+                        responseStream,
                         returnToolStatus = false
                     )
                     sanitizedResponseStream.collect { chunk ->
@@ -145,6 +148,13 @@ class A2aTaskManager(
                             record.appendOutput(chunk)
                         }
                     }
+
+                    val finalOutput =
+                        ExternalChatResponseSanitizer.sanitize(
+                            responseStream.collectRevisionAppliedText(),
+                            returnToolStatus = false
+                        )
+                    record.replaceOutput(finalOutput.orEmpty())
 
                     when (val finalState = session.responseStreamSession.currentState()) {
                         is InputProcessingState.Error -> record.fail(finalState.message)
@@ -224,6 +234,14 @@ class A2aTaskManager(
             }
             if (task != null) {
                 publish(A2aTaskEvent.Artifact(task, chunk))
+            }
+        }
+
+        fun replaceOutput(content: String) {
+            synchronized(lock) {
+                if (!isTerminalState(state)) {
+                    output = content
+                }
             }
         }
 

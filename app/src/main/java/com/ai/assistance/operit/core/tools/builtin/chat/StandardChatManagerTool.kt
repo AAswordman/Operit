@@ -42,8 +42,11 @@ import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.util.logging.ChatTrace
+
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.util.stream.SharedStream
+import com.ai.assistance.operit.util.stream.collectRevisionAppliedText
 import java.time.ZoneId
 import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
@@ -1746,6 +1749,10 @@ class StandardChatManagerTool(private val context: Context) {
                     )
                 )
             }
+            AppLogger.d(
+                TAG,
+                "startMessageToAIStream message ${ChatTrace.describe(message)} runtime=${runtimeSlot ?: ChatRuntimeSlot.FLOATING}"
+            )
 
             val roleCardManager = CharacterCardManager.getInstance(appContext)
             val roleCardId = tool.parameters.find { it.name == "role_card_id" }?.value?.trim()
@@ -2000,11 +2007,7 @@ class StandardChatManagerTool(private val context: Context) {
                     val aiResponse =
                         try {
                             withTimeout(session.responseTimeoutMs) {
-                                val sb = StringBuilder()
-                                session.responseStream.collect { chunk: String ->
-                                    sb.append(chunk)
-                                }
-                                sb.toString()
+                                session.responseStream.collectRevisionAppliedText()
                             }
                         } catch (e: TimeoutCancellationException) {
                             runCatching { session.cancel() }
@@ -2101,7 +2104,6 @@ class StandardChatManagerTool(private val context: Context) {
                         )
                     )
 
-                    val fullResponse = StringBuilder()
                     var chunkIndex = 0
                     var receivedChars = 0
 
@@ -2130,17 +2132,12 @@ class StandardChatManagerTool(private val context: Context) {
                         try {
                             coroutineScope {
                                 val rawStreamJob = async {
-                                    session.responseStream.collect { chunk: String ->
-                                        if (chunk.isEmpty()) {
-                                            return@collect
-                                        }
-                                        fullResponse.append(chunk)
+                                    session.responseStream.collectRevisionAppliedText { chunk ->
                                         receivedChars += chunk.length
                                         if (!effectiveWaifuMode) {
                                             sendChunk(chunk)
                                         }
                                     }
-                                    fullResponse.toString()
                                 }
 
                                 val waifuStreamJob =

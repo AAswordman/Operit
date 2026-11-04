@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">Contorno del texto</string>
+    <string name="studio_text_stroke_color">Color del contorno del texto</string>
+    <string name="studio_text_stroke_off">Desactivado</string>
+    <string name="studio_text_stroke_custom">Personalizado</string>
+</resources>

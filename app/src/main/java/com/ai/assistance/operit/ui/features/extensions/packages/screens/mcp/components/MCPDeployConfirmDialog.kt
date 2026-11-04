@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.components
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.RoundedCornerShape

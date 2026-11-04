@@ -2,11 +2,13 @@
 export type SurfaceId = "background" | "userMessage" | "assistantMessage" | "composer" |
     "userAvatar" | "assistantAvatar" | "appBar" | "navigation" | "navigationItem" |
     "button" | "iconButton" | "input" | "settingsCard" | "dialog" | "sheet" | "menu" |
-    "listItem" | "status" | "toolCard" | "attachmentMenu" | "modelMenu" | "chatSettingsMenu";
+    "listItem" | "status" | "toolCard" | "attachmentMenu" | "modelMenu" | "chatSettingsMenu" | ActionButtonId;
 export type IconId = "composer.settings" | "composer.attachment" | "composer.microphone" |
     "composer.send" | "composer.stop" | "composer.fullscreen" | "composer.queue" |
     "composer.expand" | "appBar.back" | "appBar.menu" | "appBar.workspace" |
     "appBar.floating" | "navigation.item";
+/** 动作按钮容器与图标素材分别声明，未声明容器时继承共用 iconButton。 */
+export type ActionButtonId = Exclude<IconId, "navigation.item">;
 /** 六位是 RGB，八位是 ARGB。 */
 export type Color = `#${string}`;
 export type ColorToken = "primary" | "onPrimary" | "primaryContainer" | "onPrimaryContainer" |
@@ -21,6 +23,8 @@ export interface Palette {
     light?: Partial<Record<ColorToken, Color>>;
     dark?: Partial<Record<ColorToken, Color>>;
 }
+/** 文字轮廓使用 dp；区域省略 stroke 时继承全局，width 为 0 时单独关闭。 */
+export interface TextStroke { color?: Color; width?: number; }
 export interface Typography {
     family?: "default" | "sans-serif" | "serif" | "monospace" | "cursive" | `asset:${string}`;
     scale?: number;
@@ -28,6 +32,7 @@ export interface Typography {
     letterSpacing?: number;
     /** 全局或区域文字颜色；null 表示沿用原有配色。 */
     color?: Color | null;
+    stroke?: TextStroke | null;
 }
 export interface Shape { type?: "rounded" | "cut" | "circle"; radius?: number; }
 export interface IconAsset { asset: string; size?: number; opacity?: number; useContentTint?: boolean; tintColor?: Color; }

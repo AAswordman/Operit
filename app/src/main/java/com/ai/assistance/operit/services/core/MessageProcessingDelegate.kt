@@ -26,6 +26,8 @@ import com.ai.assistance.operit.util.stream.TextStreamEventType
 import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
 import com.ai.assistance.operit.core.speech.text.TtsSegmenter
 import com.ai.assistance.operit.util.WaifuMessageProcessor
+import com.ai.assistance.operit.util.WaifuSegmentMessageStore
+import com.ai.assistance.operit.util.stream.applyRevisionEvents
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
@@ -74,6 +76,7 @@ class MessageProcessingDelegate(
         private val hasUserMessage: suspend (String) -> Boolean,
         private val addMessageToChat: suspend (String, ChatMessage) -> Unit,
         private val resolveVoiceMessage: suspend (String, VoiceMessageData, VoiceAnalysis) -> List<ChatMessage>,
+        private val retractStreamingMessages: suspend (String, List<Long>) -> Unit,
         private val saveCurrentChat: suspend (chatId: String?) -> Unit,
         private val showErrorMessage: (String) -> Unit,
         private val updateChatTitle: (chatId: String, title: String) -> Unit,
@@ -384,14 +387,12 @@ class MessageProcessingDelegate(
     private fun resolveFinalContent(aiMessage: ChatMessage): String {
         val sharedStream = aiMessage.contentStream as? SharedStream<String>
         val replayChunks = sharedStream?.replayCache
-        val eventCarrier = aiMessage.contentStream as? TextStreamEventCarrier
-        return if (eventCarrier?.eventChannel?.replayCache?.isNotEmpty() == true) {
-            aiMessage.content
-        } else if (!replayChunks.isNullOrEmpty()) {
-            replayChunks.joinToString(separator = "")
-        } else {
-            aiMessage.content
+        if (!replayChunks.isNullOrEmpty()) {
+            val events = (aiMessage.contentStream as? TextStreamEventCarrier)
+                ?.eventChannel?.replayCache.orEmpty()
+            return applyRevisionEvents(replayChunks.joinToString(separator = ""), events)
         }
+        return aiMessage.content
     }
 
     private fun syncSections(aiMessage: ChatMessage, content: String) {
@@ -1321,17 +1322,11 @@ class MessageProcessingDelegate(
                             "创建带流的AI消息, stream is null: ${aiMessage.contentStream == null}, timestamp: ${aiMessage.timestamp}"
                         )
 
-                        var waifuPreviewIndex: Int? = null
                         var lastWaifuPreviewPublishedAt = 0L
-                        suspend fun emitWaifuSegment(segment: String, isPreview: Boolean = false) {
-                            if (segment.isBlank()) return
-
-                            val previewIndex = waifuPreviewIndex
-                            val segmentIndex = previewIndex ?: waifuEmittedMessages.size
-                            val interrupt = segmentIndex == 0
-                            val segmentMessage =
-                                if (previewIndex != null) waifuEmittedMessages[previewIndex].copy(content = segment)
-                                else ChatMessage(
+                        val waifuMessageStore = WaifuSegmentMessageStore(
+                            messages = waifuEmittedMessages,
+                            createMessage = { segment ->
+                                ChatMessage(
                                     sender = "ai",
                                     content = segment,
                                     contentStream = null,
@@ -1339,31 +1334,36 @@ class MessageProcessingDelegate(
                                     roleName = currentRoleName,
                                     provider = provider,
                                     modelName = modelName,
-                                    sentAt = requestSentAt
+                                    sentAt = requestSentAt,
                                 )
-
-                            withContext(Dispatchers.Main) {
-                                if (previewIndex == null) waifuEmittedMessages += segmentMessage
-                                else waifuEmittedMessages[previewIndex] = segmentMessage
-                                waifuPreviewIndex = if (isPreview) segmentIndex else null
+                            },
+                            reviseMessage = { message, content -> message.copy(content = content) },
+                            publishPreview = { message ->
                                 val now = messageTimingNow()
-                                // 首次立即显示，后续预览最多每 100ms 刷新并持久化；定稿始终写入。
-                                val shouldPublish = !isPreview || previewIndex == null || now - lastWaifuPreviewPublishedAt >= 100L
-                                if (shouldPublish && effectivePersistTurn && chatId != null) {
-                                    addMessageToChat(chatId, segmentMessage)
+                                if (effectivePersistTurn && chatId != null &&
+                                    now - lastWaifuPreviewPublishedAt >= 100L
+                                ) {
+                                    addMessageToChat(chatId, message)
                                     lastWaifuPreviewPublishedAt = now
                                 }
-                                if (!isPreview && getIsAutoReadEnabled()) {
+                                tryEmitScrollToBottomThrottled(chatId)
+                            },
+                            appendMessage = { segmentMessage, interrupt ->
+                                if (effectivePersistTurn && chatId != null) {
+                                    addMessageToChat(chatId, segmentMessage)
+                                }
+                                if (getIsAutoReadEnabled()) {
                                     didStreamAutoRead = true
-                                    AppLogger.d(
-                                        TAG,
-                                        "autoRead[waifuStream] interrupt=$interrupt len=${segment.length} preview=\"${speechPreview(segment)}\""
-                                    )
-                                    speakMessageHandler(segment, interrupt)
+                                    speakMessageHandler(segmentMessage.content, interrupt)
                                 }
                                 tryEmitScrollToBottomThrottled(chatId)
-                            }
-                        }
+                            },
+                            removeMessages = { messages ->
+                                if (effectivePersistTurn && chatId != null) {
+                                    retractStreamingMessages(chatId, messages.map { it.timestamp })
+                                }
+                            },
+                        )
 
                         suspend fun syncWaifuMessageMetrics(sourceMessage: ChatMessage) {
                             if (!effectivePersistTurn || chatId == null || waifuEmittedMessages.isEmpty()) return
@@ -1481,15 +1481,14 @@ class MessageProcessingDelegate(
                                     val waifuSegmentsJob =
                                         if (isWaifuModeEnabled) {
                                             launch {
-                                                WaifuMessageProcessor.streamSegmentsWithTypingQueue(
+                                                WaifuMessageProcessor.streamSegmentUpdatesWithTypingQueue(
                                                     sourceStream = sharedCharStream,
                                                     removePunctuation = waifuRemovePunctuation,
                                                     charDelayMs = waifuCharDelay,
-                                                    onFirstSegmentPreview = { preview ->
-                                                        emitWaifuSegment(preview, isPreview = true)
-                                                    },
-                                                ).collect { segment ->
-                                                    emitWaifuSegment(segment)
+                                                ).collect { update ->
+                                                    withContext(Dispatchers.Main) {
+                                                        waifuMessageStore.apply(update)
+                                                    }
                                                 }
                                             }
                                         } else {
@@ -1503,14 +1502,14 @@ class MessageProcessingDelegate(
                                                     when (event.eventType) {
                                                         TextStreamEventType.SAVEPOINT -> {
                                                             revisionMutex.withLock {
-                                                                revisionTracker.savepoint(event.id)
+                                                                revisionTracker.savepoint(event.id, event.contentLength)
                                                             }
                                                         }
 
                                                         TextStreamEventType.ROLLBACK -> {
                                                             val rollbackResult =
                                                                 revisionMutex.withLock {
-                                                                    revisionTracker.rollback(event.id)?.let { content ->
+                                                                    revisionTracker.rollback(event.id, event.contentLength, event.discardedLength)?.let { content ->
                                                                         content.toString() to claimStreamingSnapshot()
                                                                     }
                                                                 } ?: return@collect
@@ -1565,7 +1564,7 @@ class MessageProcessingDelegate(
                                             // Cancellation must publish the final revision before statistics are persisted.
                                             aiMessage.content =
                                                 revisionMutex.withLock {
-                                                    revisionTracker.currentContent().toString()
+                                                    revisionTracker.applyEventHistory(revisableStream?.eventChannel?.replayCache.orEmpty()).toString()
                                                 }
                                         }
                                     }
@@ -1836,14 +1835,14 @@ class MessageProcessingDelegate(
                                 when (event.eventType) {
                                     TextStreamEventType.SAVEPOINT -> {
                                         revisionMutex.withLock {
-                                            revisionTracker.savepoint(event.id)
+                                            revisionTracker.savepoint(event.id, event.contentLength)
                                         }
                                     }
 
                                     TextStreamEventType.ROLLBACK -> {
                                         val snapshot =
                                             revisionMutex.withLock {
-                                                revisionTracker.rollback(event.id)?.toString()
+                                                revisionTracker.rollback(event.id, event.contentLength, event.discardedLength)?.toString()
                                             } ?: return@collect
                                         aiMessage.content = snapshot
                                     }
@@ -1864,7 +1863,7 @@ class MessageProcessingDelegate(
                 revisionJob?.cancelAndJoin()
                 aiMessage.content =
                     revisionMutex.withLock {
-                        revisionTracker.currentContent().toString()
+                        revisionTracker.applyEventHistory(revisableStream?.eventChannel?.replayCache.orEmpty()).toString()
                     }
             }
 

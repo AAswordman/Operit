@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.support.demo.screens
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
 
 import android.content.Intent

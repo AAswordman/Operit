@@ -108,6 +108,9 @@ class SmartString(initialContent: String = "") {
     /**
      * 截取字符串
      */
+    /** 只复制新追加的可见尾部，避免流式解码反复复制完整正文。 */
+    fun substring(startIndex: Int): String = builder.substring(startIndex)
+
     fun take(n: Int): String {
         return if (n >= builder.length) {
             toString()

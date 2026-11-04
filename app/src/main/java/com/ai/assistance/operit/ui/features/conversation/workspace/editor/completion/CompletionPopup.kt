@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

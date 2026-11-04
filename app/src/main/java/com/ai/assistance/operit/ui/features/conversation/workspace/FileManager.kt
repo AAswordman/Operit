@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.conversation.workspace
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeTextField as TextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptButton as Button
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptOutlinedButton as OutlinedButton
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton

@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -33,7 +36,6 @@ import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.ui.theme.resolveThemeColorScheme
 import com.ai.assistance.operit.ui.theme.script.LocalThemeScriptState
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptState
-import java.util.Locale
 
 internal val StudioAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary
@@ -53,6 +55,7 @@ internal fun StudioTheme(content: @Composable () -> Unit) {
     val colors = remember(snapshot, dark) { resolveThemeColorScheme(snapshot, dark) }
     CompositionLocalProvider(
         LocalThemeScriptState provides ThemeScriptState.Disabled,
+        LocalThemeTextStroke provides null,
         LocalContentColor provides colors.onSurface,
     ) {
         MaterialTheme(colorScheme = colors, typography = Typography(), shapes = Shapes(), content = content)
@@ -110,18 +113,18 @@ internal fun <T> StudioChoices(value: T, options: List<Pair<T, String>>, onChang
 }
 
 @Composable
-internal fun StudioSlider(state: ThemeStudioState, label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String = "", enabled: Boolean = true, onChange: (Float) -> Unit) {
-    fun formatted(number: Float) = String.format(Locale.ROOT, if (range.endInclusive <= 2f) "%.2f" else "%.0f", number)
-    var input by remember(label) { mutableStateOf(formatted(value)) }
-    var focused by remember { mutableStateOf(false) }
-    LaunchedEffect(value, focused, enabled) { if (!focused || !enabled) input = formatted(value) }
+internal fun StudioSlider(state: ThemeStudioState, label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String = "", enabled: Boolean = true, precision: Int = if (range.endInclusive <= 2f) 2 else 0, onChange: (Float) -> Unit) {
+    fun formatted(number: Float) = formatStudioNumber(number, precision)
+    var input by remember(state.target.id, state.mode, label, precision) { mutableStateOf(formatted(value)) }
+    var focused by remember(state.target.id, state.mode, label) { mutableStateOf(false) }
+    LaunchedEffect(value, focused, enabled, precision) { if (!focused || !enabled) input = formatted(value) }
     val parsed = input.toFloatOrNull()
     val invalid = parsed == null || !parsed.isFinite() || parsed !in range
     DisposableEffect(state) { onDispose { state.endGesture() } }
     Column {
         Text(label + if (unit.isEmpty()) "" else " · $unit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            WorkbenchSlider(value = value.coerceIn(range.start, range.endInclusive), enabled = enabled, onValueChange = { if (enabled) { state.beginGesture(); onChange(it) } }, valueRange = range, onValueChangeFinished = state::endGesture, modifier = Modifier.weight(1f))
+            WorkbenchSlider(value = value.coerceIn(range.start, range.endInclusive), enabled = enabled, onValueChange = { if (enabled) { input = formatted(it); state.beginGesture(); onChange(it) } }, valueRange = range, onValueChangeFinished = state::endGesture, modifier = Modifier.weight(1f))
             OutlinedTextField(
                 value = input,
                 onValueChange = { text ->

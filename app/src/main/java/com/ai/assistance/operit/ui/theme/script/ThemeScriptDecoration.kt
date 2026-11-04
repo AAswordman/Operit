@@ -1,6 +1,8 @@
 package com.ai.assistance.operit.ui.theme.script
 
 import android.os.Build
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
@@ -43,6 +45,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.actionButtonSurface
 import com.ai.assistance.operit.data.theme.script.forState
 import kotlin.math.ceil
 import kotlin.math.max
@@ -73,6 +77,7 @@ fun ThemeScriptSurface(
         val typography = applyThemeTypography(MaterialTheme.typography, surfaceTypography(style), images)
         MaterialTheme(typography = typography) {
             CompositionLocalProvider(
+                LocalThemeTextStroke provides themeTextStroke(surfaceId),
                 LocalContentColor provides themeScriptContentColor(surfaceId, LocalContentColor.current),
                 LocalTextStyle provides themeScriptTextStyle(surfaceId, LocalTextStyle.current),
             ) {
@@ -107,7 +112,8 @@ fun Modifier.themeScriptDecoration(
 ): Modifier {
     val state = LocalThemeScriptState.current
     if (state !is ThemeScriptState.Ready) return this
-    val base = state.appearance.surfaces[surfaceId] ?: return this
+    val base = (if (surfaceId in ThemeScriptContract.actionButtonIds) state.appearance.actionButtonSurface(surfaceId)
+        else state.appearance.surfaces[surfaceId]) ?: return this
     val fragment = LocalThemeSurfaceFragments.current.getOrDefault(surfaceId, ThemeSurfaceFragment.Whole)
     var pressed by remember(surfaceId) { mutableStateOf(false) }
     var focused by remember(surfaceId) { mutableStateOf(false) }
@@ -122,7 +128,8 @@ fun Modifier.themeScriptDecoration(
     }
     val opacity = if (surfaceId in LocalThemeHandledOpacity.current) 1f else surface.opacity
     val shape = fragment.shape(if (surface.shape == null) originalShape else appearanceShape(surface.shape))
-    val border = if (drawStroke) appearanceBorder(surface, null, backgroundOpacity.coerceIn(0f, 1f)) else null
+    // 背景透明度只控制填充和装饰图层；描边保留自身颜色透明度及组件不透明度。
+    val border = if (drawStroke) appearanceBorder(surface, null) else null
     val pointer = if (surface.layers.any { it.state == "pressed" } || "pressed" in surface.states) Modifier.pointerInput(surfaceId) {
         try { awaitPointerEventScope { while (true) pressed = awaitPointerEvent(PointerEventPass.Initial).changes.any { it.pressed } } } finally { pressed = false }
     } else Modifier
