@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Button icons</string>
+    <string name="studio_button_icons_hint">Each row is one button. Choose light or dark to edit its fill, icon color, shape, border, padding, background and foreground layers, interaction states and icon asset independently.</string>
+    <string name="studio_button_style_hint">This button has its own appearance. Unconfigured buttons inherit the shared icon button style. Restoring inheritance affects only this button and mode, and keeps its icon asset.</string>
+    <string name="studio_button_style_inherit">Restore shared button style</string>
+</resources>

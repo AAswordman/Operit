@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.management
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*

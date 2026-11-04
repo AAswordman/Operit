@@ -2,29 +2,83 @@ package com.ai.assistance.operit.util.stream
 
 import com.ai.assistance.operit.util.markdown.SmartString
 
+/** 使用原始输出坐标删除失败尝试的区间，保证文本和事件先后到达时结果一致。 */
 class TextStreamRevisionTracker(initialContent: String = "") {
-    private val contentBuffer = SmartString(initialContent)
+    private val rawBuffer = SmartString(initialContent)
+    private val visibleBuffer = SmartString(initialContent)
     private val savepoints = linkedMapOf<String, Int>()
+    private val discardedRanges = mutableListOf<DiscardedRange>()
 
-    fun currentContent(): SmartString = contentBuffer
+    private data class DiscardedRange(val start: Int, val end: Int)
 
-    fun append(chunk: String): SmartString = contentBuffer.append(chunk)
+    fun currentContent(): SmartString = visibleBuffer
 
-    fun savepoint(id: String) {
-        // Rollback discards a suffix, so a character index is the complete revision state.
-        // Retaining full snapshots here multiplies live response memory across stream consumers.
-        savepoints[id] = contentBuffer.length
+    fun append(chunk: String): SmartString {
+        val start = rawBuffer.length
+        rawBuffer.append(chunk)
+        val end = start + chunk.length
+        val intersectsDiscardedRange =
+            discardedRanges.any { range -> range.start < end && range.end > start }
+        if (intersectsDiscardedRange) {
+            rebuildVisibleContent()
+        } else {
+            visibleBuffer.append(chunk)
+        }
+        return visibleBuffer
     }
 
-    fun rollback(id: String): SmartString? {
-        val length = savepoints[id] ?: return null
-        contentBuffer.truncate(length)
-        savepoints.entries.removeAll { it.value > length }
-        return contentBuffer
+    fun savepoint(id: String, contentLength: Int) {
+        savepoints[id] = contentLength
+    }
+
+    fun rollback(id: String, contentLength: Int, discardedLength: Int): SmartString? {
+        if (savepoints[id] == null) return null
+        if (discardedLength > 0) {
+            discardedRanges += DiscardedRange(contentLength, contentLength + discardedLength)
+            discardedRanges.sortBy { it.start }
+            rebuildVisibleContent()
+        }
+        savepoints.entries.removeAll { it.value > contentLength }
+        return visibleBuffer
     }
 
     fun replace(content: String) {
-        contentBuffer.replace(content)
+        rawBuffer.replace(content)
+        visibleBuffer.replace(content)
+        discardedRanges.clear()
         savepoints.entries.removeAll { it.value > content.length }
+    }
+
+    fun applyEventHistory(events: List<TextStreamEvent>): SmartString {
+        discardedRanges.clear()
+        savepoints.clear()
+        events.forEach { event ->
+            when (event.eventType) {
+                TextStreamEventType.SAVEPOINT -> savepoint(event.id, event.contentLength)
+                TextStreamEventType.ROLLBACK ->
+                    rollback(event.id, event.contentLength, event.discardedLength)
+            }
+        }
+        rebuildVisibleContent()
+        return visibleBuffer
+    }
+
+    private fun rebuildVisibleContent() {
+        val raw = rawBuffer.toString()
+        val rawLength = raw.length
+        val visible = StringBuilder(rawLength)
+        var consumed = 0
+        discardedRanges.forEach { range ->
+            if (range.end <= consumed || range.start >= rawLength) return@forEach
+            val start = maxOf(range.start, consumed)
+            if (start > consumed) {
+                visible.append(raw, consumed, start)
+            }
+            consumed = maxOf(consumed, range.end.coerceAtMost(rawLength))
+        }
+        if (consumed < rawLength) {
+            visible.append(raw, consumed, rawLength)
+        }
+        visibleBuffer.replace(visible.toString())
     }
 }

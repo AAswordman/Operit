@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.common.markdown
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ResolvedThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeNativeText
 import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -90,6 +93,7 @@ internal fun CanvasMonospaceCodeBlockBody(
     maxScrollableHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
+    val textStroke = LocalThemeTextStroke.current
     val context = LocalContext.current
     val density = LocalDensity.current
     val hostView = LocalView.current
@@ -599,6 +603,8 @@ internal fun CanvasMonospaceCodeBlockBody(
                                 charWidthPx = metrics.charWidth,
                                 startX = gutterWidthPx + gutterToCodeGapPx - horizontalOffsetPx,
                                 baseline = rowTopPx + metrics.baseline,
+                                textStroke = textStroke,
+                                strokeDensity = this.density,
                             )
                         }
                     }
@@ -633,7 +639,7 @@ internal fun CanvasMonospaceCodeBlockBody(
                             lineTopPx +
                                 (lineBlockHeightPx - metrics.lineHeight) / 2f +
                                 metrics.baseline
-                        nativeCanvas.drawText(label, lineNumberX, lineNumberBaseline, lineNumberPaint)
+                        drawThemeNativeText(nativeCanvas, label, lineNumberX, lineNumberBaseline, lineNumberPaint, textStroke, this.density)
                     }
                 }
             }
@@ -805,6 +811,8 @@ private fun drawCodeBlockRow(
     charWidthPx: Float,
     startX: Float,
     baseline: Float,
+    textStroke: ResolvedThemeTextStroke?,
+    strokeDensity: Float,
 ) {
     var x = startX
     var offset = row.start
@@ -835,7 +843,7 @@ private fun drawCodeBlockRow(
             return
         }
         textPaint.color = runColor
-        canvas.drawText(text, runStart, runEnd, runX, baseline, textPaint)
+        drawThemeNativeText(canvas, text, runStart, runEnd, runX, baseline, textPaint, textStroke, strokeDensity)
         runStart = -1
         runEnd = -1
     }
@@ -872,7 +880,7 @@ private fun drawCodeBlockRow(
                 flushRun()
                 val paint = if (usesSystemGlyphPaint) systemGlyphPaint else textPaint
                 paint.color = color
-                canvas.drawText(text, offset, nextOffset, x, baseline, paint)
+                drawThemeNativeText(canvas, text, offset, nextOffset, x, baseline, paint, textStroke, strokeDensity)
             }
         } else {
             flushRun()

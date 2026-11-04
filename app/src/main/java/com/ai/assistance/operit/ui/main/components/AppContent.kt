@@ -1,12 +1,12 @@
 package com.ai.assistance.operit.ui.main.components
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
 import com.ai.assistance.operit.ui.theme.script.themeSurface
-
 import androidx.compose.foundation.background
 import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubPage
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalMainChatViewModel
@@ -36,10 +36,9 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -284,7 +283,8 @@ fun AppContent(
                         },
                         navigationIcon = {
                             // 导航按钮逻辑
-                            IconButton(
+                            ThemeScriptIconButton(
+                                actionId = if (canGoBack) "appBar.back" else "appBar.menu",
                                 onClick = {
                                     if (canGoBack) {
                                         onGoBack()
@@ -297,7 +297,7 @@ fun AppContent(
                                             scope.launch { drawerState.open() }
                                         }
                                     }
-                                }
+                                },
                             ) {
                                 ThemeScriptIcon(
                                     id = if (canGoBack) "appBar.back" else "appBar.menu",

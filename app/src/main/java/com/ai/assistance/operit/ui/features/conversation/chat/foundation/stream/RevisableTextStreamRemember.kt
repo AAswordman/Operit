@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.foundation.stream
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,14 +50,14 @@ fun rememberRevisableTextStream(sourceStream: Stream<String>?): Stream<String>? 
                         when (event.eventType) {
                             TextStreamEventType.SAVEPOINT -> {
                                 stateMutex.withLock {
-                                    tracker.savepoint(event.id)
+                                    tracker.savepoint(event.id, event.contentLength)
                                 }
                             }
 
                             TextStreamEventType.ROLLBACK -> {
                                 val rollbackUpdate =
                                     stateMutex.withLock {
-                                        val snapshot = tracker.rollback(event.id)?.toString()
+                                        val snapshot = tracker.rollback(event.id, event.contentLength, event.discardedLength)?.toString()
                                             ?: return@withLock null
                                         val replacementStream =
                                             MutableSharedStream<String>(replay = Int.MAX_VALUE)
@@ -83,8 +85,9 @@ fun rememberRevisableTextStream(sourceStream: Stream<String>?): Stream<String>? 
                     val (activeDisplayStream, visibleChunk) =
                         stateMutex.withLock {
                             // 保存点使用完整原文，只有显示增量进入 Markdown 解析。
-                            tracker.append(chunk)
-                            currentOutputStream to displayFilter.append(chunk)
+                            val previousLength = tracker.currentContent().length
+                            val visible = tracker.append(chunk).substring(previousLength)
+                            currentOutputStream to displayFilter.append(visible)
                         }
                     if (visibleChunk.isNotEmpty()) activeDisplayStream.emit(visibleChunk)
                 }
@@ -93,7 +96,20 @@ fun rememberRevisableTextStream(sourceStream: Stream<String>?): Stream<String>? 
                 }
                 if (tail.isNotEmpty()) activeDisplayStream.emit(tail)
             } finally {
-                eventJob?.cancelAndJoin()
+                withContext(NonCancellable) {
+                    eventJob?.cancelAndJoin()
+                    val replacement = stateMutex.withLock {
+                        val previous = tracker.currentContent().toString()
+                        val snapshot = tracker.applyEventHistory(carrier?.eventChannel?.replayCache.orEmpty()).toString()
+                        if (snapshot != previous) {
+                            val oldOutput = currentOutputStream
+                            currentOutputStream = MutableSharedStream(replay = Int.MAX_VALUE)
+                            oldOutput.resetReplayCache()
+                            RollbackTailStream(currentOutputStream, displayFilter.reset(snapshot))
+                        } else null
+                    }
+                    if (replacement != null) displayStream = replacement
+                }
                 // 静态消息接管前继续保留已完成的显示回放，避免最后一帧与清理竞争。
                 (currentOutputStream as? MutableSharedStreamImpl<String>)?.close()
             }

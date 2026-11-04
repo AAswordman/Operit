@@ -18,6 +18,8 @@ import com.ai.assistance.operit.core.chat.runtime.ConversationRoundManager
 import com.ai.assistance.operit.core.chat.context.ConversationService
 import com.ai.assistance.operit.core.chat.filebinding.FileBindingService
 import com.ai.assistance.operit.api.chat.runtime.MultiServiceManager
+import com.ai.assistance.operit.util.logging.ChatTrace
+
 import com.ai.assistance.operit.core.chat.tools.ToolExecutionManager
 import com.ai.assistance.operit.api.chat.AIService
 import com.ai.assistance.operit.core.chat.logMessageTiming
@@ -28,7 +30,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.ui.common.a2ui.CardFences
 import com.ai.assistance.operit.ui.common.a2ui.CardDelivery
-import com.ai.assistance.operit.ui.common.a2ui.CardReferenceExpander
+import com.ai.assistance.operit.ui.common.a2ui.expandCardReferences
 import com.ai.assistance.operit.ui.common.a2ui.CardTranscript
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.chat.hooks.applyFinalizedCurrentUserTurn
@@ -59,9 +61,7 @@ import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.util.stream.TextStreamEvent
-import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
-import com.ai.assistance.operit.util.stream.TextStreamEventType
-import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
+import com.ai.assistance.operit.util.stream.collectWithRevisionRelay
 import com.ai.assistance.operit.util.stream.withEventChannel
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
 import com.ai.assistance.operit.util.stream.splitBy
@@ -75,9 +75,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -454,6 +452,9 @@ class EnhancedAIService private constructor(context: Context) {
         val toolCallCount: AtomicInteger = AtomicInteger(0),
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
         @Volatile var voiceInputJob: Job? = null,
+        // 按实际输出计数，为后续工具轮次平移修订坐标。
+        var emittedLength: Int = 0,
+
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
@@ -1041,6 +1042,14 @@ class EnhancedAIService private constructor(context: Context) {
                     onToolTiming = options.onToolTiming,
                 )
             registerExecutionContext(execContext)
+            val outerCollector = this
+            val countingCollector =
+                object : StreamCollector<String> {
+                    override suspend fun emit(value: String) {
+                        execContext.emittedLength += value.length
+                        outerCollector.emit(value)
+                    }
+                }
             var hadFatalError = false
             // 完成处理位于 finally，流式状态需由本次消息共享，并在取得配置快照后更新。
             var stream = requestedStream
@@ -1204,6 +1213,10 @@ class EnhancedAIService private constructor(context: Context) {
                         }
                     execContext.conversationHistory.clear()
                     execContext.conversationHistory.addAll(requestHistory)
+                    AppLogger.d(
+                        TAG,
+                        "sendMessage requestHistory turns=${requestHistory.size} original=${ChatTrace.describe(message)} finalized=${ChatTrace.describe(finalProcessedInput)} lastUser=${ChatTrace.describe(requestHistory.lastOrNull { it.kind == PromptTurnKind.USER }?.content.orEmpty())}"
+                    )
                     estimatePreparedRequestWindow(
                         serviceForFunction = serviceForFunction,
                         preparedHistory = requestHistory,
@@ -1214,12 +1227,14 @@ class EnhancedAIService private constructor(context: Context) {
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
                     val requestStartTime = messageTimingNow()
+                    val roundStartLength = execContext.emittedLength
                     var usageRequestHistory = requestHistory
                     val responseStream = voiceAudioRequest.send(
                         history = requestHistory,
                         onNonFatalError = onNonFatalError,
                         request = { voiceRequestHistory, attemptNotice ->
                             usageRequestHistory = voiceRequestHistory
+
                             serviceForFunction.sendMessage(
                                     context = this@EnhancedAIService.context,
                                     chatHistory = voiceRequestHistory,
@@ -1242,111 +1257,58 @@ class EnhancedAIService private constructor(context: Context) {
                             estimatePreparedRequestWindow(serviceForFunction, textHistory, availableTools, publishEstimate = true)
                         },
                     )
-                    val revisableStream = responseStream as? TextStreamEventCarrier
-
-                    // 收到第一个响应，更新状态
                     var isFirstChunk = true
-
-                    // 创建一个新的轮次来管理内容
                     startAssistantResponseRound(execContext)
-                    val cardExpander = CardReferenceExpander { CardDelivery.resolve(execContext.a2uiRunId, it) }
-                    val revisionTracker = TextStreamRevisionTracker()
-                    val revisionMutex = Mutex()
-
-                    // 从原始stream收集内容并处理
                     var chunkCount = 0
                     var totalChars = 0
                     var lastLogTime = messageTimingNow()
-
-                    coroutineScope {
-                        val revisionJob =
-                            revisableStream?.let { carrier ->
-                                launch {
-                                    carrier.eventChannel.collect { event ->
-                                        revisionMutex.withLock {
-                                            when (event.eventType) {
-                                                TextStreamEventType.SAVEPOINT -> {
-                                                    revisionTracker.savepoint(event.id)
-                                                    cardExpander.savepoint(event.id)
-                                                }
-                                                TextStreamEventType.ROLLBACK -> {
-                                                    cardExpander.rollback(event.id)
-                                                    revisionTracker.rollback(event.id)?.toString()?.let { snapshot ->
-                                                        execContext.streamBuffer.clear()
-                                                        execContext.streamBuffer.append(snapshot)
-                                                        execContext.roundManager.updateContent(snapshot)
-                                                    }
-                                                }
-                                            }
-                                            // 解码状态、文本快照和 UI 事件共用同一把锁，避免回滚落在半个引用上。
-                                            execContext.eventChannel.emit(event)
-                                        }
+                    responseStream.expandCardReferences { CardDelivery.resolve(execContext.a2uiRunId, it) }
+                        .collectWithRevisionRelay(
+                            eventChannel = execContext.eventChannel,
+                            roundStartLength = roundStartLength,
+                            onRollback = { snapshot ->
+                                execContext.streamBuffer.setLength(0)
+                                execContext.streamBuffer.append(snapshot)
+                                execContext.roundManager.updateContent(snapshot)
+                            },
+                            onCompletion = { snapshot ->
+                                execContext.streamBuffer.setLength(0)
+                                execContext.streamBuffer.append(snapshot)
+                                execContext.roundManager.updateContent(snapshot)
+                            },
+                        ) { content ->
+                            // 中途重试恢复后也更新接收状态，保留语音请求包装器的行为。
+                            if (!isSubTask && content.isNotEmpty() &&
+                                _inputProcessingState.value is InputProcessingState.Connecting
+                            ) {
+                                withContext(Dispatchers.Main) {
+                                    if (_inputProcessingState.value is InputProcessingState.Connecting) {
+                                        _inputProcessingState.value = InputProcessingState.Receiving(
+                                            LocaleUtils.getLocalizedContext(context)
+                                                .getString(R.string.enhanced_receiving_response)
+                                        )
                                     }
                                 }
                             }
- 
-                        try {
-                            responseStream.collect { rawContent ->
-                                // 中途重试恢复后也要更新状态，不能只依赖首块响应标记。
-                                if (!isSubTask && rawContent.isNotEmpty() &&
-                                    _inputProcessingState.value is InputProcessingState.Connecting
-                                ) {
-                                    withContext(Dispatchers.Main) {
-                                        if (_inputProcessingState.value is InputProcessingState.Connecting) {
-                                            _inputProcessingState.value =
-                                                InputProcessingState.Receiving(
-                                                    LocaleUtils.getLocalizedContext(context)
-                                                        .getString(R.string.enhanced_receiving_response)
-                                                )
-                                        }
-                                    }
-                                }
-                                if (isFirstChunk) {
-                                    isFirstChunk = false
-                                    logMessageTiming(
-                                        stage = "enhanced.sendMessage.firstResponseChunk",
-                                        startTimeMs = requestStartTime,
-                                        details = "functionType=$functionType, stream=$stream"
-                                    )
-                                }
-
-                                // 累计统计
-                                chunkCount++
-                                totalChars += rawContent.length
-
-                                // 周期性日志
-                                val currentTime = messageTimingNow()
-                                if (currentTime - lastLogTime > 5000) { // 每5秒记录一次
-                                    AppLogger.d(TAG, "已接收 $chunkCount 个内容块，总计 $totalChars 个字符")
-                                    lastLogTime = currentTime
-                                }
-
-                                revisionMutex.withLock {
-                                    val content = cardExpander.push(rawContent)
-                                    revisionTracker.append(content)
-                                    execContext.streamBuffer.append(content)
-                                    execContext.roundManager.appendChunk(content)
-                                    if (content.isNotEmpty()) emit(content)
-                                }
-
-                                // Keep both mutable accumulators synchronized without rebuilding
-                                // the complete response for every streamed chunk.
-
-                                // 发射当前内容片段
+                            if (isFirstChunk) {
+                                isFirstChunk = false
+                                logMessageTiming(
+                                    stage = "enhanced.sendMessage.firstResponseChunk",
+                                    startTimeMs = requestStartTime,
+                                    details = "functionType=$functionType, stream=$stream"
+                                )
                             }
-                            revisionMutex.withLock {
-                                val tail = cardExpander.finish()
-                                if (tail.isNotEmpty()) {
-                                    revisionTracker.append(tail)
-                                    execContext.streamBuffer.append(tail)
-                                    execContext.roundManager.appendChunk(tail)
-                                    emit(tail)
-                                }
+                            chunkCount++
+                            totalChars += content.length
+                            val currentTime = messageTimingNow()
+                            if (currentTime - lastLogTime > 5000) {
+                                AppLogger.d(TAG, "已接收 $chunkCount 个内容块，总计 $totalChars 个字符")
+                                lastLogTime = currentTime
                             }
-                        } finally {
-                            revisionJob?.cancelAndJoin()
+                            execContext.streamBuffer.append(content)
+                            execContext.roundManager.appendChunk(content)
+                            countingCollector.emit(content)
                         }
-                    }
 
                     // Update accumulated token counts and persist them
                     val inputTokens = serviceForFunction.inputTokenCount
@@ -1398,7 +1360,7 @@ class EnhancedAIService private constructor(context: Context) {
                 try {
                     // 确保流处理完成后调用；如果本轮已被取消，则不能再继续跑完成逻辑。
                     if (!hadFatalError && isExecutionContextActive(execContext)) {
-                        val collector = this
+                        val collector = countingCollector
                         withContext(Dispatchers.IO) {
                             processStreamCompletion(
                                 execContext,
@@ -2497,6 +2459,7 @@ class EnhancedAIService private constructor(context: Context) {
 
         // Start new round - ensure tool execution response will be shown in a new message
         startAssistantResponseRound(context)
+        val roundStartLength = context.emittedLength
 
         // Clearly show we're preparing to send tool result to AI
         if (!isSubTask) {
@@ -2598,95 +2561,49 @@ class EnhancedAIService private constructor(context: Context) {
                 var totalChars = 0
                 var lastLogTime = messageTimingNow()
                 var isFirstChunk = true
-                val revisableStream = responseStream as? TextStreamEventCarrier
-                val cardExpander = CardReferenceExpander { CardDelivery.resolve(context.a2uiRunId, it) }
-                val revisionTracker = TextStreamRevisionTracker()
-                val revisionMutex = Mutex()
-
-                coroutineScope {
-                    val revisionJob =
-                        revisableStream?.let { carrier ->
-                            launch {
-                                carrier.eventChannel.collect { event ->
-                                    revisionMutex.withLock {
-                                        when (event.eventType) {
-                                            TextStreamEventType.SAVEPOINT -> {
-                                                revisionTracker.savepoint(event.id)
-                                                cardExpander.savepoint(event.id)
-                                            }
-                                            TextStreamEventType.ROLLBACK -> {
-                                                cardExpander.rollback(event.id)
-                                                revisionTracker.rollback(event.id)?.toString()?.let { snapshot ->
-                                                    context.streamBuffer.clear()
-                                                    context.streamBuffer.append(snapshot)
-                                                    context.roundManager.updateContent(snapshot)
-                                                }
-                                            }
-                                        }
-                                        // 解码状态、文本快照和 UI 事件共用同一把锁，避免回滚落在半个引用上。
-                                        context.eventChannel.emit(event)
-                                    }
+                responseStream.expandCardReferences { CardDelivery.resolve(context.a2uiRunId, it) }
+                    .collectWithRevisionRelay(
+                        eventChannel = context.eventChannel,
+                        roundStartLength = roundStartLength,
+                        onRollback = { snapshot ->
+                            context.streamBuffer.setLength(0)
+                            context.streamBuffer.append(snapshot)
+                            context.roundManager.updateContent(snapshot)
+                        },
+                        onCompletion = { snapshot ->
+                            context.streamBuffer.setLength(0)
+                            context.streamBuffer.append(snapshot)
+                            context.roundManager.updateContent(snapshot)
+                        },
+                    ) { content ->
+                        if (!isSubTask && content.isNotEmpty() &&
+                            _inputProcessingState.value is InputProcessingState.Connecting
+                        ) {
+                            withContext(Dispatchers.Main) {
+                                if (_inputProcessingState.value is InputProcessingState.Connecting) {
+                                    _inputProcessingState.value = InputProcessingState.Receiving(
+                                        LocaleUtils.getLocalizedContext(this@EnhancedAIService.context)
+                                            .getString(R.string.enhanced_receiving_tool_result)
+                                    )
                                 }
                             }
                         }
-
-                    try {
-                        responseStream.collect { rawContent ->
-                            // 工具后续回复恢复输出时，同步清除中途重试留下的连接状态。
-                            if (!isSubTask && rawContent.isNotEmpty() &&
-                                _inputProcessingState.value is InputProcessingState.Connecting
-                            ) {
-                                withContext(Dispatchers.Main) {
-                                    if (_inputProcessingState.value is InputProcessingState.Connecting) {
-                                        _inputProcessingState.value =
-                                            InputProcessingState.Receiving(
-                                                LocaleUtils.getLocalizedContext(this@EnhancedAIService.context)
-                                                    .getString(R.string.enhanced_receiving_tool_result)
-                                            )
-                                    }
-                                }
-                            }
-                            if (isFirstChunk) {
-                                isFirstChunk = false
-                                logMessageTiming(
-                                    stage = "enhanced.processToolResults.firstResponseChunk",
-                                    startTimeMs = aiStartTime,
-                                    details = "toolNames=$displayToolNames, stream=$stream"
-                                )
-                            }
-
-                            revisionMutex.withLock {
-                                val content = cardExpander.push(rawContent)
-                                revisionTracker.append(content)
-                                context.streamBuffer.append(content)
-                                context.roundManager.appendChunk(content)
-                                if (content.isNotEmpty()) collector.emit(content)
-                            }
-
-                            // 累计统计
-                            chunkCount++
-                            totalChars += rawContent.length
-
-                            // 定期记录日志
-                            val currentTime = messageTimingNow()
-                            if (currentTime - lastLogTime > 5000) { // 每5秒记录一次
-                                lastLogTime = currentTime
-                            }
-
+                        if (isFirstChunk) {
+                            isFirstChunk = false
+                            logMessageTiming(
+                                stage = "enhanced.processToolResults.firstResponseChunk",
+                                startTimeMs = aiStartTime,
+                                details = "toolNames=$displayToolNames, stream=$stream"
+                            )
                         }
-                        revisionMutex.withLock {
-                            val tail = cardExpander.finish()
-                            if (tail.isNotEmpty()) {
-                                revisionTracker.append(tail)
-                                context.streamBuffer.append(tail)
-                                context.roundManager.appendChunk(tail)
-                                collector.emit(tail)
-                            }
-                        }
-                    } finally {
-                        revisionJob?.cancelAndJoin()
+                        context.streamBuffer.append(content)
+                        context.roundManager.appendChunk(content)
+                        collector.emit(content)
+                        chunkCount++
+                        totalChars += content.length
+                        val currentTime = messageTimingNow()
+                        if (currentTime - lastLogTime > 5000) lastLogTime = currentTime
                     }
-                }
                 // Update accumulated token counts and persist them
                 val inputTokens = serviceForFunction.inputTokenCount
                 val cachedInputTokens = serviceForFunction.cachedInputTokenCount

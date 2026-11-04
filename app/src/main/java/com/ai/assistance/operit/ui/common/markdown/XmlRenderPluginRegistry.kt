@@ -2,7 +2,7 @@ package com.ai.assistance.operit.ui.common.markdown
 
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.voice.VoiceMessageXmlPlugin
 
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect

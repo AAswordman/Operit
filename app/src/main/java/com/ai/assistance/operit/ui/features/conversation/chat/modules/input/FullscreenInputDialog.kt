@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.input
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeTextField as TextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 
 import androidx.compose.foundation.layout.*

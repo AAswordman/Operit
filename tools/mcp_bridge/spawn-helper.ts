@@ -30,18 +30,19 @@ const handlers = {
         });
         client = mcpClient;
 
+        // 在连接前解析启动参数，确保异常处理也能报告启动上下文。
+        let workingDir = serviceInfo.cwd || path.join(os.homedir(), 'mcp_plugins', serviceName);
+        workingDir = expandPath(workingDir);
+
+        let actualCommand = expandPath(serviceInfo.command);
+        let actualArgs = serviceInfo.args;
+        if (actualCommand === 'npx') {
+            actualCommand = 'pnpm';
+            const filteredArgs = actualArgs.filter((arg: string) => arg !== '-y' && arg !== '--yes');
+            actualArgs = ['dlx', ...filteredArgs];
+        }
+
         try {
-            let workingDir = serviceInfo.cwd || path.join(os.homedir(), 'mcp_plugins', serviceName);
-            workingDir = expandPath(workingDir);
-
-            let actualCommand = expandPath(serviceInfo.command);
-            let actualArgs = serviceInfo.args;
-            if (actualCommand === 'npx') {
-                actualCommand = 'pnpm';
-                const filteredArgs = actualArgs.filter((arg: string) => arg !== '-y' && arg !== '--yes');
-                actualArgs = ['dlx', ...filteredArgs];
-            }
-
             const mergedEnv = {
                 ...process.env,
                 ...serviceInfo.env,
@@ -69,10 +70,18 @@ const handlers = {
 
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error(`[${serviceName}] Helper connection failed: ${errorMessage}`);
+            // 补充命令、参数和目录帮助定位连接关闭原因，环境变量只记录键名。
+            const envKeys = Object.keys(serviceInfo.env || {}).sort();
+            const launchContext = [
+                `command=${actualCommand}`,
+                `args=${JSON.stringify(actualArgs || [])}`,
+                `cwd=${workingDir}`,
+                `envKeys=${envKeys.length > 0 ? envKeys.join(',') : '(none)'}`
+            ].join(', ');
+            console.error(`[${serviceName}] Helper connection failed: ${errorMessage} (${launchContext})`);
             process.send!({
                 event: 'closed',
-                params: { serviceName, error: errorMessage }
+                params: { serviceName, error: `${errorMessage} (${launchContext})` }
             });
             // Exit after sending error to allow parent to restart
             process.exit(1);

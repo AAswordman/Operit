@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">글자 테두리</string>
+    <string name="studio_text_stroke_color">글자 테두리 색상</string>
+    <string name="studio_text_stroke_off">끄기</string>
+    <string name="studio_text_stroke_custom">사용자 지정</string>
+</resources>

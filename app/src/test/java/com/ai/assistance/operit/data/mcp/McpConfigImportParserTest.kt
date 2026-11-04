@@ -83,6 +83,47 @@ class McpConfigImportParserTest {
         assertParseFails(config)
     }
 
+    @Test
+    fun parse_readsStdioWorkingDirectory() {
+        val config =
+            """
+            {
+              "mcpServers": {
+                "handytools": {
+                  "command": "node",
+                  "args": ["dist/index.js"],
+                  "cwd": "/root/moonlight-garden-handytools"
+                }
+              }
+            }
+            """.trimIndent()
+
+        val stdio = McpConfigImportParser.parse(config)
+            .servers
+            .filterIsInstance<StdioMcpImportedServer>()
+            .single()
+
+        assertEquals("/root/moonlight-garden-handytools", stdio.cwd)
+    }
+
+    @Test
+    fun parse_rejectsBlankStdioWorkingDirectory() {
+        val config =
+            """
+            {
+              "mcpServers": {
+                "handytools": {
+                  "command": "node",
+                  "args": ["dist/index.js"],
+                  "cwd": "   "
+                }
+              }
+            }
+            """.trimIndent()
+
+        assertParseFails(config)
+    }
+
     private fun assertParseFails(config: String) {
         try {
             McpConfigImportParser.parse(config)

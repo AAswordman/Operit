@@ -69,7 +69,7 @@ internal class ProtocolMetaDisplayFilter(private val preserveCodeExamples: Boole
                     emitVisible(tag, this)
                     continue
                 }
-                val context = if (preserveCodeExamples) literalContext(visibleHistory.toString()) else null
+                val context = if (preserveCodeExamples) literalContext(visibleHistory) else null
                 if (context == null) {
                     hiding = !tag.endsWith("/>")
                 } else {
@@ -199,17 +199,18 @@ internal class ProtocolMetaDisplayFilter(private val preserveCodeExamples: Boole
         )
 
         /** 独立 XML 的内容由其渲染器处理，其中的代码字符不能延续外部 Markdown 范围。 */
-        private fun xmlBlockEnd(content: String, start: Int, tagName: String): Int? {
-            val openingTag = XML_TOKEN.find(content, start)?.takeIf { it.range.first == start }
-                ?: return null
-            if (openingTag.value.endsWith("/>")) return openingTag.range.last + 1
+        private fun xmlBlockEnd(content: CharSequence, start: Int, tagName: String): Int? {
+            // 复用匹配器，避免 Android 为每个 XML token 重新分配原生 Matcher。
+            val tokens = XML_TOKEN.toPattern().matcher(content)
+            if (!tokens.find(start) || tokens.start() != start) return null
+            if (content[tokens.end() - 2] == '/') return tokens.end()
             var depth = 1
-            for (token in XML_TOKEN.findAll(content, openingTag.range.last + 1)) {
-                if (!token.groupValues[1].equals(tagName, ignoreCase = true)) continue
-                if (token.value.startsWith("</")) {
+            while (tokens.find()) {
+                if (!tagName.equals(tokens.group(1), ignoreCase = true)) continue
+                if (content[tokens.start() + 1] == '/') {
                     depth--
-                    if (depth == 0) return token.range.last + 1
-                } else if (!token.value.endsWith("/>")) {
+                    if (depth == 0) return tokens.end()
+                } else if (content[tokens.end() - 2] != '/') {
                     depth++
                 }
             }
@@ -224,36 +225,40 @@ internal class ProtocolMetaDisplayFilter(private val preserveCodeExamples: Boole
         )
 
         /** 仅在识别协议开始标签时扫描可见前缀，长协议正文按字符丢弃而不反复扫描。 */
-        private fun literalContext(prefix: String): LiteralContext? {
+        private fun literalContext(prefix: CharSequence): LiteralContext? {
+            // 直接读取可见缓冲区，并在一次扫描中复用边界匹配器。
+            val boundaries = CODE_BOUNDARY.toPattern().matcher(prefix)
             var scan = 0
             while (scan < prefix.length) {
-                val boundary = CODE_BOUNDARY.find(prefix, scan) ?: return null
-                val markerStart = boundary.range.first
+                if (!boundaries.find(scan)) return null
+                val markerStart = boundaries.start()
+                val boundaryEnd = boundaries.end()
                 var escapeStart = markerStart
                 while (escapeStart > 0 && prefix[escapeStart - 1] == '\\') escapeStart--
                 if ((markerStart - escapeStart) % 2 == 1) {
-                    scan = boundary.range.last + 1
+                    scan = boundaryEnd
                     continue
                 }
-                val tagName = boundary.groupValues[2]
-                if (tagName.isNotEmpty()) {
+                val tagName = boundaries.group(2)
+                if (tagName != null) {
                     scan = xmlBlockEnd(prefix, markerStart, tagName) ?: return null
                     continue
                 }
-                val marker = boundary.groupValues[1].trimStart()
-                if (marker.isEmpty()) {
+                val rawMarker = boundaries.group(1)
+                if (rawMarker == null) {
                     // 注释和 CDATA 整段跳过，不把其中的反引号当作代码起点。
-                    scan = boundary.range.last + 1
+                    scan = boundaryEnd
                     continue
                 }
+                val marker = rawMarker.trimStart()
                 val lineStart = prefix.lastIndexOf('\n', markerStart - 1) + 1
                 val linePrefix = prefix.substring(lineStart, markerStart)
                 val fenced = marker.length >= 3 && linePrefix.length <= 3 && linePrefix.all { it == ' ' }
-                val bodyStart = if (fenced) prefix.indexOf('\n', boundary.range.last + 1) else -1
+                val bodyStart = if (fenced) prefix.indexOf('\n', boundaryEnd) else -1
                 val closing = if (fenced && bodyStart >= 0) {
                     fenceClosing(marker).find(prefix, bodyStart + 1)
                 } else if (!fenced) {
-                    Regex("(?<!`)" + Regex.escape(marker) + "(?!`)").find(prefix, boundary.range.last + 1)
+                    Regex("(?<!`)" + Regex.escape(marker) + "(?!`)").find(prefix, boundaryEnd)
                 } else {
                     null
                 }

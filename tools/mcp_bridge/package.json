@@ -6,10 +6,10 @@
     "scripts": {
         "build": "tsc && pnpm run bundle && pnpm run copy",
         "bundle": "ncc build dist/index.js -o bundle && ncc build dist/spawn-helper.js -o bundle-helper",
-        "copy": "node -e \"require('fs').copyFileSync('bundle/index.js', '../../app/src/main/assets/bridge/index.js')\" && node -e \"require('fs').copyFileSync('bundle-helper/index.js', '../../app/src/main/assets/bridge/spawn-helper.js')\"",
+        "copy": "node -e \"require('fs').copyFileSync('bundle/index.js', '../../app/src/main/assets/bridge/index.js')\" && node -e \"require('fs').copyFileSync('bundle-helper/index.js', '../../app/src/main/assets/bridge/spawn-helper.js')\" && node normalize-assets.js",
         "start": "node dist/index.js",
         "dev": "ts-node index.ts",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test:scenarios": "node test/scenarios.js"
     },
     "keywords": [
         "mcp",

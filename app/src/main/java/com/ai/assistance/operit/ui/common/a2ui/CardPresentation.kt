@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.common.a2ui
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.a2ui.compose.runtime.*
 import androidx.a2ui.compose.ui.A2uiComponent
 import androidx.a2ui.compose.ui.catalog.A2uiBasicCatalogV1

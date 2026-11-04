@@ -13,7 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +50,6 @@ import com.ai.assistance.operit.ui.features.extensions.packages.market.ArtifactP
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketStatsType
 import com.ai.assistance.operit.ui.features.extensions.packages.market.PluginCreationIntent
 import com.ai.assistance.operit.ui.features.management.databackup.DataAndBackupScreen
-import com.ai.assistance.operit.ui.features.management.settings.screens.ExternalHttpChatSettingsScreen
 import com.ai.assistance.operit.ui.features.management.settings.screens.GlobalDisplaySettingsScreen
 import com.ai.assistance.operit.ui.features.management.performance.PerformanceMonitorScreen
 import com.ai.assistance.operit.ui.features.extensions.packages.market.account.GitHubAccountScreen
@@ -598,7 +597,6 @@ sealed class Screen(
                     navigateToDataAndBackup = { navigateTo(ChatBackupSettings) },
 
                     navigateToSpeechServicesSettings = { navigateTo(SpeechServicesSettings) },
-                    navigateToExternalHttpChatSettings = { navigateTo(ExternalHttpChatSettings) },
                     navigateToPerformanceMonitor = { navigateTo(PerformanceMonitor) },
                     navigateToAbout = { navigateTo(About) }
             )
@@ -813,22 +811,6 @@ sealed class Screen(
             SpeechServicesSettingsScreen(
                 onBackPressed = onGoBack
             )
-        }
-    }
-    
-    data object ExternalHttpChatSettings :
-        Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_external_http_chat_settings) {
-        @Composable
-        override fun Content(
-            navController: NavController,
-            navigateTo: ScreenNavigationHandler,
-            onGoBack: () -> Unit,
-            hasBackgroundImage: Boolean,
-            onLoading: (Boolean) -> Unit,
-            onError: (String) -> Unit,
-            onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ExternalHttpChatSettingsScreen(onBackPressed = onGoBack)
         }
     }
     

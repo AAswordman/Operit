@@ -3073,7 +3073,6 @@
     <string name="settings_custom_headers">Antete de cerere personalizate</string>
     <string name="settings_custom_headers_subtitle">APIConfigurarea câmpurilor antetului cererii</string>
     <string name="headers_configured_count">Configurat %1$d articol</string>
-    <string name="screen_title_external_http_chat_settings">Extern HTTP Apel</string>
     <string name="settings_system_prompts_subtitle">Cuvinte-cheie pentru sisteme și modele</string>
     <string name="settings_functional_prompts_subtitle">Șabloane de cuvinte-cheie pentru funcții specifice</string>
     <string name="settings_context_length">Lungimea contextului</string>
@@ -3122,8 +3121,6 @@
     <string name="clear_cookies_confirm">Ștergere</string>
     <string name="clear_cookies_success">Cookie A fost șters</string>
     <string name="clear_cookies_failed">Cookie Eșecul ștergerii</string>
-    <string name="settings_external_http_chat">Extern HTTP Apel</string>
-    <string name="settings_external_http_chat_subtitle">Monitorizare 0.0.0.0 al HTTP Interfața de chat, portul și Bearer Token</string>
     <string name="settings_data_backup_subtitle">Gestionarea copiilor de siguranță ale istoricului conversațiilor</string>
     <string name="settings_token_usage_stats">TokenStatistici de utilizare</string>
     <string name="settings_function_label">Funcții</string>
@@ -4550,46 +4547,6 @@
     <string name="settings_context_title">Setări de context</string>
     <string name="settings_summary_title">Rezumatul setărilor</string>
     <string name="settings_context_summary_subtitle">Contextul de administrare, rezumatul și setările privind păstrarea înregistrărilor media istorice</string>
-    <string name="external_http_chat_enable">Activare externă HTTP Servicii</string>
-    <string name="external_http_chat_enable_desc">După activare, se va porni dispozitivul extern HTTP Servicii, monitorizare efectivă 0.0.0.0; același port oferă atât HTTP API, oferă, de asemenea, o interfață de chat web accesibilă direct</string>
-    <string name="external_http_chat_port">Port de ascultare</string>
-    <string name="external_http_chat_port_desc">Implicit 8094. Serviciul va monitoriza 0.0.0.0:Port; după salvare, serviciul se va reporni automat în stare activă</string>
-    <string name="external_http_chat_save_port">Salvare port</string>
-    <string name="external_http_chat_port_saved">Portul a fost salvat</string>
-    <string name="external_http_chat_invalid_port">Portul nu este valid. Vă rugăm să introduceți 1-65535</string>
-    <string name="external_http_chat_token">Bearer Token</string>
-    <string name="external_http_chat_token_desc">Se generează automat la prima utilizare. Clientul trebuie să Authorization Purtat pe cap Bearer Token</string>
-    <string name="external_http_chat_token_not_generated">Nu a fost încă generat; vă rugăm să activați mai întâi serviciul</string>
-    <string name="external_http_chat_copy_token">Copiere Token</string>
-    <string name="external_http_chat_reset_token">Resetare Token</string>
-    <string name="external_http_chat_token_copied">Token S-a copiat</string>
-    <string name="external_http_chat_token_reset">Token A fost resetat și copiat</string>
-    <string name="external_http_chat_status">Starea actuală</string>
-    <string name="external_http_chat_status_running">Serviciul este în funcțiune, în așteptare 0.0.0.0:%1$d</string>
-    <string name="external_http_chat_status_stopped">Serviciul nu rulează</string>
-    <string name="external_http_chat_status_error">Anomalii ale serviciului:%1$s</string>
-    <string name="external_http_chat_web_title">Acces la chatul web</string>
-    <string name="external_http_chat_web_desc">Același port oferă simultan interfața de chat web și HTTP API. Deschideți adresa de mai jos direct în browser; la prima accesare, introduceți textul de mai sus Bearer Token Gata.</string>
-    <string name="external_http_chat_web_note">Pagina de intrare utilizează calea rădăcină /;HTTP API Continuă să meargă %1$s</string>
-    <string name="external_http_chat_copy_web_url">Copiază adresa paginii web</string>
-    <string name="external_http_chat_web_url_copied">Adresa paginii web a fost copiată</string>
-    <string name="external_http_chat_access_urls">Adresele de rețea locală detectate în prezent</string>
-    <string name="external_http_chat_bind_hint">Monitorizarea efectivă a serviciilor 0.0.0.0:%1$d, ceea ce înseamnă că va primi cererile de pe toate interfețele de rețea ale dispozitivului. Mai jos sunt enumerate doar rețelele locale detectate în prezent IPv4, pentru a facilita copierea.</string>
-    <string name="external_http_chat_no_lan_ip">Nu s-au detectat încă rețele locale disponibile IPv4 Adresă; acest lucru nu afectează ascultarea serviciului 0.0.0.0, vă rugăm să vă asigurați că dispozitivul este conectat la internet sau să utilizați o altă adresă accesibilă</string>
-    <string name="external_http_chat_sync_example">Exemplu de apel sincronizat</string>
-    <string name="external_http_chat_async_example">Exemplu de apel de returnare asincron</string>
-    <string name="external_http_chat_health_example">Exemplu de control medical</string>
-    <string name="external_http_chat_intent_title">Intent Instrucțiuni de utilizare</string>
-    <string name="external_http_chat_intent_desc">Accesul la difuzare rămâne activ, fiind potrivit pentru acest dispozitiv App Integrare,Tasker sau adb Depanare</string>
-    <string name="external_http_chat_intent_overview">HTTP și Intent Semantica parametrilor este identică, diferă doar punctul de intrare.\n\nSolicitare Action:%1$s\nRetrimitere implicită Action:%2$s\n\nFrecvent utilizate extras:message,request_id,group,create_new_chat,chat_id,create_if_none,show_floating,return_tool_status,initial_mode,auto_exit_after_ms,stop_after,reply_action,reply_package\n\nDupă finalizarea procesării, datele vor fi transmise înapoi prin difuzare success,chat_id,ai_response,error; dacă doriți să returnați doar către destinația specificată App, vă rugăm să configurați reply_package.</string>
-    <string name="external_http_chat_copy_example">Exemplu de copiere</string>
-    <string name="external_http_chat_example_copied">Comanda de exemplu a fost copiată</string>
-    <string name="external_http_chat_service_enabled">Serviciul a fost activat</string>
-    <string name="external_http_chat_service_disabled">Serviciul a fost dezactivat</string>
-    <string name="external_http_chat_restart_service">Repornirea serviciului</string>
-    <string name="external_http_chat_save_token">Salvare</string>
-    <string name="external_http_chat_token_saved">Token S-a salvat</string>
-    <string name="external_http_chat_token_length_error">TokenLungimea trebuie să fie mai mare decât6!</string>
 
     <!-- Custom Emoji Management -->
     <string name="manage_custom_emoji">Gestionarea emoticoanelor personalizate</string>
@@ -6290,6 +6247,8 @@
     <string name="conversation_summary_progress">Se generează istoricul conversației și rezumatul...</string>
     <string name="conversation_summary_key_info">Se generează informații cheie și context...</string>
     <string name="conversation_summary_finishing">Se află în faza finală...</string>
+    <string name="conversation_summary_empty_retrying">Conținutul rezumatului generat este gol. Se generează din nou (o singură reîncercare).</string>
+    <string name="conversation_summary_empty_failed">După regenerare, conținutul rezumatului este în continuare gol. Rezumatul nu a fost salvat. Încercați din nou mai târziu.</string>
     <string name="conversation_summary_completed">Rezumat finalizat</string>
 
     <!-- Plan Mode Manager (UI status messages shown to users) -->
@@ -7664,13 +7623,6 @@
     <string name="market_version_incompatible_title">Nu se poate descărca: versiunea clientului nu este acceptată</string>
     <string name="market_version_too_low_message">Versiunea curentă a clientului %1$s este mai mică decât versiunea minimă cerută de resursă, %2$s. Vă rugăm să actualizați clientul înainte de descărcare.</string>
     <string name="market_version_too_high_message">Versiunea curentă a clientului %1$s este mai mare decât versiunea maximă acceptată de resursă, %2$s. Vă rugăm să utilizați o versiune de client acceptată.</string>
-    <string name="external_http_chat_a2a_title">Interfață A2A Agent</string>
-    <string name="external_http_chat_a2a_desc">Furnizează serviciul A2A 1.0 JSON-RPC folosind același port de ascultare și același Bearer Token. În primul rând, oferiți adresa Agent Card clientului A2A pentru descoperire.</string>
-    <string name="external_http_chat_a2a_agent_card">Adresă Agent Card</string>
-    <string name="external_http_chat_a2a_json_rpc">Adresă JSON-RPC</string>
-    <string name="external_http_chat_a2a_copy_agent_card">Copiați Agent Card</string>
-    <string name="external_http_chat_a2a_copy_json_rpc">Copiați JSON-RPC</string>
-    <string name="external_http_chat_a2a_url_copied">Adresa A2A a fost copiată</string>
     <string name="search_group_title">Căutare</string>
     <string name="thinking_search_group_title">Gândiți și căutați</string>
     <string name="thinking_search_tools_group_title_with_count">Gândiți, căutați și apelați instrumente (%1$d)</string>
@@ -8957,7 +8909,7 @@
     <string name="resource_ubuntu_not_installed">Mediul Ubuntu nu este instalat. După pregătirea resurselor terminalului, intrați în terminal pentru a finaliza instalarea.</string>
     <string name="resource_delete_error">Ștergerea nu a reușit: %1$s</string>
     <string name="resource_ubuntu_delete_pending">Mediul Ubuntu nu este instalat și curățarea terminalului nu a fost finalizată. Îl puteți reimporta după finalizare; dacă curățarea eșuează, faceți clic din nou pe Ștergere.</string>
-    <string name="theme_background_transparency_hint">0% complet opac, 100% complet transparent; afectează doar fundalul.</string>
+    <string name="theme_background_transparency_hint" formatted="false">0% complet opac, 100% complet transparent; afectează doar fundalul.</string>
     <string name="theme_input_background_transparency">Transparența fundalului casetei de intrare</string>
     <string name="theme_user_background_transparency">Transparența fundalului cu bule de utilizator</string>
     <string name="theme_ai_background_transparency">Transparența fundalului cu bule AI</string>

@@ -1142,6 +1142,19 @@ class ChatHistoryDelegate(
         }
     }
 
+    internal suspend fun retractStreamingMessages(chatId: String, timestamps: List<Long>) {
+        if (timestamps.isEmpty()) return
+
+        historyUpdateMutex.withLock {
+            timestamps.distinct().forEach { timestamp ->
+                chatHistoryManager.deleteMessage(chatId, timestamp)
+            }
+            if (_currentChatId.value == chatId) {
+                reloadCurrentChatDisplayHistory(chatId)
+            }
+        }
+    }
+
     fun setMessageFavorite(timestamp: Long, isFavorite: Boolean) {
         coroutineScope.launch {
             val chatId = _currentChatId.value ?: return@launch

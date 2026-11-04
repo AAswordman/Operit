@@ -31,6 +31,8 @@ import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.media.ImageOutputFormat
 import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.util.media.ImageRegistrationOptions
+import com.ai.assistance.operit.util.stream.collectRevisionAppliedText
+
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -601,9 +603,7 @@ class PhoneAgent(
             preserveThinkInHistory = true
         )
 
-        val contentBuilder = StringBuilder()
-        responseStream.collect { chunk -> contentBuilder.append(chunk) }
-        val fullResponse = contentBuilder.toString().trim()
+        val fullResponse = responseStream.collectRevisionAppliedText().trim()
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: AI response collected, length=${fullResponse.length}")
 
         val (thinking, answer) = parseThinkingAndAction(fullResponse)

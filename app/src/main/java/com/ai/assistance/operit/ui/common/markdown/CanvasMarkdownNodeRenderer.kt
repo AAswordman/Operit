@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.common.markdown
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeTextLayout
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeNativeText
 import androidx.compose.runtime.CompositionLocalProvider
 import com.ai.assistance.operit.ui.common.a2ui.A2uiCard
 import com.ai.assistance.operit.ui.common.a2ui.LocalA2uiOwner
@@ -32,7 +35,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.res.stringResource
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -825,6 +828,7 @@ private fun UnifiedCanvasRenderer(
     fillMaxWidth: Boolean = true,
     isLastNode: Boolean = false
 ) {
+    val textStroke = LocalThemeTextStroke.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val textLayoutSettings = LocalAiMarkdownTextLayoutSettings.current
 
@@ -1058,11 +1062,14 @@ private fun UnifiedCanvasRenderer(
                                 val textBottom = instruction.y + instruction.paint.descent()
 
                                 if (textBottom >= clipBounds.top && textTop <= clipBounds.bottom) {
-                                    canvas.nativeCanvas.drawText(
+                                    drawThemeNativeText(
+                                        canvas.nativeCanvas,
                                         instruction.text,
                                         instruction.x,
                                         instruction.y,
-                                        instruction.paint
+                                        instruction.paint,
+                                        textStroke = textStroke,
+                                        density = this.density,
                                     )
                                 }
                             }
@@ -1159,14 +1166,14 @@ private fun UnifiedCanvasRenderer(
                                         canvas.nativeCanvas.save()
                                         canvas.nativeCanvas.clipRect(0f, 0f, layout.width.toFloat(), lineTopPx)
                                         drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                                        layout.draw(canvas.nativeCanvas)
+                                        drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                                         canvas.nativeCanvas.restore()
 
                                         // 2. 绘制当前行，直到当前正在显示的字符之前
                                         canvas.nativeCanvas.save()
                                         canvas.nativeCanvas.clipRect(0f, lineTopPx, charMinX, lineBottomPx)
                                         drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                                        layout.draw(canvas.nativeCanvas)
+                                        drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                                         canvas.nativeCanvas.restore()
 
                                         // 3. 绘制当前正在显示的字符（带淡入效果）
@@ -1180,13 +1187,13 @@ private fun UnifiedCanvasRenderer(
                                             // 注意：saveLayerAlpha 在某些情况下可能会对其包含的内容做混合，如果不需要可以简化
                                             canvas.nativeCanvas.saveLayerAlpha(charMinX, lineTopPx, visibleRight, lineBottomPx, alphaInt)
                                             drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                                            layout.draw(canvas.nativeCanvas)
+                                            drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                                             canvas.nativeCanvas.restore()
                                             canvas.nativeCanvas.restore()
                                         }
                                     } else if (shouldDrawFully) {
                                         drawInlineCodeBackgrounds(instruction.layout, canvas.nativeCanvas)
-                                        instruction.layout.draw(canvas.nativeCanvas)
+                                        drawThemeTextLayout(instruction.layout, canvas.nativeCanvas, textStroke)
                                     }
                                     canvas.nativeCanvas.restore()
                                 }
@@ -1633,6 +1640,7 @@ private fun SingleTextCanvas(
     density: Density,
     modifier: Modifier = Modifier
 ) {
+    val textStroke = LocalThemeTextStroke.current
     if (text.isEmpty()) return
 
     val textLayoutSettings = LocalAiMarkdownTextLayoutSettings.current
@@ -1708,7 +1716,7 @@ private fun SingleTextCanvas(
                     // 判断是否在可见区域内
                     if (totalHeight >= clipBounds.top && 0f <= clipBounds.bottom) {
                         drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                        layout.draw(canvas.nativeCanvas)
+                        drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                     }
                 }
             }

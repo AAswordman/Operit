@@ -77,7 +77,7 @@ internal val ThemeStudioTargets: List<StudioTarget> = buildList {
     add(StudioTarget("typography", StudioKind.Typography, StudioGroup.Global, StudioScene.Chat))
     add(StudioTarget("palette", StudioKind.Palette, StudioGroup.Global, StudioScene.Chat))
     ThemeScriptContract.surfaceIds.forEach { id ->
-        val group = when (id) {
+        val group = if (id in ThemeScriptContract.actionButtonIds) StudioGroup.Buttons else when (id) {
             "background" -> StudioGroup.Global
             "userMessage", "assistantMessage", "userAvatar", "assistantAvatar", "status", "toolCard" -> StudioGroup.Messages
             "composer", "input" -> StudioGroup.Input
@@ -90,24 +90,24 @@ internal val ThemeStudioTargets: List<StudioTarget> = buildList {
             StudioGroup.Navigation -> StudioScene.Navigation
             StudioGroup.Settings, StudioGroup.Panels -> StudioScene.Components
             StudioGroup.Messages -> if (id == "toolCard") StudioScene.Components else StudioScene.Chat
-            StudioGroup.Buttons -> if (id == "button") StudioScene.Components else StudioScene.Chat
+            StudioGroup.Buttons -> if (id.startsWith("appBar.")) StudioScene.Navigation else if (id == "button") StudioScene.Components else StudioScene.Chat
             else -> StudioScene.Chat
         }
-        val states = when (id) {
+        val states = if (id in ThemeScriptContract.actionButtonIds) listOf("pressed", "focused", "selected", "disabled") else when (id) {
             "button", "iconButton" -> listOf("pressed", "focused", "disabled")
             "navigationItem" -> listOf("selected")
             else -> emptyList()
         }
         add(StudioTarget(id, StudioKind.Surface, group, scene, states))
     }
-    ThemeScriptContract.iconIds.forEach { id ->
+    (ThemeScriptContract.iconIds - ThemeScriptContract.actionButtonIds).forEach { id ->
         add(StudioTarget(id, StudioKind.Icon, StudioGroup.Icons, if (id.startsWith("appBar.") || id == "navigation.item") StudioScene.Navigation else StudioScene.Chat))
     }
 }
 
 @Composable
 internal fun StudioTarget.label(): String = when (kind) {
-    StudioKind.Surface -> themeAppearanceAreaLabel(id)
+    StudioKind.Surface -> if (id in ThemeScriptContract.actionButtonIds) themeAppearanceIconLabel(id) else themeAppearanceAreaLabel(id)
     StudioKind.Icon -> themeAppearanceIconLabel(id)
     StudioKind.Typography -> stringResource(R.string.studio_typography)
     StudioKind.Palette -> stringResource(R.string.studio_palette)

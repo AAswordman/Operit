@@ -62,7 +62,7 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 `Appearance` 包含数字 `apiVersion: 1` 和以下可选字段：
 
 - `palette.light/dark`：36 个 Material 颜色 token。包括 primary/secondary/tertiary 的前景与容器、background/surface、surfaceVariant、inverse、error、outline、scrim、surfaceTint，以及 surfaceBright/surfaceDim 和五档 surfaceContainer；完整 token 名称以类型声明为准
-- `typography`：全局字体类别 `default/sans-serif/serif/monospace/cursive` 或 `asset:<素材标识>` 的 TTF/OTF 字体，字号比例 `scale`、行高倍数 `lineHeight` 、字间距 `letterSpacing` 和可选文字色 `color`
+- `typography`：全局字体类别 `default/sans-serif/serif/monospace/cursive` 或 `asset:<素材标识>` 的 TTF/OTF 字体，字号比例 `scale`、行高倍数 `lineHeight` 、字间距 `letterSpacing` 和可选文字色 `color`；可选 `stroke: { color, width }` 独立控制文字描边，宽度为 `0..8 dp`。区域省略时继承上级，`width: 0` 可单独关闭，不影响气泡边框。
 - `surfaces`：上述 22 个部件的局部外观
 - `icons`：原生按钮图像绑定，只替换图像
 - `modes.light/dark`：按模式覆盖 `surfaces/icons/typography`。未声明的部件保留公共外观；声明的单个部件以完整局部对象替换公共部件，局部对象中未指定的字段使用模型默认值。模式展开后才传入脚本，脚本返回的模式覆盖也按当前模式展开
@@ -181,3 +181,14 @@ JVM 用例覆盖格式与机器 schema、旧文件/链接兼容、模式/状态�
 手机操作先读 [16 场景验收指南](theme_acceptance_checklist.md)。完整操作与可填写结果见 [主题回归记录](../../TODO/feat/theme-script-api/03-verification.md)。实现和静态核对不等于 Android 界面验证通过。
 
 当前聊天控件行与工作室共用展示入口，图标槽包含 `appBar.menu`、`appBar.floating` 和 `appBar.workspace`。重构前的 `appBar.history` 已从此开发协议移除；开发工程请更新对应绑定。
+
+
+## 独立动作按钮容器
+
+自定义主题现在可以在 `surfaces` 中以动作图标同名标识声明完整按钮容器：`composer.settings`、`composer.attachment`、`composer.microphone`、`composer.send`、`composer.stop`、`composer.fullscreen`、`composer.queue`、`composer.expand`、`appBar.back`、`appBar.menu`、`appBar.workspace`、`appBar.floating`。
+
+`surfaces[id]` 管理填充、内容色、形状、边框、内边距、前后景图层、透明度和交互状态；`icons[id]` 管理图像、尺寸、透明度和着色。两者分别保存。未声明独立容器时继承共用 `iconButton`；开始编辑时复制当前继承样式为独立声明。恢复共用外观只清除当前明暗模式的该按钮容器，保留另一模式和图标素材。
+
+编辑器为每个按钮开放外观、图层、状态三个页签。按下、聚焦、选中和禁用状态使用实际按钮交互。经典与 Agent 输入区的自绘按钮、两种 Agent 外观、全屏入口和顶栏入口均接入，预览使用相同组件。发送、停止、排队和录音通过当前动作标识分别读取样式；原有业务回调及启用条件保留。
+
+包含独立按钮容器声明的主题需要支持此扩展的应用版本；既有主题及图标素材声明保持可用。

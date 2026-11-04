@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.floating.ui.window.screen
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.annotation.SuppressLint
 import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.compose.animation.core.*

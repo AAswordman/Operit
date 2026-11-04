@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.screens
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
@@ -1161,6 +1163,8 @@ fun MCPConfigScreen(
                     }
                     val isRemote = pluginInfo?.type == "remote"
                     val invalidConfigReason: String? = null
+                    // 保留最近一次启动失败原因，加载过程结束后仍可查看。
+                    val lastStartupError = serverStatusMap[pluginId]?.errorMessage?.takeIf { it.isNotBlank() }
 
                     // 获取插件部署状态（通过检查Linux文件系统）
                     val deploySuccessState = remember(pluginId) {
@@ -1251,7 +1255,8 @@ fun MCPConfigScreen(
                             isRunning = pluginRunningState.value,
                             isDeployed = deploySuccessState.value,
                             isConfigValid = isRemote || deploySuccessState.value,
-                            invalidConfigReason = invalidConfigReason
+                            invalidConfigReason = invalidConfigReason,
+                            startupError = lastStartupError
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
                 }
@@ -1451,7 +1456,8 @@ private fun PluginListItem(
     isRunning: Boolean = false,
     isDeployed: Boolean = false,
     isConfigValid: Boolean = true,
-    invalidConfigReason: String? = null
+    invalidConfigReason: String? = null,
+    startupError: String? = null
 ) {
     val glassEnabled = rememberGlassAppearance().packageCards
     Card(
@@ -1597,6 +1603,17 @@ private fun PluginListItem(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    if (!startupError.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = startupError,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

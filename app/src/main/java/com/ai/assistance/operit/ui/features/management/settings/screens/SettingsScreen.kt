@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.themeScriptBorder
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
@@ -50,7 +52,6 @@ fun SettingsScreen(
         navigateToDataAndBackup: () -> Unit,
 
         navigateToSpeechServicesSettings: () -> Unit,
-        navigateToExternalHttpChatSettings: () -> Unit,
         navigateToPerformanceMonitor: () -> Unit,
         navigateToAbout: () -> Unit
 ) {
@@ -183,13 +184,6 @@ fun SettingsScreen(
 
 
                         CompactSettingsItem(
-                                title = stringResource(id = R.string.settings_external_http_chat),
-                                subtitle = stringResource(id = R.string.settings_external_http_chat_subtitle),
-                                icon = Icons.Default.SettingsEthernet,
-                                onClick = navigateToExternalHttpChatSettings
-                        )
-
-                        CompactSettingsItem(
                                 title = stringResource(id = R.string.settings_performance_monitor),
                                 subtitle = stringResource(id = R.string.settings_performance_monitor_subtitle),
                                 icon = Icons.Default.Speed,
@@ -300,14 +294,14 @@ private fun CompactSettingsItem(
                                 color = themeScriptContentColor("listItem", MaterialTheme.colorScheme.onSurface),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
-                        )
+                        , textStroke = themeTextStroke("listItem"))
                         Text(
                                 text = subtitle,
                                 style = themeScriptTextStyle("listItem", MaterialTheme.typography.bodySmall),
                                 color = themeScriptContentColor("listItem", MaterialTheme.colorScheme.onSurfaceVariant),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
-                        )
+                        , textStroke = themeTextStroke("listItem"))
                 }
 
                 Icon(

@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.common.a2ui
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context

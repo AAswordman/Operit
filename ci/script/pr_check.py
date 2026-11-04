@@ -57,7 +57,9 @@ ANDROID_FULL_PATTERNS = (
     "settings.gradle.kts",
     "tools/native_ripgrep/**",
     "tools/native_apply_patch/**",
-    ".github/actions/native-apply-patch/**",
+    "tools/web_chat_cli/**",
+    "tools/terminal_commands/**",
+    ".github/actions/terminal-commands/**",
 )
 ANDROID_MODULE_ROOTS = (
     "a2ui-compat",

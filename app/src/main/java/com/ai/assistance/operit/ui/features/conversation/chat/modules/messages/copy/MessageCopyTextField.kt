@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.copy
 
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.text.BasicTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeBasicTextField as BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable

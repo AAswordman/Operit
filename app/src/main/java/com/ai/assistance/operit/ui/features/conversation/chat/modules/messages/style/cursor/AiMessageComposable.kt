@@ -1,7 +1,8 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeTypographyScope
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.themeScriptMessageFraction
-import com.ai.assistance.operit.ui.theme.script.themeScriptTypography
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
@@ -138,7 +139,7 @@ fun AiMessageComposable(
         }
     }
 
-    MaterialTheme(typography = themeScriptTypography("assistantMessage", MaterialTheme.typography)) {
+    ThemeTypographyScope("assistantMessage") {
     ProvideAiMarkdownTextLayoutSettings {
         Column(
             modifier =

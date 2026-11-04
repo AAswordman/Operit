@@ -322,6 +322,8 @@ internal fun StandardBrowserSessionTools.captureActionMarkers(
     )
 
 internal fun StandardBrowserSessionTools.isDocumentReady(session: BrowserToolSession): Boolean {
+    // 新主文档请求仍在进行时，旧文档的完成状态不能视为导航完成。
+    if (session.pendingNavigationUrl != null) return false
     if (session.pageLoaded && !session.isLoading) {
         return true
     }
@@ -335,7 +337,7 @@ internal fun StandardBrowserSessionTools.isDocumentReady(session: BrowserToolSes
                 )
             )
         }.getOrNull()
-    return ready == "complete" || ready == "interactive"
+    return session.pendingNavigationUrl == null && (ready == "complete" || ready == "interactive")
 }
 
 internal fun StandardBrowserSessionTools.waitForDocumentReady(
@@ -544,10 +546,34 @@ private fun StandardBrowserSessionTools.actionSettled(
     }
 
     val activeSwitched = policy.allowActivePageSwitch && session.id != markers.initialSessionId
-    val currentUrl = readCurrentUrl(session.webView, session.currentUrl).ifBlank { session.currentUrl }
+    val clickTrace = policy.clickTrace
+    if (clickTrace?.navigationFailure != null) return true
+    val clickDocument =
+        if (clickTrace != null) observeBrowserClickDocument(session, clickTrace) else null
+    if (clickTrace != null && clickDocument?.optBoolean("ok", false) != true) return false
+    val currentUrl =
+        if (clickDocument != null) {
+            clickDocument.getString("locationHref")
+        } else {
+            readCurrentUrl(session.webView, session.currentUrl).ifBlank { session.currentUrl }
+        }
     val urlChanged = currentUrl != markers.initialUrl
+    val frameNavigated = clickDocument?.optBoolean("navigationObserved", false) == true
+    val navigationObserved = activeSwitched || urlChanged || frameNavigated
 
-    if (policy.waitForNavigationChange && !activeSwitched && !urlChanged) {
+    if (clickTrace != null) {
+        if (clickTrace.capturedEvent?.matchesTarget == false ||
+            clickTrace.completedEvent?.matchesTarget == false) return true
+        // 触摸被接受并不代表目标收到 DOM 点击；已提交导航可能先销毁旧观察器。
+        if (clickTrace.capturedEvent == null && !navigationObserved) return false
+    }
+    val mustNavigate = policy.waitForNavigationChange &&
+        clickTrace?.completedEvent?.defaultPrevented != true
+    if (mustNavigate && !navigationObserved) return false
+    if (mustNavigate && clickTrace != null && currentUrl == "about:blank" && !frameNavigated) {
+        return false
+    }
+    if (mustNavigate && frameNavigated && clickDocument?.getBoolean("navigationReady") != true) {
         return false
     }
 

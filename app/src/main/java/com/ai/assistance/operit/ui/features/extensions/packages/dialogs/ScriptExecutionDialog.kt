@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.dialogs
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer

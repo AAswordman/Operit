@@ -60,7 +60,13 @@ class ScopeClassificationTest(unittest.TestCase):
             "tools/native_apply_patch/src/lib.rs",
             "tools/native_apply_patch/install.sh",
             "tools/native_apply_patch/Cargo.lock",
-            ".github/actions/native-apply-patch/action.yml",
+            "tools/web_chat_cli/src/client.rs",
+            "tools/web_chat_cli/install.sh",
+            "tools/web_chat_cli/package_assets.py",
+            "tools/web_chat_cli/Cargo.lock",
+            "tools/terminal_commands/verify_assets.py",
+            "tools/terminal_commands/rust-toolchain.toml",
+            ".github/actions/terminal-commands/action.yml",
         ):
             with self.subTest(path=path):
                 self.assertTrue(classify_paths([path]).android_full)

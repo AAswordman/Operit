@@ -192,6 +192,7 @@ fun ThemeScriptTextButton(
 }
 
 @Composable
+@androidx.compose.ui.UiComposable
 fun ThemeScriptIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -199,24 +200,32 @@ fun ThemeScriptIconButton(
     colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
     interactionSource: MutableInteractionSource? = null,
     shape: Shape = IconButtonDefaults.standardShape,
-    content: @Composable () -> Unit,
+    actionId: String? = null,
+    selected: Boolean = false,
+    content: @Composable @androidx.compose.ui.UiComposable () -> Unit,
 ) {
-    ThemeInteractionScope("iconButton", interactionSource, enabled) { activeSource ->
-        val style = themeSurface("iconButton")
+    require(actionId == null || actionId in com.ai.assistance.operit.data.theme.script.ThemeScriptContract.actionButtonIds)
+    val id = actionId ?: "iconButton"
+    ThemeInteractionScope(id, interactionSource, enabled, selected) { activeSource ->
+        val style = themeSurface(id)
         NativeIconButton(
             onClick = onClick,
-            modifier = modifier.alpha(themeSurface("iconButton")?.opacity ?: 1f),
-            shape = themeScriptShape("iconButton", shape),
+            modifier = modifier.alpha(style?.opacity ?: 1f),
+            shape = themeScriptShape(id, shape),
             enabled = enabled,
             colors = if (style == null) colors else colors.copy(
-                containerColor = themeScriptFill("iconButton", colors.containerColor),
-                contentColor = themeScriptContentColor("iconButton", colors.contentColor),
-                disabledContainerColor = if ("disabled" in style.states) themeScriptFill("iconButton", colors.disabledContainerColor) else colors.disabledContainerColor,
-                disabledContentColor = if ("disabled" in style.states) themeScriptContentColor("iconButton", colors.disabledContentColor) else colors.disabledContentColor,
+                containerColor = themeScriptFill(id, colors.containerColor),
+                contentColor = themeScriptContentColor(id, colors.contentColor),
+                disabledContainerColor = if ("disabled" in style.states) themeScriptFill(id, colors.disabledContainerColor) else colors.disabledContainerColor,
+                disabledContentColor = if ("disabled" in style.states) themeScriptContentColor(id, colors.disabledContentColor) else colors.disabledContentColor,
             ),
             interactionSource = activeSource,
         ) {
-            if (style == null) content() else Box(Modifier.fillMaxSize().themeScriptDecoration("iconButton", enabled = enabled, drawFill = false, originalShape = shape), contentAlignment = Alignment.Center) { content() }
+            if (style == null) content() else Box(
+                Modifier.fillMaxSize().themeScriptDecoration(id, enabled = enabled, selected = selected,
+                    drawFill = false, originalShape = shape),
+                contentAlignment = Alignment.Center,
+            ) { content() }
         }
     }
 }

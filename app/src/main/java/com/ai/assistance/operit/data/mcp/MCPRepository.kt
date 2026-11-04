@@ -126,9 +126,11 @@ class MCPRepository(private val context: Context) {
             val installedIds = mutableSetOf<String>()
 
             pluginMetadata.values.forEach { metadata ->
-                // 统一检查：根据 command 判断是否需要物理安装
+                // 配置中的本地服务应进入启动列表；运行文件是否就绪由启动阶段判断。
                 val isInstalled = if (metadata.type == "remote") {
                     true // 远程服务器
+                } else if (mcpLocalServer.getMCPServer(metadata.id) != null) {
+                    true
                 } else {
                     isPluginPhysicallyInstalled(metadata.id) // 自动处理 npx/uvx/uv
                 }
@@ -198,28 +200,16 @@ class MCPRepository(private val context: Context) {
     }
 
     /**
-     * 判断插件是否需要物理安装（npx/uvx/uv/remote 类型不需要）
+     * 判断插件是否需要物理安装（npx/uvx/uv 以及自包含路径配置不需要）
      */
     private fun needsPhysicalInstallation(serverId: String): Boolean {
-        val serverConfig = mcpLocalServer.getMCPServer(serverId)
-        val command = serverConfig?.command?.lowercase() ?: return true
-        
-        return commandNeedsPhysicalInstallation(command)
-    }
-    
-    /**
-     * 判断命令类型是否需要物理安装
-     * @param command 命令字符串（小写）
-     * @return true 如果需要物理安装，false 如果是 npx/uvx/uv 等不需要物理安装的命令
-     */
-    private fun commandNeedsPhysicalInstallation(command: String): Boolean {
-        // npx、uvx、uv、remote 类型的插件不需要物理安装
-        return when (command) {
-            "npx" -> false
-            "uvx" -> false
-            "uv" -> false
-            else -> true
-        }
+        val serverConfig = mcpLocalServer.getMCPServer(serverId) ?: return true
+
+        return McpStdioConfigResolver.requiresAppManagedInstallation(
+            command = serverConfig.command,
+            args = serverConfig.args.orEmpty(),
+            cwd = serverConfig.cwd
+        )
     }
     
     /**
@@ -231,11 +221,11 @@ class MCPRepository(private val context: Context) {
         return parsedConfig.servers
             .filterIsInstance<StdioMcpImportedServer>()
             .any { server ->
-                val command = server.command
-                    .substringAfterLast('/')
-                    .substringAfterLast('\\')
-                    .lowercase()
-                commandNeedsPhysicalInstallation(command)
+                McpStdioConfigResolver.requiresAppManagedInstallation(
+                    command = server.command,
+                    args = server.args,
+                    cwd = server.cwd
+                )
             }
     }
 
@@ -264,6 +254,9 @@ class MCPRepository(private val context: Context) {
             false // 没有元数据记录
         } else if (metadata.type == "remote") {
             true // 远程服务器配置后即为已安装
+        } else if (mcpLocalServer.getMCPServer(serverId) != null) {
+            // 已写入 mcpServers 的本地服务由用户配置，启动时就绪性由 MCPLocalServer 判定
+            true
         } else {
             isPluginPhysicallyInstalled(serverId) // 自动处理 npx/uvx/uv
         }
