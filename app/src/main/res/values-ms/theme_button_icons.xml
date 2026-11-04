@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Ikon butang</string>
+    <string name="studio_button_icons_hint">Setiap baris mewakili satu butang. Pilih aset cerah atau gelap untuk menyesuaikan imej, saiz, kelegapan dan warna secara berasingan.</string>
+</resources>

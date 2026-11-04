@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">按钮图标</string>
+    <string name="studio_button_icons_hint">每行对应一个按钮；点选浅色或深色素材，可独立调整图像、大小、透明度和着色。</string>
+</resources>

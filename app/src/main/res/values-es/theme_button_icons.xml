@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Iconos de botones</string>
+    <string name="studio_button_icons_hint">Cada fila corresponde a un botón. Selecciona su recurso claro u oscuro para personalizar la imagen, el tamaño, la opacidad y el color por separado.</string>
+</resources>

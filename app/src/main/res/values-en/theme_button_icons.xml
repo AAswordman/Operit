@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Button icons</string>
+    <string name="studio_button_icons_hint">Each row is one button. Select its light or dark asset to customize the image, size, opacity and tint independently.</string>
+</resources>

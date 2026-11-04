@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">ボタンのアイコン</string>
+    <string name="studio_button_icons_hint">各行が1つのボタンに対応します。ライトまたはダークの素材を選ぶと、画像、サイズ、不透明度、色を個別に調整できます。</string>
+</resources>
