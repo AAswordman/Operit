@@ -2,10 +2,18 @@ package com.ai.assistance.operit.util.stream
 
 import kotlinx.coroutines.CoroutineScope
 
+/** 流式修订使用生产者记录的原始输出坐标，不能从消费者当前正文长度推算。 */
 data class TextStreamEvent(
     val eventType: TextStreamEventType,
-    val id: String
+    val id: String,
+    val contentLength: Int,
+    val discardedLength: Int = 0
 )
+
+fun TextStreamEvent.shiftedBy(offset: Int): TextStreamEvent {
+    if (offset == 0) return this
+    return copy(contentLength = contentLength + offset)
+}
 
 enum class TextStreamEventType {
     SAVEPOINT,
@@ -167,11 +175,5 @@ fun Stream<String>.shareRevisable(
         propagateCompletionCause = propagateCompletionCause,
     )
     val carrier = this as? TextStreamEventCarrier ?: return sharedTextStream
-    val sharedEventStream = carrier.eventChannel.share(
-        scope = scope,
-        replay = Int.MAX_VALUE,
-        started = started,
-        propagateCompletionCause = propagateCompletionCause,
-    )
-    return sharedTextStream.withEventChannel(sharedEventStream)
+    return sharedTextStream.withEventChannel(carrier.eventChannel)
 }

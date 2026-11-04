@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.core.chat.context
 
+import com.ai.assistance.operit.util.stream.MutableSharedStream
+import com.ai.assistance.operit.util.stream.collectWithRevisionRelay
 import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.api.chat.request.LlmRetryPolicy
 import kotlinx.coroutines.CancellationException
@@ -420,37 +422,13 @@ class ConversationService(
         onChunk: (String) -> Unit,
         onRollback: (String) -> Unit,
     ) {
-        val carrier = stream as? TextStreamEventCarrier
-        if (carrier == null) {
-            stream.collect(onChunk)
-            return
-        }
-
-        val tracker = TextStreamRevisionTracker()
-        val revisionMutex = Mutex()
-        coroutineScope {
-            val revisionJob = launch {
-                carrier.eventChannel.collect { event ->
-                    revisionMutex.withLock {
-                        when (event.eventType) {
-                            TextStreamEventType.SAVEPOINT -> tracker.savepoint(event.id)
-                            TextStreamEventType.ROLLBACK ->
-                                tracker.rollback(event.id)?.toString()?.let(onRollback)
-                        }
-                    }
-                }
-            }
-            try {
-                stream.collect { chunk ->
-                    revisionMutex.withLock {
-                        tracker.append(chunk)
-                        onChunk(chunk)
-                    }
-                }
-            } finally {
-                revisionJob.cancel()
-            }
-        }
+        stream.collectWithRevisionRelay(
+            eventChannel = MutableSharedStream(replay = 0),
+            roundStartLength = 0,
+            onRollback = onRollback,
+            onCompletion = onRollback,
+            onChunk = { onChunk(it) },
+        )
     }
 
     private fun sanitizeConversationTitle(rawTitle: String): String {
@@ -1244,11 +1222,11 @@ class ConversationService(
                                 val shouldPublish = revisionMutex.withLock {
                                     when (event.eventType) {
                                         TextStreamEventType.SAVEPOINT -> {
-                                            revisionTracker.savepoint(event.id)
+                                            revisionTracker.savepoint(event.id, event.contentLength)
                                             false
                                         }
                                         TextStreamEventType.ROLLBACK -> {
-                                            revisionTracker.rollback(event.id)
+                                            revisionTracker.rollback(event.id, event.contentLength, event.discardedLength)
                                             true
                                         }
                                     }
@@ -1267,7 +1245,13 @@ class ConversationService(
                                 publishCurrentContent()
                             }
                         } finally {
-                            revisionJob.cancelAndJoin()
+                            withContext(NonCancellable) {
+                                revisionJob.cancelAndJoin()
+                                revisionMutex.withLock {
+                                    revisionTracker.applyEventHistory(revisableStream.eventChannel.replayCache)
+                                }
+                                publishCurrentContent(force = true)
+                            }
                         }
                     }
                     publishCurrentContent(force = true)

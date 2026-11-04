@@ -1572,6 +1572,10 @@ open class OpenAIProvider(
             // 思考标签会先写入缓冲，不能把缓冲为空当成还没收到输出。
             onFirstOutput()
         }
+        private val savepointRawOffsets = mutableMapOf<String, Int>()
+
+        private var discardedTotal = 0
+
 
         suspend fun emitContent(content: String) {
             if (content.isNotNullOrEmpty()) {
@@ -1620,18 +1624,37 @@ open class OpenAIProvider(
         }
 
         suspend fun emitSavepoint(id: String) {
+            val rawOffset = receivedContent.length + discardedTotal
             savepointLengths[id] = receivedContent.length
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.SAVEPOINT, id))
+            savepointRawOffsets[id] = rawOffset
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SAVEPOINT,
+                    id = id,
+                    contentLength = rawOffset
+                )
+            )
         }
 
         fun getSavepointLength(id: String): Int? = savepointLengths[id]
 
         suspend fun emitRollback(id: String): Boolean {
-            val savepointLength = savepointLengths[id] ?: return false
-            if (receivedContent.length > savepointLength) {
-                receivedContent.setLength(savepointLength)
+            val retainedLength = savepointLengths[id] ?: return false
+            val rawOffset = savepointRawOffsets[id] ?: return false
+            val discardedLength = (receivedContent.length - retainedLength).coerceAtLeast(0)
+            if (discardedLength > 0) {
+                receivedContent.setLength(retainedLength)
+                discardedTotal += discardedLength
             }
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.ROLLBACK, id))
+            savepointRawOffsets[id] = rawOffset + discardedLength
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.ROLLBACK,
+                    id = id,
+                    contentLength = rawOffset,
+                    discardedLength = discardedLength
+                )
+            )
             return true
         }
 
