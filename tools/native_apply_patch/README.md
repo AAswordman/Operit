@@ -102,6 +102,8 @@ python3 tools/native_apply_patch/package_assets.py \
 
 Build 与 PR Android build 会核对最终 APK 中的命令、清单和许可文件。Android Tests 与 PR Android JVM tests 另运行 Rust 工作区回归、QEMU ARM64 的全部 25 个场景的检查/预览/应用对照以及安装升级回归。该功能源码与复用步骤的改动均触发完整 Android 检查。
 
+应用打包现在还要求准备独立的 `web-chat` 命令资源；本模块的 `--verify` 与 `--verify-apks` 入口会同时核对两套资源。另一个命令的构建步骤见 [web-chat 构建说明](../web_chat_cli/README.md)。
+
 ## 验证状态与许可
 
 维护者已在 Android 实机确认旧入口的 `Add File` 可用，未据此宣称其他操作或新选项通过。本轮完成来源文件哈希、资源与会话入口静态核对、Python/TOML/YAML 解析及 Git 差异检查。本地未编译或运行测试；仓库工作流结果待确认。完整项目与可填写记录见[回归清单](../../docs/TODO/feat/terminal-apply-patch/02-verification.md)。

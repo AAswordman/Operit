@@ -2742,7 +2742,6 @@
     <string name="settings_custom_headers">사용자 정의 헤더</string>
     <string name="settings_custom_headers_subtitle">API 요청 헤더 필드 구성</string>
     <string name="headers_configured_count">%1$d 구성됨</string>
-    <string name="screen_title_external_http_chat_settings">외부 HTTP 호출</string>
     <string name="settings_system_prompts_subtitle">시스템 및 모델 프롬프트</string>
     <string name="settings_functional_prompts_subtitle">기능 프롬프트 템플릿</string>
     <string name="settings_context_length">컨텍스트 길이</string>
@@ -2779,8 +2778,6 @@
     <string name="layout_reset_settings_desc">모든 레이아웃 조정 설정을 기본값으로 재설정</string>
     <string name="settings_data_permissions">데이터 및 권한</string>
     <string name="settings_tool_permissions_subtitle">도구 권한 및 보안 설정</string>
-    <string name="settings_external_http_chat">외부 HTTP 호출</string>
-    <string name="settings_external_http_chat_subtitle">0.0.0.0에서 수신하는 HTTP 채팅 API의 포트와 Bearer Token</string>
     <string name="settings_data_backup_subtitle">채팅기록 백업 관리</string>
     <string name="settings_token_usage_stats">토큰 사용 통계</string>
     <string name="settings_function_label">기능</string>
@@ -3900,50 +3897,6 @@
     <string name="settings_context_title">컨텍스트 설정</string>
     <string name="settings_summary_title">요약 설정</string>
     <string name="settings_context_summary_subtitle">컨텍스트, 요약 및 기록 미디어 보존 설정 관리</string>
-    <string name="external_http_chat_enable">외부 HTTP 서비스 활성화</string>
-    <string name="external_http_chat_enable_desc">외부 HTTP 서비스를 시작하고 이를 0.0.0.0에 바인딩합니다. 동일한 포트가 HTTP API와 브라우저에서 액세스 가능한 웹 채팅 UI를 모두 제공합니다.</string>
-    <string name="external_http_chat_port">수신 포트</string>
-    <string name="external_http_chat_port_desc">기본값은 8094입니다. 서비스는 0.0.0.0:PORT에서 수신 대기합니다. 저장하면 서비스가 활성화되면 다시 시작됩니다.</string>
-    <string name="external_http_chat_save_port">포트 저장</string>
-    <string name="external_http_chat_port_saved">포트가 저장되었습니다.</string>
-    <string name="external_http_chat_invalid_port">포트가 잘못되었습니다. 1에서 65535 사이의 값을 입력하세요.</string>
-    <string name="external_http_chat_token">Bearer Token</string>
-    <string name="external_http_chat_token_desc">처음 활성화 시 자동으로 생성됩니다. 클라이언트는 Authorization 헤더에 이를 보내야 합니다.</string>
-    <string name="external_http_chat_token_not_generated">아직 생성되지 않았습니다. 먼저 서비스를 활성화하세요.</string>
-    <string name="external_http_chat_copy_token">토큰 복사</string>
-    <string name="external_http_chat_reset_token">토큰 재설정</string>
-    <string name="external_http_chat_token_copied">토큰 복사됨</string>
-    <string name="external_http_chat_token_reset">토큰 재설정 및 복사됨</string>
-    <string name="external_http_chat_status">상태</string>
-    <string name="external_http_chat_status_running">0.0.0.0:%1$d에서 실행 및 수신 중</string>
-    <string name="external_http_chat_status_stopped">서비스가 실행되고 있지 않습니다.</string>
-    <string name="external_http_chat_status_error">서비스 오류: %1$s</string>
-    <string name="external_http_chat_web_title">웹 채팅 진입점</string>
-    <string name="external_http_chat_web_desc">동일한 포트가 웹 채팅 UI와 HTTP API를 모두 제공합니다. 브라우저에서 아래 주소를 연 후, 첫 접속 시 위의 Bearer Token을 입력하세요.</string>
-    <string name="external_http_chat_web_note">웹 UI는 루트 경로 /를 사용합니다. HTTP API는 여전히 %1$s 아래에 있습니다.</string>
-    <string name="external_http_chat_copy_web_url">웹 URL 복사</string>
-    <string name="external_http_chat_web_url_copied">웹 URL이 복사되었습니다.</string>
-    <string name="external_http_chat_access_urls">탐지된 LAN 주소</string>
-    <string name="external_http_chat_bind_hint">서비스는 0.0.0.0:%1$d에서 수신 대기합니다. 이는 모든 네트워크 인터페이스에서 요청을 수락한다는 의미입니다. 아래 주소는 복사용으로 감지된 LAN IPv4 주소입니다.</string>
-    <string name="external_http_chat_no_lan_ip">사용 가능한 LAN IPv4 주소가 감지되지 않았습니다. 서비스는 여전히 0.0.0.0에서 수신 대기하므로 연결을 확인하거나 연결 가능한 다른 주소를 사용하세요.</string>
-    <string name="external_http_chat_sync_example">동기화 요청 예</string>
-    <string name="external_http_chat_async_example">비동기 콜백 예</string>
-    <string name="external_http_chat_health_example">상태 확인 예시</string>
-    <string name="external_http_chat_intent_title">Intent 호출 가이드</string>
-    <string name="external_http_chat_intent_desc">로컬 앱 통합, Tasker 또는 adb 디버깅에는 브로드캐스트 항목을 계속 사용할 수 있습니다.</string>
-    <string name="external_http_chat_intent_overview">HTTP와 Intent는 동일한 매개변수 의미를 공유합니다. 입력 방법만 다릅니다.
-
-요청 Action: %1$s
-기본 결과 Action: %2$s
-
-공통 extras: message, request_id, group, create_new_chat, chat_id, create_if_none, show_floating, return_tool_status, initial_mode, auto_exit_after_ms, stop_after, reply_action, reply_package
-
-완료 후 Operit는 success, chat_id, ai_response, error를 브로드캐스트로 반환합니다. 결과를 하나의 앱에만 전달해야 한다면 reply_package를 설정하세요.</string>
-    <string name="external_http_chat_copy_example">예제 복사</string>
-    <string name="external_http_chat_example_copied">예제 명령 복사됨</string>
-    <string name="external_http_chat_service_enabled">서비스 활성화됨</string>
-    <string name="external_http_chat_service_disabled">서비스가 비활성화되었습니다.</string>
-    <string name="external_http_chat_restart_service">서비스 다시 시작</string>
     <string name="manage_custom_emoji">맞춤 이모티콘 관리</string>
     <string name="custom_emoji_bound_to_target">현재 캐릭터 대상에 바인딩</string>
     <string name="add_emoji">이모지 추가</string>
@@ -6696,9 +6649,6 @@
     <string name="market_install_recording">다운로드 통계 동기화 중</string>
     <string name="market_install_switch_to_version">이 버전으로 전환</string>
     <string name="market_install_builtin_conflict">내장 플러그인 충돌</string>
-    <string name="external_http_chat_save_token">저장</string>
-    <string name="external_http_chat_token_saved">토큰이 저장되었습니다</string>
-    <string name="external_http_chat_token_length_error">토큰 길이는 6자 이상이어야 합니다!</string>
     <string name="xml_tag_menu_title">사용 가능한 태그</string>
     <string name="xml_tag_menu_content_description">사용 가능한 태그 선택</string>
     <string name="xml_tag_desc_font">글꼴 스타일</string>
@@ -6926,13 +6876,6 @@
     <string name="market_version_incompatible_title">다운로드 불가: 클라이언트 버전이 지원되지 않음</string>
     <string name="market_version_too_low_message">현재 클라이언트 버전 %1$s이(가) 이 리소스의 최소 요구 버전 %2$s보다 낮습니다. 클라이언트를 업데이트한 후 다시 다운로드하세요.</string>
     <string name="market_version_too_high_message">현재 클라이언트 버전 %1$s이(가) 이 리소스의 최대 지원 버전 %2$s보다 높습니다. 지원되는 클라이언트 버전을 사용하세요.</string>
-    <string name="external_http_chat_a2a_title">A2A 에이전트 인터페이스</string>
-    <string name="external_http_chat_a2a_desc">동일한 수신 포트와 Bearer 토큰을 사용하여 A2A 1.0 JSON-RPC 서비스를 제공합니다. 먼저 Agent Card 주소를 A2A 클라이언트에 제공하여 검색하세요.</string>
-    <string name="external_http_chat_a2a_agent_card">Agent Card 주소</string>
-    <string name="external_http_chat_a2a_json_rpc">JSON-RPC 주소</string>
-    <string name="external_http_chat_a2a_copy_agent_card">Agent Card 복사</string>
-    <string name="external_http_chat_a2a_copy_json_rpc">JSON-RPC 복사</string>
-    <string name="external_http_chat_a2a_url_copied">A2A 주소가 복사되었습니다</string>
     <string name="search_group_title">검색</string>
     <string name="thinking_search_group_title">생각하고 검색</string>
     <string name="thinking_search_tools_group_title_with_count">생각, 검색 및 도구 호출(%1$d)</string>

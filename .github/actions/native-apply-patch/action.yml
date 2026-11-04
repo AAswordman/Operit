@@ -1,8 +1,8 @@
-name: Prepare terminal apply_patch
-description: 构建并打包 Ubuntu ARM64 的 apply_patch 命令
+name: Prepare terminal commands
+description: 构建并打包 Ubuntu ARM64 的 apply_patch 与 web-chat 命令
 inputs:
   run-tests:
-    description: 执行原版回归及 ARM64 安装回归
+    description: 执行 apply_patch、web-chat 及 ARM64 分发安装回归
     required: false
     default: 'false'
 runs:
@@ -27,7 +27,8 @@ runs:
           ~/.cargo/registry
           ~/.cargo/git
           tools/native_apply_patch/target
-        key: terminal-apply-patch-gnu-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/native_apply_patch/**/Cargo.toml', 'tools/native_apply_patch/Cargo.lock', 'tools/native_apply_patch/rust-toolchain.toml', 'tools/native_apply_patch/**/*.rs') }}
+          tools/web_chat_cli/target
+        key: terminal-apply-patch-gnu-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/native_apply_patch/**/Cargo.toml', 'tools/native_apply_patch/Cargo.lock', 'tools/native_apply_patch/rust-toolchain.toml', 'tools/native_apply_patch/**/*.rs', 'tools/web_chat_cli/Cargo.toml', 'tools/web_chat_cli/Cargo.lock', 'tools/web_chat_cli/**/*.rs') }}
 
     - name: Build Ubuntu ARM64 command
       shell: bash
@@ -44,6 +45,12 @@ runs:
         python3 tools/native_apply_patch/package_assets.py \
           --binary tools/native_apply_patch/target/aarch64-unknown-linux-gnu/release/apply_patch \
           --output app/build/generated/terminal-command-assets
+        cargo "+$native_patch_rust" build \
+          --manifest-path tools/web_chat_cli/Cargo.toml \
+          --release --target aarch64-unknown-linux-gnu --locked
+        python3 tools/web_chat_cli/package_assets.py \
+          --binary tools/web_chat_cli/target/aarch64-unknown-linux-gnu/release/web-chat \
+          --output app/build/generated/terminal-command-assets
 
     - name: Check patch semantics and command installation
       if: inputs.run-tests == 'true'
@@ -53,6 +60,11 @@ runs:
         native_patch_rust=$(python3 -c 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path("tools/native_apply_patch/rust-toolchain.toml").read_text())["toolchain"]["channel"])')
         cargo "+$native_patch_rust" test \
           --manifest-path tools/native_apply_patch/Cargo.toml --workspace --locked
+        cargo "+$native_patch_rust" test \
+          --manifest-path tools/web_chat_cli/Cargo.toml --locked
+        python3 tools/web_chat_cli/tests/check_distribution.py \
+          --binary tools/web_chat_cli/target/aarch64-unknown-linux-gnu/release/web-chat \
+          --sysroot /usr/aarch64-linux-gnu
         python3 tools/native_apply_patch/tests/check_distribution.py \
           --binary tools/native_apply_patch/target/aarch64-unknown-linux-gnu/release/apply_patch \
           --sysroot /usr/aarch64-linux-gnu

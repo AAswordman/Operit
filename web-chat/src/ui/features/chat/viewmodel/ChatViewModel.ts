@@ -29,7 +29,7 @@ import {
 } from '../util/chatApi';
 import {
   clearStoredToken,
-  readStoredToken,
+  readInitialToken,
   writeStoredToken
 } from '../util/ConfigurationStateHolder';
 import type {
@@ -581,8 +581,8 @@ export interface ChatViewModelActions {
 export type ChatViewModel = ChatViewModelState & ChatViewModelActions;
 
 export function useChatViewModel(): ChatViewModel {
-  const [token, setToken] = useState<string>(() => readStoredToken());
-  const [tokenDraft, setTokenDraft] = useState<string>(() => readStoredToken());
+  const [token, setToken] = useState<string>(readInitialToken);
+  const [tokenDraft, setTokenDraft] = useState<string>(token);
   const [boot, setBoot] = useState<WebBootstrapResponse | null>(null);
   const [theme, setTheme] = useState<WebThemeSnapshot | null>(null);
   const [characterSelector, setCharacterSelector] = useState<WebCharacterSelectorResponse | null>(null);
@@ -832,7 +832,10 @@ export function useChatViewModel(): ChatViewModel {
       return;
     }
 
-    void loadBootstrap(token).catch((loadError: unknown) => {
+    void loadBootstrap(token).then(() => {
+      writeStoredToken(token);
+    }).catch((loadError: unknown) => {
+      console.error('网页聊天初始化失败', loadError);
       handleApiFailure(loadError);
       setConnecting(false);
       setInputProcessingStage('idle');

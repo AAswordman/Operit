@@ -50,7 +50,6 @@ fun SettingsScreen(
         navigateToDataAndBackup: () -> Unit,
 
         navigateToSpeechServicesSettings: () -> Unit,
-        navigateToExternalHttpChatSettings: () -> Unit,
         navigateToPerformanceMonitor: () -> Unit,
         navigateToAbout: () -> Unit
 ) {
@@ -181,13 +180,6 @@ fun SettingsScreen(
                                 }
                         )
 
-
-                        CompactSettingsItem(
-                                title = stringResource(id = R.string.settings_external_http_chat),
-                                subtitle = stringResource(id = R.string.settings_external_http_chat_subtitle),
-                                icon = Icons.Default.SettingsEthernet,
-                                onClick = navigateToExternalHttpChatSettings
-                        )
 
                         CompactSettingsItem(
                                 title = stringResource(id = R.string.settings_performance_monitor),

@@ -57,6 +57,7 @@ ANDROID_FULL_PATTERNS = (
     "settings.gradle.kts",
     "tools/native_ripgrep/**",
     "tools/native_apply_patch/**",
+    "tools/web_chat_cli/**",
     ".github/actions/native-apply-patch/**",
 )
 ANDROID_MODULE_ROOTS = (

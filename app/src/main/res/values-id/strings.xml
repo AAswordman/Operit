@@ -2701,8 +2701,6 @@
 
     <string name="settings_data_permissions">Data dan Izin</string>
     <string name="settings_tool_permissions_subtitle">Izin alat dan pengaturan keamanan</string>
-    <string name="settings_external_http_chat">Panggilan HTTP Eksternal</string>
-    <string name="settings_external_http_chat_subtitle">Antarmuka chat HTTP yang mendengarkan 0.0.0.0, port, dan Bearer Token</string>
     <string name="settings_data_backup_subtitle">Manajemen cadangan riwayat chat</string>
     <string name="settings_token_usage_stats">Statistik Penggunaan Token</string>
     <string name="settings_function_label">Fungsi</string>
@@ -3642,7 +3640,6 @@
     <string name="repository_colon">Repositori: %1$s</string>
     <string name="install_command_colon">Perintah instalasi: %1$s</string>
 
-    <string name="screen_title_external_http_chat_settings">Panggilan HTTP Eksternal</string>
     <string name="settings_system_prompts_subtitle">Prompt Sistem dan Model</string>
     <string name="settings_functional_prompts_subtitle">Template Prompt Fungsional Khusus</string>
     <string name="settings_context_length">Panjang Konteks</string>
@@ -3801,14 +3798,6 @@
     <string name="mcp_plugin_created_at">Dibuat pada: %1$s</string>
     <string name="mcp_plugin_updated_at">Diperbarui pada: %1$s</string>
 
-    <string name="external_http_chat_intent_title">Penjelasan Pemanggilan Intent</string>
-    <string name="external_http_chat_intent_desc">Pintu masuk broadcast masih dipertahankan, cocok untuk integrasi aplikasi lokal, Tasker, atau debugging adb</string>
-    <string name="external_http_chat_intent_overview">HTTP dan Intent memiliki semantik parameter yang sama, hanya pintu masuknya yang berbeda.\n\nAksi Permintaan: %1$s\nAksi Pengembalian Default: %2$s\n\nEkstra yang umum digunakan: message, request_id, group, create_new_chat, chat_id, create_if_none, show_floating, return_tool_status, initial_mode, auto_exit_after_ms, stop_after, reply_action, reply_package\n\nSetelah pemrosesan selesai, akan dikembalikan melalui broadcast: success, chat_id, ai_response, error; jika hanya ingin dikembalikan ke aplikasi tertentu, atur reply_package.</string>
-    <string name="external_http_chat_copy_example">Salin Contoh</string>
-    <string name="external_http_chat_example_copied">Perintah contoh telah disalin</string>
-    <string name="external_http_chat_service_enabled">Layanan telah diaktifkan</string>
-    <string name="external_http_chat_service_disabled">Layanan telah dinonaktifkan</string>
-    <string name="external_http_chat_restart_service">Mulai Ulang Layanan</string>
     <string name="manage_custom_emoji">Kelola Emoji Kustom</string>
     <string name="custom_emoji_bound_to_target">Terikat ke target peran saat ini</string>
     <string name="add_emoji">Tambahkan Emoji</string>
@@ -4017,35 +4006,6 @@
     <string name="settings_context_title">Pengaturan Konteks</string>
     <string name="settings_summary_title">Pengaturan Ringkasan</string>
     <string name="settings_context_summary_subtitle">Kelola pengaturan konteks, ringkasan, dan retensi media riwayat</string>
-    <string name="external_http_chat_enable">Aktifkan Layanan HTTP Eksternal</string>
-    <string name="external_http_chat_enable_desc">Saat diaktifkan, akan memulai layanan HTTP eksternal yang benar-benar mendengarkan di 0.0.0.0; port yang sama menyediakan API HTTP dan antarmuka obrolan web yang dapat diakses langsung</string>
-    <string name="external_http_chat_port">Port Mendengarkan</string>
-    <string name="external_http_chat_port_desc">Default 8094. Layanan akan mendengarkan di 0.0.0.0:port; setelah disimpan, layanan akan restart otomatis jika dalam keadaan aktif</string>
-    <string name="external_http_chat_save_port">Simpan Port</string>
-    <string name="external_http_chat_port_saved">Port telah disimpan</string>
-    <string name="external_http_chat_invalid_port">Port tidak valid, harap masukkan 1-65535</string>
-    <string name="external_http_chat_token">Bearer Token</string>
-    <string name="external_http_chat_token_desc">Dihasilkan otomatis saat pertama kali diaktifkan. Klien perlu membawa Bearer Token di header Authorization</string>
-    <string name="external_http_chat_token_not_generated">Belum dihasilkan, harap aktifkan layanan terlebih dahulu</string>
-    <string name="external_http_chat_copy_token">Salin Token</string>
-    <string name="external_http_chat_reset_token">Reset Token</string>
-    <string name="external_http_chat_token_copied">Token telah disalin</string>
-    <string name="external_http_chat_token_reset">Token telah direset dan disalin</string>
-    <string name="external_http_chat_status">Status Saat Ini</string>
-    <string name="external_http_chat_status_running">Layanan berjalan, mendengarkan di 0.0.0.0:%1$d</string>
-    <string name="external_http_chat_status_stopped">Layanan tidak berjalan</string>
-    <string name="external_http_chat_status_error">Layanan tidak normal: %1$s</string>
-    <string name="external_http_chat_web_title">Entri Obrolan Web</string>
-    <string name="external_http_chat_web_desc">Port yang sama menyediakan antarmuka obrolan web dan API HTTP secara bersamaan. Buka alamat di bawah langsung di browser, dan masukkan Bearer Token di atas saat pertama kali masuk.</string>
-    <string name="external_http_chat_web_note">Entri web menggunakan jalur root /; API HTTP tetap melalui %1$s</string>
-    <string name="external_http_chat_copy_web_url">Salin Alamat Web</string>
-    <string name="external_http_chat_web_url_copied">Alamat web telah disalin</string>
-    <string name="external_http_chat_access_urls">Alamat LAN yang terdeteksi saat ini</string>
-    <string name="external_http_chat_bind_hint">Layanan benar-benar mendengarkan di 0.0.0.0:%1$d, artinya akan menerima permintaan di semua antarmuka jaringan perangkat. Di bawah ini hanya mencantumkan IPv4 LAN yang terdeteksi saat ini untuk memudahkan penyalinan.</string>
-    <string name="external_http_chat_no_lan_ip">Belum terdeteksi alamat IPv4 LAN yang tersedia; ini tidak mempengaruhi layanan mendengarkan di 0.0.0.0, harap konfirmasi perangkat terhubung ke jaringan atau gunakan alamat lain yang dapat dijangkau</string>
-    <string name="external_http_chat_sync_example">Contoh Panggilan Sinkron</string>
-    <string name="external_http_chat_async_example">Contoh Panggilan Balik Asinkron</string>
-    <string name="external_http_chat_health_example">Contoh Pemeriksaan Kesehatan</string>
 
     <string name="input_question_with_workspace">Masukkan pertanyaan, gunakan @ untuk merujuk file</string>
     <string name="add_attachment">Tambahkan lampiran</string>
@@ -6842,9 +6802,6 @@
     <string name="market_install_recording">Menyinkronkan statistik unduhan</string>
     <string name="market_install_switch_to_version">Beralih ke versi ini</string>
     <string name="market_install_builtin_conflict">Konflik plugin bawaan</string>
-    <string name="external_http_chat_save_token">Simpan</string>
-    <string name="external_http_chat_token_saved">Token telah disimpan</string>
-    <string name="external_http_chat_token_length_error">Panjang token harus lebih dari 6!</string>
     <string name="xml_tag_menu_title">Tag yang tersedia</string>
     <string name="xml_tag_menu_content_description">Pilih tag yang tersedia</string>
     <string name="xml_tag_desc_font">Gaya teks</string>
@@ -7072,13 +7029,6 @@
     <string name="market_version_incompatible_title">Tidak dapat mengunduh: versi klien tidak didukung</string>
     <string name="market_version_too_low_message">Versi klien saat ini %1$s lebih rendah dari versi minimum yang diperlukan %2$s. Silakan perbarui klien sebelum mengunduh.</string>
     <string name="market_version_too_high_message">Versi klien saat ini %1$s lebih tinggi dari versi maksimum yang didukung %2$s. Gunakan versi klien yang didukung.</string>
-    <string name="external_http_chat_a2a_title">Antarmuka Agen A2A</string>
-    <string name="external_http_chat_a2a_desc">Menyediakan layanan A2A 1.0 JSON-RPC menggunakan port pendengar dan Bearer Token yang sama. Berikan alamat Agent Card ke klien A2A untuk ditemukan terlebih dahulu.</string>
-    <string name="external_http_chat_a2a_agent_card">Alamat Agent Card</string>
-    <string name="external_http_chat_a2a_json_rpc">Alamat JSON-RPC</string>
-    <string name="external_http_chat_a2a_copy_agent_card">Salin Agent Card</string>
-    <string name="external_http_chat_a2a_copy_json_rpc">Salin JSON-RPC</string>
-    <string name="external_http_chat_a2a_url_copied">Alamat A2A disalin</string>
     <string name="search_group_title">Cari</string>
     <string name="thinking_search_group_title">Berpikir dan cari</string>
     <string name="thinking_search_tools_group_title_with_count">Berpikir, cari, dan panggil alat (%1$d)</string>
