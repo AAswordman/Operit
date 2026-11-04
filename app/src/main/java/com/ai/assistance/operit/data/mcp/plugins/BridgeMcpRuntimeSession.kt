@@ -48,6 +48,8 @@ class BridgeMcpRuntimeSession(
         )
     }
 
+    override fun getLastFailureDetail(): String? = bridgeClient.getLastConnectionFailureDetail()
+
     override suspend fun close() {
         bridgeClient.disconnect()
     }

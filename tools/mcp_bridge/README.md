@@ -25,6 +25,16 @@ pnpm --dir tools/mcp_bridge run build
 `tools/mcp_bridge` 的依赖由根目录 `pnpm-lock.yaml` 统一锁定。构建会更新
 `app/src/main/assets/bridge/index.js` 和 `app/src/main/assets/bridge/spawn-helper.js`。
 
+## 测试
+
+```bash
+# 先构建，场景测试使用 dist/ 下的编译结果
+pnpm --dir tools/mcp_bridge run build
+pnpm --dir tools/mcp_bridge run test:scenarios
+```
+
+`test/scenarios.js` 会为每个场景启动一个独立端口的 bridge，覆盖正常启动、缺少 env、进程异常退出、握手失败、握手超时和未注册服务。测试服务位于 `test/fixtures/stdio-mcp-server.js`。
+
 ## 使用方法
 
 ### 基本用法
