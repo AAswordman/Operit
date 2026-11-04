@@ -92,7 +92,7 @@ object DocumentConversionUtil {
             // Step 2: Check if the extracted text is meaningful. If not, trigger OCR.
             if (extractedText.trim().length > 20) { // Threshold for meaningful text
                 // Success with direct extraction
-                FileOutputStream(targetFile).bufferedWriter().use { it.write(extractedText) }
+                FileOutputStream(targetFile).bufferedWriter().use { it.write(stripNullCharacters(extractedText)) }
                 return true
             } else {
                 // Fallback to OCR
@@ -148,7 +148,7 @@ object DocumentConversionUtil {
 
             // Write the aggregated text to the target file
             FileOutputStream(targetFile).bufferedWriter().use { writer ->
-                writer.write(fullText.toString())
+                writer.write(stripNullCharacters(fullText.toString()))
             }
             return true
         } catch (e: Exception) {
@@ -956,4 +956,6 @@ object DocumentConversionUtil {
         } while (current >= 0)
         return result.toString()
     }
+    /** PDF 提取的 NUL 没有显示信息，写入文本文件前清除；历史数据库读取仍保留原文。 */
+    internal fun stripNullCharacters(text: String): String = text.replace("\u0000", "")
 }

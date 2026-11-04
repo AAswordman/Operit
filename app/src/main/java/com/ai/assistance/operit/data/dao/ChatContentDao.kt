@@ -7,8 +7,8 @@ import androidx.room.Transaction
 import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 
-// SQLite LENGTH/SUBSTR count characters, and this bound keeps every returned text row well below CursorWindow size.
-private const val CONTENT_CHUNK_CHARACTER_COUNT = 65_536
+// 按 BLOB 字节读取，避免 TEXT 的 LENGTH/SUBSTR 在 NUL 处截断；每个字段单块不超过 64 KiB。
+private const val CONTENT_CHUNK_BYTE_COUNT = 65_536
 
 private const val MESSAGE_CONTENT_ROW_QUERY =
     """
@@ -16,8 +16,8 @@ private const val MESSAGE_CONTENT_ROW_QUERY =
         messageId,
         chatId,
         sender,
-        SUBSTR(sections, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS sections,
-        SUBSTR(searchText, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS searchText,
+        '' AS sections,
+        '' AS searchText,
         timestamp,
         orderIndex,
         roleName,
@@ -33,8 +33,10 @@ private const val MESSAGE_CONTENT_ROW_QUERY =
         completedAt,
         displayMode,
         isFavorite,
-        LENGTH(sections) AS contentCharacterCount,
-        LENGTH(searchText) AS searchTextCharacterCount
+        LENGTH(CAST(sections AS BLOB)) AS sectionsByteCount,
+        COALESCE(CAST(SUBSTR(CAST(sections AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS sectionsBytes,
+        LENGTH(CAST(searchText AS BLOB)) AS searchTextByteCount,
+        COALESCE(CAST(SUBSTR(CAST(searchText AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS searchTextBytes
     FROM messages
     """
 
@@ -45,8 +47,8 @@ private const val MESSAGE_VARIANT_CONTENT_ROW_QUERY =
         chatId,
         messageTimestamp,
         variantIndex,
-        SUBSTR(sections, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS sections,
-        SUBSTR(searchText, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS searchText,
+        '' AS sections,
+        '' AS searchText,
         roleName,
         provider,
         modelName,
@@ -57,21 +59,27 @@ private const val MESSAGE_VARIANT_CONTENT_ROW_QUERY =
         outputDurationMs,
         waitDurationMs,
         completedAt,
-        LENGTH(sections) AS contentCharacterCount,
-        LENGTH(searchText) AS searchTextCharacterCount
+        LENGTH(CAST(sections AS BLOB)) AS sectionsByteCount,
+        COALESCE(CAST(SUBSTR(CAST(sections AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS sectionsBytes,
+        LENGTH(CAST(searchText AS BLOB)) AS searchTextByteCount,
+        COALESCE(CAST(SUBSTR(CAST(searchText AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS searchTextBytes
     FROM message_variants
     """
 
 data class MessageContentRow(
     @Embedded val message: MessageEntity,
-    val contentCharacterCount: Long,
-    val searchTextCharacterCount: Long,
+    val sectionsByteCount: Long,
+    val sectionsBytes: ByteArray,
+    val searchTextByteCount: Long,
+    val searchTextBytes: ByteArray,
 )
 
 data class MessageVariantContentRow(
     @Embedded val variant: MessageVariantEntity,
-    val contentCharacterCount: Long,
-    val searchTextCharacterCount: Long,
+    val sectionsByteCount: Long,
+    val sectionsBytes: ByteArray,
+    val searchTextByteCount: Long,
+    val searchTextBytes: ByteArray,
 )
 
 data class ChatContentCharacterCount(
@@ -222,14 +230,14 @@ abstract class ChatContentDao {
     ): MessageContentRow?
 
     @Query(
-        "SELECT SUBSTR(sections, :startCharacter, :characterCount)" +
+        "SELECT CAST(SUBSTR(CAST(sections AS BLOB), :startByte, :byteCount) AS BLOB)" +
             " FROM messages WHERE messageId = :messageId"
     )
     protected abstract suspend fun queryMessageContentChunk(
         messageId: Long,
-        startCharacter: Long,
-        characterCount: Int,
-    ): String?
+        startByte: Long,
+        byteCount: Int,
+    ): ByteArray?
 
     @Query(
         MESSAGE_VARIANT_CONTENT_ROW_QUERY +
@@ -272,14 +280,14 @@ abstract class ChatContentDao {
     ): MessageVariantContentRow?
 
     @Query(
-        "SELECT SUBSTR(sections, :startCharacter, :characterCount)" +
+        "SELECT CAST(SUBSTR(CAST(sections AS BLOB), :startByte, :byteCount) AS BLOB)" +
             " FROM message_variants WHERE variantId = :variantId"
     )
     protected abstract suspend fun queryMessageVariantContentChunk(
         variantId: Long,
-        startCharacter: Long,
-        characterCount: Int,
-    ): String?
+        startByte: Long,
+        byteCount: Int,
+    ): ByteArray?
 
     @Query(
         """
@@ -457,15 +465,15 @@ abstract class ChatContentDao {
             materializeVariant(it)
         }
 
-    @Query("SELECT SUBSTR(searchText, :startCharacter, :characterCount) FROM messages WHERE messageId = :id")
+    @Query("SELECT CAST(SUBSTR(CAST(searchText AS BLOB), :startByte, :byteCount) AS BLOB) FROM messages WHERE messageId = :id")
     protected abstract suspend fun queryMessageSearchTextChunk(
-        id: Long, startCharacter: Long, characterCount: Int,
-    ): String?
+        id: Long, startByte: Long, byteCount: Int,
+    ): ByteArray?
 
-    @Query("SELECT SUBSTR(searchText, :startCharacter, :characterCount) FROM message_variants WHERE variantId = :id")
+    @Query("SELECT CAST(SUBSTR(CAST(searchText AS BLOB), :startByte, :byteCount) AS BLOB) FROM message_variants WHERE variantId = :id")
     protected abstract suspend fun queryVariantSearchTextChunk(
-        id: Long, startCharacter: Long, characterCount: Int,
-    ): String?
+        id: Long, startByte: Long, byteCount: Int,
+    ): ByteArray?
 
     /** 事务内读取基础消息、候选数量及选中正文，确保切换候选不会拼出混合快照。 */
     @Transaction
@@ -503,39 +511,13 @@ abstract class ChatContentDao {
         rows.map { materializeMessage(it) }
 
     private suspend fun materializeMessage(row: MessageContentRow): MessageEntity {
-        val searchText = StringBuilder(row.message.searchText)
-        if (row.searchTextCharacterCount > CONTENT_CHUNK_CHARACTER_COUNT) {
-            var searchStart = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
-            while (searchStart <= row.searchTextCharacterCount) {
-                val chunk = checkNotNull(queryMessageSearchTextChunk(
-                    row.message.messageId, searchStart, CONTENT_CHUNK_CHARACTER_COUNT,
-                ))
-                check(chunk.isNotEmpty()) { "Search text ended before its recorded length" }
-                searchText.append(chunk)
-                searchStart += CONTENT_CHUNK_CHARACTER_COUNT
-            }
+        val sections = readUtf8Content(row.sectionsByteCount, row.sectionsBytes, "messages.sections:${row.message.messageId}") { start, count ->
+            queryMessageContentChunk(row.message.messageId, start, count)
         }
-
-        val sections = StringBuilder(row.message.sections)
-        var startCharacter = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
-        while (startCharacter <= row.contentCharacterCount) {
-            val chunk =
-                checkNotNull(
-                    queryMessageContentChunk(
-                        row.message.messageId,
-                        startCharacter,
-                        CONTENT_CHUNK_CHARACTER_COUNT,
-                    )
-                ) {
-                    "Message disappeared while reading sections: messageId=${row.message.messageId}"
-                }
-            check(chunk.isNotEmpty()) {
-                "Message sections ended before its recorded length: messageId=${row.message.messageId}"
-            }
-            sections.append(chunk)
-            startCharacter += CONTENT_CHUNK_CHARACTER_COUNT
+        val searchText = readUtf8Content(row.searchTextByteCount, row.searchTextBytes, "messages.searchText:${row.message.messageId}") { start, count ->
+            queryMessageSearchTextChunk(row.message.messageId, start, count)
         }
-        return row.message.copy(sections = sections.toString(), searchText = searchText.toString())
+        return row.message.copy(sections = sections, searchText = searchText)
     }
 
     private suspend fun materializeVariants(
@@ -543,36 +525,39 @@ abstract class ChatContentDao {
     ): List<MessageVariantEntity> = rows.map { materializeVariant(it) }
 
     private suspend fun materializeVariant(row: MessageVariantContentRow): MessageVariantEntity {
-        val searchText = StringBuilder(row.variant.searchText)
-        var searchStart = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
-        while (searchStart <= row.searchTextCharacterCount) {
-            val chunk = checkNotNull(queryVariantSearchTextChunk(
-                row.variant.variantId, searchStart, CONTENT_CHUNK_CHARACTER_COUNT,
-            ))
-            check(chunk.isNotEmpty()) { "Search text ended before its recorded length" }
-            searchText.append(chunk)
-            searchStart += CONTENT_CHUNK_CHARACTER_COUNT
+        val sections = readUtf8Content(row.sectionsByteCount, row.sectionsBytes, "message_variants.sections:${row.variant.variantId}") { start, count ->
+            queryMessageVariantContentChunk(row.variant.variantId, start, count)
         }
+        val searchText = readUtf8Content(row.searchTextByteCount, row.searchTextBytes, "message_variants.searchText:${row.variant.variantId}") { start, count ->
+            queryVariantSearchTextChunk(row.variant.variantId, start, count)
+        }
+        return row.variant.copy(sections = sections, searchText = searchText)
+    }
 
-        val sections = StringBuilder(row.variant.sections)
-        var startCharacter = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
-        while (startCharacter <= row.contentCharacterCount) {
-            val chunk =
-                checkNotNull(
-                    queryMessageVariantContentChunk(
-                        row.variant.variantId,
-                        startCharacter,
-                        CONTENT_CHUNK_CHARACTER_COUNT,
-                    )
-                ) {
-                    "Message variant disappeared while reading sections: variantId=${row.variant.variantId}"
-                }
-            check(chunk.isNotEmpty()) {
-                "Message variant sections ended before its recorded length: variantId=${row.variant.variantId}"
-            }
-            sections.append(chunk)
-            startCharacter += CONTENT_CHUNK_CHARACTER_COUNT
+    /** 先拼接完整字节再解码，允许一个汉字或表情跨越分块边界。 */
+    private suspend fun readUtf8Content(
+        byteCount: Long,
+        firstChunk: ByteArray,
+        field: String,
+        fetchChunk: suspend (startByte: Long, byteCount: Int) -> ByteArray?,
+    ): String {
+        check(byteCount in 0..Int.MAX_VALUE.toLong()) { "内容长度超出可读取范围：$field ($byteCount)" }
+        check(firstChunk.size.toLong() == minOf(byteCount, CONTENT_CHUNK_BYTE_COUNT.toLong())) {
+            "首块长度与存储长度不一致：$field"
         }
-        return row.variant.copy(sections = sections.toString(), searchText = searchText.toString())
+        if (byteCount <= CONTENT_CHUNK_BYTE_COUNT) return firstChunk.toString(Charsets.UTF_8)
+        val content = ByteArray(byteCount.toInt())
+        firstChunk.copyInto(content)
+        var offset = firstChunk.size
+        while (offset < content.size) {
+            val count = minOf(CONTENT_CHUNK_BYTE_COUNT, content.size - offset)
+            val chunk = checkNotNull(fetchChunk(offset.toLong() + 1L, count)) {
+                "分块读取时消息已不存在：$field"
+            }
+            check(chunk.size == count) { "分块长度与存储长度不一致：$field ($offset)" }
+            chunk.copyInto(content, offset)
+            offset += chunk.size
+        }
+        return content.toString(Charsets.UTF_8)
     }
 }
