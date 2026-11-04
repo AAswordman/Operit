@@ -53,7 +53,10 @@ internal fun StudioPreview(state: ThemeStudioState, viewport: IntSize, modifier:
         CompositionLocalProvider(LocalThemePreferenceSnapshot provides snapshot, LocalLiquidGlassBackdrop provides backdrop, LocalWaterGlassState provides water) {
             MaterialTheme(colorScheme = colors, typography = typography) {
                 ThemeScriptHost(snapshot, draft = state.bundle) {
-                    val previewStates = if (state.target.kind == StudioKind.Surface && state.property == StudioProperty.States) mapOf(state.target.id to state.previewState) else emptyMap()
+                    val previewStates = if (state.target.kind == StudioKind.Surface && state.property == StudioProperty.States) {
+                        val ids = if (state.target.id == "iconButton") ThemeScriptContract.actionButtonIds + "iconButton" else setOf(state.target.id)
+                        ids.associateWith { state.previewState }
+                    } else emptyMap()
                     // 预览主题与编辑器独立，默认前景色必须随预览色板一起切换。
                     CompositionLocalProvider(
                         LocalThemeSurfaceStates provides previewStates,
@@ -81,7 +84,7 @@ internal fun StudioPreview(state: ThemeStudioState, viewport: IntSize, modifier:
 /** 选择罩不参与内容测量，也不把点击交给样例内部的业务动作。 */
 @Composable
 internal fun StudioPick(state: ThemeStudioState, id: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val target = ThemeStudioTargets.first { it.id == id }
+    val target = if (state.target.id == id) state.target else ThemeStudioTargets.first { it.id == id }
     val label = target.label()
     val selectionShape = if (id == "appBar" || id.startsWith("appBar.")) themeScriptShape("appBar", androidx.compose.ui.graphics.RectangleShape) else RoundedCornerShape(14.dp)
     Box(modifier.themePreviewFocus(id).focusProperties { canFocus = false }.clearAndSetSemantics {
@@ -131,7 +134,7 @@ internal fun StudioPreviewAppBar(state: ThemeStudioState) {
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text(state.targetName, style = themeScriptTextStyle("appBar", MaterialTheme.typography.titleSmall), color = contentColor) },
                 navigationIcon = {
-                    ThemeScriptIconButton(onClick = {}) {
+                    ThemeScriptIconButton(onClick = {}, actionId = "appBar.back") {
                         ThemeScriptIcon(id, Icons.Default.ArrowBack, null, tint = contentColor)
                     }
                 },

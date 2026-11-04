@@ -20,15 +20,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 
-/** 图标按钮只汇集实际动作按钮；返回和导航项仍在各自原有入口编辑。 */
-internal val ThemeStudioButtonIcons = listOf(
-    "composer.settings", "composer.attachment", "composer.microphone", "composer.send",
-    "composer.stop", "composer.fullscreen", "composer.queue", "composer.expand",
-    "appBar.menu", "appBar.workspace", "appBar.floating",
-).map { id -> ThemeStudioTargets.single { it.kind == StudioKind.Icon && it.id == id } }
+/** 汇集输入区与顶栏全部动作按钮；导航项继续由导航项容器控制。 */
+internal val ThemeStudioButtonIcons = ThemeScriptContract.actionButtonIds.map { id ->
+    ThemeStudioTargets.single { it.kind == StudioKind.Surface && it.id == id }
+}
 
-/** 每行动作分别展示浅深色素材，进入独立图标编辑器时不修改其他按钮。 */
+/** 每行动作分别展示浅深色素材，进入独立按钮编辑器时不修改其他按钮。 */
 @Composable
 internal fun StudioButtonIcons(state: ThemeStudioState) {
     StudioSection(stringResource(R.string.studio_button_icons)) {

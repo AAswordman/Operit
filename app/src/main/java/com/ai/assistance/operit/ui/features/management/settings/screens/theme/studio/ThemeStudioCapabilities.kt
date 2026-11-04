@@ -11,10 +11,10 @@ private val geometryControls = setOf(StudioSurfaceControl.Stroke, StudioSurfaceC
 private val textControls = setOf(StudioSurfaceControl.ContentColor, StudioSurfaceControl.Typography)
 
 internal val ThemeStudioSurfaceControls = ThemeScriptContract.surfaceIds.associateWith { id ->
-    when (id) {
+    if (id in ThemeScriptContract.actionButtonIds) geometryControls + StudioSurfaceControl.ContentColor else when (id) {
         "background" -> emptySet()
         "userAvatar", "assistantAvatar" -> geometryControls + StudioSurfaceControl.AvatarSize
-        "iconButton" -> geometryControls
+        "iconButton" -> geometryControls + StudioSurfaceControl.ContentColor
         "appBar", "navigation", "navigationItem" -> geometryControls + textControls
         "userMessage", "assistantMessage" -> geometryControls + textControls + setOf(StudioSurfaceControl.MinHeight, StudioSurfaceControl.MessageWidth)
         "composer", "input", "settingsCard", "listItem", "status", "toolCard" -> geometryControls + textControls + StudioSurfaceControl.MinHeight

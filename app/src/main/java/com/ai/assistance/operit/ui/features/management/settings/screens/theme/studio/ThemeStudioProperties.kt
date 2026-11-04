@@ -66,7 +66,7 @@ internal fun StudioProperties(state: ThemeStudioState) {
                 if (state.previewState != "always") {
                     val active = state.surface().states[state.previewState] ?: ThemeAppearanceState()
                     StudioSlider(state, stringResource(R.string.studio_opacity), active.opacity, 0f..1f) { value -> state.updateSurface { it.copy(states = it.states + (state.previewState to (it.states[state.previewState] ?: ThemeAppearanceState()).copy(opacity = value))) } }
-                    if (state.target.supports(StudioSurfaceControl.Stroke)) StudioSlider(state, stringResource(R.string.studio_stroke_width), active.strokeWidth ?: state.surface().strokeWidth, 0f..16f, "dp") { value -> state.updateSurface { it.copy(states = it.states + (state.previewState to (it.states[state.previewState] ?: ThemeAppearanceState()).copy(strokeWidth = value))) } }
+                    if (state.target.supports(StudioSurfaceControl.Stroke)) StudioSlider(state, stringResource(R.string.studio_stroke_width), active.strokeWidth ?: state.surface().strokeWidth, 0f..16f, "dp", precision = 2) { value -> state.updateSurface { it.copy(states = it.states + (state.previewState to (it.states[state.previewState] ?: ThemeAppearanceState()).copy(strokeWidth = value))) } }
                     TextButton(onClick = { state.updateSurface { it.copy(states = it.states - state.previewState) } }) { Text(stringResource(R.string.studio_clear_state)) }
                 }
             }
@@ -79,23 +79,7 @@ internal fun StudioProperties(state: ThemeStudioState) {
         } else if (state.target.kind == StudioKind.Typography) {
             StudioTextProperties(state, ::color) { fontPicker = true }
         } else if (state.target.kind == StudioKind.Icon) {
-            val icon = state.icon()
-            StudioSection(stringResource(R.string.studio_icon_binding)) {
-                if (state.target in ThemeStudioButtonIcons) {
-                    TextButton(onClick = { state.select(ThemeStudioTargets.single { it.id == "iconButton" }) }) {
-                        Text(stringResource(R.string.studio_button_icons))
-                    }
-                }
-                TextButton(onClick = { bindIcon = true }) { Text(icon?.asset?.let { state.bundle.manifest.assets.getValue(it).substringAfterLast('/') } ?: stringResource(R.string.studio_choose_icon)) }
-                if (icon != null) {
-                    StudioAssetThumbnail(state.images.getValue(icon.asset), Modifier.size(72.dp))
-                    StudioSlider(state, stringResource(R.string.studio_icon_size), icon.size, 8f..64f, "dp") { value -> state.setIcon(requireNotNull(state.icon()).copy(size = value)) }
-                    StudioSlider(state, stringResource(R.string.studio_opacity), icon.opacity, 0f..1f) { value -> state.setIcon(requireNotNull(state.icon()).copy(opacity = value)) }
-                    StudioColorHead(); StudioColorRow(state, stringResource(R.string.studio_icon_tint), "tintColor", ::color)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(stringResource(R.string.studio_use_content_tint)); Switch(icon.useContentTint, { state.setIcon(icon.copy(useContentTint = it, tintColor = if (it) null else icon.tintColor)) }) }
-                    TextButton(onClick = { state.setIcon(null) }) { Text(stringResource(R.string.studio_use_builtin)) }
-                }
-            }
+            StudioActionIconProperties(state, ::color) { bindIcon = true }
         } else if (state.property == StudioProperty.Layers) {
             val surface = state.surface()
             StudioSection(stringResource(R.string.studio_fill_color)) { StudioColorHead(); StudioColorRow(state, stringResource(R.string.studio_fill_color), "fillColor", ::color) }
@@ -125,7 +109,7 @@ internal fun StudioProperties(state: ThemeStudioState) {
                         } else {
                             StudioSingleColor(stringResource(R.string.studio_fill_color), layer.color) { layerColor(index, "color", layer.color) }
                             StudioSingleColor(stringResource(R.string.studio_stroke_color), layer.strokeColor) { layerColor(index, "strokeColor", layer.strokeColor) }
-                            StudioSlider(state, stringResource(R.string.studio_stroke_width), layer.strokeWidth, 0f..16f, "dp") { value -> state.updateLayer(index) { it.copy(strokeWidth = value) } }
+                            StudioSlider(state, stringResource(R.string.studio_stroke_width), layer.strokeWidth, 0f..16f, "dp", precision = 2) { value -> state.updateLayer(index) { it.copy(strokeWidth = value) } }
                             if (layer.type == "rect") StudioSlider(state, stringResource(R.string.studio_corner_radius), layer.radius, 0f..128f, "dp") { value -> state.updateLayer(index) { it.copy(radius = value) } }
                         }
                         if (state.target.states.isNotEmpty()) StudioChoices(layer.state, (listOf("always") + state.target.states).map { it to studioStateLabel(it) }) { value -> state.updateLayer(index) { it.copy(state = value) } }
@@ -150,7 +134,14 @@ internal fun StudioProperties(state: ThemeStudioState) {
             }
             StudioHint(stringResource(R.string.studio_layer_opacity_hint))
         } else {
+            if (state.target.id in ThemeScriptContract.actionButtonIds) {
+                StudioSection(stringResource(R.string.studio_button_icons)) {
+                    StudioHint(stringResource(R.string.studio_button_style_hint))
+                    TextButton(onClick = { state.resetButtonStyle() }) { Text(stringResource(R.string.studio_button_style_inherit)) }
+                }
+            }
             StudioSurfaceProperties(state, onColor = ::color, onFont = { fontPicker = true })
+            if (state.target.id in ThemeScriptContract.actionButtonIds) StudioActionIconProperties(state, ::color) { bindIcon = true }
             if (state.target.id == "iconButton") StudioButtonIcons(state)
         }
     }
@@ -212,7 +203,7 @@ private fun StudioSurfaceProperties(state: ThemeStudioState, onColor: (String, S
                 StudioSlider(state, stringResource(R.string.studio_corner_radius), configuredShape.radius, 0f..128f, "dp") { value -> state.updateSurface { it.copy(shape = configuredShape.copy(radius = value)) } }
             }
             if (target.supports(StudioSurfaceControl.Stroke)) {
-                StudioSlider(state, stringResource(R.string.studio_stroke_width), s.strokeWidth, 0f..16f, "dp") { value -> state.updateSurface { it.copy(strokeWidth = value) } }
+                StudioSlider(state, stringResource(R.string.studio_stroke_width), s.strokeWidth, 0f..16f, "dp", precision = 2) { value -> state.updateSurface { it.copy(strokeWidth = value) } }
                 StudioHint(stringResource(R.string.studio_stroke_hint))
             }
             if (target.supports(StudioSurfaceControl.MinHeight)) StudioSlider(state, stringResource(R.string.studio_min_height), s.minHeight, 0f..256f, "dp") { value -> state.updateSurface { it.copy(minHeight = value) } }
@@ -255,4 +246,25 @@ private fun StudioSurfaceProperties(state: ThemeStudioState, onColor: (String, S
     }
     if (target.supports(StudioSurfaceControl.Typography)) StudioTextProperties(state, onColor, onFont)
     if (target.id == "background") StudioHint(stringResource(R.string.studio_background_image_hint))
+}
+
+@Composable
+private fun StudioActionIconProperties(state: ThemeStudioState, onColor: (String, String, String?) -> Unit, onBind: () -> Unit) {
+    val icon = state.icon()
+    StudioSection(stringResource(R.string.studio_icon_binding)) {
+        if (state.target.id in ThemeScriptContract.actionButtonIds) {
+            TextButton(onClick = { state.select(ThemeStudioTargets.single { it.id == "iconButton" }) }) {
+                Text(stringResource(R.string.studio_button_icons))
+            }
+        }
+        TextButton(onClick = onBind) { Text(icon?.asset?.let { state.bundle.manifest.assets.getValue(it).substringAfterLast('/') } ?: stringResource(R.string.studio_choose_icon)) }
+        if (icon != null) {
+            StudioAssetThumbnail(state.images.getValue(icon.asset), Modifier.size(72.dp))
+            StudioSlider(state, stringResource(R.string.studio_icon_size), icon.size, 8f..64f, "dp") { value -> state.setIcon(requireNotNull(state.icon()).copy(size = value)) }
+            StudioSlider(state, stringResource(R.string.studio_opacity), icon.opacity, 0f..1f) { value -> state.setIcon(requireNotNull(state.icon()).copy(opacity = value)) }
+            StudioColorHead(); StudioColorRow(state, stringResource(R.string.studio_icon_tint), "tintColor", onColor)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(stringResource(R.string.studio_use_content_tint)); Switch(icon.useContentTint, { state.setIcon(icon.copy(useContentTint = it, tintColor = if (it) null else icon.tintColor)) }) }
+            TextButton(onClick = { state.setIcon(null) }) { Text(stringResource(R.string.studio_use_builtin)) }
+        }
+    }
 }

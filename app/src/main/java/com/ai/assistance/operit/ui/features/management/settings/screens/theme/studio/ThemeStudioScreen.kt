@@ -246,7 +246,7 @@ private fun StudioTargetPicker(state: ThemeStudioState, onClose: () -> Unit) {
                 val targets = matches.filter { it.group == group && (selectedGroup == null || selectedGroup == group || query.isNotBlank()) }
                 if (targets.isNotEmpty()) {
                     item(key = "group:$group") { Text(stringResource(group.label), Modifier.fillMaxWidth().padding(14.dp), style = MaterialTheme.typography.labelLarge, color = StudioAccent) }
-                    items(targets, key = { it.id }) { target ->
+                    items(targets, key = { "${it.kind}:${it.id}" }) { target ->
                         Row(Modifier.fillMaxWidth().background(if (state.target == target) StudioPanel else StudioBackground).clickable { state.select(target); onClose() }.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             StudioTargetThumbnail(state, target); Text(labels.getValue(target), Modifier.weight(1f)); Icon(Icons.Default.ChevronRight, null)
                         }

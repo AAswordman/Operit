@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="studio_button_icons">버튼 아이콘</string>
-    <string name="studio_button_icons_hint">각 행은 하나의 버튼입니다. 밝은 테마 또는 어두운 테마의 리소스를 선택하여 이미지, 크기, 불투명도와 색상을 개별적으로 설정하세요.</string>
+    <string name="studio_button_icons_hint">각 행은 하나의 버튼입니다. 밝은 모드 또는 어두운 모드를 선택하여 채우기, 아이콘 색, 모양, 테두리, 안쪽 여백, 앞뒤 레이어, 상호작용 상태와 아이콘 리소스를 개별 편집하세요.</string>
+    <string name="studio_button_style_hint">버튼별 외관을 따로 저장합니다. 개별 설정이 없으면 공통 스타일을 상속합니다. 복원은 현재 버튼과 모드에만 적용되며 아이콘 리소스는 유지됩니다.</string>
+    <string name="studio_button_style_inherit">공통 버튼 스타일 복원</string>
 </resources>

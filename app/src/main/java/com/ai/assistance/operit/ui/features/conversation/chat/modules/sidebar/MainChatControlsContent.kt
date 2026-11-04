@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -45,7 +46,11 @@ internal fun MainChatControlsContent(
             .themeScriptDecoration("appBar", drawFill = false, originalShape = shape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ThemeScriptIconButton(onClick = onOpenSidebar, modifier = Modifier.size(40.dp)) {
+        ThemeScriptIconButton(
+            actionId = "appBar.menu",
+            onClick = onOpenSidebar,
+            modifier = Modifier.size(40.dp),
+        ) {
             BadgedBox(badge = { if (runningTaskCount >= 2) Badge { Text(runningTaskCount.toString()) } }) {
                 ThemeScriptIcon("appBar.menu", Icons.Default.Menu, stringResource(R.string.menu), tint = contentColor, modifier = Modifier.size(22.dp))
             }
@@ -59,7 +64,12 @@ internal fun MainChatControlsContent(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        ThemeScriptIconButton(onClick = onLaunchFloatingWindow, modifier = Modifier.size(36.dp)) {
+        ThemeScriptIconButton(
+            actionId = "appBar.floating",
+            selected = isFloatingMode,
+            onClick = onLaunchFloatingWindow,
+            modifier = Modifier.size(36.dp),
+        ) {
             ThemeScriptIcon(
                 "appBar.floating", Icons.Default.PictureInPicture,
                 stringResource(if (isFloatingMode) R.string.close_floating_window else R.string.open_floating_window),
@@ -67,7 +77,12 @@ internal fun MainChatControlsContent(
                 modifier = Modifier.size(20.dp),
             )
         }
-        ThemeScriptIconButton(onClick = onOpenWorkspace, modifier = Modifier.size(36.dp)) {
+        ThemeScriptIconButton(
+            actionId = "appBar.workspace",
+            selected = workspaceVisible,
+            onClick = onOpenWorkspace,
+            modifier = Modifier.size(36.dp),
+        ) {
             if (isWorkspacePreparing) {
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = contentColor)
             } else {

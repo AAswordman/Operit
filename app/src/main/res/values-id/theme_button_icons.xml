@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="studio_button_icons">Ikon tombol</string>
-    <string name="studio_button_icons_hint">Setiap baris mewakili satu tombol. Pilih aset terang atau gelap untuk mengatur gambar, ukuran, opasitas, dan warna secara terpisah.</string>
+    <string name="studio_button_icons_hint">Setiap baris mewakili satu tombol. Pilih mode terang atau gelap untuk mengedit isian, warna ikon, bentuk, bingkai, padding, lapisan, status interaksi dan aset ikon secara terpisah.</string>
+    <string name="studio_button_style_hint">Tampilan tombol ini disimpan terpisah. Tombol tanpa pengaturan mewarisi gaya umum. Pemulihan hanya memengaruhi tombol dan mode ini serta mempertahankan aset ikonnya.</string>
+    <string name="studio_button_style_inherit">Pulihkan gaya tombol umum</string>
 </resources>

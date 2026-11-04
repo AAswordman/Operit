@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.actionButtonSurface
 import com.ai.assistance.operit.data.theme.script.forState
 import kotlin.math.ceil
 import kotlin.math.max
@@ -107,7 +109,8 @@ fun Modifier.themeScriptDecoration(
 ): Modifier {
     val state = LocalThemeScriptState.current
     if (state !is ThemeScriptState.Ready) return this
-    val base = state.appearance.surfaces[surfaceId] ?: return this
+    val base = (if (surfaceId in ThemeScriptContract.actionButtonIds) state.appearance.actionButtonSurface(surfaceId)
+        else state.appearance.surfaces[surfaceId]) ?: return this
     val fragment = LocalThemeSurfaceFragments.current.getOrDefault(surfaceId, ThemeSurfaceFragment.Whole)
     var pressed by remember(surfaceId) { mutableStateOf(false) }
     var focused by remember(surfaceId) { mutableStateOf(false) }

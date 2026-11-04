@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="studio_button_icons">Pictogramele butoanelor</string>
-    <string name="studio_button_icons_hint">Fiecare rând reprezintă un buton. Selectați resursa luminoasă sau întunecată pentru a personaliza separat imaginea, dimensiunea, opacitatea și culoarea.</string>
+    <string name="studio_button_icons_hint">Fiecare rând reprezintă un buton. Alege modul luminos sau întunecat pentru a edita separat umplerea, culoarea pictogramei, forma, chenarul, spațierea, straturile, stările și resursa pictogramei.</string>
+    <string name="studio_button_style_hint">Aspectul este salvat pentru fiecare buton. Butoanele neconfigurate moștenesc stilul comun. Restaurarea afectează doar butonul și modul curent și păstrează pictograma.</string>
+    <string name="studio_button_style_inherit">Restabilește stilul comun</string>
 </resources>
