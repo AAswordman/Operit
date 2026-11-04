@@ -195,10 +195,18 @@ jobs:
       - name: Set up Node.js
         if: >-
           steps.plan.outputs.web == 'true' ||
-          steps.plan.outputs.toolpkg == 'true'
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.ci == 'true'
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check Code Runner execution isolation
+        if: >-
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.ci == 'true'
+        timeout-minutes: 5
+        run: node --test ci/test/code_runner.test.cjs
 
       - name: Install JavaScript dependencies
         if: >-
