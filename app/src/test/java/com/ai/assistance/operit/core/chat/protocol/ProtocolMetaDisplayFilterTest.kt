@@ -133,11 +133,11 @@ class ProtocolMetaDisplayFilterTest {
         val rawPrefix = "前<meta provider=\"$provider\">saved-secret"
         tracker.append(rawPrefix)
         assertEquals("前", filter.append(rawPrefix))
-        tracker.savepoint("retry")
+        tracker.savepoint("retry", rawPrefix.length)
         tracker.append("discarded</meta>错误")
         filter.append("discarded</meta>错误")
 
-        val restored = tracker.rollback("retry")!!.toString()
+        val restored = tracker.rollback("retry", rawPrefix.length, "discarded</meta>错误".length)!!.toString()
         assertEquals(rawPrefix, restored)
         assertEquals("前", filter.reset(restored))
         assertEquals("正确", filter.append("continued-secret</meta>正确"))

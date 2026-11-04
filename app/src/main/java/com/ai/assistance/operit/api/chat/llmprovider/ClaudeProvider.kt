@@ -1309,18 +1309,42 @@ open class ClaudeProvider(
         val watchdog = FirstTokenWatchdog(CoroutineScope(currentCoroutineContext() + SupervisorJob()))
         withContext(ApiKeyRequestElement(session)) {
         val receivedContent = StringBuilder()
+        val savepointLengths = mutableMapOf<String, Int>()
+        val savepointRawOffsets = mutableMapOf<String, Int>()
+        var discardedTotal = 0
         val requestSavepointId = "attempt_${UUID.randomUUID().toString().replace("-", "")}"
         var outboundAttempt = 0
 
         suspend fun emitSavepoint(id: String) {
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.SAVEPOINT, id))
+            val rawOffset = receivedContent.length + discardedTotal
+            savepointLengths[id] = receivedContent.length
+            savepointRawOffsets[id] = rawOffset
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SAVEPOINT,
+                    id = id,
+                    contentLength = rawOffset
+                )
+            )
         }
 
         suspend fun emitRollback(id: String) {
-            if (receivedContent.isNotEmpty()) {
-                receivedContent.setLength(0)
+            val retainedLength = savepointLengths[id] ?: return
+            val rawOffset = savepointRawOffsets[id] ?: return
+            val discardedLength = (receivedContent.length - retainedLength).coerceAtLeast(0)
+            if (discardedLength > 0) {
+                receivedContent.setLength(retainedLength)
+                discardedTotal += discardedLength
             }
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.ROLLBACK, id))
+            savepointRawOffsets[id] = rawOffset + discardedLength
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.ROLLBACK,
+                    id = id,
+                    contentLength = rawOffset,
+                    discardedLength = discardedLength
+                )
+            )
         }
 
         fun parseAnthropicNonStreaming(jsonResponse: JSONObject): String {

@@ -300,6 +300,92 @@ object WaifuMessageProcessor {
         }
     }
 
+    internal fun streamSegmentUpdatesWithTypingQueue(
+        sourceStream: Stream<String>,
+        removePunctuation: Boolean = false,
+        charDelayMs: Int,
+    ): Stream<WaifuSegmentUpdate> = streamWaifuUpdates(
+        sourceStream = sourceStream,
+        splitSnapshot = { content, final ->
+            val session = NativeMarkdownSplitter.createBlockSession()
+            val renderable = try {
+                buildRenderableSnapshot(content, final, session.push(content))
+            } finally {
+                session.destroy()
+            }
+            val segments = if (final) {
+                splitMessageBySentences(renderable)
+            } else {
+                splitStableMessageSegments(renderable)
+            }
+            if (removePunctuation) {
+                segments.map(::removeSentenceEndPunctuation).filter { it.isNotBlank() }
+            } else {
+                segments
+            }
+        },
+        typingDelayMs = { length, first -> calculateTypingDelayMs(length, charDelayMs, first) },
+        firstSegmentPreview = { content ->
+            // 首句继续即时预览；代码、公式和 XML 仍先经过相同的可见块过滤。
+            val nativeSession = NativeMarkdownSplitter.createBlockSession()
+            val renderable = try {
+                buildRenderableSnapshot(content, false, nativeSession.push(content))
+            } finally {
+                nativeSession.destroy()
+            }
+            StreamingSession(removePunctuation).collectFirstSegmentPreview(renderable)
+        },
+    )
+
+    internal fun buildRenderableSnapshot(
+        content: String,
+        final: Boolean,
+        nativeSegments: IntArray,
+    ): String {
+        val renderable = StringBuilder()
+        val block = StringBuilder()
+        var activeType: MarkdownProcessorType? = null
+
+        fun closeBlock() {
+            when (activeType) {
+                MarkdownProcessorType.XML_BLOCK -> {
+                    val xml = block.toString()
+                    if (shouldPreserveXmlBlockForWaifu(xml)) renderable.append(xml)
+                }
+                MarkdownProcessorType.BLOCK_LATEX ->
+                    renderable.append(ensureBlockLatexDelimiters(block.toString()))
+                else -> renderable.append(block)
+            }
+            block.setLength(0)
+            activeType = null
+        }
+
+        require(nativeSegments.size % 3 == 0)
+        for (index in nativeSegments.indices step 3) {
+            val ordinal = nativeSegments[index]
+            if (ordinal < 0) {
+                closeBlock()
+                continue
+            }
+            val type = MarkdownProcessorType.entries[ordinal]
+            if (type != activeType) {
+                closeBlock()
+                activeType = type
+            }
+            val piece = content.substring(nativeSegments[index + 1], nativeSegments[index + 2])
+            when (type) {
+                MarkdownProcessorType.XML_BLOCK,
+                MarkdownProcessorType.CODE_BLOCK,
+                MarkdownProcessorType.TABLE,
+                MarkdownProcessorType.IMAGE,
+                MarkdownProcessorType.BLOCK_LATEX -> block.append(piece)
+                else -> renderable.append(piece)
+            }
+        }
+        if (final) closeBlock()
+        return renderable.toString()
+    }
+
     fun streamTtsText(sourceStream: Stream<String>): Stream<Char> = stream {
         var lastCharWasNewline = true
 
@@ -1088,18 +1174,11 @@ object WaifuMessageProcessor {
         return XmlRenderPluginRegistry.supports(normalizedTagName)
     }
 
-    private fun isInternalWaifuXmlTag(tagName: String): Boolean {
-        return when (tagName.lowercase()) {
-            "think",
-            "thinking",
-            "tool",
-            "tool_result",
-            "status",
-            "search",
-            "meta" -> true
-            else -> false
-        }
-    }
+    private fun isInternalWaifuXmlTag(tagName: String): Boolean = tagName in setOf(
+        "think", "thinking", "tool", "tool_result", "status", "search", "meta",
+        "emotion", "memory", "attachment", "workspace_attachment", "proxy_sender",
+        "reply_to", "content", "error", "param",
+    )
 
     private fun removeUnsupportedXmlTags(content: String): String {
         if (!content.contains('<')) {
