@@ -22,7 +22,9 @@ import android.webkit.PermissionRequest
 import android.webkit.SslErrorHandler
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
@@ -42,6 +44,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.math.abs
+import org.json.JSONObject
+
 
 private const val WEBVIEW_SUPPORT_TAG = "BrowserSessionTools"
 
@@ -160,7 +164,7 @@ internal fun StandardBrowserSessionTools.configureWebView(
             false
         }
         addJavascriptInterface(BrowserWebDownloadBridge(this@configureWebView, session), "OperitWebDownloadBridge")
-        addJavascriptInterface(BrowserAsyncBridge(), "OperitAsyncBridge")
+        addJavascriptInterface(BrowserAsyncBridge(this@configureWebView, session), "OperitAsyncBridge")
         addJavascriptInterface(BrowserTextSelectionBridge(), "OperitTextSelectionBridge")
         setDownloadListener(createDownloadListener(session))
         setOnLongClickListener { true }
@@ -178,6 +182,11 @@ internal fun StandardBrowserSessionTools.configureWebView(
                 isUserGesture: Boolean,
                 resultMsg: android.os.Message?
             ): Boolean {
+                traceBrowserNavigation(
+                    session,
+                    "create-window",
+                    details = JSONObject().put("dialog", isDialog).put("userGesture", isUserGesture)
+                )
                 val message = resultMsg ?: return false
                 val transport = message.obj as? WebView.WebViewTransport ?: return false
                 if (view !== session.webView ||
@@ -195,6 +204,13 @@ internal fun StandardBrowserSessionTools.configureWebView(
                     AppLogger.e(WEBVIEW_SUPPORT_TAG, "创建浏览器弹出窗口失败", error)
                     return false
                 }
+                popupSession.lastClickTrace = session.lastClickTrace
+                traceBrowserNavigation(
+                    popupSession,
+                    "popup-created",
+                    details = JSONObject().put("parentSession", session.id)
+                )
+
                 transport.webView = popupSession.webView
                 message.sendToTarget()
                 refreshSessionUiOnMain(popupSession.id)
@@ -213,18 +229,23 @@ internal fun StandardBrowserSessionTools.configureWebView(
                 super.onReceivedTitle(view, title)
                 session.pageTitle = title.orEmpty()
                 refreshSessionUiOnMain(session.id)
-                ioScope.launch {
-                    historyStore.updateTitle(session.currentUrl, session.pageTitle)
+                if (session.pendingNavigationUrl == null) {
+                    val committedUrl = session.currentUrl
+                    val pageTitle = session.pageTitle
+                    ioScope.launch {
+                        historyStore.updateTitle(committedUrl, pageTitle)
+                    }
                 }
             }
 
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 if (consoleMessage != null) {
+                    val message = consoleMessage.message().orEmpty()
                     appendConsoleEntry(
                         session,
                         BrowserConsoleEntry(
                             level = consoleMessage.messageLevel().name.lowercase(Locale.ROOT),
-                            message = consoleMessage.message().orEmpty(),
+                            message = message,
                             sourceId = consoleMessage.sourceId(),
                             lineNumber = consoleMessage.lineNumber()
                         )
@@ -341,7 +362,10 @@ internal fun StandardBrowserSessionTools.configureWebView(
                 if (StandardBrowserSessionTools.pendingExternalOpenRequest?.sessionId == session.id) {
                     clearPendingExternalOpenRequest()
                 }
-                session.currentUrl = url
+                session.navigationSequence += 1L
+                // 文档提交前仅记录待导航地址，避免把待加载地址当成当前页面。
+                session.pendingNavigationUrl = url
+
                 session.pageLoaded = false
                 session.isLoading = true
                 session.hasSslError = false
@@ -349,6 +373,7 @@ internal fun StandardBrowserSessionTools.configureWebView(
                 clearEventLogs(session)
                 session.pendingDialog = null
                 notifySessionStateChanged(session)
+                traceBrowserNavigation(session, "page-started", view, url)
                 userscriptManager.onPageChanged(session.id, url, forceReset = true)
                 syncNavigationStateUi(session)
             }
@@ -356,8 +381,10 @@ internal fun StandardBrowserSessionTools.configureWebView(
             override fun onPageCommitVisible(view: WebView, url: String) {
                 super.onPageCommitVisible(view, url)
                 session.currentUrl = url
+                session.pendingNavigationUrl = null
                 session.lastSnapshot = null
                 notifySessionStateChanged(session)
+                traceBrowserNavigation(session, "page-commit-visible", view, url)
                 userscriptManager.onPageChanged(session.id, url)
                 refreshNavigationStateFromWebView(view, session)
             }
@@ -365,11 +392,13 @@ internal fun StandardBrowserSessionTools.configureWebView(
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 session.currentUrl = url
+                session.pendingNavigationUrl = null
                 userscriptManager.onPageChanged(session.id, url)
                 session.pageTitle = view.title ?: ""
                 session.pageLoaded = true
                 session.isLoading = false
                 notifySessionStateChanged(session)
+                traceBrowserNavigation(session, "page-finished", view, url)
                 applyViewportOverride(session)
                 refreshNavigationStateFromWebView(view, session)
                 injectDownloadHelper(view)
@@ -382,28 +411,88 @@ internal fun StandardBrowserSessionTools.configureWebView(
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
                 val scheme = uri.scheme?.lowercase()
-                val hasUserGesture = request.hasGesture()
-                if (scheme == "blob") {
-                    injectBlobDownloaderScript(session, uri.toString())
-                    return true
-                }
-                if (scheme == "data") {
-                    handleInlineDownload(
-                        session = session,
-                        base64Data = uri.toString(),
-                        fileName = "download_${System.currentTimeMillis()}",
-                        mimeType = guessMimeTypeFromDataUrl(uri.toString()),
-                        type = "data",
-                        sourceUrl = uri.toString()
-                    )
-                    return true
-                }
-                return handleNavigationOverrideOnMain(
-                    session = session,
-                    uri = uri,
-                    isMainFrame = request.isForMainFrame,
-                    hasUserGesture = hasUserGesture,
+                val overridden =
+                    when (scheme) {
+                        "blob" -> {
+                            injectBlobDownloaderScript(session, uri.toString())
+                            true
+                        }
+                        "data" -> {
+                            handleInlineDownload(
+                                session = session,
+                                base64Data = uri.toString(),
+                                fileName = "download_${System.currentTimeMillis()}",
+                                mimeType = guessMimeTypeFromDataUrl(uri.toString()),
+                                type = "data",
+                                sourceUrl = uri.toString()
+                            )
+                            true
+                        }
+                        else -> handleNavigationOverrideOnMain(
+                            session = session,
+                            uri = uri,
+                            isMainFrame = request.isForMainFrame,
+                            hasUserGesture = request.hasGesture(),
+                        )
+                    }
+                traceBrowserNavigation(
+                    session,
+                    "should-override",
+                    view,
+                    uri.toString(),
+                    JSONObject()
+                        .put("method", request.method)
+                        .put("mainFrame", request.isForMainFrame)
+                        .put("userGesture", request.hasGesture())
+                        .put("overridden", overridden)
                 )
+                return overridden
+            }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request.isForMainFrame) {
+                    session.pendingNavigationUrl = null
+                    session.isLoading = false
+                    session.pageLoaded = false
+                    session.lastClickTrace?.navigationFailure =
+                        "${error.errorCode}: ${error.description} (${request.url})"
+                    notifySessionStateChanged(session)
+                    refreshSessionUiOnMain(session.id)
+                    traceBrowserNavigation(
+                        session,
+                        "main-frame-error",
+                        view,
+                        request.url.toString(),
+                        JSONObject().put("code", error.errorCode).put("description", error.description.toString())
+                    )
+
+                }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView,
+                request: WebResourceRequest,
+                errorResponse: WebResourceResponse
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                if (request.isForMainFrame) {
+                    session.lastClickTrace?.navigationFailure =
+                        "HTTP ${errorResponse.statusCode}: ${errorResponse.reasonPhrase} (${request.url})"
+                    notifySessionStateChanged(session)
+                    traceBrowserNavigation(
+                        session,
+                        "main-frame-http-error",
+                        view,
+                        request.url.toString(),
+                        JSONObject().put("status", errorResponse.statusCode).put("reason", errorResponse.reasonPhrase)
+                    )
+                }
+
             }
 
             override fun shouldInterceptRequest(
@@ -417,9 +506,17 @@ internal fun StandardBrowserSessionTools.configureWebView(
 
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
                 super.doUpdateVisitedHistory(view, url, isReload)
-                session.currentUrl = url
+                // 同文档历史变化也同步地址，确保点击结果反映当前页面。
+                if (session.pendingNavigationUrl == null) session.currentUrl = url
                 val pageTitle = view.title.orEmpty()
                 notifySessionStateChanged(session)
+                traceBrowserNavigation(
+                    session,
+                    "visited-history",
+                    view,
+                    url,
+                    JSONObject().put("reload", isReload)
+                )
                 refreshNavigationStateFromWebView(view, session)
                 ioScope.launch {
                     historyStore.recordVisit(url, pageTitle, isReload)
@@ -790,9 +887,11 @@ internal fun StandardBrowserSessionTools.navigateSessionOnMain(
     headers: Map<String, String> = emptyMap()
 ) {
     session.navigationPolicy.onExplicitNavigation()
+    traceBrowserNavigation(session, "load-url", url = targetUrl)
+
     session.pageLoaded = false
     session.isLoading = true
-    session.currentUrl = targetUrl
+    session.pendingNavigationUrl = targetUrl
     session.hasSslError = false
     session.lastSnapshot = null
     updateNavigationState(session)
@@ -802,6 +901,7 @@ internal fun StandardBrowserSessionTools.navigateSessionOnMain(
     } else {
         session.webView.loadUrl(targetUrl)
     }
+    traceBrowserNavigation(session, "load-url-dispatched", url = targetUrl)
     refreshNavigationStateAsync(session)
 }
 
