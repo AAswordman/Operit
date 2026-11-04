@@ -177,6 +177,10 @@ object ThemeScriptContract {
         }
     }
     private fun validateText(text: ThemeAppearanceText, manifest: ThemeScriptManifest) {
+        text.stroke?.let { stroke ->
+            require(color.matches(stroke.color)) { "Invalid text stroke color" }
+            require(stroke.width.isFinite() && stroke.width in 0f..8f) { "Text stroke width must be 0..8 dp" }
+        }
         require(text.color == null || color.matches(text.color)) { "Invalid text color" }
         val family = text.family
         if (family != null && family.startsWith("asset:")) {

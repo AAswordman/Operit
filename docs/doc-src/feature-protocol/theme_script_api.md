@@ -62,7 +62,7 @@ tsc --strict --target ES2020 --module commonjs --outDir dist examples/theme-scri
 `Appearance` 包含数字 `apiVersion: 1` 和以下可选字段：
 
 - `palette.light/dark`：36 个 Material 颜色 token。包括 primary/secondary/tertiary 的前景与容器、background/surface、surfaceVariant、inverse、error、outline、scrim、surfaceTint，以及 surfaceBright/surfaceDim 和五档 surfaceContainer；完整 token 名称以类型声明为准
-- `typography`：全局字体类别 `default/sans-serif/serif/monospace/cursive` 或 `asset:<素材标识>` 的 TTF/OTF 字体，字号比例 `scale`、行高倍数 `lineHeight` 、字间距 `letterSpacing` 和可选文字色 `color`
+- `typography`：全局字体类别 `default/sans-serif/serif/monospace/cursive` 或 `asset:<素材标识>` 的 TTF/OTF 字体，字号比例 `scale`、行高倍数 `lineHeight` 、字间距 `letterSpacing` 和可选文字色 `color`；可选 `stroke: { color, width }` 独立控制文字描边，宽度为 `0..8 dp`。区域省略时继承上级，`width: 0` 可单独关闭，不影响气泡边框。
 - `surfaces`：上述 22 个部件的局部外观
 - `icons`：原生按钮图像绑定，只替换图像
 - `modes.light/dark`：按模式覆盖 `surfaces/icons/typography`。未声明的部件保留公共外观；声明的单个部件以完整局部对象替换公共部件，局部对象中未指定的字段使用模型默认值。模式展开后才传入脚本，脚本返回的模式覆盖也按当前模式展开

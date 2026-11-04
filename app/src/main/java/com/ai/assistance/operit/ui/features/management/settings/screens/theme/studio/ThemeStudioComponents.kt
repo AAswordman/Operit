@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -53,6 +56,7 @@ internal fun StudioTheme(content: @Composable () -> Unit) {
     val colors = remember(snapshot, dark) { resolveThemeColorScheme(snapshot, dark) }
     CompositionLocalProvider(
         LocalThemeScriptState provides ThemeScriptState.Disabled,
+        LocalThemeTextStroke provides null,
         LocalContentColor provides colors.onSurface,
     ) {
         MaterialTheme(colorScheme = colors, typography = Typography(), shapes = Shapes(), content = content)

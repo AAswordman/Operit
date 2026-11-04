@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -58,7 +60,7 @@ internal fun MainChatControlsContent(
             color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
+         textStroke = themeTextStroke("appBar"))
         ThemeScriptIconButton(onClick = onLaunchFloatingWindow, modifier = Modifier.size(36.dp)) {
             ThemeScriptIcon(
                 "appBar.floating", Icons.Default.PictureInPicture,

@@ -18,6 +18,9 @@ data class ThemeAppearanceText(
     val lineHeight: Float = 1f,
     val letterSpacing: Float = 0f,
     val color: String? = null,
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val stroke: ThemeTextStroke? = null,
 )
 
 @kotlinx.serialization.SerialName("com.ai.assistance.operit.data.model.theme.ThemeAppearanceShape")

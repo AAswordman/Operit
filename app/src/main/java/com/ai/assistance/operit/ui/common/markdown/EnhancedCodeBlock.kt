@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.common.markdown
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.view.MotionEvent
 import android.webkit.WebView
 import androidx.compose.foundation.background

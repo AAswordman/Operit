@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.themeScriptBorder
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
@@ -300,14 +302,14 @@ private fun CompactSettingsItem(
                                 color = themeScriptContentColor("listItem", MaterialTheme.colorScheme.onSurface),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
-                        )
+                        , textStroke = themeTextStroke("listItem"))
                         Text(
                                 text = subtitle,
                                 style = themeScriptTextStyle("listItem", MaterialTheme.typography.bodySmall),
                                 color = themeScriptContentColor("listItem", MaterialTheme.colorScheme.onSurfaceVariant),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
-                        )
+                        , textStroke = themeTextStroke("listItem"))
                 }
 
                 Icon(

@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.ai.assistance.operit.ui.features.management.resources.hub
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler

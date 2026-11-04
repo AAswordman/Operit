@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering
 
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeText
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -36,7 +39,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -57,6 +59,7 @@ internal fun CanvasToolSummaryRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
+    val textStroke = themeTextStroke("toolCard")
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val iconPainter = rememberVectorPainter(leadingIcon)
@@ -151,11 +154,11 @@ internal fun CanvasToolSummaryRow(
             val textTopBase = topPaddingPx.toFloat()
             val titleX = iconSizePx + gap1Px
             val titleY = textTopBase + (contentHeightPx - titleLayout.size.height) / 2f
-            drawText(titleLayout, topLeft = Offset(titleX, titleY))
+            drawThemeText(titleLayout, topLeft = Offset(titleX, titleY), textStroke = textStroke)
 
             val summaryX = titleX + titleWidthPx + gap2Px
             val summaryY = textTopBase + (contentHeightPx - summaryLayout.size.height) / 2f
-            drawText(summaryLayout, topLeft = Offset(summaryX, summaryY))
+            drawThemeText(summaryLayout, topLeft = Offset(summaryX, summaryY), textStroke = textStroke)
         }
     }
 }
@@ -179,6 +182,7 @@ internal fun CanvasToolResultRow(
     onClick: (() -> Unit)? = null,
     onCopyClick: (() -> Unit)? = null,
 ) {
+    val textStroke = themeTextStroke("toolCard")
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val arrowPainter = rememberVectorPainter(Icons.Default.SubdirectoryArrowRight)
@@ -300,7 +304,7 @@ internal fun CanvasToolResultRow(
 
                 val textX = statusLeft + statusSizePx + gapPx
                 val textY = contentTop + (contentHeightPx - summaryLayout.size.height) / 2f
-                drawText(summaryLayout, topLeft = Offset(textX, textY))
+                drawThemeText(summaryLayout, topLeft = Offset(textX, textY), textStroke = textStroke)
 
                 if (onCopyClick != null) {
                     val copyLeft = widthPx - endPaddingPx - trailingSlotPx + (trailingSlotPx - trailingIconPx) / 2f
@@ -348,6 +352,7 @@ internal fun CanvasStatusCard(
     borderColor: Color,
     modifier: Modifier = Modifier,
 ) {
+    val textStroke = themeTextStroke("toolCard")
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val textStyle = MaterialTheme.typography.bodySmall.copy(color = textColor)
@@ -387,10 +392,9 @@ internal fun CanvasStatusCard(
                 style = Stroke(width = borderWidthPx),
             )
 
-            drawText(
+            drawThemeText(
                 textLayout,
-                topLeft = Offset(horizontalPaddingPx.toFloat(), cardTop + verticalPaddingPx),
-            )
+                topLeft = Offset(horizontalPaddingPx.toFloat(), cardTop + verticalPaddingPx), textStroke = textStroke)
         }
     }
 }
@@ -401,6 +405,7 @@ internal fun CanvasWarningStatusRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
+    val textStroke = themeTextStroke("toolCard")
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val barColor = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
@@ -462,10 +467,9 @@ internal fun CanvasWarningStatusRow(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadiusPx, cornerRadiusPx),
             )
 
-            drawText(
+            drawThemeText(
                 textLayout,
-                topLeft = Offset(barWidthPx + gapPx, top + (contentHeightPx - textLayout.size.height) / 2f),
-            )
+                topLeft = Offset(barWidthPx + gapPx, top + (contentHeightPx - textLayout.size.height) / 2f), textStroke = textStroke)
         }
     }
 }

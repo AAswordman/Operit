@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -182,6 +184,7 @@ private fun StudioTextProperties(state: ThemeStudioState, onColor: (String, Stri
         StudioSlider(state, stringResource(R.string.studio_line_height), text.lineHeight, .8f..2f) { value -> state.updateText { it.copy(lineHeight = value) } }
         StudioSlider(state, stringResource(R.string.studio_letter_spacing), text.letterSpacing, -2f..8f, "sp") { value -> state.updateText { it.copy(letterSpacing = value) } }
     }
+    StudioTextStrokeProperties(state)
 }
 
 @Composable

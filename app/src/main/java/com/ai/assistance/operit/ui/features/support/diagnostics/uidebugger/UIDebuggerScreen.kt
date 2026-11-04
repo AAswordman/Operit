@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.support.diagnostics.uidebugger
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings

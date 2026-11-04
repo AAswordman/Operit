@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">文字の縁取り</string>
+    <string name="studio_text_stroke_color">文字の縁取り色</string>
+    <string name="studio_text_stroke_off">オフ</string>
+    <string name="studio_text_stroke_custom">カスタム</string>
+    <string name="studio_text_stroke_hint">文字の輪郭に縁取りを描き、文字色は独立して設定できます。各領域は全体設定を継承するか、個別にオフにできます。幅0で無効になります。吹き出しの枠線とは別の設定です。</string>
+</resources>

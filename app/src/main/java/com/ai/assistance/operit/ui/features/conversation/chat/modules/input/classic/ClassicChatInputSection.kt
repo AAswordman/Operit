@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.input.classic
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.ChatInputRuntime
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.rememberChatInputRuntime
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
@@ -35,7 +37,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeBasicTextField as BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -684,7 +686,7 @@ internal fun ClassicChatInputContent(
                                                 },
                                             style = themeScriptTextStyle("input", modernTextStyle),
                                             color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
-                                        )
+                                         textStroke = themeTextStroke("input", "composer"))
                                     }
                                     innerTextField()
                                 }
@@ -703,7 +705,7 @@ internal fun ClassicChatInputContent(
                                 }
                             }
                         },
-                    )
+                     textStroke = themeTextStroke("input", "composer"))
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))

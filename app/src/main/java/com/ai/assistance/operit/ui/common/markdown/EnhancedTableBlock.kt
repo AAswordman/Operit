@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.common.markdown
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeTextLayout
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeNativeText
 import android.graphics.Typeface
 import android.os.SystemClock
 import android.text.Layout
@@ -101,6 +104,7 @@ fun EnhancedTableBlock(
     textColor: Color = MaterialTheme.colorScheme.onSurface,
     onLinkClick: ((String) -> Unit)? = null,
 ) {
+    val textStroke = LocalThemeTextStroke.current
     val density = LocalDensity.current
     val hostView = LocalView.current
     val touchSlop =
@@ -406,7 +410,7 @@ fun EnhancedTableBlock(
                                 currentY + cellVerticalPaddingPx
                             )
                             drawInlineCodeBackgrounds(cell.layout, canvas.nativeCanvas)
-                            cell.layout.draw(canvas.nativeCanvas)
+                            drawThemeTextLayout(cell.layout, canvas.nativeCanvas, textStroke)
                             canvas.nativeCanvas.restore()
                         }
 

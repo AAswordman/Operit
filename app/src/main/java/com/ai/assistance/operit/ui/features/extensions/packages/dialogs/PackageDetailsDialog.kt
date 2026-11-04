@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.dialogs
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll

@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptFill
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
@@ -71,7 +72,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -1418,7 +1419,7 @@ internal fun MessageFooterBar(
                 modifier = Modifier.align(Alignment.Start),
                 style = themeScriptTextStyle("status", MaterialTheme.typography.labelSmall),
                 color = statsTextColor,
-            )
+             textStroke = themeTextStroke("status"))
         }
 
         if (message.variantCount > 1) {
@@ -1451,7 +1452,7 @@ internal fun MessageFooterBar(
                         ),
                     style = themeScriptTextStyle("status", MaterialTheme.typography.labelSmall),
                     color = themeScriptContentColor("status", MaterialTheme.colorScheme.onSurfaceVariant),
-                )
+                 textStroke = themeTextStroke("status"))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = stringResource(R.string.chat_next_variant),

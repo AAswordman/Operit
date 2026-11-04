@@ -12,7 +12,7 @@ import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertD
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">Text outline</string>
+    <string name="studio_text_stroke_color">Text outline color</string>
+    <string name="studio_text_stroke_off">Off</string>
+    <string name="studio_text_stroke_custom">Custom</string>
+    <string name="studio_text_stroke_hint">The outline surrounds the glyphs; text fill remains independent. Each area can inherit the global outline or turn it off. A width of 0 disables it. Bubble borders are separate.</string>
+</resources>

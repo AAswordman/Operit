@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.automation.workflow.components
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.SelectionContainer

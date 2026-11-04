@@ -1,6 +1,8 @@
 package com.ai.assistance.operit.ui.theme.script
 
 import android.os.Build
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
@@ -73,6 +75,7 @@ fun ThemeScriptSurface(
         val typography = applyThemeTypography(MaterialTheme.typography, surfaceTypography(style), images)
         MaterialTheme(typography = typography) {
             CompositionLocalProvider(
+                LocalThemeTextStroke provides themeTextStroke(surfaceId),
                 LocalContentColor provides themeScriptContentColor(surfaceId, LocalContentColor.current),
                 LocalTextStyle provides themeScriptTextStyle(surfaceId, LocalTextStyle.current),
             ) {

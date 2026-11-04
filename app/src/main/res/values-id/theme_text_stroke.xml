@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">Garis tepi teks</string>
+    <string name="studio_text_stroke_color">Warna garis tepi teks</string>
+    <string name="studio_text_stroke_off">Nonaktif</string>
+    <string name="studio_text_stroke_custom">Kustom</string>
+    <string name="studio_text_stroke_hint">Garis tepi mengelilingi huruf; warna isi teks tetap terpisah. Setiap area dapat mengikuti pengaturan global atau menonaktifkannya. Lebar 0 menonaktifkan garis tepi. Bingkai gelembung diatur terpisah.</string>
+</resources>

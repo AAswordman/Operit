@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.input.agent
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.ChatInputRuntime
 import com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common.rememberChatInputRuntime
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
@@ -68,12 +69,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -1014,7 +1015,7 @@ internal fun AgentChatInputContent(
                                 },
                                 style = themeScriptTextStyle("input", inputTextStyle),
                                 color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
-                            )
+                             textStroke = themeTextStroke("input", "composer"))
                         },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input", enabled = !isProcessing || allowTextInputWhileProcessing, originalShape = RoundedCornerShape(14.dp)).onPreviewKeyEvent(onEnterToSendKeyEvent),
                         textStyle = themeScriptTextStyle("input", themeScriptTextStyle("composer", inputTextStyle)),
@@ -1052,7 +1053,7 @@ internal fun AgentChatInputContent(
                             }
                         },
                         enabled = !isProcessing || allowTextInputWhileProcessing,
-                    )
+                     textStroke = themeTextStroke("input", "composer"))
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -1325,7 +1326,7 @@ internal fun AgentChatInputContent(
                                     },
                                     style = themeScriptTextStyle("input", inputTextStyle),
                                     color = themeScriptContentColor("input", MaterialTheme.colorScheme.onSurfaceVariant),
-                                )
+                                 textStroke = themeTextStroke("input", "composer"))
                             },
                             modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).themeScriptDecoration("input", enabled = !isProcessing || allowTextInputWhileProcessing, originalShape = RoundedCornerShape(14.dp)).onPreviewKeyEvent(onEnterToSendKeyEvent),
                             textStyle = themeScriptTextStyle("input", themeScriptTextStyle("composer", inputTextStyle)),
@@ -1363,7 +1364,7 @@ internal fun AgentChatInputContent(
                                 }
                             },
                             enabled = !isProcessing || allowTextInputWhileProcessing,
-                        )
+                         textStroke = themeTextStroke("input", "composer"))
 
                         Spacer(modifier = Modifier.height(8.dp))
 

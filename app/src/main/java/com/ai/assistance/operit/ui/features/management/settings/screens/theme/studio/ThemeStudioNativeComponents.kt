@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
+import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -82,7 +84,7 @@ internal fun StudioComponentsPreview(state: ThemeStudioState) {
         containerColor = themeScriptFill("sheet", MaterialTheme.colorScheme.surfaceContainerLow),
         contentColor = themeScriptContentColor("sheet", MaterialTheme.colorScheme.onSurface),
     ) {
-        Text(state.target.label(), Modifier.padding(24.dp), style = themeScriptTextStyle("sheet", MaterialTheme.typography.titleLarge))
+        Text(state.target.label(), Modifier.padding(24.dp), style = themeScriptTextStyle("sheet", MaterialTheme.typography.titleLarge), textStroke = themeTextStroke("sheet"))
         Text(stringResource(R.string.studio_component_sample), Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
         Spacer(Modifier.height(48.dp))
     }

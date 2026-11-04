@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.voice
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.net.Uri
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background

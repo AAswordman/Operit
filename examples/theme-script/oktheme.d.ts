@@ -21,6 +21,8 @@ export interface Palette {
     light?: Partial<Record<ColorToken, Color>>;
     dark?: Partial<Record<ColorToken, Color>>;
 }
+/** 文字轮廓使用 dp；区域省略 stroke 时继承全局，width 为 0 时单独关闭。 */
+export interface TextStroke { color?: Color; width?: number; }
 export interface Typography {
     family?: "default" | "sans-serif" | "serif" | "monospace" | "cursive" | `asset:${string}`;
     scale?: number;
@@ -28,6 +30,7 @@ export interface Typography {
     letterSpacing?: number;
     /** 全局或区域文字颜色；null 表示沿用原有配色。 */
     color?: Color | null;
+    stroke?: TextStroke | null;
 }
 export interface Shape { type?: "rounded" | "cut" | "circle"; radius?: number; }
 export interface IconAsset { asset: string; size?: number; opacity?: number; useContentTint?: boolean; tintColor?: Color; }
