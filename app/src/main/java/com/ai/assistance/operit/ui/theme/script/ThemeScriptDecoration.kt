@@ -122,7 +122,8 @@ fun Modifier.themeScriptDecoration(
     }
     val opacity = if (surfaceId in LocalThemeHandledOpacity.current) 1f else surface.opacity
     val shape = fragment.shape(if (surface.shape == null) originalShape else appearanceShape(surface.shape))
-    val border = if (drawStroke) appearanceBorder(surface, null, backgroundOpacity.coerceIn(0f, 1f)) else null
+    // 背景透明度只控制填充和装饰图层；描边保留自身颜色透明度及组件不透明度。
+    val border = if (drawStroke) appearanceBorder(surface, null) else null
     val pointer = if (surface.layers.any { it.state == "pressed" } || "pressed" in surface.states) Modifier.pointerInput(surfaceId) {
         try { awaitPointerEventScope { while (true) pressed = awaitPointerEvent(PointerEventPass.Initial).changes.any { it.pressed } } } finally { pressed = false }
     } else Modifier
