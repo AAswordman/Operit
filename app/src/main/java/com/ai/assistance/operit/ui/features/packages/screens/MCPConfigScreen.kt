@@ -1238,6 +1238,11 @@ fun MCPConfigScreen(
                             }
                             val isRemote = pluginInfo?.type == "remote"
                             val invalidConfigReason: String? = null
+                            // Last startup failure recorded by MCPStarter (spawn error, handshake
+                            // failure, missing runtime files...). Shown under the plugin row so
+                            // "verification failed" is explainable after the loading UI closes.
+                            val lastStartupError: String? =
+                                serverStatusMap[pluginId]?.errorMessage?.takeIf { it.isNotBlank() }
 
                             // 获取插件部署状态（通过检查Linux文件系统）
                             val deploySuccessState = remember(pluginId) {
@@ -1328,7 +1333,8 @@ fun MCPConfigScreen(
                                     isRunning = pluginRunningState.value,
                                     isDeployed = deploySuccessState.value,
                                     isConfigValid = isRemote || deploySuccessState.value,
-                                    invalidConfigReason = invalidConfigReason
+                                    invalidConfigReason = invalidConfigReason,
+                                    startupError = lastStartupError
                             )
                             HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
                         }
@@ -1530,7 +1536,8 @@ private fun PluginListItem(
     isRunning: Boolean = false,
     isDeployed: Boolean = false,
     isConfigValid: Boolean = true,
-    invalidConfigReason: String? = null
+    invalidConfigReason: String? = null,
+    startupError: String? = null
 ) {
     Card(
         modifier = Modifier
@@ -1672,6 +1679,17 @@ private fun PluginListItem(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    if (!startupError.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = startupError,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

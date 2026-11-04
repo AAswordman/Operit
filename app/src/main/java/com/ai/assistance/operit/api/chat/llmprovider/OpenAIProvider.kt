@@ -1528,6 +1528,16 @@ open class OpenAIProvider(
         private val onTokensUpdated: suspend (Long, Long, Long) -> Unit
     ) {
         private val savepointLengths = mutableMapOf<String, Int>()
+        private val savepointRawOffsets = mutableMapOf<String, Int>()
+
+        /**
+         * Characters removed from [receivedContent] by earlier rollbacks.
+         *
+         * [receivedContent] is truncated on rollback, so its length is the retained text of the
+         * current attempt, not a position in the chunk sequence consumers receive. Revision events
+         * must carry positions in that sequence: a retained length plus this total is the raw offset.
+         */
+        private var discardedTotal = 0
 
         suspend fun emitContent(content: String) {
             if (content.isNotNullOrEmpty()) {
@@ -1572,18 +1582,38 @@ open class OpenAIProvider(
         }
 
         suspend fun emitSavepoint(id: String) {
+            val rawOffset = receivedContent.length + discardedTotal
             savepointLengths[id] = receivedContent.length
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.SAVEPOINT, id))
+            savepointRawOffsets[id] = rawOffset
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SAVEPOINT,
+                    id = id,
+                    contentLength = rawOffset
+                )
+            )
         }
 
         fun getSavepointLength(id: String): Int? = savepointLengths[id]
 
         suspend fun emitRollback(id: String): Boolean {
-            val savepointLength = savepointLengths[id] ?: return false
-            if (receivedContent.length > savepointLength) {
-                receivedContent.setLength(savepointLength)
+            val retainedLength = savepointLengths[id] ?: return false
+            val rawOffset = savepointRawOffsets[id] ?: return false
+            val discardedLength = (receivedContent.length - retainedLength).coerceAtLeast(0)
+            if (discardedLength > 0) {
+                receivedContent.setLength(retainedLength)
+                discardedTotal += discardedLength
             }
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.ROLLBACK, id))
+            // The next attempt of the same savepoint starts after the range just discarded.
+            savepointRawOffsets[id] = rawOffset + discardedLength
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.ROLLBACK,
+                    id = id,
+                    contentLength = rawOffset,
+                    discardedLength = discardedLength
+                )
+            )
             return true
         }
 

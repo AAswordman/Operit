@@ -20,7 +20,8 @@ internal data class StdioMcpImportedServer(
     val args: List<String>,
     val env: Map<String, String>,
     val autoApprove: List<String>,
-    override val disabled: Boolean
+    override val disabled: Boolean,
+    val cwd: String? = null
 ) : McpImportedServer
 
 internal data class RemoteMcpImportedServer(
@@ -85,7 +86,8 @@ internal object McpConfigImportParser {
             args = config.optionalStringList("args", serverId),
             env = config.optionalStringMap("env", serverId),
             autoApprove = config.optionalStringList("autoApprove", serverId),
-            disabled = config.optionalBoolean("disabled", serverId)
+            disabled = config.optionalBoolean("disabled", serverId),
+            cwd = config.optionalNonBlankString("cwd", serverId)
         )
     }
 
@@ -131,6 +133,13 @@ internal object McpConfigImportParser {
         val value = get(field) ?: return null
         require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { "$field 必须是字符串" }
         return value.asString
+    }
+
+    private fun JsonObject.optionalNonBlankString(field: String, serverId: String): String? {
+        val value = optionalString(field) ?: return null
+        val trimmed = value.trim()
+        require(trimmed.isNotEmpty()) { "mcpServers.$serverId 的 $field 不能为空" }
+        return trimmed
     }
 
     private fun JsonObject.optionalBoolean(field: String, serverId: String): Boolean {

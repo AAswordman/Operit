@@ -528,7 +528,8 @@ class MCPManager(private val context: Context) {
                 }
             } catch (e: Exception) {
                 connectionFailureReasons[pluginId] =
-                        "Exception while reconnecting MCP runtime: ${e.message ?: e.javaClass.simpleName}"
+                        cachedSession.getLastFailureDetail()
+                                ?: "Exception while reconnecting MCP runtime: ${e.message ?: e.javaClass.simpleName}"
                 AppLogger.e(TAG, "重连 MCP runtime 失败: $pluginId", e)
             }
             sessionCache.remove(pluginId)
@@ -552,7 +553,10 @@ class MCPManager(private val context: Context) {
         return try {
             AppLogger.d(TAG, "连接 MCP runtime: $pluginId")
             if (!kotlinx.coroutines.runBlocking { session.connect() }) {
-                connectionFailureReasons[pluginId] = "MCP runtime connection failed"
+                // Keep the transport's diagnostic (spawn error, handshake failure, remote HTTP
+                // error). Verification reports this text directly to the plugin loading screen.
+                connectionFailureReasons[pluginId] =
+                        session.getLastFailureDetail() ?: "MCP runtime connection failed"
                 kotlinx.coroutines.runBlocking { session.close() }
                 null
             } else {
@@ -562,7 +566,8 @@ class MCPManager(private val context: Context) {
             }
         } catch (e: Exception) {
             connectionFailureReasons[pluginId] =
-                    "Exception while creating MCP runtime: ${e.message ?: e.javaClass.simpleName}"
+                    session.getLastFailureDetail()
+                            ?: "Exception while creating MCP runtime: ${e.message ?: e.javaClass.simpleName}"
             AppLogger.e(TAG, "创建 MCP runtime 失败: $pluginId", e)
             kotlinx.coroutines.runBlocking { session.close() }
             null

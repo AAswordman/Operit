@@ -321,6 +321,8 @@ internal fun StandardBrowserSessionTools.captureActionMarkers(
     )
 
 internal fun StandardBrowserSessionTools.isDocumentReady(session: BrowserToolSession): Boolean {
+    // The old document may remain complete while the new main-frame request is in flight.
+    if (session.pendingNavigationUrl != null) return false
     if (session.pageLoaded && !session.isLoading) {
         return true
     }
@@ -334,7 +336,7 @@ internal fun StandardBrowserSessionTools.isDocumentReady(session: BrowserToolSes
                 )
             )
         }.getOrNull()
-    return ready == "complete" || ready == "interactive"
+    return session.pendingNavigationUrl == null && (ready == "complete" || ready == "interactive")
 }
 
 internal fun StandardBrowserSessionTools.waitForDocumentReady(
@@ -566,10 +568,35 @@ private fun StandardBrowserSessionTools.actionSettled(
     }
 
     val activeSwitched = policy.allowActivePageSwitch && session.id != markers.initialSessionId
-    val currentUrl = readCurrentUrl(session.webView, session.currentUrl).ifBlank { session.currentUrl }
+    val clickTrace = policy.clickTrace
+    if (clickTrace?.navigationFailure != null) return true
+    val clickDocument =
+        if (clickTrace != null) observeBrowserClickDocument(session, clickTrace) else null
+    if (clickTrace != null && clickDocument?.optBoolean("ok", false) != true) return false
+    val currentUrl =
+        if (clickDocument != null) {
+            clickDocument.getString("locationHref")
+        } else {
+            readCurrentUrl(session.webView, session.currentUrl).ifBlank { session.currentUrl }
+        }
     val urlChanged = currentUrl != markers.initialUrl
+    val frameNavigated = clickDocument?.optBoolean("navigationObserved", false) == true
+    val navigationObserved = activeSwitched || urlChanged || frameNavigated
 
-    if (policy.waitForNavigationChange && !activeSwitched && !urlChanged) {
+    if (clickTrace != null) {
+        if (clickTrace.capturedEvent?.matchesTarget == false ||
+            clickTrace.completedEvent?.matchesTarget == false) return true
+        // Acceptance of MotionEvent does not prove that a DOM click reached the target.
+        // A committed navigation can destroy the old observer before its console event arrives.
+        if (clickTrace.capturedEvent == null && !navigationObserved) return false
+    }
+    val mustNavigate = policy.waitForNavigationChange &&
+        clickTrace?.completedEvent?.defaultPrevented != true
+    if (mustNavigate && !navigationObserved) return false
+    if (mustNavigate && clickTrace != null && currentUrl == "about:blank" && !frameNavigated) {
+        return false
+    }
+    if (mustNavigate && frameNavigated && clickDocument?.getBoolean("navigationReady") != true) {
         return false
     }
 

@@ -6980,16 +6980,18 @@ const handlers = {
             version: '1.0.0',
         });
         client = mcpClient;
+        // Resolve launch parameters before the try block: the catch path reports them back to
+        // the bridge, and they must stay in scope when the SDK throws during connect.
+        let workingDir = serviceInfo.cwd || path.join(os.homedir(), 'mcp_plugins', serviceName);
+        workingDir = expandPath(workingDir);
+        let actualCommand = expandPath(serviceInfo.command);
+        let actualArgs = serviceInfo.args;
+        if (actualCommand === 'npx') {
+            actualCommand = 'pnpm';
+            const filteredArgs = actualArgs.filter((arg) => arg !== '-y' && arg !== '--yes');
+            actualArgs = ['dlx', ...filteredArgs];
+        }
         try {
-            let workingDir = serviceInfo.cwd || path.join(os.homedir(), 'mcp_plugins', serviceName);
-            workingDir = expandPath(workingDir);
-            let actualCommand = expandPath(serviceInfo.command);
-            let actualArgs = serviceInfo.args;
-            if (actualCommand === 'npx') {
-                actualCommand = 'pnpm';
-                const filteredArgs = actualArgs.filter((arg) => arg !== '-y' && arg !== '--yes');
-                actualArgs = ['dlx', ...filteredArgs];
-            }
             const mergedEnv = {
                 ...process.env,
                 ...serviceInfo.env,
@@ -7014,10 +7016,21 @@ const handlers = {
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error(`[${serviceName}] Helper connection failed: ${errorMessage}`);
+            // The SDK reports transport failures as a bare "Connection closed". Add the launch
+            // context so a failed spawn (missing executable, bad cwd, wrong entry path) is
+            // diagnosable from the management page without reading device logs. Environment
+            // values are deliberately omitted; only the variable names are listed.
+            const envKeys = Object.keys(serviceInfo.env || {}).sort();
+            const launchContext = [
+                `command=${actualCommand}`,
+                `args=${JSON.stringify(actualArgs || [])}`,
+                `cwd=${workingDir}`,
+                `envKeys=${envKeys.length > 0 ? envKeys.join(',') : '(none)'}`
+            ].join(', ');
+            console.error(`[${serviceName}] Helper connection failed: ${errorMessage} (${launchContext})`);
             process.send({
                 event: 'closed',
-                params: { serviceName, error: errorMessage }
+                params: { serviceName, error: `${errorMessage} (${launchContext})` }
             });
             // Exit after sending error to allow parent to restart
             process.exit(1);
@@ -34106,7 +34119,7 @@ module.exports = /*#__PURE__*/JSON.parse('{"$schema":"http://json-schema.org/dra
 /************************************************************************/
 /******/ 	// The module cache
 /******/ 	var __webpack_module_cache__ = {};
-/******/ 	
+/******/
 /******/ 	// The require function
 /******/ 	function __nccwpck_require__(moduleId) {
 /******/ 		// Check if module is in cache
@@ -34120,7 +34133,7 @@ module.exports = /*#__PURE__*/JSON.parse('{"$schema":"http://json-schema.org/dra
 /******/ 			// no module.loaded needed
 /******/ 			exports: {}
 /******/ 		};
-/******/ 	
+/******/
 /******/ 		// Execute the module function
 /******/ 		var threw = true;
 /******/ 		try {
@@ -34129,23 +34142,23 @@ module.exports = /*#__PURE__*/JSON.parse('{"$schema":"http://json-schema.org/dra
 /******/ 		} finally {
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
 /******/ 		}
-/******/ 	
+/******/
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/ 	
+/******/
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
-/******/ 	
+/******/
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
-/******/ 	
+/******/
 /************************************************************************/
-/******/ 	
+/******/
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
 /******/ 	var __webpack_exports__ = __nccwpck_require__(9939);
 /******/ 	module.exports = __webpack_exports__;
-/******/ 	
+/******/
 /******/ })()
 ;

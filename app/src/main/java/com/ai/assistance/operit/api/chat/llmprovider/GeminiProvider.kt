@@ -1189,17 +1189,45 @@ open class GeminiProvider(
 
         // 用于保存已接收到的内容，以便在重试时使用
         val receivedContent = StringBuilder()
+        val savepointLengths = mutableMapOf<String, Int>()
+        val savepointRawOffsets = mutableMapOf<String, Int>()
+        // Characters removed from receivedContent by earlier rollbacks. receivedContent is
+        // truncated on rollback, so its length is retained text rather than a position in the chunk
+        // sequence consumers receive; revision events must carry the latter.
+        var discardedTotal = 0
         val requestSavepointId = "attempt_${UUID.randomUUID().toString().replace("-", "")}"
 
         suspend fun emitSavepoint(id: String) {
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.SAVEPOINT, id))
+            val rawOffset = receivedContent.length + discardedTotal
+            savepointLengths[id] = receivedContent.length
+            savepointRawOffsets[id] = rawOffset
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SAVEPOINT,
+                    id = id,
+                    contentLength = rawOffset
+                )
+            )
         }
 
         suspend fun emitRollback(id: String) {
-            if (receivedContent.isNotEmpty()) {
-                receivedContent.setLength(0)
+            val retainedLength = savepointLengths[id] ?: return
+            val rawOffset = savepointRawOffsets[id] ?: return
+            val discardedLength = (receivedContent.length - retainedLength).coerceAtLeast(0)
+            if (discardedLength > 0) {
+                receivedContent.setLength(retainedLength)
+                discardedTotal += discardedLength
             }
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.ROLLBACK, id))
+            // The next attempt of the same savepoint starts after the range just discarded.
+            savepointRawOffsets[id] = rawOffset + discardedLength
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.ROLLBACK,
+                    id = id,
+                    contentLength = rawOffset,
+                    discardedLength = discardedLength
+                )
+            )
         }
 
         // 捕获stream collector的引用

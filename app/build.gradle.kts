@@ -757,6 +757,9 @@ dependencies {
 
     // Test dependencies
     testImplementation(libs.junit)
+    // JVM 上的真实 Room DAO 测试：Android Room 2.8 生成的实现基于 androidx.sqlite
+    // KMP 接口，用 sqlite-jdbc 提供纯 JVM 驱动（见测试支撑类 JdbcSQLiteDriver）。
+    testImplementation("org.xerial:sqlite-jdbc:3.41.2.2")
     // JVM tests need a real implementation because Android's org.json methods are throwing stubs.
     testImplementation(libs.json.jvm)
     androidTestImplementation(libs.androidx.junit)
