@@ -334,6 +334,10 @@ object AppLogger {
             }
         } catch (e: IOException) {
             // Avoid recursive logging here; swallow to prevent crashes
+        } catch (e: OutOfMemoryError) {
+            // A full heap must not turn a log line into a crash: drop this record and
+            // stop writing to file for the rest of the process (refs #1457).
+            enableFileLogging = false
         }
 
         writeToPackageLogIfNeeded(
@@ -352,6 +356,7 @@ object AppLogger {
         time: String,
         levelChar: Char
     ) {
+        if (!enableFileLogging) return
         if (!shouldMirrorToPackageLog(tag, msg)) {
             return
         }
