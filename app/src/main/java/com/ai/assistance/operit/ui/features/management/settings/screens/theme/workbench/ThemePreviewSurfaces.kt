@@ -2,6 +2,8 @@ package com.ai.assistance.operit.ui.features.management.settings.screens.theme.w
 
 import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptActionButton
 import com.ai.assistance.operit.ui.theme.script.themeScriptShape
 import com.ai.assistance.operit.ui.theme.script.themeScriptAvatarSize
 import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
@@ -10,12 +12,9 @@ import com.ai.assistance.operit.ui.theme.script.themeScriptMessageFraction
 import com.ai.assistance.operit.ui.theme.script.themeScriptTextStyle
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
 
-import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton as IconButton
 
 import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
-
 import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -393,19 +392,30 @@ internal fun ThemePreviewInput(values: ThemePreferenceValues) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ThemeScriptIcon(
-                    id = if (classic) "composer.attachment" else "composer.settings",
-                    imageVector = if (classic) Icons.Default.Add else Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
+                ThemeScriptActionButton(
+                    actionId = if (classic) "composer.attachment" else "composer.settings",
+                    onClick = {},
+                    modifier = Modifier.size(30.dp),
+                ) {
+                    ThemeScriptIcon(
+                        id = if (classic) "composer.attachment" else "composer.settings",
+                        imageVector = if (classic) Icons.Default.Add else Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
                 Text(
                     stringResource(R.string.theme_workbench_example_input),
                     Modifier.weight(1f),
                     style = themeScriptTextStyle("composer", MaterialTheme.typography.bodySmall),
                     color = themeScriptContentColor("composer", MaterialTheme.colorScheme.onSurface),
-                 textStroke = themeTextStroke("composer"))
-                IconButton(onClick = { generating = true }, enabled = !generating) {
+                    textStroke = themeTextStroke("composer"),
+                )
+                ThemeScriptIconButton(
+                    actionId = "composer.send",
+                    onClick = { generating = true },
+                    enabled = !generating,
+                ) {
                     ThemeScriptIcon(
                         id = "composer.send",
                         imageVector = Icons.Default.Send,

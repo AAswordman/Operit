@@ -2,11 +2,13 @@
 export type SurfaceId = "background" | "userMessage" | "assistantMessage" | "composer" |
     "userAvatar" | "assistantAvatar" | "appBar" | "navigation" | "navigationItem" |
     "button" | "iconButton" | "input" | "settingsCard" | "dialog" | "sheet" | "menu" |
-    "listItem" | "status" | "toolCard" | "attachmentMenu" | "modelMenu" | "chatSettingsMenu";
+    "listItem" | "status" | "toolCard" | "attachmentMenu" | "modelMenu" | "chatSettingsMenu" | ActionButtonId;
 export type IconId = "composer.settings" | "composer.attachment" | "composer.microphone" |
     "composer.send" | "composer.stop" | "composer.fullscreen" | "composer.queue" |
     "composer.expand" | "appBar.back" | "appBar.menu" | "appBar.workspace" |
     "appBar.floating" | "navigation.item";
+/** 动作按钮容器与图标素材分别声明，未声明容器时继承共用 iconButton。 */
+export type ActionButtonId = Exclude<IconId, "navigation.item">;
 /** 六位是 RGB，八位是 ARGB。 */
 export type Color = `#${string}`;
 export type ColorToken = "primary" | "onPrimary" | "primaryContainer" | "onPrimaryContainer" |

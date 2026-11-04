@@ -5,6 +5,7 @@ import com.ai.assistance.operit.ui.theme.script.text.themeTextStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.UiComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -27,17 +28,19 @@ internal fun themeStateName(pressed: Boolean, focused: Boolean, selected: Boolea
 }
 
 @Composable
+@UiComposable
 internal fun ThemeInteractionScope(
     id: String,
     interactionSource: MutableInteractionSource?,
     enabled: Boolean,
-    content: @Composable (MutableInteractionSource) -> Unit,
+    selected: Boolean = false,
+    content: @Composable @UiComposable (MutableInteractionSource) -> Unit,
 ) {
     val ownSource = remember { MutableInteractionSource() }
     val source = interactionSource ?: ownSource
     val pressed by source.collectIsPressedAsState()
     val focused by source.collectIsFocusedAsState()
-    val state = LocalThemeSurfaceStates.current[id] ?: themeStateName(pressed, focused, selected = false, enabled = enabled, error = false)
+    val state = LocalThemeSurfaceStates.current[id] ?: themeStateName(pressed, focused, selected = selected, enabled = enabled, error = false)
     CompositionLocalProvider(
         LocalThemeSurfaceStates provides (LocalThemeSurfaceStates.current + (id to state)),
         LocalThemeTextStroke provides themeTextStroke(id),

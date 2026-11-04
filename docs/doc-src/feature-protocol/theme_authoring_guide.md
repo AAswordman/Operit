@@ -744,3 +744,14 @@ QuickJS 计算预算和 Android 绘制成本分别受约束。即使没有超过
 - [完整分享清单](../../../app/src/main/java/com/ai/assistance/operit/data/themesharing/ThemeTransferSchema.kt)、[归档规则](../../../app/src/main/java/com/ai/assistance/operit/data/themesharing/ThemeArchive.kt)
 
 </details>
+
+
+## 独立动作按钮容器
+
+自定义主题现在可以在 `surfaces` 中以动作图标同名标识声明完整按钮容器：`composer.settings`、`composer.attachment`、`composer.microphone`、`composer.send`、`composer.stop`、`composer.fullscreen`、`composer.queue`、`composer.expand`、`appBar.back`、`appBar.menu`、`appBar.workspace`、`appBar.floating`。
+
+`surfaces[id]` 管理填充、内容色、形状、边框、内边距、前后景图层、透明度和交互状态；`icons[id]` 管理图像、尺寸、透明度和着色。两者分别保存。未声明独立容器时继承共用 `iconButton`；开始编辑时复制当前继承样式为独立声明。恢复共用外观只清除当前明暗模式的该按钮容器，保留另一模式和图标素材。
+
+编辑器为每个按钮开放外观、图层、状态三个页签。按下、聚焦、选中和禁用状态使用实际按钮交互。经典与 Agent 输入区的自绘按钮、两种 Agent 外观、全屏入口和顶栏入口均接入，预览使用相同组件。发送、停止、排队和录音通过当前动作标识分别读取样式；原有业务回调及启用条件保留。
+
+包含独立按钮容器声明的主题需要支持此扩展的应用版本；既有主题及图标素材声明保持可用。

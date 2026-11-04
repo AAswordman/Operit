@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="studio_button_icons">按钮图标</string>
-    <string name="studio_button_icons_hint">每行对应一个按钮；点选浅色或深色素材，可独立调整图像、大小、透明度和着色。</string>
+    <string name="studio_button_icons_hint">每行对应一个按钮；点选浅色或深色入口，可独立编辑填充、图标颜色、形状、边框、内边距、前后景图层、交互状态和图标素材。</string>
+    <string name="studio_button_style_hint">当前按钮的外观独立保存；未单独配置时继承共用图标按钮。恢复继承只影响当前按钮和当前明暗模式，不清除图标素材。</string>
+    <string name="studio_button_style_inherit">恢复共用按钮外观</string>
 </resources>

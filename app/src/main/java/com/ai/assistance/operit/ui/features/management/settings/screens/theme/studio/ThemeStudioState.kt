@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.features.management.settings.screens.theme.studio
 
+import com.ai.assistance.operit.data.theme.script.actionButtonSurface
+import com.ai.assistance.operit.data.theme.script.clearActionButtonSurface
+
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -140,7 +143,7 @@ internal class ThemeStudioState(
         mode = location.mode
         target = selected
         workspace = location.workspace
-        scene = location.scene
+        scene = selected.scene
         property = location.property
         previewState = location.previewState
         previewInputStyle = location.inputStyle
@@ -217,10 +220,16 @@ internal class ThemeStudioState(
     fun beginGesture() { if (!gesture) { gesture = true; gestureSaved = false } }
     fun endGesture() { gesture = false; gestureSaved = false }
     fun updateAppearance(change: (ThemeScriptAppearance) -> ThemeScriptAppearance) = edit(history = !gesture) { it.copy(manifest = it.manifest.copy(appearance = change(it.manifest.appearance))) }
-    fun surface(id: String = target.id, forMode: String = mode): ThemeScriptSurface = bundle.manifest.appearance.forMode(forMode).surfaces[id] ?: ThemeScriptSurface()
+    fun surface(id: String = target.id, forMode: String = mode): ThemeScriptSurface {
+        val appearance = bundle.manifest.appearance.forMode(forMode)
+        return (if (id in ThemeScriptContract.actionButtonIds) appearance.actionButtonSurface(id) else appearance.surfaces[id]) ?: ThemeScriptSurface()
+    }
+    fun resetButtonStyle() = updateAppearance { it.clearActionButtonSurface(target.id, mode) }
     fun updateSurface(id: String = target.id, forMode: String = mode, change: (ThemeScriptSurface) -> ThemeScriptSurface) = updateAppearance { base ->
         val variant = base.modes[forMode] ?: ThemeAppearanceMode()
-        val updated = change(base.forMode(forMode).surfaces[id] ?: ThemeScriptSurface())
+        val appearance = base.forMode(forMode)
+        val before = if (id in ThemeScriptContract.actionButtonIds) appearance.actionButtonSurface(id) else appearance.surfaces[id]
+        val updated = change(before ?: ThemeScriptSurface())
         base.copy(modes = base.modes + (forMode to variant.copy(surfaces = variant.surfaces + (id to updated))))
     }
     fun updateText(forMode: String = mode, change: (ThemeAppearanceText) -> ThemeAppearanceText) {
@@ -246,6 +255,7 @@ internal class ThemeStudioState(
         base.copy(palette = if (forMode == "light") base.palette.copy(light = next) else base.palette.copy(dark = next))
     }
     fun color(field: String, forMode: String): String? {
+        if (field == "tintColor") return icon(forMode = forMode)?.tintColor
         if (target.kind == StudioKind.Palette) return (if (forMode == "light") bundle.manifest.appearance.palette.light else bundle.manifest.appearance.palette.dark)[field]
         if (target.kind == StudioKind.Icon) return icon(forMode = forMode)?.tintColor
         if (target.kind == StudioKind.Typography) return bundle.manifest.appearance.forMode(forMode).typography.color
@@ -254,6 +264,11 @@ internal class ThemeStudioState(
         return when (field) { "fillColor" -> value.fillColor; "contentColor" -> value.contentColor ?: value.textStyle.color; "strokeColor" -> value.strokeColor; else -> error("Unknown color field") }
     }
     fun setColor(field: String, value: String?, forMode: String) {
+        if (field == "tintColor") {
+            icon(forMode = forMode)?.let { setIcon(it.copy(tintColor = value, useContentTint = if (value == null) it.useContentTint else false), forMode = forMode) }
+            mode = forMode
+            return
+        }
         when (target.kind) {
             StudioKind.Palette -> setPalette(field, value, forMode)
             StudioKind.Icon -> icon(forMode = forMode)?.let { setIcon(it.copy(tintColor = value, useContentTint = if (value == null) it.useContentTint else false), forMode = forMode) }

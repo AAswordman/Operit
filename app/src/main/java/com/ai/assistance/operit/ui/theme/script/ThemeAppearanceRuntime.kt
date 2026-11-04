@@ -31,6 +31,8 @@ import com.ai.assistance.operit.data.theme.script.ThemeAppearanceShape
 import com.ai.assistance.operit.data.theme.script.ThemeAppearanceText
 import com.ai.assistance.operit.data.theme.script.ThemeScriptLayer
 import com.ai.assistance.operit.data.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
+import com.ai.assistance.operit.data.theme.script.actionButtonSurface
 internal fun themeColor(value: String): Color = Color(android.graphics.Color.parseColor(value))
 
 /** 显式声明的 token 覆盖原配色，其余角色沿用当前角色主题。 */
@@ -168,8 +170,11 @@ internal fun applyThemeTypography(base: Typography, text: ThemeAppearanceText, i
 internal fun surfaceTypography(surface: ThemeScriptSurface?): ThemeAppearanceText =
     if (surface == null) ThemeAppearanceText() else surface.textStyle.copy(color = surface.contentColor ?: surface.textStyle.color)
 @Composable
-internal fun themeSurface(id: String): ThemeScriptSurface? =
-    (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.appearance?.surfaces?.get(id)?.takeUnless { it == ThemeScriptSurface() }?.let { resolvedThemeSurface(id, it) }
+internal fun themeSurface(id: String): ThemeScriptSurface? {
+    val appearance = (LocalThemeScriptState.current as? ThemeScriptState.Ready)?.appearance ?: return null
+    val surface = if (id in ThemeScriptContract.actionButtonIds) appearance.actionButtonSurface(id) else appearance.surfaces[id]
+    return surface?.takeUnless { it == ThemeScriptSurface() }?.let { resolvedThemeSurface(id, it) }
+}
 
 @Composable
 fun themeScriptShape(id: String, original: Shape): Shape {
@@ -258,16 +263,18 @@ fun ThemeScriptIcon(
     modifier: Modifier = Modifier,
     tint: Color = LocalContentColor.current,
 ) {
+    val buttonColor = if (id in ThemeScriptContract.actionButtonIds) themeSurface(id)?.contentColor else null
+    val resolvedTint = buttonColor?.let(::themeColor) ?: tint
     val state = LocalThemeScriptState.current
     val icon = (state as? ThemeScriptState.Ready)?.appearance?.icons?.get(id)
     if (icon == null) {
-        Icon(imageVector, contentDescription, modifier, tint)
+        Icon(imageVector, contentDescription, modifier, resolvedTint)
     } else {
         val images = (state as ThemeScriptState.Ready).images
         Canvas(modifier.requiredSize(icon.size.dp).then(
             if (contentDescription == null) Modifier else Modifier.semantics { this.contentDescription = contentDescription }
         )) {
-            drawThemeLayer(ThemeScriptLayer("image", asset = icon.asset, fit = "fit", opacity = icon.opacity), images, 1f, tintColor = icon.tintColor?.let(::themeColor) ?: if (icon.useContentTint) tint else null)
+            drawThemeLayer(ThemeScriptLayer("image", asset = icon.asset, fit = "fit", opacity = icon.opacity), images, 1f, tintColor = icon.tintColor?.let(::themeColor) ?: if (icon.useContentTint) resolvedTint else null)
         }
     }
 }

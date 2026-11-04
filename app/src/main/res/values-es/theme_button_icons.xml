@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="studio_button_icons">Iconos de botones</string>
-    <string name="studio_button_icons_hint">Cada fila corresponde a un botón. Selecciona su recurso claro u oscuro para personalizar la imagen, el tamaño, la opacidad y el color por separado.</string>
+    <string name="studio_button_icons_hint">Cada fila corresponde a un botón. Elige claro u oscuro para editar por separado relleno, color del icono, forma, borde, márgenes internos, capas, estados y recurso del icono.</string>
+    <string name="studio_button_style_hint">Cada botón guarda su propia apariencia. Sin configuración individual hereda el estilo común. Restaurar la herencia solo afecta a este botón y modo; conserva su recurso de icono.</string>
+    <string name="studio_button_style_inherit">Restaurar estilo común</string>
 </resources>
