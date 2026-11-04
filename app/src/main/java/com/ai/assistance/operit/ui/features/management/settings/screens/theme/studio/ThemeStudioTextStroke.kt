@@ -70,7 +70,6 @@ internal fun StudioTextStrokeProperties(state: ThemeStudioState) {
                 state.updateText { before -> before.copy(stroke = requireNotNull(before.stroke).copy(width = width)) }
             }
         }
-        StudioHint(stringResource(R.string.studio_text_stroke_hint))
     }
     if (chooseColor) {
         StudioColorPicker(state, title, stroke?.color, Color.Black,
