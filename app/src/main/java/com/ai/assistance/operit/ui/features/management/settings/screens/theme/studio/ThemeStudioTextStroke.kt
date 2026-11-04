@@ -66,7 +66,7 @@ internal fun StudioTextStrokeProperties(state: ThemeStudioState) {
             }) { width ->
                 state.updateText { before -> before.copy(stroke = requireNotNull(before.stroke).copy(width = width)) }
             }
-            StudioSlider(state, stringResource(R.string.studio_stroke_width), stroke.width, 0f..8f, "dp", precision = 2) { width ->
+            StudioSlider(state, stringResource(R.string.studio_stroke_width), stroke.width, 0f..8f, "dp", precision = 2, commitOnFinish = true) { width ->
                 state.updateText { before -> before.copy(stroke = requireNotNull(before.stroke).copy(width = width)) }
             }
         }

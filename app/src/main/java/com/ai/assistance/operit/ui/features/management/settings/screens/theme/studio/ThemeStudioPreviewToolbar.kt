@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -25,6 +26,7 @@ import com.ai.assistance.operit.ui.components.menu.WorkbenchDropdownMenu
 /** 场景与浅深模式只控制预览，在设计工作区内共用一条工具栏。 */
 @Composable
 internal fun StudioPreviewToolbar(state: ThemeStudioState, onFullPreview: () -> Unit) {
+    val focusManager = LocalFocusManager.current
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -33,7 +35,7 @@ internal fun StudioPreviewToolbar(state: ThemeStudioState, onFullPreview: () -> 
         Spacer(Modifier.width(6.dp))
         listOf("light" to R.string.studio_light, "dark" to R.string.studio_dark).forEach { (mode, label) ->
             TextButton(
-                onClick = { state.mode = mode },
+                onClick = { focusManager.clearFocus(force = true); state.mode = mode },
                 modifier = Modifier.width(52.dp).heightIn(min = 48.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp),
             ) {
@@ -58,10 +60,11 @@ internal fun StudioPreviewToolbar(state: ThemeStudioState, onFullPreview: () -> 
 
 @Composable
 private fun StudioSceneSelector(state: ThemeStudioState, modifier: Modifier) {
+    val focusManager = LocalFocusManager.current
     var expanded by remember { mutableStateOf(false) }
     Box(modifier) {
         Surface(
-            onClick = { expanded = true },
+            onClick = { focusManager.clearFocus(force = true); expanded = true },
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             shape = RoundedCornerShape(12.dp),
             color = StudioPanel,

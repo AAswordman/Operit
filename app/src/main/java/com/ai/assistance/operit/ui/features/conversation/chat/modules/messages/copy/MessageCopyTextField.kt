@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.copy
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.ResolvedThemeTextStroke
 import androidx.compose.foundation.ScrollState
 import com.ai.assistance.operit.ui.theme.script.text.ThemeBasicTextField as BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
@@ -14,7 +16,11 @@ import androidx.compose.ui.graphics.SolidColor
 
 /** 复制预览独立持有文本选区和滚动位置，焦点或布局更新不重新创建字符串版编辑状态。 */
 @Composable
-internal fun MessageCopyTextField(text: String, modifier: Modifier = Modifier) {
+internal fun MessageCopyTextField(
+    text: String,
+    modifier: Modifier = Modifier,
+    textStroke: ResolvedThemeTextStroke? = LocalThemeTextStroke.current,
+) {
     // 正文由消息源重新提供，状态包只保存选区，避免长消息重复占用系统保存状态的容量。
     val selectionSaver = remember(text) {
         Saver<TextFieldState, List<Int>>(
@@ -28,6 +34,7 @@ internal fun MessageCopyTextField(text: String, modifier: Modifier = Modifier) {
     val scroll = rememberSaveable(text, saver = ScrollState.Saver) { ScrollState(0) }
     BasicTextField(
         state = editor,
+        textStroke = textStroke,
         scrollState = scroll,
         readOnly = true,
         textStyle = MaterialTheme.typography.bodyMedium.copy(

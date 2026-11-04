@@ -13,6 +13,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
 import androidx.compose.ui.draw.clip
@@ -80,6 +83,7 @@ internal fun StudioHint(text: String) { Text(text, style = MaterialTheme.typogra
 @Composable
 internal fun <T> StudioChoices(value: T, options: List<Pair<T, String>>, onChange: (T) -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val focusManager = LocalFocusManager.current
     // 少量选项等分整行，较多字体选项换行，避免小标签挤在左侧或需要横向寻找。
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val columns = minOf(options.size, if (options.size > 5) 3 else 5, (maxWidth / 60.dp).toInt().coerceAtLeast(1))
@@ -94,7 +98,7 @@ internal fun <T> StudioChoices(value: T, options: List<Pair<T, String>>, onChang
                                 .border(1.dp, if (selected) colors.primary else colors.outlineVariant, shape)
                                 .background(if (selected) colors.primaryContainer else colors.surfaceContainerHigh, shape)
                                 .clip(shape)
-                                .selectable(selected = selected, role = Role.RadioButton, onClick = { onChange(key) })
+                                .selectable(selected = selected, role = Role.RadioButton, onClick = { focusManager.clearFocus(force = true); onChange(key) })
                                 .padding(horizontal = 6.dp, vertical = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -113,34 +117,72 @@ internal fun <T> StudioChoices(value: T, options: List<Pair<T, String>>, onChang
 }
 
 @Composable
-internal fun StudioSlider(state: ThemeStudioState, label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String = "", enabled: Boolean = true, precision: Int = if (range.endInclusive <= 2f) 2 else 0, onChange: (Float) -> Unit) {
+internal fun StudioSlider(
+    state: ThemeStudioState,
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    unit: String = "",
+    enabled: Boolean = true,
+    precision: Int = if (range.endInclusive <= 2f) 2 else 0,
+    commitOnFinish: Boolean = false,
+    onChange: (Float) -> Unit,
+) {
+    val targetId = state.target.id
+    val mode = state.mode
+    val focusManager = LocalFocusManager.current
     fun formatted(number: Float) = formatStudioNumber(number, precision)
-    var input by remember(state.target.id, state.mode, label, precision) { mutableStateOf(formatted(value)) }
-    var focused by remember(state.target.id, state.mode, label) { mutableStateOf(false) }
-    LaunchedEffect(value, focused, enabled, precision) { if (!focused || !enabled) input = formatted(value) }
-    val parsed = input.toFloatOrNull()
-    val invalid = parsed == null || !parsed.isFinite() || parsed !in range
+    var input by remember(targetId, mode, label, precision) { mutableStateOf(formatted(value)) }
+    var focused by remember(targetId, mode, label) { mutableStateOf(false) }
+    // 延迟编辑期间 value 只会由滑条或预设改变，外部选择应同步覆盖未提交的草稿。
+    LaunchedEffect(value, focused, enabled, precision) {
+        if (commitOnFinish || !focused || !enabled) input = formatted(value)
+    }
+    fun finishInput() {
+        // 切换对象后丢弃旧对象的半成品，不能将失焦回调写到新的区域或模式。
+        if (state.target.id != targetId || state.mode != mode) return
+        val next = studioNumberInputValue(input, range, commitOnFinish, finished = true)
+        if (enabled && next != null && next != value) {
+            state.beginGesture()
+            onChange(next)
+        }
+        state.endGesture()
+        input = formatted(next ?: value)
+    }
+    val invalid = studioNumberInputValue(input, range, commitOnFinish = false, finished = true) == null
     DisposableEffect(state) { onDispose { state.endGesture() } }
     Column {
         Text(label + if (unit.isEmpty()) "" else " · $unit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            WorkbenchSlider(value = value.coerceIn(range.start, range.endInclusive), enabled = enabled, onValueChange = { if (enabled) { input = formatted(it); state.beginGesture(); onChange(it) } }, valueRange = range, onValueChangeFinished = state::endGesture, modifier = Modifier.weight(1f))
+            WorkbenchSlider(
+                value = value.coerceIn(range.start, range.endInclusive), enabled = enabled,
+                onValueChange = { next -> if (enabled) { input = formatted(next); state.beginGesture(); onChange(next) } },
+                valueRange = range, onValueChangeFinished = state::endGesture, modifier = Modifier.weight(1f),
+            )
             OutlinedTextField(
                 value = input,
-                onValueChange = { text ->
-                    input = text
-                    text.toFloatOrNull()?.takeIf { it.isFinite() && it in range }?.let { state.beginGesture(); onChange(it) }
+                onValueChange = { next ->
+                    input = next
+                    studioNumberInputValue(next, range, commitOnFinish, finished = false)?.let {
+                        state.beginGesture()
+                        onChange(it)
+                    }
                 },
                 singleLine = true,
                 enabled = enabled,
-                isError = focused && invalid,
+                isError = focused && input.isNotBlank() && !input.trimEnd().endsWith('.') && invalid,
                 textStyle = MaterialTheme.typography.labelSmall,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.width(76.dp).onFocusChanged { if (!it.isFocused && focused) state.endGesture(); focused = it.isFocused },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                modifier = Modifier.width(76.dp).onFocusChanged {
+                    if (!it.isFocused && focused) finishInput()
+                    focused = it.isFocused
+                },
             )
         }
     }
 }
+
 @Composable
 internal fun StudioFullSheet(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)) {

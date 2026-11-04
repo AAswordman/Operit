@@ -1513,7 +1513,7 @@ def build_component_renderer_function(spec: ComponentSpec, params: Sequence[Para
             ) {
                 val props = node.props
                 val onTextLayoutActionId = ToolPkgComposeDslParser.extractActionId(props["onTextLayout"])
-                androidx.compose.foundation.text.BasicText(
+                com.ai.assistance.operit.ui.theme.script.text.ThemeBasicText(
                     text = props.string("text"),
                     modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
                     style = props.resolvedTextStyle("style", includeColor = true),
