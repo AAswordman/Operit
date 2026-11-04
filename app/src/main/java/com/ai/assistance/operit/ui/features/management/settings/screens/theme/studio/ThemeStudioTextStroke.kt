@@ -45,9 +45,9 @@ internal fun StudioTextStrokeProperties(state: ThemeStudioState) {
             state.updateText { before ->
                 before.copy(stroke = when (value) {
                     "inherit" -> null
-                    "off" -> if (global) null else (before.stroke ?: ThemeTextStroke()).copy(width = 0f)
-                    "custom" -> (before.stroke ?: state.appearance.typography.stroke ?: ThemeTextStroke()).let {
-                        if (it.width == 0f) it.copy(width = 1f) else it
+                    "off" -> if (global) null else (before.stroke ?: ThemeTextStroke(width = 0.1f)).copy(width = 0f)
+                    "custom" -> (before.stroke ?: state.appearance.typography.stroke ?: ThemeTextStroke(width = 0.1f)).let {
+                        if (it.width == 0f) it.copy(width = 0.1f) else it
                     }
                     else -> error("Unknown text stroke mode: $value")
                 })
@@ -60,7 +60,13 @@ internal fun StudioTextStrokeProperties(state: ThemeStudioState) {
                     androidx.compose.foundation.layout.Box(Modifier.size(24.dp).background(Color(android.graphics.Color.parseColor(stroke.color)), RoundedCornerShape(6.dp)))
                 }
             }
-            StudioSlider(state, stringResource(R.string.studio_stroke_width), stroke.width, 0f..8f, "dp") { width ->
+            // 细线预设与小数输入共同保留亚像素宽度，高密度屏幕也能从很细的轮廓开始。
+            StudioChoices(stroke.width, listOf(0.05f, 0.1f, 0.2f, 0.3f, 0.5f).map { width ->
+                width to String.format(java.util.Locale.ROOT, "%.2f dp", width)
+            }) { width ->
+                state.updateText { before -> before.copy(stroke = requireNotNull(before.stroke).copy(width = width)) }
+            }
+            StudioSlider(state, stringResource(R.string.studio_stroke_width), stroke.width, 0f..8f, "dp", precision = 2) { width ->
                 state.updateText { before -> before.copy(stroke = requireNotNull(before.stroke).copy(width = width)) }
             }
         }
@@ -68,7 +74,7 @@ internal fun StudioTextStrokeProperties(state: ThemeStudioState) {
     }
     if (chooseColor) {
         StudioColorPicker(state, title, stroke?.color, Color.Black,
-            onChange = { color -> state.updateText { before -> before.copy(stroke = color?.let { (before.stroke ?: ThemeTextStroke()).copy(color = it) }) } },
+            onChange = { color -> state.updateText { before -> before.copy(stroke = color?.let { (before.stroke ?: ThemeTextStroke(width = 0.1f)).copy(color = it) }) } },
             onClose = { chooseColor = false },
         )
     }

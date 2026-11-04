@@ -110,4 +110,22 @@ class ThemeTextStrokeContractTest {
         assertNull(resolveThemeTextStroke(global, restored.forMode("dark").surfaces.getValue("userMessage").textStyle.stroke))
         assertTrue(encoded.contains("stroke"))
     }
+
+    @Test
+    fun fractionalOutlineWidthsRemainExactAcrossSerializationAndModes() {
+        listOf(0.01f, 0.05f, 0.1f, 0.25f).forEach { width ->
+            val project = ThemeScriptAppearance(
+                1, typography = ThemeAppearanceText(stroke = ThemeTextStroke(width = width)),
+                modes = mapOf("dark" to ThemeAppearanceMode(surfaces = mapOf(
+                    "assistantMessage" to ThemeScriptSurface(textStyle = ThemeAppearanceText(stroke = ThemeTextStroke(width = width))),
+                ))),
+            )
+            ThemeScriptContract.validate(project, manifest)
+            val json = ThemeScriptContract.json.encodeToString(ThemeScriptAppearance.serializer(), project)
+            val restored = ThemeScriptContract.json.decodeFromString(ThemeScriptAppearance.serializer(), json)
+            assertEquals(width, requireNotNull(restored.typography.stroke).width, 0f)
+            assertEquals(width, requireNotNull(restored.forMode("dark").surfaces.getValue("assistantMessage").textStyle.stroke).width, 0f)
+        }
+    }
+
 }

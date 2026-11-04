@@ -4,5 +4,5 @@
     <string name="studio_text_stroke_color">Warna garis luar teks</string>
     <string name="studio_text_stroke_off">Mati</string>
     <string name="studio_text_stroke_custom">Tersuai</string>
-    <string name="studio_text_stroke_hint">Garis luar mengelilingi huruf; warna isi teks kekal berasingan. Setiap kawasan boleh mewarisi tetapan global atau mematikannya. Lebar 0 mematikannya. Bingkai gelembung diatur berasingan.</string>
+    <string name="studio_text_stroke_hint">Garis luar mengelilingi huruf; warna isi teks kekal berasingan. Setiap kawasan boleh mewarisi tetapan global atau mematikannya. Lebar 0 mematikannya. Bingkai gelembung diatur berasingan. Lebar menyokong ketepatan 0.01 dp; cuba pratetap halus 0.05 atau 0.10 dp dahulu.</string>
 </resources>

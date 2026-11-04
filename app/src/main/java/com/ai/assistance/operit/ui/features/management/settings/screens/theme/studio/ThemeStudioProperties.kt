@@ -151,11 +151,11 @@ internal fun StudioProperties(state: ThemeStudioState) {
                             if (layer.type == "line") {
                                 val lineColor = layer.strokeColor ?: layer.color
                                 StudioSingleColor(stringResource(R.string.studio_line_color), lineColor) { layerColor(index, "lineColor", lineColor) }
-                                StudioSlider(state, stringResource(R.string.studio_stroke_width), layer.strokeWidth.coerceAtLeast(minLineWidth), minLineWidth..16f, "dp") { value -> state.updateLayer(index) { it.copy(strokeWidth = value) } }
+                                StudioSlider(state, stringResource(R.string.studio_stroke_width), layer.strokeWidth.coerceAtLeast(minLineWidth), minLineWidth..16f, "dp", precision = 2) { value -> state.updateLayer(index) { it.copy(strokeWidth = value) } }
                             } else {
                                 StudioSingleColor(stringResource(R.string.studio_fill_color), layer.color) { layerColor(index, "color", layer.color) }
                                 StudioSingleColor(stringResource(R.string.studio_stroke_color), layer.strokeColor) { layerColor(index, "strokeColor", layer.strokeColor) }
-                                StudioSlider(state, stringResource(R.string.studio_stroke_width), layer.strokeWidth, 0f..16f, "dp") { value -> state.updateLayer(index) { it.copy(strokeWidth = value) } }
+                                StudioSlider(state, stringResource(R.string.studio_stroke_width), layer.strokeWidth, 0f..16f, "dp", precision = 2) { value -> state.updateLayer(index) { it.copy(strokeWidth = value) } }
                             }
                             if (layer.type == "rect") StudioSlider(state, stringResource(R.string.studio_corner_radius), layer.radius, 0f..128f, "dp") { value -> state.updateLayer(index) { it.copy(radius = value) } }
                         }
@@ -312,7 +312,7 @@ private fun StudioStrokeProperties(state: ThemeStudioState, onColor: (String, St
     val width = if (editingState) surface.states[state.previewState]?.strokeWidth ?: surface.strokeWidth else surface.strokeWidth
     StudioColorHead()
     StudioColorRow(state, stringResource(R.string.studio_stroke_color), "strokeColor", onColor)
-    StudioSlider(state, stringResource(R.string.studio_stroke_width), width, 0f..16f, "dp") { value ->
+    StudioSlider(state, stringResource(R.string.studio_stroke_width), width, 0f..16f, "dp", precision = 2) { value ->
         state.updateSurface { before ->
             if (editingState) {
                 val active = before.states[state.previewState] ?: ThemeAppearanceState()
