@@ -21,6 +21,7 @@ import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
 import com.ai.assistance.operit.util.stream.applyRevisionEvents
 import com.ai.assistance.operit.util.TtsSegmenter
 import com.ai.assistance.operit.util.WaifuMessageProcessor
+import com.ai.assistance.operit.util.WaifuSegmentMessageStore
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
@@ -60,6 +61,7 @@ class MessageProcessingDelegate(
         private val getRuntimeChatHistory: suspend (String) -> List<ChatMessage>,
         private val hasUserMessage: suspend (String) -> Boolean,
         private val addMessageToChat: suspend (String, ChatMessage) -> Unit,
+        private val retractStreamingMessages: suspend (String, List<Long>) -> Unit,
         private val saveCurrentChat: suspend () -> Unit,
         private val showErrorMessage: (String) -> Unit,
         private val updateChatTitle: (chatId: String, title: String) -> Unit,
@@ -1227,11 +1229,9 @@ class MessageProcessingDelegate(
                     "创建带流的AI消息, stream is null: ${aiMessage.contentStream == null}, timestamp: ${aiMessage.timestamp}"
                 )
 
-                suspend fun emitWaifuSegment(segment: String) {
-                    if (segment.isBlank()) return
-
-                    val interrupt = waifuEmittedMessages.isEmpty()
-                    val segmentMessage =
+                val waifuMessageStore = WaifuSegmentMessageStore(
+                    messages = waifuEmittedMessages,
+                    createMessage = { segment ->
                         ChatMessage(
                             sender = "ai",
                             content = segment,
@@ -1242,13 +1242,13 @@ class MessageProcessingDelegate(
                             modelName = modelName,
                             sentAt = requestSentAt
                         )
-
-                    withContext(Dispatchers.Main) {
-                        waifuEmittedMessages += segmentMessage
+                    },
+                    appendMessage = { segmentMessage, interrupt ->
                         if (effectivePersistTurn && chatId != null) {
                             addMessageToChat(chatId, segmentMessage)
                         }
                         if (getIsAutoReadEnabled()) {
+                            val segment = segmentMessage.content
                             didStreamAutoRead = true
                             AppLogger.d(
                                 TAG,
@@ -1257,8 +1257,13 @@ class MessageProcessingDelegate(
                             speakMessageHandler(segment, interrupt)
                         }
                         tryEmitScrollToBottomThrottled(chatId)
-                    }
-                }
+                    },
+                    removeMessages = { messages ->
+                        if (effectivePersistTurn && chatId != null) {
+                            retractStreamingMessages(chatId, messages.map { it.timestamp })
+                        }
+                    },
+                )
 
                 suspend fun syncWaifuMessageMetrics(sourceMessage: ChatMessage) {
                     if (!effectivePersistTurn || chatId == null || waifuEmittedMessages.isEmpty()) return
@@ -1376,12 +1381,14 @@ class MessageProcessingDelegate(
                             val waifuSegmentsJob =
                                 if (isWaifuModeEnabled) {
                                     launch {
-                                        WaifuMessageProcessor.streamSegmentsWithTypingQueue(
+                                        WaifuMessageProcessor.streamSegmentUpdatesWithTypingQueue(
                                             sourceStream = sharedCharStream,
                                             removePunctuation = waifuRemovePunctuation,
                                             charDelayMs = waifuCharDelay
-                                        ).collect { segment ->
-                                            emitWaifuSegment(segment)
+                                        ).collect { update ->
+                                            withContext(Dispatchers.Main) {
+                                                waifuMessageStore.apply(update)
+                                            }
                                         }
                                     }
                                 } else {

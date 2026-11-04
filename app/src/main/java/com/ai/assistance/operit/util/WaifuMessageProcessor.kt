@@ -7,12 +7,9 @@ import com.ai.assistance.operit.ui.common.markdown.XmlRenderPluginRegistry
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
+import com.ai.assistance.operit.util.streamnative.NativeMarkdownSplitter
 import com.ai.assistance.operit.util.streamnative.nativeMarkdownSplitByBlock
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -127,59 +124,11 @@ object WaifuMessageProcessor {
     fun streamSegments(
         sourceStream: Stream<String>,
         removePunctuation: Boolean = false,
-    ): Stream<String> = stream {
-        val session = StreamingSession(removePunctuation = removePunctuation)
-        val renderableBuffer = StringBuilder()
-
-        suspend fun appendRenderableText(text: String) {
-            if (text.isEmpty()) {
-                return
-            }
-            renderableBuffer.append(text)
-            session.collectStableSegments(renderableBuffer.toString()).forEach { emit(it) }
-        }
-
-        sourceStream.nativeMarkdownSplitByBlock().collect { blockGroup ->
-            val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
-            when (blockType) {
-                MarkdownProcessorType.XML_BLOCK -> {
-                    // XML 块在组流关闭时才是完整块，先收齐再判断，避免把半个标签固化进分段。
-                    val blockBuilder = StringBuilder()
-                    blockGroup.stream.collect { blockBuilder.append(it) }
-                    val rawBlock = blockBuilder.toString()
-                    if (isRenderablePluginXmlContent(rawBlock)) {
-                        appendRenderableText(rawBlock)
-                    }
-                }
-
-                MarkdownProcessorType.CODE_BLOCK,
-                MarkdownProcessorType.TABLE,
-                MarkdownProcessorType.IMAGE -> {
-                    val blockBuilder = StringBuilder()
-                    blockGroup.stream.collect { blockBuilder.append(it) }
-                    appendRenderableText(blockBuilder.toString())
-                }
-
-                MarkdownProcessorType.BLOCK_LATEX -> {
-                    val blockBuilder = StringBuilder()
-                    blockGroup.stream.collect { blockBuilder.append(it) }
-                    // The `$$…$$` block plugin strips its delimiters; the paren/bracket variant
-                    // keeps them. Re-attach `$$` when missing so the accumulated buffer still
-                    // parses as BLOCK_LATEX on the second pass and the chat bubble renderer
-                    // recognizes the segment as a LaTeX block.
-                    appendRenderableText(ensureBlockLatexDelimiters(blockBuilder.toString()))
-                }
-
-                else -> {
-                    blockGroup.stream.collect { piece ->
-                        appendRenderableText(piece)
-                    }
-                }
-            }
-        }
-
-        session.collectFinalSegments(renderableBuffer.toString()).forEach { emit(it) }
-    }
+    ): Stream<String> = streamSegmentsWithTypingQueue(
+        sourceStream = sourceStream,
+        removePunctuation = removePunctuation,
+        charDelayMs = 0,
+    )
 
     /**
      * Ensure a BLOCK_LATEX body carries a recognized block delimiter pair.
@@ -228,47 +177,94 @@ object WaifuMessageProcessor {
         removePunctuation: Boolean = false,
         charDelayMs: Int,
     ): Stream<String> = stream {
-        coroutineScope {
-            val segmentQueue = Channel<String>(Channel.UNLIMITED)
-            val producerJob = launch {
-                try {
-                    streamSegments(
-                        sourceStream = sourceStream,
-                        removePunctuation = false,
-                    ).collect { segment ->
-                        val queuedSegment =
-                            if (removePunctuation) {
-                                removeSentenceEndPunctuation(segment)
-                            } else {
-                                segment
-                            }
-                        if (queuedSegment.isNotBlank()) {
-                            segmentQueue.send(queuedSegment)
-                        }
-                    }
-                } finally {
-                    segmentQueue.close()
-                }
-            }
-
-            var isFirstSegment = true
-            for (segment in segmentQueue) {
-                val waitMs =
-                    calculateTypingDelayMs(
-                        segmentLength = segment.length,
-                        charDelayMs = charDelayMs,
-                        isFirstSegment = isFirstSegment,
-                    )
-                if (waitMs > 0L) {
-                    delay(waitMs)
-                }
-
-                emit(segment)
-                isFirstSegment = false
-            }
-
-            producerJob.join()
+        // Tool/HTTP delta consumers remain append-only; their final full response is collected
+        // from the revisable source. The chat UI consumes Retain updates as well as Append.
+        streamSegmentUpdatesWithTypingQueue(
+            sourceStream = sourceStream,
+            removePunctuation = removePunctuation,
+            charDelayMs = charDelayMs,
+        ).collect { update ->
+            if (update is WaifuSegmentUpdate.Append) emit(update.content)
         }
+    }
+
+    internal fun streamSegmentUpdatesWithTypingQueue(
+        sourceStream: Stream<String>,
+        removePunctuation: Boolean = false,
+        charDelayMs: Int,
+    ): Stream<WaifuSegmentUpdate> = streamWaifuUpdates(
+        sourceStream = sourceStream,
+        splitSnapshot = { content, final ->
+            val session = NativeMarkdownSplitter.createBlockSession()
+            val renderable = try {
+                buildRenderableSnapshot(content, final, session.push(content))
+            } finally {
+                session.destroy()
+            }
+            val segments = if (final) {
+                splitMessageBySentences(renderable)
+            } else {
+                splitStableMessageSegments(renderable)
+            }
+            if (removePunctuation) {
+                segments.map(::removeSentenceEndPunctuation).filter { it.isNotBlank() }
+            } else {
+                segments
+            }
+        },
+        typingDelayMs = { length, first -> calculateTypingDelayMs(length, charDelayMs, first) },
+    )
+
+    /** Replays native block events without treating the current live snapshot as an EOF. */
+    internal fun buildRenderableSnapshot(
+        content: String,
+        final: Boolean,
+        nativeSegments: IntArray,
+    ): String {
+        val renderable = StringBuilder()
+        val block = StringBuilder()
+        var activeType: MarkdownProcessorType? = null
+
+        fun closeBlock() {
+            when (activeType) {
+                MarkdownProcessorType.XML_BLOCK -> {
+                    val xml = block.toString()
+                    if (isRenderablePluginXmlContent(xml)) renderable.append(xml)
+                }
+                MarkdownProcessorType.BLOCK_LATEX ->
+                    renderable.append(ensureBlockLatexDelimiters(block.toString()))
+                else -> renderable.append(block)
+            }
+            block.setLength(0)
+            activeType = null
+        }
+
+        require(nativeSegments.size % 3 == 0)
+        for (index in nativeSegments.indices step 3) {
+            val ordinal = nativeSegments[index]
+            if (ordinal < 0) {
+                closeBlock()
+                continue
+            }
+            val type = MarkdownProcessorType.entries[ordinal]
+            if (type != activeType) {
+                closeBlock()
+                activeType = type
+            }
+            val piece = content.substring(nativeSegments[index + 1], nativeSegments[index + 2])
+            when (type) {
+                MarkdownProcessorType.XML_BLOCK,
+                MarkdownProcessorType.CODE_BLOCK,
+                MarkdownProcessorType.TABLE,
+                MarkdownProcessorType.IMAGE,
+                MarkdownProcessorType.BLOCK_LATEX -> block.append(piece)
+                else -> renderable.append(piece)
+            }
+        }
+        // A live native session has not closed its active protected block yet. Publishing it
+        // here would flash partial code/tables/LaTeX and recreate their bubbles on every chunk.
+        if (final) closeBlock()
+        return renderable.toString()
     }
 
     fun streamTtsText(sourceStream: Stream<String>): Stream<Char> = stream {

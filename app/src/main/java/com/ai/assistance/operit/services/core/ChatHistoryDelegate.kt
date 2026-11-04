@@ -1127,6 +1127,22 @@ class ChatHistoryDelegate(
         }
     }
 
+    /** Retracts bubbles owned by the active stream without cancelling that same turn. */
+    internal suspend fun retractStreamingMessages(chatId: String, timestamps: List<Long>) {
+        if (timestamps.isEmpty()) return
+
+        // User history mutations cancel generation first. A model revision is part of generation,
+        // so only serialize storage/display changes here; invoking those hooks would cancel itself.
+        historyUpdateMutex.withLock {
+            timestamps.distinct().forEach { timestamp ->
+                chatHistoryManager.deleteMessage(chatId, timestamp)
+            }
+            if (_currentChatId.value == chatId) {
+                reloadCurrentChatDisplayHistory(chatId)
+            }
+        }
+    }
+
     fun setMessageFavorite(timestamp: Long, isFavorite: Boolean) {
         coroutineScope.launch {
             val chatId = _currentChatId.value ?: return@launch

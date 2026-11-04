@@ -46,10 +46,7 @@ import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.util.stream.TextStreamEvent
-import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
-import com.ai.assistance.operit.util.stream.TextStreamEventType
-import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
-import com.ai.assistance.operit.util.stream.shiftedBy
+import com.ai.assistance.operit.util.stream.collectWithRevisionRelay
 import com.ai.assistance.operit.util.stream.withEventChannel
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
 import com.ai.assistance.operit.util.stream.splitBy
@@ -63,9 +60,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -1162,15 +1157,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     },
                                      onNonFatalError = onNonFatalError,
                             )
-                    val revisableStream = responseStream as? TextStreamEventCarrier
-
                     // 收到第一个响应，更新状态
                     var isFirstChunk = true
 
                     // 创建一个新的轮次来管理内容
                     startAssistantResponseRound(execContext)
-                    val revisionTracker = TextStreamRevisionTracker()
-                    val revisionMutex = Mutex()
 
                     // 从原始stream收集内容并处理
                     var chunkCount = 0
@@ -1178,95 +1169,48 @@ class EnhancedAIService private constructor(private val context: Context) {
                     var lastLogTime = messageTimingNow()
 
                     providerStreamCollectionStarted = true
-                    coroutineScope {
-                        val revisionJob =
-                            revisableStream?.let { carrier ->
-                                launch {
-                                    carrier.eventChannel.collect { event ->
-                                        // Relayed events are expressed in the coordinate space of the
-                                        // whole response; the local tracker stays in this round's
-                                        // space because roundManager holds one round per entry.
-                                        execContext.eventChannel.emit(event.shiftedBy(roundStartLength))
-                                        when (event.eventType) {
-                                            TextStreamEventType.SAVEPOINT -> {
-                                                revisionMutex.withLock {
-                                                    revisionTracker.savepoint(
-                                                        event.id,
-                                                        event.contentLength
-                                                    )
-                                                }
-                                            }
-
-                                            TextStreamEventType.ROLLBACK -> {
-                                                val snapshot =
-                                                    revisionMutex.withLock {
-                                                        revisionTracker.rollback(
-                                                            event.id,
-                                                            event.contentLength,
-                                                            event.discardedLength
-                                                        )?.toString()
-                                                    } ?: return@collect
-                                                execContext.roundManager.updateContent(snapshot)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
- 
-                        try {
-                            responseStream.collect { content ->
-                                // 第一次收到响应，更新状态
-                                if (isFirstChunk) {
-                                    if (!isSubTask) {
-                                    withContext(Dispatchers.Main) {
-                                        _inputProcessingState.value =
-                                                InputProcessingState.Receiving(context.getString(R.string.enhanced_receiving_response))
-                                        }
-                                    }
-                                    isFirstChunk = false
-                                    logMessageTiming(
-                                        stage = "enhanced.sendMessage.firstResponseChunk",
-                                        startTimeMs = requestStartTime,
-                                        details = "functionType=$functionType, stream=$stream"
-                                    )
-                                }
-
-                                // 累计统计
-                                chunkCount++
-                                totalChars += content.length
-
-                                // 周期性日志
-                                val currentTime = messageTimingNow()
-                                if (currentTime - lastLogTime > 5000) { // 每5秒记录一次
-                                    AppLogger.d(TAG, "已接收 $chunkCount 个内容块，总计 $totalChars 个字符")
-                                    lastLogTime = currentTime
-                                }
-
-                                revisionMutex.withLock {
-                                    revisionTracker.append(content)
-                                }
-
-                                // The revision tracker is the only accumulator. Appending raw
-                                // chunks to streamBuffer/roundManager here re-inserts text that a
-                                // ROLLBACK already discarded whenever the text channel runs ahead
-                                // of the event channel; both buffers are assigned from the tracker
-                                // once the stream ends.
-
-                                // 发射当前内容片段
-                                countingCollector.emit(content)
-                            }
-                        } finally {
-                            revisionJob?.cancelAndJoin()
-                            val finalRoundContent =
-                                revisionMutex.withLock {
-                                    revisionTracker.applyEventHistory(
-                                        revisableStream?.eventChannel?.replayCache ?: emptyList()
-                                    ).toString()
-                                }
+                    responseStream.collectWithRevisionRelay(
+                        eventChannel = execContext.eventChannel,
+                        roundStartLength = roundStartLength,
+                        onRollback = { snapshot ->
+                            execContext.roundManager.updateContent(snapshot)
+                        },
+                        onCompletion = { finalRoundContent ->
                             execContext.streamBuffer.setLength(0)
                             execContext.streamBuffer.append(finalRoundContent)
                             execContext.roundManager.updateContent(finalRoundContent)
+                        },
+                    ) { content ->
+                        // 第一次收到响应，更新状态
+                        if (isFirstChunk) {
+                            if (!isSubTask) {
+                                withContext(Dispatchers.Main) {
+                                    _inputProcessingState.value =
+                                            InputProcessingState.Receiving(context.getString(R.string.enhanced_receiving_response))
+                                }
+                            }
+                            isFirstChunk = false
+                            logMessageTiming(
+                                stage = "enhanced.sendMessage.firstResponseChunk",
+                                startTimeMs = requestStartTime,
+                                details = "functionType=$functionType, stream=$stream"
+                            )
                         }
+
+                        // 累计统计
+                        chunkCount++
+                        totalChars += content.length
+
+                        // 周期性日志
+                        val currentTime = messageTimingNow()
+                        if (currentTime - lastLogTime > 5000) { // 每5秒记录一次
+                            AppLogger.d(TAG, "已接收 $chunkCount 个内容块，总计 $totalChars 个字符")
+                            lastLogTime = currentTime
+                        }
+
+                        // The helper owns revision-applied accumulation; raw chunks are only
+                        // forwarded here so discarded text cannot re-enter the round buffers.
+                        countingCollector.emit(content)
                     }
                     providerStreamCollectionStarted = false
 
@@ -2412,89 +2356,42 @@ class EnhancedAIService private constructor(private val context: Context) {
                 var totalChars = 0
                 var lastLogTime = messageTimingNow()
                 var isFirstChunk = true
-                val revisableStream = responseStream as? TextStreamEventCarrier
-                val revisionTracker = TextStreamRevisionTracker()
-                val revisionMutex = Mutex()
-
-                coroutineScope {
-                    val revisionJob =
-                        revisableStream?.let { carrier ->
-                            launch {
-                                carrier.eventChannel.collect { event ->
-                                    // Relayed events use whole-response coordinates; the local
-                                    // tracker stays in this round's coordinates because
-                                    // roundManager stores one entry per round.
-                                    context.eventChannel.emit(event.shiftedBy(roundStartLength))
-                                    when (event.eventType) {
-                                        TextStreamEventType.SAVEPOINT -> {
-                                            revisionMutex.withLock {
-                                                revisionTracker.savepoint(
-                                                    event.id,
-                                                    event.contentLength
-                                                )
-                                            }
-                                        }
-
-                                        TextStreamEventType.ROLLBACK -> {
-                                            val snapshot =
-                                                revisionMutex.withLock {
-                                                    revisionTracker.rollback(
-                                                        event.id,
-                                                        event.contentLength,
-                                                        event.discardedLength
-                                                    )?.toString()
-                                                } ?: return@collect
-                                            context.roundManager.updateContent(snapshot)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                    try {
-                        responseStream.collect { content ->
-                            if (isFirstChunk) {
-                                isFirstChunk = false
-                                logMessageTiming(
-                                    stage = "enhanced.processToolResults.firstResponseChunk",
-                                    startTimeMs = aiStartTime,
-                                    details = "toolNames=$displayToolNames, stream=$stream"
-                                )
-                            }
-
-                            revisionMutex.withLock {
-                                revisionTracker.append(content)
-                            }
-
-                            // streamBuffer/roundManager are assigned from the revision tracker
-                            // after the stream ends; appending the raw chunk here would restore
-                            // text that a ROLLBACK discarded.
-
-                            // 累计统计
-                            chunkCount++
-                            totalChars += content.length
-
-                            // 定期记录日志
-                            val currentTime = messageTimingNow()
-                            if (currentTime - lastLogTime > 5000) { // 每5秒记录一次
-                                lastLogTime = currentTime
-                            }
-
-                            // 通过收集器将内容发射出去，让UI可以接收到
-                            collector.emit(content)
-                        }
-                    } finally {
-                        revisionJob?.cancelAndJoin()
-                        val finalRoundContent =
-                            revisionMutex.withLock {
-                                revisionTracker.applyEventHistory(
-                                    revisableStream?.eventChannel?.replayCache ?: emptyList()
-                                ).toString()
-                            }
+                responseStream.collectWithRevisionRelay(
+                    eventChannel = context.eventChannel,
+                    roundStartLength = roundStartLength,
+                    onRollback = { snapshot ->
+                        context.roundManager.updateContent(snapshot)
+                    },
+                    onCompletion = { finalRoundContent ->
                         context.streamBuffer.setLength(0)
                         context.streamBuffer.append(finalRoundContent)
                         context.roundManager.updateContent(finalRoundContent)
+                    },
+                ) { content ->
+                    if (isFirstChunk) {
+                        isFirstChunk = false
+                        logMessageTiming(
+                            stage = "enhanced.processToolResults.firstResponseChunk",
+                            startTimeMs = aiStartTime,
+                            details = "toolNames=$displayToolNames, stream=$stream"
+                        )
                     }
+
+                    // The helper assigns revision-applied round content at completion; raw
+                    // chunks are only forwarded here.
+
+                    // 累计统计
+                    chunkCount++
+                    totalChars += content.length
+
+                    // 定期记录日志
+                    val currentTime = messageTimingNow()
+                    if (currentTime - lastLogTime > 5000) { // 每5秒记录一次
+                        lastLogTime = currentTime
+                    }
+
+                    // 通过收集器将内容发射出去，让UI可以接收到
+                    collector.emit(content)
                 }
 
                 // Update accumulated token counts and persist them
