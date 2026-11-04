@@ -58,6 +58,7 @@ fun ToolPermissionPage() {
     val isCurrent = LocalIsCurrentScreen.current
     val setTitle = LocalTopBarTitleContent.current
     val appBarColor = LocalAppBarContentColor.current
+    val permissionTools = rememberPermissionTools(handler, isCurrent)
 
     // 标题旁只保留使用说明入口；外层统一管理返回键、页面标题的生命周期。
     LaunchedEffect(isCurrent, appBarColor) {
@@ -135,28 +136,32 @@ fun ToolPermissionPage() {
             }
         }
     }
+    // 历史规则保留在存储中，展示、计数和批量选择只使用当前可用工具。
+    val availableNames = permissionTools.orEmpty().toSet()
+    val availableOverrides = settings?.overrides.orEmpty().filterKeys { it in availableNames }
+    val applicableSelection = selected.intersect(availableOverrides.keys)
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLowest)) {
         val current = settings
-        if (current == null) {
+        if (current == null || permissionTools == null) {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         } else {
             val tools =
-                remember(current.overrides.keys, isCurrent) {
-                    (handler.getAllToolNames().filterNot {
-                            it in setOf("package_proxy", "proxy", "search")
-                        } + current.overrides.keys)
+                remember(permissionTools) {
+                    permissionTools
                         .distinct()
                         .sorted()
                 }
             val descriptions = rememberPermissionToolDescriptions(tools, handler)
             val visible =
-                current.overrides.keys.sorted().filter { name ->
+                availableOverrides.keys.sorted().filter { name ->
                     (filter == null || current.overrides[name] == filter) &&
                         (name.contains(query, true) ||
                             descriptions.getValue(name).contains(query, true))
                 }
-            LaunchedEffect(current.overrides.keys) {
-                selected = selected.intersect(current.overrides.keys)
+            LaunchedEffect(availableOverrides.keys) {
+                selected = selected.intersect(availableOverrides.keys)
+                edit = edit?.takeIf { it in availableOverrides }
+                if (selected.isEmpty()) batchDialog = false
             }
             LazyColumn(
                 Modifier.fillMaxSize().imePadding(),
@@ -198,13 +203,13 @@ fun ToolPermissionPage() {
                     Spacer(Modifier.height(24.dp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            stringResource(R.string.tp_rules_count, current.overrides.size),
+                            stringResource(R.string.tp_rules_count, availableOverrides.size),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
                         )
                         TextButton(
-                            enabled = !saving && (batch || current.overrides.isNotEmpty()),
+                            enabled = !saving && (batch || availableOverrides.isNotEmpty()),
                             onClick = {
                                 batch = !batch
                                 selected = emptySet()
@@ -238,7 +243,7 @@ fun ToolPermissionPage() {
                     }
                     Spacer(Modifier.height(14.dp))
                     PermissionSearch(query, onQuery = { query = it })
-                    PermissionFilters(filter, current.overrides, onSelect = { filter = it })
+                    PermissionFilters(filter, availableOverrides, onSelect = { filter = it })
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             stringResource(R.string.tp_results_count, visible.size),
@@ -251,9 +256,9 @@ fun ToolPermissionPage() {
                                 enabled = !saving && visible.isNotEmpty(),
                                 onClick = {
                                     selected =
-                                        if (selected.containsAll(visible))
-                                            selected - visible.toSet()
-                                        else selected + visible
+                                        if (applicableSelection.containsAll(visible))
+                                            applicableSelection - visible.toSet()
+                                        else applicableSelection + visible
                                 },
                             ) {
                                 Text(stringResource(R.string.tp_select_visible))
@@ -275,7 +280,7 @@ fun ToolPermissionPage() {
                                 Text(
                                     stringResource(
                                         when {
-                                            current.overrides.isEmpty() -> R.string.tp_empty_rules
+                                            availableOverrides.isEmpty() -> R.string.tp_empty_rules
                                             query.isNotBlank() -> R.string.tp_no_matches
                                             else -> R.string.tp_empty_filter
                                         }
@@ -300,12 +305,12 @@ fun ToolPermissionPage() {
                             descriptions.getValue(name),
                             current.overrides[name],
                             current.master,
-                            selected = if (batch) name in selected else null,
+                            selected = if (batch) name in applicableSelection else null,
                             enabled = !saving,
                             onClick = {
                                 if (batch)
                                     selected =
-                                        if (name in selected) selected - name else selected + name
+                                        if (name in applicableSelection) applicableSelection - name else applicableSelection + name
                                 else edit = name
                             },
                         )
@@ -321,21 +326,21 @@ fun ToolPermissionPage() {
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Text(
-                                stringResource(R.string.tp_selected_count, selected.size),
+                                stringResource(R.string.tp_selected_count, applicableSelection.size),
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.labelLarge,
                             )
                             TextButton(
-                                enabled = !saving && selected.isNotEmpty(),
+                                enabled = !saving && applicableSelection.isNotEmpty(),
                                 onClick = {
-                                    applyChanges(changes = selected.associateWith { null })
+                                    applyChanges(changes = applicableSelection.associateWith { null })
                                     selected = emptySet()
                                 },
                             ) {
                                 Text(stringResource(R.string.tp_follow_default))
                             }
                             Button(
-                                enabled = !saving && selected.isNotEmpty(),
+                                enabled = !saving && applicableSelection.isNotEmpty(),
                                 onClick = { batchDialog = true },
                             ) {
                                 Text(stringResource(R.string.tp_change))
@@ -343,7 +348,7 @@ fun ToolPermissionPage() {
                         }
                     }
             }
-            edit?.let { name ->
+            edit?.takeIf { it in availableOverrides }?.let { name ->
                 PermissionRuleDialog(
                     name,
                     current.overrides[name],
@@ -355,16 +360,16 @@ fun ToolPermissionPage() {
                     },
                 )
             }
-            if (batchDialog)
+            if (batchDialog && applicableSelection.isNotEmpty())
                 PermissionRuleDialog(
-                    stringResource(R.string.tp_batch_title, selected.size),
+                    stringResource(R.string.tp_batch_title, applicableSelection.size),
                     null,
                     current.master,
                     allowUnchanged = true,
                     onDismiss = { batchDialog = false },
                     onSave = { level ->
                         batchDialog = false
-                        applyChanges(changes = selected.associateWith { level })
+                        applyChanges(changes = applicableSelection.associateWith { level })
                         selected = emptySet()
                     },
                 )
@@ -372,12 +377,12 @@ fun ToolPermissionPage() {
                 AddPermissionSheet(
                     tools,
                     descriptions,
-                    current.overrides,
+                    availableOverrides,
                     current.master,
                     onDismiss = { add = false },
                     onApply = { names, level ->
                         add = false
-                        applyChanges(changes = names.associateWith { level })
+                        applyChanges(changes = names.intersect(availableNames).associateWith { level })
                     },
                 )
         }
