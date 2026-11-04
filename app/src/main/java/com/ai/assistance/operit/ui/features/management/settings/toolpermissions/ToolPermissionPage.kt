@@ -148,8 +148,7 @@ fun ToolPermissionPage() {
                         .distinct()
                         .sorted()
                 }
-            val descriptions =
-                remember(tools) { tools.associateWith { handler.getToolDescription(it) } }
+            val descriptions = rememberPermissionToolDescriptions(tools, handler)
             val visible =
                 current.overrides.keys.sorted().filter { name ->
                     (filter == null || current.overrides[name] == filter) &&
