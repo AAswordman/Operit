@@ -8204,7 +8204,7 @@
     <string name="resource_ubuntu_not_installed">O ambiente Ubuntu não está instalado. Após preparar os recursos do terminal, entre no terminal para concluir a instalação.</string>
     <string name="resource_delete_error">Falha na exclusão: %1$s</string>
     <string name="resource_ubuntu_delete_pending">O ambiente Ubuntu não está instalado e a limpeza do terminal não foi concluída. Você pode importá-lo novamente após a conclusão; se a limpeza falhar, clique em Excluir novamente.</string>
-    <string name="theme_background_transparency_hint">0% totalmente opaco, 100% totalmente transparente; afeta apenas o plano de fundo.</string>
+    <string name="theme_background_transparency_hint" formatted="false">0% totalmente opaco, 100% totalmente transparente; afeta apenas o plano de fundo.</string>
     <string name="theme_input_background_transparency">Transparência do fundo da caixa de entrada</string>
     <string name="theme_user_background_transparency">Transparência do fundo da bolha do usuário</string>
     <string name="theme_ai_background_transparency">Transparência de fundo de bolha AI</string>

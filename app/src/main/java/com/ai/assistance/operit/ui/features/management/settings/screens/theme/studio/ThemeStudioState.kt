@@ -251,18 +251,18 @@ internal class ThemeStudioState(
         if (target.kind == StudioKind.Typography) return bundle.manifest.appearance.forMode(forMode).typography.color
         if (field == "textColor") return surface(forMode = forMode).textStyle.color
         val value = surface(forMode = forMode).forState(if (property == StudioProperty.States) previewState else "always")
-        return when (field) { "fillColor" -> value.fillColor; "contentColor" -> value.contentColor; "strokeColor" -> value.strokeColor; else -> error("Unknown color field") }
+        return when (field) { "fillColor" -> value.fillColor; "contentColor" -> value.contentColor ?: value.textStyle.color; "strokeColor" -> value.strokeColor; else -> error("Unknown color field") }
     }
     fun setColor(field: String, value: String?, forMode: String) {
         when (target.kind) {
             StudioKind.Palette -> setPalette(field, value, forMode)
             StudioKind.Icon -> icon(forMode = forMode)?.let { setIcon(it.copy(tintColor = value, useContentTint = if (value == null) it.useContentTint else false), forMode = forMode) }
             StudioKind.Surface -> updateSurface(forMode = forMode) { surface ->
-                if (property == StudioProperty.States && previewState != "always") {
-                    val before = surface.states[previewState] ?: ThemeAppearanceState()
-                    val next = when (field) { "fillColor" -> before.copy(fillColor = value); "contentColor" -> before.copy(contentColor = value); "strokeColor" -> before.copy(strokeColor = value); else -> error("Unknown state color") }
-                    surface.copy(states = surface.states + (previewState to next))
-                } else when (field) { "fillColor" -> surface.copy(fillColor = value); "contentColor" -> surface.copy(contentColor = value); "strokeColor" -> surface.copy(strokeColor = value); "textColor" -> surface.copy(textStyle = surface.textStyle.copy(color = value)); else -> error("Unknown surface color") }
+                surface.withStudioColor(
+                    field = field,
+                    value = value,
+                    state = if (property == StudioProperty.States) previewState else "always",
+                )
             }
             StudioKind.Typography -> updateText(forMode) { it.copy(color = value) }
         }

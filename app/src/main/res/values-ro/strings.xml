@@ -8957,7 +8957,7 @@
     <string name="resource_ubuntu_not_installed">Mediul Ubuntu nu este instalat. După pregătirea resurselor terminalului, intrați în terminal pentru a finaliza instalarea.</string>
     <string name="resource_delete_error">Ștergerea nu a reușit: %1$s</string>
     <string name="resource_ubuntu_delete_pending">Mediul Ubuntu nu este instalat și curățarea terminalului nu a fost finalizată. Îl puteți reimporta după finalizare; dacă curățarea eșuează, faceți clic din nou pe Ștergere.</string>
-    <string name="theme_background_transparency_hint">0% complet opac, 100% complet transparent; afectează doar fundalul.</string>
+    <string name="theme_background_transparency_hint" formatted="false">0% complet opac, 100% complet transparent; afectează doar fundalul.</string>
     <string name="theme_input_background_transparency">Transparența fundalului casetei de intrare</string>
     <string name="theme_user_background_transparency">Transparența fundalului cu bule de utilizator</string>
     <string name="theme_ai_background_transparency">Transparența fundalului cu bule AI</string>
