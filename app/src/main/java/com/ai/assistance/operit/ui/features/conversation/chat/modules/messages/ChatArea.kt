@@ -1248,6 +1248,7 @@ private fun MessageItem(
         copyPreviewContent?.let { previewContent ->
             MessageCopyPreviewBottomSheet(
                 content = previewContent,
+                surfaceId = if (message.sender == "user") "userMessage" else "assistantMessage",
                 onDismiss = { copyPreviewContent = null }
             )
         }
@@ -1273,10 +1274,12 @@ private const val COPY_PREVIEW_SHEET_HEIGHT_FRACTION = 0.7f
 @Composable
 private fun MessageCopyPreviewBottomSheet(
     content: MessageCopyContent,
+    surfaceId: String,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val messageTextStroke = themeTextStroke(surfaceId)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
     val sheetMaxHeight =
@@ -1363,6 +1366,7 @@ private fun MessageCopyPreviewBottomSheet(
                 previewStates.SaveableStateProvider(copyMode.name) {
                     MessageCopyTextField(
                         text = displayedText,
+                        textStroke = messageTextStroke,
                         modifier = Modifier
                             .weight(1f, fill = false)
                             .fillMaxWidth()
