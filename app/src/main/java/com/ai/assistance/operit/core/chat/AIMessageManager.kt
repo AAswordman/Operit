@@ -50,6 +50,7 @@ import com.ai.assistance.operit.util.stream.shareRevisable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -637,7 +638,8 @@ object AIMessageManager {
         summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
         onProgress: (String) -> Unit = {},
         onNonFatalError: suspend (String) -> Unit = {},
-    ): ChatMessage? {
+    ): ChatMessage? = withContext(Dispatchers.Default) {
+        // 自动总结可由主线程发起，历史清洗和回顾组装必须在后台完成，取消也由同一协程传播。
         val lastSummaryIndex = messages.indexOfLast { it.sender == "summary" }
         val previousSummary = if (lastSummaryIndex != -1) messages[lastSummaryIndex].content.trim() else null
 
@@ -649,7 +651,7 @@ object AIMessageManager {
 
         if (messagesToSummarize.isEmpty()) {
             AppLogger.d(TAG, "没有新消息需要总结")
-            return null
+            return@withContext null
         }
 
         val memoryTagRegex = ChatMarkupRegex.memoryTag
@@ -929,6 +931,7 @@ object AIMessageManager {
             // 打包所有消息到一条用户消息
             val packedContent = buildString {
                 messagesToSummarize.forEach { message ->
+                    coroutineContext.ensureActive()
                     // 清理消息内容：移除 memory 标签和 thinking 内容
                     val cleanedContent = if (message.sender == "user") {
                         stripMediaLinksForAssistant(
@@ -964,6 +967,7 @@ object AIMessageManager {
         } else {
             // 非群聊模式：保持原有逻辑
             messagesToSummarize.mapIndexed { index, message ->
+                coroutineContext.ensureActive()
                 val role = if (message.sender == "user") "user" else "assistant"
                 val cleanedContent = if (role == "user") {
                     stripMediaLinksForAssistant(
@@ -988,7 +992,8 @@ object AIMessageManager {
             }
         }
 
-        return try {
+        coroutineContext.ensureActive()
+        return@withContext try {
             AppLogger.d(TAG, "开始使用AI生成对话总结：总结 ${messagesToSummarize.size} 条消息")
             val summary =
                 enhancedAiService.generateSummary(
