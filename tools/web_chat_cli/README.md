@@ -6,7 +6,7 @@
 
 ## 构建与打包
 
-从仓库根目录执行，工具链与现有 `apply_patch` 使用同一版本和 ARM64 GNU 目标：
+从仓库根目录执行，工具链固定在 `tools/terminal_commands/rust-toolchain.toml`，两个命令共享 ARM64 GNU 构建环境：
 
 ```bash
 export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
@@ -19,7 +19,7 @@ python3 tools/web_chat_cli/package_assets.py \
 
 交叉编译需要 `gcc-aarch64-linux-gnu` 与 `libc6-dev-arm64-cross`，Rust 目标为 `aarch64-unknown-linux-gnu`。资源使用独立的 `web_chat_command` 目录和 SHA-256 清单，APK 内的内容也必须与本轮生成目录一致。
 
-现有本地 composite action 同时构建两个命令。Android Tests 与 PR Android JVM tests 会运行参数及 IPC 回归，并通过 QEMU 执行 ARM64 命令、安装、并发安装、引号路径和 APK 完整性回归。本轮本地未执行编译或测试。
+[公共终端命令层](../terminal_commands/README.md) 与 [composite action](../../.github/actions/terminal-commands/action.yml) 负责构建两个命令并汇总校验。当前命令的打包脚本只处理 `web-chat`。Android Tests 与 PR Android JVM tests 会运行参数及 IPC 回归，并通过 QEMU 执行 ARM64 命令、安装、并发安装、引号路径和 APK 完整性回归。本轮本地未执行编译或测试。
 
 ## 本地控制协议
 

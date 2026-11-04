@@ -30,7 +30,9 @@ on:
       - terminal
       - tools/native_ripgrep/**
       - tools/native_apply_patch/**
-      - .github/actions/native-apply-patch/**
+      - tools/web_chat_cli/**
+      - tools/terminal_commands/**
+      - .github/actions/terminal-commands/**
       - tools/packages_whitelist.txt
       - tools/example_packages/sync_example_packages.py
       - web-chat/**
@@ -127,7 +129,7 @@ jobs:
             --repository "$GITHUB_WORKSPACE"
 
       - name: Prepare terminal apply_patch
-        uses: ./.github/actions/native-apply-patch
+        uses: ./.github/actions/terminal-commands
         with:
           run-tests: 'true'
 

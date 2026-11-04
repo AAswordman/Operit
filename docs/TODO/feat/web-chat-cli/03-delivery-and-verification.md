@@ -1,6 +1,6 @@
 # 打包、文档与验证
 
-新增命令由现有 native terminal composite action 构建，生成独立清单。Gradle 及最终 APK 校验要求 `apply_patch` 和 `web-chat` 两套资源同时完整。PR 检查分类包含新命令目录，后续仅修改该目录也会覆盖完整 Android lane。
+新增命令由 `.github/actions/terminal-commands` 的公共 composite action 构建，生成独立清单。Gradle 及最终 APK 通过 `tools/terminal_commands/verify_assets.py` 汇总校验，要求 `apply_patch` 和 `web-chat` 两套资源同时完整。PR 检查分类包含新命令目录，后续仅修改该目录也会覆盖完整 Android lane。
 
 新增回归源码包括 Rust 参数和 IPC、Kotlin 协议与登录 URL、网页登录状态，以及 ARM64 分发安装。用户操作与迁移说明见[命令文档](../../../doc-src/feature-protocol/web_chat_cli.md)和[更新日志文案](release-notes.md)。
 
@@ -31,6 +31,9 @@
 - V23：应用进程重启后新终端重建控制通道；不可用通道返回非零结果。
 - V24：资源校验拒绝篡改、错误架构、缺失命令以及与当前生成目录不一致的 APK。
 - V25：并发安装、含引号路径、重复安装和命令升级均保留完整可执行命令。
+- V26：单独打包或校验 `apply_patch` 不要求准备 `web-chat`；各组件校验器只处理自身资源。
+- V27：公共校验要求两个命令均完整；缺少、篡改任意组件或 APK 内容不一致时失败。
+- V28：三个工作流与 Gradle 均引用公共 action/校验器；公共目录变更进入完整 Android 检查。
 
 ## 可填写结果表
 
@@ -61,6 +64,9 @@
 | V23 | 待填写 | |
 | V24 | 待填写 | |
 | V25 | 待填写 | |
+| V26 | 待填写 | |
+| V27 | 待填写 | |
+| V28 | 待填写 | |
 
 ## 实际验证记录
 

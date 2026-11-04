@@ -404,14 +404,16 @@ val verifyTerminalCommandAssets by tasks.registering {
     description = "Verifies the ARM64 Linux terminal commands and their asset manifests."
     inputs.dir(generatedTerminalCommandAssetsDir)
     inputs.files(
+        rootProject.file("tools/terminal_commands/verify_assets.py"),
         rootProject.file("tools/native_apply_patch/package_assets.py"),
+        rootProject.file("tools/native_apply_patch/install.sh"),
         rootProject.file("tools/web_chat_cli/package_assets.py"),
         rootProject.file("tools/web_chat_cli/install.sh"),
     )
     doLast {
         val execution = providers.exec {
             commandLine(
-                "python3", rootProject.file("tools/native_apply_patch/package_assets.py").path,
+                "python3", rootProject.file("tools/terminal_commands/verify_assets.py").path,
                 "--verify", "--output", generatedTerminalCommandAssetsDir.get().asFile.path,
             )
         }

@@ -69,7 +69,6 @@ tools/native_apply_patch/
 		fixtures/scenarios/
 	Cargo.toml
 	Cargo.lock
-	rust-toolchain.toml
 	install.sh
 	package_assets.py
 	UPSTREAM.json
@@ -83,7 +82,7 @@ tools/native_apply_patch/
 
 ## 构建接入
 
-[仓库复用步骤](../../.github/actions/native-apply-patch/action.yml) 使用固定 Rust 工具链和 `Cargo.lock`，先交叉构建 ARM64 Linux ELF，再生成 `app/build/generated/terminal-command-assets/terminal_commands/`。该目录包含二进制、安装脚本、清单、LICENSE 和 NOTICE。Gradle 的 `syncMainAssets` 校验并合并这些资源，缺少资源或校验失败会终止构建。
+[仓库复用步骤](../../.github/actions/terminal-commands/action.yml) 读取 `tools/terminal_commands/rust-toolchain.toml` 中的固定 Rust 工具链，并使用本命令的 `Cargo.lock`，先交叉构建 ARM64 Linux ELF，再生成 `app/build/generated/terminal-command-assets/terminal_commands/`。该目录包含二进制、安装脚本、清单、LICENSE 和 NOTICE。Gradle 的 `syncMainAssets` 校验并合并这些资源，缺少资源或校验失败会终止构建。
 
 开发环境准备同一资源可执行：
 
@@ -102,7 +101,7 @@ python3 tools/native_apply_patch/package_assets.py \
 
 Build 与 PR Android build 会核对最终 APK 中的命令、清单和许可文件。Android Tests 与 PR Android JVM tests 另运行 Rust 工作区回归、QEMU ARM64 的全部 25 个场景的检查/预览/应用对照以及安装升级回归。该功能源码与复用步骤的改动均触发完整 Android 检查。
 
-应用打包现在还要求准备独立的 `web-chat` 命令资源；本模块的 `--verify` 与 `--verify-apks` 入口会同时核对两套资源。另一个命令的构建步骤见 [web-chat 构建说明](../web_chat_cli/README.md)。
+本模块的 `--verify` 与 `--verify-apks` 只校验 `apply_patch`，无需准备其他命令资源。应用级汇总校验由 [公共终端命令层](../terminal_commands/README.md) 执行；另一个命令的构建步骤见 [web-chat 构建说明](../web_chat_cli/README.md)。
 
 ## 验证状态与许可
 

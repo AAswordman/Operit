@@ -4,8 +4,6 @@ import hashlib
 import json
 import shutil
 import struct
-import subprocess
-import sys
 import zipfile
 
 
@@ -103,10 +101,3 @@ if __name__ == '__main__':
         print(json.dumps(verify_assets(args.output), ensure_ascii=False))
     else:
         verify_apks(args.verify_apks, args.output)
-
-    if args.binary is None:
-        web_arguments = ['--verify'] if args.verify else ['--verify-apks', str(args.verify_apks)]
-        subprocess.run([
-            sys.executable, str(Path(__file__).resolve().parents[1] / 'web_chat_cli/package_assets.py'),
-            *web_arguments, '--output', str(args.output),
-        ], check=True)

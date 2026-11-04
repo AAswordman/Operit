@@ -10,7 +10,7 @@ base: dev
 
 ## 目标与范围
 
-- Kotlin 提供仅供同一应用 UID 调用的本地控制通道，复用前台服务及现有配置。
+- Kotlin 提供仅供应用 UID 与真实 root 调用的本地控制通道，复用前台服务及现有配置。
 - 新建独立 Rust 命令包，提供 `web-chat start-server [--port PORT] [--login]`、`stop-server`、`status`、`token show`、`token reset` 和 `examples [sync|async|health|intent]`。
 - 未指定示例类型时连续打印四类示例，始终只展示、不执行请求。
 - 普通启动输出带说明的 URL 和 Token，不写剪贴板；`--login` 在确认监听成功后打开 Android 默认浏览器，URL 携带当前 Token。
@@ -23,6 +23,7 @@ base: dev
 1. [命令与本地服务控制](01-command-and-control.md)
 2. [登录链接与移除设置页](02-login-and-settings-removal.md)
 3. [打包、文档与验证](03-delivery-and-verification.md)
+4. [公共终端命令构建与校验层](04-shared-command-build.md)
 
 ## 兼容性
 
@@ -30,4 +31,4 @@ base: dev
 
 ## 当前状态
 
-命令、控制通道、登录、页面清理和文档已实现。构建、单元测试和设备验证均尚未执行；提交前静态检查与工作流待派发。迁移文案见 [更新日志](release-notes.md)。
+命令、控制通道、登录、页面清理和文档已实现；首轮已提交 PR #130 并派发检查。公共构建与校验层已完成拆分，正在静态核对和更新工作分支；本地未执行构建、测试或设备验证。迁移文案见 [更新日志](release-notes.md)。
