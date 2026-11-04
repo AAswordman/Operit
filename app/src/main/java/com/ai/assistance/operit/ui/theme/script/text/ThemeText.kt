@@ -4,6 +4,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.UiComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.TextUnit
 
 /** 复用同一文字布局先画轮廓再画原文，保留原有链接、选择和无障碍节点。 */
 @Composable
+@UiComposable
 fun ThemeText(
     text: String,
     modifier: Modifier = Modifier,
@@ -73,6 +75,7 @@ fun ThemeText(
 
 /** 复用同一文字布局先画轮廓再画原文，保留原有链接、选择和无障碍节点。 */
 @Composable
+@UiComposable
 fun ThemeText(
     text: AnnotatedString,
     modifier: Modifier = Modifier,

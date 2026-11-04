@@ -72,6 +72,7 @@ status: implemented-ci-pending
 | T35 | 修改并清空区域文字色，再查看文字描边与字体参数 | 重复的旧排版颜色被清理，清空后继承上级；描边、字体及另一明暗模式保持 |
 | T36 | 切换九种语言查看背景透明度说明并执行仓库资源编译 | 0% 与 100% 按原文显示；该资源不再产生非位置格式占位提示 |
 
+| T37 | 在工作分支派发 Debug 与 Android Tests，编译全部文字和输入框封装 | compileDebugKotlin 完成，随后构建与 JVM 用例各自通过；Compose UI 目标推断不再产生 StackOverflowError |
 </details>
 
 <details><summary>可填写结果表</summary>
@@ -115,12 +116,15 @@ status: implemented-ci-pending
 | T35 | | |
 | T36 | | |
 
+| T37 | | |
 </details>
 
 ## 百分号说明资源
 
 背景透明度说明中的 0% 和 100% 是展示文本。五种语言补齐 formatted=false 后，九种受支持语言统一按字面值处理；文案正文保持不变。
 
+## Compose UI 目标声明
+文字、输入框、描边容器与区域字体作用域显式标注 UiComposable，并在可组合插槽类型上声明同一 UI 目标。输入框装饰器用明确的 UI lambda 调用内部编辑器，消除高阶插槽的递归目标推断。已有文字描边、布局与编辑回调继续由原有组件承担，编译结果交由仓库工作流确认。
 ## 验证状态
 
 本地未执行 Kotlin 编译、JVM 测试或 Android 设备场景；7 项新增声明回归及 1 项颜色与描边联动回归由仓库工作流执行，字体实际显示、富文本与输入交互的设备结果仍待确认。

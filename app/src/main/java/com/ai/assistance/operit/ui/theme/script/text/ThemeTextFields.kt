@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.UiComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 /** 未启用描边时沿用 Material3；启用后复用其装饰框与原生编辑器的文字层。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UiComposable
 fun ThemeTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -34,13 +36,13 @@ fun ThemeTextField(
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
-    label: @Composable (() -> Unit)? = null,
-    placeholder: @Composable (() -> Unit)? = null,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    prefix: @Composable (() -> Unit)? = null,
-    suffix: @Composable (() -> Unit)? = null,
-    supportingText: @Composable (() -> Unit)? = null,
+    label: @Composable @UiComposable (() -> Unit)? = null,
+    placeholder: @Composable @UiComposable (() -> Unit)? = null,
+    leadingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    trailingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    prefix: @Composable @UiComposable (() -> Unit)? = null,
+    suffix: @Composable @UiComposable (() -> Unit)? = null,
+    supportingText: @Composable @UiComposable (() -> Unit)? = null,
     isError: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -105,6 +107,7 @@ fun ThemeTextField(
 /** 未启用描边时沿用 Material3；启用后复用其装饰框与原生编辑器的文字层。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UiComposable
 fun ThemeTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
@@ -112,13 +115,13 @@ fun ThemeTextField(
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
-    label: @Composable (() -> Unit)? = null,
-    placeholder: @Composable (() -> Unit)? = null,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    prefix: @Composable (() -> Unit)? = null,
-    suffix: @Composable (() -> Unit)? = null,
-    supportingText: @Composable (() -> Unit)? = null,
+    label: @Composable @UiComposable (() -> Unit)? = null,
+    placeholder: @Composable @UiComposable (() -> Unit)? = null,
+    leadingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    trailingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    prefix: @Composable @UiComposable (() -> Unit)? = null,
+    suffix: @Composable @UiComposable (() -> Unit)? = null,
+    supportingText: @Composable @UiComposable (() -> Unit)? = null,
     isError: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -183,6 +186,7 @@ fun ThemeTextField(
 /** 未启用描边时沿用 Material3；启用后复用其装饰框与原生编辑器的文字层。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UiComposable
 fun ThemeOutlinedTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -190,13 +194,13 @@ fun ThemeOutlinedTextField(
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
-    label: @Composable (() -> Unit)? = null,
-    placeholder: @Composable (() -> Unit)? = null,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    prefix: @Composable (() -> Unit)? = null,
-    suffix: @Composable (() -> Unit)? = null,
-    supportingText: @Composable (() -> Unit)? = null,
+    label: @Composable @UiComposable (() -> Unit)? = null,
+    placeholder: @Composable @UiComposable (() -> Unit)? = null,
+    leadingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    trailingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    prefix: @Composable @UiComposable (() -> Unit)? = null,
+    suffix: @Composable @UiComposable (() -> Unit)? = null,
+    supportingText: @Composable @UiComposable (() -> Unit)? = null,
     isError: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -263,6 +267,7 @@ fun ThemeOutlinedTextField(
 /** 未启用描边时沿用 Material3；启用后复用其装饰框与原生编辑器的文字层。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UiComposable
 fun ThemeOutlinedTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
@@ -270,13 +275,13 @@ fun ThemeOutlinedTextField(
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
-    label: @Composable (() -> Unit)? = null,
-    placeholder: @Composable (() -> Unit)? = null,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    prefix: @Composable (() -> Unit)? = null,
-    suffix: @Composable (() -> Unit)? = null,
-    supportingText: @Composable (() -> Unit)? = null,
+    label: @Composable @UiComposable (() -> Unit)? = null,
+    placeholder: @Composable @UiComposable (() -> Unit)? = null,
+    leadingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    trailingIcon: @Composable @UiComposable (() -> Unit)? = null,
+    prefix: @Composable @UiComposable (() -> Unit)? = null,
+    suffix: @Composable @UiComposable (() -> Unit)? = null,
+    supportingText: @Composable @UiComposable (() -> Unit)? = null,
     isError: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,

@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.theme.script.text
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.UiComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -21,9 +22,13 @@ private val outlineDirections = List(32) { index ->
     cos(angle).toFloat() to sin(angle).toFloat()
 }
 
-/** 只包裹内部文字编辑器，复用绘制层扩张文字蒙版，滚动与输入法仍由原生编辑器持有。 */
+/**
+ * 只包裹内部文字编辑器，复用绘制层扩张文字蒙版，滚动与输入法仍由原生编辑器持有。
+ * 函数与插槽显式限定为 UI 目标，避免多层装饰器转发时让 Compose 编译器循环推断。
+ */
 @Composable
-internal fun ThemeInputTextStroke(stroke: ResolvedThemeTextStroke?, content: @Composable () -> Unit) {
+@UiComposable
+internal fun ThemeInputTextStroke(stroke: ResolvedThemeTextStroke?, content: @Composable @UiComposable () -> Unit) {
     if (stroke == null) {
         content()
     } else {

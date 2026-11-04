@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.UiComposable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.Density
 /** 状态式输入保留滚动与文本转换，复制面板和资料编辑与其他文字入口使用同一描边规则。 */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
+@UiComposable
 fun ThemeBasicTextField(
     state: TextFieldState,
     modifier: Modifier = Modifier,
@@ -50,9 +52,9 @@ fun ThemeBasicTextField(
         outputTransformation = outputTransformation, scrollState = scrollState,
         decorator = TextFieldDecorator { inner ->
             if (decorator == null) {
-                ThemeInputTextStroke(textStroke, inner)
+                ThemeInputTextStroke(textStroke) { inner() }
             } else {
-                decorator.Decoration { ThemeInputTextStroke(textStroke, inner) }
+                decorator.Decoration { ThemeInputTextStroke(textStroke) { inner() } }
             }
         },
     )

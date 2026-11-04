@@ -4,6 +4,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.UiComposable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -15,6 +16,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 
 /** 保留原生文字编辑、选择、光标与滚动，仅在内部文字层增加描边。 */
 @Composable
+@UiComposable
 fun ThemeBasicTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -31,7 +33,7 @@ fun ThemeBasicTextField(
     onTextLayout: (TextLayoutResult) -> Unit = {},
     interactionSource: MutableInteractionSource? = null,
     cursorBrush: Brush = SolidColor(Color.Black),
-    decorationBox: @Composable (innerTextField: @Composable () -> Unit) -> Unit = { it() },
+    decorationBox: @Composable @UiComposable (innerTextField: @Composable @UiComposable () -> Unit) -> Unit = { it() },
     textStroke: ResolvedThemeTextStroke? = LocalThemeTextStroke.current,
 ) {
     androidx.compose.foundation.text.BasicTextField(
@@ -41,12 +43,13 @@ fun ThemeBasicTextField(
         singleLine = singleLine, maxLines = maxLines, minLines = minLines,
         visualTransformation = visualTransformation, onTextLayout = onTextLayout,
         interactionSource = interactionSource, cursorBrush = cursorBrush,
-        decorationBox = { inner -> decorationBox { ThemeInputTextStroke(textStroke, inner) } },
+        decorationBox = { inner -> decorationBox { ThemeInputTextStroke(textStroke) { inner() } } },
     )
 }
 
 /** 保留原生文字编辑、选择、光标与滚动，仅在内部文字层增加描边。 */
 @Composable
+@UiComposable
 fun ThemeBasicTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
@@ -63,7 +66,7 @@ fun ThemeBasicTextField(
     onTextLayout: (TextLayoutResult) -> Unit = {},
     interactionSource: MutableInteractionSource? = null,
     cursorBrush: Brush = SolidColor(Color.Black),
-    decorationBox: @Composable (innerTextField: @Composable () -> Unit) -> Unit = { it() },
+    decorationBox: @Composable @UiComposable (innerTextField: @Composable @UiComposable () -> Unit) -> Unit = { it() },
     textStroke: ResolvedThemeTextStroke? = LocalThemeTextStroke.current,
 ) {
     androidx.compose.foundation.text.BasicTextField(
@@ -73,6 +76,6 @@ fun ThemeBasicTextField(
         singleLine = singleLine, maxLines = maxLines, minLines = minLines,
         visualTransformation = visualTransformation, onTextLayout = onTextLayout,
         interactionSource = interactionSource, cursorBrush = cursorBrush,
-        decorationBox = { inner -> decorationBox { ThemeInputTextStroke(textStroke, inner) } },
+        decorationBox = { inner -> decorationBox { ThemeInputTextStroke(textStroke) { inner() } } },
     )
 }
