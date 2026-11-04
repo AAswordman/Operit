@@ -87,6 +87,7 @@ internal fun StudioColorPicker(
     seed: Color,
     onChange: (String?) -> Unit,
     onClose: () -> Unit,
+    allowInherit: Boolean = true,
 ) {
     val start = remember { initial?.let(android.graphics.Color::parseColor) ?: seed.toArgb() }
     val initialHsv = remember { FloatArray(3).also { android.graphics.Color.colorToHSV(start, it) } }
@@ -153,7 +154,10 @@ internal fun StudioColorPicker(
             if (state != null) TextButton(onClick = { chooseSample = true }) { Text(stringResource(R.string.studio_sample_image)) }
         }
     }, confirmButton = { Button(onClick = { onChange(studioHex(current())); onClose() }, enabled = !invalid) { Text(stringResource(R.string.studio_apply_color)) } }, dismissButton = {
-        Row { TextButton(onClick = { onChange(null); onClose() }) { Text(stringResource(R.string.studio_inherit)) }; TextButton(onClick = onClose) { Text(stringResource(R.string.studio_cancel)) } }
+        Row {
+            if (allowInherit) TextButton(onClick = { onChange(null); onClose() }) { Text(stringResource(R.string.studio_inherit)) }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.studio_cancel)) }
+        }
     })
     if (chooseSample && state != null) StudioAssetPicker(state, fontsOnly = false, title = stringResource(R.string.studio_sample_image), onClose = { chooseSample = false }, onChoose = { id -> chooseSample = false; sample = id })
     if (state != null) sample?.let { id -> StudioImageSampler(state.images.getValue(id), onClose = { sample = null }, onPicked = { value -> setColor(value); sample = null }) }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_color">文字色</string>
+    <string name="studio_message_background_color">メッセージの背景色</string>
+    <string name="studio_message_text_color">メッセージの文字色</string>
+    <string name="studio_border">枠線</string>
+    <string name="studio_border_edit_hint">幅が 0 のときに枠線の色を選ぶと 1dp に設定されます。幅を 0 にすると枠線を非表示にできます。背景の透明度は枠線に影響しません。</string>
+    <string name="studio_line_color">線の色</string>
+    <string name="studio_padding_hint">部品の元の余白に追加します。0 では余白を追加しません。</string>
+    <string name="studio_text_color_priority_hint">メッセージや部品ごとの文字色が優先されます。全体の文字色は全体配色の本文色を上書きします。</string>
+    <string name="studio_message_color_hint">メッセージの背景色には、メッセージ外観の背景透明度が適用されます。文字色は独立しています。</string>
+    <string name="studio_avatar_fill_hint">アバターの塗りつぶしは画像の下に描画されます。不透明な画像では見えません。</string>
+    <string name="studio_min_height_hint">高さの下限を設定します。部品本来の最小高さより小さくはなりません。</string>
+</resources>
