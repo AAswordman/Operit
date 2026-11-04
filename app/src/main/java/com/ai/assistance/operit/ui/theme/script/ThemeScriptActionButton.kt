@@ -47,8 +47,8 @@ fun ThemeScriptActionButton(
             Box(
                 Modifier.themeScriptDecoration(actionId, enabled = enabled, selected = selected,
                     drawFill = false, drawStroke = false, originalShape = shape, drawElevation = false),
+                // 背景保持按钮尺寸；子项单独测量，避免 18dp 图标被撑到 36dp。
                 contentAlignment = Alignment.Center,
-                propagateMinConstraints = true,
             ) { content() }
         }
     }
