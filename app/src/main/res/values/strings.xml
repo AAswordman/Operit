@@ -2975,6 +2975,7 @@
     <string name="speech_services_openai_stt_api_key_placeholder">例如：sk-xxxxxx</string>
     <string name="speech_services_openai_stt_model">model</string>
     <string name="speech_services_openai_stt_model_placeholder">例如：whisper-1 或 gpt-4o-mini-transcribe</string>
+    <string name="speech_services_openai_stt_siliconflow_models_hint">硅基流动可用模型：FunAudioLLM/SenseVoiceSmall、TeleAI/TeleSpeechASR</string>
 
     <string name="speech_services_deepgram_stt_config">Deepgram STT 配置</string>
     <string name="speech_services_deepgram_stt_url">URL</string>
@@ -3110,6 +3111,9 @@
     <string name="test_media_image_unverified">图片请求已连通，但未能验证理解能力</string>
     <string name="test_media_audio_unverified">音频请求已连通，但未能验证理解能力</string>
     <string name="test_media_video_unverified">视频请求已连通，但未能验证理解能力</string>
+    <string name="test_transcription_succeeded">语音转写接口调用成功</string>
+    <string name="test_transcription_unverified">转写请求已连通，但未能验证转写文本</string>
+    <string name="test_transcription_endpoint_not_chat">当前端点是语音转写接口（/audio/transcriptions），不能作为聊天接口使用。聊天请使用 /v1/chat/completions；语音转写请在“语音服务 → 语音识别”中配置。</string>
     <string name="test_media_unverified">已连通，但未能验证</string>
     <string name="test_result_expand">展开</string>
     <string name="test_result_collapse">收起</string>
@@ -4152,6 +4156,8 @@
     <string name="enable_direct_image_processing_desc">启用后，图片将直接发送给AI处理，而不是让AI通过OCR工具读取</string>
     <string name="enable_direct_audio_processing">模型支持音频解析</string>
     <string name="enable_direct_audio_processing_desc">启用后，音频将直接发送给AI处理，而不是通过工具返回文本转写/描述</string>
+    <string name="siliconflow_asr_not_chat_model_warning">硅基流动的语音识别模型（如 FunAudioLLM/SenseVoiceSmall）只提供 /v1/audio/transcriptions 转写接口，不是聊天模型。若要使用它们，请前往“语音服务 → 语音识别”新建 OpenAI STT 配置，填写完整转写地址和模型名；本页的“模型支持音频解析”仅适用于能直接接收音频的聊天模型。</string>
+    <string name="api_endpoint_is_transcription_warning">这是语音转写接口（/audio/transcriptions），只能接收 multipart 录音文件，聊天请求会返回 HTTP 400。聊天请使用 /v1/chat/completions。</string>
     <string name="enable_direct_video_processing">模型支持视频解析</string>
     <string name="enable_direct_video_processing_desc">启用后，视频将直接发送给AI处理，而不是通过工具抽帧/分析</string>
     <string name="enable_google_search">启用 Google Search</string>

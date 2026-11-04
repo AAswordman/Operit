@@ -6,6 +6,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.api.chat.llmprovider.AudioTranscriptionProtocol
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.speech.SpeechPrerollStore
 import java.io.File
@@ -25,11 +26,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
 import org.json.JSONObject
 import kotlin.math.log10
 
@@ -558,18 +556,20 @@ class OpenAISttProvider(
     }
 
     private fun transcribeWavFile(file: File, languageCode: String?): String {
-        val bodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
-        bodyBuilder.addFormDataPart("file", file.name, file.asRequestBody("audio/wav".toMediaType()))
-        bodyBuilder.addFormDataPart("model", model)
-        val lang = mapLanguage(languageCode)
-        if (!lang.isNullOrBlank()) {
-            bodyBuilder.addFormDataPart("language", lang)
-        }
-        bodyBuilder.addFormDataPart("response_format", "json")
+        val siliconFlow = AudioTranscriptionProtocol.isSiliconFlowEndpoint(endpointUrl)
+        // SiliconFlow's published transcription schema only declares `file` and `model`.
+        // Extra fields such as `language`/`response_format` are not part of it, so omit them there.
+        val bodyBuilder =
+            AudioTranscriptionProtocol.buildRequestBody(
+                file = file,
+                model = model,
+                language = if (siliconFlow) null else mapLanguage(languageCode),
+                responseFormat = if (siliconFlow) null else "json",
+            )
 
         val request = Request.Builder()
             .url(endpointUrl)
-            .post(bodyBuilder.build())
+            .post(bodyBuilder)
             .addHeader("Authorization", "Bearer $apiKey")
             .build()
 

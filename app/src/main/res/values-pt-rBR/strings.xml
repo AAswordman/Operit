@@ -2412,6 +2412,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="speech_services_openai_stt_api_key_placeholder">Por exemplo: sk-xxxxxx</string>
     <string name="speech_services_openai_stt_model">modelo</string>
     <string name="speech_services_openai_stt_model_placeholder">Por exemplo: sussurro-1 ou gpt-4o-mini-transcribe</string>
+    <string name="speech_services_openai_stt_siliconflow_models_hint">Modelos SiliconFlow: FunAudioLLM/SenseVoiceSmall, TeleAI/TeleSpeechASR</string>
     <string name="speech_services_deepgram_stt_config">Configuração Deepgram STT</string>
     <string name="speech_services_deepgram_stt_url">URL</string>
     <string name="speech_services_deepgram_stt_url_placeholder">Por exemplo: https://api.deepgram.com/v1/listen</string>
@@ -2532,6 +2533,9 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="test_media_image_unverified">A solicitação de imagem foi conectada, mas a compreensão não pôde ser verificada</string>
     <string name="test_media_audio_unverified">A solicitação de áudio foi conectada, mas a compreensão não pôde ser verificada</string>
     <string name="test_media_video_unverified">A solicitação de vídeo foi conectada, mas a compreensão não pôde ser verificada</string>
+    <string name="test_transcription_succeeded">O endpoint de transcrição de fala respondeu com sucesso</string>
+    <string name="test_transcription_unverified">A solicitação de transcrição foi conectada, mas o texto transcrito não pôde ser verificado</string>
+    <string name="test_transcription_endpoint_not_chat">Este endpoint é de transcrição de fala (/audio/transcriptions) e não pode ser usado para chat. Para chat use /v1/chat/completions; para transcrição, configure em «Serviços de voz → Reconhecimento de voz».</string>
     <string name="test_media_unverified">Conectado, mas não verificado</string>
     <string name="test_result_expand">Expandir</string>
     <string name="test_result_collapse">Recolher</string>
@@ -3348,6 +3352,8 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="enable_direct_image_processing_desc">Quando ativado, as imagens serão enviadas diretamente para a IA para processamento, em vez de serem lidas pela IA por meio de uma ferramenta de OCR.</string>
     <string name="enable_direct_audio_processing">O modelo suporta análise de áudio</string>
     <string name="enable_direct_audio_processing_desc">Quando habilitado, o áudio será enviado diretamente para a IA para processamento ao invés de ser retornado pela ferramenta para transcrição/descrição de texto</string>
+    <string name="siliconflow_asr_not_chat_model_warning">Os modelos de reconhecimento de fala da SiliconFlow (como FunAudioLLM/SenseVoiceSmall) oferecem apenas o endpoint /v1/audio/transcriptions e não são modelos de chat. Para usá-los, crie uma entrada OpenAI STT em «Serviços de voz → Reconhecimento de voz» com a URL completa de transcrição e o nome do modelo. «O modelo suporta áudio» nesta página aplica-se apenas a modelos de chat que aceitam áudio diretamente.</string>
+    <string name="api_endpoint_is_transcription_warning">Este é um endpoint de transcrição de fala (/audio/transcriptions) que aceita apenas uploads de áudio multipart; solicitações de chat falharão com HTTP 400. Para chat use /v1/chat/completions.</string>
     <string name="enable_direct_video_processing">Modelo suporta análise de vídeo</string>
     <string name="enable_direct_video_processing_desc">Quando ativado, o vídeo será enviado diretamente para processamento de IA em vez de extração/análise de quadros pela ferramenta</string>
     <string name="enable_google_search">Ativar Pesquisa Google</string>

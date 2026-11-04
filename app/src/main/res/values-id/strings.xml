@@ -2645,6 +2645,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="speech_services_openai_stt_api_key_placeholder">Contoh: sk-xxxxxx</string>
     <string name="speech_services_openai_stt_model">model</string>
     <string name="speech_services_openai_stt_model_placeholder">Contoh: whisper-1 atau gpt-4o-mini-transcribe</string>
+    <string name="speech_services_openai_stt_siliconflow_models_hint">Model SiliconFlow: FunAudioLLM/SenseVoiceSmall, TeleAI/TeleSpeechASR</string>
     <string name="speech_services_deepgram_stt_config">Konfigurasi Deepgram STT</string>
     <string name="speech_services_deepgram_stt_url">URL</string>
     <string name="speech_services_deepgram_stt_url_placeholder">Contoh: https://api.deepgram.com/v1/listen</string>
@@ -2807,6 +2808,9 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="test_media_image_unverified">Permintaan gambar terhubung, tetapi pemahaman tidak dapat diverifikasi</string>
     <string name="test_media_audio_unverified">Permintaan audio terhubung, tetapi pemahaman tidak dapat diverifikasi</string>
     <string name="test_media_video_unverified">Permintaan video terhubung, tetapi pemahaman tidak dapat diverifikasi</string>
+    <string name="test_transcription_succeeded">Endpoint transkripsi suara merespons dengan berhasil</string>
+    <string name="test_transcription_unverified">Permintaan transkripsi terhubung, tetapi teks transkripsi tidak dapat diverifikasi</string>
+    <string name="test_transcription_endpoint_not_chat">Endpoint ini adalah endpoint transkripsi suara (/audio/transcriptions) dan tidak dapat digunakan untuk chat. Untuk chat gunakan /v1/chat/completions; untuk transkripsi, atur di «Layanan suara → Pengenalan suara».</string>
     <string name="test_media_unverified">Terhubung, tetapi tidak diverifikasi</string>
     <string name="test_result_expand">Bentangkan</string>
     <string name="test_result_collapse">Ciutkan</string>
@@ -3592,6 +3596,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="enable_direct_image_processing_desc">Setelah diaktifkan, gambar akan langsung dikirim ke AI untuk diproses, bukan dibaca oleh AI melalui alat OCR</string>
     <string name="enable_direct_audio_processing">Model mendukung analisis audio</string>
     <string name="enable_direct_audio_processing_desc">Setelah diaktifkan, audio akan langsung dikirim ke AI untuk diproses, bukan dikembalikan melalui alat sebagai transkripsi/deskripsi teks</string>
+    <string name="siliconflow_asr_not_chat_model_warning">Model pengenalan suara SiliconFlow (seperti FunAudioLLM/SenseVoiceSmall) hanya menyediakan endpoint /v1/audio/transcriptions dan bukan model chat. Untuk menggunakannya, buat entri OpenAI STT di «Layanan suara → Pengenalan suara» dengan URL transkripsi lengkap dan nama model. «Model mendukung audio» di halaman ini hanya berlaku untuk model chat yang menerima audio secara langsung.</string>
+    <string name="api_endpoint_is_transcription_warning">Ini adalah endpoint transkripsi suara (/audio/transcriptions) yang hanya menerima unggahan audio multipart; permintaan chat akan gagal dengan HTTP 400. Untuk chat gunakan /v1/chat/completions.</string>
     <string name="enable_direct_video_processing">Model mendukung analisis video</string>
     <string name="enable_direct_video_processing_desc">Setelah diaktifkan, video akan langsung dikirim ke AI untuk diproses, bukan dianalisis melalui alat ekstraksi frame/analisis</string>
     <string name="enable_google_search">Aktifkan Google Search</string>

@@ -4,6 +4,8 @@ import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.api.chat.llmprovider.AIServiceFactory
+import com.ai.assistance.operit.api.chat.llmprovider.AudioTranscriptionClient
+import com.ai.assistance.operit.api.chat.llmprovider.AudioTranscriptionProtocol
 import com.ai.assistance.operit.api.chat.llmprovider.RateLimitedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.RateLimiterRegistry
 import com.ai.assistance.operit.api.chat.llmprovider.RequestConcurrencyRegistry
@@ -18,6 +20,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
+
+/** Transcription client plus the model name selected by the AUDIO_RECOGNITION mapping. */
+data class AudioTranscriptionProfile(
+    val client: AudioTranscriptionClient,
+    val modelName: String,
+)
 
 /** 管理多个AIService实例，根据功能类型提供不同的服务配置 */
 class MultiServiceManager(private val context: Context) {
@@ -408,7 +416,36 @@ class MultiServiceManager(private val context: Context) {
         ensureInitialized()
         val configMapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.AUDIO_RECOGNITION)
         val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
-        return config.enableDirectAudioProcessing
+        // A dedicated transcription endpoint is a complete audio-recognition configuration on its
+        // own; the direct-audio switch describes chat models that accept audio natively.
+        return AudioTranscriptionProtocol.isTranscriptionEndpoint(config.apiEndpoint) ||
+            config.enableDirectAudioProcessing
+    }
+
+    /**
+     * Returns the audio-transcription client for [FunctionType.AUDIO_RECOGNITION] when that
+     * function points at a dedicated transcription endpoint.
+     *
+     * Such endpoints only accept multipart/form-data, so they must not be driven through
+     * [getServiceForFunction] and its chat-completions JSON protocol.
+     */
+    suspend fun getAudioTranscriptionProfileForFunction(): AudioTranscriptionProfile? {
+        ensureInitialized()
+        val configMapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.AUDIO_RECOGNITION)
+        val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
+        if (!AudioTranscriptionProtocol.isTranscriptionEndpoint(config.apiEndpoint)) {
+            return null
+        }
+        val actualIndex = getValidModelIndex(config.modelName, configMapping.modelIndex)
+        val selectedModel = getModelByIndex(config.modelName, actualIndex)
+        return AudioTranscriptionProfile(
+            client =
+                AudioTranscriptionClient.create(
+                    config = config.copy(modelName = selectedModel),
+                    modelConfigManager = modelConfigManager,
+                ),
+            modelName = selectedModel,
+        )
     }
 
     suspend fun hasVideoRecognitionConfigured(): Boolean {

@@ -1395,6 +1395,7 @@
     <string name="speech_services_openai_stt_api_key_placeholder">p. ej.: sk-xxxxxx</string>
     <string name="speech_services_openai_stt_model">model</string>
     <string name="speech_services_openai_stt_model_placeholder">p. ej.: whisper-1 o gpt-4o-mini-transcribe</string>
+    <string name="speech_services_openai_stt_siliconflow_models_hint">Modelos de SiliconFlow: FunAudioLLM/SenseVoiceSmall, TeleAI/TeleSpeechASR</string>
     <string name="speech_services_deepgram_stt_config">Configuración de Deepgram STT</string>
     <string name="speech_services_deepgram_stt_url">URL</string>
     <string name="speech_services_deepgram_stt_url_placeholder">p. ej.: https://api.deepgram.com/v1/listen</string>
@@ -3288,6 +3289,9 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="test_media_image_unverified">La solicitud de imagen se conectó, pero no se pudo verificar la comprensión</string>
     <string name="test_media_audio_unverified">La solicitud de audio se conectó, pero no se pudo verificar la comprensión</string>
     <string name="test_media_video_unverified">La solicitud de video se conectó, pero no se pudo verificar la comprensión</string>
+    <string name="test_transcription_succeeded">El endpoint de transcripción de voz respondió correctamente</string>
+    <string name="test_transcription_unverified">La solicitud de transcripción se conectó, pero no se pudo verificar el texto transcrito</string>
+    <string name="test_transcription_endpoint_not_chat">Este endpoint es de transcripción de voz (/audio/transcriptions) y no se puede usar para chat. Para chat usa /v1/chat/completions; para transcripción, configúralo en «Servicios de voz → Reconocimiento de voz».</string>
     <string name="test_media_unverified">Conectado, pero no verificado</string>
     <string name="test_result_expand">Expandir</string>
     <string name="test_result_collapse">Contraer</string>
@@ -3781,6 +3785,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="enable_direct_image_processing_desc">Al activarlo, las imágenes se enviarán directamente a la IA para su procesamiento, en lugar de que la IA las lea mediante una herramienta OCR</string>
     <string name="enable_direct_audio_processing">El modelo admite análisis de audio</string>
     <string name="enable_direct_audio_processing_desc">Al activarlo, el audio se enviará directamente a la IA para su procesamiento, en lugar de devolver una transcripción/descripción de texto mediante una herramienta</string>
+    <string name="siliconflow_asr_not_chat_model_warning">Los modelos de reconocimiento de voz de SiliconFlow (como FunAudioLLM/SenseVoiceSmall) solo ofrecen el endpoint /v1/audio/transcriptions y no son modelos de chat. Para usarlos, crea una entrada OpenAI STT en «Servicios de voz → Reconocimiento de voz» con la URL de transcripción completa y el nombre del modelo. «El modelo admite audio» en esta página solo se aplica a modelos de chat que aceptan audio directamente.</string>
+    <string name="api_endpoint_is_transcription_warning">Este es un endpoint de transcripción de voz (/audio/transcriptions) que solo acepta cargas de audio multipart; las solicitudes de chat fallarán con HTTP 400. Para chat usa /v1/chat/completions.</string>
     <string name="enable_direct_video_processing">El modelo admite análisis de video</string>
     <string name="enable_direct_video_processing_desc">Al activarlo, el video se enviará directamente a la IA para su procesamiento, en lugar de extraer fotogramas/analizar mediante una herramienta</string>
     <string name="enable_google_search">Habilitar Google Search</string>

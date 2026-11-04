@@ -2435,6 +2435,7 @@
     <string name="speech_services_openai_stt_api_key_placeholder">Contoh: sk-xxxxxx</string>
     <string name="speech_services_openai_stt_model">model</string>
     <string name="speech_services_openai_stt_model_placeholder">Contoh: whisper-1 atau gpt-4o-mini-transcribe</string>
+    <string name="speech_services_openai_stt_siliconflow_models_hint">Model SiliconFlow: FunAudioLLM/SenseVoiceSmall, TeleAI/TeleSpeechASR</string>
     <string name="speech_services_deepgram_stt_config">Konfigurasi Deepgram STT</string>
     <string name="speech_services_deepgram_stt_url">URL</string>
     <string name="speech_services_deepgram_stt_url_placeholder">Contoh: https://api.deepgram.com/v1/listen</string>
@@ -2720,6 +2721,9 @@
     <string name="test_media_image_unverified">Permintaan imej berjaya disambungkan, tetapi pemahaman tidak dapat disahkan</string>
     <string name="test_media_audio_unverified">Permintaan audio berjaya disambungkan, tetapi pemahaman tidak dapat disahkan</string>
     <string name="test_media_video_unverified">Permintaan video berjaya disambungkan, tetapi pemahaman tidak dapat disahkan</string>
+    <string name="test_transcription_succeeded">Endpoint transkripsi pertuturan memberi respons dengan jayanya</string>
+    <string name="test_transcription_unverified">Permintaan transkripsi berjaya disambungkan, tetapi teks transkripsi tidak dapat disahkan</string>
+    <string name="test_transcription_endpoint_not_chat">Endpoint ini ialah endpoint transkripsi pertuturan (/audio/transcriptions) dan tidak boleh digunakan untuk sembang. Untuk sembang gunakan /v1/chat/completions; untuk transkripsi, tetapkan di «Perkhidmatan suara → Pengecaman suara».</string>
     <string name="test_media_unverified">Disambungkan, tetapi tidak disahkan</string>
     <string name="test_result_expand">Kembangkan</string>
     <string name="test_result_collapse">Runtuhkan</string>
@@ -3466,6 +3470,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="enable_direct_image_processing_desc">Setelah diaktifkan, imej akan dihantar terus kepada AI untuk diproses, bukan membiarkan AI membacanya melalui alat OCR</string>
     <string name="enable_direct_audio_processing">Model menyokong pemprosesan audio langsung</string>
     <string name="enable_direct_audio_processing_desc">Setelah diaktifkan, audio akan dihantar terus kepada AI untuk diproses, bukan melalui alat yang mengembalikan transkripsi/deskripsi teks</string>
+    <string name="siliconflow_asr_not_chat_model_warning">Model pengecaman pertuturan SiliconFlow (seperti FunAudioLLM/SenseVoiceSmall) hanya menyediakan endpoint /v1/audio/transcriptions dan bukan model sembang. Untuk menggunakannya, cipta entri OpenAI STT di «Perkhidmatan suara → Pengecaman suara» dengan URL transkripsi penuh dan nama model. «Model menyokong audio» di halaman ini hanya terpakai kepada model sembang yang menerima audio secara langsung.</string>
+    <string name="api_endpoint_is_transcription_warning">Ini ialah endpoint transkripsi pertuturan (/audio/transcriptions) yang hanya menerima muat naik audio multipart; permintaan sembang akan gagal dengan HTTP 400. Untuk sembang gunakan /v1/chat/completions.</string>
     <string name="enable_direct_video_processing">Model menyokong pemprosesan video langsung</string>
     <string name="enable_direct_video_processing_desc">Setelah diaktifkan, video akan dihantar terus kepada AI untuk diproses, bukan melalui alat yang mengekstrak bingkai/menganalisis</string>
     <string name="enable_google_search">Aktifkan Google Search</string>

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import com.ai.assistance.operit.util.AssetCopyUtils
 import com.ai.assistance.operit.api.chat.llmprovider.AIServiceFactory
+import com.ai.assistance.operit.api.chat.llmprovider.AudioTranscriptionClient
+import com.ai.assistance.operit.api.chat.llmprovider.AudioTranscriptionProtocol
 import com.ai.assistance.operit.api.chat.llmprovider.MediaCapabilityProbe
 import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkBuilder
 import com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestOutcome
@@ -298,7 +300,9 @@ fun FunctionConfigCard(
 
         val isSupported = when (functionType) {
             FunctionType.IMAGE_RECOGNITION -> fullConfig.enableDirectImageProcessing
-            FunctionType.AUDIO_RECOGNITION -> fullConfig.enableDirectAudioProcessing
+            FunctionType.AUDIO_RECOGNITION ->
+                fullConfig.enableDirectAudioProcessing ||
+                    AudioTranscriptionProtocol.isTranscriptionEndpoint(fullConfig.apiEndpoint)
             FunctionType.VIDEO_RECOGNITION -> fullConfig.enableDirectVideoProcessing
             else -> true
         }
@@ -560,33 +564,49 @@ fun FunctionConfigCard(
                                                             context,
                                                             MediaCapabilityProbe.AUDIO_ASSET_PATH
                                                         )
-                                                    val audioId = MediaPoolManager.addMedia(audioFile.absolutePath, "audio/mpeg")
-                                                    if (audioId == "error") {
-                                                        throw IllegalStateException("Failed to create test audio")
-                                                    }
-                                                    cleanupTasks.add {
-                                                        MediaPoolManager.removeMedia(audioId)
-                                                        runCatching { audioFile.delete() }
-                                                    }
-                                                    val prompt =
-                                                        buildString {
-                                                            append(MediaLinkBuilder.audio(context, audioId))
-                                                            append("\n")
-                                                            append(MediaCapabilityProbe.AUDIO_PROMPT)
+                                                    if (
+                                                        AudioTranscriptionProtocol.isTranscriptionEndpoint(
+                                                            configWithSelectedModel.apiEndpoint
+                                                        )
+                                                    ) {
+                                                        cleanupTasks.add {
+                                                            runCatching { audioFile.delete() }
                                                         }
-                                                    val parameters =
-                                                        modelConfigManager.getModelParametersForConfig(configWithSelectedModel.id)
-                                                    val buffer = StringBuilder()
-                                                    service.sendMessage(
-                                                        context,
-                                                        listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                                                        parameters,
-                                                        stream = false,
-                                                        enableRetry = false,
-                                                        recordTokenUsage = false,
-                                                    )
-                                                        .collect { chunk -> buffer.append(chunk) }
-                                                    buffer.toString()
+                                                        AudioTranscriptionClient
+                                                            .create(
+                                                                config = configWithSelectedModel,
+                                                                modelConfigManager = modelConfigManager,
+                                                            )
+                                                            .transcribe(audioFile, configWithSelectedModel.modelName)
+                                                    } else {
+                                                        val audioId = MediaPoolManager.addMedia(audioFile.absolutePath, "audio/mpeg")
+                                                        if (audioId == "error") {
+                                                            throw IllegalStateException("Failed to create test audio")
+                                                        }
+                                                        cleanupTasks.add {
+                                                            MediaPoolManager.removeMedia(audioId)
+                                                            runCatching { audioFile.delete() }
+                                                        }
+                                                        val prompt =
+                                                            buildString {
+                                                                append(MediaLinkBuilder.audio(context, audioId))
+                                                                append("\n")
+                                                                append(MediaCapabilityProbe.AUDIO_PROMPT)
+                                                            }
+                                                        val parameters =
+                                                            modelConfigManager.getModelParametersForConfig(configWithSelectedModel.id)
+                                                        val buffer = StringBuilder()
+                                                        service.sendMessage(
+                                                            context,
+                                                            listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                                                            parameters,
+                                                            stream = false,
+                                                            enableRetry = false,
+                                                            recordTokenUsage = false,
+                                                        )
+                                                            .collect { chunk -> buffer.append(chunk) }
+                                                        buffer.toString()
+                                                    }
                                                 }
                                                 FunctionType.VIDEO_RECOGNITION -> {
                                                     val videoFile =
@@ -733,7 +753,11 @@ fun FunctionConfigCard(
                                                 FunctionTestDisplay.fromResponse(
                                                     context = context,
                                                     functionType = functionType,
-                                                    response = result
+                                                    response = result,
+                                                    transcriptionEndpoint =
+                                                        AudioTranscriptionProtocol.isTranscriptionEndpoint(
+                                                            configWithSelectedModel.apiEndpoint
+                                                        )
                                                 )
                                         } catch (e: Exception) {
                                             testResult =
@@ -1013,8 +1037,22 @@ private data class FunctionTestDisplay(
         fun fromResponse(
             context: android.content.Context,
             functionType: FunctionType,
-            response: String
+            response: String,
+            transcriptionEndpoint: Boolean = false,
         ): FunctionTestDisplay {
+            if (functionType == FunctionType.AUDIO_RECOGNITION && transcriptionEndpoint) {
+                return if (MediaCapabilityProbe.matchesAudio(response)) {
+                    FunctionTestDisplay(
+                        outcome = ModelConnectionTestOutcome.PASSED,
+                        message = context.getString(R.string.test_transcription_succeeded)
+                    )
+                } else {
+                    FunctionTestDisplay(
+                        outcome = ModelConnectionTestOutcome.UNVERIFIED,
+                        message = context.getString(R.string.test_transcription_unverified)
+                    )
+                }
+            }
             val understoodRes =
                 when (functionType) {
                     FunctionType.IMAGE_RECOGNITION -> R.string.test_media_image_understood

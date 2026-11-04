@@ -2509,6 +2509,7 @@
     <string name="speech_services_openai_stt_api_key_placeholder">예: sk-xxxxxx</string>
     <string name="speech_services_openai_stt_model">model</string>
     <string name="speech_services_openai_stt_model_placeholder">예: whisper-1 또는 gpt-4o-mini-transcribe</string>
+    <string name="speech_services_openai_stt_siliconflow_models_hint">SiliconFlow 모델: FunAudioLLM/SenseVoiceSmall, TeleAI/TeleSpeechASR</string>
     <string name="speech_services_deepgram_stt_config">Deepgram STT 구성</string>
     <string name="speech_services_deepgram_stt_url">URL</string>
     <string name="speech_services_deepgram_stt_url_placeholder">예: https://api.deepgram.com/v1/listen</string>
@@ -2629,6 +2630,9 @@
     <string name="test_media_image_unverified">이미지 요청은 연결되었지만 이해 여부를 확인할 수 없습니다</string>
     <string name="test_media_audio_unverified">오디오 요청은 연결되었지만 이해 여부를 확인할 수 없습니다</string>
     <string name="test_media_video_unverified">동영상 요청은 연결되었지만 이해 여부를 확인할 수 없습니다</string>
+    <string name="test_transcription_succeeded">음성 전사 엔드포인트가 성공적으로 응답했습니다</string>
+    <string name="test_transcription_unverified">전사 요청은 연결되었지만 전사된 텍스트를 확인할 수 없습니다</string>
+    <string name="test_transcription_endpoint_not_chat">이 엔드포인트는 음성 전사 엔드포인트(/audio/transcriptions)이므로 채팅에 사용할 수 없습니다. 채팅에는 /v1/chat/completions를 사용하고, 전사는 «음성 서비스 → 음성 인식»에서 설정하세요.</string>
     <string name="test_media_unverified">연결되었지만 확인되지 않음</string>
     <string name="test_result_expand">펼치기</string>
     <string name="test_result_collapse">접기</string>
@@ -3487,6 +3491,8 @@
     <string name="enable_direct_image_processing_desc">활성화되면 이미지를 읽기 위해 OCR 도구를 사용하는 대신 이미지 처리를 위해 AI로 직접 전송됩니다.</string>
     <string name="enable_direct_audio_processing">오디오를 지원하는 모델</string>
     <string name="enable_direct_audio_processing_desc">활성화되면 도구 기반 전사/설명을 반환하는 대신 처리를 위해 오디오가 AI로 직접 전송됩니다.</string>
+    <string name="siliconflow_asr_not_chat_model_warning">SiliconFlow 음성 인식 모델(예: FunAudioLLM/SenseVoiceSmall)은 /v1/audio/transcriptions 엔드포인트만 제공하며 채팅 모델이 아닙니다. 사용하려면 «음성 서비스 → 음성 인식»에서 전체 전사 URL과 모델 이름으로 OpenAI STT 항목을 만드세요. 이 페이지의 «모델이 오디오를 지원함»은 오디오를 직접 받는 채팅 모델에만 적용됩니다.</string>
+    <string name="api_endpoint_is_transcription_warning">이 주소는 음성 전사 엔드포인트(/audio/transcriptions)로 multipart 오디오 업로드만 허용합니다. 채팅 요청은 HTTP 400으로 실패합니다. 채팅에는 /v1/chat/completions를 사용하세요.</string>
     <string name="enable_direct_video_processing">동영상을 지원하는 모델</string>
     <string name="enable_direct_video_processing_desc">활성화되면 도구 기반 프레임 추출/분석 대신 처리를 위해 비디오가 AI로 직접 전송됩니다.</string>
     <string name="enable_google_search">Google 검색 활성화</string>

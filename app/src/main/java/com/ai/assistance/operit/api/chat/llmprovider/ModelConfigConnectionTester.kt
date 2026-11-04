@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ToolParameterSchema
 import com.ai.assistance.operit.data.model.ToolPrompt
@@ -90,6 +91,62 @@ object ModelConfigConnectionTester {
         val testedModelName = getModelByIndex(config.modelName, actualModelIndex)
         val configForTest = config.copy(modelName = testedModelName)
         val items = mutableListOf<ModelConnectionTestItem>()
+
+        if (AudioTranscriptionProtocol.isTranscriptionEndpoint(configForTest.apiEndpoint)) {
+            // A dedicated transcription endpoint only speaks multipart/form-data. Probing it with
+            // the chat-completions JSON body is what produced the opaque HTTP 400 in issue #1382.
+            // Report the type mismatch explicitly and exercise the real transcription protocol
+            // for the AUDIO item instead of building a chat service.
+            items.add(
+                ModelConnectionTestItem(
+                    type = ModelConnectionTestType.CHAT,
+                    outcome = ModelConnectionTestOutcome.FAILED,
+                    error = context.getString(R.string.test_transcription_endpoint_not_chat),
+                )
+            )
+            val audioItem =
+                try {
+                    val audioFile =
+                        AssetCopyUtils.copyAssetToCache(context, MediaCapabilityProbe.AUDIO_ASSET_PATH)
+                    try {
+                        val client =
+                            AudioTranscriptionClient.create(
+                                config = configForTest,
+                                modelConfigManager = modelConfigManager,
+                            )
+                        val response = client.transcribe(audioFile, configForTest.modelName)
+                        ModelConnectionTestItem(
+                            type = ModelConnectionTestType.AUDIO,
+                            outcome =
+                                if (MediaCapabilityProbe.matchesAudio(response)) {
+                                    ModelConnectionTestOutcome.PASSED
+                                } else {
+                                    ModelConnectionTestOutcome.UNVERIFIED
+                                },
+                        )
+                    } finally {
+                        runCatching { audioFile.delete() }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    ModelConnectionTestItem(
+                        type = ModelConnectionTestType.AUDIO,
+                        outcome = ModelConnectionTestOutcome.FAILED,
+                        error = e.message,
+                    )
+                }
+            items.add(audioItem)
+            return ModelConnectionTestReport(
+                configId = configForTest.id,
+                configName = configForTest.name,
+                providerType = configForTest.apiProviderTypeId,
+                requestedModelIndex = requestedModelIndex,
+                actualModelIndex = actualModelIndex,
+                testedModelName = testedModelName,
+                items = items,
+            )
+        }
 
         val service =
             AIServiceFactory.createService(

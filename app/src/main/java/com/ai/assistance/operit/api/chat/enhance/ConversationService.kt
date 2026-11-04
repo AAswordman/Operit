@@ -1260,6 +1260,17 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         multiServiceManager: MultiServiceManager
     ): String {
         return try {
+            val transcriptionProfile =
+                multiServiceManager.getAudioTranscriptionProfileForFunction()
+            if (transcriptionProfile != null) {
+                // The AUDIO_RECOGNITION config points at a dedicated transcription endpoint, which
+                // only accepts multipart/form-data. Send the audio file through that protocol
+                // instead of wrapping it in a chat message, which the endpoint rejects with 400.
+                return transcriptionProfile.client
+                    .transcribe(java.io.File(audioPath), transcriptionProfile.modelName)
+                    .trim()
+            }
+
             val service = multiServiceManager.getServiceForFunction(FunctionType.AUDIO_RECOGNITION)
 
             val mimeType = android.webkit.MimeTypeMap.getSingleton()

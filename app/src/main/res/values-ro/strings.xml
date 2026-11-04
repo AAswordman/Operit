@@ -2802,6 +2802,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="speech_services_openai_stt_api_key_placeholder">De exemplu:sk-xxxxxx</string>
     <string name="speech_services_openai_stt_model">model</string>
     <string name="speech_services_openai_stt_model_placeholder">De exemplu:whisper-1 sau gpt-4o-mini-transcribe</string>
+    <string name="speech_services_openai_stt_siliconflow_models_hint">Modele SiliconFlow: FunAudioLLM/SenseVoiceSmall, TeleAI/TeleSpeechASR</string>
 
     <string name="speech_services_deepgram_stt_config">Deepgram STT Configurație</string>
     <string name="speech_services_deepgram_stt_url">URL</string>
@@ -2937,6 +2938,9 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="test_media_image_unverified">Cererea de imagine s-a conectat, dar înțelegerea nu a putut fi verificată</string>
     <string name="test_media_audio_unverified">Cererea audio s-a conectat, dar înțelegerea nu a putut fi verificată</string>
     <string name="test_media_video_unverified">Cererea video s-a conectat, dar înțelegerea nu a putut fi verificată</string>
+    <string name="test_transcription_succeeded">Endpointul de transcriere vocală a răspuns cu succes</string>
+    <string name="test_transcription_unverified">Cererea de transcriere s-a conectat, dar textul transcris nu a putut fi verificat</string>
+    <string name="test_transcription_endpoint_not_chat">Acest endpoint este un endpoint de transcriere vocală (/audio/transcriptions) și nu poate fi folosit pentru chat. Pentru chat folosiți /v1/chat/completions; pentru transcriere, configurați în „Servicii vocale → Recunoaștere vocală”.</string>
     <string name="test_media_unverified">Conectat, dar neverificat</string>
     <string name="test_result_expand">Extindeți</string>
     <string name="test_result_collapse">Restrângeți</string>
@@ -3871,6 +3875,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="enable_direct_image_processing_desc">După activare, imaginile vor fi trimise direct cătreAIsă se ocupe de asta, în loc să laseAIPrinOCRCitirea instrumentelor</string>
     <string name="enable_direct_audio_processing">Modelul acceptă analiza audio</string>
     <string name="enable_direct_audio_processing_desc">După activare, semnalul audio va fi transmis direct cătreAIPrelucrare, nu transcrierea textului prin intermediul unui instrument/Descriere</string>
+    <string name="siliconflow_asr_not_chat_model_warning">Modelele de recunoaștere vocală SiliconFlow (cum ar fi FunAudioLLM/SenseVoiceSmall) oferă doar endpointul /v1/audio/transcriptions și nu sunt modele de chat. Pentru a le folosi, creați o intrare OpenAI STT în „Servicii vocale → Recunoaștere vocală” cu URL-ul complet de transcriere și numele modelului. „Modelul acceptă audio” de pe această pagină se aplică doar modelelor de chat care primesc audio direct.</string>
+    <string name="api_endpoint_is_transcription_warning">Acesta este un endpoint de transcriere vocală (/audio/transcriptions) care acceptă doar încărcări audio multipart; cererile de chat vor eșua cu HTTP 400. Pentru chat folosiți /v1/chat/completions.</string>
     <string name="enable_direct_video_processing">Modelul acceptă analiza videoclipurilor</string>
     <string name="enable_direct_video_processing_desc">După activare, videoclipul va fi trimis direct cătreAIPrelucrare, nu extragerea cadrelor cu ajutorul unor instrumente/Analiză</string>
     <string name="enable_google_search">Activare Google Search</string>
