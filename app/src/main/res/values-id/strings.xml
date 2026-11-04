@@ -5313,6 +5313,8 @@
     <string name="conversation_summary_progress">Membuat riwayat percakapan dan ringkasan...</string>
     <string name="conversation_summary_key_info">Membuat informasi kunci dan konteks...</string>
     <string name="conversation_summary_finishing">Menyelesaikan...</string>
+    <string name="conversation_summary_empty_retrying">Isi ringkasan kosong. Membuat ulang ringkasan (hanya satu kali percobaan ulang).</string>
+    <string name="conversation_summary_empty_failed">Isi ringkasan masih kosong setelah dibuat ulang. Ringkasan kali ini tidak disimpan. Silakan coba lagi nanti.</string>
     <string name="conversation_summary_completed">Ringkasan selesai</string>
     <string name="plan_mode_executing_deep_search">Menjalankan mode pencarian mendalam...</string>
     <string name="plan_mode_starting">Memulai mode pencarian mendalam...</string>

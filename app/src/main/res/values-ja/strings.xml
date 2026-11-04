@@ -904,6 +904,8 @@
 <string name="conversation_summary_completed">要約が完了しました</string>
 <string name="conversation_summary_core_task">主要タスクの状態をまとめています...</string>
 <string name="conversation_summary_finishing">仕上げています...</string>
+    <string name="conversation_summary_empty_retrying">生成された要約の本文が空です。もう一度生成しています（再試行は1回のみ）。</string>
+    <string name="conversation_summary_empty_failed">再生成後も要約の本文が空のため、今回は保存されませんでした。時間をおいて再試行してください。</string>
 <string name="conversation_summary_interaction">やり取りと設定をまとめています...</string>
 <string name="conversation_summary_key_info">重要な情報とコンテキストをまとめています...</string>
 <string name="conversation_summary_preparing">要約を準備しています...</string>

@@ -6103,6 +6103,8 @@
     <string name="conversation_summary_progress">Conversation progress...</string>
     <string name="conversation_summary_key_info">Key info &amp; context...</string>
     <string name="conversation_summary_finishing">Finishing...</string>
+    <string name="conversation_summary_empty_retrying">The generated summary is empty. Generating it again (one retry only).</string>
+    <string name="conversation_summary_empty_failed">The summary is still empty after regeneration. It was not saved. Please try again later.</string>
     <string name="conversation_summary_completed">Summary completed</string>
 
     <!-- Plan Mode Manager (UI status messages shown to users) -->
