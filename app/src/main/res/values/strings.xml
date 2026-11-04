@@ -6703,6 +6703,8 @@
     <string name="conversation_summary_progress">正在生成对话历程与概要...</string>
     <string name="conversation_summary_key_info">正在生成关键信息与上下文...</string>
     <string name="conversation_summary_finishing">正在收尾...</string>
+    <string name="conversation_summary_empty_retrying">生成的摘要正文为空，正在重新生成（仅重试一次）。</string>
+    <string name="conversation_summary_empty_failed">重新生成后，摘要正文仍为空，本次总结未保存。请稍后重试。</string>
     <string name="conversation_summary_completed">总结完成</string>
 
     <!-- Plan Mode Manager (UI status messages shown to users) -->

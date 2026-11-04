@@ -6290,6 +6290,8 @@
     <string name="conversation_summary_progress">Se generează istoricul conversației și rezumatul...</string>
     <string name="conversation_summary_key_info">Se generează informații cheie și context...</string>
     <string name="conversation_summary_finishing">Se află în faza finală...</string>
+    <string name="conversation_summary_empty_retrying">Conținutul rezumatului generat este gol. Se generează din nou (o singură reîncercare).</string>
+    <string name="conversation_summary_empty_failed">După regenerare, conținutul rezumatului este în continuare gol. Rezumatul nu a fost salvat. Încercați din nou mai târziu.</string>
     <string name="conversation_summary_completed">Rezumat finalizat</string>
 
     <!-- Plan Mode Manager (UI status messages shown to users) -->

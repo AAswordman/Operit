@@ -4994,6 +4994,8 @@
     <string name="conversation_summary_progress">Gerando histórico e resumo da conversa...</string>
     <string name="conversation_summary_key_info">Gerando informações importantes e contexto...</string>
     <string name="conversation_summary_finishing">Acabamento...</string>
+    <string name="conversation_summary_empty_retrying">O resumo gerado está vazio. Gerando novamente (apenas uma nova tentativa).</string>
+    <string name="conversation_summary_empty_failed">O resumo continua vazio após a nova geração e não foi salvo. Tente novamente mais tarde.</string>
     <string name="conversation_summary_completed">Resumo concluído</string>
     <string name="plan_mode_executing_deep_search">Executando modo de pesquisa profunda...</string>
     <string name="plan_mode_starting">Iniciar modo de pesquisa profunda...</string>

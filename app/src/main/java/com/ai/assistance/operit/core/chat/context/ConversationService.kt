@@ -222,9 +222,6 @@ class ConversationService(
                 turn.withContent(protocolMetaDisplayText(turn.content))
             }
 
-            // 使用summaryService发送请求，收集完整响应
-            val contentBuilder = StringBuilder()
-
             val progressReporter = SummaryProgressReporter(
                 preparingMessage = context.getString(R.string.conversation_summary_preparing),
                 retryingMessage = context.getString(R.string.enhanced_retrying_request),
@@ -233,133 +230,150 @@ class ConversationService(
             )
             progressReporter.start()
 
-            data class Stage(
-                val matchers: List<(CharSequence) -> Boolean>,
-                val progress: Float,
-                val message: String
-            )
-
-            val stages = listOf(
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_MARKER_EN) || it.contains(FunctionalPrompts.SUMMARY_MARKER_CN) }),
-                    progress = 0.20f,
-                    message = context.getString(R.string.conversation_summary_writing_title)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_CORE_TASK_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_CORE_TASK_CN) }),
-                    progress = 0.40f,
-                    message = context.getString(R.string.conversation_summary_core_task)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_INTERACTION_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_INTERACTION_CN) }),
-                    progress = 0.55f,
-                    message = context.getString(R.string.conversation_summary_interaction)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_PROGRESS_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_PROGRESS_CN) }),
-                    progress = 0.70f,
-                    message = context.getString(R.string.conversation_summary_progress)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_KEY_INFO_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_KEY_INFO_CN) }),
-                    progress = 0.85f,
-                    message = context.getString(R.string.conversation_summary_key_info)
-                ),
-                Stage(
-                    matchers = listOf({ it.contains("=======================================") || it.contains("============================") }),
-                    progress = 0.95f,
-                    message = context.getString(R.string.conversation_summary_finishing)
-                )
-            )
-
-            var lastStageIndex = -1
-            fun updateStageIfNeeded() {
-                if (lastStageIndex + 1 >= stages.size) return
-                // 进度检索直接读取缓冲，长摘要逐块到达时不再反复复制全部已收内容。
-                while (lastStageIndex + 1 < stages.size) {
-                    val next = stages[lastStageIndex + 1]
-                    val matched = next.matchers.any { it(contentBuilder) }
-                    if (!matched) break
-                    lastStageIndex += 1
-                    progressReporter.update(next.progress, next.message)
-                }
-            }
-
-            // 使用新的Stream API
-            val stream =
-                    summaryService.sendMessage(
-                            context = context,
-                            chatHistory = preparedHistory,
-                            modelParameters = modelParameters,
-                            enableThinking = summaryThinking.enableThinking,
-                            thinkingOptionId = summaryThinking.thinkingOptionId,
-                            recordTokenUsage = recordTokenUsage,
-                            onNonFatalError = progressReporter::retry,
-                    )
-
-            // 重试会发出回滚事件。这里按保存点截断，避免半截内容和完整重写拼进同一条摘要。
-            collectRevisableContent(
-                stream = stream,
-                onChunk = { content ->
-                    if (content.isNotEmpty()) progressReporter.receivedContent()
-                    contentBuilder.append(content)
-                    updateStageIfNeeded()
-                },
-                onRollback = { content ->
-                    contentBuilder.setLength(0)
-                    contentBuilder.append(content)
-                    // 回滚后的内容可能不再包含旧阶段标记，不能沿用上一次的完成比例。
-                    lastStageIndex = -1
+            val summary = generateNonEmptySummary(
+                emptyResultMessage = context.getString(R.string.conversation_summary_empty_failed),
+                onEmptyRetry = {
+                    progressReporter.retry(context.getString(R.string.conversation_summary_empty_retrying))
                     progressReporter.rollback()
-                    updateStageIfNeeded()
                 },
-            )
+            ) {
+                val contentBuilder = StringBuilder()
 
-            progressReporter.complete(context.getString(R.string.conversation_summary_completed))
+                data class Stage(
+                    val matchers: List<(CharSequence) -> Boolean>,
+                    val progress: Float,
+                    val message: String
+                )
 
-            // 获取完整的总结内容
-            var summaryContent = ChatUtils.removeThinkingContent(
-                protocolMetaDisplayText(contentBuilder.toString())
-            )
-
-            // 获取本次总结生成的token统计
-            val inputTokens = summaryService.inputTokenCount
-            val cachedInputTokens = summaryService.cachedInputTokenCount
-            val outputTokens = summaryService.outputTokenCount
-
-            val afterGenerateContext =
-                SummaryHookRegistry.dispatchSummaryGenerateHooks(
-                    SummaryHookContext(
-                        stage = "after_generate_summary",
-                        useEnglish = useEnglish,
-                        previousSummary = sanitizedPreviousSummary,
-                        chatHistory = summaryHistory,
-                        preparedHistory = preparedHistory,
-                        systemPrompt = systemPrompt,
-                        summaryPrompt = summaryPrompt,
-                        summaryResult = summaryContent,
-                        modelParameters = serializedModelParameters,
-                        metadata =
-                            baseSummaryMetadata + mapOf(
-                                "preparedMessageCount" to preparedHistory.size,
-                                "inputTokens" to inputTokens,
-                                "cachedInputTokens" to cachedInputTokens,
-                                "outputTokens" to outputTokens
-                            )
+                val stages = listOf(
+                    Stage(
+                        matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_MARKER_EN) || it.contains(FunctionalPrompts.SUMMARY_MARKER_CN) }),
+                        progress = 0.20f,
+                        message = context.getString(R.string.conversation_summary_writing_title)
+                    ),
+                    Stage(
+                        matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_CORE_TASK_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_CORE_TASK_CN) }),
+                        progress = 0.40f,
+                        message = context.getString(R.string.conversation_summary_core_task)
+                    ),
+                    Stage(
+                        matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_INTERACTION_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_INTERACTION_CN) }),
+                        progress = 0.55f,
+                        message = context.getString(R.string.conversation_summary_interaction)
+                    ),
+                    Stage(
+                        matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_PROGRESS_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_PROGRESS_CN) }),
+                        progress = 0.70f,
+                        message = context.getString(R.string.conversation_summary_progress)
+                    ),
+                    Stage(
+                        matchers = listOf({ it.contains(FunctionalPrompts.SUMMARY_SECTION_KEY_INFO_EN) || it.contains(FunctionalPrompts.SUMMARY_SECTION_KEY_INFO_CN) }),
+                        progress = 0.85f,
+                        message = context.getString(R.string.conversation_summary_key_info)
+                    ),
+                    Stage(
+                        matchers = listOf({ it.contains("=======================================") || it.contains("============================") }),
+                        progress = 0.95f,
+                        message = context.getString(R.string.conversation_summary_finishing)
                     )
                 )
-            summaryContent = ChatUtils.removeThinkingContent(
-                protocolMetaDisplayText(afterGenerateContext.summaryResult ?: summaryContent)
-            )
 
-            // 如果内容为空，返回默认消息
-            if (summaryContent.isBlank()) {
-                return "Conversation Summary: Unable to generate valid summary."
+                var lastStageIndex = -1
+                fun updateStageIfNeeded() {
+                    if (lastStageIndex + 1 >= stages.size) return
+                    // 进度检索直接读取缓冲，长摘要逐块到达时不再反复复制全部已收内容。
+                    while (lastStageIndex + 1 < stages.size) {
+                        val next = stages[lastStageIndex + 1]
+                        val matched = next.matchers.any { it(contentBuilder) }
+                        if (!matched) break
+                        lastStageIndex += 1
+                        progressReporter.update(next.progress, next.message)
+                    }
+                }
+
+                // 使用新的Stream API
+                val stream =
+                        summaryService.sendMessage(
+                                context = context,
+                                chatHistory = preparedHistory,
+                                modelParameters = modelParameters,
+                                enableThinking = summaryThinking.enableThinking,
+                                thinkingOptionId = summaryThinking.thinkingOptionId,
+                                recordTokenUsage = recordTokenUsage,
+                                onNonFatalError = progressReporter::retry,
+                        )
+
+                // 重试会发出回滚事件。这里按保存点截断，避免半截内容和完整重写拼进同一条摘要。
+                collectRevisableContent(
+                    stream = stream,
+                    onChunk = { content ->
+                        if (content.isNotEmpty()) progressReporter.receivedContent()
+                        contentBuilder.append(content)
+                        updateStageIfNeeded()
+                    },
+                    onRollback = { content ->
+                        contentBuilder.setLength(0)
+                        contentBuilder.append(content)
+                        // 回滚后的内容可能不再包含旧阶段标记，不能沿用上一次的完成比例。
+                        lastStageIndex = -1
+                        progressReporter.rollback()
+                        updateStageIfNeeded()
+                    },
+                )
+
+                progressReporter.update(0.95f, context.getString(R.string.conversation_summary_finishing))
+
+                // 获取完整的总结内容
+                val projectedContent = protocolMetaDisplayText(contentBuilder.toString())
+                var summaryContent = ChatUtils.removeThinkingContent(projectedContent)
+                val filteredContentLength = summaryContent.length
+
+                // 获取本次总结生成的token统计
+                val inputTokens = summaryService.inputTokenCount
+                val cachedInputTokens = summaryService.cachedInputTokenCount
+                val outputTokens = summaryService.outputTokenCount
+
+                val afterGenerateContext =
+                    SummaryHookRegistry.dispatchSummaryGenerateHooks(
+                        SummaryHookContext(
+                            stage = "after_generate_summary",
+                            useEnglish = useEnglish,
+                            previousSummary = sanitizedPreviousSummary,
+                            chatHistory = summaryHistory,
+                            preparedHistory = preparedHistory,
+                            systemPrompt = systemPrompt,
+                            summaryPrompt = summaryPrompt,
+                            summaryResult = summaryContent,
+                            modelParameters = serializedModelParameters,
+                            metadata =
+                                baseSummaryMetadata + mapOf(
+                                    "preparedMessageCount" to preparedHistory.size,
+                                    "inputTokens" to inputTokens,
+                                    "cachedInputTokens" to cachedInputTokens,
+                                    "outputTokens" to outputTokens
+                                )
+                        )
+                    )
+                summaryContent = ChatUtils.removeThinkingContent(
+                    protocolMetaDisplayText(afterGenerateContext.summaryResult ?: summaryContent)
+                )
+
+                if (summaryContent.isBlank()) {
+                    // 仅记录各边界长度，便于定位空正文来自响应、内容清理还是生成后钩子。
+                    AppLogger.w(
+                        TAG,
+                        "摘要正文为空：原始流长度=${contentBuilder.length}，协议过滤后长度=${projectedContent.length}，" +
+                            "思考过滤后长度=$filteredContentLength，钩子后长度=${summaryContent.length}",
+                    )
+                }
+
+                AppLogger.d(TAG, "总结生成使用了输入token: $inputTokens, 缓存token: $cachedInputTokens, 输出token: $outputTokens")
+
+                summaryContent
             }
-
-            AppLogger.d(TAG, "总结生成使用了输入token: $inputTokens, 缓存token: $cachedInputTokens, 输出token: $outputTokens")
-
-            return summaryContent
+            // 只有清理和钩子处理后的正文有效，才允许上报完成并交给上层创建摘要卡片。
+            progressReporter.complete(context.getString(R.string.conversation_summary_completed))
+            return summary
         } catch (e: Exception) {
             AppLogger.e(TAG, "生成总结时出错", e)
             // return "对话摘要：生成摘要时出错，但对话仍在继续。"

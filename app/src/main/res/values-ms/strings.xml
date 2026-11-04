@@ -5310,6 +5310,8 @@
     <string name="conversation_summary_progress">Sedang menghasilkan perjalanan perbualan dan ringkasan...</string>
     <string name="conversation_summary_key_info">Sedang menghasilkan maklumat utama dan konteks...</string>
     <string name="conversation_summary_finishing">Sedang menyelesaikan...</string>
+    <string name="conversation_summary_empty_retrying">Kandungan ringkasan yang dijana kosong. Menjana semula (satu percubaan semula sahaja).</string>
+    <string name="conversation_summary_empty_failed">Kandungan ringkasan masih kosong selepas dijana semula. Ringkasan kali ini tidak disimpan. Sila cuba lagi kemudian.</string>
     <string name="conversation_summary_completed">Ringkasan selesai</string>
     <string name="plan_mode_executing_deep_search">Sedang melaksanakan mod carian mendalam...</string>
     <string name="plan_mode_starting">Memulakan mod carian mendalam...</string>
