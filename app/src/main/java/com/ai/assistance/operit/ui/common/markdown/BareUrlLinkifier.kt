@@ -44,14 +44,16 @@ internal fun findBareUrls(text: CharSequence): List<BareUrl> {
         val urlStart = index
         val bodyStart = index + schemeLength
         // A scheme with nothing behind it is prose about a scheme, not a URL: "the https:// prefix".
-        if (bodyStart >= text.length || !isAsciiLetterOrDigit(text[bodyStart])) {
+        if (bodyStart >= text.length || !isUrlHostStart(text, bodyStart)) {
             index = bodyStart
             continue
         }
 
         var bodyEnd = bodyStart
-        while (bodyEnd < text.length && isUrlBodyChar(text[bodyEnd])) {
-            bodyEnd++
+        while (bodyEnd < text.length) {
+            val codePoint = Character.codePointAt(text, bodyEnd)
+            if (!isUrlBodyCodePoint(codePoint)) break
+            bodyEnd += Character.charCount(codePoint)
         }
         val urlEnd = trimUrlTail(text, bodyStart, bodyEnd)
         if (urlEnd <= bodyStart) {
@@ -92,17 +94,21 @@ private fun CharSequence.matchesPrefixAt(index: Int, prefix: String): Boolean {
 
 /**
  * Trims what the surrounding prose contributed rather than what the writer put into the URL:
- * trailing sentence punctuation, and closing parentheses the URL did not open itself.
+ * trailing sentence punctuation, and closing parentheses or brackets the URL did not open itself.
  * `https://en.wikipedia.org/wiki/Foo_(bar)` keeps its closing bracket because the URL opened one;
  * `(see https://example.com)` drops the bracket that belongs to the sentence.
  */
 private fun trimUrlTail(text: CharSequence, bodyStart: Int, bodyEnd: Int): Int {
     var openParentheses = 0
     var closeParentheses = 0
+    var openBrackets = 0
+    var closeBrackets = 0
     for (index in bodyStart until bodyEnd) {
         when (text[index]) {
             '(' -> openParentheses++
             ')' -> closeParentheses++
+            '[' -> openBrackets++
+            ']' -> closeBrackets++
         }
     }
 
@@ -115,6 +121,11 @@ private fun trimUrlTail(text: CharSequence, bodyStart: Int, bodyEnd: Int): Int {
                 closeParentheses--
                 end--
             }
+            ']' -> {
+                if (closeBrackets <= openBrackets) return end
+                closeBrackets--
+                end--
+            }
             else -> return end
         }
     }
@@ -122,18 +133,25 @@ private fun trimUrlTail(text: CharSequence, bodyStart: Int, bodyEnd: Int): Int {
 }
 
 /**
- * The RFC 3986 characters that carry no markdown meaning on their own.
+ * URL text includes Unicode letters, numbers and combining marks as well as URI punctuation.
  *
- * `[` `]` `'` `*` `` ` `` `"` `<` `>` `|` `\` `^` `{` `}` are left out on purpose: markdown uses
- * several of them as delimiters, and excluding them keeps the scan from swallowing an emphasis
- * marker or the bracket that closes the surrounding prose. Non-ASCII is left out as well, which is
- * what stops `https://example.com，然后` from taking the full-width comma along.
+ * An ASCII-only body silently links a different destination for a Chinese path or query. Scan
+ * code points so supplementary letters also stay intact, while Unicode sentence punctuation
+ * still ends the link. Brackets support IPv6 hosts; unmatched prose brackets are trimmed above.
+ * Markdown quotes, emphasis markers and angle brackets remain outside the clickable range.
  */
-private fun isUrlBodyChar(char: Char): Boolean {
-    return char in 'A'..'Z' ||
-        char in 'a'..'z' ||
-        char in '0'..'9' ||
-        char in "-._~:/?#@!$&()+,;=%"
+private fun isUrlBodyCodePoint(codePoint: Int): Boolean {
+    if (Character.isLetterOrDigit(codePoint)) return true
+    return when (Character.getType(codePoint)) {
+        Character.NON_SPACING_MARK.toInt(),
+        Character.COMBINING_SPACING_MARK.toInt(),
+        Character.ENCLOSING_MARK.toInt() -> true
+        else -> codePoint in 0..127 && codePoint.toChar() in "-._~:/?#@!$&()+,;=%[]"
+    }
+}
+
+private fun isUrlHostStart(text: CharSequence, index: Int): Boolean {
+    return Character.isLetterOrDigit(Character.codePointAt(text, index)) || text[index] == '['
 }
 
 private fun isAsciiLetterOrDigit(char: Char): Boolean {

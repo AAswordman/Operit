@@ -131,6 +131,68 @@ class BareUrlLinkifierTest {
     }
 
     @Test
+    fun keepsChinesePathQueryAndFragment() {
+        val url = "https://example.com/文档/安装?搜索=中文#示例"
+
+        val urls = findBareUrls(url)
+
+        assertEquals(listOf(url), urls.map { it.url })
+        assertCoversSourceText(url, urls)
+    }
+
+    @Test
+    fun keepsInternationalizedHost() {
+        val url = "https://例子.测试/文档"
+
+        val urls = findBareUrls(url)
+
+        assertEquals(listOf(url), urls.map { it.url })
+        assertCoversSourceText(url, urls)
+    }
+
+    @Test
+    fun keepsSupplementaryLettersAndCombiningMarks() {
+        val url = "https://example.com/𠮷野家/cafe\u0301?q=中文"
+
+        val urls = findBareUrls(url)
+
+        assertEquals(listOf(url), urls.map { it.url })
+        assertCoversSourceText(url, urls)
+    }
+
+    @Test
+    fun stopsBeforeFullWidthPunctuationAfterChinesePath() {
+        val url = "https://example.com/文档?搜索=中文"
+        val text = "查看$url，然后继续。"
+
+        val urls = findBareUrls(text)
+
+        assertEquals(listOf(url), urls.map { it.url })
+        assertCoversSourceText(text, urls)
+    }
+
+    @Test
+    fun keepsIpv6HostAndPort() {
+        val url = "http://[::1]:8094/文档"
+
+        val urls = findBareUrls(url)
+
+        assertEquals(listOf(url), urls.map { it.url })
+        assertCoversSourceText(url, urls)
+    }
+
+    @Test
+    fun trimsProseBracketsWithoutTrimmingIpv6Host() {
+        val url = "http://[2001:db8::1]:8094/文档"
+        val text = "[$url]"
+
+        val urls = findBareUrls(text)
+
+        assertEquals(listOf(url), urls.map { it.url })
+        assertCoversSourceText(text, urls)
+    }
+
+    @Test
     fun normalizesUppercaseSchemeForTheClickHandler() {
         val text = "HTTPS://example.com"
 
