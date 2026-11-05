@@ -78,6 +78,10 @@ object PackResources {
     fun directory(context: Context, id: String): File =
         installed(context, id)?.directory ?: directoryFor(context, spec(context, id))
 
+    /** Include incomplete and older installs so import cannot silently replace existing extension files. */
+    fun hasLocalData(context: Context, id: String): Boolean =
+        directoryFor(context, spec(context, id)).parentFile!!.exists()
+
     /** 使用检查覆盖整个版本组，旧版本的运行引用也会阻止替换和删除。 */
     fun isInUse(context: Context, id: String): Boolean =
         LocalModelRuntimeRegistry.isInUse(directoryFor(context, spec(context, id)).parentFile!!)
@@ -143,7 +147,15 @@ object PackResources {
 
     suspend fun importArchive(context: Context, id: String, input: InputStream, name: String, progress: (Long, Long) -> Unit) = withContext(Dispatchers.IO) {
         check(!isBundled(context, id)) { "包内资源无需导入" }
-        locks.getOrPut(id) { Mutex() }.withLock { input.use { importLocked(context, id, it, name, progress) } }
+        locks.getOrPut(id) { Mutex() }.withLock {
+            input.use {
+                // Recheck under the install lock: another download may finish while the picker is open.
+                check(spec(context, id).extension == null || !hasLocalData(context, id)) {
+                    context.getString(com.ai.assistance.operit.R.string.hub_extension_remove_before_import)
+                }
+                importLocked(context, id, it, name, progress)
+            }
+        }
     }
 
     private suspend fun importLocked(context: Context, id: String, input: InputStream, name: String, progress: (Long, Long) -> Unit) {

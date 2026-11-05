@@ -93,4 +93,5 @@
     <string name="hub_speaker_picker_hint">从当前模型读取可用说话人，选择编号即可，无需手动填写。</string>
     <string name="speech_workbench_mimo_adjustment_hint">MiMo 通过提示词描述语速和音调，实际效果由模型决定。</string>
     <string name="hub_disable_extension_before_delete">请先在包管理中关闭已启用的插件，再删除。</string>
+    <string name="hub_extension_remove_before_import">此扩展已有本地资源，请先删除当前资源，再导入 ZIP。</string>
 </resources>

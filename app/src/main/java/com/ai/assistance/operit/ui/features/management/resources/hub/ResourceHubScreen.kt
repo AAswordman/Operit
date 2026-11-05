@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
@@ -92,6 +93,7 @@ internal fun ResourceHubScreen(model: ResourceHubViewModel, requested: String?, 
         if (uri != null) pendingTarget?.let { model.export(it, uri) }
     }
     fun importEntry(entry: HubEntry) {
+        if (!entry.importable) return
         pendingTarget = entry.id
         input.launch(arrayOf("application/zip", "application/octet-stream", "application/x-bzip2", "application/gzip", "application/x-tar", "application/x-zip-compressed"))
     }
@@ -212,7 +214,7 @@ internal fun ResourceHubScreen(model: ResourceHubViewModel, requested: String?, 
         onDismiss = { exploring = false }, onCatalog = { exploring = false; details = it.id },
         onRepository = { input, revision, purpose, name -> exploring = false; model.downloadRepository(input, source, revision, purpose, name) },
         onLocal = { purpose, name -> exploring = false; pendingTarget = null; pendingPurpose = purpose.name; pendingName = name; input.launch(arrayOf("application/zip", "application/octet-stream", "application/gzip", "application/x-bzip2", "application/x-tar")) })
-    if (choosingResource) SpeechChoicePanel(stringResource(R.string.hub_import_resource), state.entries.filter { !it.isModel && !it.bundled }.map { SpeechChoice(it.id, it.name) }, "",
+    if (choosingResource) SpeechChoicePanel(stringResource(R.string.hub_import_resource), state.entries.filter { !it.isModel && it.importable }.map { SpeechChoice(it.id, it.name) }, "",
         onSelect = { id -> choosingResource = false; importEntry(state.entries.first { it.id == id }) }, onDismiss = { choosingResource = false })
     state.preview?.let { preview ->
         SpeechWorkbenchSheet(stringResource(R.string.hub_import_preview), model::discardPreview, dismissEnabled = !busy) {
@@ -245,7 +247,7 @@ private fun HubResourceCard(entry: HubEntry, state: HubState, busy: Boolean, ubu
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text(entry.name, style = MaterialTheme.typography.titleMedium)
-                    if (entry.description.isNotBlank()) Text(entry.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (entry.description.isNotBlank()) Text(entry.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 if (entry.ready) Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
             }

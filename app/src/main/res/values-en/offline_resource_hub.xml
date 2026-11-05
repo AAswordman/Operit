@@ -93,4 +93,5 @@
     <string name="hub_speaker_picker_hint">Choose a speaker provided by the selected model. No manual ID entry is needed.</string>
     <string name="speech_workbench_mimo_adjustment_hint">MiMo receives speed and pitch as prompt instructions. The model determines the actual effect.</string>
     <string name="hub_disable_extension_before_delete">Disable the plugin in package management before deleting it.</string>
+    <string name="hub_extension_remove_before_import">This extension already has local resources. Delete them before importing a ZIP.</string>
 </resources>
