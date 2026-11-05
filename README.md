@@ -16,6 +16,9 @@
 
 <div align="center">
   <a href="https://trendshift.io/repositories/14027?utm_source=repository-badge&utm_medium=badge&utm_campaign=badge-repository-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/14027" alt="AAswordman/Operit | Trendshift" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/14027?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/14027/daily?language=Kotlin" alt="AAswordman/Operit | Trendshift Daily #1 (Kotlin)" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/14027?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/14027/daily" alt="AAswordman/Operit | Trendshift Daily #2 (All Languages)" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/14027?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/14027/weekly?language=Kotlin" alt="AAswordman/Operit | Trendshift Weekly #1 (Kotlin)" width="250" height="55"/></a>
   <a href="https://trendshift.io/repositories/14027?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-14027" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/14027/monthly?language=Kotlin" alt="AAswordman/Operit | Trendshift" width="250" height="55"/></a>
 </div>
 
