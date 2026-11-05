@@ -7065,6 +7065,13 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="speech_services_vits_options_hint">Opcional: sample_rate, threads, noise_scale, length_scale, noise_w, frontend, text_mode, speaker_count, nombres de entrada, tokens blank/bos/eos, model_path, config_path, lexicon_path, etc.</string>
     <string name="speech_services_vits_options_error">JSON de parámetros VITS/Piper no válido</string>
     <string name="memory_auto_update_runtime_status">Memorias pendientes de extraer: %1$d, próximo guardado en %2$d minutos</string>
+    <string name="memory_auto_update_last_outcome">Último guardado automático: %1$s</string>
+    <string name="memory_auto_update_last_outcome_idle">Aún no se ha ejecutado</string>
+    <string name="memory_auto_update_last_outcome_saved">Memoria guardada</string>
+    <string name="memory_auto_update_last_outcome_no_memory">Nada que guardar (no se extrajo memoria)</string>
+    <string name="memory_auto_update_last_outcome_failed">Error al guardar</string>
+    <string name="memory_auto_update_dead_letter_count">Se detuvieron los reintentos automáticos al alcanzar el límite: %1$d elemento(s)</string>
+    <string name="chat_memory_no_new_content">El modelo no encontró memoria nueva que guardar en esta conversación</string>
     <string name="provider_4router">4Router</string>
     <string name="character_card_memory_profile_binding">Vinculación de configuración de memoria</string>
     <string name="character_card_memory_profile_follow_global">Seguir global</string>

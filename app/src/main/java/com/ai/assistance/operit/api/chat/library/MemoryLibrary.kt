@@ -81,7 +81,24 @@ object MemoryLibrary {
         val updatedEntities: List<ParsedUpdate> = emptyList(),
         val mergedEntities: List<ParsedMerge> = emptyList(),
         val profileMarkdown: String? = null
-    )
+    ) {
+        fun isEmpty(): Boolean =
+            mainProblem == null &&
+                extractedEntities.isEmpty() &&
+                links.isEmpty() &&
+                updatedEntities.isEmpty() &&
+                mergedEntities.isEmpty() &&
+                profileMarkdown == null
+    }
+
+    /**
+     * Distinguishes a completed save from a valid "nothing worth remembering" answer. Automatic
+     * save deletes candidates in both cases, but only [SAVED] means the memory graph was written.
+     */
+    enum class MemorySaveResult {
+        SAVED,
+        NO_MEMORY_EXTRACTED
+    }
 
 
     fun initialize(context: Context) {
@@ -117,22 +134,23 @@ object MemoryLibrary {
             content: String,
             aiService: AIService,
             profileIdOverride: String? = null,
-            onSuccess: (suspend () -> Unit)? = null,
+            onSuccess: (suspend (MemorySaveResult) -> Unit)? = null,
             onError: (suspend (Exception) -> Unit)? = null
     ) {
         ensureInitialized(context)
 
         coroutineScope.launch {
             try {
-                saveMemoryNow(
-                    context,
-                    toolHandler,
-                    conversationHistory,
-                    content,
-                    aiService,
-                    profileIdOverride = profileIdOverride
-                )
-                onSuccess?.invoke()
+                val result =
+                    saveMemoryNow(
+                        context,
+                        toolHandler,
+                        conversationHistory,
+                        content,
+                        aiService,
+                        profileIdOverride = profileIdOverride
+                    )
+                onSuccess?.invoke(result)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -149,16 +167,15 @@ object MemoryLibrary {
         content: String,
         aiService: AIService,
         profileIdOverride: String? = null
-    ) {
-        saveMemory(
+    ): MemorySaveResult {
+        return saveMemory(
             context = context,
             toolHandler = toolHandler,
             conversationHistory = conversationHistory,
             content = content,
             aiService = aiService,
             profileIdOverride = profileIdOverride,
-            analysisHistoryLimit = DEFAULT_ANALYSIS_HISTORY_MESSAGE_COUNT,
-            propagateAnalysisFailure = true
+            analysisHistoryLimit = DEFAULT_ANALYSIS_HISTORY_MESSAGE_COUNT
         )
     }
 
@@ -170,18 +187,17 @@ object MemoryLibrary {
         aiService: AIService,
         profileIdOverride: String?,
         analysisHistoryLimit: Int
-    ) {
+    ): MemorySaveResult {
         require(analysisHistoryLimit > 0) { "Analysis history limit must be positive" }
         ensureInitialized(context)
-        saveMemory(
+        return saveMemory(
             context = context,
             toolHandler = toolHandler,
             conversationHistory = conversationHistory,
             content = content,
             aiService = aiService,
             profileIdOverride = profileIdOverride,
-            analysisHistoryLimit = analysisHistoryLimit,
-            propagateAnalysisFailure = true
+            analysisHistoryLimit = analysisHistoryLimit
         )
     }
 
@@ -317,10 +333,9 @@ object MemoryLibrary {
             content: String,
             aiService: AIService,
             profileIdOverride: String? = null,
-            analysisHistoryLimit: Int,
-            propagateAnalysisFailure: Boolean = false
-    ) {
-        mutex.withLock {
+            analysisHistoryLimit: Int
+    ): MemorySaveResult {
+        return mutex.withLock {
             val profileId = profileIdOverride ?: preferencesManager.activeMemorySpaceIdFlow.first()
             val memoryRepository = MemoryRepository(context, profileId)
 
@@ -351,13 +366,13 @@ object MemoryLibrary {
 
             if (processedHistory.isEmpty()) {
                 AppLogger.w(TAG, "处理后的会話历史为空，跳过保存记忆")
-                return@withLock
+                return@withLock MemorySaveResult.NO_MEMORY_EXTRACTED
             }
 
             val query = processedHistory.lastOrNull { it.first == "user" }?.second ?: ""
             if (query.isEmpty()) {
                 AppLogger.w(TAG, "未找到用户查询消息，跳过保存")
-                return@withLock
+                return@withLock MemorySaveResult.NO_MEMORY_EXTRACTED
             }
 
             // Generate the graph analysis from the conversation
@@ -369,8 +384,7 @@ object MemoryLibrary {
                 conversationHistory = processedHistory,
                 memoryRepository = memoryRepository,
                 profileId = profileId,
-                analysisHistoryLimit = analysisHistoryLimit,
-                propagateFailure = propagateAnalysisFailure
+                analysisHistoryLimit = analysisHistoryLimit
             )
 
             analysis.profileMarkdown?.let { markdown ->
@@ -386,13 +400,9 @@ object MemoryLibrary {
             }
 
             // If analysis is empty (trivial conversation), abort early.
-            if (analysis.mainProblem == null && analysis.extractedEntities.isEmpty() &&
-                analysis.updatedEntities.isEmpty() && analysis.mergedEntities.isEmpty() &&
-                analysis.links.isEmpty() &&
-                analysis.profileMarkdown == null
-            ) {
+            if (analysis.isEmpty()) {
                 AppLogger.d(TAG, "分析结果为空，判断为无需记忆的对话，跳过保存。")
-                return@withLock
+                return@withLock MemorySaveResult.NO_MEMORY_EXTRACTED
             }
 
             // Create a map to track all memories (new and updated) for linking
@@ -543,10 +553,10 @@ object MemoryLibrary {
                 throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "保存记忆图谱失败", e)
-                if (propagateAnalysisFailure) {
-                    throw e
-                }
+                throw e
             }
+
+            MemorySaveResult.SAVED
         }
     }
 
@@ -561,8 +571,7 @@ object MemoryLibrary {
         conversationHistory: List<Pair<String, String>>,
         memoryRepository: MemoryRepository,
         profileId: String,
-        analysisHistoryLimit: Int,
-        propagateFailure: Boolean
+        analysisHistoryLimit: Int
     ): ParsedAnalysis {
         try {
             val useEnglish = !LocaleUtils.usesChineseContent(context)
@@ -669,10 +678,7 @@ object MemoryLibrary {
             throw e
         } catch (e: Exception) {
             AppLogger.e(TAG, "生成分析失败", e)
-            if (propagateFailure) {
-                throw e
-            }
-            return ParsedAnalysis(null)
+            throw e
         }
     }
 

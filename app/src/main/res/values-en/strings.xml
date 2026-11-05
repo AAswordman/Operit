@@ -3394,6 +3394,13 @@
     <string name="memory_auto_update">Auto Save Memory</string>
     <string name="memory_auto_update_desc">When enabled, candidate content from the current conversation is queued after the reply is finalized, then written into the memory library by periodic background processing while the app process remains alive.</string>
     <string name="memory_auto_update_runtime_status">Pending memory extraction items: %1$d, next save in %2$d minute(s)</string>
+    <string name="memory_auto_update_last_outcome">Last auto save: %1$s</string>
+    <string name="memory_auto_update_last_outcome_idle">Not run yet</string>
+    <string name="memory_auto_update_last_outcome_saved">Memory saved</string>
+    <string name="memory_auto_update_last_outcome_no_memory">Nothing to save (no memory extracted)</string>
+    <string name="memory_auto_update_last_outcome_failed">Save failed</string>
+    <string name="memory_auto_update_dead_letter_count">Stopped automatic retries after reaching the attempt limit: %1$d item(s)</string>
+    <string name="chat_memory_no_new_content">The model found no new memory to save from this conversation</string>
     <string name="chat_summarizing_memory">Summarizing memory...</string>
     <string name="chat_input_processing_collect_failed">Failed to collect input processing state: %1$s</string>
     <string name="chat_input_hint">Type a message...</string>

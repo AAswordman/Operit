@@ -3128,6 +3128,13 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="memory_auto_update">Salvarea automată a datelor</string>
     <string name="memory_auto_update_desc">După activare, la finalul rundei curente, conținutul propus va fi mai întâi adăugat în coada de memorie pe termen lung, iar pe durata de funcționare a aplicației va fi organizat periodic în fundal și înregistrat în baza de date.</string>
     <string name="memory_auto_update_runtime_status">Numărul de amintiri care urmează să fie extrase%1$d, până la următoarea salvare%2$dminute</string>
+    <string name="memory_auto_update_last_outcome">Ultima salvare automată: %1$s</string>
+    <string name="memory_auto_update_last_outcome_idle">Încă neexecutat</string>
+    <string name="memory_auto_update_last_outcome_saved">Memorie salvată</string>
+    <string name="memory_auto_update_last_outcome_no_memory">Nimic de salvat (nicio memorie extrasă)</string>
+    <string name="memory_auto_update_last_outcome_failed">Salvare eșuată</string>
+    <string name="memory_auto_update_dead_letter_count">Reîncercările automate au fost oprite după atingerea limitei: %1$d elemente</string>
+    <string name="chat_memory_no_new_content">Modelul nu a găsit memorii noi de salvat din această conversație</string>
     <string name="chat_summarizing_memory">Se face un rezumat al amintirilor...</string>
     <string name="chat_input_processing_collect_failed">Eșec la colectarea stării procesării datelor introduse: %1$s</string>
     <string name="chat_input_hint">Introduceți mesajul...</string>

@@ -65,7 +65,55 @@ class MemoryAutoSaveCandidateRepository(
             )
             .build()
             .find()
+            .filter { it.isRetryable() }
             .sortedBy { it.createdAt.time }
+    }
+
+    /**
+     * Recovers candidates left in [MemoryAutoSaveCandidate.STATUS_PROCESSING] by a process that
+     * died mid-run. The scheduler calls this before it marks any candidate processing, so rows found
+     * here cannot belong to an in-flight batch of the current process.
+     */
+    fun recoverInterruptedCandidates(): Int {
+        val now = Date()
+        val candidates =
+            candidateBox
+                .query(MemoryAutoSaveCandidate_.status.equal(MemoryAutoSaveCandidate.STATUS_PROCESSING))
+                .build()
+                .find()
+        if (candidates.isEmpty()) return 0
+        candidates.forEach { candidate -> candidate.recoverInterrupted(now) }
+        candidateBox.put(candidates)
+        return candidates.size
+    }
+
+    /**
+     * Moves legacy failed rows that already exhausted the retry budget into the terminal state.
+     * Older builds only incremented [MemoryAutoSaveCandidate.attemptCount], so those rows would
+     * otherwise stay invisible to the retry query without ever becoming observable dead letters.
+     */
+    fun expireExhaustedCandidates(): Int {
+        val now = Date()
+        val candidates =
+            candidateBox
+                .query(
+                    MemoryAutoSaveCandidate_.status
+                        .equal(MemoryAutoSaveCandidate.STATUS_FAILED)
+                        .and(
+                            MemoryAutoSaveCandidate_.attemptCount.greaterOrEqual(
+                                MemoryAutoSaveCandidate.MAX_ATTEMPTS
+                            )
+                        )
+                )
+                .build()
+                .find()
+        if (candidates.isEmpty()) return 0
+        candidates.forEach { candidate ->
+            candidate.status = MemoryAutoSaveCandidate.STATUS_DEAD_LETTER
+            candidate.updatedAt = now
+        }
+        candidateBox.put(candidates)
+        return candidates.size
     }
 
     fun countPendingAndFailedChats(): Int {
@@ -80,15 +128,19 @@ class MemoryAutoSaveCandidateRepository(
         return getPendingAndFailedCandidates().size
     }
 
+    fun countDeadLetterCandidates(): Int {
+        return candidateBox
+            .query(MemoryAutoSaveCandidate_.status.equal(MemoryAutoSaveCandidate.STATUS_DEAD_LETTER))
+            .build()
+            .count()
+            .toInt()
+    }
+
     fun markProcessing(candidateIds: List<Long>) {
         if (candidateIds.isEmpty()) return
         val now = Date()
         val candidates = candidateIds.mapNotNull { candidateBox.get(it) }
-        candidates.forEach { candidate ->
-            candidate.status = MemoryAutoSaveCandidate.STATUS_PROCESSING
-            candidate.updatedAt = now
-            candidate.lastError = ""
-        }
+        candidates.forEach { candidate -> candidate.beginProcessing(now) }
         candidateBox.put(candidates)
     }
 
@@ -96,11 +148,7 @@ class MemoryAutoSaveCandidateRepository(
         if (candidateIds.isEmpty()) return
         val now = Date()
         val candidates = candidateIds.mapNotNull { candidateBox.get(it) }
-        candidates.forEach { candidate ->
-            candidate.status = MemoryAutoSaveCandidate.STATUS_PENDING
-            candidate.updatedAt = now
-            candidate.lastError = ""
-        }
+        candidates.forEach { candidate -> candidate.restorePending(now) }
         candidateBox.put(candidates)
     }
 
@@ -109,17 +157,18 @@ class MemoryAutoSaveCandidateRepository(
         candidateIds.forEach { candidateBox.remove(it) }
     }
 
-    fun markFailed(candidateIds: List<Long>, errorMessage: String) {
-        if (candidateIds.isEmpty()) return
+    fun markFailed(candidateIds: List<Long>, errorMessage: String): Int {
+        if (candidateIds.isEmpty()) return 0
         val now = Date()
-        val normalizedError = errorMessage.take(500)
         val candidates = candidateIds.mapNotNull { candidateBox.get(it) }
+        var deadLetterCount = 0
         candidates.forEach { candidate ->
-            candidate.status = MemoryAutoSaveCandidate.STATUS_FAILED
-            candidate.attemptCount += 1
-            candidate.lastError = normalizedError
-            candidate.updatedAt = now
+            candidate.markFailed(now = now, errorMessage = errorMessage)
+            if (candidate.status == MemoryAutoSaveCandidate.STATUS_DEAD_LETTER) {
+                deadLetterCount += 1
+            }
         }
         candidateBox.put(candidates)
+        return deadLetterCount
     }
 }

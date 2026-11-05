@@ -52,7 +52,6 @@ import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityControl
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMapping
 import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
-import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
@@ -63,14 +62,12 @@ import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
-import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getModelList
 import com.ai.assistance.operit.data.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
 import com.ai.assistance.operit.ui.common.icons.MaterialIconNameResolver
 import com.ai.assistance.operit.ui.common.icons.providerLogoColorFilter
 import com.ai.assistance.operit.ui.common.icons.rememberProviderLogoPainter
@@ -82,6 +79,7 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.C
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.CharacterCardModelBindingSwitchConfirmDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ToolPromptManagerDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ThinkingQualitySlider
+import com.ai.assistance.operit.ui.features.chat.components.style.input.common.buildMemoryAutoSaveStatusDetail
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -263,16 +261,7 @@ fun ClassicChatSettingsBar(
         }
 
     val buildMemoryAutoSaveDetail: suspend () -> String = {
-        val pendingCandidateCount =
-            MemoryAutoSaveCandidateRepository(context, effectiveCurrentProfileId).countPendingAndFailedCandidates()
-        val minutesUntilNextSave =
-            MemoryAutoSaveScheduler.getInstance()?.getMinutesUntilNextRun(effectiveCurrentProfileId)
-                ?: MemorySearchSettingsPreferences(context, effectiveCurrentProfileId).loadAutoSaveIntervalMinutes().toLong()
-        context.getString(
-            R.string.memory_auto_update_runtime_status,
-            pendingCandidateCount,
-            minutesUntilNextSave
-        )
+        buildMemoryAutoSaveStatusDetail(context, effectiveCurrentProfileId)
     }
 
     val onSelectModel: (String, Int) -> Unit = { selectedId, modelIndex ->

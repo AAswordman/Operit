@@ -3,8 +3,10 @@ package com.ai.assistance.operit.api.chat.library
 import com.ai.assistance.operit.util.AppLogger
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -101,5 +103,42 @@ class MemoryAnalysisProtocolTest {
                 """.trimIndent()
             )
         }
+    }
+
+    @Test
+    fun parseAnalysisResult_emptyObjectMeansNoMemoryExtracted() {
+        val analysis = MemoryLibrary.parseAnalysisResult("{}")
+
+        assertTrue(analysis.isEmpty())
+        assertNull(analysis.mainProblem)
+        assertTrue(analysis.extractedEntities.isEmpty())
+        assertTrue(analysis.updatedEntities.isEmpty())
+        assertTrue(analysis.mergedEntities.isEmpty())
+        assertTrue(analysis.links.isEmpty())
+        assertNull(analysis.profileMarkdown)
+    }
+
+    @Test
+    fun parseAnalysisResult_operationDataIsNotEmpty() {
+        val analysis =
+            MemoryLibrary.parseAnalysisResult(
+                """
+                {
+                  "main": null,
+                  "new": [{
+                    "title": "Build note",
+                    "content": "Use the debug variant for local tests.",
+                    "tags": ["build"],
+                    "folder_path": "Development",
+                    "alias_for": null
+                  }],
+                  "update": [],
+                  "merge": [],
+                  "links": []
+                }
+                """.trimIndent()
+            )
+
+        assertFalse(analysis.isEmpty())
     }
 }

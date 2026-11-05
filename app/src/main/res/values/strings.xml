@@ -3302,6 +3302,13 @@
     <string name="memory_auto_update">自动保存记忆</string>
     <string name="memory_auto_update_desc">开启后，当前轮回复结束时会先把候选内容加入长期记忆队列，并在应用存活期间由后台定时整理写入记忆库。</string>
     <string name="memory_auto_update_runtime_status">待提取记忆的条数%1$d，距离下次保存%2$d分钟</string>
+    <string name="memory_auto_update_last_outcome">上次自动保存：%1$s</string>
+    <string name="memory_auto_update_last_outcome_idle">尚未运行</string>
+    <string name="memory_auto_update_last_outcome_saved">已写入记忆</string>
+    <string name="memory_auto_update_last_outcome_no_memory">无需保存（模型未提取到记忆）</string>
+    <string name="memory_auto_update_last_outcome_failed">保存失败</string>
+    <string name="memory_auto_update_dead_letter_count">已达到重试上限并停止自动重试：%1$d 条</string>
+    <string name="chat_memory_no_new_content">模型判断本次对话无需保存记忆</string>
     <string name="chat_summarizing_memory">正在总结记忆...</string>
     <string name="chat_input_processing_collect_failed">输入处理状态收集失败: %1$s</string>
     <string name="chat_input_hint">输入消息...</string>

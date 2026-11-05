@@ -2,6 +2,7 @@ package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
 import com.ai.assistance.operit.data.model.CloudEmbeddingConfig
+import com.ai.assistance.operit.data.model.MemoryAutoSaveOutcome
 import com.ai.assistance.operit.data.model.MemoryScoreMode
 import com.ai.assistance.operit.data.model.MemorySearchConfig
 
@@ -93,6 +94,18 @@ class MemorySearchSettingsPreferences(context: Context, profileId: String) {
         ).normalized()
     }
 
+    fun loadLastAutoSaveOutcome(): MemoryAutoSaveOutcome {
+        return MemoryAutoSaveOutcome.entries[
+            searchPrefs.getInt(KEY_LAST_AUTO_SAVE_OUTCOME, MemoryAutoSaveOutcome.IDLE.ordinal)
+        ]
+    }
+
+    fun saveLastAutoSaveOutcome(outcome: MemoryAutoSaveOutcome) {
+        searchPrefs.edit()
+            .putInt(KEY_LAST_AUTO_SAVE_OUTCOME, outcome.ordinal)
+            .apply()
+    }
+
     fun saveCloudEmbedding(config: CloudEmbeddingConfig) {
         val normalized = config.normalized()
         cloudPrefs.edit()
@@ -115,6 +128,7 @@ class MemorySearchSettingsPreferences(context: Context, profileId: String) {
         private const val KEY_EDGE_WEIGHT = "edge_weight"
         private const val KEY_AUTO_SAVE_INTERVAL_MINUTES = "auto_save_interval_minutes"
         private const val KEY_NEXT_AUTO_SAVE_RUN_AT_MS = "next_auto_save_run_at_ms"
+        private const val KEY_LAST_AUTO_SAVE_OUTCOME = "last_auto_save_outcome"
         private const val KEY_MEMORY_EXTRACTION_CUSTOM_RULES = "memory_extraction_custom_rules"
 
         private const val KEY_CLOUD_ENABLED = "enabled"

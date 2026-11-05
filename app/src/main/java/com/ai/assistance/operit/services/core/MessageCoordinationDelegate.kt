@@ -4,6 +4,7 @@ import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.library.MemoryLibrary
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
@@ -1560,8 +1561,15 @@ class MessageCoordinationDelegate(
                 conversationHistory = history,
                 lastContent = lastMessageContent,
                 memorySpaceIdOverride = memorySpaceIdOverride,
-                onSuccess = {
-                    uiStateDelegate.showToast(context.getString(R.string.chat_memory_manually_updated))
+                onSuccess = { result ->
+                    val messageRes =
+                        when (result) {
+                            MemoryLibrary.MemorySaveResult.SAVED ->
+                                R.string.chat_memory_manually_updated
+                            MemoryLibrary.MemorySaveResult.NO_MEMORY_EXTRACTED ->
+                                R.string.chat_memory_no_new_content
+                        }
+                    uiStateDelegate.showToast(context.getString(messageRes))
                     _isUpdatingMemory.value = false
                 },
                 onError = { e ->

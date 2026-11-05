@@ -3132,7 +3132,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         conversationHistory: List<Pair<String, String>>,
         lastContent: String,
         memorySpaceIdOverride: String? = null,
-        onSuccess: (suspend () -> Unit)? = null,
+        onSuccess: (suspend (com.ai.assistance.operit.api.chat.library.MemoryLibrary.MemorySaveResult) -> Unit)? = null,
         onError: (suspend (Exception) -> Unit)? = null
     ) {
         AppLogger.d(TAG, "手动触发记忆更新...")
@@ -3146,9 +3146,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                     content = lastContent,
                     aiService = memoryService,
                     profileIdOverride = memorySpaceIdOverride,
-                    onSuccess = {
-                        AppLogger.d(TAG, "手动记忆更新成功")
-                        onSuccess?.invoke()
+                    onSuccess = { result ->
+                        AppLogger.d(TAG, "手动记忆更新完成: result=$result")
+                        onSuccess?.invoke(result)
                     },
                     onError = { e ->
                         AppLogger.e(TAG, "手动记忆更新失败", e)

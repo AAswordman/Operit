@@ -2799,6 +2799,13 @@
     <string name="memory_auto_update">메모리 자동 저장</string>
     <string name="memory_auto_update_desc">활성화되면 현재 대화의 후보 콘텐츠는 응답이 완료된 후 대기열에 추가된 다음 앱 프로세스가 활성 상태로 유지되는 동안 주기적인 백그라운드 처리를 통해 메모리 라이브러리에 기록됩니다.</string>
     <string name="memory_auto_update_runtime_status">추출 대기 중인 메모리 항목: %1$d개, 다음 저장까지 %2$d분</string>
+    <string name="memory_auto_update_last_outcome">마지막 자동 저장: %1$s</string>
+    <string name="memory_auto_update_last_outcome_idle">아직 실행되지 않음</string>
+    <string name="memory_auto_update_last_outcome_saved">메모리 저장됨</string>
+    <string name="memory_auto_update_last_outcome_no_memory">저장할 내용 없음(추출된 메모리 없음)</string>
+    <string name="memory_auto_update_last_outcome_failed">저장 실패</string>
+    <string name="memory_auto_update_dead_letter_count">시도 한도에 도달하여 자동 재시도를 중지했습니다: %1$d개</string>
+    <string name="chat_memory_no_new_content">모델이 이 대화에서 저장할 새 메모리를 찾지 못했습니다</string>
     <string name="chat_summarizing_memory">메모리를 요약하는 중...</string>
     <string name="chat_input_processing_collect_failed">입력 처리 상태 수집 실패: %1$s</string>
     <string name="chat_input_hint">메시지를 입력하세요...</string>

@@ -6835,6 +6835,13 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="speech_services_vits_options_hint">Opcional: sample_rate, threads, noise_scale, length_scale, noise_w, frontend, text_mode, speaker_count, nomes de entrada, tokens blank/bos/eos, model_path, config_path, lexicon_path, etc.</string>
     <string name="speech_services_vits_options_error">JSON de parâmetros VITS/Piper inválido</string>
     <string name="memory_auto_update_runtime_status">%1$d memórias a extrair, %2$d minutos até o próximo salvamento</string>
+    <string name="memory_auto_update_last_outcome">Último salvamento automático: %1$s</string>
+    <string name="memory_auto_update_last_outcome_idle">Ainda não executado</string>
+    <string name="memory_auto_update_last_outcome_saved">Memória salva</string>
+    <string name="memory_auto_update_last_outcome_no_memory">Nada para salvar (nenhuma memória extraída)</string>
+    <string name="memory_auto_update_last_outcome_failed">Falha ao salvar</string>
+    <string name="memory_auto_update_dead_letter_count">Tentativas automáticas interrompidas após atingir o limite: %1$d item(ns)</string>
+    <string name="chat_memory_no_new_content">O modelo não encontrou nova memória para salvar nesta conversa</string>
     <string name="provider_4router">4Router</string>
     <string name="character_card_memory_profile_binding">Vinculação de perfil de memória</string>
     <string name="character_card_memory_profile_follow_global">Seguir global</string>

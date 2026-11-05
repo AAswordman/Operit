@@ -6998,6 +6998,13 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="speech_services_vits_options_hint">Opsional: sample_rate, threads, noise_scale, length_scale, noise_w, frontend, text_mode, speaker_count, nama input, token blank/bos/eos, model_path, config_path, lexicon_path, dll.</string>
     <string name="speech_services_vits_options_error">Parameter VITS/Piper JSON tidak valid</string>
     <string name="memory_auto_update_runtime_status">Jumlah memori yang akan diekstrak %1$d, %2$d menit hingga penyimpanan berikutnya</string>
+    <string name="memory_auto_update_last_outcome">Penyimpanan otomatis terakhir: %1$s</string>
+    <string name="memory_auto_update_last_outcome_idle">Belum dijalankan</string>
+    <string name="memory_auto_update_last_outcome_saved">Memori tersimpan</string>
+    <string name="memory_auto_update_last_outcome_no_memory">Tidak ada yang perlu disimpan (tidak ada memori yang diekstrak)</string>
+    <string name="memory_auto_update_last_outcome_failed">Penyimpanan gagal</string>
+    <string name="memory_auto_update_dead_letter_count">Percobaan ulang otomatis dihentikan setelah mencapai batas: %1$d item</string>
+    <string name="chat_memory_no_new_content">Model tidak menemukan memori baru untuk disimpan dari percakapan ini</string>
     <string name="provider_4router">4Router</string>
     <string name="character_card_memory_profile_binding">Ikatan Konfigurasi Memori</string>
     <string name="character_card_memory_profile_follow_global">Ikuti Global</string>

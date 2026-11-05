@@ -86,6 +86,8 @@ class MemoryAutoSaveCandidateTest {
         assertEquals("pending", MemoryAutoSaveCandidate.STATUS_PENDING)
         assertEquals("processing", MemoryAutoSaveCandidate.STATUS_PROCESSING)
         assertEquals("failed", MemoryAutoSaveCandidate.STATUS_FAILED)
+        assertEquals("dead_letter", MemoryAutoSaveCandidate.STATUS_DEAD_LETTER)
+        assertEquals(3, MemoryAutoSaveCandidate.MAX_ATTEMPTS)
     }
 
     @Test fun `source type constants are defined`() {
@@ -107,5 +109,106 @@ class MemoryAutoSaveCandidateTest {
         val updated = candidate.copy(status = MemoryAutoSaveCandidate.STATUS_PROCESSING)
         assertEquals(MemoryAutoSaveCandidate.STATUS_PROCESSING, updated.status)
         assertEquals(MemoryAutoSaveCandidate.STATUS_PENDING, candidate.status)
+    }
+
+    @Test fun `failed candidate is retried until the attempt limit`() {
+        val candidate = MemoryAutoSaveCandidate()
+        val now = Date(1_000L)
+
+        candidate.beginProcessing(now)
+        candidate.markFailed(now, "network error")
+        assertEquals(MemoryAutoSaveCandidate.STATUS_FAILED, candidate.status)
+        assertEquals(1, candidate.attemptCount)
+        assertEquals("network error", candidate.lastError)
+        assertTrue(candidate.isRetryable())
+
+        candidate.beginProcessing(now)
+        candidate.markFailed(now, "second error")
+        assertEquals(MemoryAutoSaveCandidate.STATUS_FAILED, candidate.status)
+        assertEquals(2, candidate.attemptCount)
+        assertTrue(candidate.isRetryable())
+
+        candidate.beginProcessing(now)
+        candidate.markFailed(now, "third error")
+        assertEquals(MemoryAutoSaveCandidate.STATUS_DEAD_LETTER, candidate.status)
+        assertEquals(3, candidate.attemptCount)
+        assertEquals("third error", candidate.lastError)
+        assertFalse(candidate.isRetryable())
+    }
+
+    @Test fun `cancellation restores pending without consuming an attempt`() {
+        val candidate =
+            MemoryAutoSaveCandidate(
+                status = MemoryAutoSaveCandidate.STATUS_PROCESSING,
+                attemptCount = 2,
+                lastError = "stale"
+            )
+
+        candidate.restorePending(Date(2_000L))
+
+        assertEquals(MemoryAutoSaveCandidate.STATUS_PENDING, candidate.status)
+        assertEquals(2, candidate.attemptCount)
+        assertEquals("", candidate.lastError)
+        assertEquals(2_000L, candidate.updatedAt.time)
+    }
+
+    @Test fun `interrupted processing is recovered after process restart`() {
+        val candidate =
+            MemoryAutoSaveCandidate(status = MemoryAutoSaveCandidate.STATUS_PROCESSING)
+
+        candidate.recoverInterrupted(Date(3_000L))
+
+        assertEquals(MemoryAutoSaveCandidate.STATUS_PENDING, candidate.status)
+        assertEquals(1, candidate.attemptCount)
+        assertEquals(MemoryAutoSaveCandidate.ERROR_INTERRUPTED, candidate.lastError)
+        assertTrue(candidate.isRetryable())
+    }
+
+    @Test fun `repeated interruptions end in the dead letter state`() {
+        val candidate =
+            MemoryAutoSaveCandidate(
+                status = MemoryAutoSaveCandidate.STATUS_PROCESSING,
+                attemptCount = MemoryAutoSaveCandidate.MAX_ATTEMPTS - 1
+            )
+
+        candidate.recoverInterrupted()
+
+        assertEquals(MemoryAutoSaveCandidate.STATUS_DEAD_LETTER, candidate.status)
+        assertEquals(MemoryAutoSaveCandidate.MAX_ATTEMPTS, candidate.attemptCount)
+        assertFalse(candidate.isRetryable())
+    }
+
+    @Test fun `dead letter candidate is never retried`() {
+        val candidate =
+            MemoryAutoSaveCandidate(
+                status = MemoryAutoSaveCandidate.STATUS_DEAD_LETTER,
+                attemptCount = 0
+            )
+
+        assertFalse(candidate.isRetryable())
+    }
+
+    @Test fun `only retryable candidates enter the next scan`() {
+        val pending = MemoryAutoSaveCandidate(status = MemoryAutoSaveCandidate.STATUS_PENDING)
+        val firstFailure =
+            MemoryAutoSaveCandidate(
+                status = MemoryAutoSaveCandidate.STATUS_FAILED,
+                attemptCount = 1
+            )
+        val exhaustedFailure =
+            MemoryAutoSaveCandidate(
+                status = MemoryAutoSaveCandidate.STATUS_FAILED,
+                attemptCount = MemoryAutoSaveCandidate.MAX_ATTEMPTS
+            )
+        val deadLetter =
+            MemoryAutoSaveCandidate(status = MemoryAutoSaveCandidate.STATUS_DEAD_LETTER)
+        val processing =
+            MemoryAutoSaveCandidate(status = MemoryAutoSaveCandidate.STATUS_PROCESSING)
+
+        val retryable =
+            listOf(pending, firstFailure, exhaustedFailure, deadLetter, processing)
+                .filter { it.isRetryable() }
+
+        assertEquals(listOf(pending, firstFailure), retryable)
     }
 }
