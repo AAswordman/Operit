@@ -9164,4 +9164,5 @@
     <string name="theme_icon_navigation">导航项通用图标</string>
     <string name="theme_appearance_disabled">停用</string>
     <string name="toolreg_terminal_task_desc">终端托管任务操作：%1$s</string>
+    <string name="update_source_failed_reason">%1$s 下载失败：%2$s</string>
 </resources>

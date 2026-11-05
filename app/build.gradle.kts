@@ -995,6 +995,7 @@ dependencies {
     androidTestImplementation(libs.test.rules)
     
     // 协程测试依赖
+    testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.coroutines.test)
     androidTestImplementation(libs.coroutines.test)
     

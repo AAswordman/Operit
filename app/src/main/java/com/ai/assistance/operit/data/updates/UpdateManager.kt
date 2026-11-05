@@ -20,7 +20,9 @@ sealed class UpdateStatus {
             val newVersion: String,
             val updateUrl: String,
             val releaseNotes: String,
-            val downloadUrl: String = "" // 保留下载URL字段用于浏览器打开
+            val downloadUrl: String = "",
+            val downloadSha256: String? = null,
+            val downloadSize: Long? = null,
     ) : UpdateStatus()
     data class PatchAvailable(
             val newVersion: String,
@@ -29,6 +31,10 @@ sealed class UpdateStatus {
             val patchUrl: String,
             val metaUrl: String,
             val fullApkUrl: String? = null,
+            val metaSha256: String? = null,
+            val patchSha256: String? = null,
+            val fullApkSha256: String? = null,
+            val fullApkSize: Long? = null,
     ) : UpdateStatus()
     object UpToDate : UpdateStatus()
     data class Error(val message: String) : UpdateStatus()

@@ -42,6 +42,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.NavItem
 import com.ai.assistance.operit.data.updates.FullUpdateInstaller
+import com.ai.assistance.operit.data.updates.SourceCandidate
+import com.ai.assistance.operit.data.updates.UpdateSourceRanking
 import com.ai.assistance.operit.data.updates.UpdateManager
 import com.ai.assistance.operit.data.updates.UpdateStatus
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -64,7 +66,6 @@ private const val UPSTREAM_PROJECT_URL = "https://github.com/AAswordman/Operit"
 private const val CURRENT_PROJECT_URL = "https://github.com/3316891527/Operit"
 
 private enum class PatchUpdatePhase {
-    SELECTING_MIRROR,
     DOWNLOADING_META,
     DOWNLOADING_PATCH,
     APPLYING_PATCH,
@@ -80,12 +81,17 @@ private data class PatchUpdateDialogState(
     val readBytes: Long = 0L,
     val totalBytes: Long? = null,
     val speedBytesPerSec: Long = 0L,
-    val mirrorResults: Map<String, PatchUpdateInstaller.MirrorProbeSummary> = emptyMap(),
-    val mirrorCompleted: Int = 0,
-    val mirrorTotal: Int = 0,
     val chainScanCompleted: Int = 0,
     val chainScanTotal: Int = 0,
     val selectedMirror: String? = null,
+    val sourceAttempt: Int = 0,
+    val sourceTotal: Int = 0,
+    /**
+     * Per-source download failures collected while walking the candidate list, keyed by
+     * source name. Surfacing these is what tells the user *which* mirror returned 403 or
+     * timed out instead of a single opaque "update failed".
+     */
+    val sourceFailures: Map<String, String> = emptyMap(),
     val errorMessage: String? = null
 )
 
@@ -102,6 +108,10 @@ private data class FullUpdateDialogState(
     val readBytes: Long = 0L,
     val totalBytes: Long? = null,
     val speedBytesPerSec: Long = 0L,
+    val selectedSource: String? = null,
+    val sourceAttempt: Int = 0,
+    val sourceTotal: Int = 0,
+    val sourceFailures: Map<String, String> = emptyMap(),
     val errorMessage: String? = null
 )
 
@@ -137,7 +147,6 @@ fun HtmlText(
 
 private fun mapPatchStage(stage: PatchUpdateInstaller.Stage): PatchUpdatePhase {
     return when (stage) {
-        PatchUpdateInstaller.Stage.SELECTING_MIRROR -> PatchUpdatePhase.SELECTING_MIRROR
         PatchUpdateInstaller.Stage.DOWNLOADING_META -> PatchUpdatePhase.DOWNLOADING_META
         PatchUpdateInstaller.Stage.DOWNLOADING_PATCH -> PatchUpdatePhase.DOWNLOADING_PATCH
         PatchUpdateInstaller.Stage.APPLYING_PATCH -> PatchUpdatePhase.APPLYING_PATCH
@@ -154,9 +163,8 @@ private fun reducePatchUpdateState(
     val base =
         previous
             ?: PatchUpdateDialogState(
-                phase = PatchUpdatePhase.SELECTING_MIRROR,
-                message = "",
-                mirrorTotal = 0
+                phase = PatchUpdatePhase.DOWNLOADING_META,
+                message = ""
             )
 
     return when (event) {
@@ -172,29 +180,27 @@ private fun reducePatchUpdateState(
                 chainScanTotal = 0
             )
         }
-        is PatchUpdateInstaller.ProgressEvent.MirrorProbeStarted -> {
-            base.copy(
-                phase = PatchUpdatePhase.SELECTING_MIRROR,
-                message = context.getString(R.string.patch_update_testing_mirrors),
-                mirrorResults = emptyMap(),
-                mirrorCompleted = 0,
-                mirrorTotal = event.total
-            )
-        }
-        is PatchUpdateInstaller.ProgressEvent.MirrorProbeResult -> {
-            val updated = base.mirrorResults.toMutableMap()
-            updated[event.name] = event.summary
-            base.copy(
-                phase = PatchUpdatePhase.SELECTING_MIRROR,
-                mirrorResults = updated,
-                mirrorCompleted = event.completed,
-                mirrorTotal = event.total
-            )
-        }
         is PatchUpdateInstaller.ProgressEvent.MirrorSelected -> {
             base.copy(
                 selectedMirror = event.name,
-                message = context.getString(R.string.patch_update_selected_mirror, event.name)
+                sourceAttempt = event.attempt,
+                sourceTotal = event.total,
+                message = context.getString(
+                    R.string.patch_update_selected_mirror,
+                    event.name
+                )
+            )
+        }
+        is PatchUpdateInstaller.ProgressEvent.SourceFailed -> {
+            val failures = base.sourceFailures.toMutableMap()
+            failures[event.name] = event.reason
+            base.copy(
+                sourceFailures = failures,
+                message = context.getString(
+                    R.string.update_source_failed_reason,
+                    event.name,
+                    event.reason
+                )
             )
         }
         is PatchUpdateInstaller.ProgressEvent.ChainScanProgress -> {
@@ -229,6 +235,7 @@ private fun mapFullUpdateStage(stage: FullUpdateInstaller.Stage): FullUpdatePhas
 }
 
 private fun reduceFullUpdateState(
+    context: Context,
     previous: FullUpdateDialogState?,
     event: FullUpdateInstaller.ProgressEvent
 ): FullUpdateDialogState {
@@ -251,6 +258,32 @@ private fun reduceFullUpdateState(
             )
         }
 
+        is FullUpdateInstaller.ProgressEvent.SourceAttempt -> {
+            base.copy(
+                selectedSource = event.name,
+                sourceAttempt = event.attempt,
+                sourceTotal = event.total,
+                message = context.getString(R.string.full_update_downloading),
+                progressPercent = null,
+                readBytes = 0L,
+                totalBytes = null,
+                speedBytesPerSec = 0L,
+            )
+        }
+
+        is FullUpdateInstaller.ProgressEvent.SourceFailed -> {
+            val failures = base.sourceFailures.toMutableMap()
+            failures[event.name] = event.reason
+            base.copy(
+                sourceFailures = failures,
+                message = context.getString(
+                    R.string.update_source_failed_reason,
+                    event.name,
+                    event.reason
+                )
+            )
+        }
+
         is FullUpdateInstaller.ProgressEvent.DownloadProgress -> {
             val percent =
                 if (event.totalBytes != null && event.totalBytes > 0) {
@@ -266,33 +299,6 @@ private fun reduceFullUpdateState(
             )
         }
     }
-}
-
-private fun pickBestMirrorKey(
-    results: Map<String, PatchUpdateInstaller.MirrorProbeSummary>
-): String? {
-    var bestKey: String? = null
-    var bestSpeed = Long.MIN_VALUE
-    var bestLatency = Long.MAX_VALUE
-
-    for ((key, summary) in results) {
-        if (!summary.ok) continue
-        val speed = summary.speedBytesPerSec
-        val latency = summary.latencyMs ?: Long.MAX_VALUE
-
-        if (speed != null) {
-            if (speed > bestSpeed || (speed == bestSpeed && latency < bestLatency)) {
-                bestKey = key
-                bestSpeed = speed
-                bestLatency = latency
-            }
-        } else if (bestKey == null) {
-            bestKey = key
-            bestLatency = latency
-        }
-    }
-
-    return bestKey
 }
 
 private fun sortPatchMirrorNamesForDisplay(
@@ -351,6 +357,35 @@ private fun formatBytes(bytes: Long): String {
 private fun formatSpeed(bytesPerSec: Long): String {
     if (bytesPerSec <= 0L) return "--/s"
     return "${formatBytes(bytesPerSec)}/s"
+}
+
+/**
+ * Renders the per-source download failures gathered while walking the candidate list.
+ *
+ * Each line names the source and the concrete reason it died (HTTP 403, timeout, sha256
+ * mismatch, ...), which is what lets the user tell a dead mirror apart from their own
+ * network being down. The dialog is fixed-height, so a long list is capped and made
+ * scrollable rather than pushing the buttons off screen.
+ */
+@Composable
+private fun UpdateSourceFailureList(failures: Map<String, String>) {
+    if (failures.isEmpty()) return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 140.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        failures.forEach { (name, reason) ->
+            Text(
+                text = stringResource(id = R.string.update_source_failed_reason, name, reason),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
 }
 
 
@@ -540,11 +575,20 @@ fun AboutScreen(
         showUpdateDialog = false
     }
 
-    fun startPatchUpdateWithMirror(
+    /**
+     * Run a patch update over an ordered source list.
+     *
+     * [sourceKeys] is fastest-first with the user's pick moved to the front by the
+     * download-source dialog. The installer walks it per artifact, so a mirror dying
+     * mid-download continues from the next source rather than failing the update.
+     */
+    fun startPatchUpdate(
         patchUrl: String,
         metaUrl: String,
         patchVersion: String,
-        mirrorKey: String
+        sourceKeys: List<String>,
+        metaSha256: String?,
+        patchSha256: String?
     ) {
         if (patchUpdateJob?.isActive == true) return
         showUpdateDialog = false
@@ -553,7 +597,7 @@ fun AboutScreen(
             PatchUpdateDialogState(
                 phase = PatchUpdatePhase.DOWNLOADING_META,
                 message = context.getString(R.string.patch_update_prepare_downloading, patchVersion),
-                mirrorTotal = 0
+                sourceTotal = sourceKeys.size
             )
 
         patchUpdateJob =
@@ -561,11 +605,13 @@ fun AboutScreen(
                 ActivityLifecycleManager.forceKeepScreenOn(true)
                 try {
                     val apk =
-                        PatchUpdateInstaller.downloadAndPreparePatchUpdateWithProgressUsingMirror(
+                        PatchUpdateInstaller.downloadAndPreparePatchUpdate(
                             context = context,
                             patchUrl = patchUrl,
                             metaUrl = metaUrl,
-                            mirrorKey = mirrorKey
+                            sourceKeys = sourceKeys,
+                            metaSha256 = metaSha256,
+                            patchSha256 = patchSha256
                         ) { event ->
                             patchUpdateStateFlow.update { current ->
                                 if (current == null) {
@@ -594,73 +640,16 @@ fun AboutScreen(
                     patchUpdateStateFlow.value = null
                 } catch (e: Exception) {
                     AppLogger.e("AboutScreen", "patch update failed", e)
-                    patchUpdateStateFlow.value =
+                    patchUpdateStateFlow.update { current ->
                         PatchUpdateDialogState(
                             phase = PatchUpdatePhase.ERROR,
                             message = context.getString(R.string.patch_update_failed_simple),
-                            errorMessage = e.message ?: context.getString(R.string.unknown_error)
-                    )
-                } finally {
-                    ActivityLifecycleManager.forceKeepScreenOn(false)
-                    patchUpdateJob = null
-                }
-            }
-    }
-
-    fun startPatchUpdate(patchUrl: String, metaUrl: String, patchVersion: String) {
-        if (patchUpdateJob?.isActive == true) return
-        showUpdateDialog = false
-
-        patchUpdateStateFlow.value =
-            PatchUpdateDialogState(
-                phase = PatchUpdatePhase.SELECTING_MIRROR,
-                message = context.getString(R.string.patch_update_prepare_testing_mirrors, patchVersion),
-                mirrorTotal = 0
-            )
-
-        patchUpdateJob =
-            scope.launch {
-                ActivityLifecycleManager.forceKeepScreenOn(true)
-                try {
-                    val apk =
-                        PatchUpdateInstaller.downloadAndPreparePatchUpdateWithProgress(
-                            context = context,
-                            patchUrl = patchUrl,
-                            metaUrl = metaUrl
-                        ) { event ->
-                            patchUpdateStateFlow.update { current ->
-                                if (current == null) {
-                                    null
-                                } else {
-                                    reducePatchUpdateState(context, current, event)
-                                }
-                            }
-                        }
-
-                    patchUpdateStateFlow.update { current ->
-                        (current ?: PatchUpdateDialogState(
-                            phase = PatchUpdatePhase.READY_TO_INSTALL,
-                            message = context.getString(R.string.full_update_ready_to_install)
-                        )).copy(
-                            phase = PatchUpdatePhase.READY_TO_INSTALL,
-                            message = context.getString(R.string.full_update_ready_to_install)
+                            errorMessage = e.message ?: context.getString(R.string.unknown_error),
+                            // Keep the per-source reasons collected while walking the list:
+                            // that detail is the whole point of the failure message.
+                            sourceFailures = current?.sourceFailures ?: emptyMap()
                         )
                     }
-
-                    withContext(Dispatchers.Main) {
-                        PatchUpdateInstaller.installApk(context, apk)
-                    }
-                    patchUpdateStateFlow.value = null
-                } catch (e: CancellationException) {
-                    patchUpdateStateFlow.value = null
-                } catch (e: Exception) {
-                    AppLogger.e("AboutScreen", "patch update failed", e)
-                    patchUpdateStateFlow.value =
-                        PatchUpdateDialogState(
-                            phase = PatchUpdatePhase.ERROR,
-                            message = context.getString(R.string.patch_update_failed_simple),
-                            errorMessage = e.message ?: context.getString(R.string.unknown_error)
-                    )
                 } finally {
                     ActivityLifecycleManager.forceKeepScreenOn(false)
                     patchUpdateJob = null
@@ -668,14 +657,21 @@ fun AboutScreen(
             }
     }
 
-    fun startFullUpdateInApp(apkUrl: String, targetVersion: String) {
+    fun startFullUpdateInApp(
+        apkUrl: String,
+        targetVersion: String,
+        sourceKeys: List<String>,
+        expectedSha256: String?,
+        expectedSize: Long?
+    ) {
         if (fullUpdateJob?.isActive == true) return
         showUpdateDialog = false
 
         fullUpdateStateFlow.value =
             FullUpdateDialogState(
                 phase = FullUpdatePhase.DOWNLOADING_APK,
-                message = context.getString(R.string.full_update_preparing, targetVersion)
+                message = context.getString(R.string.full_update_preparing, targetVersion),
+                sourceTotal = sourceKeys.size
             )
 
         fullUpdateJob =
@@ -685,14 +681,17 @@ fun AboutScreen(
                         FullUpdateInstaller.downloadAndPrepareUpdate(
                             context = context,
                             apkUrl = apkUrl,
+                            sourceKeys = sourceKeys,
                             downloadMessage = context.getString(R.string.full_update_downloading),
-                            readyMessage = context.getString(R.string.full_update_ready_to_install)
+                            readyMessage = context.getString(R.string.full_update_ready_to_install),
+                            expectedSha256 = expectedSha256,
+                            expectedSize = expectedSize
                         ) { event ->
                             fullUpdateStateFlow.update { current ->
                                 if (current == null) {
                                     null
                                 } else {
-                                    reduceFullUpdateState(current, event)
+                                    reduceFullUpdateState(context, current, event)
                                 }
                             }
                         }
@@ -706,12 +705,15 @@ fun AboutScreen(
                 } catch (e: Exception) {
                     AppLogger.e("AboutScreen", "full update failed", e)
                     val errorText = e.message ?: context.getString(R.string.unknown_error)
-                    fullUpdateStateFlow.value =
+                    fullUpdateStateFlow.update { current ->
                         FullUpdateDialogState(
                             phase = FullUpdatePhase.ERROR,
                             message = context.getString(R.string.full_update_failed, errorText),
-                            errorMessage = errorText
+                            errorMessage = errorText,
+                            // Preserve the per-source reasons gathered while walking the list.
+                            sourceFailures = current?.sourceFailures ?: emptyMap()
                         )
+                    }
                 } finally {
                     fullUpdateJob = null
                 }
@@ -728,6 +730,8 @@ fun AboutScreen(
             updateUrl = patch.updateUrl,
             releaseNotes = patch.releaseNotes,
             downloadUrl = apkUrl,
+            downloadSha256 = patch.fullApkSha256,
+            downloadSize = patch.fullApkSize,
         )
     }
     // 处理下载更新 - 自动测速并选择最快下载源
@@ -803,9 +807,12 @@ fun AboutScreen(
         DownloadSourceDialog(
             updateStatus = status,
             onDismiss = { pendingFullUpdate = null },
-            onDownload = { url ->
+            onDownload = { sourceKeys ->
                 pendingFullUpdate = null
-                downloadFromUrl(url)
+                // The browser receives the preferred URL; the app controls source
+                // attempts and artifact verification only for its in-app downloader.
+                val sources = GithubReleaseUtil.getDownloadSources(status.downloadUrl)
+                downloadFromUrl(sources.getValue(sourceKeys.first()))
             }
         )
     }
@@ -815,11 +822,14 @@ fun AboutScreen(
         DownloadSourceDialog(
             updateStatus = status,
             onDismiss = { pendingFullUpdateInApp = null },
-            onDownload = { url ->
+            onDownload = { sourceKeys ->
                 pendingFullUpdateInApp = null
                 startFullUpdateInApp(
-                    apkUrl = url,
-                    targetVersion = status.newVersion
+                    apkUrl = status.downloadUrl,
+                    targetVersion = status.newVersion,
+                    sourceKeys = sourceKeys,
+                    expectedSha256 = status.downloadSha256,
+                    expectedSize = status.downloadSize
                 )
             }
         )
@@ -831,13 +841,15 @@ fun AboutScreen(
             patchUrl = status.patchUrl,
             metaUrl = status.metaUrl,
             onDismiss = { pendingPatchUpdate = null },
-            onDownload = { mirrorKey ->
+            onDownload = { sourceKeys ->
                 pendingPatchUpdate = null
-                startPatchUpdateWithMirror(
+                startPatchUpdate(
                     patchUrl = status.patchUrl,
                     metaUrl = status.metaUrl,
                     patchVersion = status.newVersion,
-                    mirrorKey = mirrorKey
+                    sourceKeys = sourceKeys,
+                    metaSha256 = status.metaSha256,
+                    patchSha256 = status.patchSha256
                 )
             }
         )
@@ -1248,18 +1260,8 @@ private fun PatchUpdateProgressDialog(
                 )
 
                 when (state.phase) {
-                    PatchUpdatePhase.SELECTING_MIRROR -> {
-                        if (state.mirrorTotal > 0) {
-                            Text(
-                                text = stringResource(
-                                    id = R.string.patch_update_mirror_progress,
-                                    state.mirrorCompleted,
-                                    state.mirrorTotal
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                    PatchUpdatePhase.DOWNLOADING_META,
+                    PatchUpdatePhase.DOWNLOADING_PATCH -> {
                         if (state.selectedMirror != null) {
                             Text(
                                 text = stringResource(
@@ -1270,56 +1272,6 @@ private fun PatchUpdateProgressDialog(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            sortPatchMirrorNamesForDisplay(state.mirrorResults.keys, state.mirrorResults).forEach { name ->
-                                val summary = state.mirrorResults[name] ?: return@forEach
-                                val statusText =
-                                    if (summary.ok) {
-                                        stringResource(id = R.string.patch_update_mirror_available)
-                                    } else {
-                                        stringResource(id = R.string.patch_update_mirror_unavailable)
-                                    }
-                                val detail =
-                                    if (summary.ok) {
-                                        val speed = summary.speedBytesPerSec ?: 0L
-                                        val latency = summary.latencyMs ?: 0L
-                                        "${formatSpeed(speed)} · ${latency}ms"
-                                    } else {
-                                        summary.error
-                                            ?: stringResource(id = R.string.patch_update_mirror_test_failed)
-                                    }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = statusText,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (summary.ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                                        )
-                                        Text(
-                                            text = detail,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        if (state.mirrorResults.isEmpty()) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        }
-                    }
-
-                    PatchUpdatePhase.DOWNLOADING_META,
-                    PatchUpdatePhase.DOWNLOADING_PATCH -> {
                         if (state.progressPercent != null) {
                             LinearProgressIndicator(
                                 progress = state.progressPercent / 100f,
@@ -1339,6 +1291,10 @@ private fun PatchUpdateProgressDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        // Show sources that already died while walking the list, so the
+                        // user sees the update still progressing through candidates
+                        // rather than appearing stuck on one failing mirror.
+                        UpdateSourceFailureList(state.sourceFailures)
                     }
 
                     PatchUpdatePhase.APPLYING_PATCH,
@@ -1390,6 +1346,7 @@ private fun PatchUpdateProgressDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
+                        UpdateSourceFailureList(state.sourceFailures)
                     }
                 }
 
@@ -1513,6 +1470,16 @@ private fun FullUpdateProgressDialog(
 
                 when (state.phase) {
                     FullUpdatePhase.DOWNLOADING_APK -> {
+                        if (state.selectedSource != null) {
+                            Text(
+                                text = stringResource(
+                                    id = R.string.patch_update_selected_short,
+                                    state.selectedSource
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                         if (state.progressPercent != null) {
                             LinearProgressIndicator(
                                 progress = state.progressPercent / 100f,
@@ -1532,6 +1499,7 @@ private fun FullUpdateProgressDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        UpdateSourceFailureList(state.sourceFailures)
                     }
 
                     FullUpdatePhase.READY_TO_INSTALL -> {
@@ -1554,6 +1522,7 @@ private fun FullUpdateProgressDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
+                        UpdateSourceFailureList(state.sourceFailures)
                     }
                 }
 
@@ -1581,20 +1550,11 @@ private fun FullUpdateProgressDialog(
 fun DownloadSourceDialog(
     updateStatus: UpdateStatus,
     onDismiss: () -> Unit,
-    onDownload: (String) -> Unit
+    onDownload: (List<String>) -> Unit
 ) {
     val status = updateStatus as? UpdateStatus.Available
-    val mirroredUrls = remember(status) {
-        status?.let { GithubReleaseUtil.getMirroredUrls(it.downloadUrl) } ?: emptyMap()
-    }
-
-    val probeUrls = remember(status, mirroredUrls) {
-        status?.let {
-            buildMap {
-                putAll(mirroredUrls)
-                put("GitHub", it.downloadUrl)
-            }
-        } ?: emptyMap()
+    val probeUrls = remember(status) {
+        status?.let { GithubReleaseUtil.getDownloadSources(it.downloadUrl) } ?: emptyMap()
     }
 
     var probeResults by remember(probeUrls) {
@@ -1611,7 +1571,7 @@ fun DownloadSourceDialog(
             probeUrls.forEach { (name, url) ->
                 launch {
                     val r = withContext(Dispatchers.IO) {
-                        GithubReleaseUtil.probeMirrorUrls(mapOf(name to url))[name]
+                        GithubReleaseUtil.probeMirrorUrls(mapOf(name to url), requireByteRange = true)[name]
                     }
                     if (r != null) {
                         probeResults = probeResults.toMutableMap().apply { put(name, r) }
@@ -1621,28 +1581,32 @@ fun DownloadSourceDialog(
         }
     }
 
-    fun autoSelect() {
-        var bestKey: String? = null
-        var bestSpeed = Long.MIN_VALUE
-        var bestLatency = Long.MAX_VALUE
-        probeResults.forEach { (key, result) ->
-            if (!result.ok) return@forEach
-            val speed = result.bytesPerSec
-            val latency = result.latencyMs ?: Long.MAX_VALUE
-            if (speed != null) {
-                if (speed > bestSpeed || (speed == bestSpeed && latency < bestLatency)) {
-                    bestKey = key
-                    bestSpeed = speed
-                    bestLatency = latency
-                }
-            } else if (bestKey == null) {
-                bestKey = key
-                bestLatency = latency
-            }
+    /**
+     * Build the ordered source-key list to download from: usable sources fastest first,
+     * with [preferredKey] (the row the user tapped) moved to the front. Rejected sources
+     * are excluded because they cannot serve the ranged download.
+     */
+    fun orderedSourceKeys(preferredKey: String?): List<String> {
+        val candidates = probeUrls.map { (key, url) ->
+            val probe = probeResults[key]
+            val ok = probe?.ok == true
+            SourceCandidate(
+                key = key,
+                url = url,
+                speedBytesPerSec = probe?.bytesPerSec,
+                latencyMs = probe?.latencyMs,
+                probeError = if (ok) null else (probe?.error ?: "PROBE_FAILED")
+            )
         }
-        val selected = bestKey ?: return
-        val url = probeUrls[selected] ?: return
-        onDownload(url)
+        val ranked = UpdateSourceRanking.rank(candidates)
+        if (preferredKey == null) return ranked.usable.map { it.key }
+        return ranked.prioritized(preferredKey, failedKeys = emptySet()).map { it.key }
+    }
+
+    fun autoSelect() {
+        val keys = orderedSourceKeys(preferredKey = null)
+        if (keys.isEmpty()) return
+        onDownload(keys)
     }
 
     val autoEnabled = probeResults.values.any { it.ok }
@@ -1723,8 +1687,7 @@ fun DownloadSourceDialog(
                 LazyColumn {
                     items(orderedProbeKeys) { name ->
                         val probe = probeResults[name]
-                        val isGitHub = name == "GitHub"
-                        val url = probeUrls[name] ?: return@items
+                        val isGitHub = name == GithubReleaseUtil.GITHUB_SOURCE_KEY
                         val enabled = probe?.ok == true
                         MirrorSourceRow(
                             title = if (isGitHub) stringResource(id = R.string.github_source) else stringResource(id = R.string.mirror_download, name),
@@ -1732,7 +1695,10 @@ fun DownloadSourceDialog(
                             icon = if (isGitHub) Icons.Default.Language else Icons.Default.Storage,
                             probe = probe,
                             enabled = enabled,
-                            onClick = { onDownload(url) }
+                            // Tapping a source prefers it but keeps the rest of the usable
+                            // list behind it, so a source that dies mid-download still
+                            // continues instead of failing the whole update.
+                            onClick = { onDownload(orderedSourceKeys(preferredKey = name)) }
                         )
                     }
                 }
@@ -1762,16 +1728,15 @@ fun PatchDownloadSourceDialog(
     patchUrl: String,
     metaUrl: String,
     onDismiss: () -> Unit,
-    onDownload: (String) -> Unit
+    onDownload: (List<String>) -> Unit
 ) {
-    val patchMirrors = remember(patchUrl) { GithubReleaseUtil.getMirroredUrls(patchUrl) }
-    val metaMirrors = remember(metaUrl) { GithubReleaseUtil.getMirroredUrls(metaUrl) }
+    val patchSources = remember(patchUrl) { GithubReleaseUtil.getDownloadSources(patchUrl) }
+    val metaSources = remember(metaUrl) { GithubReleaseUtil.getDownloadSources(metaUrl) }
 
-    val keys = remember(patchUrl, metaUrl, patchMirrors, metaMirrors) {
+    val keys = remember(patchSources, metaSources) {
         val set = LinkedHashSet<String>()
-        set.addAll(patchMirrors.keys)
-        set.addAll(metaMirrors.keys)
-        set.add("GitHub")
+        set.addAll(patchSources.keys)
+        set.addAll(metaSources.keys)
         set.toList()
     }
 
@@ -1784,8 +1749,8 @@ fun PatchDownloadSourceDialog(
         coroutineScope {
             keys.forEach { key ->
                 launch {
-                    val patchProbeUrl = if (key == "GitHub") patchUrl else patchMirrors[key] ?: patchUrl
-                    val metaProbeUrl = if (key == "GitHub") metaUrl else metaMirrors[key] ?: metaUrl
+                    val patchProbeUrl = patchSources.getValue(key)
+                    val metaProbeUrl = metaSources.getValue(key)
 
                     val patchRes = withContext(Dispatchers.IO) {
                         GithubReleaseUtil.probeMirrorUrls(mapOf(key to patchProbeUrl), requireByteRange = true)[key]
@@ -1829,9 +1794,32 @@ fun PatchDownloadSourceDialog(
         }
     }
 
+    /**
+     * Ordered source-key list to download from: usable sources fastest first, with
+     * [preferredKey] moved to the front when the user taps a row. A source only counts as
+     * usable when it serves the metadata and supports byte ranges for the patch ZIP.
+     */
+    fun orderedSourceKeys(preferredKey: String?): List<String> {
+        val candidates = keys.map { key ->
+            val summary = probeResults[key]
+            SourceCandidate(
+                key = key,
+                // The URL is irrelevant for ranking; the installer resolves per artifact.
+                url = "",
+                speedBytesPerSec = summary?.speedBytesPerSec,
+                latencyMs = summary?.latencyMs,
+                probeError = if (summary?.ok == true) null else (summary?.error ?: "PROBE_FAILED")
+            )
+        }
+        val ranked = UpdateSourceRanking.rank(candidates)
+        if (preferredKey == null) return ranked.usable.map { it.key }
+        return ranked.prioritized(preferredKey, failedKeys = emptySet()).map { it.key }
+    }
+
     fun autoSelect() {
-        val bestKey = pickBestMirrorKey(probeResults) ?: return
-        onDownload(bestKey)
+        val keys = orderedSourceKeys(preferredKey = null)
+        if (keys.isEmpty()) return
+        onDownload(keys)
     }
 
     val autoEnabled = probeResults.values.any { it.ok }
@@ -1912,19 +1900,20 @@ fun PatchDownloadSourceDialog(
                 LazyColumn {
                     items(orderedKeys) { name ->
                         val summary = probeResults[name]
+                        val isGitHub = name == GithubReleaseUtil.GITHUB_SOURCE_KEY
                         val title =
-                            if (name == "GitHub") {
+                            if (isGitHub) {
                                 stringResource(id = R.string.github_source)
                             } else {
                                 stringResource(id = R.string.mirror_download, name)
                             }
                         val desc =
-                            if (name == "GitHub") {
+                            if (isGitHub) {
                                 stringResource(id = R.string.github_source_desc)
                             } else {
                                 stringResource(id = R.string.china_mirror_desc)
                             }
-                        val icon = if (name == "GitHub") Icons.Default.Language else Icons.Default.Storage
+                        val icon = if (isGitHub) Icons.Default.Language else Icons.Default.Storage
                         val enabled = summary?.ok == true
                         MirrorSourceRow(
                             title = title,
@@ -1932,7 +1921,9 @@ fun PatchDownloadSourceDialog(
                             icon = icon,
                             summary = summary,
                             enabled = enabled,
-                            onClick = { onDownload(name) }
+                            // Prefer the tapped source but keep the rest behind it so a
+                            // mid-download failure continues from another source.
+                            onClick = { onDownload(orderedSourceKeys(preferredKey = name)) }
                         )
                     }
                 }

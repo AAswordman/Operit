@@ -6,6 +6,7 @@ import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.data.api.GitHubApiService
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -25,7 +26,9 @@ class GithubReleaseUtil(private val context: Context) {
         val version: String,
         val downloadUrl: String,
         val releaseNotes: String,
-        val releasePageUrl: String
+        val releasePageUrl: String,
+        val downloadSha256: String? = null,
+        val downloadSize: Long? = null,
     )
 
     data class ProbeResult(
@@ -33,10 +36,31 @@ class GithubReleaseUtil(private val context: Context) {
         val latencyMs: Long?,
         val bytesPerSec: Long? = null,
         val sampledBytes: Long? = null,
+        val httpStatus: Int? = null,
+        val contentType: String? = null,
         val error: String? = null
     )
 
     companion object {
+        /** Source key for the official GitHub asset URL, i.e. with no mirror in front. */
+        const val GITHUB_SOURCE_KEY = "GitHub"
+
+        /**
+         * Normalise the GitHub asset `digest` field (`sha256:<hex>`) to a bare lowercase
+         * hex string. Returns null when the asset carries no usable SHA-256 digest,
+         * which happens for assets uploaded before GitHub started recording them.
+         */
+        fun parseAssetDigest(digest: String?): String? {
+            val value = digest?.trim().orEmpty()
+            if (value.isEmpty()) return null
+            if (!value.startsWith("sha256:", ignoreCase = true)) return null
+            val hex = value.substring("sha256:".length).trim()
+            val isValidHex = hex.length == 64 && hex.all {
+                it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F'
+            }
+            return if (isValidHex) hex.lowercase() else null
+        }
+
         private val GITHUB_MIRRORS = linkedMapOf(
             "Ghfast" to "https://ghfast.top/",
             "GhProxy" to "https://ghproxy.com/",
@@ -88,6 +112,9 @@ class GithubReleaseUtil(private val context: Context) {
             }
         }
 
+        fun getDownloadSources(originalUrl: String): Map<String, String> =
+            linkedMapOf(GITHUB_SOURCE_KEY to originalUrl) + getMirroredUrls(originalUrl)
+
         suspend fun probeMirrorUrls(
             urls: Map<String, String>,
             timeoutMs: Int = 2500,
@@ -123,18 +150,33 @@ class GithubReleaseUtil(private val context: Context) {
                     conn.connect()
 
                     val code = conn.responseCode
-                    if (code !in 200..399) {
+                    val contentType = conn.contentType
+                    if ((requireByteRange && code != HttpURLConnection.HTTP_PARTIAL) || code !in 200..299) {
                         return ProbeResult(
                             ok = false,
                             latencyMs = null,
                             bytesPerSec = null,
                             sampledBytes = null,
-                            error = "HTTP $code"
+                            httpStatus = code,
+                            contentType = contentType,
+                            error = if (requireByteRange && code == HttpURLConnection.HTTP_OK) {
+                                "HTTP 200 (no Range support)"
+                            } else "HTTP $code"
                         )
                     }
 
+                    if (contentType != null && (
+                            contentType.startsWith("text/html", ignoreCase = true) ||
+                            contentType.startsWith("application/xhtml+xml", ignoreCase = true)
+                        )) {
+                        return ProbeResult(false, null, httpStatus = code, contentType = contentType,
+                            error = "HTTP $code ($contentType)")
+                    }
                     val expectedRange = if (requireByteRange) {
-                        requirePatchByteRange(code, conn.getHeaderField("Content-Range"), 0L, SPEED_TEST_BYTES - 1L)
+                        val header = conn.getHeaderField("Content-Range")
+                        val total = header?.substringAfterLast('/')?.toLongOrNull()
+                            ?: throw java.io.IOException("Missing byte range total")
+                        requirePatchByteRange(code, header, 0L, minOf(SPEED_TEST_BYTES, total) - 1L)
                     } else null
                     var sampled = 0L
                     val buf = ByteArray(16 * 1024)
@@ -160,6 +202,8 @@ class GithubReleaseUtil(private val context: Context) {
                         latencyMs = costMs,
                         bytesPerSec = speed,
                         sampledBytes = sampled,
+                        httpStatus = code,
+                        contentType = contentType,
                         error = if (sampled > 0L) null else "EMPTY_BODY"
                     )
                 } finally {
@@ -168,6 +212,8 @@ class GithubReleaseUtil(private val context: Context) {
                     } catch (_: Exception) {
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 ProbeResult(
                     ok = false,
@@ -212,7 +258,9 @@ class GithubReleaseUtil(private val context: Context) {
                         version = version,
                         downloadUrl = downloadUrl,
                         releaseNotes = latestRelease.body ?: "",
-                        releasePageUrl = latestRelease.html_url
+                        releasePageUrl = latestRelease.html_url,
+                        downloadSha256 = parseAssetDigest(apkAsset?.digest),
+                        downloadSize = apkAsset?.size?.takeIf { it > 0L },
                     )
                 },
                 onFailure = { exception ->
