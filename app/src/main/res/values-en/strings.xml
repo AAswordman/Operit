@@ -5966,6 +5966,7 @@
     <string name="patch_update_stage_verifying_patch_step">Verifying patch package (%1$d/%2$d)</string>
     <string name="patch_update_stage_applying_patch_step">Applying patch (%1$d/%2$d)</string>
     <string name="patch_update_stage_verifying_new_apk_step">Verifying new APK (%1$d/%2$d)</string>
+    <string name="update_source_failed_reason">%1$s failed: %2$s</string>
     <string name="patch_install_confirm_title">Install patch update</string>
     <string name="patch_install_confirm_message">New patch version detected: %1$s\n\nInstall now?</string>
     <string name="prepare_patch_update">Preparing patch update...</string>

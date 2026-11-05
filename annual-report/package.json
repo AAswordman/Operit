@@ -1,0 +1,22 @@
+{
+  "name": "operit-annual-report",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "sync:android-assets": "node ./scripts/sync-to-android-assets.mjs",
+    "collect:project": "node ./collector/collect-project.ts",
+    "generate:badge": "node ./scripts/generate-entry-badge.ts"
+  },
+  "dependencies": {
+    "roughjs": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.4.1",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3"
+  }
+}

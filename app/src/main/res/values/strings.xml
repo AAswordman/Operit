@@ -1753,6 +1753,7 @@
     <string name="patch_update_stage_verifying_patch_step">正在校验补丁包 (%1$d/%2$d)</string>
     <string name="patch_update_stage_applying_patch_step">正在合并补丁 (%1$d/%2$d)</string>
     <string name="patch_update_stage_verifying_new_apk_step">正在校验新 APK (%1$d/%2$d)</string>
+    <string name="update_source_failed_reason">%1$s 下载失败：%2$s</string>
     <string name="patch_install_confirm_title">安装补丁更新</string>
     <string name="patch_install_confirm_message">检测到新补丁版本：%1$s\n\n是否现在安装？</string>
     <string name="developer">开发者</string>
@@ -8505,4 +8506,6 @@
     <string name="codex_usage_unavailable">额度暂时不可用</string>
     <string name="codex_reset_after_days">%1$d 天后重置</string>
     <string name="codex_reset_after_clock">%1$02d:%2$02d 后重置</string>
+    <!-- 年度报告：抽屉入口徽章的无障碍描述 -->
+    <string name="annual_report_entry_description">打开 %1$d 年度报告</string>
 </resources>

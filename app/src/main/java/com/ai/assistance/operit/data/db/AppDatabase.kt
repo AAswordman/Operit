@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.ai.assistance.operit.data.annualreport.AnnualReportDao
 import com.ai.assistance.operit.data.dao.ChatContentDao
 import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
@@ -44,6 +45,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun messageVariantDao(): MessageVariantDao
     abstract fun chatContentDao(): ChatContentDao
     abstract fun tokenUsageDao(): TokenUsageDao
+
+    /** 年度报告的只读聚合查询，只新增 DAO，不改表结构。 */
+    abstract fun annualReportDao(): AnnualReportDao
 
     companion object {
         const val DATABASE_VERSION = APP_DATABASE_VERSION

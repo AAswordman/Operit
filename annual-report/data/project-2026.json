@@ -1,0 +1,474 @@
+{
+  "schemaVersion": 1,
+  "year": 2026,
+  "generatedAt": "2026-11-05T05:54:58+08:00",
+  "window": {
+    "start": "2026-01-01T00:00:00+08:00",
+    "end": "2026-11-05T05:52:25+08:00",
+    "timeZone": "Asia/Shanghai"
+  },
+  "repository": {
+    "owner": "AAswordman",
+    "name": "Operit",
+    "createdAt": "2025-03-15T04:24:12Z"
+  },
+  "commits": {
+    "total": 696,
+    "byMonth": [
+      70,
+      60,
+      75,
+      62,
+      39,
+      23,
+      103,
+      182,
+      79,
+      2,
+      1,
+      0
+    ],
+    "weekdayHour": [
+      [
+        5,
+        6,
+        2,
+        1,
+        0,
+        0,
+        1,
+        0,
+        3,
+        1,
+        4,
+        0,
+        2,
+        6,
+        7,
+        5,
+        1,
+        5,
+        5,
+        5,
+        6,
+        7,
+        10,
+        11
+      ],
+      [
+        8,
+        6,
+        4,
+        4,
+        1,
+        1,
+        1,
+        2,
+        1,
+        3,
+        6,
+        5,
+        10,
+        7,
+        2,
+        3,
+        7,
+        7,
+        11,
+        4,
+        3,
+        5,
+        6,
+        7
+      ],
+      [
+        9,
+        3,
+        3,
+        3,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        3,
+        2,
+        5,
+        4,
+        9,
+        4,
+        4,
+        5,
+        5
+      ],
+      [
+        10,
+        5,
+        8,
+        4,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        1,
+        1,
+        6,
+        3,
+        3,
+        5,
+        3,
+        12,
+        3,
+        4,
+        9,
+        7,
+        12
+      ],
+      [
+        8,
+        9,
+        3,
+        1,
+        0,
+        2,
+        2,
+        1,
+        0,
+        2,
+        4,
+        9,
+        2,
+        6,
+        13,
+        4,
+        1,
+        2,
+        10,
+        11,
+        3,
+        4,
+        4,
+        7
+      ],
+      [
+        5,
+        3,
+        1,
+        0,
+        1,
+        1,
+        1,
+        2,
+        2,
+        3,
+        0,
+        7,
+        2,
+        5,
+        4,
+        6,
+        8,
+        5,
+        6,
+        3,
+        4,
+        9,
+        7,
+        12
+      ],
+      [
+        4,
+        4,
+        5,
+        5,
+        3,
+        2,
+        4,
+        3,
+        3,
+        0,
+        3,
+        3,
+        6,
+        3,
+        7,
+        8,
+        6,
+        8,
+        9,
+        6,
+        3,
+        14,
+        4,
+        3
+      ]
+    ],
+    "lateNight": 134,
+    "busiestDay": {
+      "date": "2026-09-08",
+      "count": 18
+    }
+  },
+  "codeFrequency": {
+    "additions": 1052769,
+    "deletions": 521541
+  },
+  "releases": {
+    "formal": [
+      {
+        "tag": "v1.8.0",
+        "publishedAt": "2026-01-12T16:52:24Z"
+      },
+      {
+        "tag": "v1.8.1",
+        "publishedAt": "2026-02-03T05:33:59Z"
+      },
+      {
+        "tag": "v1.9.0",
+        "publishedAt": "2026-02-16T17:49:41Z"
+      },
+      {
+        "tag": "v1.9.1",
+        "publishedAt": "2026-02-20T07:53:01Z"
+      },
+      {
+        "tag": "v1.10.0",
+        "publishedAt": "2026-03-18T13:27:05Z"
+      },
+      {
+        "tag": "v1.10.1",
+        "publishedAt": "2026-04-17T09:44:49Z"
+      },
+      {
+        "tag": "v1.11.0",
+        "publishedAt": "2026-05-16T11:45:50Z"
+      },
+      {
+        "tag": "v1.12.0",
+        "publishedAt": "2026-07-01T14:47:17Z"
+      },
+      {
+        "tag": "v1.12.1",
+        "publishedAt": "2026-08-08T20:33:14Z"
+      },
+      {
+        "tag": "v1.12.2",
+        "publishedAt": "2026-09-18T04:20:29Z"
+      }
+    ],
+    "patchCount": 106,
+    "patchByMonth": [
+      18,
+      22,
+      20,
+      16,
+      10,
+      3,
+      7,
+      6,
+      4,
+      0,
+      0,
+      0
+    ]
+  },
+  "contributors": {
+    "total": 25,
+    "logins": [
+      "2233qazwsx0",
+      "3316891527",
+      "AAswordman",
+      "abysssnare",
+      "AikingChoice",
+      "Alex-yang00",
+      "AnxForever",
+      "CATMIAOZHI",
+      "chrysoljq",
+      "feikukuai",
+      "HateCandy",
+      "luojiaping",
+      "MimicHunterZ",
+      "nailuoGG",
+      "Nyashiiro",
+      "okker24",
+      "profitevillager",
+      "rabbitMK2",
+      "sampple-korea",
+      "tuxKOH",
+      "Yinglianchun",
+      "yoruuuchan",
+      "Yunxi",
+      "YunXi-Aurora",
+      "zou-handy"
+    ],
+    "newcomers": [
+      {
+        "login": "2233qazwsx0",
+        "firstCommitAt": "2026-08-22T06:03:58Z"
+      },
+      {
+        "login": "3316891527",
+        "firstCommitAt": "2026-08-07T22:18:30Z"
+      },
+      {
+        "login": "abysssnare",
+        "firstCommitAt": "2026-07-20T15:03:45Z"
+      },
+      {
+        "login": "AikingChoice",
+        "firstCommitAt": "2026-08-12T18:05:54Z"
+      },
+      {
+        "login": "Alex-yang00",
+        "firstCommitAt": "2026-03-24T10:18:25Z"
+      },
+      {
+        "login": "AnxForever",
+        "firstCommitAt": "2026-08-14T06:53:03Z"
+      },
+      {
+        "login": "CATMIAOZHI",
+        "firstCommitAt": "2026-07-07T23:28:21Z"
+      },
+      {
+        "login": "chrysoljq",
+        "firstCommitAt": "2026-03-16T17:30:03Z"
+      },
+      {
+        "login": "feikukuai",
+        "firstCommitAt": "2026-05-10T07:16:23Z"
+      },
+      {
+        "login": "HateCandy",
+        "firstCommitAt": "2026-04-17T03:22:08Z"
+      },
+      {
+        "login": "luojiaping",
+        "firstCommitAt": "2026-05-30T01:02:10Z"
+      },
+      {
+        "login": "MimicHunterZ",
+        "firstCommitAt": "2026-04-06T10:41:44Z"
+      },
+      {
+        "login": "nailuoGG",
+        "firstCommitAt": "2026-08-21T10:37:35Z"
+      },
+      {
+        "login": "Nyashiiro",
+        "firstCommitAt": "2026-07-11T03:47:39Z"
+      },
+      {
+        "login": "okker24",
+        "firstCommitAt": "2026-09-07T07:12:09Z"
+      },
+      {
+        "login": "profitevillager",
+        "firstCommitAt": "2026-04-01T22:09:36Z"
+      },
+      {
+        "login": "rabbitMK2",
+        "firstCommitAt": "2026-04-29T01:14:20Z"
+      },
+      {
+        "login": "sampple-korea",
+        "firstCommitAt": "2026-05-30T13:53:42Z"
+      },
+      {
+        "login": "tuxKOH",
+        "firstCommitAt": "2026-06-14T10:52:15Z"
+      },
+      {
+        "login": "Yinglianchun",
+        "firstCommitAt": "2026-05-15T09:33:55Z"
+      },
+      {
+        "login": "yoruuuchan",
+        "firstCommitAt": "2026-08-15T12:31:59Z"
+      },
+      {
+        "login": "Yunxi",
+        "firstCommitAt": "2026-09-05T05:47:00Z"
+      },
+      {
+        "login": "YunXi-Aurora",
+        "firstCommitAt": "2026-07-09T05:00:17Z"
+      },
+      {
+        "login": "zou-handy",
+        "firstCommitAt": "2026-06-04T14:35:57Z"
+      }
+    ]
+  },
+  "pullRequests": {
+    "merged": 201
+  },
+  "issues": {
+    "opened": 654,
+    "closed": 542
+  },
+  "stars": {
+    "atStart": 2699,
+    "atEnd": 9246,
+    "byMonth": [
+      358,
+      268,
+      369,
+      557,
+      543,
+      517,
+      901,
+      1126,
+      853,
+      930,
+      125,
+      0
+    ]
+  },
+  "market": {
+    "newEntries": {
+      "script": 179,
+      "package": 333,
+      "skill": 991,
+      "mcp": 21
+    },
+    "originals": {
+      "script": 179,
+      "package": 333,
+      "skill": 16,
+      "mcp": 4
+    },
+    "publishers": 310,
+    "newPublishers": 300,
+    "downloads": 1048729,
+    "topEntries": [
+      {
+        "title": "🌸温柔巡检",
+        "type": "package",
+        "downloads": 54021,
+        "author": "yanjun62"
+      },
+      {
+        "title": "Conversation lock",
+        "type": "package",
+        "downloads": 38282,
+        "author": "ruojie108"
+      },
+      {
+        "title": "久未回复主动联系工作流模板",
+        "type": "package",
+        "downloads": 33608,
+        "author": "FrancisVael"
+      }
+    ]
+  }
+}

@@ -91,6 +91,11 @@ class ScopeClassificationTest(unittest.TestCase):
         self.assertTrue(plan.web)
         self.assertTrue(plan.android_jvm)
 
+    def test_annual_report_frontend_uses_web_lane(self) -> None:
+        plan = classify_paths(["annual-report/src/scenes/cover.ts"])
+
+        self.assertTrue(plan.web)
+
     def test_type_change_path_is_classified_normally(self) -> None:
         plan = classify_paths(["app/src/main/java/com/example/Current.kt"])
 

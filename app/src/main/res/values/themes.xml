@@ -14,4 +14,11 @@
         <!-- Customize your theme here. -->
         
     </style>
+
+    <!-- 年度报告：全屏手账页，没有标题栏，系统栏透明，背景色由 AnnualReportActivity 按深浅色设置。
+         不延伸进挖孔区：系统栏隐藏后页面顶部的进度条和关闭按钮不会被摄像头挡住。 -->
+    <style name="Theme.Operit.AnnualReport" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>

@@ -898,6 +898,9 @@ fun ToolPkgComposeDslToolScreen(
         remember(renderResult?.tree) {
             renderResult?.tree?.slots?.get("topBarTitle").orEmpty()
         }
+    // 列表滚动状态必须由宿主持有。JS 每次状态更新都会重建整棵 Compose DSL 树，
+    // 若状态只 remember 在树内部，条件分支切换或宿主重建时就会丢回顶部。
+    val scrollStateStore = rememberComposeDslScrollStateStore(routeInstanceId)
 
     fun buildModuleSpec(screenPath: String?): Map<String, Any?> =
         mapOf(
@@ -1536,7 +1539,8 @@ fun ToolPkgComposeDslToolScreen(
                         LocalComposeDslFlushTextInputHandler provides ::flushTextInputSyncsAndRerender,
                         LocalComposeDslSuspendingActionHandler provides ::dispatchActionAwait,
                         LocalComposeDslRouteInstanceId provides routeInstanceId,
-                        LocalComposeDslWebViewHost provides webViewHostContext
+                        LocalComposeDslWebViewHost provides webViewHostContext,
+                        LocalComposeDslScrollStateStore provides scrollStateStore
                     ) {
                         // Let compose_dsl content own its own scrolling behavior.
                         // Wrapping the whole screen in an outer verticalScroll changes
@@ -1610,6 +1614,7 @@ fun ToolPkgComposeDslDialogHost(
     var nextDispatchTicket by remember(request) { mutableStateOf(1L) }
     var pendingTreeRerenderJob by remember(request) { mutableStateOf<Job?>(null) }
     val settledDispatchTickets = remember(request) { mutableSetOf<Long>() }
+    val scrollStateStore = rememberComposeDslScrollStateStore(routeInstanceId)
 
     fun buildModuleSpec(): Map<String, Any?> =
         linkedMapOf<String, Any?>(
@@ -1998,7 +2003,8 @@ fun ToolPkgComposeDslDialogHost(
                 LocalComposeDslSuspendingActionHandler provides ::dispatchActionAwait,
                 LocalComposeDslDialogDismissHandler provides onDismiss,
                 LocalComposeDslRouteInstanceId provides routeInstanceId,
-                LocalComposeDslWebViewHost provides webViewHostContext
+                LocalComposeDslWebViewHost provides webViewHostContext,
+                LocalComposeDslScrollStateStore provides scrollStateStore
             ) {
                 renderComposeDslNode(
                     node = rootNode,
@@ -2018,6 +2024,7 @@ fun RenderToolPkgComposeDslNode(
     onTextInputAction: (String, String) -> Unit = { _, _ -> },
     onFlushTextInput: () -> Unit = { }
 ) {
+    val scrollStateStore = rememberComposeDslScrollStateStore("embedded")
     CompositionLocalProvider(
         LocalComposeDslActionHandler provides onAction,
         LocalComposeDslTextInputActionHandler provides onTextInputAction,
@@ -2026,7 +2033,8 @@ fun RenderToolPkgComposeDslNode(
             onAction(actionId, payload)
         },
         LocalComposeDslRouteInstanceId provides "",
-        LocalComposeDslWebViewHost provides null
+        LocalComposeDslWebViewHost provides null,
+        LocalComposeDslScrollStateStore provides scrollStateStore
     ) {
         Box(modifier = modifier) {
             renderComposeDslNode(

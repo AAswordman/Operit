@@ -11,6 +11,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
 import com.ai.assistance.operit.util.AssetCopyUtils
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.MediaPoolManager
@@ -56,6 +57,19 @@ data class ModelConnectionTestReport(
 }
 
 object ModelConfigConnectionTester {
+    /**
+     * 组装可诊断的错误文案：异常 message 可能为空（如无 message 的 IOException），
+     * 此时补上异常类型，避免只显示 "Unknown error"（#915）。
+     */
+    private fun describeError(e: Exception): String {
+        val message = e.message?.takeIf { it.isNotBlank() }
+        return if (message != null) {
+            "${e::class.simpleName}: $message"
+        } else {
+            "${e::class.simpleName}: (no message)"
+        }
+    }
+
     /**
      * One complete tool-call round trip for the Tool Call probe: the user asks, the assistant calls
      * the tool, the tool answers.
@@ -125,10 +139,12 @@ object ModelConfigConnectionTester {
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
+                        // 每个测试项失败都要记录堆栈，否则排查时看不到真实原因（#915）。
+                        AppLogger.e("ModelConfigConnectionTester", "连接测试项失败: ${type.name}", e)
                         ModelConnectionTestItem(
                             type = type,
                             outcome = ModelConnectionTestOutcome.FAILED,
-                            error = e.message
+                            error = describeError(e)
                         )
                     }
                 items.add(item)
@@ -270,12 +286,15 @@ object ModelConfigConnectionTester {
             runCatching { service.cancelStreaming() }
             throw e
         } catch (e: Exception) {
+            // 外层兜底：runCase 之外的异常（如服务创建、参数读取失败）也要透出真实原因，
+            // 否则只返回 "Unknown error"，排查时无法定位（#915）。
+            AppLogger.e("ModelConfigConnectionTester", "连接测试失败", e)
             if (items.none { it.type == ModelConnectionTestType.CHAT }) {
                 items.add(
                     ModelConnectionTestItem(
                         type = ModelConnectionTestType.CHAT,
                         outcome = ModelConnectionTestOutcome.FAILED,
-                        error = e.message ?: "Unknown error"
+                        error = describeError(e)
                     )
                 )
             }

@@ -871,6 +871,28 @@ class MarketStatsApiService {
             }
         }
 
+    /**
+     * 年度报告用：查询某个作者在市场发布过的条目。
+     * 发布者分片只收录发布过条目的作者，分片文件或分片里没有这个作者，都表示他还没有发布过任何条目，
+     * 这是数据本身的含义，所以返回空列表；网络或解析失败仍然返回失败。
+     */
+    suspend fun findPublisherEntries(authorId: String): Result<List<MarketV2PublisherEntrySummary>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val resolvedAuthorId = authorId.trim().ifBlank { error("Missing author id") }
+                val shard = resolvedAuthorId.marketShard()
+                val response =
+                    requestStaticJson(
+                        pathSegments = listOf("market", "v2", "private", "publishers", "$shard.json"),
+                        label = "findPublisherEntries authorId=$resolvedAuthorId shard=$shard",
+                        notFoundValue = MarketV2PublisherShardResponse(ok = true, shard = shard),
+                    ) { body ->
+                        json.decodeFromString(MarketV2PublisherShardResponse.serializer(), body)
+                    }
+                response.authors[resolvedAuthorId]?.entries.orEmpty()
+            }
+        }
+
     suspend fun getPublisherEntries(authorId: String): Result<List<MarketV2PublisherEntrySummary>> =
         withContext(Dispatchers.IO) {
             runCatching {
