@@ -9,7 +9,7 @@
 
 `rememberLazyListState()` 本身虽然是 saveable 的，但 saveable 只在组合仍然存活或宿主保存了组合状态时生效。Compose DSL 的树由 JS 每次状态更新后重建，条件分支、页签和对话框重建会让列表离开组合。
 
-`ModelPromptsSettingsScreen` 的 `when (currentTab)` 同样会替换整个页签内容；`CharacterCardDialog` 与 `TagDialog` 的 `rememberScrollState()` 只存在于对话框当前的组合里。
+`ModelPromptsSettingsScreen` 的 `when (currentTab)` 同样会替换整个页签内容。`CharacterCardDialog` 与 `TagDialog` 的外层 `rememberScrollState()` 本身也是可保存的，单独替换其 Saver 不能处理输入框内部的滚动、选区与焦点变化；该部分的后续修复见 [角色卡提示词编辑窗口补全](2_CharacterCardEditors.md)。
 
 ## 新实现
 
@@ -23,4 +23,5 @@
 ## 验证
 
 - JVM 单元测试：`ComposeDslScrollStateStoreTest`。
-- 手工验证：世界书列表切换条目状态、编辑页输入、角色卡与标签编辑页输入、设置页页签往返，均保持滚动位置；列表重新加载后仍能按用户滚动位置显示。
+- 手工验收范围：世界书列表切换条目状态、编辑页输入、角色卡与标签编辑页输入、设置页页签往返，以及列表重新加载后的滚动位置。
+- 2026-11-05 用户反馈：角色卡的设定、开场白、其他内容、自定义提示词和备注仍有问题，原补丁尚未完整覆盖编辑器内部状态，不能将这些窗口记为已验证通过。
