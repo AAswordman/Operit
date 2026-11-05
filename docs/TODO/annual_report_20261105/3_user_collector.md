@@ -40,4 +40,4 @@
 
 ## 期待的新实现情况
 
-[DONE] `AnnualReportCollector.collect(year)` 返回完整的 `UserReport`；token 部分与 Token 统计页在同一日期范围内一致。按仓库约定，这一步没有执行编译，需要在验证阶段编译和真机运行。
+[DONE] `AnnualReportCollector.collect(year)` 返回完整的 `UserReport`；token 部分与 Token 统计页在同一日期范围内一致。编译已在发布版构建中验证过，数据比对的验收范围见 [验证](7_verification.md)。

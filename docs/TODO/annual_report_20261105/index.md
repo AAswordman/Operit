@@ -1,7 +1,7 @@
 ---
 fork: https://github.com/luojiaping/Operit
 branch: feat/annual-report
-status: implemented, awaiting device verification
+status: accepted, sidebar entry unlocks 2027-01-03T00:00:00Z
 For_Agent: 指标口径以 1_data_contract.md 为准；开发方式见 docs/doc-src/dev-core/ANNUAL_REPORT.md
 ---
 
@@ -21,7 +21,7 @@ App 内没有年度回顾。用户侧数据分散在 Room 的 `chats`、`message
 - 前端是独立的 Vite 子项目，产物内嵌到 APK 的 assets，打开时完全离线
 - 项目数据在发版前由脚本采集为年度快照，随前端一起打包
 - 用户数据在打开报告时从本机数据只读聚合，只在 App 进程与本地 WebView 之间传递
-- 入口是侧边栏头部品牌名右侧的手绘徽章
+- 入口是侧边栏头部品牌名右侧的手绘徽章，2027-01-03 00:00 UTC 解锁，在那之前从关于页的开发测试入口进入
 - 每一项数据都要用户完成点按、长按、拖动、刮开、涂抹、拨动或撕开之后才出现
 
 音乐不在本计划内。
@@ -37,6 +37,7 @@ App 内没有年度回顾。用户侧数据分散在 Room 的 `chats`、`message
 - 贡献者名单只公开 GitHub 账号，按字母序排列，不做排名
 - 做个人化数据：stargazer 名次来自快照，插件市场作品来自市场发布者接口
 - 分享海报可以出现对话标题和角色名
+- 2027 年 1 月上线：侧边栏入口在 2027-01-03 00:00 UTC 解锁，开发测试入口是关于页连续点击 Operit 图标 10 次
 
 ## 期待结果
 
@@ -84,6 +85,7 @@ docs/doc-src/dev-core/
 
 ## 待办
 
-- 在真机上完成 [验证](7_verification.md) 里需要设备的检查
+- 在真机上检查 [验证](7_verification.md) 里「上线开关」一节
+- 1 月上线按 [开发说明](../../doc-src/dev-core/ANNUAL_REPORT.md) 里的「1 月上线接手清单」处理
 - 发版前按快照时刻重新运行采集脚本并提交快照
 - 前台使用时长记录尚未实现；如果明年的报告需要使用时长，要在今年发版时上线记录
