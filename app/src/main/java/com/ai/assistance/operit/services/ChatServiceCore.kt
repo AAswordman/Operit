@@ -168,6 +168,9 @@ class ChatServiceCore(
             addMessageToChat = { chatId, message ->
                 chatHistoryDelegate.addMessageToChat(message, chatId)
             },
+            retractStreamingMessages = { chatId, timestamps ->
+                chatHistoryDelegate.retractStreamingMessages(chatId, timestamps)
+            },
             saveCurrentChat = {
                 val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts()
                 val windowSize = tokenStatisticsDelegate.getLastCurrentWindowSize()

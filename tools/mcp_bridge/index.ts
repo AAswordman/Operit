@@ -437,6 +437,21 @@ class McpBridge {
 
             this.serviceHelpers.delete(serviceName);
             this.serviceReadyMap.set(serviceName, false);
+
+            // A helper that exits before ever reporting ready never completes the MCP
+            // handshake. Fail the pending spawn right away with the collected reason so the UI
+            // can show stderr (missing env, bad entry path, crashed process) instead of waiting
+            // out the spawn timeout and reporting only "not responding".
+            if (this.pendingSpawnRequests.has(serviceName)) {
+                const reason = this.mcpErrors.get(serviceName)
+                    || this.getServiceLogText(serviceName).trim()
+                    || `helper process exited with code ${code ?? 'unknown'} signal ${signal ?? 'none'}`;
+                this.rejectPendingSpawn(
+                    serviceName,
+                    `Service '${serviceName}' failed to start: ${reason}`
+                );
+            }
+
             // Dont unregister, allow reconnection logic to handle it
             if (this.serviceRegistry.has(serviceName)) {
                 this.handleServiceClosure(serviceName, exitSignal);
@@ -510,6 +525,15 @@ class McpBridge {
                 if (this.fatalServices.has(params.serviceName)) {
                     const errorMessage = this.mcpErrors.get(params.serviceName) || params.error || 'Fatal startup error';
                     this.rejectPendingSpawn(params.serviceName, `Service '${params.serviceName}' failed to start: ${errorMessage}`);
+                } else if (params.error && this.pendingSpawnRequests.has(params.serviceName)) {
+                    // A helper that fails before the MCP handshake already knows why (missing
+                    // file, crash, protocol error). Answer the pending spawn immediately instead
+                    // of letting the request sit until the multi-minute spawn timeout, which
+                    // hides the reason behind a generic "verification failed".
+                    this.rejectPendingSpawn(
+                        params.serviceName,
+                        `Service '${params.serviceName}' failed to start: ${params.error}`
+                    );
                 }
                 // The 'exit' event on the helper process will trigger handleServiceClosure
                 break;

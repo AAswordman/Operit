@@ -44,6 +44,7 @@ on:
       - tools/packages_whitelist.txt
       - tools/example_packages/sync_example_packages.py
       - web-chat/**
+      - annual-report/**
 
 concurrency:
   group: android-build-${{ github.event_name }}-${{ github.ref }}
@@ -184,10 +185,15 @@ jobs:
           npm install -g pnpm@10.34.5
           npm ci --no-audit --no-fund
           npm --prefix web-chat ci --no-audit --no-fund
+          npm --prefix annual-report ci --no-audit --no-fund
 
       - name: Build WebChat assets
         run: |
           npm run build:webchat
+
+      - name: Build annual report assets
+        run: |
+          npm run build:annualreport
 
       - name: Build bundled ToolPkg packages
         run: |

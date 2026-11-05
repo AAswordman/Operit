@@ -61,6 +61,7 @@ open class StandardSystemOperationTools(private val context: Context) {
 
         private const val AI_REPLY_CHANNEL_ID = "AI_REPLY_CHANNEL"
         private const val AI_REPLY_CHANNEL_NAME = "Chat Completion Reminder"
+        private const val EXTRA_OPEN_CHAT_ID = "open_chat_id"
     }
 
     private fun isOperitInternalPath(path: String): Boolean {
@@ -138,6 +139,7 @@ open class StandardSystemOperationTools(private val context: Context) {
     open suspend fun sendNotification(tool: AITool): ToolResult {
         val title = tool.parameters.find { it.name == "title" }?.value?.takeIf { it.isNotBlank() } ?: "Notification"
         val message = tool.parameters.find { it.name == "message" }?.value
+        val chatId = tool.parameters.find { it.name == "chat_id" }?.value?.trim().orEmpty()
         if (message.isNullOrBlank()) {
             return ToolResult(
                 toolName = tool.name,
@@ -161,9 +163,12 @@ open class StandardSystemOperationTools(private val context: Context) {
 
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             val pendingIntent = if (launchIntent != null) {
+                if (chatId.isNotBlank()) {
+                    launchIntent.putExtra(EXTRA_OPEN_CHAT_ID, chatId)
+                }
                 PendingIntent.getActivity(
                     context,
-                    0,
+                    chatId.hashCode(),
                     launchIntent,
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT

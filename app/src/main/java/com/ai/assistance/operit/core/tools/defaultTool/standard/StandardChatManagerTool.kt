@@ -42,8 +42,10 @@ import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.util.stream.SharedStream
+import com.ai.assistance.operit.util.stream.collectRevisionAppliedText
 import java.time.ZoneId
 import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
@@ -1746,6 +1748,10 @@ class StandardChatManagerTool(private val context: Context) {
                     )
                 )
             }
+            AppLogger.d(
+                TAG,
+                "startMessageToAIStream message ${ChatTrace.describe(message)} runtime=${runtimeSlot ?: ChatRuntimeSlot.FLOATING}"
+            )
 
             val roleCardManager = CharacterCardManager.getInstance(appContext)
             val roleCardId = tool.parameters.find { it.name == "role_card_id" }?.value?.trim()
@@ -2000,11 +2006,11 @@ class StandardChatManagerTool(private val context: Context) {
                     val aiResponse =
                         try {
                             withTimeout(session.responseTimeoutMs) {
-                                val sb = StringBuilder()
-                                session.responseStream.collect { chunk: String ->
-                                    sb.append(chunk)
-                                }
-                                sb.toString()
+                                // A retry republishes the request from its start, so the raw chunk
+                                // sequence still contains the discarded attempt. Apply the revision
+                                // events before returning the text, otherwise callers receive the
+                                // aborted tool-tag prefix glued to the retried answer.
+                                session.responseStream.collectRevisionAppliedText()
                             }
                         } catch (e: TimeoutCancellationException) {
                             runCatching { session.cancel() }
@@ -2101,7 +2107,6 @@ class StandardChatManagerTool(private val context: Context) {
                         )
                     )
 
-                    val fullResponse = StringBuilder()
                     var chunkIndex = 0
                     var receivedChars = 0
 
@@ -2130,17 +2135,16 @@ class StandardChatManagerTool(private val context: Context) {
                         try {
                             coroutineScope {
                                 val rawStreamJob = async {
-                                    session.responseStream.collect { chunk: String ->
-                                        if (chunk.isEmpty()) {
-                                            return@collect
-                                        }
-                                        fullResponse.append(chunk)
+                                    // Live listeners still receive the raw deltas, but the final
+                                    // text must be revision-applied: a retry republishes the whole
+                                    // attempt, so the raw concatenation starts with the discarded
+                                    // tool-tag prefix.
+                                    session.responseStream.collectRevisionAppliedText { chunk ->
                                         receivedChars += chunk.length
                                         if (!effectiveWaifuMode) {
                                             sendChunk(chunk)
                                         }
                                     }
-                                    fullResponse.toString()
                                 }
 
                                 val waifuStreamJob =

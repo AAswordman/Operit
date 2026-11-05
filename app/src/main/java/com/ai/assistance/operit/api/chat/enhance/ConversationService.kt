@@ -1214,8 +1214,12 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         userIntent: String?,
         multiServiceManager: MultiServiceManager
     ): String {
+        // 用 lease 借用服务：配置变更时旧服务只会被"退役"（等 lease 归还后释放），
+        // 不会在识图请求进行中被 release 掉。
+        val lease = multiServiceManager.acquireServiceForFunction(FunctionType.IMAGE_RECOGNITION)
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.IMAGE_RECOGNITION)
+            val service = lease.service
+            val modelParameters = lease.modelParameters
             
             // 添加图片到池子并获取ID
             val imageId = com.ai.assistance.operit.util.ImagePoolManager.addImage(imagePath)
@@ -1230,9 +1234,6 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
             } else {
                 "$imageLink\n$userIntent"
             }
-            
-            // 获取模型参数
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.IMAGE_RECOGNITION)
             
             // 调用AI服务分析图片
             val result = StringBuilder()
@@ -1251,6 +1252,8 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         } catch (e: Exception) {
             AppLogger.e(TAG, "识图分析失败", e)
             "Image recognition failed: ${e.message}"
+        } finally {
+            lease.close()
         }
     }
 
@@ -1259,8 +1262,10 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         userIntent: String?,
         multiServiceManager: MultiServiceManager
     ): String {
+        val lease = multiServiceManager.acquireServiceForFunction(FunctionType.AUDIO_RECOGNITION)
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.AUDIO_RECOGNITION)
+            val service = lease.service
+            val modelParameters = lease.modelParameters
 
             val mimeType = android.webkit.MimeTypeMap.getSingleton()
                 .getMimeTypeFromExtension(java.io.File(audioPath).extension.lowercase())
@@ -1278,8 +1283,6 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
                 "$audioLink\n$userIntent"
             }
 
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.AUDIO_RECOGNITION)
-
             val result = StringBuilder()
             service.sendMessage(
                 context = context,
@@ -1294,6 +1297,8 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         } catch (e: Exception) {
             AppLogger.e(TAG, "音频识别失败", e)
             "Audio recognition failed: ${e.message}"
+        } finally {
+            lease.close()
         }
     }
 
@@ -1302,8 +1307,10 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         userIntent: String?,
         multiServiceManager: MultiServiceManager
     ): String {
+        val lease = multiServiceManager.acquireServiceForFunction(FunctionType.VIDEO_RECOGNITION)
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.VIDEO_RECOGNITION)
+            val service = lease.service
+            val modelParameters = lease.modelParameters
 
             val mimeType = android.webkit.MimeTypeMap.getSingleton()
                 .getMimeTypeFromExtension(java.io.File(videoPath).extension.lowercase())
@@ -1321,8 +1328,6 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
                 "$videoLink\n$userIntent"
             }
 
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.VIDEO_RECOGNITION)
-
             val result = StringBuilder()
             service.sendMessage(
                 context = context,
@@ -1337,6 +1342,8 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         } catch (e: Exception) {
             AppLogger.e(TAG, "视频识别失败", e)
             "Video recognition failed: ${e.message}"
+        } finally {
+            lease.close()
         }
     }
 }

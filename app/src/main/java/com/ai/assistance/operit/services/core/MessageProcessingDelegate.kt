@@ -18,8 +18,10 @@ import com.ai.assistance.operit.util.stream.SharedStream
 import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
 import com.ai.assistance.operit.util.stream.TextStreamEventType
 import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
+import com.ai.assistance.operit.util.stream.applyRevisionEvents
 import com.ai.assistance.operit.util.TtsSegmenter
 import com.ai.assistance.operit.util.WaifuMessageProcessor
+import com.ai.assistance.operit.util.WaifuSegmentMessageStore
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
@@ -59,6 +61,7 @@ class MessageProcessingDelegate(
         private val getRuntimeChatHistory: suspend (String) -> List<ChatMessage>,
         private val hasUserMessage: suspend (String) -> Boolean,
         private val addMessageToChat: suspend (String, ChatMessage) -> Unit,
+        private val retractStreamingMessages: suspend (String, List<Long>) -> Unit,
         private val saveCurrentChat: suspend () -> Unit,
         private val showErrorMessage: (String) -> Unit,
         private val updateChatTitle: (chatId: String, title: String) -> Unit,
@@ -102,6 +105,35 @@ class MessageProcessingDelegate(
                 content = finalContent,
                 contentStream = null,
                 completedAt = completedAt,
+            )
+        }
+
+        internal data class TurnRuntimeReset(
+            val resetDerivedRuntime: Boolean,
+            val resetLoadingState: Boolean,
+        )
+
+        /**
+         * 计算回合收尾需要复位哪些运行态。
+         *
+         * - 只有当前回合才能复位，避免旧回合迟到的异常/取消把新回合的 loading 状态清掉；
+         * - 主动取消期间由 cancelMessageInternal 的 finally 负责把 loading 置回 false，
+         *   这里只解绑流与任务，避免两边互相覆盖。
+         */
+        internal fun planTurnRuntimeReset(
+            activeTurnId: Long,
+            turnId: Long,
+            cancellationInProgress: Boolean,
+        ): TurnRuntimeReset {
+            if (activeTurnId != turnId) {
+                return TurnRuntimeReset(
+                    resetDerivedRuntime = false,
+                    resetLoadingState = false,
+                )
+            }
+            return TurnRuntimeReset(
+                resetDerivedRuntime = true,
+                resetLoadingState = !cancellationInProgress,
             )
         }
     }
@@ -360,15 +392,18 @@ class MessageProcessingDelegate(
     private fun resolveFinalContent(aiMessage: ChatMessage): String {
         val sharedStream = aiMessage.contentStream as? SharedStream<String>
         val replayChunks = sharedStream?.replayCache
-        val eventCarrier = aiMessage.contentStream as? TextStreamEventCarrier
-
-        return if (eventCarrier?.eventChannel?.replayCache?.isNotEmpty() == true) {
-            aiMessage.content
-        } else if (!replayChunks.isNullOrEmpty()) {
-            replayChunks.joinToString(separator = "")
-        } else {
-            aiMessage.content
+        if (!replayChunks.isNullOrEmpty()) {
+            val rawContent = replayChunks.joinToString(separator = "")
+            val events =
+                (aiMessage.contentStream as? TextStreamEventCarrier)?.eventChannel?.replayCache
+                    ?: emptyList()
+            // Replaying the complete chunk and event history is the only derivation that stays
+            // identical to what the stream produced. The live aiMessage.content snapshot can be
+            // older than the replay cache when a turn ends, and a raw concatenation still contains
+            // the discarded attempt of a retried request.
+            return applyRevisionEvents(rawContent, events)
         }
+        return aiMessage.content
     }
 
     private fun ChatMessage.withTurnMetrics(
@@ -745,6 +780,36 @@ class MessageProcessingDelegate(
             val sendUserMessageStartTime = messageTimingNow()
             val effectivePersistTurn = turnOptions.persistTurn
             val effectiveHideUserMessage = effectivePersistTurn && turnOptions.hideUserMessage
+            val toolHandler = AIToolHandler.getInstance(context)
+            var workspaceToolHookSession: WorkspaceBackupManager.WorkspaceToolHookSession? = null
+            var userMessageAdded = false
+            lateinit var userMessage: ChatMessage
+            lateinit var finalMessageContent: String
+            lateinit var aiMessage: ChatMessage
+            val activeChatId = chatId
+            var serviceForTurnComplete: EnhancedAIService? = null
+            var shouldNotifyTurnComplete = false
+            var shouldFinalizeInterruptedMessage = false
+            var finalInputStateAfterSend: EnhancedInputProcessingState? = null
+            var isWaifuModeEnabled = false
+            var didStreamAutoRead = false
+            val effectiveRoleCardId = roleCardId
+            val waifuEmittedMessages = mutableListOf<ChatMessage>()
+            var syncWaifuMessageMetricsHandler: (suspend (ChatMessage) -> Unit)? = null
+            var requestSentAt = 0L
+            var requestStartElapsed = 0L
+            var firstResponseElapsed: Long? = null
+            var turnInputTokens = 0L
+            var turnOutputTokens = 0L
+            var turnCachedInputTokens = 0L
+            var calculateNextWindowSize: (suspend () -> Long?)? = null
+            var cancellationToPropagate: kotlinx.coroutines.CancellationException? = null
+            // 用户消息的构建、落库、工作区钩子与标题生成都在真正请求模型之前执行，它们同样
+            // 可能抛异常（输入处理钩子、工作区快照等）。如果把这些步骤留在 try 之外，一旦
+            // 抛异常 isLoading 会永久保持 true，之后每次发送都会被开头的 isLoading 检查
+            // 直接忽略，会话表现为彻底无响应、只能重启应用恢复。用户输入含自定义 XML
+            // 标签就是触发这条恢复缺口的实际案例，因此把整段准备工作纳入异常恢复范围。
+            try {
             // 检查这是否是聊天中的第一条用户消息（忽略AI的开场白）
             val isFirstMessage = !hasUserMessage(chatId)
             val titleFallback = if (effectivePersistTurn && isFirstMessage && chatId != null) {
@@ -777,7 +842,7 @@ class MessageProcessingDelegate(
 
             // 1. 使用 AIMessageManager 构建最终消息
             val buildUserMessageStartTime = messageTimingNow()
-            val finalMessageContent = if (prebuiltMessageContent != null) {
+            finalMessageContent = if (prebuiltMessageContent != null) {
                 prebuiltMessageContent
             } else {
                 AIMessageManager.buildUserMessageContent(
@@ -821,8 +886,7 @@ class MessageProcessingDelegate(
                 !(isGroupOrchestrationTurn &&
                         originalMessageText.isBlank() &&
                         attachments.isEmpty())
-            var userMessageAdded = false
-            var userMessage = ChatMessage(
+            userMessage = ChatMessage(
                 sender = "user",
                 content = finalMessageContent,
                 roleName = context.getString(R.string.message_role_user), // 用户消息的角色名固定为"用户"
@@ -833,9 +897,6 @@ class MessageProcessingDelegate(
                         ChatMessageDisplayMode.NORMAL
                     }
             )
-
-            val toolHandler = AIToolHandler.getInstance(context)
-            var workspaceToolHookSession: WorkspaceBackupManager.WorkspaceToolHookSession? = null
 
             // 在消息发送期间临时挂载 workspace hook，结束后卸载
             if (!workspacePath.isNullOrBlank()) {
@@ -886,25 +947,38 @@ class MessageProcessingDelegate(
                 }
             }
 
-            lateinit var aiMessage: ChatMessage
-            val activeChatId = chatId
-            var serviceForTurnComplete: EnhancedAIService? = null
-            var shouldNotifyTurnComplete = false
-            var shouldFinalizeInterruptedMessage = false
-            var finalInputStateAfterSend: EnhancedInputProcessingState? = null
-            var isWaifuModeEnabled = false
-            var didStreamAutoRead = false
-            val effectiveRoleCardId = roleCardId
-            val waifuEmittedMessages = mutableListOf<ChatMessage>()
-            var syncWaifuMessageMetricsHandler: (suspend (ChatMessage) -> Unit)? = null
-            var requestSentAt = 0L
-            var requestStartElapsed = 0L
-            var firstResponseElapsed: Long? = null
-            var turnInputTokens = 0L
-            var turnOutputTokens = 0L
-            var turnCachedInputTokens = 0L
-            var calculateNextWindowSize: (suspend () -> Long?)? = null
-            var cancellationToPropagate: kotlinx.coroutines.CancellationException? = null
+            } catch (t: Throwable) {
+                val isCancellation = t is kotlinx.coroutines.CancellationException
+                if (isCancellation) {
+                    AppLogger.d(TAG, "构建用户消息阶段被取消")
+                } else {
+                    AppLogger.e(TAG, "构建用户消息阶段失败，恢复会话状态", t)
+                    workspaceToolHookSession?.let { session ->
+                        runCatching { toolHandler.removeToolHook(session) }
+                            .onFailure {
+                                AppLogger.w(TAG, "Failed to remove workspace hook after prepare failure", it)
+                            }
+                        runCatching { session.close() }
+                            .onFailure {
+                                AppLogger.w(TAG, "Failed to close workspace hook session after prepare failure", it)
+                            }
+                    }
+                    setChatInputProcessingState(
+                        chatId,
+                        EnhancedInputProcessingState.Error(
+                            context.getString(R.string.message_send_failed, t.message)
+                        )
+                    )
+                    withContext(Dispatchers.Main) {
+                        showErrorMessage(context.getString(R.string.message_send_failed, t.message))
+                    }
+                }
+                cleanupRuntimeAfterSend(chatId, chatRuntime, turnId)
+                if (isCancellation) {
+                    throw t
+                }
+                return@launch
+            }
             try {
                 // if (!NetworkUtils.isNetworkAvailable(context)) {
                 //     withContext(Dispatchers.Main) { showErrorMessage("网络连接不可用") }
@@ -1155,11 +1229,9 @@ class MessageProcessingDelegate(
                     "创建带流的AI消息, stream is null: ${aiMessage.contentStream == null}, timestamp: ${aiMessage.timestamp}"
                 )
 
-                suspend fun emitWaifuSegment(segment: String) {
-                    if (segment.isBlank()) return
-
-                    val interrupt = waifuEmittedMessages.isEmpty()
-                    val segmentMessage =
+                val waifuMessageStore = WaifuSegmentMessageStore(
+                    messages = waifuEmittedMessages,
+                    createMessage = { segment ->
                         ChatMessage(
                             sender = "ai",
                             content = segment,
@@ -1170,13 +1242,13 @@ class MessageProcessingDelegate(
                             modelName = modelName,
                             sentAt = requestSentAt
                         )
-
-                    withContext(Dispatchers.Main) {
-                        waifuEmittedMessages += segmentMessage
+                    },
+                    appendMessage = { segmentMessage, interrupt ->
                         if (effectivePersistTurn && chatId != null) {
                             addMessageToChat(chatId, segmentMessage)
                         }
                         if (getIsAutoReadEnabled()) {
+                            val segment = segmentMessage.content
                             didStreamAutoRead = true
                             AppLogger.d(
                                 TAG,
@@ -1185,8 +1257,13 @@ class MessageProcessingDelegate(
                             speakMessageHandler(segment, interrupt)
                         }
                         tryEmitScrollToBottomThrottled(chatId)
-                    }
-                }
+                    },
+                    removeMessages = { messages ->
+                        if (effectivePersistTurn && chatId != null) {
+                            retractStreamingMessages(chatId, messages.map { it.timestamp })
+                        }
+                    },
+                )
 
                 suspend fun syncWaifuMessageMetrics(sourceMessage: ChatMessage) {
                     if (!effectivePersistTurn || chatId == null || waifuEmittedMessages.isEmpty()) return
@@ -1304,12 +1381,14 @@ class MessageProcessingDelegate(
                             val waifuSegmentsJob =
                                 if (isWaifuModeEnabled) {
                                     launch {
-                                        WaifuMessageProcessor.streamSegmentsWithTypingQueue(
+                                        WaifuMessageProcessor.streamSegmentUpdatesWithTypingQueue(
                                             sourceStream = sharedCharStream,
                                             removePunctuation = waifuRemovePunctuation,
                                             charDelayMs = waifuCharDelay
-                                        ).collect { segment ->
-                                            emitWaifuSegment(segment)
+                                        ).collect { update ->
+                                            withContext(Dispatchers.Main) {
+                                                waifuMessageStore.apply(update)
+                                            }
                                         }
                                     }
                                 } else {
@@ -1323,18 +1402,29 @@ class MessageProcessingDelegate(
                                             when (event.eventType) {
                                                 TextStreamEventType.SAVEPOINT -> {
                                                     revisionMutex.withLock {
-                                                        revisionTracker.savepoint(event.id)
+                                                        revisionTracker.savepoint(
+                                                            event.id,
+                                                            event.contentLength
+                                                        )
                                                     }
                                                 }
 
                                                 TextStreamEventType.ROLLBACK -> {
                                                     val rollbackResult =
                                                         revisionMutex.withLock {
-                                                            revisionTracker.rollback(event.id)?.let { content ->
+                                                            revisionTracker.rollback(
+                                                                event.id,
+                                                                event.contentLength,
+                                                                event.discardedLength
+                                                            )?.let { content ->
                                                                 content.toString() to claimStreamingSnapshot()
                                                             }
                                                         } ?: return@collect
                                                     val (snapshot, shouldPersist) = rollbackResult
+                                                    AppLogger.d(
+                                                        TAG,
+                                                        "revision rollback id=${event.id} targetLength=${event.contentLength} resultingLength=${snapshot.length}"
+                                                    )
 
                                                     aiMessage.content = snapshot
 
@@ -1385,7 +1475,12 @@ class MessageProcessingDelegate(
                                     // Cancellation must publish the final revision before statistics are persisted.
                                     aiMessage.content =
                                         revisionMutex.withLock {
-                                            revisionTracker.currentContent().toString()
+                                            revisionTracker
+                                                .applyEventHistory(
+                                                    revisableStream?.eventChannel?.replayCache
+                                                        ?: emptyList()
+                                                )
+                                                .toString()
                                         }
                                 }
                             }
@@ -1746,15 +1841,26 @@ class MessageProcessingDelegate(
                                 when (event.eventType) {
                                     TextStreamEventType.SAVEPOINT -> {
                                         revisionMutex.withLock {
-                                            revisionTracker.savepoint(event.id)
+                                            revisionTracker.savepoint(
+                                                event.id,
+                                                event.contentLength
+                                            )
                                         }
                                     }
 
                                     TextStreamEventType.ROLLBACK -> {
                                         val snapshot =
                                             revisionMutex.withLock {
-                                                revisionTracker.rollback(event.id)?.toString()
+                                                revisionTracker.rollback(
+                                                    event.id,
+                                                    event.contentLength,
+                                                    event.discardedLength
+                                                )?.toString()
                                             } ?: return@collect
+                                        AppLogger.d(
+                                            TAG,
+                                            "revision rollback(regenerate) id=${event.id} targetLength=${event.contentLength} resultingLength=${snapshot.length}"
+                                        )
                                         aiMessage.content = snapshot
                                     }
                                 }
@@ -1774,7 +1880,11 @@ class MessageProcessingDelegate(
                 revisionJob?.cancelAndJoin()
                 aiMessage.content =
                     revisionMutex.withLock {
-                        revisionTracker.currentContent().toString()
+                        revisionTracker
+                            .applyEventHistory(
+                                revisableStream?.eventChannel?.replayCache ?: emptyList()
+                            )
+                            .toString()
                     }
             }
 
@@ -1957,7 +2067,13 @@ class MessageProcessingDelegate(
         chatRuntime: ChatRuntime,
         turnId: Long,
     ) {
-        if (chatRuntime.activeTurnId != turnId) return
+        val resetPlan =
+            planTurnRuntimeReset(
+                activeTurnId = chatRuntime.activeTurnId,
+                turnId = turnId,
+                cancellationInProgress = chatRuntime.cancellationInProgress,
+            )
+        if (!resetPlan.resetDerivedRuntime) return
         chatRuntime.streamCollectionJob = null
         chatRuntime.stateCollectionJob?.cancel()
         chatRuntime.stateCollectionJob = null
@@ -1968,7 +2084,7 @@ class MessageProcessingDelegate(
         chatRuntime.requestStartElapsed = 0L
         chatRuntime.firstResponseElapsed = null
 
-        if (!chatRuntime.cancellationInProgress) {
+        if (resetPlan.resetLoadingState) {
             chatRuntime.isLoading.value = false
             updateGlobalLoadingState()
         }

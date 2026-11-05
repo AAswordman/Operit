@@ -1,9 +1,15 @@
 package com.ai.assistance.operit.util
 
+import android.content.Context
+import androidx.compose.ui.graphics.Color
+import com.ai.assistance.operit.ui.common.markdown.XmlRenderPlugin
+import com.ai.assistance.operit.ui.common.markdown.XmlRenderPluginRegistry
+import com.ai.assistance.operit.ui.common.markdown.XmlRenderResult
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeNoException
 import org.junit.Test
@@ -201,5 +207,160 @@ class WaifuMessageProcessorTest {
             "Bracket-delimited LaTeX must survive streaming intact: $latexSegment",
             latexSegment.startsWith("\\[") && latexSegment.endsWith("\\]")
         )
+    }
+
+    // ---- Plugins registered through ToolPkg 的 XML 渲染标签（如 voice）必须穿过 Waifu 过滤链路。
+
+    private class FixedTagXmlRenderPlugin(
+        override val id: String,
+        private val supportedTags: Set<String>,
+    ) : XmlRenderPlugin {
+        override fun supports(tagName: String): Boolean = tagName.lowercase() in supportedTags
+
+        override suspend fun resolve(
+            context: Context,
+            xmlContent: String,
+            tagName: String,
+            textColor: Color,
+            xmlStream: Stream<String>?,
+        ): XmlRenderResult = XmlRenderResult.Text(xmlContent)
+    }
+
+    private inline fun withRegisteredXmlTags(vararg tags: String, block: () -> Unit) {
+        val plugin =
+            FixedTagXmlRenderPlugin(
+                id = "test-xml-render-${tags.joinToString("-")}",
+                supportedTags = tags.map { it.lowercase() }.toSet(),
+            )
+        XmlRenderPluginRegistry.register(plugin)
+        try {
+            block()
+        } finally {
+            XmlRenderPluginRegistry.unregister(plugin.id)
+        }
+    }
+
+    @Test
+    fun isRenderablePluginXmlContent_acceptsRegisteredVoiceTag() {
+        withRegisteredXmlTags("voice") {
+            assertTrue(
+                WaifuMessageProcessor.isRenderablePluginXmlContent(
+                    "<voice src=\"/tmp/voice.wav\" duration=\"1200\"></voice>"
+                )
+            )
+        }
+    }
+
+    @Test
+    fun isRenderablePluginXmlContent_acceptsRegisteredSelfClosingTag() {
+        withRegisteredXmlTags("voice") {
+            assertTrue(WaifuMessageProcessor.isRenderablePluginXmlContent("<voice src=\"/tmp/voice.wav\"/>"))
+        }
+    }
+
+    @Test
+    fun isRenderablePluginXmlContent_rejectsUnregisteredCustomTag() {
+        withRegisteredXmlTags("voice") {
+            assertFalse(WaifuMessageProcessor.isRenderablePluginXmlContent("<dsh_test>hello</dsh_test>"))
+        }
+    }
+
+    @Test
+    fun isRenderablePluginXmlContent_rejectsControlTagsEvenWhenPluginRegistersThem() {
+        withRegisteredXmlTags("voice", "status", "tool", "emotion") {
+            assertFalse(
+                WaifuMessageProcessor.isRenderablePluginXmlContent(
+                    "<status type=\"complete\">done</status>"
+                )
+            )
+            assertFalse(
+                WaifuMessageProcessor.isRenderablePluginXmlContent(
+                    "<tool name=\"demo\"><param name=\"a\">b</param></tool>"
+                )
+            )
+            assertFalse(
+                WaifuMessageProcessor.isRenderablePluginXmlContent("<emotion>happy</emotion>")
+            )
+        }
+    }
+
+    @Test
+    fun isRenderablePluginXmlContent_rejectsUnclosedTag() {
+        withRegisteredXmlTags("voice") {
+            assertFalse(WaifuMessageProcessor.isRenderablePluginXmlContent("<voice src=\"/tmp/voice.wav\">"))
+        }
+    }
+
+    @Test
+    fun isRenderablePluginXmlBlock_requiresClosedRegisteredTag() {
+        withRegisteredXmlTags("voice") {
+            val closedBlock =
+                StructuredAssistantContentParser.Block(
+                    kind = StructuredAssistantContentParser.BlockKind.XML,
+                    rawContent = "<voice src=\"/tmp/voice.wav\"></voice>",
+                    content = "",
+                    tagName = "voice",
+                    rawTagName = "voice",
+                    closed = true,
+                )
+
+            assertTrue(WaifuMessageProcessor.isRenderablePluginXmlBlock(closedBlock))
+            assertFalse(WaifuMessageProcessor.isRenderablePluginXmlBlock(closedBlock.copy(closed = false)))
+            assertFalse(
+                WaifuMessageProcessor.isRenderablePluginXmlBlock(
+                    closedBlock.copy(rawTagName = "dsh_test", tagName = "dsh_test")
+                )
+            )
+        }
+    }
+
+    @Test
+    fun buildRenderableContentForWaifu_keepsRegisteredTagAndDropsControlXml() {
+        requireNativeStreamSplitter()
+        withRegisteredXmlTags("voice") {
+            val content = buildString {
+                append("<status type=\"complete\">done</status>\n")
+                append("点开听听，宝宝。<voice src=\"/tmp/voice.wav\"></voice>\n")
+                append("<tool name=\"demo\"><param name=\"a\">b</param></tool>")
+            }
+
+            val rendered = WaifuMessageProcessor.buildRenderableContentForWaifu(content)
+
+            assertTrue("registered voice tag must survive: $rendered", rendered.contains("<voice src=\"/tmp/voice.wav\"></voice>"))
+            assertTrue("plain text must survive: $rendered", rendered.contains("点开听听，宝宝。"))
+            assertFalse("status xml must be dropped: $rendered", rendered.contains("<status"))
+            assertFalse("tool xml must be dropped: $rendered", rendered.contains("<tool"))
+        }
+    }
+
+    @Test
+    fun splitMessageBySentences_emitsRegisteredVoiceTagAsStandaloneSegment() {
+        requireNativeStreamSplitter()
+        withRegisteredXmlTags("voice") {
+            val content = "点开听听，宝宝。<voice src=\"/tmp/voice.wav\"></voice>"
+            assertEquals(
+                listOf("点开听听，宝宝。", "<voice src=\"/tmp/voice.wav\"></voice>"),
+                WaifuMessageProcessor.splitMessageBySentences(content),
+            )
+        }
+    }
+
+    @Test
+    fun streamSegments_preservesRegisteredVoiceTagAcrossChunks() = runBlocking {
+        requireNativeStreamSplitter()
+        withRegisteredXmlTags("voice") {
+            val fullText = "点开听听，宝宝。<voice src=\"/tmp/voice.wav\"></voice>"
+            val chunkStream: Stream<String> = stream {
+                fullText.chunked(2).forEach { emit(it) }
+            }
+            val collected = mutableListOf<String>()
+            WaifuMessageProcessor.streamSegments(chunkStream).collect { collected.add(it) }
+
+            assertTrue(
+                "voice tag must be emitted as a renderable segment: $collected",
+                collected.any { it.contains("<voice") && it.contains("/tmp/voice.wav") },
+            )
+            assertTrue("surrounding text must be kept: $collected", collected.any { it.contains("点开听听") })
+        }
     }
 }

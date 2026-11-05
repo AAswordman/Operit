@@ -1,0 +1,274 @@
+/* 标题与标签 */
+.scene-header {
+  flex: none;
+  margin-bottom: 14px;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--pencil);
+}
+
+.kicker-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 60% 40% 55% 45% / 45% 60% 40% 55%;
+  background: var(--coral);
+}
+
+.title {
+  display: block;
+  margin-top: 10px;
+  font-size: 28px;
+  line-height: 1.3;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  filter: url(#ink-rough);
+}
+
+.art-text .ch {
+  display: inline-block;
+  transform: translateY(var(--y)) rotate(var(--r));
+}
+
+.art-line {
+  white-space: nowrap;
+}
+
+.marker {
+  display: inline-block;
+  padding: 0 3px;
+  margin: 0 -1px;
+  background-image: linear-gradient(176deg, transparent 50%, var(--marker) 50%, var(--marker) 92%, transparent 92%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lead {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.caption {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--pencil);
+}
+
+.em {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* 手写数字 */
+.written {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 6px;
+  line-height: 1;
+}
+
+.written svg {
+  display: block;
+}
+
+.written-unit {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.written-prefix {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+
+/* 纸胶带 */
+.tape {
+  display: block;
+  background: var(--tape);
+  transform: rotate(var(--rotate));
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+/* 手绘边框：经典的不等半径圆角。 */
+.sketch-border {
+  border: 2px solid var(--ink);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+
+.ink-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 22px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  box-shadow: 3px 4px 0 var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ink-button.is-pressed {
+  transform: translate(2px, 3px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.ink-button.primary {
+  background: var(--yellow);
+  color: #26283b;
+}
+
+/* 便利贴 */
+.sticky-board {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px 14px;
+  padding: 10px 0;
+}
+
+.sticky {
+  position: relative;
+  width: 140px;
+  height: 116px;
+  perspective: 900px;
+  transform: rotate(var(--tilt));
+  transition: transform 0.18s ease;
+}
+
+.sticky.is-pressed {
+  transform: rotate(var(--tilt)) scale(var(--press));
+}
+
+.sticky-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.sticky.is-flipped .sticky-inner {
+  transform: rotateY(180deg);
+}
+
+.sticky-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 10px 10px;
+  text-align: center;
+  color: var(--sticky-ink);
+  background-color: var(--sticky-color);
+  background-image: linear-gradient(135deg, transparent 86%, rgba(0, 0, 0, 0.09) 86%, rgba(255, 255, 255, 0.3) 100%);
+  border-radius: 3px 3px 14px 3px;
+  box-shadow: 0 10px 18px -12px rgba(30, 20, 50, 0.55), 0 1px 0 rgba(0, 0, 0, 0.04);
+  backface-visibility: hidden;
+}
+
+.sticky-front {
+  transform: rotateY(180deg);
+}
+
+.sticky-question {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.sticky-label {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.72;
+}
+
+.sticky-detail {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+
+.sticky-yellow {
+  --sticky-color: var(--sticky-yellow);
+}
+
+.sticky-pink {
+  --sticky-color: var(--sticky-pink);
+}
+
+.sticky-mint {
+  --sticky-color: var(--sticky-mint);
+}
+
+.sticky-blue {
+  --sticky-color: var(--sticky-blue);
+}
+
+.sticky-lavender {
+  --sticky-color: var(--sticky-lavender);
+}
+
+.sticky-tape {
+  position: absolute;
+  z-index: 2;
+  top: -8px;
+  left: calc(50% - 23px);
+}
+
+.sticky .written-unit {
+  color: var(--sticky-ink);
+  font-size: 13px;
+}
+
+/* 可点的东西有一点呼吸感，提示"点我"。 */
+.tappable {
+  animation: tappable-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes tappable-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 4px 10px rgba(133, 116, 255, 0.35));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tappable {
+    animation: none;
+  }
+}

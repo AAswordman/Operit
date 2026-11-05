@@ -50,5 +50,11 @@ interface McpRuntimeSession {
 
     suspend fun callTool(name: String, arguments: Map<String, Any?>): McpRuntimeCallResult
 
+    /**
+     * Human-readable reason the last [connect] failed, when the transport knows one.
+     * Startup diagnostics surface this instead of a generic verification failure.
+     */
+    fun getLastFailureDetail(): String? = null
+
     suspend fun close()
 }

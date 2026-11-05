@@ -26,6 +26,7 @@ WEB_PATTERNS = (
     "package-lock.json",
     "package.json",
     "web-chat/**",
+    "annual-report/**",
 )
 TOOLPKG_PATTERNS = (
     ".npmrc",

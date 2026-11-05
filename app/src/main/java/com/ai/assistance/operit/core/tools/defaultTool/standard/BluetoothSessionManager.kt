@@ -40,6 +40,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 object BluetoothSessionManager {
     private const val DEFAULT_SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB"
@@ -63,7 +65,10 @@ object BluetoothSessionManager {
         val address: String,
         val servicesReady: CompletableDeferred<Boolean>,
         val notifications: MutableList<BluetoothBleNotificationEntry>
-    )
+    ) {
+        @Volatile var mtu: Int = 23
+        val writeMutex = Mutex()
+    }
 
     private val classicSessions = ConcurrentHashMap<String, ClassicSession>()
     private val classicListeners = ConcurrentHashMap<String, ClassicListener>()
@@ -354,6 +359,12 @@ object BluetoothSessionManager {
                     servicesReady.complete(status == BluetoothGatt.GATT_SUCCESS)
                 }
 
+                override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        bleSessions[sessionId]?.mtu = mtu
+                    }
+                }
+
                 @Suppress("DEPRECATION")
                 override fun onCharacteristicRead(
                     gatt: BluetoothGatt,
@@ -476,34 +487,58 @@ object BluetoothSessionManager {
         val session = bleSessions[sessionId]
             ?: throw IllegalArgumentException("BLE session not found: $sessionId")
         val characteristic = findCharacteristic(session.gatt, serviceUuid, characteristicUuid)
+        // ATT write commands need no-response mode; requesting an acknowledged write can
+        // be rejected by peripherals that advertise only write_no_response.
+        val writeType = when {
+            characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0 ->
+                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+            characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0 ->
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            else -> throw IllegalArgumentException("BLE characteristic does not support writes")
+        }
         return withContext(Dispatchers.Main) {
-            val deferred = CompletableDeferred<Int>()
-            val callback = BleWriteCallback(session.gatt, characteristic, deferred)
-            callback.install()
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    val status = session.gatt.writeCharacteristic(
-                        characteristic,
-                        bytes,
-                        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-                    )
-                    if (status != BluetoothGatt.GATT_SUCCESS) {
-                        throw IllegalStateException("Failed to write BLE characteristic: $status")
+            // Hold the lock across the whole payload so concurrent transfers cannot
+            // interleave chunks or replace each other's completion waiter.
+            session.writeMutex.withLock {
+                val noResponse = writeType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                var offset = 0
+                do {
+                    // ATT reserves three MTU bytes for the opcode and attribute handle.
+                    val chunkSize = if (noResponse) {
+                        val payloadLimit = session.mtu - 3
+                        // Reject an invalid MTU so a zero-length chunk cannot stall the transfer.
+                        check(payloadLimit > 0) { "BLE MTU must exceed the three-byte ATT header" }
+                        minOf(bytes.size - offset, payloadLimit)
+                    } else bytes.size
+                    val chunk = bytes.copyOfRange(offset, offset + chunkSize)
+                    val deferred = CompletableDeferred<Int>()
+                    val callback = BleWriteCallback(session.gatt, characteristic, deferred)
+                    callback.install()
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val status = session.gatt.writeCharacteristic(characteristic, chunk, writeType)
+                            if (status != BluetoothGatt.GATT_SUCCESS) {
+                                throw IllegalStateException("Failed to write BLE characteristic: $status")
+                            }
+                        } else {
+                            characteristic.writeType = writeType
+                            characteristic.value = chunk
+                            if (!session.gatt.writeCharacteristic(characteristic)) {
+                                throw IllegalStateException("Failed to write BLE characteristic")
+                            }
+                        }
+                        val callbackStatus = withTimeoutOrNull(5000L) { deferred.await() }
+                            ?: throw IllegalStateException("BLE characteristic write timed out")
+                        if (callbackStatus != BluetoothGatt.GATT_SUCCESS) {
+                            throw IllegalStateException("BLE characteristic write failed: $callbackStatus")
+                        }
+                    } finally {
+                        callback.uninstall()
                     }
-                } else {
-                    characteristic.value = bytes
-                    if (!session.gatt.writeCharacteristic(characteristic)) {
-                        throw IllegalStateException("Failed to write BLE characteristic")
-                    }
-                }
-                val callbackStatus = withTimeoutOrNull(5000L) { deferred.await() }
-                    ?: throw IllegalStateException("BLE characteristic write timed out")
-                if (callbackStatus != BluetoothGatt.GATT_SUCCESS) {
-                    throw IllegalStateException("BLE characteristic write failed: $callbackStatus")
-                }
+                    offset += chunkSize
+                    if (noResponse && offset < bytes.size) delay(15L)
+                } while (offset < bytes.size)
                 BluetoothTransferData(sessionId = sessionId, bytesWritten = bytes.size)
-            } finally {
-                callback.uninstall()
             }
         }
     }

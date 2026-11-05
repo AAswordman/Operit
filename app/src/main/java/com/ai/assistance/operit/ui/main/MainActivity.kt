@@ -67,6 +67,7 @@ import org.json.JSONObject
 class MainActivity : ComponentActivity() {
     companion object {
         const val ACTION_OPEN_SETTINGS_SHORTCUT = "com.ai.assistance.operit.action.OPEN_SETTINGS_SHORTCUT"
+        const val EXTRA_OPEN_CHAT_ID = "open_chat_id"
     }
 
     private val TAG = "MainActivity"
@@ -106,6 +107,9 @@ class MainActivity : ComponentActivity() {
     private var pendingRouteId by mutableStateOf<String?>(null)
     private var pendingRouteArgs by mutableStateOf<Map<String, Any?>>(emptyMap())
     private var pendingRouteRequestId by mutableStateOf(0L)
+    private var pendingOpenChatId by mutableStateOf<String?>(null)
+    private var pendingOpenChatRequestId by mutableStateOf(0L)
+    private var nextChatOpenRequestId = 0L
 
     // 通知权限请求启动器
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -260,6 +264,13 @@ class MainActivity : ComponentActivity() {
                 )
             pendingRouteRequestId = System.currentTimeMillis()
             AppLogger.d(TAG, "Shortcut requested opening route: $pendingWidgetRouteId")
+            return true
+        }
+        val openChatId = intent?.getStringExtra(EXTRA_OPEN_CHAT_ID)?.trim().orEmpty()
+        if (openChatId.isNotBlank()) {
+            pendingOpenChatId = openChatId
+            pendingOpenChatRequestId = ++nextChatOpenRequestId
+            AppLogger.d(TAG, "Notification requested opening chat: $openChatId")
             return true
         }
 
@@ -636,6 +647,8 @@ class MainActivity : ComponentActivity() {
                             val routeNavRequest = pendingRouteId
                             val routeNavArgs = pendingRouteArgs
                             val routeNavRequestId = pendingRouteRequestId
+                            val chatOpenRequest = pendingOpenChatId
+                            val chatOpenRequestId = pendingOpenChatRequestId
                             val initialNavItem = when {
                                 shortcutNavItem != null -> shortcutNavItem
                                 else -> currentMainNavItem
@@ -651,6 +664,8 @@ class MainActivity : ComponentActivity() {
                                         routeNavRequest = routeNavRequest,
                                         routeNavArgs = routeNavArgs,
                                         routeNavRequestId = routeNavRequestId,
+                                        chatOpenRequest = chatOpenRequest,
+                                        chatOpenRequestId = chatOpenRequestId,
                                         onShortcutNavHandled = { handledRequestId ->
                                             if (pendingShortcutRequestId == handledRequestId) {
                                                 pendingShortcutNavItem = null
@@ -665,6 +680,12 @@ class MainActivity : ComponentActivity() {
                                                 pendingRouteId = null
                                                 pendingRouteArgs = emptyMap()
                                                 pendingRouteRequestId = 0L
+                                            }
+                                        },
+                                        onChatOpenHandled = { handledRequestId ->
+                                            if (pendingOpenChatRequestId == handledRequestId) {
+                                                pendingOpenChatId = null
+                                                pendingOpenChatRequestId = 0L
                                             }
                                         }
                                 )

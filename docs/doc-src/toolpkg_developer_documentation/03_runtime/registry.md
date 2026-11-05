@@ -197,4 +197,22 @@ registerAiProvider(definition: AiProviderRegistration): void
 - WASM 模块按容器包名和 module ID 缓存；模块字节内容变化时宿主关闭旧句柄并重新加载，包卸载时清理对应缓存。
 - 注册入口收集期不能执行 WASM 调用；模块、导出函数和 ABI 的有效性由 manifest 解析与宿主 WASM bridge 校验。
 
+## 悬浮窗
+
+### `ToolPkg.ui.floatingWindows.*`
+
+- **API 版本：** 全部成员 `@since ToolPkg API 1.1.0`；manifest `api_version` 低于 `1.1.0` 时，调用在进入实现前抛错。
+- 所有命令在宿主内单队列串行执行，并发调用按到达顺序生效；每条命令携带当前调用上下文解析出的插件包名做属主鉴权，窗口 ID 只在本包命名空间内生效。
+- `capabilities(): Promise<FloatingWindowCapabilities>`——无副作用、不弹权限提示。Android 上 `scope` 为 `system`（已授权 overlay）或 `unsupported`，`applicationOverlay` 恒为 `false`，`positioning` / `alwaysOnTop` / `clickThrough` / `focusable` 为 `true`。
+- `requestPermission(): Promise<boolean>`——已授权直接返回 `true`；未授权跳系统 overlay 权限设置页，返回值表示是否已发起跳转。设置返回后应复查 `capabilities()`。
+- `open(options): Promise<FloatingWindowInfo>`——`id` 必须是 trim 后的 1–128 字符；重复 open、单插件超过 16 个窗口、`width` / `height` 超出 16–4096 逻辑像素、`state` 非对象时 Promise 拒绝。`route` 必须是本包 `registerUiRoute` 注册的 route（匹配大小写不敏感）。初始渲染完成后才 resolve；渲染失败拒绝且不留任何窗口。布尔选项缺省值：`alwaysOnTop` 为 `true`，其余为 `false`。
+- `update(id, options, state?): Promise<FloatingWindowInfo>`——`options` 做补丁合并，未指定字段保持现值；提供 `state` 时对窗口 state 浅合并并触发重渲染。重渲染失败时 Promise 拒绝。
+- `show(id)` / `hide(id)`——切换可见性，保留 UI 会话与 JS 引擎；`hide` 后再 `show` 内容与状态不丢失。
+- `close(id): Promise<void>`——关闭窗口并释放渲染会话与引擎租约。
+- `list(): Promise<FloatingWindowInfo[]>`——只返回本包的窗口，宿主顺带修剪已被外部移除的记录。
+- 插件被禁用后，宿主在最长约 5 秒的审计周期内强制关闭其全部悬浮窗。
+- 窗口内容是插件注册的 Compose UI 路由；`open` 的 `state` 作为初始 state 进入渲染会话，页面通过 `ctx.useState` 读取，`update` 的浅合并 state 会体现在重渲染中。
+- Android 的 overlay 窗口天然位于普通应用之上：`alwaysOnTop: false` 会被记录与回显，但布局上不生效。
+- 完整示例见仓库 `examples/floating_window_demo/`（工具箱控制页 + 悬浮窗内容页）。
+
 相关页面：[包 Manifest 与资源格式](../02_package_model/package_format.md)、[Hook 参考](../05_hooks/index.md)、[API 版本规则](../09_compatibility/api_versions.md)。

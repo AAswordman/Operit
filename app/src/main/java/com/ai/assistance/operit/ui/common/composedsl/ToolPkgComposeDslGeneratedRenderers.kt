@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -371,7 +370,12 @@ internal fun renderLazyColumnNode(
     val spacing = props.dp("spacing")
     val reverseLayout = props.bool("reverseLayout", false)
     val autoScrollToEnd = props.bool("autoScrollToEnd", false)
-    val listState = rememberLazyListState()
+    val listState =
+        rememberComposeDslLazyListState(
+            nodePath = nodePath,
+            nodeType = node.type,
+            nodeKey = props["key"]
+        )
     val contentNodes = node.slotChildren("content", fallbackToChildren = true)
     val autoScrollSignature =
         if (!autoScrollToEnd) {
@@ -419,8 +423,15 @@ internal fun renderLazyRowNode(
 ) {
     val props = node.props
     val spacing = props.dp("spacing")
+    val listState =
+        rememberComposeDslLazyListState(
+            nodePath = nodePath,
+            nodeType = node.type,
+            nodeKey = props["key"]
+        )
     val contentNodes = node.slotChildren("content", fallbackToChildren = true)
     androidx.compose.foundation.lazy.LazyRow(
+        state = listState,
         modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
         horizontalArrangement = props.horizontalArrangement("horizontalArrangement", spacing),
         verticalAlignment = props.verticalAlignment("verticalAlignment")

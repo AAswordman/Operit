@@ -3,10 +3,12 @@ package com.ai.assistance.operit.ui.features.memory.screens.dialogs
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,12 +29,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.DocumentChunk
-import com.ai.assistance.operit.data.model.Memory
+
+/**
+ * Height bounds for a single document block editor.
+ *
+ * Document blocks are imported by splitting on blank lines, so a document without blank lines can
+ * arrive as one very large block. A LazyColumn measures its items with an unbounded main-axis
+ * constraint; an OutlinedTextField that is allowed to grow to its full text height can then exceed
+ * the maximum height representable by [androidx.compose.ui.unit.Constraints] (262143 px) and crash
+ * inside OutlinedTextFieldMeasurePolicy. Keep every block editor inside a bounded viewport and let
+ * the text field scroll its own content instead.
+ */
+private val ChunkEditorMinHeight = 120.dp
+private val ChunkEditorMaxHeight = 280.dp
 
 @Composable
 fun DocumentViewDialog(
@@ -61,7 +76,8 @@ fun DocumentViewDialog(
                     onValueChange = onTitleChange,
                     label = { Text(stringResource(R.string.memory_document_title)) },
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodyMedium
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    singleLine = true
                 )
                 if (folderPath.isNotEmpty()) {
                     Text(
@@ -100,11 +116,21 @@ fun DocumentViewDialog(
                     )
                 )
                 if (chunks.isEmpty() && searchQuery.isNotEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(stringResource(R.string.document_no_content_found))
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .testTag("document_chunk_list"),
+                        contentPadding = PaddingValues(vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         items(chunks, key = { it.id }) { chunk ->
                             val content = chunkStates[chunk.id] ?: ""
                             OutlinedTextField(
@@ -112,7 +138,11 @@ fun DocumentViewDialog(
                                 onValueChange = { newContent -> onChunkChange(chunk.id, newContent) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                    .heightIn(
+                                        min = ChunkEditorMinHeight,
+                                        max = ChunkEditorMaxHeight
+                                    )
+                                    .testTag("document_chunk_editor_${chunk.id}"),
                                 label = { Text(stringResource(R.string.document_block_label, chunk.chunkIndex + 1)) }
                             )
                         }

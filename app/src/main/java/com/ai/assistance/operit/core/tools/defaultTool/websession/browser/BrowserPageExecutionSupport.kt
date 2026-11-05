@@ -9,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Base64
 import android.view.View
@@ -58,7 +59,27 @@ internal class BrowserWebDownloadBridge(
     }
 }
 
-internal class BrowserAsyncBridge {
+internal class BrowserAsyncBridge(
+    private val tools: StandardBrowserSessionTools,
+    private val session: BrowserToolSession
+) {
+    @JavascriptInterface
+    fun recordClick(payload: String?) {
+        if (payload == null) {
+            AppLogger.w("BrowserNavigation", "Missing click observation payload")
+            return
+        }
+        StandardBrowserSessionTools.mainHandler.post {
+            if (StandardBrowserSessionTools.sessions[session.id] !== session) return@post
+            tools.recordBrowserClickEvent(session, payload)
+            tools.traceBrowserNavigation(
+                session,
+                "dom-click",
+                details = JSONObject().put("event", payload)
+            )
+        }
+    }
+
     @JavascriptInterface
     fun resolve(callId: String?, payload: String?) {
         if (callId.isNullOrBlank()) {
@@ -2033,7 +2054,8 @@ internal fun StandardBrowserSessionTools.locatorExpressionForElement(
 internal fun StandardBrowserSessionTools.evaluateJavascriptAsync(
     webView: WebView,
     expression: String,
-    timeoutMs: Long
+    timeoutMs: Long,
+    interruptResult: (() -> String?)? = null
 ): String {
     val callId = UUID.randomUUID().toString()
     val pending = PendingAsyncJsCall()
@@ -2084,9 +2106,24 @@ internal fun StandardBrowserSessionTools.evaluateJavascriptAsync(
             pending.latch.countDown()
         }
     }
-    if (!pending.latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
-        StandardBrowserSessionTools.pendingAsyncJsCalls.remove(callId)
-        throw RuntimeException("JavaScript execution timeout (${timeoutMs}ms)")
+    val deadline = SystemClock.elapsedRealtime() + timeoutMs
+    while (true) {
+        val remainingMs = deadline - SystemClock.elapsedRealtime()
+        if (remainingMs <= 0L) {
+            StandardBrowserSessionTools.pendingAsyncJsCalls.remove(callId)
+            throw RuntimeException("JavaScript execution timeout (${timeoutMs}ms)")
+        }
+        val waitMs = if (interruptResult == null) remainingMs else minOf(remainingMs, 50L)
+        if (pending.latch.await(waitMs, TimeUnit.MILLISECONDS)) {
+            break
+        }
+        // Modal JS pauses inside the click handler until a separate tool handles the dialog.
+        // Let that caller report the observed dialog instead of waiting for suspended JS to end.
+        val interrupted = interruptResult?.invoke()
+        if (interrupted != null) {
+            StandardBrowserSessionTools.pendingAsyncJsCalls.remove(callId)
+            return interrupted
+        }
     }
     pending.error?.let { throw RuntimeException(it) }
     return pending.result ?: "{\"ok\":true,\"value\":null}"

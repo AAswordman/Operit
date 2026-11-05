@@ -30,6 +30,7 @@ import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ImageOutputFormat
 import com.ai.assistance.operit.util.ImagePoolManager
+import com.ai.assistance.operit.util.stream.collectRevisionAppliedText
 import com.ai.assistance.operit.util.ImageRegistrationOptions
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
@@ -629,9 +630,9 @@ class PhoneAgent(
             preserveThinkInHistory = true
         )
 
-        val contentBuilder = StringBuilder()
-        responseStream.collect { chunk -> contentBuilder.append(chunk) }
-        val fullResponse = contentBuilder.toString().trim()
+        // A retried request republishes from its start, so the raw chunk sequence contains the
+        // discarded attempt. The agent parses the response text, which must be revision-applied.
+        val fullResponse = responseStream.collectRevisionAppliedText().trim()
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: AI response collected, length=${fullResponse.length}")
 
         val (thinking, answer) = parseThinkingAndAction(fullResponse)

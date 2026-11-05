@@ -18,6 +18,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.os.SystemClock
 import android.util.Base64
+import android.view.InputDevice
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -68,6 +69,39 @@ import kotlinx.coroutines.runBlocking
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
+
+/**
+ * Maps a point in the visible CSS viewport to WebView-local pixels. Apply the CSS-to-view ratio
+ * once; neither document scrolling nor the host's preview transform belongs here. Read the view
+ * dimensions on the main thread. Invalid geometry must fail, not move a tap onto another element.
+ */
+internal fun nativeTapCoordinates(
+    viewportX: Double,
+    viewportY: Double,
+    viewportWidth: Double,
+    viewportHeight: Double,
+    viewWidth: Int,
+    viewHeight: Int
+): Pair<Float, Float> {
+    require(
+        viewportWidth.isFinite() && viewportWidth > 0.0 &&
+        viewportHeight.isFinite() && viewportHeight > 0.0
+    ) { "invalid_css_viewport" }
+    require(viewWidth > 0 && viewHeight > 0) { "unmeasured_webview" }
+    require(
+        viewportX.isFinite() && viewportY.isFinite() &&
+        viewportX >= 0.0 && viewportX < viewportWidth &&
+        viewportY >= 0.0 && viewportY < viewportHeight
+    ) { "tap_outside_css_viewport" }
+    val cssToViewScale = viewWidth.toDouble() / viewportWidth
+    val x = (viewportX * cssToViewScale).toFloat()
+    val y = (viewportY * cssToViewScale).toFloat()
+    require(
+        x.isFinite() && y.isFinite() &&
+        x >= 0f && x < viewWidth && y >= 0f && y < viewHeight
+    ) { "tap_outside_webview" }
+    return x to y
+}
 
 class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor {
 
@@ -160,9 +194,12 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         val createdAt: Long = System.currentTimeMillis()
     ) {
         @Volatile var currentUrl: String = "about:blank"
+        @Volatile var pendingNavigationUrl: String? = null
         @Volatile var pageTitle: String = ""
         @Volatile var pageLoaded: Boolean = false
         @Volatile var isLoading: Boolean = false
+        @Volatile var navigationSequence: Long = 0L
+        @Volatile var lastClickTrace: BrowserClickTrace? = null
         @Volatile var canGoBack: Boolean = false
         @Volatile var canGoForward: Boolean = false
         @Volatile var hasSslError: Boolean = false
@@ -189,7 +226,8 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         val waitForTextGone: String? = null,
         val waitForTimeSeconds: Double? = null,
         val allowActivePageSwitch: Boolean = true,
-        val captureSnapshot: Boolean = true
+        val captureSnapshot: Boolean = true,
+        val clickTrace: BrowserClickTrace? = null
     )
 
     internal data class BrowserActionMarkers(
@@ -311,6 +349,9 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
 
         runOnMainSync<Unit> {
             ensureSessionAttachedOnMain(session.id)
+            // Focusing WebView can scroll its previously focused DOM node. Do it before target
+            // scrolling and measurement, never between computing a point and sending DOWN.
+            session.webView.requestFocus()
         }
         if (ref != null && requireSnapshotNode(session, ref) == null) {
             return pageError(
@@ -319,43 +360,36 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
                 "Ref $ref was not found in the current snapshot. Capture a new snapshot and retry."
             )
         }
-        val markers = captureActionMarkers(session)
+        val trace = BrowserClickTrace(UUID.randomUUID().toString())
+        session.lastClickTrace = trace
+        val initialMarkers = captureActionMarkers(session)
+        val targetDetails = checkNotNull(prepareBrowserClickTrace(session, trace, ref, selector))
+        traceBrowserNavigation(session, "click-target", details = targetDetails)
+        val markers = initialMarkers.copy(
+            consoleTimestamp = latestConsoleTimestamp(session),
+            downloadTimestamp = latestBrowserDownloadEventAt(),
+            startedAt = System.currentTimeMillis()
+        )
         val code =
             when {
                 ref != null -> buildClickCode(session, ref, button, doubleClick, modifiers)
                 else -> buildClickCodeForSelector(selector!!, button, doubleClick, modifiers)
             }
-        val useNativeTap =
-            ref != null &&
-                button == "left" &&
-                !doubleClick &&
-                modifiers.isEmpty()
+        val useNativeTap = button == "left" && !doubleClick && modifiers.isEmpty()
         val jsResult =
             when {
-                useNativeTap && dispatchNativeTapByRef(session.webView, ref!!) == true ->
-                    JSONObject()
-                        .put("ok", true)
-                        .put("ref", ref)
-                        .put("button", button)
-                        .put("doubleClick", false)
-                        .put("activationMethod", "native_webview_tap")
-                ref != null ->
-                    dispatchClickByRef(
-                        webView = session.webView,
-                        ref = ref,
-                        button = button,
-                        modifiers = modifiers,
-                        doubleClick = doubleClick
-                    )
+                !targetDetails.optBoolean("ok", false) -> targetDetails
+                useNativeTap -> dispatchNativeTap(session, targetDetails)
                 else ->
-                    dispatchClickBySelector(
-                        webView = session.webView,
-                        selector = selector!!,
+                    dispatchClickByJs(
+                        session = session,
+                        traceId = trace.id,
                         button = button,
                         modifiers = modifiers,
                         doubleClick = doubleClick
                     )
             }
+        traceBrowserNavigation(session, "click-dispatched", details = jsResult)
         if (jsResult?.optBoolean("ok", false) != true) {
             if (jsResult?.optString("error") == "ref_not_found") {
                 return pageError(
@@ -373,6 +407,8 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
             }
             return error(tool.name, "Click failed: ${jsResult?.optString("error") ?: "unknown"}")
         }
+        val requiresNavigation = useNativeTap && targetDetails.getBoolean("navigationExpected") &&
+            !isUserscriptInstallUri(Uri.parse(targetDetails.getString("href")))
         val settlement =
             settleBrowserAction(
                 initialSession = session,
@@ -380,9 +416,17 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
                 policy =
                     BrowserActionSettlementPolicy(
                         waitForDocumentReady = true,
-                        waitForTimeSeconds = 0.5
+                        waitForNavigationChange = requiresNavigation,
+                        waitForTimeSeconds = 0.5,
+                        clickTrace = trace
                     )
             )
+        val navigationFailure = trace.navigationFailure
+        if (navigationFailure != null) {
+            return pageError(
+                tool.name, settlement.session, "navigation_failed: $navigationFailure. Click ID: ${trace.id}"
+            )
+        }
         val downloadEvent = latestBrowserDownloadEventAfter(settlement.downloadMarker)
         if (downloadEvent?.status == "failed") {
             return pageError(
@@ -391,64 +435,208 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
                 "Click triggered a download, but it failed: ${downloadEvent.error ?: downloadEvent.fileName}"
             )
         }
-
+        val nonNavigationEffect =
+            settlement.session.pendingDialog != null ||
+                settlement.session.pendingFileChooserCallback != null || downloadEvent != null
+        val documentState =
+            if (!nonNavigationEffect) {
+                observeBrowserClickDocument(settlement.session, trace)
+            } else {
+                null
+            }
+        traceBrowserNavigation(
+            settlement.session,
+            "click-observed",
+            details =
+                JSONObject()
+                    .put("clickId", trace.id)
+                    .put("clickedSession", session.id)
+                    .put("timedOut", settlement.timedOut)
+                    .put("document", documentState)
+        )
+        if (trace.capturedEvent?.matchesTarget == false || trace.completedEvent?.matchesTarget == false) {
+            return pageError(tool.name, settlement.session, "click_target_missed. Click ID: ${trace.id}")
+        }
+        if (documentState != null && !documentState.optBoolean("ok", false)) {
+            return pageError(
+                tool.name,
+                settlement.session,
+                "Click was dispatched, but reading the document failed: ${documentState.getString("error")}. Click ID: ${trace.id}"
+            )
+        }
+        val navigationObserved = documentState?.optBoolean("ok", false) == true &&
+            (settlement.session.id != session.id ||
+                documentState.getString("locationHref") != markers.initialUrl ||
+                documentState.getBoolean("navigationObserved"))
+        if (settlement.timedOut && !nonNavigationEffect) {
+            val reason =
+                when {
+                    requiresNavigation && !navigationObserved && trace.completedEvent?.defaultPrevented != true ->
+                        "clicked_but_not_navigated: ${targetDetails.getString("href")}"
+                    trace.capturedEvent == null && !navigationObserved -> "click_not_observed"
+                    else -> "page_settlement_timeout"
+                }
+            return pageError(
+                tool.name,
+                settlement.session,
+                "$reason after ${DEFAULT_TIMEOUT_MS}ms. Click ID: ${trace.id}"
+            )
+        }
         return ok(
             tool.name,
             buildSettledBrowserResponse(
                 settlement = settlement,
                 code = code,
                 result =
-                    when {
-                        ref != null -> "Clicked ref=$ref with button=$button${if (doubleClick) " (double)" else ""}"
-                        else -> "Clicked selector=${selector ?: ""} with button=$button${if (doubleClick) " (double)" else ""}"
+                    buildString {
+                        if (ref != null) {
+                            append("Dispatched click for ref=$ref")
+                        } else {
+                            append("Dispatched click for selector=$selector")
+                        }
+                        append(" with button=$button${if (doubleClick) " (double)" else ""}")
+                        appendLine()
+                        appendLine("Activation: ${jsResult.getString("activationMethod")}")
+                        append("Click ID: ${trace.id}")
+                        trace.capturedEvent?.let { event ->
+                            appendLine()
+                            append("Observed DOM clicks: ${event.count}; last trusted=${event.trusted}")
+                        }
+                        if (navigationObserved) {
+                            appendLine()
+                            append("Navigation observed")
+                        } else if (requiresNavigation && trace.completedEvent?.defaultPrevented == true) {
+                            appendLine()
+                            append("Default navigation was prevented by the page handler")
+                        }
+                        if (documentState != null) {
+                            appendLine()
+                            append("Observed document URL: ${documentState.getString("locationHref")}")
+                            if (documentState.getBoolean("navigationUrlReadable")) {
+                                appendLine()
+                                append("Observed target URL: ${documentState.getString("navigationUrl")}")
+                            }
+                        }
                     }
             )
         )
     }
 
-    private fun dispatchNativeTapByRef(webView: WebView, ref: String): Boolean {
-        val rect = resolveElementRect(webView, ref) ?: return false
-        val pageScale = webView.scale.takeIf { it > 0f } ?: 1f
-        val x =
-            (((rect.left + rect.right) / 2f) * pageScale)
-                .coerceIn(1f, (webView.width - 1).coerceAtLeast(1).toFloat())
-        val y =
-            (((rect.top + rect.bottom) / 2f) * pageScale)
-                .coerceIn(1f, (webView.height - 1).coerceAtLeast(1).toFloat())
-        return runOnMainSync {
-            try {
-                webView.requestFocus()
+    private data class NativeTapGesture(
+        val x: Float,
+        val y: Float,
+        val downTime: Long,
+        val downHandled: Boolean
+    )
+
+    private fun nativeTouchEvent(action: Int, downTime: Long, x: Float, y: Float): MotionEvent {
+        val properties = MotionEvent.PointerProperties()
+        properties.id = 0
+        properties.toolType = MotionEvent.TOOL_TYPE_FINGER
+        val coordinates = MotionEvent.PointerCoords()
+        coordinates.x = x
+        coordinates.y = y
+        coordinates.pressure = if (action == MotionEvent.ACTION_DOWN) 1f else 0f
+        coordinates.size = 1f
+        return MotionEvent.obtain(
+            downTime, SystemClock.uptimeMillis(), action, 1,
+            arrayOf(properties), arrayOf(coordinates), 0, 0, 1f, 1f, 0, 0,
+            InputDevice.SOURCE_TOUCHSCREEN, 0
+        )
+    }
+
+    private fun dispatchNativeTap(session: WebSession, target: JSONObject): JSONObject {
+        val webView = session.webView
+        val point = target.getJSONObject("point")
+        val viewport = target.getJSONObject("viewport")
+        val clickId = target.getString("clickId")
+        val gesture =
+            runOnMainSync {
+                check(webView.isAttachedToWindow) { "webview_not_attached" }
+                check(activeSessionId == session.id && session.lastClickTrace?.id == clickId) {
+                    "click_context_changed"
+                }
+                val (x, y) =
+                    nativeTapCoordinates(
+                        viewportX = point.getDouble("x"),
+                        viewportY = point.getDouble("y"),
+                        viewportWidth = viewport.getDouble("width"),
+                        viewportHeight = viewport.getDouble("height"),
+                        viewWidth = webView.width,
+                        viewHeight = webView.height
+                    )
                 val downTime = SystemClock.uptimeMillis()
-                val down =
-                    MotionEvent.obtain(
-                        downTime,
-                        downTime,
-                        MotionEvent.ACTION_DOWN,
-                        x,
-                        y,
-                        0
-                    )
-                val up =
-                    MotionEvent.obtain(
-                        downTime,
-                        downTime + 16L,
-                        MotionEvent.ACTION_UP,
-                        x,
-                        y,
-                        0
-                    )
-                try {
-                    val downHandled = webView.dispatchTouchEvent(down)
-                    val upHandled = webView.dispatchTouchEvent(up)
-                    downHandled || upHandled
+                val down = nativeTouchEvent(MotionEvent.ACTION_DOWN, downTime, x, y)
+                val accepted = try {
+                    webView.dispatchTouchEvent(down)
                 } finally {
                     down.recycle()
-                    up.recycle()
                 }
-            } catch (_: Throwable) {
-                false
+                NativeTapGesture(x, y, downTime, accepted)
+            }
+        fun result(): JSONObject =
+            JSONObject()
+                .put("ok", false)
+                .put("clickId", clickId)
+                .put("activationMethod", "native_webview_tap")
+                .put("cssPoint", point)
+                .put("cssViewport", viewport)
+                .put("x", gesture.x)
+                .put("y", gesture.y)
+                .put("downHandled", gesture.downHandled)
+        val cancel = Runnable {
+            if (!webView.isAttachedToWindow) return@Runnable
+            val event = nativeTouchEvent(MotionEvent.ACTION_CANCEL, gesture.downTime, gesture.x, gesture.y)
+            try {
+                webView.dispatchTouchEvent(event)
+            } finally {
+                event.recycle()
             }
         }
+        if (!gesture.downHandled) {
+            mainHandler.post(cancel)
+            return result().put("error", "native_tap_not_accepted")
+        }
+        val completed = CountDownLatch(1)
+        var dispatchResult: JSONObject? = null
+        val release = Runnable {
+            val outcome = result()
+            try {
+                if (!webView.isAttachedToWindow || activeSessionId != session.id ||
+                    session.lastClickTrace?.id != clickId) {
+                    cancel.run()
+                    outcome.put("error", "click_context_changed")
+                } else {
+                    val up = nativeTouchEvent(MotionEvent.ACTION_UP, gesture.downTime, gesture.x, gesture.y)
+                    val accepted = try {
+                        webView.dispatchTouchEvent(up)
+                    } finally {
+                        up.recycle()
+                    }
+                    outcome.put("ok", accepted).put("upHandled", accepted)
+                    if (!accepted) outcome.put("error", "native_tap_not_accepted")
+                }
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Native click dispatch failed for session=${session.id}", e)
+                outcome.put("error", e.toString())
+            } finally {
+                dispatchResult = outcome
+                try {
+                    traceBrowserNavigation(session, "native-tap", details = outcome)
+                } finally {
+                    completed.countDown()
+                }
+            }
+        }
+        // A future-dated UP dispatched in the DOWN stack is not a real tap sequence. Let WebView
+        // process DOWN first, then deliver UP on the main thread with its actual event time.
+        mainHandler.postDelayed(release, 32L)
+        if (!completed.await(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+            mainHandler.removeCallbacks(release)
+            mainHandler.post(cancel)
+            return result().put("error", "native_tap_timeout")
+        }
+        return checkNotNull(dispatchResult)
     }
 
     private fun buildClickCodeForSelector(
@@ -473,126 +661,88 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         }
     }
 
-    private fun dispatchClickByRef(
-        webView: WebView,
-        ref: String,
+    private fun dispatchClickByJs(
+        session: WebSession,
+        traceId: String,
         button: String,
         modifiers: Set<String>,
         doubleClick: Boolean
     ): JSONObject? {
-        val buttonValue =
-            when (button) {
-                "middle" -> 1
-                "right" -> 2
-                else -> 0
-            }
-        val buttonsValue =
-            when (button) {
-                "middle" -> 4
-                "right" -> 2
-                else -> 1
-            }
-
+        val buttonValue = when (button) {
+            "middle" -> 1
+            "right" -> 2
+            else -> 0
+        }
+        val buttonsValue = when (button) {
+            "middle" -> 4
+            "right" -> 2
+            else -> 1
+        }
         val altKey = modifiers.contains("Alt")
         val controlKey = modifiers.contains("Control") || modifiers.contains("ControlOrMeta")
         val metaKey = modifiers.contains("Meta") || modifiers.contains("ControlOrMeta")
         val shiftKey = modifiers.contains("Shift")
-
         val script =
             """
             (function() {
                 try {
-                    const refValue = ${quoteJs(ref)};
-                    ${browserRefResolverScript()}
-                    const resolved = __operitResolveRef(refValue);
-                    if (!resolved || !resolved.element) {
-                        return JSON.stringify({ ok: false, error: "ref_not_found", ref: refValue });
+                    const trace = window.__operitBrowserClickTrace;
+                    if (!trace || trace.id !== ${quoteJs(traceId)} || !trace.target.isConnected) {
+                        return JSON.stringify({ ok: false, error: "click_target_changed" });
                     }
-                    const target = resolved.element;
-                    const targetWindow = resolved.window || window;
+                    const target = trace.target;
+                    const targetWindow = trace.targetWindow;
                     const anchor = target.closest('a[href]');
-                    try { target.scrollIntoView({ block: "center", inline: "center" }); } catch (_) {}
-                    const rect = target.getBoundingClientRect();
-                    const x = rect.left + rect.width / 2;
-                    const y = rect.top + rect.height / 2;
-
-                    try { target.focus({ preventScroll: true }); } catch (_) {}
-
-                    const buttonValue = ${buttonValue};
-                    const buttonsValue = ${buttonsValue};
-                    const altKey = ${if (altKey) "true" else "false"};
-                    const ctrlKey = ${if (controlKey) "true" else "false"};
-                    const metaKey = ${if (metaKey) "true" else "false"};
-                    const shiftKey = ${if (shiftKey) "true" else "false"};
-
-                    function emit(type, detail) {
-                        try {
-                            const MouseEventCtor = targetWindow.MouseEvent || MouseEvent;
-                            target.dispatchEvent(new MouseEventCtor(type, {
-                                bubbles: true,
-                                cancelable: true,
-                                composed: true,
-                                view: targetWindow,
-                                detail: detail,
-                                clientX: x,
-                                clientY: y,
-                                screenX: x,
-                                screenY: y,
-                                button: buttonValue,
-                                buttons: buttonsValue,
-                                altKey,
-                                ctrlKey,
-                                metaKey,
-                                shiftKey
-                            }));
-                        } catch (_) {}
+                    const { x, y } = trace.geometry.targetPoint;
+                    if (typeof target.focus === "function") target.focus({ preventScroll: true });
+                    const hit = target.ownerDocument.elementFromPoint(x, y);
+                    if (hit !== target && (hit === null || !target.contains(hit))) {
+                        return JSON.stringify({ ok: false, error: "click_target_moved" });
                     }
-
+                    function emit(type, detail) {
+                        target.dispatchEvent(new targetWindow.MouseEvent(type, {
+                            bubbles: true, cancelable: true, composed: true, view: targetWindow,
+                            detail, clientX: x, clientY: y, screenX: x, screenY: y,
+                            button: $buttonValue,
+                            buttons: type === "mousedown" ? $buttonsValue : 0,
+                            altKey: ${if (altKey) "true" else "false"},
+                            ctrlKey: ${if (controlKey) "true" else "false"},
+                            metaKey: ${if (metaKey) "true" else "false"},
+                            shiftKey: ${if (shiftKey) "true" else "false"}
+                        }));
+                    }
                     function clickOnce(detail) {
                         emit("mousedown", detail);
                         emit("mouseup", detail);
                         emit("click", detail);
                     }
-
-                    let activationMethod = "mouse_event";
-                    let activationTag = String(target.tagName || "").toLowerCase();
-                    const nativeAnchorClickEligible = !${if (doubleClick) "true" else "false"} &&
-                        buttonValue === 0 && !altKey && !ctrlKey && !metaKey && !shiftKey &&
-                        !!anchor && typeof anchor.click === "function";
-
-                    setTimeout(() => {
-                        try {
-                            if (nativeAnchorClickEligible) {
-                                activationMethod = "native_anchor_click";
-                                activationTag = String(anchor.tagName || "").toLowerCase();
-                                anchor.click();
-                            } else if (${if (doubleClick) "true" else "false"}) {
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            try {
                                 clickOnce(1);
-                                clickOnce(2);
-                                emit("dblclick", 2);
-                            } else {
-                                clickOnce(1);
+                                if (${if (doubleClick) "true" else "false"}) {
+                                    clickOnce(2);
+                                    emit("dblclick", 2);
+                                }
+                                resolve(JSON.stringify({
+                                    ok: true, clickId: trace.id,
+                                    button: ${quoteJs(button)},
+                                    doubleClick: ${if (doubleClick) "true" else "false"},
+                                    activationMethod: "mouse_event",
+                                    tag: target.tagName.toLowerCase(),
+                                    href: anchor ? anchor.href : null
+                                }));
+                            } catch (error) {
+                                resolve(JSON.stringify({ ok: false, error: String(error) }));
                             }
-                        } catch (_) {}
-                    }, 0);
-
-                    return JSON.stringify({
-                        ok: true,
-                        ref: refValue,
-                        button: ${quoteJs(button)},
-                        doubleClick: ${if (doubleClick) "true" else "false"},
-                        tag: String(target.tagName || "").toLowerCase(),
-                        activationMethod,
-                        activationTag,
-                        href: anchor ? String(anchor.href || "") : ""
+                        }, 0);
                     });
-                } catch (e) {
-                    return JSON.stringify({ ok: false, error: String(e) });
+                } catch (error) {
+                    return JSON.stringify({ ok: false, error: String(error) });
                 }
             })();
             """.trimIndent()
-
-        return runJsonScript(webView, script, "click_dispatch_error")
+        return runJsonScript(session.webView, script, "click_dispatch_error", dialogSession = session)
     }
 
     private fun dispatchHoverByRef(webView: WebView, ref: String): JSONObject? {
@@ -686,136 +836,38 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         return runJsonScript(webView, script, "drag_dispatch_error")
     }
 
-    private fun dispatchClickBySelector(
+    internal fun runJsonScript(
         webView: WebView,
-        selector: String,
-        button: String,
-        modifiers: Set<String>,
-        doubleClick: Boolean
+        script: String,
+        fallbackError: String,
+        dialogSession: WebSession? = null
     ): JSONObject? {
-        val buttonValue =
-            when (button) {
-                "middle" -> 1
-                "right" -> 2
-                else -> 0
-            }
-        val buttonsValue =
-            when (button) {
-                "middle" -> 4
-                "right" -> 2
-                else -> 1
-            }
-
-        val altKey = modifiers.contains("Alt")
-        val controlKey = modifiers.contains("Control") || modifiers.contains("ControlOrMeta")
-        val metaKey = modifiers.contains("Meta") || modifiers.contains("ControlOrMeta")
-        val shiftKey = modifiers.contains("Shift")
-
-        val script =
-            """
-            (function() {
-                try {
-                    const selectorValue = ${quoteJs(selector)};
-                    const target = document.querySelector(selectorValue);
-                    if (!target) {
-                        return JSON.stringify({ ok: false, error: "selector_not_found", selector: selectorValue });
+        val startedAt = System.currentTimeMillis()
+        val interruptResult: (() -> String?)? =
+            if (dialogSession != null) {
+                {
+                    val dialog = dialogSession.pendingDialog
+                    if (dialog != null && dialog.timestamp >= startedAt) {
+                        val clickResult =
+                            JSONObject()
+                                .put("ok", true)
+                                .put("activationMethod", "dom_dialog")
+                                .put("dialogType", dialog.type)
+                        JSONObject().put("ok", true).put("value", clickResult.toString()).toString()
+                    } else {
+                        null
                     }
-                    const targetWindow = target.ownerDocument && target.ownerDocument.defaultView ? target.ownerDocument.defaultView : window;
-                    const anchor = target.closest('a[href]');
-                    try { target.scrollIntoView({ block: "center", inline: "center" }); } catch (_) {}
-                    const rect = target.getBoundingClientRect();
-                    const x = rect.left + rect.width / 2;
-                    const y = rect.top + rect.height / 2;
-
-                    try { target.focus({ preventScroll: true }); } catch (_) {}
-
-                    const buttonValue = ${buttonValue};
-                    const buttonsValue = ${buttonsValue};
-                    const altKey = ${if (altKey) "true" else "false"};
-                    const ctrlKey = ${if (controlKey) "true" else "false"};
-                    const metaKey = ${if (metaKey) "true" else "false"};
-                    const shiftKey = ${if (shiftKey) "true" else "false"};
-
-                    function emit(type, detail) {
-                        try {
-                            const MouseEventCtor = targetWindow.MouseEvent || MouseEvent;
-                            target.dispatchEvent(new MouseEventCtor(type, {
-                                bubbles: true,
-                                cancelable: true,
-                                composed: true,
-                                view: targetWindow,
-                                detail: detail,
-                                clientX: x,
-                                clientY: y,
-                                screenX: x,
-                                screenY: y,
-                                button: buttonValue,
-                                buttons: buttonsValue,
-                                altKey,
-                                ctrlKey,
-                                metaKey,
-                                shiftKey
-                            }));
-                        } catch (_) {}
-                    }
-
-                    function clickOnce(detail) {
-                        emit("mousedown", detail);
-                        emit("mouseup", detail);
-                        emit("click", detail);
-                    }
-
-                    let activationMethod = "mouse_event";
-                    let activationTag = String(target.tagName || "").toLowerCase();
-                    const nativeAnchorClickEligible = !${if (doubleClick) "true" else "false"} &&
-                        buttonValue === 0 && !altKey && !ctrlKey && !metaKey && !shiftKey &&
-                        !!anchor && typeof anchor.click === "function";
-
-                    setTimeout(() => {
-                        try {
-                            if (nativeAnchorClickEligible) {
-                                activationMethod = "anchor_click";
-                                activationTag = String(anchor.tagName || "").toLowerCase();
-                                anchor.click();
-                                return;
-                            }
-                            clickOnce(1);
-                            if (${if (doubleClick) "true" else "false"}) {
-                                emit("mousedown", 2);
-                                emit("mouseup", 2);
-                                emit("click", 2);
-                                emit("dblclick", 2);
-                            }
-                            if (buttonValue === 0 && typeof target.click === "function") {
-                                activationMethod = "native_click";
-                                target.click();
-                            }
-                        } catch (_) {}
-                    }, 0);
-
-                    return JSON.stringify({
-                        ok: true,
-                        selector: selectorValue,
-                        button: ${quoteJs(button)},
-                        doubleClick: ${if (doubleClick) "true" else "false"},
-                        activationMethod,
-                        activationTag
-                    });
-                } catch (e) {
-                    return JSON.stringify({ ok: false, error: String(e) });
                 }
-            })();
-            """.trimIndent()
-        return runJsonScript(webView, script, "click_dispatch_error")
-    }
-
-    internal fun runJsonScript(webView: WebView, script: String, fallbackError: String): JSONObject? {
+            } else {
+                null
+            }
         return try {
             val payload =
                 evaluateJavascriptAsync(
                     webView,
                     script,
-                    DEFAULT_TIMEOUT_MS.coerceIn(2_000L, 8_000L)
+                    DEFAULT_TIMEOUT_MS.coerceIn(2_000L, 8_000L),
+                    interruptResult = interruptResult
                 )
             JSONObject(extractAsyncJsValue(payload))
         } catch (e: Exception) {

@@ -166,6 +166,12 @@ const finalResult = await toolCall(
 | `test_model_config_connection` | `ModelConfigConnectionTestResultData` |
 | `trigger_tasker_event` | `string` |
 
+BLE 特征写入会根据特征属性选择模式：支持 `write_no_response` 时使用无响应写入，仅支持 `write` 时使用有响应写入；不支持这两种属性的特征会被拒绝。`bluetooth_ble_write_characteristic` 与 `bluetooth_ble_write_and_read_characteristic` 共用这一行为，参数和返回类型不变。
+
+无响应写入按当前会话 MTU 减 3 字节分块，初始 MTU 为 23，即每块最多 20 字节；只有成功的 MTU 回调会更新上限，工具不会主动请求更大的 MTU。同一会话的完整写入按顺序执行，每块等待成功回调并间隔 15 ms 后发送下一块。有响应写入保持单次提交，空数据也仍提交一次写入。
+
+提交失败、回调失败、每块等待超过 5 秒或调用取消会终止后续分块；只有所有分块成功才报告完整的 `bytesWritten`，失败时外设可能已收到部分数据。成功的 Android 写入回调表示蓝牙栈完成写入，不代表打印机等外设应用已经消费这些字节。
+
 ### UI 操作
 
 | 工具名 | 返回数据类型 |

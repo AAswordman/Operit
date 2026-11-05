@@ -3,15 +3,13 @@ package com.ai.assistance.operit.util
 import android.content.Context
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
+import com.ai.assistance.operit.ui.common.markdown.XmlRenderPluginRegistry
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
+import com.ai.assistance.operit.util.streamnative.NativeMarkdownSplitter
 import com.ai.assistance.operit.util.streamnative.nativeMarkdownSplitByBlock
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 
@@ -38,6 +36,31 @@ object WaifuMessageProcessor {
         Regex("""(?<![@\w])(?:www\.)?(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d+)?(?:[/?#]$URL_CHARS*)?""")
     private val ENTITY_PLACEHOLDER_REGEX =
         Regex("${Regex.escape(ENTITY_PLACEHOLDER_PREFIX)}\\d+${Regex.escape(ENTITY_PLACEHOLDER_SUFFIX)}")
+
+    /**
+     * 不能按"插件渲染标签"放行的内部标签：控制信息、上下文包装标签，以及仍由
+     * 表情转换链路单独处理的 emotion。即使插件注册了同名渲染器，这些标签也必须
+     * 继续被过滤，否则思考过程、工具调用、附件上下文会重新出现在聊天气泡里。
+     */
+    private val nonRenderableXmlTags =
+        setOf(
+            "think",
+            "thinking",
+            "search",
+            "tool",
+            "tool_result",
+            "status",
+            "meta",
+            "emotion",
+            "memory",
+            "attachment",
+            "workspace_attachment",
+            "proxy_sender",
+            "reply_to",
+            "content",
+            "error",
+            "param",
+        )
     
     private var customEmojiRepository: CustomEmojiRepository? = null
     private var activePromptManager: ActivePromptManager? = null
@@ -101,53 +124,11 @@ object WaifuMessageProcessor {
     fun streamSegments(
         sourceStream: Stream<String>,
         removePunctuation: Boolean = false,
-    ): Stream<String> = stream {
-        val session = StreamingSession(removePunctuation = removePunctuation)
-        val renderableBuffer = StringBuilder()
-
-        suspend fun appendRenderableText(text: String) {
-            if (text.isEmpty()) {
-                return
-            }
-            renderableBuffer.append(text)
-            session.collectStableSegments(renderableBuffer.toString()).forEach { emit(it) }
-        }
-
-        sourceStream.nativeMarkdownSplitByBlock().collect { blockGroup ->
-            val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
-            when (blockType) {
-                MarkdownProcessorType.XML_BLOCK -> {
-                    blockGroup.stream.collect { }
-                }
-
-                MarkdownProcessorType.CODE_BLOCK,
-                MarkdownProcessorType.TABLE,
-                MarkdownProcessorType.IMAGE -> {
-                    val blockBuilder = StringBuilder()
-                    blockGroup.stream.collect { blockBuilder.append(it) }
-                    appendRenderableText(blockBuilder.toString())
-                }
-
-                MarkdownProcessorType.BLOCK_LATEX -> {
-                    val blockBuilder = StringBuilder()
-                    blockGroup.stream.collect { blockBuilder.append(it) }
-                    // The `$$…$$` block plugin strips its delimiters; the paren/bracket variant
-                    // keeps them. Re-attach `$$` when missing so the accumulated buffer still
-                    // parses as BLOCK_LATEX on the second pass and the chat bubble renderer
-                    // recognizes the segment as a LaTeX block.
-                    appendRenderableText(ensureBlockLatexDelimiters(blockBuilder.toString()))
-                }
-
-                else -> {
-                    blockGroup.stream.collect { piece ->
-                        appendRenderableText(piece)
-                    }
-                }
-            }
-        }
-
-        session.collectFinalSegments(renderableBuffer.toString()).forEach { emit(it) }
-    }
+    ): Stream<String> = streamSegmentsWithTypingQueue(
+        sourceStream = sourceStream,
+        removePunctuation = removePunctuation,
+        charDelayMs = 0,
+    )
 
     /**
      * Ensure a BLOCK_LATEX body carries a recognized block delimiter pair.
@@ -196,47 +177,94 @@ object WaifuMessageProcessor {
         removePunctuation: Boolean = false,
         charDelayMs: Int,
     ): Stream<String> = stream {
-        coroutineScope {
-            val segmentQueue = Channel<String>(Channel.UNLIMITED)
-            val producerJob = launch {
-                try {
-                    streamSegments(
-                        sourceStream = sourceStream,
-                        removePunctuation = false,
-                    ).collect { segment ->
-                        val queuedSegment =
-                            if (removePunctuation) {
-                                removeSentenceEndPunctuation(segment)
-                            } else {
-                                segment
-                            }
-                        if (queuedSegment.isNotBlank()) {
-                            segmentQueue.send(queuedSegment)
-                        }
-                    }
-                } finally {
-                    segmentQueue.close()
-                }
-            }
-
-            var isFirstSegment = true
-            for (segment in segmentQueue) {
-                val waitMs =
-                    calculateTypingDelayMs(
-                        segmentLength = segment.length,
-                        charDelayMs = charDelayMs,
-                        isFirstSegment = isFirstSegment,
-                    )
-                if (waitMs > 0L) {
-                    delay(waitMs)
-                }
-
-                emit(segment)
-                isFirstSegment = false
-            }
-
-            producerJob.join()
+        // Tool/HTTP delta consumers remain append-only; their final full response is collected
+        // from the revisable source. The chat UI consumes Retain updates as well as Append.
+        streamSegmentUpdatesWithTypingQueue(
+            sourceStream = sourceStream,
+            removePunctuation = removePunctuation,
+            charDelayMs = charDelayMs,
+        ).collect { update ->
+            if (update is WaifuSegmentUpdate.Append) emit(update.content)
         }
+    }
+
+    internal fun streamSegmentUpdatesWithTypingQueue(
+        sourceStream: Stream<String>,
+        removePunctuation: Boolean = false,
+        charDelayMs: Int,
+    ): Stream<WaifuSegmentUpdate> = streamWaifuUpdates(
+        sourceStream = sourceStream,
+        splitSnapshot = { content, final ->
+            val session = NativeMarkdownSplitter.createBlockSession()
+            val renderable = try {
+                buildRenderableSnapshot(content, final, session.push(content))
+            } finally {
+                session.destroy()
+            }
+            val segments = if (final) {
+                splitMessageBySentences(renderable)
+            } else {
+                splitStableMessageSegments(renderable)
+            }
+            if (removePunctuation) {
+                segments.map(::removeSentenceEndPunctuation).filter { it.isNotBlank() }
+            } else {
+                segments
+            }
+        },
+        typingDelayMs = { length, first -> calculateTypingDelayMs(length, charDelayMs, first) },
+    )
+
+    /** Replays native block events without treating the current live snapshot as an EOF. */
+    internal fun buildRenderableSnapshot(
+        content: String,
+        final: Boolean,
+        nativeSegments: IntArray,
+    ): String {
+        val renderable = StringBuilder()
+        val block = StringBuilder()
+        var activeType: MarkdownProcessorType? = null
+
+        fun closeBlock() {
+            when (activeType) {
+                MarkdownProcessorType.XML_BLOCK -> {
+                    val xml = block.toString()
+                    if (isRenderablePluginXmlContent(xml)) renderable.append(xml)
+                }
+                MarkdownProcessorType.BLOCK_LATEX ->
+                    renderable.append(ensureBlockLatexDelimiters(block.toString()))
+                else -> renderable.append(block)
+            }
+            block.setLength(0)
+            activeType = null
+        }
+
+        require(nativeSegments.size % 3 == 0)
+        for (index in nativeSegments.indices step 3) {
+            val ordinal = nativeSegments[index]
+            if (ordinal < 0) {
+                closeBlock()
+                continue
+            }
+            val type = MarkdownProcessorType.entries[ordinal]
+            if (type != activeType) {
+                closeBlock()
+                activeType = type
+            }
+            val piece = content.substring(nativeSegments[index + 1], nativeSegments[index + 2])
+            when (type) {
+                MarkdownProcessorType.XML_BLOCK,
+                MarkdownProcessorType.CODE_BLOCK,
+                MarkdownProcessorType.TABLE,
+                MarkdownProcessorType.IMAGE,
+                MarkdownProcessorType.BLOCK_LATEX -> block.append(piece)
+                else -> renderable.append(piece)
+            }
+        }
+        // A live native session has not closed its active protected block yet. Publishing it
+        // here would flash partial code/tables/LaTeX and recreate their bubbles on every chunk.
+        if (final) closeBlock()
+        return renderable.toString()
     }
 
     fun streamTtsText(sourceStream: Stream<String>): Stream<Char> = stream {
@@ -736,6 +764,53 @@ object WaifuMessageProcessor {
         }
     }
 
+    /**
+     * 判断某个标签名是否由插件渲染器接管，同时排除内部控制标签。
+     *
+     * 这里复用 [XmlRenderPluginRegistry] 的注册信息，而不是在消息链路上另立一份白名单：
+     * ToolPkg 通过 `registerXmlRenderPlugin` 注册的标签（如 voice）会随包同步进入注册表，
+     * 消息分段只保留这些标签，其余未知 XML 仍然按控制信息丢弃。
+     */
+    private fun isRenderablePluginTagName(rawTagName: String): Boolean {
+        val tagName = rawTagName.trim().lowercase()
+        if (tagName.isEmpty() || tagName in nonRenderableXmlTags) {
+            return false
+        }
+        if (ChatMarkupRegex.isToolTagName(tagName) || ChatMarkupRegex.isToolResultTagName(tagName)) {
+            return false
+        }
+        return XmlRenderPluginRegistry.supportsTag(tagName)
+    }
+
+    /**
+     * 判断一段原始 XML 文本是否是"已注册渲染标签"的完整块。
+     *
+     * 未闭合的标签不算：流式期间标签可能只到达一半，此时把它当成分段内容会固化成
+     * 不完整的标签；等标签闭合后的下一次分段快照再输出。
+     */
+    internal fun isRenderablePluginXmlContent(rawContent: String): Boolean {
+        val trimmed = rawContent.trim()
+        if (!trimmed.startsWith("<")) {
+            return false
+        }
+        val rawTagName = ChatMarkupRegex.extractOpeningTagName(trimmed) ?: return false
+        if (!isRenderablePluginTagName(rawTagName)) {
+            return false
+        }
+        if (trimmed.endsWith("/>")) {
+            return true
+        }
+        return trimmed.contains("</$rawTagName>", ignoreCase = true)
+    }
+
+    internal fun isRenderablePluginXmlBlock(block: StructuredAssistantContentParser.Block): Boolean {
+        if (block.kind != StructuredAssistantContentParser.BlockKind.XML) {
+            return false
+        }
+        val rawTagName = block.rawTagName ?: return false
+        return block.closed && isRenderablePluginTagName(rawTagName)
+    }
+
     fun buildRenderableContentForWaifu(content: String): String {
         if (content.isBlank()) {
             return ""
@@ -753,7 +828,13 @@ object WaifuMessageProcessor {
                     builder.append(block.rawContent)
                 }
 
-                StructuredAssistantContentParser.BlockKind.XML -> Unit
+                // 只丢弃控制 XML；已注册插件渲染器（如 voice）的标签必须留在消息里，
+                // 否则渲染器注册信息形同虚设，语音气泡等内容永远无法出现。
+                StructuredAssistantContentParser.BlockKind.XML -> {
+                    if (isRenderablePluginXmlBlock(block)) {
+                        builder.append(block.rawContent)
+                    }
+                }
             }
         }
 
@@ -839,8 +920,10 @@ object WaifuMessageProcessor {
             MarkdownProcessorType.TABLE,
             MarkdownProcessorType.IMAGE -> true
 
-            MarkdownProcessorType.HORIZONTAL_RULE,
+            // buildRenderableContentForWaifu 已先把控制 XML 过滤掉，能进入句子分割的
+            // XML_BLOCK 只可能是已注册渲染标签（如 voice），它是稳定的可见原子段落。
             MarkdownProcessorType.XML_BLOCK,
+            MarkdownProcessorType.HORIZONTAL_RULE,
             MarkdownProcessorType.BOLD,
             MarkdownProcessorType.ITALIC,
             MarkdownProcessorType.INLINE_CODE,
@@ -883,6 +966,10 @@ object WaifuMessageProcessor {
                             MarkdownProcessorType.CODE_BLOCK,
                             MarkdownProcessorType.TABLE,
                             MarkdownProcessorType.BLOCK_LATEX -> true
+                            // 已注册渲染标签在这里是完整的可见内容（如语音气泡），
+                            // 必须像代码块一样作为不可分割的原子段落保留，不能交给
+                            // cleanContentForWaifu 的标签清理逻辑再拆一次。
+                            MarkdownProcessorType.XML_BLOCK -> isRenderablePluginXmlContent(block)
                             else -> false
                         }
 

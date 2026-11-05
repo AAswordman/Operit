@@ -1,0 +1,12 @@
+# Shell scripts and container definitions use LF on every development platform.
+*.sh text eol=lf
+*.bash text eol=lf
+**/Dockerfile* text eol=lf
+
+# Binary assets must not undergo line-ending conversion.
+*.png binary
+*.jpg binary
+*.jar binary
+*.aar binary
+*.zip binary
+*.so binary

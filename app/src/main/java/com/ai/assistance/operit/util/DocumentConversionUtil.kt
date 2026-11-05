@@ -91,7 +91,9 @@ object DocumentConversionUtil {
             // Step 2: Check if the extracted text is meaningful. If not, trigger OCR.
             if (extractedText.trim().length > 20) { // Threshold for meaningful text
                 // Success with direct extraction
-                FileOutputStream(targetFile).bufferedWriter().use { it.write(extractedText) }
+                FileOutputStream(targetFile).bufferedWriter().use {
+                    it.write(stripNullCharacters(extractedText))
+                }
                 return true
             } else {
                 // Fallback to OCR
@@ -147,7 +149,7 @@ object DocumentConversionUtil {
 
             // Write the aggregated text to the target file
             FileOutputStream(targetFile).bufferedWriter().use { writer ->
-                writer.write(fullText.toString())
+                writer.write(stripNullCharacters(fullText.toString()))
             }
             return true
         } catch (e: Exception) {
@@ -955,4 +957,13 @@ object DocumentConversionUtil {
         } while (current >= 0)
         return result.toString()
     }
+
+    /**
+     * 移除提取文本中的 U+0000。
+     *
+     * PDF 字体映射缺字时 PDFBox 会输出 NUL，SQLite 的 LENGTH/SUBSTR 会把 TEXT 在第一个 NUL
+     * 处截断，导致整段工具结果和后续回复在重新加载时消失。NUL 不携带任何可显示信息，
+     * 因此在写入提取结果前直接剔除。
+     */
+    internal fun stripNullCharacters(text: String): String = text.replace("\u0000", "")
 }

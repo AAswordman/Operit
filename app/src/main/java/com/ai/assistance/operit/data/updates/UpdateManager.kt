@@ -20,14 +20,20 @@ sealed class UpdateStatus {
             val newVersion: String,
             val updateUrl: String,
             val releaseNotes: String,
-            val downloadUrl: String = "" // 保留下载URL字段用于浏览器打开
+            val downloadUrl: String = "", // 保留下载URL字段用于浏览器打开
+            // GitHub 公布的 APK 资产 sha256 与大小，用于下载后校验完整性
+            val downloadSha256: String? = null,
+            val downloadSize: Long? = null
     ) : UpdateStatus()
     data class PatchAvailable(
             val newVersion: String,
             val updateUrl: String,
             val releaseNotes: String,
             val patchUrl: String,
-            val metaUrl: String
+            val metaUrl: String,
+            // GitHub 公布的目标 meta / patch 资产 sha256，用于校验下载内容
+            val metaSha256: String? = null,
+            val patchSha256: String? = null
     ) : UpdateStatus()
     object UpToDate : UpdateStatus()
     data class Error(val message: String) : UpdateStatus()
@@ -189,7 +195,9 @@ class UpdateManager private constructor(private val context: Context) {
                             newVersion = releaseInfo.version,
                             updateUrl = releaseInfo.releasePageUrl,
                             releaseNotes = releaseInfo.releaseNotes,
-                            downloadUrl = releaseInfo.downloadUrl
+                            downloadUrl = releaseInfo.downloadUrl,
+                            downloadSha256 = releaseInfo.downloadSha256,
+                            downloadSize = releaseInfo.downloadSize
                             )
                         } else {
                             UpdateStatus.UpToDate
@@ -292,7 +300,9 @@ class UpdateManager private constructor(private val context: Context) {
                     updateUrl = r.html_url,
                     releaseNotes = r.body ?: "",
                     patchUrl = patchAsset.browser_download_url,
-                    metaUrl = metaAsset.browser_download_url
+                    metaUrl = metaAsset.browser_download_url,
+                    metaSha256 = GithubReleaseUtil.parseAssetDigest(metaAsset.digest),
+                    patchSha256 = GithubReleaseUtil.parseAssetDigest(patchAsset.digest)
                 )
             }
         }
