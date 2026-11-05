@@ -79,6 +79,64 @@ object TokenStatsQueryService {
         }
     }
 
+    /**
+     * 年度报告用的汇总：全年合计、按月合计和按日合计。
+     * 与 [rangeData] 共用模型规范化和花费计算，保证和 Token 统计页同一日期范围内的数字一致；
+     * 但不走按天分桶（一年的范围会逐天查询三百多次），按月只查 12 次。
+     */
+    suspend fun annualSummary(
+        context: Context,
+        range: TokenStatsTimeRange,
+        params: TokenStatsQueryParams,
+        zone: ZoneId,
+    ): TokenStatsAnnualSummary {
+        val repository = TokenUsageRepository.getInstance(context)
+        return repository.withDao { dao ->
+            val prices = dao.getAllStatsModels().toPriceSnapshot()
+            val rows = dao.aggregateModelsInRange(
+                startMs = range.startMs,
+                endMs = range.endMs,
+                providerModels = params.providerModels.queryValues(),
+                allModels = params.providerModels == null,
+            )
+            val displayModels = buildDisplayModels(rows, prices, params)
+            val year = Instant.ofEpochMilli(range.startMs).atZone(zone).year
+            val monthTotals = (1..12).map { month ->
+                val monthStart = LocalDate.of(year, month, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+                val monthEnd = LocalDate.of(year, month, 1).plusMonths(1).atStartOfDay(zone).toInstant().toEpochMilli()
+                val start = maxOf(range.startMs, monthStart)
+                val end = minOf(range.endMs, monthEnd)
+                if (start >= end) {
+                    0L
+                } else {
+                    val monthRows = dao.aggregateModelsInRange(
+                        startMs = start,
+                        endMs = end,
+                        providerModels = params.providerModels.queryValues(),
+                        allModels = params.providerModels == null,
+                    )
+                    combineTotals(buildDisplayModels(monthRows, prices, params).map(TokenStatsDisplayModelBreakdown::totals), params)
+                        .totalTokens.knownSum
+                }
+            }
+            val days = dao.getActivityDaysInRange(
+                startMs = range.startMs,
+                endMs = range.endMs,
+                providerModels = params.providerModels.queryValues(),
+                allModels = params.providerModels == null,
+            )
+            TokenStatsAnnualSummary(
+                totals = combineTotals(displayModels.map(TokenStatsDisplayModelBreakdown::totals), params),
+                displayModels = displayModels,
+                monthTotals = monthTotals,
+                dayTotals =
+                    days.groupBy(TokenUsageActivityDayRow::localDate).mapValues { (_, dayRows) ->
+                        dayRows.fold(0L) { total, row -> TokenCostCalculator.saturatedAdd(total, row.tokens) }
+                    }.mapKeys { (date, _) -> LocalDate.parse(date) },
+            )
+        }
+    }
+
     internal suspend fun earliestOccurredDate(
         context: Context,
         params: TokenStatsQueryParams,

@@ -75,6 +75,14 @@ data class TokenStatsDisplayModelBreakdown(
     val providerModels: List<String>,
 )
 
+/** 年度报告的 token 汇总：全年合计、按模型、按月和按本地日期。 */
+data class TokenStatsAnnualSummary(
+    val totals: TokenStatsTotals,
+    val displayModels: List<TokenStatsDisplayModelBreakdown>,
+    val monthTotals: List<Long>,
+    val dayTotals: Map<java.time.LocalDate, Long>,
+)
+
 data class TokenStatsRangeData(
     val range: TokenStatsTimeRange,
     val granularity: TokenStatsGranularity,

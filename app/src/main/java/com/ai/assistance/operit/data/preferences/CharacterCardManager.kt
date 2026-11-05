@@ -247,6 +247,17 @@ class CharacterCardManager private constructor(private val context: Context) {
     val characterCardListFlow: Flow<List<String>> = dataStore.data.map { preferences ->
         preferences[CHARACTER_CARD_LIST]?.toList() ?: emptyList()
     }
+
+    /**
+     * 年度报告用：各角色卡创建时间的原始记录。
+     * 没有写入过创建时间的角色卡记为 null，不能像 [getCharacterCardFlow] 那样用当前时间代替，
+     * 否则老角色卡会被误算成今年新建的。
+     */
+    suspend fun getCharacterCardCreatedAtRecords(): Map<String, Long?> {
+        val preferences = dataStore.data.first()
+        val ids = preferences[CHARACTER_CARD_LIST]?.toList().orEmpty()
+        return ids.associateWith { id -> preferences[longPreferencesKey("character_card_${id}_created_at")] }
+    }
     
     // 活跃角色卡ID流（可以为null）
     private val activeCharacterCardIdFlow: Flow<String?> = dataStore.data.map { preferences ->

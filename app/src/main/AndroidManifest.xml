@@ -274,6 +274,14 @@
             </intent-filter>
         </activity>
 
+        <!-- 年度报告：只由 AnnualReportLauncher 启动；配置变化时不重建，保住 WebView 里的翻页进度 -->
+        <activity
+            android:name=".ui.features.annualreport.AnnualReportActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Operit.AnnualReport" />
+
         <!-- Crash Report Activity -->
         <activity
             android:name=".ui.error.CrashReportActivity"
