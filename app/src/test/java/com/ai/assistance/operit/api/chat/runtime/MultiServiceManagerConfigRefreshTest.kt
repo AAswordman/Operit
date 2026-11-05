@@ -39,6 +39,13 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
 
+// ModelConfigManager constructs its usage repository with applicationContext.
+// A bare Mockito Context returns null here, failing every regression before its assertions.
+private fun configRefreshTestContext(): Context =
+    Mockito.mock(Context::class.java).also { context ->
+        Mockito.`when`(context.applicationContext).thenReturn(context)
+    }
+
 /** 上游配置刷新回归适配：同时覆盖本地功能思考装饰器和取消时归还租约。 */
 class MultiServiceManagerConfigRefreshTest {
     private var systemLog = false
@@ -235,7 +242,7 @@ class MultiServiceManagerConfigRefreshTest {
             override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
                 error("This read-only store must not be written")
         }
-        val manager = ModelConfigManager(Mockito.mock(Context::class.java), store)
+        val manager = ModelConfigManager(configRefreshTestContext(), store)
         assertEquals(first, manager.getModelConfigFlow(first.id).first())
         assertEquals(1, collections)
     }
@@ -253,7 +260,7 @@ class MultiServiceManagerConfigRefreshTest {
     )
 
     private class Fixture {
-        val context = Mockito.mock(Context::class.java)
+        val context = configRefreshTestContext()
         val models = TestPreferencesDataStore()
         private val functions = TestPreferencesDataStore()
         private val json = Json { ignoreUnknownKeys = true; isLenient = true }

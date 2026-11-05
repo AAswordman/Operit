@@ -32,6 +32,14 @@ MultiServiceManagerConfigRefreshTest 包含 11 项 JVM 回归源码，覆盖以�
 - 缓存重建后功能思考选项仍进入实际 provider 调用
 - Flow 只解码本次发射快照，不二次读取存储
 
+## CI 初始化空指针修复 [DONE]
+
+上一版提交 `a368f277` 的 [Android Tests 报告](https://github.com/3316891527/Operit/actions/runs/42030312916) 中，这 11 项用例均在初始化 ModelConfigManager 时失败，实际异常为 `getApplicationContext(...) must not be null`，位置是 ModelConfigManager 第 71 行。10 项用例经由 Fixture 触发，单快照 Flow 用例直接构造时触发，尚未执行各自的缓存行为断言。
+
+原因是新回归使用了未配置 applicationContext 的 Mockito Context。ModelConfigManager 构造统计仓库时要求非空的应用 Context，普通模拟对象默认返回 null。统一增加测试 Context 工厂，让 applicationContext 返回该模拟对象，并让 Fixture 和直接构造的 Flow 用例共用。保留全部 11 项用例及其断言，不修改生产缓存或统计仓库的非空要求，不新增空值回退处理。
+
+本轮根据已下载的 CI 完整报告核对根因，并追加修复提交；只运行本地静态检查，修复后的 JVM 结果交给新提交的工作流，不能把修复源码和静态检查描述为 11 项用例已经执行通过。
+
 ## 验证边界
 
 本地只执行差异、仓库规范、本地化和受影响文档链接静态检查；没有执行 Kotlin 编译、JVM 测试或设备模型请求。新增及既有回归由仓库工作流执行，结果另行记录。
