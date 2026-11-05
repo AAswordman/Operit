@@ -1,0 +1,317 @@
+/* 色板与纸张。深浅色由原生通过 ?theme= 指定，写在 html[data-theme] 上。 */
+:root {
+  color-scheme: light;
+  --paper: #f6f0e2;
+  --paper-deep: #ebe2cd;
+  --cover: #e7d6b6;
+  --ink: #26283b;
+  --ink-soft: #55586f;
+  --pencil: #8e8fa3;
+  --dot: rgba(38, 40, 59, 0.13);
+  --rule: rgba(38, 40, 59, 0.1);
+  --yellow: #ffc93a;
+  --coral: #ff6f5e;
+  --mint: #33b892;
+  --lavender: #8574ff;
+  --sky: #4aa3f2;
+  --pink: #ff86b0;
+  --night: #1f2347;
+  --star: #fff3c4;
+  --tape: rgba(133, 116, 255, 0.34);
+  --marker: rgba(255, 201, 58, 0.62);
+  --sticky-ink: #2a2b3d;
+  --sticky-yellow: #ffe27a;
+  --sticky-pink: #ffc4d6;
+  --sticky-mint: #b9ecd6;
+  --sticky-blue: #c3defe;
+  --sticky-lavender: #d9d2ff;
+  --shadow: rgba(46, 36, 80, 0.22);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .16  0 0 0 0 .13  0 0 0 0 .24  0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --font: system-ui, -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #1b1c28;
+  --paper-deep: #262738;
+  --cover: #2a2534;
+  --ink: #f2ecdf;
+  --ink-soft: #bdbad0;
+  --pencil: #7f8199;
+  --dot: rgba(242, 236, 223, 0.09);
+  --rule: rgba(242, 236, 223, 0.08);
+  --yellow: #ffd45a;
+  --coral: #ff8a7a;
+  --mint: #5cd6ae;
+  --lavender: #a99cff;
+  --sky: #74bbff;
+  --pink: #ff9cc3;
+  --night: #10122a;
+  --star: #fff3c4;
+  --tape: rgba(169, 156, 255, 0.3);
+  --marker: rgba(169, 156, 255, 0.46);
+  --shadow: rgba(0, 0, 0, 0.5);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 .97  0 0 0 0 .92  0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+svg {
+  overflow: visible;
+}
+
+.hand path,
+.boil path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 翻页本 */
+.deck {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 1700px;
+  perspective-origin: 50% -18%;
+  touch-action: none;
+}
+
+.deck-stack {
+  position: absolute;
+  inset: 0;
+}
+
+.page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  visibility: hidden;
+  transform-origin: 50% 0;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.page.is-current,
+.page.is-under,
+.page.is-returning {
+  visibility: visible;
+}
+
+.page.is-current {
+  z-index: 20;
+}
+
+.page.is-under {
+  z-index: 10;
+}
+
+.page.is-returning {
+  z-index: 30;
+  transform: rotateX(-100deg);
+}
+
+.page.is-turning,
+.page.is-returning {
+  will-change: transform;
+  box-shadow: 0 30px 60px -20px var(--shadow);
+}
+
+.surface-paper {
+  background-color: var(--paper);
+  background-image: radial-gradient(circle at 1px 1px, var(--dot) 1.1px, transparent 1.7px), var(--grain);
+  background-size: 22px 22px, 220px 220px;
+}
+
+.surface-cover {
+  background-color: var(--cover);
+  background-image: var(--grain), var(--grain);
+  background-size: 220px 220px, 160px 160px;
+  background-position: 0 0, 40px 70px;
+}
+
+.surface-night {
+  --marker: rgba(133, 116, 255, 0.6);
+  --ink: #f6f0e2;
+  --ink-soft: #c9c6e3;
+  --pencil: #8d8fb8;
+  background-color: var(--night);
+  background-image: radial-gradient(120% 70% at 50% 0%, rgba(133, 116, 255, 0.28), transparent 60%), var(--grain);
+  background-size: 100% 100%, 220px 220px;
+  color: var(--ink);
+}
+
+.page-shade,
+.page-under-shadow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.page-under-shadow {
+  opacity: 0;
+  background: linear-gradient(to bottom, rgba(18, 14, 40, 0.34), rgba(18, 14, 40, 0) 55%);
+  z-index: 40;
+}
+
+.page.is-under .page-under-shadow {
+  opacity: 1;
+}
+
+.page-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 46px) 22px 0;
+}
+
+.page-cue {
+  position: relative;
+  flex: none;
+  height: calc(68px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cue-prompt,
+.cue-next {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  transition: opacity 0.3s ease;
+}
+
+.cue-prompt svg {
+  width: 28px;
+  height: 28px;
+  animation: prompt-wiggle 1.6s ease-in-out infinite;
+}
+
+.cue-next {
+  opacity: 0;
+}
+
+.cue-next svg {
+  animation: cue-bob 1.3s ease-in-out infinite;
+}
+
+.page.is-revealed .cue-prompt {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes cue-bob {
+  0%,
+  100% {
+    transform: translateY(3px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes prompt-wiggle {
+  0%,
+  100% {
+    transform: rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: rotate(6deg) scale(1.08);
+  }
+}
+
+.deck-progress {
+  position: absolute;
+  z-index: 50;
+  top: calc(env(safe-area-inset-top) + 16px);
+  left: 20px;
+  right: 64px;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.deck-progress .seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 4px 2px 5px 2px;
+  background: var(--rule);
+  transform: rotate(var(--tilt));
+  transition: background-color 0.4s ease;
+}
+
+.deck-progress .seg.now {
+  background: var(--pencil);
+}
+
+.deck-progress .seg.done {
+  background: var(--lavender);
+}
+
+.deck-close {
+  position: absolute;
+  z-index: 60;
+  top: calc(env(safe-area-inset-top) + 0px);
+  right: 8px;
+  width: 48px;
+  height: 48px;
+  padding: 4px;
+  border: 0;
+  background: none;
+}
+
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 100;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cue-prompt svg,
+  .cue-next svg {
+    animation: none;
+  }
+}
