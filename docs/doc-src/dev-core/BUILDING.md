@@ -195,16 +195,18 @@ npm install
 ```
 这一步会安装 `tools/example_packages/sync_example_packages.py` 预构建示例脚本包时需要用到的 `typescript`、`esbuild` 等依赖。
 
-5. **安装 web-chat 的前端依赖:**
+5. **安装 web-chat 和年度报告的前端依赖:**
 ```bash
 npm --prefix web-chat install
+npm --prefix annual-report install
 ```
 
-6. **先构建 web-chat 并同步到 Android assets (关键步骤！):**
+6. **先构建 web-chat 和年度报告并同步到 Android assets (关键步骤！):**
 ```bash
 npm run build:webchat
+npm run build:annualreport
 ```
-该命令会先执行 `web-chat` 的 React/Vite 构建，再把生成的静态文件同步到 `app/src/main/assets/web-chat`。如果你修改了 `web-chat/src` 下的代码，重新编译 APK 前也需要重新执行一次这一步。
+第一条命令执行 `web-chat` 的 React/Vite 构建，再把生成的静态文件同步到 `app/src/main/assets/web-chat`；第二条命令同理构建年度报告页面，同步到 `app/src/main/assets/annual-report`。修改了 `web-chat/src` 或 `annual-report/` 下的代码，重新编译 APK 前都需要重新执行对应的命令。年度报告的开发方式见 [年度报告开发说明](./ANNUAL_REPORT.md)。
 
 7. **打包 ToolPkg 并同步示例包到应用 assets (关键步骤！):**
 ```bash
@@ -242,6 +244,7 @@ app/build/outputs/apk/clone/app-clone.apk
 | NDK not found. | 确保已在 **第四步** 中使用 sdkmanager 安装了项目所需的 **ndk;25.1.8937393** 版本。 |
 | pnpm: command not found | 尚未安装 `pnpm`。请先执行 `sudo npm install -g pnpm`，再重新运行 `python3 ./tools/example_packages/sync_example_packages.py`。 |
 | Missing web-chat/dist. Run `npm --prefix web-chat run build` first. | 尚未构建 `web-chat` 或构建失败。请先执行 `npm --prefix web-chat install`，再在项目根目录执行 `npm run build:webchat`。 |
+| Missing annual-report/dist. Run `npm --prefix annual-report run build` first. | 尚未构建年度报告页面或构建失败。请先执行 `npm --prefix annual-report install`，再在项目根目录执行 `npm run build:annualreport`。 |
 | ERROR: prebuild step failed | `tools/example_packages/sync_example_packages.py` 在预构建 `examples/` 时失败。请先确认已在项目根目录执行 `npm install`，并检查 `pnpm -v`、`python3 --version` 是否可用。 |
 | `Failed to build the host FlatBuffers compiler` | MNN schema 生成阶段无法找到或运行宿主机 C/C++ 工具链。Linux 请安装 `gcc` 和 `g++`，其他平台请安装与当前平台匹配的编译器后重新运行 Gradle 构建。 |
 | You have not accepted the license agreements... | 你跳过了或未成功执行接受许可的步骤。请返回 **第四步** 执行 `yes |
