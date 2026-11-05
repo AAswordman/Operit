@@ -217,6 +217,7 @@ jobs:
           fi
           if [[ "$WEB_REQUIRED" == "true" ]]; then
             npm --prefix web-chat ci --no-audit --no-fund
+            npm --prefix annual-report ci --no-audit --no-fund
           fi
 
       - name: Check WebChat
@@ -226,6 +227,14 @@ jobs:
           set -euo pipefail
           npm --prefix web-chat run typecheck
           npm run build:webchat
+
+      - name: Check annual report
+        if: steps.plan.outputs.web == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix annual-report run typecheck
+          npm run build:annualreport
 
       - name: Check bundled ToolPkg packages
         if: steps.plan.outputs.toolpkg == 'true'
@@ -388,9 +397,13 @@ jobs:
           npm install -g pnpm@10.34.5
           npm ci --no-audit --no-fund
           npm --prefix web-chat ci --no-audit --no-fund
+          npm --prefix annual-report ci --no-audit --no-fund
 
       - name: Build WebChat assets
         run: npm run build:webchat
+
+      - name: Build annual report assets
+        run: npm run build:annualreport
 
       - name: Sync bundled ToolPkg packages
         run: |
