@@ -28,6 +28,7 @@ import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.common.displays.UIAutomationProgressOverlay
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
 import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.android.LocaleUtils
 import com.ai.assistance.operit.util.media.ImageOutputFormat
 import com.ai.assistance.operit.util.media.ImagePoolManager
 import com.ai.assistance.operit.util.media.ImageRegistrationOptions
@@ -36,6 +37,8 @@ import com.ai.assistance.operit.util.stream.collectRevisionAppliedText
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -108,6 +111,12 @@ class PhoneAgent(
     val agentId: String = "default",
     private val cleanupOnFinish: Boolean = (agentId != "default"),
 ) {
+    private val performance = PhoneAgentPerformance()
+    private val observationHistory = PhoneObservationHistory()
+    val performanceSummary: String get() = performance.summary()
+    private var localSession: PhoneAgentLocalSession? = null
+    private var imageRequested = true
+    private var lastActionFeedback = ""
     private var _stepCount = 0
     val stepCount: Int
         get() = _stepCount
@@ -131,11 +140,13 @@ class PhoneAgent(
             return
         }
         AppLogger.d("PhoneAgent", "[$agentId] awaitIfPaused: entering pause loop, delay starting")
+        val pausedAt = System.nanoTime()
         try {
             while (flow.value) {
                 delay(200)
             }
         } finally {
+            performance.pausedMs += (System.nanoTime() - pausedAt) / 1_000_000
             AppLogger.d("PhoneAgent", "[$agentId] awaitIfPaused: exiting pause loop")
         }
     }
@@ -405,7 +416,14 @@ class PhoneAgent(
             }
 
             reset()
-            _contextHistory.add("system" to systemPrompt)
+            // The installed provider is main-display-only. Select capabilities once for this run.
+            if (isMainScreenAgent && PermissionCapabilityResolver.uiSnapshot(context).canUseAccessibility) {
+                localSession = PhoneAgentLocalSession(context) { block -> actionHandler.withLocalUiHidden(block) }
+            }
+            val localPrompt = if (localSession != null) {
+                PhoneLocalProtocol.prompt(useEnglish = !LocaleUtils.usesChineseContent(context))
+            } else ""
+            _contextHistory.add("system" to systemPrompt + localPrompt)
             pauseFlow = isPausedFlow
 
             // First step with user prompt
@@ -539,6 +557,7 @@ class PhoneAgent(
 
             return "Max steps reached"
         } finally {
+            AppLogger.d("PhoneAgent", "[$agentId] performance: ${performance.summary()}")
             AppLogger.d("PhoneAgent", "[$agentId] run: finishing, restoring UI")
             pauseFlow = null
             floatingService?.setFloatingWindowVisible(true)
@@ -570,6 +589,11 @@ class PhoneAgent(
     fun reset() {
         _contextHistory.clear()
         _stepCount = 0
+        performance.reset()
+        observationHistory.reset()
+        localSession = null
+        imageRequested = true
+        lastActionFeedback = ""
     }
 
     /** Execute a single step of the agent loop. */
@@ -577,40 +601,67 @@ class PhoneAgent(
         _stepCount++
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: begin, step=$_stepCount")
 
-        val screenshotLink = actionHandler.captureScreenshotForAgent()
-        val screenInfo = buildString {
-            if (screenshotLink != null) {
-                appendLine("[SCREENSHOT] Below is the latest screen image:")
-                appendLine(screenshotLink)
-            } else {
-                appendLine("No screenshot available for this step.")
-            }
-        }.trim()
-
-        val userMessage = if (isFirst) {
-            "$userPrompt\n\n$screenInfo"
-        } else {
-            "** Screen Info **\n\n$screenInfo"
+        val observationStarted = System.nanoTime()
+        val includeImage = isFirst || imageRequested || localSession == null
+        imageRequested = false
+        val screenInfo = actionHandler.withLocalUiHidden {
+            buildString {
+                appendLine("[OBSERVATION_MODE] " + if (localSession != null) "ACCESSIBILITY_MAIN" else "SCREENSHOT")
+                appendLine("[ACTION_BUDGET] ${config.maxSteps - performance.actions}")
+                val session = localSession
+                if (session != null) {
+                    try {
+                        val state = session.observe()
+                        val stateLine = state.lineSequence().firstOrNull { it.startsWith("[UI_STATE] ") }
+                        if (stateLine != null) observationHistory.record(_contextHistory.size, stateLine)
+                        appendLine(state)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        appendLine("[UI_STATE_ERROR] ${e.message}; request Inspect for an image. No node sequence may run without a valid state.")
+                    }
+                }
+                if (includeImage) {
+                    val screenshotLink = actionHandler.captureScreenshotForAgent()
+                    if (screenshotLink != null) {
+                        performance.screenshots++
+                        appendLine("[SCREENSHOT] $screenshotLink")
+                    } else {
+                        appendLine("[SCREENSHOT_ERROR] No image is available for this observation.")
+                    }
+                }
+                if (lastActionFeedback.isNotBlank()) appendLine("[ACTION_RESULT] $lastActionFeedback")
+            }.trim()
         }
+        performance.observations++
+        performance.observationMs += (System.nanoTime() - observationStarted) / 1_000_000
+        val userMessage = if (isFirst) "$userPrompt\n\n$screenInfo" else screenInfo
 
         _contextHistory.add("user" to userMessage)
 
-        val responseStream = uiService.sendMessage(
-            context = context,
-            chatHistory = _contextHistory.toList().toPromptTurns(),
-            enableThinking = false,
-            stream = true,
-            preserveThinkInHistory = true
-        )
-
-        val fullResponse = responseStream.collectRevisionAppliedText().trim()
+        val modelStarted = System.nanoTime()
+        performance.modelCalls++
+        val fullResponse = try {
+            uiService.sendMessage(
+                context = context,
+                chatHistory = observationHistory.forModel(_contextHistory).toPromptTurns(),
+                enableThinking = false,
+                stream = true,
+                preserveThinkInHistory = true
+            ).collectRevisionAppliedText().trim()
+        } finally {
+            performance.modelMs += (System.nanoTime() - modelStarted) / 1_000_000
+        }
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: AI response collected, length=${fullResponse.length}")
 
         val (thinking, answer) = parseThinkingAndAction(fullResponse)
         val historyEntry = "<think>$thinking</think><answer>$answer</answer>"
         _contextHistory.add("assistant" to historyEntry)
 
-        val parsedAction = parseAgentAction(answer)
+        val isLocalCommand = answer.trim().startsWith("{")
+        val parsedAction = if (isLocalCommand) {
+            ParsedAgentAction("do", "Sequence", emptyMap())
+        } else parseAgentAction(answer)
         actionHandler.removeImagesFromLastUserMessage(_contextHistory)
 
         if (parsedAction.metadata == "finish") {
@@ -620,7 +671,37 @@ class PhoneAgent(
 
         if (parsedAction.metadata == "do") {
             awaitIfPaused()
-            val execResult = actionHandler.executeAgentAction(parsedAction)
+            val executionStarted = System.nanoTime()
+            val pausedBefore = performance.pausedMs
+            if (isLocalCommand) {
+                val localResult = try {
+                    val session = localSession
+                    if (session == null) {
+                        PhoneAgentLocalSession.Result("Local sequences require a main-screen accessibility session.", 0, 0, false, false, false)
+                    } else {
+                        session.execute(answer.trim(), config.maxSteps - performance.actions, ::awaitIfPaused)
+                    }
+                } finally {
+                    performance.executionMs += ((System.nanoTime() - executionStarted) / 1_000_000 - (performance.pausedMs - pausedBefore)).coerceAtLeast(0L)
+                }
+                performance.actions += localResult.attempted
+                performance.conditionWaitMs += localResult.waitMs
+                if (localResult.sequence) performance.localSequences++
+                imageRequested = localResult.inspect
+                lastActionFeedback = localResult.feedback
+                return StepResult(localResult.success, false, parsedAction, thinking, localResult.feedback)
+            }
+            if (performance.actions >= config.maxSteps && parsedAction.actionName != "Take_over") {
+                return StepResult(false, true, parsedAction, thinking, "Max steps reached")
+            }
+            performance.actions++
+            imageRequested = true
+            val execResult = try {
+                actionHandler.executeAgentAction(parsedAction)
+            } finally {
+                performance.executionMs += ((System.nanoTime() - executionStarted) / 1_000_000 - (performance.pausedMs - pausedBefore)).coerceAtLeast(0L)
+            }
+            lastActionFeedback = "success=${execResult.success}; ${execResult.message.orEmpty()}; verify the observed result"
             if (execResult.shouldFinish) {
                  return StepResult(success = execResult.success, finished = true, action = parsedAction, thinking = thinking, message = execResult.message)
             }
@@ -638,6 +719,9 @@ class PhoneAgent(
 
     private fun parseThinkingAndAction(content: String): Pair<String?, String> {
         val full = content.trim()
+        val taggedAnswer = extractTagContent(full, "answer")
+        if (taggedAnswer != null) return extractTagContent(full, "think") to taggedAnswer
+        if (full.startsWith("{")) return null to full
         val finishMarker = "finish(message="
         val finishIndex = full.indexOf(finishMarker)
         if (finishIndex >= 0) {
@@ -796,30 +880,23 @@ class ActionHandler(
         return ShowerUsageContext(isAdbOrHigher = permissionState.isAdbOrHigher, showerDisplayId = showerId)
     }
 
+    private var uiHiddenDepth = 0
+
+    internal suspend fun <T> withLocalUiHidden(block: suspend () -> T): T =
+        withAgentUiHiddenForAction(resolveShowerUsageContext(), block)
+
     suspend fun captureScreenshotForAgent(): String? {
         val showerCtx = resolveShowerUsageContext()
-        val floatingService = FloatingChatService.getInstance()
-        val progressOverlay = UIAutomationProgressOverlay.getInstance(context)
-
-        var screenshotLink: String? = null
-        var dimensions: Pair<Int, Int>? = null
-
-        try {
-            // Keep screenshot captures clean: hide overlays first, then restore after capture.
-            floatingService?.setStatusIndicatorVisible(false)
-            progressOverlay.setOverlayVisible(false)
-            delay(200)
-
+        return withAgentUiHiddenForAction(showerCtx) {
+            var screenshotLink: String? = null
+            var dimensions: Pair<Int, Int>? = null
             if (showerCtx.canUseShowerForInput) {
                 val (link, dims) = captureScreenshotViaShower()
                 screenshotLink = link
                 dimensions = dims
             }
-
             if (screenshotLink == null) {
-                val screenshotTool = buildScreenshotTool()
-                val (bitmap, fallbackDims) = toolImplementations.captureScreenshotBitmap(screenshotTool)
-
+                val (bitmap, fallbackDims) = toolImplementations.captureScreenshotBitmap(buildScreenshotTool())
                 if (bitmap != null) {
                     val (compressedLink, rawDims) = saveCompressedScreenshotFromBitmap(bitmap)
                     screenshotLink = compressedLink
@@ -827,24 +904,12 @@ class ActionHandler(
                     bitmap.recycle()
                 }
             }
-        } finally {
-            val hasShowerDisplayNow = try {
-                ShowerController.getDisplayId(agentId) != null
-            } catch (e: Exception) {
-                AppLogger.e("ActionHandler", "[$agentId] Error checking Shower display state in finally", e)
-                false
+            if (dimensions != null) {
+                screenWidth = dimensions.first
+                screenHeight = dimensions.second
             }
-            if (isMainScreenAgent() || !hasShowerDisplayNow) {
-                floatingService?.setStatusIndicatorVisible(true)
-            }
-            progressOverlay.setOverlayVisible(true)
+            screenshotLink
         }
-
-        if (dimensions != null) {
-            screenWidth = dimensions.first
-            screenHeight = dimensions.second
-        }
-        return screenshotLink
     }
 
     private fun buildScreenshotTool(): AITool {
@@ -1112,15 +1177,16 @@ class ActionHandler(
         }
     }
 
-    private suspend fun withAgentUiHiddenForAction(
+    private suspend fun <T> withAgentUiHiddenForAction(
         showerCtx: ShowerUsageContext,
-        block: suspend () -> ActionExecResult
-    ): ActionExecResult {
+        block: suspend () -> T
+    ): T {
         val shouldHideUiDuringAction = isMainScreenAgent() || !showerCtx.canUseShowerForInput
-        if (!shouldHideUiDuringAction) return block()
+        if (!shouldHideUiDuringAction || uiHiddenDepth > 0) return block()
 
         val floatingService = FloatingChatService.getInstance()
         val progressOverlay = UIAutomationProgressOverlay.getInstance(context)
+        uiHiddenDepth++
         try {
             if (isMainScreenAgent()) {
                 floatingService?.setStatusIndicatorVisible(false)
@@ -1129,18 +1195,11 @@ class ActionHandler(
             delay(200)
             return block()
         } finally {
-            if (isMainScreenAgent()) {
-                val hasShowerDisplayNow = try {
-                    ShowerController.getDisplayId(agentId) != null
-                } catch (e: Exception) {
-                    AppLogger.e("ActionHandler", "[$agentId] Error checking Shower display state after action", e)
-                    false
-                }
-                if (isMainScreenAgent() || !hasShowerDisplayNow) {
-                    floatingService?.setStatusIndicatorVisible(true)
-                }
+            uiHiddenDepth--
+            withContext(NonCancellable) {
+                if (isMainScreenAgent()) floatingService?.setStatusIndicatorVisible(true)
+                progressOverlay.setOverlayVisible(true)
             }
-            progressOverlay.setOverlayVisible(true)
         }
     }
 

@@ -477,6 +477,7 @@ open class StandardUITools(protected val context: Context) : ToolImplementations
                 appendLine("Intent: $intent")
                 appendLine("Steps executed: ${agent.stepCount} / ${agentConfig.maxSteps}")
                 appendLine("Finished: $success")
+                appendLine("Performance: ${agent.performanceSummary}")
                 appendLine("Final message: $finalMessage")
                 appendLine()
                 appendLine("Full conversation history:")
