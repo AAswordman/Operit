@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +59,7 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.data.repository.WorkflowRepository
 import com.ai.assistance.operit.ui.common.NavItem
+import com.ai.assistance.operit.ui.features.annualreport.entry.AnnualReportEntryBadge
 import com.ai.assistance.operit.ui.main.screens.ScreenRouteRegistry
 import com.ai.assistance.operit.ui.main.navigation.NavigationEntrySpec
 import com.ai.assistance.operit.ui.main.screens.Screen
@@ -228,6 +230,11 @@ fun DrawerContent(
                         onNavigationEntrySelected(entry)
                 }
         }
+        // 年度报告徽章只在抽屉打开时播放动画；报告页跟随应用当前的深浅色。
+        val isDrawerVisible =
+                drawerState.currentValue == DrawerValue.Open ||
+                        drawerState.targetValue == DrawerValue.Open
+        val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
         Column(
                 modifier =
@@ -249,6 +256,8 @@ fun DrawerContent(
                                 isNetworkAvailable = isNetworkAvailable,
                                 networkType = networkType,
                                 appearance = appearance,
+                                isDrawerVisible = isDrawerVisible,
+                                isDarkTheme = isDarkTheme,
                                 navItems = primaryNavItems,
                                 activePackageCount = activePackageCount,
                                 workflowCount = workflowCount,
@@ -454,6 +463,8 @@ private fun NewSidebarTopContent(
         isNetworkAvailable: Boolean,
         networkType: String,
         appearance: NavigationDrawerAppearance,
+        isDrawerVisible: Boolean,
+        isDarkTheme: Boolean,
         navItems: List<NavItem>,
         activePackageCount: Int,
         workflowCount: Int,
@@ -467,7 +478,9 @@ private fun NewSidebarTopContent(
                 brandName = brandName,
                 isNetworkAvailable = isNetworkAvailable,
                 networkType = networkType,
-                appearance = appearance
+                appearance = appearance,
+                isDrawerVisible = isDrawerVisible,
+                isDarkTheme = isDarkTheme
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -555,54 +568,68 @@ private fun SidebarInfoCard(
         brandName: String,
         isNetworkAvailable: Boolean,
         networkType: String,
-        appearance: NavigationDrawerAppearance
+        appearance: NavigationDrawerAppearance,
+        isDrawerVisible: Boolean,
+        isDarkTheme: Boolean
 ) {
-        Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)
+        // 品牌名和网络状态在左，年度报告入口徽章占据右侧的剩余空间。
+        Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
         ) {
-                Text(
-                        text = brandName,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                                letterSpacing = 0.5.sp
-                        ),
-                        color = appearance.titleColor,
-                        fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(
-                        shape = RoundedCornerShape(50),
-                        color = appearance.statusAvailableColor.copy(alpha = 0.12f)
+                Column(
+                        modifier = Modifier.padding(vertical = 4.dp)
                 ) {
-                        Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        Text(
+                                text = brandName,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                        letterSpacing = 0.5.sp
+                                ),
+                                color = appearance.titleColor,
+                                fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                                shape = RoundedCornerShape(50),
+                                color = appearance.statusAvailableColor.copy(alpha = 0.12f)
                         ) {
-                                Box(
-                                        modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                        if (isNetworkAvailable) Color(0xFF4CAF50)
-                                                        else Color(0xFFEF5350)
-                                                )
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                        imageVector =
-                                                if (isNetworkAvailable) Icons.Default.Wifi else Icons.Default.WifiOff,
-                                        contentDescription = stringResource(id = R.string.network_status_label),
-                                        tint = appearance.statusAvailableColor,
-                                        modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                        text = networkType,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = appearance.statusAvailableColor,
-                                        fontWeight = FontWeight.Medium
-                                )
+                                Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                        Box(
+                                                modifier = Modifier
+                                                        .size(6.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                                if (isNetworkAvailable) Color(0xFF4CAF50)
+                                                                else Color(0xFFEF5350)
+                                                        )
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Icon(
+                                                imageVector =
+                                                        if (isNetworkAvailable) Icons.Default.Wifi else Icons.Default.WifiOff,
+                                                contentDescription = stringResource(id = R.string.network_status_label),
+                                                tint = appearance.statusAvailableColor,
+                                                modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                                text = networkType,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = appearance.statusAvailableColor,
+                                                fontWeight = FontWeight.Medium
+                                        )
+                                }
                         }
                 }
+                Spacer(modifier = Modifier.width(8.dp))
+                AnnualReportEntryBadge(
+                        active = isDrawerVisible,
+                        dark = isDarkTheme,
+                        modifier = Modifier.weight(1f).height(86.dp)
+                )
         }
 }
 
