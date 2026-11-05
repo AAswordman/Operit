@@ -125,3 +125,5 @@
 - [离线语音试听回调崩溃](offline-tts-callback/index.md)
 
 - [文字描边输入与显示一致性](theme-text-stroke-consistency/index.md)
+
+- [模型服务缓存与持久化配置一致性](model-service-cache-refresh/index.md)
