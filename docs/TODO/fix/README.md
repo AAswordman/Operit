@@ -127,3 +127,4 @@
 - [文字描边输入与显示一致性](theme-text-stroke-consistency/index.md)
 
 - [模型服务缓存与持久化配置一致性](model-service-cache-refresh/index.md)
+- [BLE 写入属性、MTU 分片与会话串行化](ble-write-properties-and-mtu/index.md)
