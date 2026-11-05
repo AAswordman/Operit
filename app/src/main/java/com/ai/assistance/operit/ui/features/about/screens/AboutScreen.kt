@@ -55,6 +55,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.features.annualreport.entry.annualReportDevEntry
+import com.ai.assistance.operit.ui.features.annualreport.entry.rememberAnnualReportDevEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -494,6 +496,8 @@ fun AboutScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // 年度报告的开发测试入口：连点顶部的 Operit 图标进入，用于解锁之前验收。
+    val reportDevEntry = rememberAnnualReportDevEntry()
 
     val preferences = remember { UserPreferencesManager.getInstance(context) }
     val betaEnabled = preferences.betaPlanEnabled.collectAsState(initial = false).value
@@ -862,7 +866,7 @@ fun AboutScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
-                        modifier = Modifier.size(80.dp),
+                        modifier = Modifier.size(80.dp).annualReportDevEntry(reportDevEntry),
                         shape = CircleShape,
                         tonalElevation = 1.dp,
                         color = MaterialTheme.colorScheme.surfaceVariant

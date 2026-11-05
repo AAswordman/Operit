@@ -40,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +58,9 @@ import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.data.repository.WorkflowRepository
 import com.ai.assistance.operit.ui.common.NavItem
+import com.ai.assistance.operit.ui.features.annualreport.AnnualReportEdition
 import com.ai.assistance.operit.ui.features.annualreport.entry.AnnualReportEntryBadge
+import com.ai.assistance.operit.ui.features.annualreport.entry.isAnnualReportDark
 import com.ai.assistance.operit.ui.main.screens.ScreenRouteRegistry
 import com.ai.assistance.operit.ui.main.navigation.NavigationEntrySpec
 import com.ai.assistance.operit.ui.main.screens.Screen
@@ -234,7 +235,7 @@ fun DrawerContent(
         val isDrawerVisible =
                 drawerState.currentValue == DrawerValue.Open ||
                         drawerState.targetValue == DrawerValue.Open
-        val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
+        val isDarkTheme = isAnnualReportDark()
 
         Column(
                 modifier =
@@ -572,6 +573,9 @@ private fun SidebarInfoCard(
         isDrawerVisible: Boolean,
         isDarkTheme: Boolean
 ) {
+        // 解锁时刻之前入口不出现，头部版面和没有年度报告时一致。判断依赖当前时间，所以随抽屉开合重算：
+        // 只算一次的话，应用常驻着跨过解锁时刻，入口要等进程重建才会出现。
+        val annualReportUnlocked = remember(isDrawerVisible) { AnnualReportEdition.isUnlocked() }
         // 品牌名和网络状态在左，年度报告入口徽章占据右侧的剩余空间。
         Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
@@ -624,12 +628,14 @@ private fun SidebarInfoCard(
                                 }
                         }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                AnnualReportEntryBadge(
-                        active = isDrawerVisible,
-                        dark = isDarkTheme,
-                        modifier = Modifier.weight(1f).height(86.dp)
-                )
+                if (annualReportUnlocked) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        AnnualReportEntryBadge(
+                                active = isDrawerVisible,
+                                dark = isDarkTheme,
+                                modifier = Modifier.weight(1f).height(86.dp)
+                        )
+                }
         }
 }
 
