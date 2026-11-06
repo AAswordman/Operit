@@ -93,8 +93,9 @@ internal class PhoneAgentLocalSession(
         if (command is PhoneLocalCommand.Node) {
             val state = observed ?: return Result("A latest node observation is required.", 0, 0, false, false, false)
             onStep(1, 1, command.action)
-            val result = PhoneNodeActionExecutor(driver).execute(command, state, shown, task, remainingActions, checkpoint)
-            pendingObservation = result.snapshot
+            val guard = checkpointFor(state, checkpoint)
+            val result = PhoneNodeActionExecutor(driver).execute(command, state, shown, task, remainingActions, guard)
+            pendingObservation = if (observed === state) result.snapshot else null
             observed = null
             shown = emptyMap()
             return resultFeedback(result, command.action.name)
@@ -120,8 +121,9 @@ internal class PhoneAgentLocalSession(
         if (state == null || screen != state.revision) {
             return Result("Command must reference a valid latest main-screen observation.", 0, 0, false, false, false)
         }
-        val result = PhonePlanExecutor(driver, onStep = onStep, checkpoint = checkpoint).execute(plan, arguments, state, remainingActions)
-        pendingObservation = result.snapshot
+        val guard = checkpointFor(state, checkpoint)
+        val result = PhonePlanExecutor(driver, onStep = onStep, checkpoint = guard).execute(plan, arguments, state, remainingActions)
+        pendingObservation = if (observed === state) result.snapshot else null
         observed = null
         shown = emptyMap()
         var storageMessage = ""
@@ -137,6 +139,13 @@ internal class PhoneAgentLocalSession(
             }
         }
         return resultFeedback(result.copy(message = result.message + storageMessage), "Sequence", sequence = true)
+    }
+
+    private fun checkpointFor(state: PhoneUiSnapshot, checkpoint: suspend () -> Unit): suspend () -> Unit = {
+        checkpoint()
+        // A user can take over while a Binder read is running. On resume, the old observation
+        // cannot authorize dispatch or the remaining steps of a previously checked sequence.
+        if (observed !== state) throw PhoneUiException("Observation invalidated during takeover; observe before further input")
     }
 
     private fun resultFeedback(result: PhonePlanResult, actionName: String, sequence: Boolean = false): Result {

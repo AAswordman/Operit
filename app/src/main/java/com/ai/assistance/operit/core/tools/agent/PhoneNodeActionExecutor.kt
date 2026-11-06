@@ -24,6 +24,7 @@ internal class PhoneNodeActionExecutor(private val driver: PhoneUiDriver) {
             val previous = shown[command.ref] ?: throw PhoneUiException("ref was not present in the latest model observation")
             checkpoint()
             val before = driver.read().also { latest = it }
+            checkpoint()
             if (before.packageName != observed.packageName) throw PhoneUiException("Active app changed before dispatch")
             val matches = before.summary(task).candidates.filter {
                 it.sameTargetAs(previous) && it.modelLabel == previous.modelLabel

@@ -121,6 +121,7 @@ internal class PhonePlanExecutor(
     private suspend fun read(packageName: String): PhoneUiSnapshot {
         checkpoint()
         val state = driver.read()
+        checkpoint()
         if (state.packageName != packageName) throw PhoneUiException("Active app changed; sequence stopped")
         return state
     }
@@ -146,6 +147,7 @@ internal class PhonePlanExecutor(
                 elapsedMs += spent
                 conditionWaitMs += spent
             }
+            checkpoint()
             if (state.packageName != packageName) throw PhoneUiException("Active app changed while waiting; sequence stopped")
             val matches = state.matches(target)
             if (matches.size > 1) throw PhoneUiException("Expected result is ambiguous; sequence stopped")

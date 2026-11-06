@@ -258,4 +258,18 @@ class PhonePlanExecutorTest {
         assertEquals(0, driver.types)
     }
 
+
+    @Test fun aTakeoverDuringReadStopsTheSequenceBeforeItsFirstDispatch() = runTest {
+        val observed = snapshot(button)
+        val driver = Driver(observed)
+        var invalidated = false
+        driver.onRead = { invalidated = true }
+        val result = PhonePlanExecutor(driver, checkpoint = {
+            if (invalidated) throw PhoneUiException("Observation invalidated during takeover")
+        }).execute(plan(tap()), emptyMap(), observed, 1)
+        assertFalse(result.success)
+        assertFalse(result.lastActionMayHaveRun)
+        assertEquals(0, driver.taps)
+    }
+
 }

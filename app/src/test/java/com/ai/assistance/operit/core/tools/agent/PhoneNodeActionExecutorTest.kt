@@ -155,4 +155,19 @@ class PhoneNodeActionExecutorTest {
         assertEquals(2, driver.reads)
         assertEquals(driver.state, result.snapshot)
     }
+
+    @Test fun aCheckpointInvalidatedDuringReadPreventsDispatch() = runTest {
+        val observed = state(button)
+        val driver = Driver(observed)
+        val result = PhoneNodeActionExecutor(driver).execute(
+            PhoneLocalCommand.Node(1, 1, PhoneLocalAction.Tap, null), observed,
+            observed.summary().shown.associateBy { it.ref }, "搜索", 1,
+            { if (driver.reads > 0) throw PhoneUiException("Observation invalidated during takeover") },
+        )
+        assertFalse(result.success)
+        assertFalse(result.lastActionMayHaveRun)
+        assertEquals(1, driver.reads)
+        assertEquals(0, driver.taps)
+    }
+
 }
