@@ -15,6 +15,7 @@ status: implemented-pending-validation
 - [x] 核对普通权限、管理员和虚拟屏启动路径
 - [x] 默认启动统一 MAIN、LAUNCHER 与 NEW_TASK / RESET_TASK_IF_NEEDED
 - [x] 保留显式 Activity 的行为和虚拟屏目标 display
+- [x] 从当前 Java 源码生成虚拟屏服务资产，确保源码修复进入 APK
 - [ ] 完成差异、仓库、多语言和文档链接静态检查
 - [ ] 提交独立 PR，记录远程验证状态
 - [ ] 新包设备核对后台应用的当前页面和任务栈
@@ -32,3 +33,7 @@ UI 节点与输入优化位于 PR #148，尚未合入 dev。本次不把该分�
 普通和虚拟屏入口明确使用 MAIN / LAUNCHER，并补齐 RESET_TASK_IF_NEEDED；管理员入口解析相同的桌面启动组件，并使用组合标志 0x10200000。显式 Activity 分支保留原行为，虚拟屏仍传递原 display 参数。代码未发现默认启动前显式杀进程，修复针对的是入口和任务恢复语义。现有任务最终如何恢复仍由 Android 和目标应用的启动策略决定，设备验收尚未完成。
 
 源码实现 [DONE]。这次只修复启动语义并记录准确率方案；不把方案标记为已实现的准确率提升。
+
+## 服务端打包
+
+dev 的 showerclient 原来直接打包预置 shower-server.jar，仅修改 tools/shower Java 源码不会更新运行时服务。本次复用 PR #148 相同的源码构建声明，通过 JavaCompile、Jar 和 D8 在 preBuild 中生成服务端资产，主资源目录指向生成目录，避免旧预置 JAR 覆盖新代码。该项是虚拟屏启动修复生效的必要部分，增加 Java 源码或构建工具问题时将明确中止构建。
