@@ -8543,6 +8543,7 @@
     <string name="thinking_config_match_model">匹配模型</string>
     <string name="thinking_config_multiple_values_comma">多个值用逗号分隔</string>
     <string name="thinking_config_default_request_path">默认请求路径</string>
+    <string name="thinking_config_request_path_example">reasoning_effort 或 thinking.type</string>
     <string name="thinking_config_always_enable_thinking">始终开启思考</string>
     <string name="thinking_config_write_enable_even_off">即使滑块关闭，也写入开启参数</string>
     <string name="thinking_config_write_on_toggle">开启 / 关闭时写入</string>

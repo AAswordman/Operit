@@ -74,8 +74,8 @@ const SendMessageOptionsClass = Java.type("com.ai.assistance.operit.api.chat.Enh
 // 宿主会把工具标签改写成 tool_<随机码> / tool_result_<随机码>（见 ChatMarkupRegex.kt 的
 // TOOL_TAG_NAME_REGEX_SOURCE / TOOL_RESULT_TAG_NAME_REGEX_SOURCE）。标签名必须与宿主保持一致，
 // 否则标签剥离和「最后一个工具块」定位都会失效，最终摘要会退化成整段执行日志。
-const TOOL_TAG_NAME = "tool(?:_(?!result(?:_|\\b))[A-Za-z0-9_]*)?";
-const TOOL_RESULT_TAG_NAME = "tool_result(?:_[A-Za-z0-9_]*)?";
+const TOOL_TAG_NAME = "tool(?:_(?!result(?:_|\\b))[A-Za-z0-9_]+)?";
+const TOOL_RESULT_TAG_NAME = "tool_result(?:_[A-Za-z0-9_]+)?";
 // 成对正则用反向引用绑定同名开闭标签，避免 <tool_A ...> ... </tool_B> 被跨块吞掉。
 const TOOL_TAG = new RegExp(`<(${TOOL_TAG_NAME})\\b[\\s\\S]*?<\\/\\1>`, "gi");
 const TOOL_SELF_CLOSING = new RegExp(`<${TOOL_TAG_NAME}\\b[^>]*\\/>`, "gi");
@@ -430,6 +430,7 @@ async function runSubagent(params) {
         return finalXml(runId, true, toolCount, summary);
     }
     catch (error) {
+        console.error("Subagent execution failed", error);
         return finalXml(runId, false, toolCount, clipText((0, subagent_i18n_js_1.resolveSubagentI18n)().errorExecutionFailedPrefix(toErrorText(error)), 220));
     }
 }
@@ -438,6 +439,7 @@ async function subagent_run(params) {
         return await runSubagent(params);
     }
     catch (error) {
+        console.error("Subagent entry failed", error);
         const runId = createRunId();
         return finalXml(runId, false, 0, clipText((0, subagent_i18n_js_1.resolveSubagentI18n)().errorExecutionFailedPrefix(toErrorText(error)), 220));
     }

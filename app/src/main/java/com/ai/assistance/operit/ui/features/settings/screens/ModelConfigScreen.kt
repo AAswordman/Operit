@@ -1438,7 +1438,7 @@ private fun ThinkingRuleEditForm(rule: ThinkingRuleEditor, onRuleChange: (Thinki
         ThinkingChoiceField(value = rule.matchField, label = stringResource(R.string.thinking_config_match_method), choices = thinkingMatchFieldChoices(), onValueChange = { onRuleChange(rule.copy(matchField = it)) }, modifier = Modifier.weight(1f))
     }
     SettingsTextField(title = stringResource(R.string.thinking_config_match_model), subtitle = stringResource(R.string.thinking_config_multiple_values_comma), value = rule.matchValues, onValueChange = { onRuleChange(rule.copy(matchValues = it)) }, placeholder = "glm-, deepseek, gemini-2.5")
-    SettingsTextField(title = stringResource(R.string.thinking_config_default_request_path), value = rule.parameterLabel, onValueChange = { onRuleChange(rule.copy(parameterLabel = it)) }, placeholder = "reasoning_effort or thinking.type")
+    SettingsTextField(title = stringResource(R.string.thinking_config_default_request_path), value = rule.parameterLabel, onValueChange = { onRuleChange(rule.copy(parameterLabel = it)) }, placeholder = stringResource(R.string.thinking_config_request_path_example))
     SettingsSwitchRow(title = stringResource(R.string.thinking_config_always_enable_thinking), subtitle = stringResource(R.string.thinking_config_write_enable_even_off), checked = rule.required, onCheckedChange = { onRuleChange(rule.copy(required = it)) })
     ThinkingCollapsibleEditor(title = stringResource(R.string.thinking_config_write_on_toggle), subtitle = stringResource(R.string.thinking_config_write_fixed_by_path), initiallyExpanded = false) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

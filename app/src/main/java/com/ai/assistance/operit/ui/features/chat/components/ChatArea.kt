@@ -299,6 +299,7 @@ fun ChatArea(
     LaunchedEffect(currentChatId, chatHistory.isEmpty()) {
         if (chatHistory.isEmpty()) {
             pendingJumpToMessageTimestamp = null
+            pendingJumpIsAutoFollow = false
         }
     }
 

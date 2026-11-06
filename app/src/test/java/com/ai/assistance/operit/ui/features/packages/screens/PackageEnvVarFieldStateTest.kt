@@ -6,7 +6,7 @@ import org.junit.Test
 class PackageEnvVarFieldStateTest {
     @Test
     fun `required variable without a value is the only error state`() {
-        listOf(null, "", "   ", "\t\n").forEach { value ->
+        listOf(null, "").forEach { value ->
             assertEquals(
                 PackageEnvVarFieldState.REQUIRED_EMPTY,
                 packageEnvVarFieldState(required = true, value = value)
@@ -16,7 +16,7 @@ class PackageEnvVarFieldStateTest {
 
     @Test
     fun `required variable keeps no error state once a value is saved`() {
-        listOf("sk-1a2b3c4d", "+8613800138000", "0").forEach { value ->
+        listOf("sk-1a2b3c4d", "+8613800138000", "0", "   ", "\t\n").forEach { value ->
             assertEquals(
                 PackageEnvVarFieldState.REQUIRED_FILLED,
                 packageEnvVarFieldState(required = true, value = value)

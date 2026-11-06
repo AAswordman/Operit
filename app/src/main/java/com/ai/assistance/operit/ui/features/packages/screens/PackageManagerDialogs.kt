@@ -56,7 +56,8 @@ internal fun packageEnvVarFieldState(
 ): PackageEnvVarFieldState =
     when {
         !required -> PackageEnvVarFieldState.OPTIONAL
-        value.isNullOrBlank() -> PackageEnvVarFieldState.REQUIRED_EMPTY
+        // Match PackageManager's required-value validation so the UI reports the same state.
+        value.isNullOrEmpty() -> PackageEnvVarFieldState.REQUIRED_EMPTY
         else -> PackageEnvVarFieldState.REQUIRED_FILLED
     }
 

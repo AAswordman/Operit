@@ -8555,6 +8555,7 @@
     <string name="thinking_config_match_model">Match model</string>
     <string name="thinking_config_multiple_values_comma">Multiple values, comma-separated</string>
     <string name="thinking_config_default_request_path">Default request path</string>
+    <string name="thinking_config_request_path_example">reasoning_effort or thinking.type</string>
     <string name="thinking_config_always_enable_thinking">Always enable thinking</string>
     <string name="thinking_config_write_enable_even_off">Write enable param even when slider is off</string>
     <string name="thinking_config_write_on_toggle">Write on enable / disable</string>
