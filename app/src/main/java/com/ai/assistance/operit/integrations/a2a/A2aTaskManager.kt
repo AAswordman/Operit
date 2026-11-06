@@ -34,11 +34,13 @@ data class A2aTaskSnapshot(
 )
 
 sealed interface A2aTaskEvent {
-    data class Status(val task: A2aTaskSnapshot, val final: Boolean) : A2aTaskEvent
+    data class Status(val task: A2aTaskSnapshot) : A2aTaskEvent
 
     data class Artifact(
         val task: A2aTaskSnapshot,
-        val text: String
+        val text: String,
+        val append: Boolean = true,
+        val lastChunk: Boolean = false
     ) : A2aTaskEvent
 }
 
@@ -181,7 +183,7 @@ class A2aTaskManager(
         return tasks[taskId] ?: throw A2aTaskNotFoundException(taskId)
     }
 
-    private class TaskRecord(
+    internal class TaskRecord(
         val id: String,
         val contextId: String
     ) {
@@ -207,33 +209,26 @@ class A2aTaskManager(
         }
 
         fun start(session: ExternalChatStreamingSession): Boolean {
-            val workingTask = synchronized(lock) {
+            return synchronized(lock) {
                 if (isTerminalState(state)) {
-                    null
+                    false
                 } else {
                     streamingSession = session
                     state = TASK_STATE_WORKING
-                    snapshotLocked()
+                    publishLocked(A2aTaskEvent.Status(snapshotLocked()))
+                    true
                 }
             }
-            if (workingTask == null) {
-                return false
-            }
-            publish(A2aTaskEvent.Status(workingTask, final = false))
-            return true
         }
 
         fun appendOutput(chunk: String) {
-            val task = synchronized(lock) {
-                if (isTerminalState(state)) {
-                    null
-                } else {
+            synchronized(lock) {
+                if (!isTerminalState(state)) {
                     output += chunk
-                    snapshotLocked()
+                    // Snapshot registration and publication share the lock, so each chunk is
+                    // delivered either in the initial snapshot or in an event, never in both.
+                    publishLocked(A2aTaskEvent.Artifact(snapshotLocked(), chunk))
                 }
-            }
-            if (task != null) {
-                publish(A2aTaskEvent.Artifact(task, chunk))
             }
         }
 
@@ -241,6 +236,11 @@ class A2aTaskManager(
             synchronized(lock) {
                 if (!isTerminalState(state)) {
                     output = content
+                    // Replace live retry output before publishing the terminal status, including
+                    // an empty final answer, so SSE clients and GetTask see the same body.
+                    publishLocked(A2aTaskEvent.Artifact(
+                        snapshotLocked(), content, append = false, lastChunk = true
+                    ))
                 }
             }
         }
@@ -261,8 +261,6 @@ class A2aTaskManager(
             val cancellation = transitionToCancelled() ?: throw A2aTaskNotCancelableException(id)
             cancellation.session?.responseStreamSession?.cancel()
             cancellation.job?.cancel()
-            terminalTask.complete(cancellation.snapshot)
-            publish(A2aTaskEvent.Status(cancellation.snapshot, final = true))
             return cancellation.snapshot
         }
 
@@ -270,8 +268,6 @@ class A2aTaskManager(
             val cancellation = transitionToCancelled() ?: return
             cancellation.session?.responseStreamSession?.cancel()
             cancellation.job?.cancel()
-            terminalTask.complete(cancellation.snapshot)
-            publish(A2aTaskEvent.Status(cancellation.snapshot, final = true))
         }
 
         fun subscribe(
@@ -288,7 +284,7 @@ class A2aTaskManager(
                 snapshotLocked()
             }
             return A2aTaskSubscription(task) {
-                listeners -= listener
+                synchronized(lock) { listeners -= listener }
             }
         }
 
@@ -300,18 +296,14 @@ class A2aTaskManager(
         }
 
         private fun transitionToTerminal(targetState: String, targetError: String?) {
-            val task = synchronized(lock) {
-                if (isTerminalState(state)) {
-                    null
-                } else {
+            synchronized(lock) {
+                if (!isTerminalState(state)) {
                     state = targetState
                     error = targetError
-                    snapshotLocked()
+                    val task = snapshotLocked()
+                    publishLocked(A2aTaskEvent.Status(task))
+                    terminalTask.complete(task)
                 }
-            }
-            if (task != null) {
-                terminalTask.complete(task)
-                publish(A2aTaskEvent.Status(task, final = true))
             }
         }
 
@@ -322,7 +314,10 @@ class A2aTaskManager(
                 } else {
                     state = TASK_STATE_CANCELED
                     error = "A2A task was cancelled"
-                    Cancellation(snapshotLocked(), streamingSession, job)
+                    val task = snapshotLocked()
+                    publishLocked(A2aTaskEvent.Status(task))
+                    terminalTask.complete(task)
+                    Cancellation(task, streamingSession, job)
                 }
             }
         }
@@ -337,7 +332,8 @@ class A2aTaskManager(
             )
         }
 
-        private fun publish(event: A2aTaskEvent) {
+        // Listeners enqueue without blocking. Calls hold lock to preserve task order.
+        private fun publishLocked(event: A2aTaskEvent) {
             listeners.forEach { listener ->
                 try {
                     listener(event)
