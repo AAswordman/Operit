@@ -248,6 +248,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         chatHistoryDelegate.showChatHistorySelector
     }
     val chatHistories: StateFlow<List<ChatHistory>> by lazy { chatHistoryDelegate.chatHistories }
+    val chatHistoriesLoaded: StateFlow<Boolean> by lazy { chatHistoryDelegate.chatHistoriesLoaded }
+    val chatFolders by lazy { chatHistoryDelegate.chatFolders }
     val currentChatId: StateFlow<String?> by lazy { chatHistoryDelegate.currentChatId }
     val hasOlderDisplayHistory: StateFlow<Boolean> by lazy {
         chatHistoryDelegate.hasOlderDisplayHistory
@@ -658,8 +660,32 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     // 聊天历史相关方法
-    fun createNewChat(characterCardName: String? = null, characterGroupId: String? = null) {
-        chatHistoryDelegate.createNewChat(characterCardName = characterCardName, characterGroupId = characterGroupId)
+    fun createNewChat(
+        characterCardName: String? = null,
+        characterGroupId: String? = null,
+        inheritGroupFromCurrent: Boolean = true,
+    ) {
+        chatHistoryDelegate.createNewChat(
+            characterCardName = characterCardName,
+            characterGroupId = characterGroupId,
+            inheritGroupFromCurrent = inheritGroupFromCurrent,
+        )
+    }
+
+    fun createFolderWithInitialChat(
+        parentFolderId: String?,
+        folderName: String,
+        characterCardName: String?,
+        characterGroupId: String?,
+        onResult: (Result<String>) -> Unit,
+    ) {
+        chatHistoryDelegate.createFolderWithInitialChat(
+            parentFolderId = parentFolderId,
+            folderName = folderName,
+            characterCardName = characterCardName,
+            characterGroupId = characterGroupId,
+            onResult = onResult,
+        )
     }
 
     fun createNewChatWithDraft(draft: String) {
@@ -682,8 +708,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun switchChat(chatId: String) {
-        chatHistoryDelegate.switchChat(chatId)
+    fun switchChat(chatId: String, scrollToBottom: Boolean = true) {
+        chatHistoryDelegate.switchChat(chatId, scrollToBottom = scrollToBottom)
         chatRuntimeHolder.syncMainChatSelectionToFloating(chatId)
 
         // 如果当前WebView正在显示，则更新工作区并触发刷新
@@ -2844,30 +2870,6 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     private fun isPathLikeToolParameter(name: String): Boolean {
         val lowered = name.lowercase()
         return lowered.contains("path") || lowered.contains("file") || lowered.contains("dir")
-    }
-
-    /** 更新聊天顺序和分组 */
-    fun updateChatOrderAndGroup(
-        reorderedHistories: List<ChatHistory>,
-        movedItem: ChatHistory,
-        targetGroup: String?
-    ) {
-        chatHistoryDelegate.updateChatOrderAndGroup(reorderedHistories, movedItem, targetGroup)
-    }
-
-    /** 创建新分组（通过创建新聊天实现） */
-    fun createGroup(groupName: String, characterCardName: String?, characterGroupId: String? = null) {
-        chatHistoryDelegate.createGroup(groupName, characterCardName, characterGroupId)
-    }
-
-    /** 重命名分组 */
-    fun updateGroupName(oldName: String, newName: String, characterCardName: String?) {
-        chatHistoryDelegate.updateGroupName(oldName, newName, characterCardName)
-    }
-
-    /** 删除分组 */
-    fun deleteGroup(groupName: String, deleteChats: Boolean, characterCardName: String?) {
-        chatHistoryDelegate.deleteGroup(groupName, deleteChats, characterCardName)
     }
 
     fun onWorkspaceButtonClick() {

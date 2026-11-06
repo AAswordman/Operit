@@ -1,10 +1,17 @@
 package com.ai.assistance.operit.ui.features.chat.components
 
 import android.net.Uri
+import android.os.Build
+import android.os.SystemClock
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -25,7 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,16 +44,19 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PushPin
@@ -69,6 +79,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
+import androidx.compose.material3.FilterChip
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -77,6 +88,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -85,13 +97,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -99,15 +120,26 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatHistory
+import com.ai.assistance.operit.data.model.ChatFolderEntity
+import com.ai.assistance.operit.data.model.SYSTEM_UNGROUPED_FOLDER_ID
+import com.ai.assistance.operit.ui.features.chat.historytree.HistoryTreeNode
+import com.ai.assistance.operit.ui.features.chat.historytree.HistoryTreeProjection
+import com.ai.assistance.operit.ui.features.chat.historytree.UNGROUPED_FOLDER_STABLE_KEY
+import com.ai.assistance.operit.ui.features.chat.historytree.buildVisibleHistoryTree
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
+import com.ai.assistance.operit.data.repository.HistorySiblingKind
+import com.ai.assistance.operit.data.repository.HistorySiblingSnapshot
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.ui.common.rememberLocal
@@ -132,19 +164,108 @@ import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.flowOf
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 private data class GroupTarget(
+    val folderId: String,
     val groupName: String,
-    val characterCardName: String?
 )
 
-private fun resolveBindingForCreate(
+private const val MAX_CHAT_FOLDER_DEPTH = 3
+
+private data class FolderDragTarget(
+    val targetParentFolderId: String?,
+    val anchorNodeKey: String? = null,
+    val insertBeforeAnchor: Boolean? = null,
+    val nestFolderId: String?,
+    val hoverStartedAt: Long,
+)
+
+private data class ChatDragTarget(
+    val targetFolderId: String?,
+    val anchorNodeKey: String? = null,
+    val insertBeforeAnchor: Boolean? = null,
+    val nestFolderId: String? = null,
+    val nestImmediately: Boolean = false,
+    val hoverStartedAt: Long = 0L,
+)
+
+private data class PendingHistoryMoveAck(
+    val expectedSiblingsByParent: Map<String?, List<HistorySiblingSnapshot>>,
+    val repositoryCallCompleted: Boolean = false,
+)
+
+private data class HistorySiblingStructure(
+    val kind: HistorySiblingKind,
+    val id: String,
+    val parentFolderId: String?,
+    val displayOrder: Long,
+)
+
+private fun HistorySiblingSnapshot.structure(): HistorySiblingStructure =
+    HistorySiblingStructure(
+        kind = kind,
+        id = id,
+        parentFolderId = parentFolderId,
+        displayOrder = displayOrder,
+    )
+
+// Mutation snapshots include hidden normal/branch chats, matching ChatFolderRepository.siblings.
+// The displayed and searchable lists use their own visibility filters.
+internal fun buildHistorySiblingSnapshot(
+    parentFolderId: String?,
+    folders: List<ChatFolderEntity>,
+    chats: List<ChatHistory>,
+): List<HistorySiblingSnapshot> =
+    (
+        folders
+            .asSequence()
+            .filter { it.parentFolderId == parentFolderId }
+            .map(HistorySiblingSnapshot::fromFolder) +
+            chats
+                .asSequence()
+                .filter {
+                    it.folderId == parentFolderId
+                }
+                .map {
+                    HistorySiblingSnapshot(
+                        kind = HistorySiblingKind.CHAT,
+                        id = it.id,
+                        parentFolderId = it.folderId,
+                        displayOrder = it.displayOrder,
+                        pinned = it.pinned,
+                        isFavorite = it.isFavorite,
+                        characterCardName = it.characterCardName,
+                        characterGroupId = it.characterGroupId,
+                    )
+                }
+    ).sortedWith(
+        compareBy<HistorySiblingSnapshot> { it.displayOrder }
+            .thenBy { it.kind }
+            .thenBy { it.id }
+    ).toList()
+
+internal fun buildVisibleHistorySiblingSnapshot(
+    parentFolderId: String?,
+    folders: List<ChatFolderEntity>,
+    chats: List<ChatHistory>,
+): List<HistorySiblingSnapshot> =
+    buildHistorySiblingSnapshot(parentFolderId, folders, chats)
+
+internal fun resolveBindingForCreate(
     historyDisplayMode: ChatHistoryDisplayMode,
     activePrompt: ActivePrompt,
     activeCharacterCardName: String?
 ): Pair<String?, String?> {
     if (historyDisplayMode == ChatHistoryDisplayMode.BY_FOLDER) {
-        return Pair(null, null)
+        return when (val prompt = activePrompt) {
+            is ActivePrompt.CharacterGroup -> Pair(null, prompt.id)
+            is ActivePrompt.CharacterCard -> Pair(null, null)
+        }
     }
     return when (val prompt = activePrompt) {
         is ActivePrompt.CharacterGroup -> Pair(null, prompt.id)
@@ -163,9 +284,96 @@ private sealed interface HistoryListItem {
         val key: String, 
         val name: String, 
         val groupValue: String?,
-        val characterCardName: String? = null
+        val folderId: String? = null,
+        val characterCardName: String? = null,
+        val depth: Int = 1,
     ) : HistoryListItem
-    data class Item(val history: ChatHistory) : HistoryListItem
+    data class Item(val history: ChatHistory, val depth: Int = 0) : HistoryListItem
+}
+
+@Composable
+private fun HistoryTimeSectionHeader(section: ChatHistoryTimeSection) {
+    val labelRes =
+        when (section) {
+            ChatHistoryTimeSection.TODAY -> R.string.chat_history_time_today
+            ChatHistoryTimeSection.YESTERDAY -> R.string.chat_history_time_yesterday
+            ChatHistoryTimeSection.MONDAY -> R.string.chat_history_time_monday
+            ChatHistoryTimeSection.TUESDAY -> R.string.chat_history_time_tuesday
+            ChatHistoryTimeSection.WEDNESDAY -> R.string.chat_history_time_wednesday
+            ChatHistoryTimeSection.THURSDAY -> R.string.chat_history_time_thursday
+            ChatHistoryTimeSection.FRIDAY -> R.string.chat_history_time_friday
+            ChatHistoryTimeSection.SATURDAY -> R.string.chat_history_time_saturday
+            ChatHistoryTimeSection.SUNDAY -> R.string.chat_history_time_sunday
+            ChatHistoryTimeSection.SEVEN_DAYS_AGO -> R.string.chat_history_time_seven_days_ago
+        }
+    Text(
+        text = stringResource(labelRes),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+@Composable
+private fun rememberCurrentLocalDateContext(): CurrentLocalDateContext {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var currentContext by remember { mutableStateOf(currentLocalDateContext()) }
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    currentContext = currentLocalDateContext()
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val zoneId = ZoneId.systemDefault()
+            delay(localDateRefreshDelayMillis(Instant.now(), zoneId))
+            currentContext = currentLocalDateContext()
+        }
+    }
+    return currentContext
+}
+
+private data class CurrentLocalDateContext(
+    val date: LocalDate,
+    val zoneId: ZoneId,
+)
+
+private fun currentLocalDateContext(): CurrentLocalDateContext {
+    val zoneId = ZoneId.systemDefault()
+    return CurrentLocalDateContext(LocalDate.now(zoneId), zoneId)
+}
+
+/** Reserves room at the row start for the line drawn by [historyGuideLine]. */
+@Composable
+private fun HistoryHierarchyGuide() {
+    Spacer(modifier = Modifier.width(12.dp))
+}
+
+/** Draws the hierarchy line over the whole row height, so taller rows never leave a gap. */
+@Composable
+private fun Modifier.historyGuideLine(enabled: Boolean): Modifier {
+    if (!enabled) return this
+    val color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+    return drawBehind {
+        val lineWidth = 2.dp.toPx()
+        val inset = 2.dp.toPx()
+        val x = if (layoutDirection == LayoutDirection.Rtl) size.width - inset - lineWidth else inset
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(x, 0f),
+            size = Size(lineWidth, size.height),
+            cornerRadius = CornerRadius(1.dp.toPx()),
+        )
+    }
 }
 
 @Composable
@@ -418,6 +626,80 @@ private fun HistoryQuickScroller(
     }
 }
 
+@Composable
+internal fun ChatHistoryCategoryNewChatControls(
+    selectedCategory: ChatHistoryCategory,
+    canManageFolders: Boolean,
+    onSelectedCategoryChange: (ChatHistoryCategory) -> Unit,
+    onNewChat: (inheritGroupFromCurrent: Boolean) -> Unit,
+    onCreateFolder: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        listOf(
+            ChatHistoryCategory.ALL to stringResource(R.string.chat_category_all),
+            ChatHistoryCategory.RECENT to stringResource(R.string.chat_category_recent),
+            ChatHistoryCategory.FAVORITES to stringResource(R.string.chat_category_favorites),
+        ).forEach { (category, label) ->
+            FilterChip(
+                modifier = Modifier.weight(1f),
+                selected = selectedCategory == category,
+                onClick = { onSelectedCategoryChange(category) },
+                label = {
+                    Text(
+                        text = label,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Button(
+            onClick = {
+                onNewChat(shouldInheritCurrentFolderForNewChat(selectedCategory))
+            },
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.new_chat))
+        }
+        if (canManageFolders) {
+            IconButton(
+                onClick = onCreateFolder,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    Icons.Default.AddCircleOutline,
+                    contentDescription = stringResource(R.string.new_group),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+    }
+}
+
 @OptIn(
     ExperimentalFoundationApi::class,
     ExperimentalMaterial3Api::class
@@ -425,16 +707,26 @@ private fun HistoryQuickScroller(
 @Composable
 fun ChatHistorySelector(
         modifier: Modifier = Modifier,
-        onNewChat: (characterCardName: String?, characterGroupId: String?) -> Unit,
+        onNewChat: (
+            characterCardName: String?,
+            characterGroupId: String?,
+            inheritGroupFromCurrent: Boolean,
+        ) -> Unit,
+        onCreateFolderWithInitialChat: (
+            parentFolderId: String?,
+            folderName: String,
+            characterCardName: String?,
+            characterGroupId: String?,
+            onResult: (Result<String>) -> Unit,
+        ) -> Unit,
         onSelectChat: (String) -> Unit,
         onDeleteChat: (String) -> Unit,
         onUpdateChatTitle: (chatId: String, newTitle: String) -> Unit,
         onUpdateChatBinding: (chatId: String, characterCardName: String?, characterGroupId: String?) -> Unit,
-        onCreateGroup: (groupName: String, characterCardName: String?, characterGroupId: String?) -> Unit,
-        onUpdateChatOrderAndGroup: (reorderedHistories: List<ChatHistory>, movedItem: ChatHistory, targetGroup: String?) -> Unit,
-        onUpdateGroupName: (oldName: String, newName: String, characterCardName: String?) -> Unit,
-        onDeleteGroup: (groupName: String, deleteChats: Boolean, characterCardName: String?) -> Unit,
         chatHistories: List<ChatHistory>,
+        orderingChatHistories: List<ChatHistory>,
+        searchableChatHistories: List<ChatHistory>,
+        chatFolders: List<ChatFolderEntity>,
         currentId: String?,
         activeStreamingChatIds: Set<String> = emptySet(),
         lazyListState: LazyListState? = null,
@@ -448,19 +740,26 @@ fun ChatHistorySelector(
         autoSwitchChatOnCharacterSelect: Boolean,
         onAutoSwitchChatOnCharacterSelectChange: (Boolean) -> Unit,
         onQuickScrollInteractionChange: (Boolean) -> Unit = {},
-        activePrompt: ActivePrompt
+        activePrompt: ActivePrompt,
+        selectedCategory: ChatHistoryCategory,
+        onSelectedCategoryChange: (ChatHistoryCategory) -> Unit,
+        collapsedGroups: Set<String>,
+        onCollapsedGroupsChange: (Set<String>) -> Unit,
+        collapsedCharacters: Set<String>,
+        onCollapsedCharactersChange: (Set<String>) -> Unit,
 ) {
     var chatToEdit by remember { mutableStateOf<ChatHistory?>(null) }
     var chatToDelete by remember { mutableStateOf<ChatHistory?>(null) }
     var chatItemActionTarget by remember { mutableStateOf<ChatHistory?>(null) }
+    var chatToMove by remember { mutableStateOf<ChatHistory?>(null) }
     var showNewGroupDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
-    var collapsedGroups by rememberLocal("chat_history_collapsed_groups", emptySet<String>())
-    var collapsedCharacters by rememberLocal("chat_history_collapsed_characters", emptySet<String>())
-
+    var newFolderParentId by remember { mutableStateOf<String?>(null) }
+    var isCreatingFolder by remember { mutableStateOf(false) }
     var groupActionTarget by remember { mutableStateOf<GroupTarget?>(null) }
     var groupToRename by remember { mutableStateOf<GroupTarget?>(null) }
     var groupToDelete by remember { mutableStateOf<GroupTarget?>(null) }
+    var groupToMove by remember { mutableStateOf<GroupTarget?>(null) }
     var hasLongPressedGroup by rememberLocal("has_long_pressed_group", defaultValue = false)
     
     // 搜索相关状态
@@ -468,8 +767,20 @@ fun ChatHistorySelector(
     var matchedChatIdsByContent by remember { mutableStateOf<Set<String>>(emptySet()) }
     var isSearching by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
+    val operationFailedText = stringResource(R.string.operation_failed)
+    val editTitleText = stringResource(R.string.edit_title)
+    val moveToFolderText = stringResource(R.string.move_to_folder)
+    val moveUpText = stringResource(R.string.move_up)
+    val moveDownText = stringResource(R.string.move_down)
+    val pinChatText = stringResource(R.string.pin_chat)
+    val unpinChatText = stringResource(R.string.unpin_chat)
+    val addToFavoritesText = stringResource(R.string.add_to_favorites)
+    val removeFromFavoritesText = stringResource(R.string.remove_from_favorites)
+    val lockChatText = stringResource(R.string.lock_chat)
+    val unlockChatText = stringResource(R.string.unlock_chat)
+    val createSubfolderText = stringResource(R.string.create_subfolder)
+    val renameGroupText = stringResource(R.string.rename_group)
     val chatHistoryManager = remember { ChatHistoryManager.getInstance(context) }
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
     val characterGroupCardManager = remember { CharacterGroupCardManager.getInstance(context) }
@@ -479,6 +790,161 @@ fun ChatHistorySelector(
     var availableCharacterCards by remember { mutableStateOf<List<CharacterCard>>(emptyList()) }
     var availableCharacterGroups by remember { mutableStateOf<List<CharacterGroupCard>>(emptyList()) }
     var resolvedGroupNameById by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val folderChoiceEntries =
+        remember(chatFolders) {
+            val byId = chatFolders.associateBy { it.id }
+            fun pathFor(folder: ChatFolderEntity): String {
+                val names = mutableListOf<String>()
+                val visited = mutableSetOf<String>()
+                var cursor: ChatFolderEntity? = folder
+                while (cursor != null && visited.add(cursor.id)) {
+                    names += cursor.name
+                    cursor = cursor.parentFolderId?.let(byId::get)
+                }
+                return names.asReversed().joinToString(" / ")
+            }
+            val paths = chatFolders.associate { it.id to pathFor(it) }
+            val duplicatePaths = paths.values.groupingBy { it }.eachCount()
+            paths.mapValues { (id, path) ->
+                val suffix = if (duplicatePaths[path] == 1) "" else " · ${id.take(8)}"
+                (path + suffix) to (byId.getValue(id).name + suffix)
+            }
+        }
+    val folderChoiceLabels = remember(folderChoiceEntries) {
+        folderChoiceEntries.mapValues { it.value.first }
+    }
+    val folderChoiceNames = remember(folderChoiceEntries) {
+        folderChoiceEntries.mapValues { it.value.second }
+    }
+    fun historySiblingSnapshot(parentFolderId: String?): List<HistorySiblingSnapshot> =
+        buildHistorySiblingSnapshot(parentFolderId, chatFolders, orderingChatHistories)
+
+    fun visibleHistorySiblingSnapshot(parentFolderId: String?): List<HistorySiblingSnapshot> =
+        buildVisibleHistorySiblingSnapshot(parentFolderId, chatFolders, orderingChatHistories)
+
+    fun captureHistorySiblingSnapshots(): Map<String?, List<HistorySiblingSnapshot>> {
+        val foldersByParent = chatFolders.groupBy { it.parentFolderId }
+        val chatsByFolder = orderingChatHistories.groupBy { it.folderId }
+        return (listOf<String?>(null) + chatFolders.map { it.id })
+            .distinct()
+            .associateWith { parentId ->
+                buildHistorySiblingSnapshot(
+                    parentId, foldersByParent[parentId].orEmpty(), chatsByFolder[parentId].orEmpty(),
+                )
+            }
+    }
+
+    fun normalizedSnapshots(
+        parentFolderId: String?,
+        siblings: List<HistorySiblingSnapshot>,
+    ): List<HistorySiblingSnapshot> =
+        siblings.mapIndexed { index, sibling ->
+            sibling.copy(
+                parentFolderId = parentFolderId,
+                displayOrder = index.toLong(),
+            )
+        }
+
+    fun expectedVisibleReorder(
+        parentFolderId: String?,
+        source: List<HistorySiblingSnapshot>,
+        orderedVisibleNodeKeys: List<String>,
+    ): List<HistorySiblingSnapshot> {
+        val visibleKeys = orderedVisibleNodeKeys.toSet()
+        val byKey = source.associateBy { it.stableKey }
+        val iterator = orderedVisibleNodeKeys.iterator()
+        val merged =
+            source.map { sibling ->
+                if (sibling.stableKey in visibleKeys) {
+                    requireNotNull(byKey[iterator.next()])
+                } else {
+                    sibling
+                }
+            }
+        return normalizedSnapshots(parentFolderId, merged)
+    }
+
+    fun expectedAnchoredMove(
+        movingNodeKey: String,
+        sourceParentFolderId: String?,
+        targetParentFolderId: String?,
+        beforeNodeKey: String?,
+        afterNodeKey: String?,
+        snapshots: Map<String?, List<HistorySiblingSnapshot>>,
+    ): Map<String?, List<HistorySiblingSnapshot>> {
+        val source = snapshots.getValue(sourceParentFolderId)
+        val moving = requireNotNull(source.firstOrNull { it.stableKey == movingNodeKey })
+        val sourceAfter = source.filterNot { it.stableKey == movingNodeKey }
+        val targetAfter =
+            if (sourceParentFolderId == targetParentFolderId) {
+                sourceAfter.toMutableList()
+            } else {
+                snapshots.getValue(targetParentFolderId)
+                    .filterNot { it.stableKey == movingNodeKey }
+                    .toMutableList()
+            }
+        val insertionIndex =
+            when {
+                beforeNodeKey != null ->
+                    targetAfter.indexOfFirst { it.stableKey == beforeNodeKey }
+                        .also { require(it >= 0) }
+                afterNodeKey != null ->
+                    targetAfter.indexOfFirst { it.stableKey == afterNodeKey }
+                        .also { require(it >= 0) } + 1
+                else -> targetAfter.size
+            }
+        targetAfter.add(
+            insertionIndex.coerceIn(0, targetAfter.size),
+            moving.copy(parentFolderId = targetParentFolderId),
+        )
+        return buildMap {
+            if (sourceParentFolderId != targetParentFolderId) {
+                put(
+                    sourceParentFolderId,
+                    normalizedSnapshots(sourceParentFolderId, sourceAfter),
+                )
+            }
+            put(
+                targetParentFolderId,
+                normalizedSnapshots(targetParentFolderId, targetAfter),
+            )
+        }
+    }
+
+    fun visibleSiblingNodeKeys(
+        items: List<HistoryListItem>,
+        parentFolderId: String?,
+    ): List<String> =
+        items
+            .mapNotNull { visibleItem ->
+                when (visibleItem) {
+                    is HistoryListItem.Header -> {
+                        val folderId = visibleItem.folderId ?: return@mapNotNull null
+                        chatFolders
+                            .firstOrNull { it.id == folderId }
+                            ?.takeIf { it.parentFolderId == parentFolderId }
+                            ?.let { "folder:${it.id}" }
+                    }
+                    is HistoryListItem.Item ->
+                        visibleItem.history
+                            .takeIf { it.folderId == parentFolderId }
+                            ?.let { "chat:${it.id}" }
+                    is HistoryListItem.CharacterHeader -> null
+                }
+            }
+            .distinct()
+
+    fun visibleChatReorderNodeKeys(
+        items: List<HistoryListItem>,
+        parentFolderId: String?,
+    ): List<String> =
+        visibleSiblingNodeKeys(items, parentFolderId).let { keys ->
+            if (parentFolderId == null) {
+                keys.filter { it.startsWith("chat:") }
+            } else {
+                keys
+            }
+        }
 
     fun promptDeleteChat(history: ChatHistory) {
         if (history.locked) {
@@ -513,7 +979,8 @@ fun ChatHistorySelector(
             title = { Text(stringResource(R.string.confirm_delete_chat)) },
             text = {
                 Text(
-                    text = stringResource(R.string.delete_chat_confirmation, deletingChat.title)
+                    text =
+                        stringResource(R.string.delete_chat_confirmation, deletingChat.title)
                 )
             },
             confirmButton = {
@@ -562,10 +1029,80 @@ fun ChatHistorySelector(
         }
     }
     val actualLazyListState = lazyListState ?: rememberLazyListState()
+    val historyTimeContext = rememberCurrentLocalDateContext()
     val ungroupedText = stringResource(R.string.ungrouped)
+    val categoryHistories =
+        remember(chatHistories, selectedCategory) {
+            selectChatHistoriesForCategory(chatHistories, selectedCategory)
+        }
+    val searchCandidateHistories =
+        remember(categoryHistories, searchableChatHistories, searchQuery) {
+            if (searchQuery.isBlank()) categoryHistories else searchableChatHistories
+        }
+    val canReorder = canReorderChatHistory(selectedCategory, searchQuery)
+    val canManageFolders =
+        canManageChatFolders(selectedCategory) && searchQuery.isBlank()
+    val folderById = remember(chatFolders) { chatFolders.associateBy { it.id } }
+    fun canMoveFolderToParent(folderId: String, targetParentFolderId: String?): Boolean {
+        if (targetParentFolderId == null) return true
+        if (
+            targetParentFolderId == folderId ||
+                targetParentFolderId == SYSTEM_UNGROUPED_FOLDER_ID
+        ) {
+            return false
+        }
+        var targetDepth = 0
+        var cursor: String? = targetParentFolderId
+        val visitedParents = hashSetOf<String>()
+        while (cursor != null && visitedParents.add(cursor)) {
+            if (cursor == folderId) return false
+            targetDepth++
+            cursor = folderById[cursor]?.parentFolderId
+        }
+        fun subtreeHeight(currentId: String, visiting: MutableSet<String>): Int {
+            if (!visiting.add(currentId)) return MAX_CHAT_FOLDER_DEPTH + 1
+            val childHeight =
+                chatFolders
+                    .asSequence()
+                    .filter { it.parentFolderId == currentId }
+                    .maxOfOrNull { subtreeHeight(it.id, visiting) }
+                    ?: 0
+            visiting.remove(currentId)
+            return childHeight + 1
+        }
+        return targetDepth + subtreeHeight(folderId, hashSetOf()) <=
+            MAX_CHAT_FOLDER_DEPTH
+    }
+    val systemUngroupedReady =
+        chatFolders.any { it.id == SYSTEM_UNGROUPED_FOLDER_ID }
+    LaunchedEffect(chatFolders) {
+        if (!systemUngroupedReady) return@LaunchedEffect
+        val validKeys = chatFolders.mapTo(hashSetOf()) { "folder:${it.id}" }
+        val validCollapsedGroups =
+            collapsedGroups.filterTo(hashSetOf()) { key ->
+                key in validKeys || key.endsWith(UNGROUPED_FOLDER_STABLE_KEY)
+            }
+        if (validCollapsedGroups != collapsedGroups) {
+            onCollapsedGroupsChange(validCollapsedGroups)
+        }
+    }
+    val folderPathById =
+        remember(chatFolders) {
+            val folderById = chatFolders.associateBy { it.id }
+            chatFolders.associate { folder ->
+                val names = mutableListOf<String>()
+                val visited = hashSetOf<String>()
+                var current: ChatFolderEntity? = folder
+                while (current != null && visited.add(current.id)) {
+                    names += current.name
+                    current = current.parentFolderId?.let(folderById::get)
+                }
+                folder.id to names.asReversed().joinToString(" / ")
+            }
+        }
 
     // 当搜索查询改变时，执行内容搜索（带防抖延迟）
-    LaunchedEffect(searchQuery, chatHistories) {
+    LaunchedEffect(searchQuery, searchCandidateHistories) {
         val trimmedQuery = searchQuery.trim()
         if (trimmedQuery.isBlank()) {
             matchedChatIdsByContent = emptySet()
@@ -573,13 +1110,16 @@ fun ChatHistorySelector(
             return@LaunchedEffect
         }
 
-        val hasTitleOrGroupMatch =
-            chatHistories.any { history ->
+        val hasTitleOrFolderMatch =
+            searchCandidateHistories.any { history ->
                 history.title.contains(trimmedQuery, ignoreCase = true) ||
-                    (history.group?.contains(trimmedQuery, ignoreCase = true) == true)
+                    (
+                        history.folderId?.let(folderPathById::get)
+                            ?.contains(trimmedQuery, ignoreCase = true) == true
+                    )
             }
 
-        val shouldSearchByContent = !hasTitleOrGroupMatch && trimmedQuery.length >= 2
+        val shouldSearchByContent = !hasTitleOrFolderMatch && trimmedQuery.length >= 2
         if (!shouldSearchByContent) {
             matchedChatIdsByContent = emptySet()
             isSearching = false
@@ -599,17 +1139,22 @@ fun ChatHistorySelector(
         }
     }
 
-    val filteredHistories = remember(chatHistories, searchQuery, matchedChatIdsByContent) {
+    val filteredHistories =
+        remember(searchCandidateHistories, searchQuery, matchedChatIdsByContent, folderPathById) {
         val trimmedQuery = searchQuery.trim()
         if (trimmedQuery.isNotBlank()) {
-            chatHistories.filter { history ->
-                val matchesTitleOrGroup = history.title.contains(trimmedQuery, ignoreCase = true) ||
-                        (history.group?.contains(trimmedQuery, ignoreCase = true) == true)
+            searchCandidateHistories.filter { history ->
+                val matchesTitleOrFolder =
+                    history.title.contains(trimmedQuery, ignoreCase = true) ||
+                        (
+                            history.folderId?.let(folderPathById::get)
+                                ?.contains(trimmedQuery, ignoreCase = true) == true
+                        )
                 val matchesContent = matchedChatIdsByContent.contains(history.id)
-                matchesTitleOrGroup || matchesContent
+                matchesTitleOrFolder || matchesContent
             }
         } else {
-            chatHistories
+            searchCandidateHistories
         }
     }
     val groupIdsInFilteredHistories = remember(filteredHistories) {
@@ -639,203 +1184,837 @@ fun ChatHistorySelector(
     val unboundCharacterText = stringResource(R.string.unbound_character_card)
     val groupPrefix = stringResource(R.string.character_group_binding_prefix)
     val flatItems =
-            remember(
-                    filteredHistories,
-                    collapsedGroups,
-                    collapsedCharacters,
-                    ungroupedText,
-                    unboundCharacterText,
-                    availableCharacterGroups,
-                    groupNameById,
-                    groupPrefix,
-                    historyDisplayMode,
-                    activeCharacterCardName
-            ) {
-                fun characterKey(name: String) = "character::$name"
-                fun groupKey(characterName: String?, groupValue: String?): String {
-                    val characterPart = characterName ?: "all"
-                    val groupPart = groupValue ?: "ungrouped"
-                    return "group::$characterPart::$groupPart"
-                }
+        remember(
+            filteredHistories,
+            chatFolders,
+            collapsedGroups,
+            collapsedCharacters,
+            selectedCategory,
+            historyDisplayMode,
+            groupNameById,
+            groupPrefix,
+            unboundCharacterText,
+            searchQuery,
+            ungroupedText,
+        ) {
+            val searching = searchQuery.isNotBlank()
+            val collapsedFolderIds =
+                if (searching) emptySet() else collapsedGroups.mapTo(hashSetOf()) { it.substringAfterLast("folder:") }
 
-                when (historyDisplayMode) {
-                    ChatHistoryDisplayMode.BY_CHARACTER_CARD -> {
-                        data class BindingBucket(
-                            val key: String,
-                            val displayName: String,
-                            val characterCardName: String?,
-                            val characterGroupId: String?
-                        )
-                        fun resolveBindingBucket(history: ChatHistory): BindingBucket {
-                            val groupId = history.characterGroupId?.trim()?.takeIf { it.isNotBlank() }
-                            if (!groupId.isNullOrBlank()) {
-                                val groupName = groupNameById[groupId]?.takeIf { it.isNotBlank() }
-                                val displayName =
-                                    if (!groupName.isNullOrBlank()) {
-                                        "$groupPrefix: $groupName"
-                                    } else {
-                                        context.getString(R.string.missing_character_group_id, groupId)
-                                    }
-                                return BindingBucket(
-                                    key = "binding::group::$groupId",
-                                    displayName = displayName,
-                                    characterCardName = null,
-                                    characterGroupId = groupId
-                                )
-                            }
-
-                            val cardName = history.characterCardName?.takeIf { it.isNotBlank() }
-                            if (!cardName.isNullOrBlank()) {
-                                return BindingBucket(
-                                    key = "binding::card::$cardName",
-                                    displayName = cardName,
-                                    characterCardName = cardName,
-                                    characterGroupId = null
-                                )
-                            }
-
-                            return BindingBucket(
-                                key = "binding::unbound",
-                                displayName = unboundCharacterText,
-                                characterCardName = null,
-                                characterGroupId = null
+            fun treeItems(
+                histories: List<ChatHistory>,
+                projection: HistoryTreeProjection,
+                keyPrefix: String = "",
+            ): List<HistoryListItem> {
+                val includeUngroupedFolder = true
+                val ungroupedFolderKey = "$keyPrefix$UNGROUPED_FOLDER_STABLE_KEY"
+                return buildVisibleHistoryTree(
+                    folders = chatFolders,
+                    histories = histories,
+                    projection = projection,
+                    collapsedFolderIds = collapsedFolderIds,
+                    includeUngroupedFolder = includeUngroupedFolder,
+                    isUngroupedFolderCollapsed =
+                        !searching && ungroupedFolderKey in collapsedGroups,
+                    includedFolderIds =
+                        if (searching) folderChoiceLabels.filterValues {
+                            it.contains(searchQuery.trim(), ignoreCase = true)
+                        }.keys else emptySet(),
+                ).nodes.map { node ->
+                    when (node) {
+                        is HistoryTreeNode.Folder ->
+                            HistoryListItem.Header(
+                                key = "$keyPrefix${node.stableKey}",
+                                name = node.folder.name,
+                                groupValue = null,
+                                folderId = node.folder.id,
+                                depth = node.depth,
                             )
-                        }
-
-                        filteredHistories
-                            .groupBy { resolveBindingBucket(it) }
-                            .flatMap { (bindingBucket, histories) ->
-                                val cKey = characterKey(bindingBucket.key)
-                                val children =
-                                        if (collapsedCharacters.contains(cKey)) {
-                                            emptyList()
-                                        } else {
-                                            histories
-                                                .groupBy { it.group }
-                                                .flatMap { (groupValue, groupedHistories) ->
-                                                    val displayName = groupValue ?: ungroupedText
-                                                    val gKey = groupKey(bindingBucket.key, groupValue)
-                                                    val header =
-                                                            HistoryListItem.Header(
-                                                                    key = gKey,
-                                                                    name = displayName,
-                                                                    groupValue = groupValue,
-                                                                    characterCardName = bindingBucket.characterCardName
-                                                            )
-                                                    val items =
-                                                            if (collapsedGroups.contains(gKey)) {
-                                                                emptyList()
-                                                            } else {
-                                                                groupedHistories.map {
-                                                                    HistoryListItem.Item(it)
-                                                                }
-                                                    }
-                                                    listOf(header) + items
-                                                }
-                                        }
-                                listOf(
-                                    HistoryListItem.CharacterHeader(
-                                        key = cKey,
-                                        name = bindingBucket.displayName,
-                                        characterCardName = bindingBucket.characterCardName,
-                                        characterGroupId = bindingBucket.characterGroupId
-                                    )
-                                ) + children
-                            }
-                    }
-                    else -> {
-                        filteredHistories
-                            .groupBy { it.group }
-                            .flatMap { (groupValue, histories) ->
-                                val displayName = groupValue ?: ungroupedText
-                                val gKey = groupKey(null, groupValue)
-                                // 在仅显示当前角色卡模式下，使用当前角色卡名称
-                                val effectiveCharacterCardName = if (historyDisplayMode == ChatHistoryDisplayMode.CURRENT_CHARACTER_ONLY) {
-                                    activeCharacterCardName
-                                } else {
-                                    null
-                                }
-                                val header =
-                                        HistoryListItem.Header(
-                                                key = gKey,
-                                                name = displayName,
-                                                groupValue = groupValue,
-                                                characterCardName = effectiveCharacterCardName
-                                        )
-                                val items =
-                                        if (collapsedGroups.contains(gKey)) {
-                                            emptyList()
-                                        } else {
-                                            histories.map { HistoryListItem.Item(it) }
-                                        }
-                                listOf(header) + items
-                            }
+                        is HistoryTreeNode.Chat ->
+                            HistoryListItem.Item(
+                                history = node.history,
+                                depth = node.depth,
+                            )
+                        HistoryTreeNode.Ungrouped ->
+                            HistoryListItem.Header(
+                                key = ungroupedFolderKey,
+                                name = ungroupedText,
+                                groupValue = null,
+                                folderId = SYSTEM_UNGROUPED_FOLDER_ID,
+                                depth = node.depth,
+                            )
                     }
                 }
             }
 
-    val reorderableState = rememberReorderableLazyListState(actualLazyListState) { from, to ->
-        val movedItem = flatItems.getOrNull(from.index) as? HistoryListItem.Item
-                ?: return@rememberReorderableLazyListState
+            if (selectedCategory == ChatHistoryCategory.RECENT) {
+                filteredHistories.map { HistoryListItem.Item(it) }
+            } else if (historyDisplayMode == ChatHistoryDisplayMode.BY_CHARACTER_CARD) {
+                data class BindingBucket(
+                    val key: String,
+                    val displayName: String,
+                    val characterCardName: String?,
+                    val characterGroupId: String?,
+                )
 
-        val reorderedFlatList = flatItems.toMutableList().apply {
-            add(to.index, removeAt(from.index))
-        }
+                fun bindingBucket(history: ChatHistory): BindingBucket {
+                    val characterGroupId =
+                        history.characterGroupId?.trim()?.takeIf { it.isNotBlank() }
+                    if (characterGroupId != null) {
+                        val groupName = groupNameById[characterGroupId]
+                        return BindingBucket(
+                            key = "binding:group:$characterGroupId",
+                            displayName =
+                                groupName?.takeIf { it.isNotBlank() }
+                                    ?.let { "$groupPrefix: $it" }
+                                    ?: context.getString(
+                                        R.string.missing_character_group_id,
+                                        characterGroupId,
+                                    ),
+                            characterCardName = null,
+                            characterGroupId = characterGroupId,
+                        )
+                    }
+                    val characterCardName =
+                        history.characterCardName?.trim()?.takeIf { it.isNotBlank() }
+                    return if (characterCardName != null) {
+                        BindingBucket(
+                            key = "binding:card:$characterCardName",
+                            displayName = characterCardName,
+                            characterCardName = characterCardName,
+                            characterGroupId = null,
+                        )
+                    } else {
+                        BindingBucket(
+                            key = "binding:unbound",
+                            displayName = unboundCharacterText,
+                            characterCardName = null,
+                            characterGroupId = null,
+                        )
+                    }
+                }
 
-        var newGroup: String? = null
-        var newCharacterCardName: String? = null
-        var newCharacterGroupId: String? = null
-        val newOrderedHistories =
-                reorderedFlatList
-                    .mapNotNull {
-                        when (it) {
-                            is HistoryListItem.CharacterHeader -> {
-                                // 在绑定分类模式下，更新当前绑定（角色卡/群组）
-                                newCharacterCardName = it.characterCardName
-                                newCharacterGroupId = it.characterGroupId
-                                newGroup = null
-                                null
-                            }
-                            is HistoryListItem.Header -> {
-                                newGroup = it.groupValue
-                                null
-                            }
-                            is HistoryListItem.Item -> {
-                                // 根据当前显示模式决定是否更新 characterCardName
-                                val updatedHistory = if (historyDisplayMode == ChatHistoryDisplayMode.BY_CHARACTER_CARD) {
-                                    it.history.copy(
-                                        group = newGroup,
-                                        characterCardName = newCharacterCardName,
-                                        characterGroupId = newCharacterGroupId
-                                    )
-                                } else {
-                                    it.history.copy(group = newGroup)
-                                }
-                                updatedHistory
-                            }
+                filteredHistories
+                    .groupBy(::bindingBucket)
+                    .flatMap { (bucket, histories) ->
+                        val header =
+                            HistoryListItem.CharacterHeader(
+                                key = bucket.key,
+                                name = bucket.displayName,
+                                characterCardName = bucket.characterCardName,
+                                characterGroupId = bucket.characterGroupId,
+                            )
+                        if (!searching && bucket.key in collapsedCharacters) {
+                            listOf(header)
+                        } else {
+                            listOf(header) +
+                                treeItems(
+                                    histories = histories,
+                                    projection =
+                                        if (selectedCategory == ChatHistoryCategory.FAVORITES) {
+                                            HistoryTreeProjection.FAVORITES
+                                        } else {
+                                            HistoryTreeProjection.FILTERED
+                                        },
+                                    keyPrefix = "${bucket.key}:",
+                                )
                         }
                     }
-                    .mapIndexed { index, history -> history.copy(displayOrder = index.toLong()) }
-
-        val finalMovedItem =
-                newOrderedHistories.find { it.id == movedItem.history.id }
-                        ?: return@rememberReorderableLazyListState
-
-        // 如果角色卡绑定发生了变化，需要额外通知
-        if (historyDisplayMode == ChatHistoryDisplayMode.BY_CHARACTER_CARD &&
-            (
-                finalMovedItem.characterCardName != movedItem.history.characterCardName ||
-                    finalMovedItem.characterGroupId != movedItem.history.characterGroupId
-            )
-        ) {
-            onUpdateChatBinding(
-                finalMovedItem.id,
-                finalMovedItem.characterCardName,
-                finalMovedItem.characterGroupId
-            )
+            } else {
+                treeItems(
+                    histories = filteredHistories,
+                    projection =
+                        when {
+                            searching -> HistoryTreeProjection.FILTERED
+                            selectedCategory == ChatHistoryCategory.FAVORITES ->
+                                HistoryTreeProjection.FAVORITES
+                            historyDisplayMode == ChatHistoryDisplayMode.CURRENT_CHARACTER_ONLY ->
+                                HistoryTreeProjection.FILTERED
+                            else -> HistoryTreeProjection.ALL
+                        },
+                )
+            }
         }
 
-        onUpdateChatOrderAndGroup(newOrderedHistories, finalMovedItem, finalMovedItem.group)
+    val reorderItems =
+        remember {
+            mutableStateListOf<HistoryListItem>().apply { addAll(flatItems) }
+        }
+    var dragInProgress by remember { mutableStateOf(false) }
+    val hapticFeedback = LocalHapticFeedback.current
+    // Neighbours slide out of the way while dragging; other list updates keep snapping as before.
+    val dragPlacementSpec =
+        if (dragInProgress) {
+            spring(
+                stiffness = Spring.StiffnessMediumLow,
+                visibilityThreshold = IntOffset.VisibilityThreshold,
+            )
+        } else {
+            null
+        }
+    var suppressedFolderDragDescendantKeys by
+        remember { mutableStateOf<Set<String>>(emptySet()) }
+    var suppressedFolderDragRootId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(flatItems) {
+        val currentSuppressedKeys =
+            buildSet {
+                addAll(suppressedFolderDragDescendantKeys)
+                val rootId = suppressedFolderDragRootId
+                val rootIndex =
+                    rootId?.let { folderId ->
+                        flatItems.indexOfFirst { item ->
+                            item is HistoryListItem.Header && item.folderId == folderId
+                        }
+                    } ?: -1
+                val root = flatItems.getOrNull(rootIndex) as? HistoryListItem.Header
+                if (root != null) {
+                    var index = rootIndex + 1
+                    while (index < flatItems.size) {
+                        val descendant = flatItems[index]
+                        val depth =
+                            when (descendant) {
+                                is HistoryListItem.CharacterHeader -> 0
+                                is HistoryListItem.Header -> descendant.depth
+                                is HistoryListItem.Item -> descendant.depth
+                            }
+                        if (depth <= root.depth) break
+                        add(
+                            when (descendant) {
+                                is HistoryListItem.CharacterHeader -> descendant.key
+                                is HistoryListItem.Header -> descendant.key
+                                is HistoryListItem.Item -> "chat:${descendant.history.id}"
+                            }
+                        )
+                        index++
+                    }
+                }
+            }
+        val visibleDragItems =
+            if (dragInProgress && currentSuppressedKeys.isNotEmpty()) {
+                flatItems.filterNot { item ->
+                    val key =
+                        when (item) {
+                            is HistoryListItem.CharacterHeader -> item.key
+                            is HistoryListItem.Header -> item.key
+                            is HistoryListItem.Item -> "chat:${item.history.id}"
+                        }
+                    key in currentSuppressedKeys
+                }
+            } else {
+                flatItems
+            }
+        if (!dragInProgress) {
+            reorderItems.clear()
+            reorderItems.addAll(flatItems)
+        } else {
+            // Keep the optimistic order if another visible-tree update happens mid-drag.
+            // Remove rows hidden by collapsing, then merge new rows next to their canonical
+            // predecessor without discarding the optimistic order.
+            val merged = com.ai.assistance.operit.ui.features.chat.historytree.mergeHistoryDragOrder(
+                reorderItems.toList(), visibleDragItems,
+            ) { item ->
+                when (item) {
+                    is HistoryListItem.CharacterHeader -> item.key
+                    is HistoryListItem.Header -> item.key
+                    is HistoryListItem.Item -> "chat:${item.history.id}"
+                }
+            }
+            reorderItems.clear()
+            reorderItems.addAll(merged)
+        }
+    }
+    fun resetOptimisticOrder() {
+        suppressedFolderDragDescendantKeys = emptySet()
+        suppressedFolderDragRootId = null
+        reorderItems.clear()
+        reorderItems.addAll(flatItems)
+    }
+    fun prepareOptimisticFolderDrag(folderId: String) {
+        suppressedFolderDragRootId = folderId
+        val headerIndex =
+            reorderItems.indexOfFirst { item ->
+                item is HistoryListItem.Header && item.folderId == folderId
+            }
+        val header =
+            reorderItems.getOrNull(headerIndex) as? HistoryListItem.Header
+                ?: return
+        val descendantIndex = headerIndex + 1
+        val suppressedKeys = mutableSetOf<String>()
+        while (descendantIndex < reorderItems.size) {
+            val descendant = reorderItems[descendantIndex]
+            val depth =
+                when (descendant) {
+                    is HistoryListItem.CharacterHeader -> 0
+                    is HistoryListItem.Header -> descendant.depth
+                    is HistoryListItem.Item -> descendant.depth
+                }
+            if (depth <= header.depth) break
+            suppressedKeys +=
+                when (descendant) {
+                    is HistoryListItem.CharacterHeader -> descendant.key
+                    is HistoryListItem.Header -> descendant.key
+                    is HistoryListItem.Item -> "chat:${descendant.history.id}"
+                }
+            reorderItems.removeAt(descendantIndex)
+        }
+        suppressedFolderDragDescendantKeys = suppressedKeys
+    }
+    fun applyOptimisticMove(fromIndex: Int, toIndex: Int) {
+        if (fromIndex !in reorderItems.indices) return
+        val moved = reorderItems.removeAt(fromIndex)
+        reorderItems.add(toIndex.coerceIn(0, reorderItems.size), moved)
+    }
+    fun applyOptimisticFolderMove(fromIndex: Int, toIndex: Int): Boolean {
+        val header = reorderItems.getOrNull(fromIndex) as? HistoryListItem.Header ?: return false
+        var blockEnd = fromIndex + 1
+        while (blockEnd < reorderItems.size) {
+            val depth =
+                when (val item = reorderItems[blockEnd]) {
+                    is HistoryListItem.CharacterHeader -> 0
+                    is HistoryListItem.Header -> item.depth
+                    is HistoryListItem.Item -> item.depth
+                }
+            if (depth <= header.depth) break
+            blockEnd++
+        }
+        if (toIndex in fromIndex until blockEnd) return false
+
+        val target =
+            reorderItems.getOrNull(toIndex)
+                ?: return false
+        val targetKey =
+            when (target) {
+                is HistoryListItem.CharacterHeader -> target.key
+                is HistoryListItem.Header -> target.key
+                is HistoryListItem.Item -> "chat:${target.history.id}"
+            }
+        val block = reorderItems.subList(fromIndex, blockEnd).toList()
+        repeat(block.size) { reorderItems.removeAt(fromIndex) }
+        val targetIndex =
+            reorderItems.indexOfFirst { item ->
+                when (item) {
+                    is HistoryListItem.CharacterHeader -> item.key
+                    is HistoryListItem.Header -> item.key
+                    is HistoryListItem.Item -> "chat:${item.history.id}"
+                } == targetKey
+            }
+        if (targetIndex < 0) {
+            reorderItems.addAll(fromIndex.coerceAtMost(reorderItems.size), block)
+            return false
+        }
+        val insertionIndex =
+            (targetIndex + if (fromIndex < toIndex) 1 else 0)
+                .coerceIn(0, reorderItems.size)
+        reorderItems.addAll(insertionIndex, block)
+        return true
+    }
+
+    var activeChatDragId by remember { mutableStateOf<String?>(null) }
+    var pendingChatDragTarget by remember { mutableStateOf<ChatDragTarget?>(null) }
+    var historyMoveInFlight by remember { mutableStateOf(false) }
+    var pendingHistoryMoveAck by remember { mutableStateOf<PendingHistoryMoveAck?>(null) }
+    var chatDragSnapshots by
+        remember {
+            mutableStateOf<Map<String?, List<HistorySiblingSnapshot>>>(emptyMap())
+        }
+    var activeFolderDragId by remember { mutableStateOf<String?>(null) }
+    var pendingFolderDragTarget by remember { mutableStateOf<FolderDragTarget?>(null) }
+    var folderDragSnapshots by
+        remember {
+            mutableStateOf<Map<String?, List<HistorySiblingSnapshot>>>(emptyMap())
+        }
+
+    LaunchedEffect(orderingChatHistories, chatFolders, pendingHistoryMoveAck) {
+        val pending = pendingHistoryMoveAck ?: return@LaunchedEffect
+        if (!pending.repositoryCallCompleted) return@LaunchedEffect
+        val matchesExpected =
+            pending.expectedSiblingsByParent.all { (parentFolderId, expected) ->
+                historySiblingSnapshot(parentFolderId).map { it.structure() } ==
+                    expected.map { it.structure() }
+            }
+        if (!matchesExpected) {
+            // Folders and chats refresh separately, so the list can sit half updated for a
+            // moment. Unlock only after it has settled; a drag started from that half-updated
+            // order is rejected by the repository as "order changed" and snaps back.
+            // Any new list update restarts this effect, so the expected order unlocks at once;
+            // the wait only matters when the saved order never matches what we expected.
+            delay(1_500L)
+        }
+        pendingHistoryMoveAck = null
+        historyMoveInFlight = false
+    }
+
+    val reorderableState =
+        rememberReorderableLazyListState(actualLazyListState) { from, to ->
+            if (!canReorder || historyMoveInFlight) {
+                return@rememberReorderableLazyListState
+            }
+            val moved = reorderItems.getOrNull(from.index)
+                ?: return@rememberReorderableLazyListState
+            val target = reorderItems.getOrNull(to.index)
+                ?: return@rememberReorderableLazyListState
+
+            when (moved) {
+                is HistoryListItem.Item -> {
+                    val nextTarget =
+                        when (target) {
+                            is HistoryListItem.Item -> {
+                            if (
+                                !canManageFolders &&
+                                    moved.history.folderId != target.history.folderId
+                            ) {
+                                return@rememberReorderableLazyListState
+                            }
+                            if (
+                                historyDisplayMode ==
+                                    ChatHistoryDisplayMode.BY_CHARACTER_CARD &&
+                                    (
+                                        moved.history.characterCardName !=
+                                            target.history.characterCardName ||
+                                            moved.history.characterGroupId !=
+                                                target.history.characterGroupId
+                                    )
+                            ) {
+                                return@rememberReorderableLazyListState
+                            }
+                            ChatDragTarget(
+                                targetFolderId = target.history.folderId,
+                                anchorNodeKey = "chat:${target.history.id}",
+                                insertBeforeAnchor = from.index > to.index,
+                            )
+                        }
+                        is HistoryListItem.Header -> {
+                            if (!canManageFolders) {
+                                return@rememberReorderableLazyListState
+                            }
+                            val targetFolder =
+                                target.folderId?.let {
+                                    chatFolders.firstOrNull { folder -> folder.id == it }
+                                }
+                            if (
+                                targetFolder == null ||
+                                    targetFolder.id == SYSTEM_UNGROUPED_FOLDER_ID
+                            ) {
+                                ChatDragTarget(
+                                    targetFolderId = null,
+                                    anchorNodeKey =
+                                        visibleHistorySiblingSnapshot(null)
+                                            .firstOrNull {
+                                                it.kind == HistorySiblingKind.CHAT
+                                            }
+                                            ?.stableKey,
+                                    insertBeforeAnchor = true,
+                                )
+                            } else {
+                                val movingFromUngrouped = moved.history.folderId == null
+                                val targetFolderIsEmpty =
+                                    visibleHistorySiblingSnapshot(targetFolder.id).isEmpty()
+                                ChatDragTarget(
+                                    targetFolderId =
+                                        if (movingFromUngrouped) {
+                                            null
+                                        } else {
+                                            targetFolder.parentFolderId
+                                        },
+                                    anchorNodeKey =
+                                        if (movingFromUngrouped) {
+                                            null
+                                        } else {
+                                            "folder:${targetFolder.id}"
+                                        },
+                                    insertBeforeAnchor =
+                                        if (movingFromUngrouped) {
+                                            null
+                                        } else {
+                                            from.index > to.index
+                                    },
+                                    nestFolderId = targetFolder.id,
+                                    nestImmediately = targetFolderIsEmpty,
+                                    hoverStartedAt = SystemClock.uptimeMillis(),
+                                )
+                            }
+                        }
+                        is HistoryListItem.CharacterHeader ->
+                            return@rememberReorderableLazyListState
+                    }
+                    val previous = pendingChatDragTarget
+                    val updatedTarget =
+                        if (
+                            previous != null &&
+                                previous.targetFolderId == nextTarget.targetFolderId &&
+                                previous.anchorNodeKey == nextTarget.anchorNodeKey &&
+                                previous.insertBeforeAnchor == nextTarget.insertBeforeAnchor &&
+                                previous.nestFolderId == nextTarget.nestFolderId &&
+                                previous.nestImmediately == nextTarget.nestImmediately
+                        ) {
+                            nextTarget.copy(hoverStartedAt = previous.hoverStartedAt)
+                        } else {
+                            nextTarget
+                        }
+                    activeChatDragId = activeChatDragId ?: moved.history.id
+                    pendingChatDragTarget = updatedTarget
+                    applyOptimisticMove(from.index, to.index)
+                    hapticFeedback.performHapticFeedback(DragMoveHaptic)
+                }
+                is HistoryListItem.Header -> {
+                    if (
+                        !canManageFolders ||
+                            historyDisplayMode != ChatHistoryDisplayMode.BY_FOLDER
+                    ) {
+                        return@rememberReorderableLazyListState
+                    }
+                    val movedFolderId =
+                        moved.folderId ?: return@rememberReorderableLazyListState
+                    val folderById = chatFolders.associateBy { it.id }
+                    val movedFolder =
+                        folderById[movedFolderId] ?: return@rememberReorderableLazyListState
+                    val nextTarget =
+                        when (target) {
+                            is HistoryListItem.Header -> {
+                                val targetFolderId = target.folderId
+                                val targetFolder = targetFolderId?.let(folderById::get)
+                                val isUngroupedTarget =
+                                    targetFolderId == SYSTEM_UNGROUPED_FOLDER_ID
+                                if (
+                                    movedFolderId == SYSTEM_UNGROUPED_FOLDER_ID &&
+                                        targetFolder?.parentFolderId != null
+                                ) {
+                                    return@rememberReorderableLazyListState
+                                }
+                                FolderDragTarget(
+                                    targetParentFolderId =
+                                        if (isUngroupedTarget) {
+                                            null
+                                        } else {
+                                            targetFolder?.parentFolderId
+                                        },
+                                    anchorNodeKey =
+                                        targetFolderId?.let { "folder:$it" }
+                                            ?: visibleHistorySiblingSnapshot(null)
+                                                .firstOrNull {
+                                                    it.stableKey != "folder:$movedFolderId"
+                                                }
+                                                ?.stableKey,
+                                    insertBeforeAnchor =
+                                        targetFolderId?.let { from.index > to.index } ?: true,
+                                    nestFolderId =
+                                        targetFolderId.takeUnless {
+                                            isUngroupedTarget ||
+                                                movedFolderId == SYSTEM_UNGROUPED_FOLDER_ID
+                                        },
+                                    hoverStartedAt = SystemClock.uptimeMillis(),
+                                )
+                            }
+                            is HistoryListItem.Item -> {
+                                val parentId = target.history.folderId
+                                if (
+                                    movedFolderId == SYSTEM_UNGROUPED_FOLDER_ID &&
+                                        parentId != null
+                                ) {
+                                    return@rememberReorderableLazyListState
+                                }
+                                FolderDragTarget(
+                                    targetParentFolderId = parentId,
+                                    anchorNodeKey = "chat:${target.history.id}",
+                                    insertBeforeAnchor = from.index > to.index,
+                                    nestFolderId = null,
+                                    hoverStartedAt = SystemClock.uptimeMillis(),
+                                )
+                            }
+                            is HistoryListItem.CharacterHeader ->
+                                return@rememberReorderableLazyListState
+                        }
+                    val previous = pendingFolderDragTarget
+                    val updatedTarget =
+                        if (
+                            previous != null &&
+                                previous.targetParentFolderId == nextTarget.targetParentFolderId &&
+                                previous.anchorNodeKey == nextTarget.anchorNodeKey &&
+                                previous.insertBeforeAnchor == nextTarget.insertBeforeAnchor &&
+                                previous.nestFolderId == nextTarget.nestFolderId
+                        ) {
+                            nextTarget.copy(hoverStartedAt = previous.hoverStartedAt)
+                        } else {
+                            nextTarget
+                        }
+                    if (!applyOptimisticFolderMove(from.index, to.index)) {
+                        return@rememberReorderableLazyListState
+                    }
+                    hapticFeedback.performHapticFeedback(DragMoveHaptic)
+                    pendingFolderDragTarget = updatedTarget
+                    if (activeFolderDragId == null) {
+                        activeFolderDragId = movedFolderId
+                    }
+                }
+                is HistoryListItem.CharacterHeader -> Unit
+            }
+        }
+
+    fun commitChatDrag() {
+        val chatId = activeChatDragId
+        val target = pendingChatDragTarget
+        val expectedSnapshots = chatDragSnapshots
+        if (chatId != null && target != null) hapticFeedback.performHapticFeedback(DragDropHaptic)
+        activeChatDragId = null
+        pendingChatDragTarget = null
+        chatDragSnapshots = emptyMap()
+        dragInProgress = false
+        if (chatId == null || target == null) {
+            resetOptimisticOrder()
+            return
+        }
+        val moving = chatHistories.firstOrNull { it.id == chatId }
+        if (moving == null) {
+            resetOptimisticOrder()
+            return
+        }
+        val shouldNest =
+            target.nestFolderId != null &&
+                (
+                    target.nestImmediately ||
+                        SystemClock.uptimeMillis() - target.hoverStartedAt >= 650L
+                )
+        val resolvedTargetFolderId =
+            if (shouldNest) target.nestFolderId else target.targetFolderId
+        val resolvedAnchorNodeKey = target.anchorNodeKey.takeUnless { shouldNest }
+        val resolvedInsertBeforeAnchor = target.insertBeforeAnchor.takeUnless { shouldNest }
+        val orderedVisibleNodeKeys =
+            if (moving.folderId == resolvedTargetFolderId) {
+                visibleChatReorderNodeKeys(reorderItems, moving.folderId)
+            } else {
+                null
+            }
+        val expectedAfterMove =
+            runCatching {
+                if (orderedVisibleNodeKeys != null) {
+                    mapOf(
+                        moving.folderId to
+                            expectedVisibleReorder(
+                                parentFolderId = moving.folderId,
+                                source = expectedSnapshots.getValue(moving.folderId),
+                                orderedVisibleNodeKeys = orderedVisibleNodeKeys,
+                            )
+                    )
+                } else {
+                    expectedAnchoredMove(
+                        movingNodeKey = "chat:$chatId",
+                        sourceParentFolderId = moving.folderId,
+                        targetParentFolderId = resolvedTargetFolderId,
+                        beforeNodeKey =
+                            resolvedAnchorNodeKey.takeIf {
+                                resolvedInsertBeforeAnchor == true
+                            },
+                        afterNodeKey =
+                            resolvedAnchorNodeKey.takeIf {
+                                resolvedInsertBeforeAnchor == false
+                            },
+                        snapshots = expectedSnapshots,
+                    )
+                }
+            }.getOrElse { error ->
+                resetOptimisticOrder()
+                Toast.makeText(
+                    context,
+                    error.message ?: operationFailedText,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return
+            }
+        historyMoveInFlight = true
+        pendingHistoryMoveAck =
+            PendingHistoryMoveAck(
+                expectedSiblingsByParent = expectedAfterMove,
+            )
+        coroutineScope.launch {
+            val result = runCatching {
+                if (moving.folderId == resolvedTargetFolderId) {
+                    chatHistoryManager.moveChat(
+                        chatId = chatId,
+                        targetFolderId = resolvedTargetFolderId,
+                        orderedVisibleNodeKeys = requireNotNull(orderedVisibleNodeKeys),
+                        expectedSourceSiblings =
+                            expectedSnapshots.getValue(moving.folderId),
+                        expectedTargetSiblings =
+                            expectedSnapshots.getValue(moving.folderId),
+                    )
+                } else {
+                    chatHistoryManager.moveChat(
+                        chatId = chatId,
+                        targetFolderId = resolvedTargetFolderId,
+                        beforeNodeKey =
+                            resolvedAnchorNodeKey.takeIf {
+                                resolvedInsertBeforeAnchor == true
+                            },
+                        afterNodeKey =
+                            resolvedAnchorNodeKey.takeIf {
+                                resolvedInsertBeforeAnchor == false
+                            },
+                        expectedSourceSiblings =
+                            expectedSnapshots.getValue(moving.folderId),
+                        expectedTargetSiblings =
+                            expectedSnapshots.getValue(resolvedTargetFolderId),
+                        allowAppendToNonEmptyTarget = resolvedAnchorNodeKey == null,
+                    )
+                }
+            }
+            result.onFailure { error ->
+                resetOptimisticOrder()
+                Toast.makeText(
+                    context,
+                    error.message ?: operationFailedText,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            if (result.isFailure) {
+                pendingHistoryMoveAck = null
+                historyMoveInFlight = false
+            } else {
+                pendingHistoryMoveAck =
+                    pendingHistoryMoveAck?.copy(repositoryCallCompleted = true)
+            }
+        }
+    }
+
+    fun commitFolderDrag() {
+        val folderId = activeFolderDragId
+        val target = pendingFolderDragTarget
+        val expectedSnapshots = folderDragSnapshots
+        if (folderId != null && target != null) hapticFeedback.performHapticFeedback(DragDropHaptic)
+        activeFolderDragId = null
+        pendingFolderDragTarget = null
+        folderDragSnapshots = emptyMap()
+        dragInProgress = false
+        suppressedFolderDragDescendantKeys = emptySet()
+        suppressedFolderDragRootId = null
+        if (folderId == null || target == null) {
+            resetOptimisticOrder()
+            return
+        }
+
+        val shouldNest =
+            target.nestFolderId != null &&
+                target.nestFolderId != folderId &&
+                folderId != SYSTEM_UNGROUPED_FOLDER_ID &&
+                target.nestFolderId != SYSTEM_UNGROUPED_FOLDER_ID &&
+                SystemClock.uptimeMillis() - target.hoverStartedAt >= 650L
+        val resolvedParent =
+            if (shouldNest) target.nestFolderId else target.targetParentFolderId
+        if (!canMoveFolderToParent(folderId, resolvedParent)) {
+            resetOptimisticOrder()
+            return
+        }
+        val resolvedAnchorNodeKey = target.anchorNodeKey.takeUnless { shouldNest }
+        val resolvedInsertBeforeAnchor = target.insertBeforeAnchor.takeUnless { shouldNest }
+        val sourceParent =
+            chatFolders.firstOrNull { it.id == folderId }?.parentFolderId
+        val expectedAfterMove =
+            runCatching {
+                expectedAnchoredMove(
+                    movingNodeKey = "folder:$folderId",
+                    sourceParentFolderId = sourceParent,
+                    targetParentFolderId = resolvedParent,
+                    beforeNodeKey =
+                        resolvedAnchorNodeKey.takeIf { resolvedInsertBeforeAnchor == true },
+                    afterNodeKey =
+                        resolvedAnchorNodeKey.takeIf { resolvedInsertBeforeAnchor == false },
+                    snapshots = expectedSnapshots,
+                )
+            }.getOrElse { error ->
+                resetOptimisticOrder()
+                Toast.makeText(
+                    context,
+                    error.message ?: operationFailedText,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return
+            }
+        historyMoveInFlight = true
+        pendingHistoryMoveAck =
+            PendingHistoryMoveAck(
+                expectedSiblingsByParent = expectedAfterMove,
+            )
+        coroutineScope.launch {
+            val result = runCatching {
+                chatHistoryManager.moveFolder(
+                    folderId = folderId,
+                    targetParentFolderId = resolvedParent,
+                    expectedSourceSiblings =
+                        expectedSnapshots.getValue(
+                            sourceParent
+                        ),
+                    expectedTargetSiblings = expectedSnapshots.getValue(resolvedParent),
+                    beforeNodeKey =
+                        resolvedAnchorNodeKey.takeIf { resolvedInsertBeforeAnchor == true },
+                    afterNodeKey =
+                        resolvedAnchorNodeKey.takeIf { resolvedInsertBeforeAnchor == false },
+                    allowAppendToNonEmptyTarget = resolvedAnchorNodeKey == null,
+                )
+            }
+            result.onFailure { error ->
+                resetOptimisticOrder()
+                Toast.makeText(
+                    context,
+                    error.message ?: operationFailedText,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            if (result.isFailure) {
+                pendingHistoryMoveAck = null
+                historyMoveInFlight = false
+            } else {
+                pendingHistoryMoveAck =
+                    pendingHistoryMoveAck?.copy(repositoryCallCompleted = true)
+            }
+        }
+    }
+
+    fun moveVisibleChatByOffset(targetChat: ChatHistory, offset: Int) {
+        if (historyMoveInFlight) return
+        val visibleSiblingKeys =
+            visibleChatReorderNodeKeys(flatItems, targetChat.folderId).toMutableList()
+        val chatKey = "chat:${targetChat.id}"
+        val currentIndex = visibleSiblingKeys.indexOf(chatKey)
+        val targetIndex = currentIndex + offset
+        if (currentIndex < 0 || targetIndex !in visibleSiblingKeys.indices) return
+        visibleSiblingKeys.add(targetIndex, visibleSiblingKeys.removeAt(currentIndex))
+        val sourceSnapshot = historySiblingSnapshot(targetChat.folderId)
+        val expectedAfterMove =
+            expectedVisibleReorder(
+                parentFolderId = targetChat.folderId,
+                source = sourceSnapshot,
+                orderedVisibleNodeKeys = visibleSiblingKeys,
+            )
+        historyMoveInFlight = true
+        pendingHistoryMoveAck =
+            PendingHistoryMoveAck(
+                expectedSiblingsByParent =
+                    mapOf(targetChat.folderId to expectedAfterMove),
+            )
+        coroutineScope.launch {
+            val result = runCatching {
+                chatHistoryManager.moveChat(
+                    chatId = targetChat.id,
+                    targetFolderId = targetChat.folderId,
+                    orderedVisibleNodeKeys = visibleSiblingKeys,
+                    expectedSourceSiblings = sourceSnapshot,
+                    expectedTargetSiblings = sourceSnapshot,
+                )
+            }
+            result.onFailure { error ->
+                Toast.makeText(
+                    context,
+                    error.message ?: operationFailedText,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            if (result.isFailure) {
+                pendingHistoryMoveAck = null
+                historyMoveInFlight = false
+            } else {
+                pendingHistoryMoveAck =
+                    pendingHistoryMoveAck?.copy(repositoryCallCompleted = true)
+            }
+        }
     }
 
     if (chatItemActionTarget != null) {
@@ -892,7 +2071,7 @@ fun ChatHistorySelector(
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .clip(MaterialTheme.shapes.medium)
                             .semantics {
-                                contentDescription = context.getString(R.string.edit_title)
+                                contentDescription = editTitleText
                             }
                             .clickable {
                                 chatToEdit = chatItemActionTarget
@@ -923,7 +2102,46 @@ fun ChatHistorySelector(
                             )
                         }
                     }
+
+                    if (canManageFolders) {
+                        Surface(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .semantics {
+                                        contentDescription =
+                                            moveToFolderText
+                                    }
+                                    .clickable {
+                                        chatToMove = resolvedTargetChat
+                                        chatItemActionTarget = null
+                                    },
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountTree,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp).clearAndSetSemantics {},
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    stringResource(R.string.move_to_folder),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.clearAndSetSemantics {},
+                                )
+                            }
+                        }
+                    }
                     
+                    if (canReorder) {
                     // 上移选项
                     Surface(
                         modifier = Modifier
@@ -931,20 +2149,11 @@ fun ChatHistorySelector(
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .clip(MaterialTheme.shapes.medium)
                             .semantics {
-                                contentDescription = context.getString(R.string.move_up)
+                                contentDescription = moveUpText
                             }
                             .clickable {
                                 val targetChat = chatItemActionTarget!!
-                                val currentIndex = filteredHistories.indexOfFirst { it.id == targetChat.id }
-                                if (currentIndex > 0) {
-                                    val newHistories = filteredHistories.toMutableList()
-                                    newHistories.removeAt(currentIndex)
-                                    newHistories.add(currentIndex - 1, targetChat)
-                                    val reorderedHistories = newHistories.mapIndexed { index, history ->
-                                        history.copy(displayOrder = index.toLong())
-                                    }
-                                    onUpdateChatOrderAndGroup(reorderedHistories, targetChat, targetChat.group)
-                                }
+                                moveVisibleChatByOffset(targetChat, -1)
                                 chatItemActionTarget = null
                             },
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -980,20 +2189,11 @@ fun ChatHistorySelector(
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .clip(MaterialTheme.shapes.medium)
                             .semantics {
-                                contentDescription = context.getString(R.string.move_down)
+                                contentDescription = moveDownText
                             }
                             .clickable {
                                 val targetChat = chatItemActionTarget!!
-                                val currentIndex = filteredHistories.indexOfFirst { it.id == targetChat.id }
-                                if (currentIndex >= 0 && currentIndex < filteredHistories.size - 1) {
-                                    val newHistories = filteredHistories.toMutableList()
-                                    newHistories.removeAt(currentIndex)
-                                    newHistories.add(currentIndex + 1, targetChat)
-                                    val reorderedHistories = newHistories.mapIndexed { index, history ->
-                                        history.copy(displayOrder = index.toLong())
-                                    }
-                                    onUpdateChatOrderAndGroup(reorderedHistories, targetChat, targetChat.group)
-                                }
+                                moveVisibleChatByOffset(targetChat, 1)
                                 chatItemActionTarget = null
                             },
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -1021,6 +2221,7 @@ fun ChatHistorySelector(
                             )
                         }
                     }
+                    }
 
                     // 置顶/取消置顶选项
                     Surface(
@@ -1031,9 +2232,9 @@ fun ChatHistorySelector(
                             .semantics {
                                 contentDescription =
                                     if (resolvedTargetChat?.pinned == true) {
-                                        context.getString(R.string.unpin_chat)
+                                        unpinChatText
                                     } else {
-                                        context.getString(R.string.pin_chat)
+                                        pinChatText
                                     }
                             }
                             .clickable {
@@ -1070,6 +2271,66 @@ fun ChatHistorySelector(
                         }
                     }
 
+                    // 收藏/取消收藏选项
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                            .semantics {
+                                contentDescription =
+                                    if (resolvedTargetChat?.isFavorite == true) {
+                                        removeFromFavoritesText
+                                    } else {
+                                        addToFavoritesText
+                                    }
+                            }
+                            .clickable {
+                                val targetChat = resolvedTargetChat!!
+                                coroutineScope.launch {
+                                    chatHistoryManager.updateChatFavorite(
+                                        targetChat.id,
+                                        !targetChat.isFavorite,
+                                    )
+                                }
+                                chatItemActionTarget = null
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector =
+                                    if (resolvedTargetChat?.isFavorite == true) {
+                                        Icons.Filled.Star
+                                    } else {
+                                        Icons.Outlined.StarOutline
+                                    },
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clearAndSetSemantics {}
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text =
+                                    if (resolvedTargetChat?.isFavorite == true) {
+                                        stringResource(R.string.remove_from_favorites)
+                                    } else {
+                                        stringResource(R.string.add_to_favorites)
+                                    },
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clearAndSetSemantics {}
+                            )
+                        }
+                    }
+
                     // 锁定/解锁选项
                     Surface(
                         modifier = Modifier
@@ -1079,9 +2340,9 @@ fun ChatHistorySelector(
                             .semantics {
                                 contentDescription =
                                     if (resolvedTargetChat?.locked == true) {
-                                        context.getString(R.string.unlock_chat)
+                                        unlockChatText
                                     } else {
-                                        context.getString(R.string.lock_chat)
+                                        lockChatText
                                     }
                             }
                             .clickable {
@@ -1119,13 +2380,14 @@ fun ChatHistorySelector(
                     }
                     
                     // 删除选项
+                    val deleteChatDescription = stringResource(R.string.delete)
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .clip(MaterialTheme.shapes.medium)
                             .semantics {
-                                contentDescription = context.getString(R.string.delete)
+                                contentDescription = deleteChatDescription
                             }
                             .clickable {
                                 promptDeleteChat(chatItemActionTarget!!)
@@ -1156,7 +2418,7 @@ fun ChatHistorySelector(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextButton(
@@ -1203,6 +2465,80 @@ fun ChatHistorySelector(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    Surface(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .semantics {
+                                    contentDescription =
+                                        createSubfolderText
+                                }
+                                .clickable {
+                                    newFolderParentId = groupActionTarget!!.folderId
+                                    newGroupName = ""
+                                    showNewGroupDialog = true
+                                    groupActionTarget = null
+                                },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp).clearAndSetSemantics {},
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                stringResource(R.string.create_subfolder),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .semantics {
+                                    contentDescription =
+                                        moveToFolderText
+                                }
+                                .clickable {
+                                    groupToMove = groupActionTarget
+                                    groupActionTarget = null
+                                },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountTree,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp).clearAndSetSemantics {},
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                stringResource(R.string.move_to_folder),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
+                        }
+                    }
                     
                     // 重命名选项
                     Surface(
@@ -1211,7 +2547,7 @@ fun ChatHistorySelector(
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .clip(MaterialTheme.shapes.medium)
                             .semantics {
-                                contentDescription = context.getString(R.string.rename_group)
+                                contentDescription = renameGroupText
                             }
                             .clickable {
                                 groupToRename = groupActionTarget
@@ -1244,13 +2580,14 @@ fun ChatHistorySelector(
                     }
                     
                     // 删除选项
+                    val deleteGroupDescription = stringResource(R.string.delete_group)
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .clip(MaterialTheme.shapes.medium)
                             .semantics {
-                                contentDescription = context.getString(R.string.delete_group)
+                                contentDescription = deleteGroupDescription
                             }
                             .clickable {
                                 groupToDelete = groupActionTarget
@@ -1274,14 +2611,14 @@ fun ChatHistorySelector(
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(
-                                stringResource(R.string.delete_group), 
+                                stringResource(R.string.delete_group),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.clearAndSetSemantics {}
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextButton(
@@ -1293,6 +2630,134 @@ fun ChatHistorySelector(
                 }
             }
         }
+    }
+
+    if (chatToMove != null) {
+        val targetChat = chatToMove!!
+        val chatMoveOptions =
+            buildList {
+                add(
+                    FolderPickerOption(
+                        id = null,
+                        name = stringResource(R.string.ungrouped),
+                        isCurrent = targetChat.folderId == null,
+                        isTopLevel = true,
+                    )
+                )
+                chatFolders
+                    .asSequence()
+                    .filterNot { it.id == SYSTEM_UNGROUPED_FOLDER_ID }
+                    .sortedWith(
+                        compareBy<ChatFolderEntity> { folderChoiceLabels[it.id] }
+                            .thenBy { it.id }
+                    )
+                    .forEach { folder ->
+                        add(
+                            FolderPickerOption(
+                                id = folder.id,
+                                name = folderChoiceNames.getValue(folder.id),
+                                parentPath = folder.parentFolderId?.let { folderChoiceLabels[it] },
+                                isCurrent = folder.id == targetChat.folderId,
+                            )
+                        )
+                    }
+            }
+        FolderPickerDialog(
+            title = stringResource(R.string.move_to_folder_title),
+            subtitle = targetChat.title,
+            options = chatMoveOptions,
+            onDismiss = { chatToMove = null },
+            onSelect = { folderId ->
+                if (folderId != targetChat.folderId) {
+                    coroutineScope.launch {
+                        runCatching {
+                            chatHistoryManager.moveChat(
+                                chatId = targetChat.id,
+                                targetFolderId = folderId,
+                                expectedSourceSiblings =
+                                    historySiblingSnapshot(targetChat.folderId),
+                                expectedTargetSiblings =
+                                    historySiblingSnapshot(folderId),
+                            )
+                        }.onFailure { error ->
+                            Toast.makeText(
+                                context,
+                                error.message ?: operationFailedText,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    }
+                }
+                chatToMove = null
+            },
+        )
+    }
+
+    if (groupToMove != null) {
+        val targetFolder = groupToMove!!
+        val currentParentFolderId =
+            chatFolders.firstOrNull { it.id == targetFolder.folderId }?.parentFolderId
+        val groupMoveOptions =
+            buildList {
+                add(
+                    FolderPickerOption(
+                        id = null,
+                        name = stringResource(R.string.folder_root),
+                        isCurrent = currentParentFolderId == null,
+                        isTopLevel = true,
+                    )
+                )
+                chatFolders
+                    .asSequence()
+                    .filter {
+                        it.id != targetFolder.folderId &&
+                            it.id != SYSTEM_UNGROUPED_FOLDER_ID &&
+                            canMoveFolderToParent(targetFolder.folderId, it.id)
+                    }
+                    .sortedWith(
+                        compareBy<ChatFolderEntity> { folderChoiceLabels[it.id] }
+                            .thenBy { it.id }
+                    )
+                    .forEach { folder ->
+                        add(
+                            FolderPickerOption(
+                                id = folder.id,
+                                name = folderChoiceNames.getValue(folder.id),
+                                parentPath = folder.parentFolderId?.let { folderChoiceLabels[it] },
+                                isCurrent = folder.id == currentParentFolderId,
+                            )
+                        )
+                    }
+            }
+        FolderPickerDialog(
+            title = stringResource(R.string.move_to_folder_title),
+            subtitle = targetFolder.groupName,
+            options = groupMoveOptions,
+            onDismiss = { groupToMove = null },
+            onSelect = { parentFolderId ->
+                if (parentFolderId != currentParentFolderId) {
+                    coroutineScope.launch {
+                        runCatching {
+                            chatHistoryManager.moveFolder(
+                                folderId = targetFolder.folderId,
+                                targetParentFolderId = parentFolderId,
+                                expectedSourceSiblings =
+                                    historySiblingSnapshot(currentParentFolderId),
+                                expectedTargetSiblings =
+                                    historySiblingSnapshot(parentFolderId),
+                            )
+                        }.onFailure { error ->
+                            Toast.makeText(
+                                context,
+                                error.message ?: operationFailedText,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    }
+                }
+                groupToMove = null
+            },
+        )
     }
 
     if (groupToRename != null) {
@@ -1312,11 +2777,21 @@ fun ChatHistorySelector(
                 Button(
                     onClick = {
                         if (newGroupNameText.isNotBlank() && newGroupNameText != groupToRename!!.groupName) {
-                            onUpdateGroupName(
-                                groupToRename!!.groupName, 
-                                newGroupNameText,
-                                groupToRename!!.characterCardName
-                            )
+                            val target = groupToRename!!
+                            coroutineScope.launch {
+                                runCatching {
+                                    chatHistoryManager.renameFolder(
+                                        target.folderId,
+                                        newGroupNameText,
+                                    )
+                                }.onFailure { error ->
+                                    Toast.makeText(
+                                        context,
+                                        error.message ?: operationFailedText,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            }
                         }
                         groupToRename = null
                     }
@@ -1329,143 +2804,59 @@ fun ChatHistorySelector(
     }
 
     if (groupToDelete != null) {
-        Dialog(onDismissRequest = { groupToDelete = null }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 6.dp
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(48.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = stringResource(R.string.confirm_delete_group),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = groupToDelete!!.groupName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = stringResource(R.string.choose_delete_method),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    TextButton(
-                        onClick = {
-                            onDeleteGroup(
-                                groupToDelete!!.groupName, 
-                                true,
-                                groupToDelete!!.characterCardName
-                            )
-                            groupToDelete = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.delete_group_and_chats),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(R.string.delete_operation_irreversible),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                                )
-                            }
+        val target = groupToDelete!!
+        val targetFolder = chatFolders.firstOrNull { it.id == target.folderId }
+        val parentFolder =
+            targetFolder?.parentFolderId?.let { parentId ->
+                chatFolders.firstOrNull { it.id == parentId }
             }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    TextButton(
-                        onClick = {
-                            onDeleteGroup(
-                                groupToDelete!!.groupName, 
-                                false,
-                                groupToDelete!!.characterCardName
-                            )
-                            groupToDelete = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Folder,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.delete_group_only),
-                                    style = MaterialTheme.typography.bodyLarge
+        AlertDialog(
+            onDismissRequest = { groupToDelete = null },
+            title = { Text(stringResource(R.string.confirm_delete_group)) },
+            text = {
+                Text(
+                    text =
+                        "${target.groupName}\n\n" +
+                            if (parentFolder != null) {
+                                stringResource(
+                                    R.string.folder_contents_move_to_parent,
+                                    parentFolder.name,
                                 )
-                                Text(
-                                    text = stringResource(R.string.chats_move_to_ungrouped),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            } else {
+                                stringResource(R.string.folder_contents_move_to_root)
+                            },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            runCatching {
+                                chatHistoryManager.deleteFolder(target.folderId)
+                            }.onFailure { error ->
+                                Toast.makeText(
+                                    context,
+                                    error.message ?: operationFailedText,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                             }
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    TextButton(
-                        onClick = { groupToDelete = null },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text(stringResource(R.string.cancel))
-                    }
+                        groupToDelete = null
+                    },
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) {
+                    Text(stringResource(R.string.delete_group_only))
                 }
-            }
-        }
+            },
+            dismissButton = {
+                TextButton(onClick = { groupToDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     if (chatToEdit != null) {
@@ -1498,21 +2889,31 @@ fun ChatHistorySelector(
                 }
             }
         }
+        val normalizedSelectedCharacterGroupId =
+            selectedCharacterGroupId?.trim()?.takeIf { it.isNotBlank() }
+        val missingCharacterGroupLabel =
+            stringResource(
+                R.string.missing_character_group_id,
+                normalizedSelectedCharacterGroupId ?: "",
+            )
         val selectedBindingLabel = remember(
             selectedCharacterCardName,
-            selectedCharacterGroupId,
+            normalizedSelectedCharacterGroupId,
             groupNameById,
             unboundLabel,
-            groupPrefix
+            groupPrefix,
+            missingCharacterGroupLabel,
         ) {
             when {
-                !selectedCharacterGroupId.isNullOrBlank() -> {
-                    val normalizedGroupId = selectedCharacterGroupId?.trim()?.takeIf { it.isNotBlank() }
-                    val groupName = normalizedGroupId?.let { groupNameById[it] }?.takeIf { it.isNotBlank() }
+                normalizedSelectedCharacterGroupId != null -> {
+                    val groupName =
+                        groupNameById[normalizedSelectedCharacterGroupId]?.takeIf {
+                            it.isNotBlank()
+                        }
                     if (!groupName.isNullOrBlank()) {
                         "$groupPrefix: $groupName"
                     } else {
-                        context.getString(R.string.missing_character_group_id, normalizedGroupId ?: "")
+                        missingCharacterGroupLabel
                     }
                 }
                 !selectedCharacterCardName.isNullOrBlank() -> selectedCharacterCardName!!
@@ -1826,7 +3227,12 @@ fun ChatHistorySelector(
 
     if (showNewGroupDialog) {
         AlertDialog(
-                onDismissRequest = { showNewGroupDialog = false },
+                onDismissRequest = {
+                    if (!isCreatingFolder) {
+                        newFolderParentId = null
+                        showNewGroupDialog = false
+                    }
+                },
                 title = { Text(stringResource(R.string.new_group)) },
                 text = {
                     OutlinedTextField(
@@ -1844,22 +3250,50 @@ fun ChatHistorySelector(
                                     if (normalizedGroupName.isBlank()) {
                                         return@Button
                                     }
-                                    val (characterCardName, characterGroupId) = resolveBindingForCreate(
-                                        historyDisplayMode = historyDisplayMode,
-                                        activePrompt = activePrompt,
-                                        activeCharacterCardName = activeCharacterCardName
-                                    )
-                                    onCreateGroup(normalizedGroupName, characterCardName, characterGroupId)
-                                    newGroupName = ""
-                                    showNewGroupDialog = false
+                                    isCreatingFolder = true
+                                    val (characterCardName, characterGroupId) =
+                                        resolveBindingForCreate(
+                                            historyDisplayMode = historyDisplayMode,
+                                            activePrompt = activePrompt,
+                                            activeCharacterCardName =
+                                                activeCharacterCardName,
+                                        )
+                                    onCreateFolderWithInitialChat(
+                                        newFolderParentId,
+                                        normalizedGroupName,
+                                        characterCardName,
+                                        characterGroupId,
+                                    ) { result ->
+                                        result.onSuccess {
+                                            newGroupName = ""
+                                            newFolderParentId = null
+                                            isCreatingFolder = false
+                                            showNewGroupDialog = false
+                                        }.onFailure { error ->
+                                            Toast.makeText(
+                                                context,
+                                                error.message
+                                                    ?: operationFailedText,
+                                                Toast.LENGTH_SHORT,
+                                            ).show()
+                                            isCreatingFolder = false
+                                        }
+                                    }
                                 }
-                            }
+                            },
+                            enabled = !isCreatingFolder,
                     ) {
                         Text(stringResource(R.string.create))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showNewGroupDialog = false }) {
+                    TextButton(
+                        onClick = {
+                            newFolderParentId = null
+                            showNewGroupDialog = false
+                        },
+                        enabled = !isCreatingFolder,
+                    ) {
                         Text(stringResource(R.string.cancel))
                     }
                 }
@@ -1925,41 +3359,33 @@ fun ChatHistorySelector(
             }
         }
 
-        // 新建对话按钮
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(
-                onClick = { 
-                    val (characterCardName, characterGroupId) = resolveBindingForCreate(
-                        historyDisplayMode = historyDisplayMode,
-                        activePrompt = activePrompt,
-                        activeCharacterCardName = activeCharacterCardName
-                    )
-                    onNewChat(characterCardName, characterGroupId)
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.new_chat))
-            }
-            IconButton(
-                onClick = { showNewGroupDialog = true },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.AddCircleOutline,
-                    contentDescription = stringResource(R.string.new_group),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+        ChatHistoryCategoryNewChatControls(
+            selectedCategory = selectedCategory,
+            canManageFolders = canManageFolders,
+            onSelectedCategoryChange = { category ->
+                onSelectedCategoryChange(category)
+                coroutineScope.launch {
+                    actualLazyListState.scrollToItem(0)
+                }
+            },
+            onNewChat = { inheritGroupFromCurrent ->
+                val (characterCardName, characterGroupId) = resolveBindingForCreate(
+                    historyDisplayMode = historyDisplayMode,
+                    activePrompt = activePrompt,
+                    activeCharacterCardName = activeCharacterCardName
                 )
-            }
-        }
+                onNewChat(
+                    characterCardName,
+                    characterGroupId,
+                    inheritGroupFromCurrent,
+                )
+            },
+            onCreateFolder = {
+                newFolderParentId = null
+                newGroupName = ""
+                showNewGroupDialog = true
+            },
+        )
 
         // 搜索框
         if (showSearchBox) {
@@ -2030,18 +3456,18 @@ fun ChatHistorySelector(
                 state = actualLazyListState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 10.dp, end = 22.dp)
+                    .padding(start = 6.dp, end = 22.dp)
             ) {
-                items(
-                    items = flatItems,
-                    key = {
-                        when (it) {
-                            is HistoryListItem.CharacterHeader -> it.key
-                            is HistoryListItem.Header -> it.key
-                            is HistoryListItem.Item -> it.history.id
+                itemsIndexed(
+                    items = reorderItems,
+                    key = { _, item ->
+                        when (item) {
+                            is HistoryListItem.CharacterHeader -> item.key
+                            is HistoryListItem.Header -> item.key
+                            is HistoryListItem.Item -> "chat:${item.history.id}"
                         }
                     }
-                ) { item ->
+                ) { index, item ->
                     when (item) {
                         is HistoryListItem.CharacterHeader -> {
                         val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
@@ -2077,7 +3503,7 @@ fun ChatHistorySelector(
                                 characterCardAvatarUri
                             }
                         
-                        val isExpanded = !collapsedCharacters.contains(item.key)
+                        val isExpanded = searchQuery.isNotBlank() || !collapsedCharacters.contains(item.key)
                         val stateDescription = if (isExpanded) {
                             stringResource(R.string.expanded)
                         } else {
@@ -2091,15 +3517,17 @@ fun ChatHistorySelector(
                                 .semantics {
                                     contentDescription = "${item.name}, $stateDescription"
                                 }
-                                .pointerInput(Unit) {
+                                .pointerInput(collapsedCharacters, searchQuery) {
+                                    if (searchQuery.isNotBlank()) return@pointerInput
                                     detectTapGestures(
                                         onTap = {
-                                            collapsedCharacters =
+                                            onCollapsedCharactersChange(
                                                 if (collapsedCharacters.contains(item.key)) {
                                                     collapsedCharacters - item.key
                                                 } else {
                                                     collapsedCharacters + item.key
                                                 }
+                                            )
                                         }
                                     )
                                 },
@@ -2151,7 +3579,12 @@ fun ChatHistorySelector(
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.clearAndSetSemantics {}
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        // Capped so a long name never pushes the fold arrow off the row.
+                                        .widthIn(max = 160.dp)
+                                        .clearAndSetSemantics {}
                                 )
                             }
                             
@@ -2171,7 +3604,7 @@ fun ChatHistorySelector(
                             )
 
                             Icon(
-                                imageVector = if (collapsedCharacters.contains(item.key)) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
@@ -2182,58 +3615,148 @@ fun ChatHistorySelector(
                         }
                     }
                     is HistoryListItem.Header -> {
-                        val isExpanded = !collapsedGroups.contains(item.key)
+                        val isUngroupedFolder =
+                            item.folderId == SYSTEM_UNGROUPED_FOLDER_ID
+                        val collapseKey =
+                            if (isUngroupedFolder) {
+                                item.key
+                            } else {
+                                item.folderId?.let { "folder:$it" } ?: item.key
+                            }
+                        val isExpanded = searchQuery.isNotBlank() || !collapsedGroups.contains(collapseKey)
+                        val layoutDirection = LocalLayoutDirection.current
+                        val expandedIndicatorRotation =
+                            if (layoutDirection == LayoutDirection.Ltr) 90f else -90f
+                        val expansionIndicatorRotation by
+                            animateFloatAsState(
+                                targetValue = if (isExpanded) expandedIndicatorRotation else 0f,
+                                animationSpec = tween(durationMillis = 150),
+                                label = "folderExpansionIndicator",
+                            )
                         val stateDescription = if (isExpanded) {
                             stringResource(R.string.expanded)
                         } else {
                             stringResource(R.string.collapsed)
                         }
                         
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (historyDisplayMode == ChatHistoryDisplayMode.BY_CHARACTER_CARD) {
+                        ReorderableItem(
+                            reorderableState,
+                            key = item.key,
+                            animateItemModifier = Modifier.animateItem(placementSpec = dragPlacementSpec),
+                        ) { isDragging ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = ((item.depth - 1).coerceAtLeast(0) * 8).dp)
+                                    .historyGuideLine(
+                                        historyDisplayMode == ChatHistoryDisplayMode.BY_CHARACTER_CARD ||
+                                            historyDisplayMode == ChatHistoryDisplayMode.BY_FOLDER
+                                    )
+                                    // Vertical padding sits inside the line so rows join up without gaps.
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                            if (
+                                historyDisplayMode == ChatHistoryDisplayMode.BY_CHARACTER_CARD ||
+                                    historyDisplayMode == ChatHistoryDisplayMode.BY_FOLDER
+                            ) {
+                                HistoryHierarchyGuide()
+                            }
+                            if (
+                                canManageFolders &&
+                                    historyDisplayMode == ChatHistoryDisplayMode.BY_FOLDER &&
+                                    item.folderId != null &&
+                                    (
+                                        item.folderId != SYSTEM_UNGROUPED_FOLDER_ID ||
+                                            systemUngroupedReady
+                                    )
+                            ) {
+                                val folderDragDescription =
+                                    stringResource(R.string.drag_item, item.name)
+                                val folderDragHandleModifier =
+                                    if (historyMoveInFlight) {
+                                        Modifier
+                                    } else {
+                                        Modifier.draggableHandle(
+                                            onDragStarted = {
+                                                if (!historyMoveInFlight) {
+                                                    dragInProgress = true
+                                                    hapticFeedback.performHapticFeedback(
+                                                        DragPickUpHaptic
+                                                    )
+                                                    activeFolderDragId = item.folderId
+                                                    pendingFolderDragTarget = null
+                                                    folderDragSnapshots =
+                                                        captureHistorySiblingSnapshots()
+                                                    // The reorderable list moves one row at a
+                                                    // time. Temporarily hide this folder's
+                                                    // descendants so the whole subtree behaves
+                                                    // as one draggable row instead of repeatedly
+                                                    // snapping against its own children.
+                                                    prepareOptimisticFolderDrag(
+                                                        item.folderId
+                                                    )
+                                                }
+                                            },
+                                            onDragStopped = ::commitFolderDrag,
+                                        )
+                                    }
+                                // A plain 32dp handle: the old IconButton kept a 48dp slot that squeezed the title.
                                 Box(
-                                    modifier = Modifier
-                                        .width(32.dp)
-                                        .padding(start = 16.dp, end = 8.dp)
+                                    modifier =
+                                        folderDragHandleModifier
+                                            .size(32.dp)
+                                            .semantics {
+                                                contentDescription = folderDragDescription
+                                            },
+                                    contentAlignment = Alignment.Center,
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(2.dp)
-                                            .height(40.dp)
-                                            .align(Alignment.Center)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                                                shape = RoundedCornerShape(1.dp)
-                                            )
+                                    Icon(
+                                        imageVector = Icons.Default.DragHandle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (historyMoveInFlight) 0.38f else 1f),
+                                        modifier = Modifier.size(22.dp),
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(4.dp))
                             }
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(MaterialTheme.shapes.medium)
+                                    .clip(RoundedCornerShape(14.dp))
                                     .semantics {
                                         contentDescription = "${item.name}, $stateDescription"
                                     }
-                                    .pointerInput(Unit) {
+                                    .pointerInput(
+                                        searchQuery,
+                                        selectedCategory,
+                                        collapseKey,
+                                        collapsedGroups,
+                                        canManageFolders,
+                                        isUngroupedFolder,
+                                        item.folderId,
+                                        item.name,
+                                    ) {
+                                        if (searchQuery.isNotBlank()) return@pointerInput
                                         detectTapGestures(
                                             onTap = {
-                                                collapsedGroups = if (collapsedGroups.contains(item.key)) {
-                                                    collapsedGroups - item.key
-                                                } else {
-                                                    collapsedGroups + item.key
-                                                }
+                                                onCollapsedGroupsChange(
+                                                    if (collapsedGroups.contains(collapseKey)) {
+                                                        collapsedGroups - collapseKey
+                                                    } else {
+                                                        collapsedGroups + collapseKey
+                                                    }
+                                                )
                                             },
                                             onLongPress = {
-                                                if (item.name != ungroupedText) {
+                                                if (
+                                                    canManageFolders &&
+                                                        !isUngroupedFolder &&
+                                                        item.folderId != null
+                                                ) {
                                                     groupActionTarget = GroupTarget(
+                                                        folderId = item.folderId,
                                                         groupName = item.name,
-                                                        characterCardName = item.characterCardName
                                                     )
                                                     hasLongPressedGroup = true
                                                 }
@@ -2241,16 +3764,21 @@ fun ChatHistorySelector(
                                         )
                                     },
                                 color = MaterialTheme.colorScheme.surfaceContainer,
-                                shadowElevation = 2.dp,
-                                shape = MaterialTheme.shapes.medium
+                                shadowElevation = if (isDragging) 8.dp else 0.dp,
+                                shape = RoundedCornerShape(14.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Folder,
+                                        imageVector =
+                                            if (isExpanded) {
+                                                Icons.Default.FolderOpen
+                                            } else {
+                                                Icons.Default.Folder
+                                            },
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.clearAndSetSemantics {}
@@ -2258,36 +3786,67 @@ fun ChatHistorySelector(
                                     Column(
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically
+                                        Text(
+                                            text = item.name,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.clearAndSetSemantics {}
+                                        )
+                                        // The hint sits on its own line so it never squeezes the folder name.
+                                        if (
+                                            canManageFolders &&
+                                                !isUngroupedFolder &&
+                                                !hasLongPressedGroup
                                         ) {
                                             Text(
-                                                text = item.name,
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface,
+                                                text = stringResource(R.string.long_press_manage),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                                 modifier = Modifier.clearAndSetSemantics {}
                                             )
-                                            if (item.name != ungroupedText && !hasLongPressedGroup) {
-                                                Text(
-                                                    text = " (" + stringResource(R.string.long_press_manage) + ")",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                    modifier = Modifier.clearAndSetSemantics {}
-                                                )
-                                            }
                                         }
                                     }
                                     Icon(
-                                        imageVector = if (collapsedGroups.contains(item.key)) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         contentDescription = null,
-                                        modifier = Modifier.clearAndSetSemantics {}
+                                        modifier =
+                                            Modifier
+                                                .graphicsLayer {
+                                                    rotationZ = expansionIndicatorRotation
+                                                }
+                                                .clearAndSetSemantics {},
                                     )
                                 }
                             }
                         }
+                        }
                     }
                     is HistoryListItem.Item -> {
+                        if (
+                            selectedCategory == ChatHistoryCategory.RECENT &&
+                                searchQuery.isBlank()
+                        ) {
+                            val section =
+                                item.history.timeSection(
+                                    historyTimeContext.date,
+                                    historyTimeContext.zoneId,
+                                )
+                            val previousSection =
+                                (reorderItems.getOrNull(index - 1) as? HistoryListItem.Item)
+                                    ?.history
+                                    ?.timeSection(
+                                        historyTimeContext.date,
+                                        historyTimeContext.zoneId,
+                                    )
+                            if (section != previousSection) {
+                                HistoryTimeSectionHeader(section)
+                            }
+                        }
                         val deleteAction = SwipeAction(
                             onSwipe = { promptDeleteChat(item.history) },
                             icon = {
@@ -2316,8 +3875,8 @@ fun ChatHistorySelector(
 
                         ReorderableItem(
                             reorderableState,
-                            key = item.history.id,
-                            animateItemModifier = Modifier.animateItem(placementSpec = null)
+                            key = "chat:${item.history.id}",
+                            animateItemModifier = Modifier.animateItem(placementSpec = dragPlacementSpec)
                         ) { isDragging ->
                             val isDeleting = deletingChatIds.contains(item.history.id)
                             val isSelected = item.history.id == currentId
@@ -2340,29 +3899,70 @@ fun ChatHistorySelector(
                                         shrinkTowards = Alignment.Top
                                     ) + fadeOut(animationSpec = tween(deleteAnimationDurationMs.toInt()))
                             ) {
+                                val showHierarchyGuide =
+                                    selectedCategory != ChatHistoryCategory.RECENT &&
+                                        (
+                                            historyDisplayMode ==
+                                                ChatHistoryDisplayMode.BY_CHARACTER_CARD ||
+                                                historyDisplayMode ==
+                                                    ChatHistoryDisplayMode.BY_FOLDER
+                                        )
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .padding(start = (item.depth.coerceAtLeast(0) * 8).dp)
+                                        .historyGuideLine(showHierarchyGuide)
                                         .padding(vertical = 2.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    if (historyDisplayMode == ChatHistoryDisplayMode.BY_CHARACTER_CARD) {
+                                    if (showHierarchyGuide) {
+                                        HistoryHierarchyGuide()
+                                    }
+                                    if (canReorder) {
+                                        val dragDescription =
+                                            stringResource(
+                                                R.string.drag_item,
+                                                item.history.title,
+                                            )
+                                        val dragHandleModifier =
+                                            if (historyMoveInFlight) {
+                                                Modifier
+                                            } else {
+                                                Modifier.draggableHandle(
+                                                    onDragStarted = {
+                                                        if (!historyMoveInFlight) {
+                                                            dragInProgress = true
+                                                            hapticFeedback.performHapticFeedback(
+                                                                DragPickUpHaptic
+                                                            )
+                                                            activeChatDragId =
+                                                                item.history.id
+                                                            pendingChatDragTarget = null
+                                                            chatDragSnapshots =
+                                                                captureHistorySiblingSnapshots()
+                                                        }
+                                                    },
+                                                    onDragStopped = ::commitChatDrag,
+                                                )
+                                            }
+                                        // A plain 32dp handle: the old IconButton kept a 48dp slot that squeezed the title.
                                         Box(
-                                            modifier = Modifier
-                                                .width(32.dp)
-                                                .padding(start = 16.dp, end = 8.dp)
+                                            modifier =
+                                                dragHandleModifier
+                                                    .size(32.dp)
+                                                    .semantics {
+                                                        contentDescription = dragDescription
+                                                    },
+                                            contentAlignment = Alignment.Center,
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(2.dp)
-                                                    .height(50.dp)
-                                                    .align(Alignment.Center)
-                                                    .background(
-                                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                                                        shape = RoundedCornerShape(1.dp)
-                                                    )
+                                            Icon(
+                                                imageVector = Icons.Default.DragHandle,
+                                                contentDescription = null,
+                                                tint = contentColor.copy(alpha = if (historyMoveInFlight) 0.38f else 1f),
+                                                modifier = Modifier.size(22.dp),
                                             )
                                         }
+                                        Spacer(modifier = Modifier.width(4.dp))
                                     }
                                     Box(modifier = Modifier.weight(1f)) {
                                         SwipeableActionsBox(
@@ -2385,11 +3985,15 @@ fun ChatHistorySelector(
                                                         .fillMaxWidth()
                                                 ) {
                                                     val titlePreview = item.history.title.take(20)
-                                                    val groupName = item.history.group ?: ungroupedText
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(horizontal = 10.dp)
+                                                    val groupName =
+                                                        chatFolders.firstOrNull {
+                                                            it.id == item.history.folderId
+                                                        }?.name ?: ungroupedText
+                                                     Row(
+                                                         modifier = Modifier
+                                                             .fillMaxWidth()
+                                                             .heightIn(min = 48.dp)
+                                                             .padding(horizontal = 10.dp)
                                                             .semantics(mergeDescendants = false) {
                                                                 contentDescription = "$titlePreview, $groupName"
                                                             }
@@ -2401,22 +4005,6 @@ fun ChatHistorySelector(
                                                             },
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        val dragDescription = stringResource(R.string.drag_item, item.history.title)
-                                                        IconButton(
-                                                            modifier = Modifier
-                                                                .draggableHandle()
-                                                                .semantics {
-                                                                    contentDescription = dragDescription
-                                                                },
-                                                            onClick = {}
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.DragHandle,
-                                                                contentDescription = null,
-                                                                tint = contentColor
-                                                            )
-                                                        }
-                                                        Spacer(modifier = Modifier.width(8.dp))
                                                         Column(
                                                             modifier = Modifier
                                                                 .weight(1f)
@@ -2426,13 +4014,16 @@ fun ChatHistorySelector(
                                                                 text = item.history.title,
                                                                 style = MaterialTheme.typography.bodyMedium,
                                                                 color = contentColor,
-                                                                maxLines = 1,
+                                                                maxLines = 2,
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
 
-                                                            // 如果是分支，在右侧显示分支图标和父对话标题
+                                                            // 分支搜索结果标出其父聊天来源。
                                                             if (item.history.parentChatId != null) {
-                                                                val parentChat = chatHistories.find { it.id == item.history.parentChatId }
+                                                                val parentChat =
+                                                                    searchableChatHistories.find {
+                                                                        it.id == item.history.parentChatId
+                                                                    }
                                                                 if (parentChat != null) {
                                                                     Spacer(modifier = Modifier.height(2.dp))
                                                                     Row(
@@ -2498,7 +4089,7 @@ fun ChatHistorySelector(
 
             HistoryQuickScroller(
                 listState = actualLazyListState,
-                itemCount = flatItems.size,
+                itemCount = reorderItems.size,
                 onInteractionChange = onQuickScrollInteractionChange,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -2507,3 +4098,14 @@ fun ChatHistorySelector(
         }
     }
 }
+
+// The gesture haptic types need Android 11; older phones get the closest classic ones.
+private val DragPickUpHaptic =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackType.GestureThresholdActivate
+    else HapticFeedbackType.LongPress
+private val DragMoveHaptic =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackType.SegmentFrequentTick
+    else HapticFeedbackType.TextHandleMove
+private val DragDropHaptic =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackType.GestureEnd
+    else HapticFeedbackType.TextHandleMove
