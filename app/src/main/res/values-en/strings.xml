@@ -8969,7 +8969,7 @@
     <string name="theme_transfer_author">Author</string>
     <string name="theme_transfer_code">Share code</string>
     <string name="theme_transfer_file">Theme file .oktheme</string>
-    <string name="theme_transfer_full_contents">Includes theme parameters, background images or video, both bubble images, custom fonts, avatars, and media adjustments.</string>
+    <string name="theme_transfer_full_contents">Includes all theme resources.</string>
     <string name="theme_transfer_paste">Share code or theme link</string>
     <string name="theme_transfer_choose_file">Choose theme file</string>
     <string name="theme_transfer_generate">Generate code</string>

@@ -8361,7 +8361,7 @@
     <string name="theme_transfer_author">Penulis</string>
     <string name="theme_transfer_code">berbagi kode</string>
     <string name="theme_transfer_file">File tema .oktheme</string>
-    <string name="theme_transfer_full_contents">Termasuk parameter tema, gambar latar belakang atau video, gambar gelembung kedua belah pihak, font khusus, avatar, dan penyesuaian materi.</string>
+    <string name="theme_transfer_full_contents">Mencakup semua sumber daya tema.</string>
     <string name="theme_transfer_paste">Bagikan kode atau tautan topik</string>
     <string name="theme_transfer_choose_file">Pilih file tema</string>
     <string name="theme_transfer_generate">Hasilkan kode berbagi</string>

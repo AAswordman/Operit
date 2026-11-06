@@ -8203,7 +8203,7 @@
     <string name="theme_transfer_name">テーマ名</string>
     <string name="theme_transfer_code">共有コード</string>
     <string name="theme_transfer_file">テーマファイル .oktheme</string>
-    <string name="theme_transfer_full_contents">テーマ設定、背景画像・動画、双方の吹き出し画像、カスタムフォント、アバター、素材の調整を含みます。</string>
+    <string name="theme_transfer_full_contents">すべてのテーマリソースを含みます。</string>
     <string name="theme_transfer_paste">共有コードまたはテーマのリンク</string>
     <string name="theme_transfer_choose_file">テーマファイルを選択</string>
     <string name="theme_transfer_generate">共有コードを生成</string>

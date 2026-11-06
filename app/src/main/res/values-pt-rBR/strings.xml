@@ -8201,7 +8201,7 @@
     <string name="theme_transfer_author">Autor</string>
     <string name="theme_transfer_code">código de compartilhamento</string>
     <string name="theme_transfer_file">Arquivo de tema .oktheme</string>
-    <string name="theme_transfer_full_contents">Incluindo parâmetros de tema, imagens de fundo ou vídeos, imagens de bolhas de ambas as partes, fontes personalizadas, avatares e ajustes de materiais.</string>
+    <string name="theme_transfer_full_contents">Inclui todos os recursos do tema.</string>
     <string name="theme_transfer_paste">Compartilhe o código ou link do tópico</string>
     <string name="theme_transfer_choose_file">Selecione o arquivo do tema</string>
     <string name="theme_transfer_generate">Gerar código de compartilhamento</string>

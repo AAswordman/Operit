@@ -8429,7 +8429,7 @@
     <string name="theme_transfer_author">Autor</string>
     <string name="theme_transfer_code">compartir codigo</string>
     <string name="theme_transfer_file">Archivo de tema .oktheme</string>
-    <string name="theme_transfer_full_contents">Incluyendo parámetros del tema, imágenes de fondo o videos, imágenes de burbujas de ambas partes, fuentes personalizadas, avatares y ajustes de materiales.</string>
+    <string name="theme_transfer_full_contents">Incluye todos los recursos del tema.</string>
     <string name="theme_transfer_paste">Compartir código o enlace de tema</string>
     <string name="theme_transfer_choose_file">Seleccionar archivo de tema</string>
     <string name="theme_transfer_generate">Generar código para compartir</string>

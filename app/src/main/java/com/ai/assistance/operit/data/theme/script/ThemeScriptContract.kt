@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 /** 主题脚本只输出外观描述；现有主题参数和原生内容不交给脚本持有。 */
 object ThemeScriptContract {
     const val API_VERSION = 1
+    const val MAX_JSON_DEPTH = 16
     const val MAX_BLUR_DP = 8f
     const val MAX_POPUP_OFFSET_DP = 256f
     const val MAX_SOURCE_BYTES = 65536
@@ -95,7 +96,7 @@ object ThemeScriptContract {
                 }
             } else when (character) {
                 '"' -> quoted = true
-                '{', '[' -> { depth++; require(depth <= 16) { "Theme JSON is nested too deeply" } }
+                '{', '[' -> { depth++; require(depth <= MAX_JSON_DEPTH) { "Theme JSON is nested too deeply" } }
                 '}', ']' -> { depth--; require(depth >= 0) { "Invalid theme JSON nesting" } }
             }
         }

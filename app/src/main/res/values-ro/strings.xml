@@ -8954,7 +8954,7 @@
     <string name="theme_transfer_author">autor</string>
     <string name="theme_transfer_code">partajați codul</string>
     <string name="theme_transfer_file">Fișier temă .oktheme</string>
-    <string name="theme_transfer_full_contents">Inclusiv parametrii temei, imagini de fundal sau videoclipuri, imagini cu bule ale ambelor părți, fonturi personalizate, avatare și ajustări ale materialelor.</string>
+    <string name="theme_transfer_full_contents">Include toate resursele temei.</string>
     <string name="theme_transfer_paste">Partajați codul sau linkul subiectului</string>
     <string name="theme_transfer_choose_file">Selectați fișierul temă</string>
     <string name="theme_transfer_generate">Generați codul de partajare</string>

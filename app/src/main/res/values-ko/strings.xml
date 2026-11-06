@@ -8208,7 +8208,7 @@
     <string name="theme_transfer_author">작성자</string>
     <string name="theme_transfer_code">코드 공유</string>
     <string name="theme_transfer_file">테마 파일 .oktheme</string>
-    <string name="theme_transfer_full_contents">테마 매개변수, 배경 사진 또는 비디오, 양측의 버블 사진, 사용자 정의 글꼴, 아바타 및 재료 조정을 포함합니다.</string>
+    <string name="theme_transfer_full_contents">모든 테마 리소스를 포함합니다.</string>
     <string name="theme_transfer_paste">코드 또는 주제 링크 공유</string>
     <string name="theme_transfer_choose_file">테마 파일 선택</string>
     <string name="theme_transfer_generate">공유 코드 생성</string>

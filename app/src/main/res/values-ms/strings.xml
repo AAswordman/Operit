@@ -8360,7 +8360,7 @@
     <string name="theme_transfer_author">Pengarang</string>
     <string name="theme_transfer_code">kongsi kod</string>
     <string name="theme_transfer_file">Fail tema .oktheme</string>
-    <string name="theme_transfer_full_contents">Termasuk parameter tema, gambar latar belakang atau video, gambar gelembung kedua-dua pihak, fon tersuai, avatar dan pelarasan bahan.</string>
+    <string name="theme_transfer_full_contents">Merangkumi semua sumber tema.</string>
     <string name="theme_transfer_paste">Kongsi pautan kod atau topik</string>
     <string name="theme_transfer_choose_file">Pilih fail tema</string>
     <string name="theme_transfer_generate">Hasilkan kod perkongsian</string>

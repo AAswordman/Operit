@@ -8963,7 +8963,7 @@
     <string name="theme_transfer_author">作者</string>
     <string name="theme_transfer_code">分享码</string>
     <string name="theme_transfer_file">主题文件 .oktheme</string>
-    <string name="theme_transfer_full_contents">包含主题参数、背景图片或视频、双方气泡图片、自定义字体、头像及素材调整。</string>
+    <string name="theme_transfer_full_contents">包含完整的主题资源</string>
     <string name="theme_transfer_paste">分享码或主题链接</string>
     <string name="theme_transfer_choose_file">选择主题文件</string>
     <string name="theme_transfer_generate">生成分享码</string>
