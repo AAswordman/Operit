@@ -299,10 +299,10 @@ export namespace System {
 
         /**
          * Execute a command in a hidden non-PTY executor.
-         * Commands using the same executorKey reuse the same hidden login context and are not shown in the visible terminal UI.
+         * Commands using the same executorKey reuse the same healthy hidden login context and are not shown in the visible terminal UI.
          * @param command The command to execute.
-         * @param options Optional hidden executor options.
-         * @returns Promise resolving to the hidden command execution result. On timeout, the current command is cancelled, the hidden executor session is kept, and the returned result has `timedOut === true`.
+         * @param options Optional hidden executor options. timeoutMs covers initialization, executor queueing, and execution (default: 120000ms).
+         * @returns Promise resolving to the hidden command execution result, with `timedOut === true` on timeout. Failed or cancelled active executors are retired; the next call with that key creates a new login context. A queued call timing out does not cancel another active command.
          */
         function hiddenExec(command: string, options?: {
             executorKey?: string;
