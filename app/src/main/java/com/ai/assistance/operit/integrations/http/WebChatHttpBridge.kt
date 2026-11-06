@@ -1097,7 +1097,7 @@ class WebChatHttpBridge(
         val pipeOutput = PipedOutputStream(pipeInput)
         val activeChatId = AtomicReference(chatId)
         val streamJob: Job = serviceScope.launch(Dispatchers.IO) {
-            pipeOutput.bufferedWriter(StandardCharsets.UTF_8).use { writer ->
+            withSseWriter(pipeOutput, "chatId=$chatId") { writer ->
                 try {
                     val switched = switchAppChatContext(
                         chatId = chatId,
@@ -1112,7 +1112,7 @@ class WebChatHttpBridge(
                                 error = "Failed to switch chat context"
                             )
                         )
-                        return@use
+                        return@withSseWriter
                     }
                     val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
 
@@ -1177,7 +1177,7 @@ class WebChatHttpBridge(
                                 error = "Timed out while waiting for response stream"
                             )
                         )
-                        return@use
+                        return@withSseWriter
                     }
 
                     val streamToCollect = ExternalChatResponseSanitizer.sanitizeStream(
