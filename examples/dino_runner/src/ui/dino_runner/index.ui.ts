@@ -23,13 +23,6 @@ function toText(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function unwrapBridgePayload(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-  return value;
-}
-
 function asRecord(value: unknown): JsonRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -159,8 +152,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
     controller.removeJavascriptInterface(ARCADE_HOST_INTERFACE_NAME);
 
     const arcadeHost: ComposeWebViewJavascriptInterface = {
-      pageLog: (...args: unknown[]) => {
-        const payload = unwrapBridgePayload(args[0]);
+      pageLog: (payload: unknown) => {
         return {
           received: true,
           payload,
@@ -168,8 +160,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
         };
       },
 
-      updateOverlayScore: (...args: unknown[]) => {
-        const payload = unwrapBridgePayload(args[0]);
+      updateOverlayScore: (payload: unknown) => {
         const record = asRecord(payload);
         const score = Number(record.score || 0);
         setOverlayScore(Number.isFinite(score) ? score : 0);

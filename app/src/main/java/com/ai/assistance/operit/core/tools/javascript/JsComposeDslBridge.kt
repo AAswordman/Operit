@@ -888,7 +888,7 @@ internal fun buildComposeDslContextBridgeDefinition(): String {
                             runtime.callRuntime = nextCallRuntime;
                         }
                     },
-                    invokeAction: function(actionId, payload) {
+                    invokeAction: function(actionId, payload, payloadIsArgumentList) {
                         var id = String(actionId || '').trim();
                         if (!id) {
                             throw new Error('compose action id is required');
@@ -896,6 +896,14 @@ internal fun buildComposeDslContextBridgeDefinition(): String {
                         var handler = runtime.actionStore[id];
                         if (typeof handler !== 'function') {
                             throw new Error('compose action not found: ' + id);
+                        }
+                        // A WebView javascript-interface call carries the page's positional
+                        // argument list, so the handler declared as (a, b, c) must be invoked
+                        // with those three arguments. Passing the list through as one payload
+                        // would hand the handler a single array and leave b/c undefined, which
+                        // is what stringified into the "collapsed comma list" reported in #1345.
+                        if (payloadIsArgumentList === true) {
+                            return handler.apply(null, payload);
                         }
                         var normalizedPayload = payload;
                         if (

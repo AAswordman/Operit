@@ -70,6 +70,7 @@ private const val WEBVIEW_BRIDGE_HTML_MARKER = "data-operit-webview-bridge-runti
 private const val WEBVIEW_NAVIGATION_TIMEOUT_MS = 5_000L
 private const val WEBVIEW_RESOURCE_TIMEOUT_MS = 3_000L
 private const val WEBVIEW_BRIDGE_TIMEOUT_MS = 20_000L
+private const val WEBVIEW_BRIDGE_ARGUMENT_PREVIEW_LIMIT = 200
 
 internal val composeDslWebViewMainHandler by lazy { Handler(Looper.getMainLooper()) }
 
@@ -166,7 +167,8 @@ internal class ComposeDslWebViewHostContext(
 ) {
     fun executeActionBlocking(
         actionId: String,
-        payload: Any?
+        payload: Any?,
+        payloadIsArgumentList: Boolean = false
     ): ComposeDslWebViewBlockingActionResult {
         val normalizedActionId = actionId.trim()
         if (normalizedActionId.isBlank()) {
@@ -175,26 +177,48 @@ internal class ComposeDslWebViewHostContext(
                 message = "compose action id is required"
             )
         }
+        // Renders produced by this dispatch are held back until it succeeds. A handler that
+        // fails halfway has already mutated the runtime's state store, and applying its
+        // intermediate render would let that half-applied state become the seed of the next
+        // dispatch and repaint the WebView over data the user has since edited (#1345).
+        val pendingRenders = mutableListOf<Pair<String, Any?>>()
         return try {
             val rawResult =
                 jsEngine.executeComposeDslAction(
                     actionId = normalizedActionId,
                     payload = payload,
+                    payloadIsArgumentList = payloadIsArgumentList,
                     runtimeOptions = runtimeOptionsProvider(),
                     onIntermediateResult = { intermediateResult ->
-                        applyRenderResult("webview_action_intermediate", intermediateResult)
+                        pendingRenders.add("webview_action_intermediate" to intermediateResult)
                     }
                 )
+            val errorMessage = extractComposeDslActionError(rawResult)
+            if (errorMessage != null) {
+                AppLogger.e(
+                    TAG,
+                    "compose_dsl webview action failed, discarding ${pendingRenders.size} render(s): " +
+                        "routeInstanceId=$routeInstanceId, actionId=$normalizedActionId, error=$errorMessage"
+                )
+                return ComposeDslWebViewBlockingActionResult(
+                    actionResult = null,
+                    message = errorMessage
+                )
+            }
+            pendingRenders.forEach { (phase, intermediateResult) ->
+                applyRenderResult(phase, intermediateResult)
+            }
             applyRenderResult("webview_action_final", rawResult)
             ComposeDslWebViewBlockingActionResult(
                 actionResult = parseComposeDslActionResult(rawResult),
-                message = extractComposeDslActionError(rawResult)
+                message = null
             )
         } catch (error: Throwable) {
             val message = error.message?.trim().orEmpty().ifBlank { "compose action dispatch failed" }
             AppLogger.e(
                 TAG,
-                "compose_dsl webview action failed: routeInstanceId=$routeInstanceId, actionId=$normalizedActionId, error=$message",
+                "compose_dsl webview action failed, discarding ${pendingRenders.size} render(s): " +
+                    "routeInstanceId=$routeInstanceId, actionId=$normalizedActionId, error=$message",
                 error
             )
             ComposeDslWebViewBlockingActionResult(
@@ -1271,6 +1295,56 @@ private fun parseComposeDslJsonArray(raw: String): List<Any?>? {
     return JsJavaBridgeDelegates.parsePlainJsonArray(raw)
 }
 
+/**
+ * Describes a rejected bridge argument so the failure names the offending call instead of
+ * only saying "must be a JSON array". The page runtime always sends an array, so reaching
+ * this means a page called the hidden bridge by hand and broke the contract.
+ */
+private fun describeComposeDslWebViewBridgeArgument(argsJson: String): String {
+    val text = argsJson.trim()
+    if (text.isEmpty()) {
+        return "<empty string>"
+    }
+    val preview =
+        if (text.length > WEBVIEW_BRIDGE_ARGUMENT_PREVIEW_LIMIT) {
+            text.take(WEBVIEW_BRIDGE_ARGUMENT_PREVIEW_LIMIT) + "…"
+        } else {
+            text
+        }
+    return JSONObject.quote(preview)
+}
+
+/**
+ * Names the call that could not be resolved and shows what the controller does expose, so a
+ * misspelled method or an interface registered after the page already called it is readable
+ * straight from the page's thrown Error instead of a bare "unavailable".
+ */
+private fun describeComposeDslWebViewMissingMethod(
+    hostContext: ComposeDslWebViewHostContext,
+    controllerKey: String,
+    interfaceName: String,
+    methodName: String
+): String {
+    val registered =
+        ComposeDslWebViewHostRegistry.listJavascriptInterfaces(
+            executionContextKey = hostContext.executionContextKey,
+            controllerKey = controllerKey
+        )
+    val methodNames = registered[interfaceName]
+    val detail =
+        if (methodNames != null) {
+            "methods on $interfaceName: ${methodNames.joinToString()}"
+        } else {
+            val interfaceNames = registered.keys.sorted()
+            if (interfaceNames.isEmpty()) {
+                "no javascript interface is registered on this controller yet"
+            } else {
+                "registered interfaces: ${interfaceNames.joinToString()}"
+            }
+        }
+    return "javascript interface method is unavailable: $interfaceName.$methodName ($detail)"
+}
+
 private class ComposeDslWebViewPageBridge(
     private val hostContextProvider: () -> ComposeDslWebViewHostContext?,
     private val controllerKeyProvider: () -> String?,
@@ -1306,7 +1380,10 @@ private class ComposeDslWebViewPageBridge(
             parseComposeDslJsonArray(argsJson)
                 ?: return ComposeDslWebViewBlockingActionResult(
                     actionResult = null,
-                    message = "webview javascript interface arguments must be a JSON array"
+                    message =
+                        "webview javascript interface arguments must be a JSON array: " +
+                            "$normalizedInterfaceName.$normalizedMethodName received " +
+                            describeComposeDslWebViewBridgeArgument(argsJson)
                 )
         val actionId =
             ComposeDslWebViewHostRegistry.findJavascriptInterfaceActionId(
@@ -1318,9 +1395,18 @@ private class ComposeDslWebViewPageBridge(
                 ?: return ComposeDslWebViewBlockingActionResult(
                     actionResult = null,
                     message =
-                        "javascript interface method is unavailable: $normalizedInterfaceName.$normalizedMethodName"
+                        describeComposeDslWebViewMissingMethod(
+                            hostContext = hostContext,
+                            controllerKey = controllerKey,
+                            interfaceName = normalizedInterfaceName,
+                            methodName = normalizedMethodName
+                        )
                 )
-        return hostContext.executeActionBlocking(actionId, args)
+        return hostContext.executeActionBlocking(
+            actionId = actionId,
+            payload = args,
+            payloadIsArgumentList = true
+        )
     }
 
     @JavascriptInterface

@@ -5,12 +5,6 @@ const page_js_1 = require("./page.js");
 function toText(value) {
     return String(value ?? "").trim();
 }
-function unwrapBridgePayload(value) {
-    if (Array.isArray(value)) {
-        return value[0];
-    }
-    return value;
-}
 function asRecord(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
         return {};
@@ -111,16 +105,14 @@ function Screen(ctx) {
     function registerJavascriptInterface() {
         controller.removeJavascriptInterface(page_js_1.ARCADE_HOST_INTERFACE_NAME);
         const arcadeHost = {
-            pageLog: (...args) => {
-                const payload = unwrapBridgePayload(args[0]);
+            pageLog: (payload) => {
                 return {
                     received: true,
                     payload,
                     hostTime: new Date().toISOString(),
                 };
             },
-            updateOverlayScore: (...args) => {
-                const payload = unwrapBridgePayload(args[0]);
+            updateOverlayScore: (payload) => {
                 const record = asRecord(payload);
                 const score = Number(record.score || 0);
                 setOverlayScore(Number.isFinite(score) ? score : 0);
