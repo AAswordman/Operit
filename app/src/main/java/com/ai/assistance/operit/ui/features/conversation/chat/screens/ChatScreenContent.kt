@@ -297,7 +297,7 @@ fun ChatScreenContent(
                     onSwitchMessageVariant = { index, targetVariantIndex ->
                         actualViewModel.switchMessageVariant(index, targetVariantIndex)
                     },
-                    onSpeakMessage = { content -> actualViewModel.speakMessage(content) },
+                    onSpeakMessage = { message -> actualViewModel.speakMessage(message) },
                     onReplyToMessage = { message -> actualViewModel.setReplyToMessage(message) },
                     onToggleFavoriteMessage = { timestamp, isFavorite ->
                         actualViewModel.setMessageFavorite(timestamp, isFavorite)

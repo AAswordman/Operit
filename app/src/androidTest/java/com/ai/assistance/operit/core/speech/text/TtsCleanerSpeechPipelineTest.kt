@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.core.speech.text
 
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
+import com.ai.assistance.operit.data.model.MessageEntity
+import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 
@@ -113,6 +116,39 @@ class TtsCleanerSpeechPipelineTest {
             "Markdown flattening must not depend on the filter: $withFilter vs $withoutFilter",
             withoutFilter,
             withFilter
+        )
+    }
+
+    @Test
+    fun tokenPairedReasoning_neverLeaksAfterAnInnerBareClosingTag() {
+        val message = "<think token=\"guard\">$reasoning</think>这段仍是思考。" +
+            "</think token=\"guard\">$replyBody"
+
+        assertEquals(replyBody, speechPipeline(message, emptyList()))
+        assertEquals(replyBody, speechPipeline(message, listOf(removeXmlTagsPattern)))
+    }
+
+    @Test
+    fun storedSections_feedTheExistingMarkdownSpeechPipeline() {
+        val entity = MessageEntity(
+            chatId = "speech-sections",
+            sender = "ai",
+            sections = MessageSectionStorage.encode(listOf(
+                MessageSection.Thinking(reasoning),
+                MessageSection.Protocol(provider = "custom:protocol", payload = "协议负载"),
+                MessageSection.ToolResult(name = "weather", content = "工具内部结果"),
+                MessageSection.Text("**今天**多云，最高气温 `24` 度。"),
+            )),
+            searchText = "不是朗读正文",
+            orderIndex = 0,
+        )
+        val message = entity.toChatMessage()
+
+        assertEquals(
+            "今天多云，最高气温 24 度。",
+            WaifuMessageProcessor.cleanContentForWaifu(
+                TtsCleaner.cleanForSpeech(message.resolvedSections(), listOf(removeXmlTagsPattern))
+            ),
         )
     }
 }

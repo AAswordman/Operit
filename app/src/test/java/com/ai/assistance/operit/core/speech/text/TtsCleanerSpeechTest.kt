@@ -1,6 +1,13 @@
 package com.ai.assistance.operit.core.speech.text
 
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
+import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.MessageEntity
+import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.util.logging.AppLogger
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -197,5 +204,112 @@ class TtsCleanerSpeechTest {
 
         assertEquals("", TtsCleaner.cleanForSpeech(message, listOf(removeXmlTagsPattern)))
         assertEquals("", TtsCleaner.cleanForSpeech(message, emptyList()))
+    }
+
+    @Test
+    fun tokenPairedReasoning_doesNotEndAtABareClosingTag() {
+        val message = "<think token=\"guard\">$reasoning</think>这段仍是思考。" +
+            "</think token=\"guard\">$replyBody"
+
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(message, emptyList()))
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(message, listOf(removeXmlTagsPattern)))
+    }
+
+    @Test
+    fun unclosedTokenReasoning_doesNotExposeTextAfterABareClosingTag() {
+        val message = "$replyBody<think token=\"guard\">$reasoning</think>未完成的思考。"
+
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(message, emptyList()))
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(message, listOf(removeXmlTagsPattern)))
+    }
+
+    @Test
+    fun tokenPairedReasoning_ignoresAnotherTokensClosingTag() {
+        val message = "<think token=\"guard\">$reasoning</think token=\"other\">仍是思考。" +
+            "</think token=\"guard\">$replyBody"
+
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(message, listOf(removeXmlTagsPattern)))
+    }
+
+    @Test
+    fun structuredSections_selectOnlyTextWithoutRenderingHiddenSections() {
+        val sections = listOf(
+            MessageSection.Text("**今天**"),
+            MessageSection.Thinking(reasoning),
+            MessageSection.ToolCall(name = "weather", params = mapOf("city" to "重庆")),
+            MessageSection.ToolResult(name = "weather", content = "工具内部结果"),
+            MessageSection.Protocol(provider = "custom:protocol", payload = "内部协议负载"),
+            MessageSection.Search("<search>搜索来源</search>"),
+            MessageSection.Status("<status>执行状态</status>"),
+            MessageSection.Text("<emotion>calm</emotion>多云。"),
+        )
+
+        assertEquals("**今天**多云。", TtsCleaner.cleanForSpeech(sections, emptyList()))
+        assertEquals("多云。", TtsCleaner.cleanForSpeech(sections, listOf("\\*\\*[^*]+\\*\\*")))
+    }
+
+    @Test
+    fun runtimeProtocolMetadata_doesNotDependOnAProviderAllowlist() {
+        val message = "<meta provider=\"operit:tool_timing\">内部计时</meta>" +
+            "<meta provider=\"custom:protocol\">协议负载</meta>$replyBody"
+
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(message, emptyList()))
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(message, listOf(removeXmlTagsPattern)))
+    }
+
+    @Test
+    fun databaseSectionsRoundTrip_suppliesSpeechWithoutAStoredContentField() {
+        val sections = listOf(
+            MessageSection.Thinking(reasoning),
+            MessageSection.Protocol(provider = "custom:protocol", payload = "协议负载"),
+            MessageSection.Text(replyBody),
+        )
+        val entity = MessageEntity(
+            chatId = "speech-sections",
+            sender = "ai",
+            sections = MessageSectionStorage.encode(sections),
+            searchText = "搜索索引不是朗读来源",
+            orderIndex = 0,
+        )
+        val restored = entity.toChatMessage()
+
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(restored.resolvedSections(), listOf(removeXmlTagsPattern)))
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(restored.content, listOf(removeXmlTagsPattern)))
+    }
+
+    @Test
+    fun archiveRoundTrip_storesSectionsAndKeepsOnlyReplyTextForSpeech() {
+        val sections = listOf(
+            MessageSection.Thinking(reasoning),
+            MessageSection.ToolResult(name = "weather", content = "内部工具结果"),
+            MessageSection.Text(replyBody),
+        )
+        val message = ChatMessage(sender = "ai", content = MessageSectionCodec.render(sections), sections = sections)
+        val json = Json { encodeDefaults = true }
+        val archive = json.encodeToString(ChatMessage.serializer(), message)
+        val fields = json.parseToJsonElement(archive).jsonObject
+        assertFalse(fields.containsKey("content"))
+        val restored = json.decodeFromString(ChatMessage.serializer(), archive)
+
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(restored.resolvedSections(), emptyList()))
+    }
+
+    @Test
+    fun editedMessage_usesResolvedSectionsInsteadOfTheOldSnapshot() {
+        val original = ChatMessage(sender = "ai", content = "<think>$reasoning</think>旧回答")
+        val edited = original.copy(content = replyBody)
+
+        assertEquals(replyBody, TtsCleaner.cleanForSpeech(edited.resolvedSections(), listOf(removeXmlTagsPattern)))
+    }
+
+    @Test
+    fun inlineCodeWithStructuralTags_remainsReplyTextBeforeUserPatterns() {
+        val message = "标签示例：`<tool name=\"weather\">示例正文</tool>`。"
+
+        assertEquals(message, TtsCleaner.cleanForSpeech(message, emptyList()))
+        assertEquals(
+            "标签示例：`示例正文`。",
+            TtsCleaner.cleanForSpeech(message, listOf(removeXmlTagsPattern)),
+        )
     }
 }
