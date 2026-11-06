@@ -6,6 +6,8 @@ fork_repository: https://github.com/yoruuuchan/Operit.git
 
 关联 Issue：[AAswordman/Operit#1394](https://github.com/AAswordman/Operit/issues/1394)
 
+2026-11-06 集成补充：配套终端实现见 [TerminalCore PR #14](https://github.com/AAswordman/OperitTerminalCore/pull/14)，在原定向路由修复上补齐 PTY 非阻塞写入、三秒期限与中断绕开文本 writer。当前子模块指向 `fcdc73da7ddb93dd7bb49da4ae3fee3baaee0b8d`，完整范围和验证边界见[集成记录](../verified_stability_fixes_20261106/index.md)。
+
 ## 原状
 
 `Terminal.sendInterruptSignal(sessionId)` 写的不是"向这个会话发中断"，而是先把全局当前会话切换成该 id，再对"当前会话"发中断：
