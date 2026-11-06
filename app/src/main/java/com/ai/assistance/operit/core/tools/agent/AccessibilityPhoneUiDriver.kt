@@ -1,6 +1,9 @@
 package com.ai.assistance.operit.core.tools.agent
 
 import android.content.Context
+import android.graphics.Point
+import android.hardware.display.DisplayManager
+import android.view.Display
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
@@ -27,6 +30,7 @@ internal class AccessibilityPhoneUiDriver(
         val parser = XmlPullParserFactory.newInstance().newPullParser()
         parser.setInput(StringReader(xml))
         val nodes = mutableListOf<PhoneUiNode>()
+        val parents = mutableListOf<Int>()
         try {
             while (parser.eventType != XmlPullParser.END_DOCUMENT) {
                 if (parser.eventType == XmlPullParser.START_TAG && parser.name == "node") {
@@ -42,7 +46,14 @@ internal class AccessibilityPhoneUiDriver(
                         editable = attr("editable") == "true" || className.endsWith("EditText"),
                         focused = attr("focused") == "true", enabled = attr("enabled") != "false", password = password,
                         selected = attr("selected") == "true", checked = attr("checked") == "true",
+                        ref = nodes.size + 1, parentRef = parents.lastOrNull(),
+                        visibleToUser = listOf("visible-to-user", "visible", "visibleToUser")
+                            .map { attr(it) }.firstOrNull { it == "true" || it == "false" }?.toBoolean(),
+                        hint = attr("hint"), scrollable = attr("scrollable") == "true",
                     )
+                    parents += nodes.size
+                } else if (parser.eventType == XmlPullParser.END_TAG && parser.name == "node" && parents.isNotEmpty()) {
+                    parents.removeAt(parents.lastIndex)
                 }
                 parser.next()
             }
@@ -53,16 +64,19 @@ internal class AccessibilityPhoneUiDriver(
         }
         val packageName = nodes.firstOrNull { it.packageName.isNotBlank() }?.packageName
             ?: throw PhoneUiException("Main-screen hierarchy has no app identity")
-        PhoneUiSnapshot(revision.incrementAndGet(), packageName, nodes)
+        val display = context.getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
+            ?: throw PhoneUiException("Main display is unavailable")
+        val size = Point()
+        @Suppress("DEPRECATION")
+        display.getRealSize(size)
+        PhoneUiSnapshot(revision.incrementAndGet(), packageName, nodes, PhoneBounds(0, 0, size.x, size.y))
     }
 
     override suspend fun tap(node: PhoneUiNode): Boolean = withContext(Dispatchers.IO) {
-        val current = read()
-        val targets = current.nodes.filter { it.sameTargetAs(node) }
-        if (current.packageName != node.packageName || targets.size != 1) {
-            throw PhoneUiException("Tap target changed or became ambiguous before dispatch; no tap was sent")
-        }
-        val bounds = targets.single().bounds ?: throw PhoneUiException("Tap target has no bounds")
+        // Both executors resolve a unique target from a fresh snapshot immediately before dispatch.
+        // Another XML read here adds a round trip; it cannot make read-and-dispatch atomic.
+        if (!node.enabled || node.password || node.visibleToUser == false) throw PhoneUiException("Tap target is not available")
+        val bounds = node.bounds ?: throw PhoneUiException("Tap target has no bounds")
         if (!bounds.isUsable) throw PhoneUiException("Tap target has no usable bounds")
         AppLogger.d("PhoneAgent", "node_tap_request: pixel=(${bounds.centerX},${bounds.centerY}) resource_id=${node.resourceId}")
         inputScope {
@@ -81,10 +95,8 @@ internal class AccessibilityPhoneUiDriver(
 
     override suspend fun type(node: PhoneUiNode, text: String): Boolean = inputScope {
         withContext(Dispatchers.IO) {
-            val current = read()
-            val focused = current.nodes.filter { it.packageName == node.packageName && it.focused && it.editable }
-            if (current.packageName != node.packageName || focused.size != 1 || !focused.single().sameTargetAs(node)) {
-                throw PhoneUiException("Input focus changed before typing; no text was sent")
+            if (!node.enabled || !node.focused || !node.editable || node.password || node.visibleToUser == false) {
+                throw PhoneUiException("Typing requires the freshly checked ordinary focused input")
             }
             val focusedId = UIHierarchyManager.findFocusedNodeId(context)
                 ?: throw PhoneUiException("Accessibility cannot identify the focused input")

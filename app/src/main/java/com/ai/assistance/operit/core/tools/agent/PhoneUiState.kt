@@ -1,7 +1,5 @@
 package com.ai.assistance.operit.core.tools.agent
 
-import org.json.JSONArray
-import org.json.JSONObject
 
 internal class PhoneUiException(message: String) : IllegalStateException(message)
 
@@ -9,6 +7,10 @@ internal data class PhoneBounds(val left: Int, val top: Int, val right: Int, val
     val isUsable: Boolean get() = left >= 0 && top >= 0 && right > left && bottom > top
     val centerX: Int get() = left + (right - left) / 2
     val centerY: Int get() = top + (bottom - top) / 2
+
+    fun intersect(other: PhoneBounds): PhoneBounds? = PhoneBounds(
+        maxOf(left, other.left), maxOf(top, other.top), minOf(right, other.right), minOf(bottom, other.bottom),
+    ).takeIf { it.isUsable }
 
     companion object {
         private val pattern = Regex("""\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]""")
@@ -32,46 +34,50 @@ internal data class PhoneUiNode(
     val password: Boolean = false,
     val selected: Boolean = false,
     val checked: Boolean = false,
+    val ref: Int = 0,
+    val parentRef: Int? = null,
+    val visibleToUser: Boolean? = null,
+    val hint: String = "",
+    val scrollable: Boolean = false,
+    val modelLabel: String = "",
 ) {
     // Re-resolve coordinates, but reject a changed label, type, focus or selection state.
-    fun sameTargetAs(other: PhoneUiNode): Boolean = copy(bounds = null) == other.copy(bounds = null)
+    fun sameTargetAs(other: PhoneUiNode): Boolean = identity() == other.identity()
+
+    private fun identity() = copy(bounds = null, ref = 0, parentRef = null, visibleToUser = null, modelLabel = "")
 }
 
-internal data class PhoneUiSnapshot(val revision: Long, val packageName: String, val nodes: List<PhoneUiNode>) {
-    fun matches(target: PhoneTarget): List<PhoneUiNode> = nodes.filter {
-        it.packageName == packageName && target.matches(it)
+internal data class PhoneUiSnapshot(
+    val revision: Long,
+    val packageName: String,
+    val nodes: List<PhoneUiNode>,
+    val screenBounds: PhoneBounds? = null,
+    val capturedAtMs: Long = System.nanoTime() / 1_000_000,
+) {
+    private val byRef by lazy { nodes.mapIndexed { index, node -> (index + 1) to node }.toMap() }
+
+    fun isVisible(node: PhoneUiNode): Boolean {
+        if (node.visibleToUser == false) return false
+        var parent = node.parentRef
+        var depth = 0
+        while (parent != null && depth++ < nodes.size) {
+            val ancestor = byRef[parent] ?: break
+            if (ancestor.visibleToUser == false) return false
+            parent = ancestor.parentRef
+        }
+        val bounds = node.bounds ?: return false
+        return if (screenBounds != null) bounds.intersect(screenBounds) != null else bounds.isUsable
     }
 
-    fun toPrompt(): String {
-        val visible = nodes.filter {
-            it.packageName == packageName &&
-                (it.clickable || it.editable || it.text.isNotEmpty() || it.description.isNotEmpty())
-        }
-        val items = JSONArray()
-        var textBudget = 12000
-        for (node in visible.take(120)) {
-            val item = JSONObject().apply {
-                if (node.resourceId.isNotEmpty()) put("id", node.resourceId)
-                if (node.className.isNotEmpty()) put("class", node.className)
-                if (node.text.isNotEmpty() && !node.password) put("text", node.text.take(160))
-                if (node.description.isNotEmpty() && !node.password) put("desc", node.description.take(160))
-                if (node.text.length > 160) put("text_truncated", true)
-                if (node.description.length > 160) put("desc_truncated", true)
-                if (node.clickable) put("clickable", true)
-                if (node.editable) put("editable", true)
-                if (node.focused) put("focused", true)
-                if (!node.enabled) put("enabled", false)
-                if (node.password) put("password", true)
-                if (node.selected) put("selected", true)
-                if (node.checked) put("checked", true)
-            }
-            textBudget -= item.toString().length
-            if (textBudget < 0) break
-            items.put(item)
-        }
-        return JSONObject().put("screen", revision).put("package", packageName)
-            .put("nodes", items).put("truncated", items.length() < visible.size).toString()
+    fun matches(target: PhoneTarget): List<PhoneUiNode> = nodes.filter {
+        it.packageName == packageName && isVisible(it) && target.matches(it)
+    }.map { node ->
+        if (screenBounds == null) node else node.copy(bounds = node.bounds?.intersect(screenBounds))
     }
+
+    fun summary(task: String = ""): PhoneUiSummary = PhoneUiSummary.build(this, task)
+
+    fun toPrompt(): String = summary().payload
 }
 
 internal data class PhoneTarget(

@@ -18,6 +18,7 @@ internal data class PhonePlanResult(
     val message: String,
     val conditionWaitMs: Long,
     val verifiedActions: Int = 0,
+    val snapshot: PhoneUiSnapshot? = null,
 )
 
 /** Executes known selectors and explicit postconditions. Dispatched actions are never resent here. */
@@ -40,27 +41,26 @@ internal class PhonePlanExecutor(
         var attempted = 0
         var accepted = false
         var mayHaveRun = false
+        var lastSnapshot: PhoneUiSnapshot? = null
         conditionWaitMs = 0L
         try {
             // Bind the complete template before the first action, including replayed templates.
             val plan = template.bind(arguments)
             if (plan.steps.size > remainingActions) throw PhoneUiException("Sequence exceeds remaining action budget")
-            var state = read(plan.packageName)
-            if (state.packageName != observed.packageName) {
-                throw PhoneUiException("Active app changed while the controller was planning; no action was sent")
-            }
-            // Video text/counters may change while planning. Validate the first target, not unrelated nodes.
-            plan.steps.first().target?.let { target ->
-                val before = unique(observed, target)
-                val current = unique(state, target)
-                if (!before.sameTargetAs(current)) {
-                    throw PhoneUiException("Observed target changed while planning; no action was sent")
-                }
-            }
+            var state = observed
             for ((index, step) in plan.steps.withIndex()) {
                 checkpoint()
                 onStep(index + 1, plan.steps.size, step.action)
-                if (index > 0) state = read(plan.packageName)
+                lastSnapshot = null
+                state = read(plan.packageName)
+                if (index == 0) {
+                    if (state.packageName != observed.packageName) throw PhoneUiException("Active app changed during planning")
+                    step.target?.let { target ->
+                        if (!unique(observed, target).sameTargetAs(unique(state, target))) {
+                            throw PhoneUiException("Observed target changed while planning; no action was sent")
+                        }
+                    }
+                }
                 accepted = false
                 mayHaveRun = false
                 when (step.action) {
@@ -77,7 +77,8 @@ internal class PhonePlanExecutor(
                         mayHaveRun = true
                         accepted = driver.tap(node)
                         if (!accepted) throw PhoneUiException("Tap delivery was not confirmed; sequence stopped")
-                        awaitTarget(plan.packageName, expected, step.timeoutMs)
+                        state = awaitTarget(plan.packageName, expected, step.timeoutMs)
+                        lastSnapshot = state
                         verifiedActions++
                     }
                     PhoneLocalAction.Type -> {
@@ -86,29 +87,34 @@ internal class PhonePlanExecutor(
                         if (!node.enabled || !node.editable || !node.focused || node.password) {
                             throw PhoneUiException("Type requires a unique enabled, focused, non-password editable target")
                         }
+                        if (state.nodes.count { it.editable && it.focused && state.isVisible(it) } != 1) {
+                            throw PhoneUiException("Input focus is ambiguous")
+                        }
                         attempted++
                         val text = requireNotNull(step.text)
                         mayHaveRun = true
                         accepted = driver.type(node, text)
                         if (!accepted) throw PhoneUiException("Text delivery was not confirmed; sequence stopped")
-                        awaitTarget(plan.packageName, target.copy(text = text), step.timeoutMs)
+                        state = awaitTarget(plan.packageName, target.copy(text = text), step.timeoutMs)
+                        lastSnapshot = state
                         if (node.text != text) verifiedActions++
                     }
                     PhoneLocalAction.Wait -> {
                         attempted++
-                        awaitTarget(plan.packageName, requireNotNull(step.expect), step.timeoutMs)
+                        state = awaitTarget(plan.packageName, requireNotNull(step.expect), step.timeoutMs)
+                        lastSnapshot = state
                     }
                 }
                 completed++
             }
             return PhonePlanResult(completed, attempted, accepted, mayHaveRun, true,
-                "All local step conditions satisfied; verify the task outcome before finishing", conditionWaitMs, verifiedActions)
+                "All local step conditions satisfied; verify the task outcome before finishing", conditionWaitMs, verifiedActions, lastSnapshot)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             val detail = if (e is PhoneUiException) e.message.orEmpty() else "Local execution stopped: ${e.javaClass.simpleName}"
             val status = if (mayHaveRun) " The last action may already have taken effect. Inspect before deciding whether to repeat it." else ""
-            return PhonePlanResult(completed, attempted, accepted, mayHaveRun, false, detail + status, conditionWaitMs, verifiedActions)
+            return PhonePlanResult(completed, attempted, accepted, mayHaveRun, false, detail + status, conditionWaitMs, verifiedActions, lastSnapshot)
         }
     }
 
@@ -127,7 +133,7 @@ internal class PhonePlanExecutor(
         return matches.single()
     }
 
-    private suspend fun awaitTarget(packageName: String, target: PhoneTarget, timeoutMs: Long) {
+    private suspend fun awaitTarget(packageName: String, target: PhoneTarget, timeoutMs: Long): PhoneUiSnapshot {
         var elapsedMs = 0L
         while (true) {
             // Paused time is not charged against the target's readiness deadline.
@@ -143,7 +149,7 @@ internal class PhonePlanExecutor(
             if (state.packageName != packageName) throw PhoneUiException("Active app changed while waiting; sequence stopped")
             val matches = state.matches(target)
             if (matches.size > 1) throw PhoneUiException("Expected result is ambiguous; sequence stopped")
-            if (matches.size == 1) return
+            if (matches.size == 1) return state
             if (elapsedMs >= timeoutMs) throw PhoneUiException("Expected result did not appear within ${timeoutMs}ms; sequence stopped")
             val pauseMs = minOf(100L, timeoutMs - elapsedMs)
             val beforeDelay = nowMs()

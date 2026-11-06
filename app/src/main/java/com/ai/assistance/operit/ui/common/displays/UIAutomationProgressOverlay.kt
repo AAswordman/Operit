@@ -361,7 +361,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
         }
     }
 
-    /** Only screenshot capture temporarily hides the card and border. */
+    /** Screenshot capture hides the card; the border represents the entire active tool call. */
     suspend fun setOverlayVisible(visible: Boolean) {
         try {
             withContext(Dispatchers.Main) {
@@ -388,8 +388,9 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
 
                 layoutParams = params
                 borderView?.let { border ->
-                    border.alpha = if (shouldHide) 0f else 1f
-                    border.visibility = if (shouldHide) View.GONE else View.VISIBLE
+                    val active = borderEnabled && progressInfo != null
+                    border.alpha = if (active) 1f else 0f
+                    border.visibility = if (active) View.VISIBLE else View.GONE
                 }
             }
         } catch (e: Exception) {

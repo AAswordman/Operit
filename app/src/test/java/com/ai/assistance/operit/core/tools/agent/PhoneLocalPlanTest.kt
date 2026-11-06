@@ -59,7 +59,7 @@ class PhoneLocalPlanTest {
     }
 
     @Test fun passwordContentIsExcludedFromNodePromptAndSelectors() {
-        val node = PhoneUiNode("com.example.app", text = "private", description = "secret", password = true, editable = true)
+        val node = PhoneUiNode("com.example.app", text = "private", description = "secret", password = true, editable = true, bounds = PhoneBounds(0, 0, 100, 100))
         val prompt = PhoneUiSnapshot(1, "com.example.app", listOf(node)).toPrompt()
         assertFalse(prompt.contains("private"))
         assertFalse(prompt.contains("secret"))
@@ -67,7 +67,7 @@ class PhoneLocalPlanTest {
     }
 
     @Test fun nodePromptMarksPartialTextAndLimitsNodeCount() {
-        val nodes = List(130) { PhoneUiNode("com.example.app", text = "x".repeat(170), resourceId = "id$it") }
+        val nodes = List(130) { PhoneUiNode("com.example.app", text = "x".repeat(170), resourceId = "id$it", bounds = PhoneBounds(0, 0, 100, 100)) }
         val json = JSONObject(PhoneUiSnapshot(1, "com.example.app", nodes).toPrompt())
         assertTrue(json.getBoolean("truncated"))
         assertTrue(json.getJSONArray("nodes").length() <= 120)

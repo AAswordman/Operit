@@ -9,7 +9,7 @@ class PhoneObservationHistoryTest {
         val tracker = PhoneObservationHistory()
         for (i in 1..3) {
             val state = PhoneUiSnapshot(i.toLong(), "com.example.app", listOf(
-                PhoneUiNode("com.example.app", resourceId = "id$i", text = "result$i"),
+                PhoneUiNode("com.example.app", resourceId = "id$i", text = "result$i", bounds = PhoneBounds(0, 0, 100, 100)),
             ))
             val payload = "[UI_STATE] ${state.toPrompt()}"
             tracker.record(history.size, payload)

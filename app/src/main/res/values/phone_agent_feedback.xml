@@ -10,8 +10,11 @@
     <string name="phone_agent_tap_unconfirmed">点击未确认 · (%1$d, %2$d)</string>
     <string name="phone_agent_reading_nodes">正在读取无障碍节点…</string>
     <string name="phone_agent_reading_screenshot">正在获取界面截图…</string>
-    <string name="phone_agent_nodes_ready">节点读取成功：%1$d 个 · 等待 UI 控制器…</string>
+    <string name="phone_agent_nodes_ready">已解析 %1$d · 有效 %2$d · 发给模型 %3$d · 等待控制器…</string>
     <string name="phone_agent_nodes_failed">节点读取失败 · 等待 UI 控制器…</string>
     <string name="phone_agent_source_nodes">节点定位</string>
     <string name="phone_agent_source_coordinates">坐标单步</string>
+    <string name="phone_agent_waiting_startup">等待 App 启动完成…</string>
+    <string name="phone_agent_launch_confirmed">已确认“%1$s”在前台，启动任务已完成。</string>
+    <string name="phone_agent_launch_unconfirmed">已请求启动“%1$s”，但未确认前台 Activity；任务未确认完成。</string>
 </resources>

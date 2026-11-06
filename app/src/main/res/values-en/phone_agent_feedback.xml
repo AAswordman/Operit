@@ -10,8 +10,11 @@
     <string name="phone_agent_tap_unconfirmed">Tap unconfirmed · (%1$d, %2$d)</string>
     <string name="phone_agent_reading_nodes">Reading accessibility nodes…</string>
     <string name="phone_agent_reading_screenshot">Capturing the screen…</string>
-    <string name="phone_agent_nodes_ready">Nodes read: %1$d · Waiting for UI controller…</string>
+    <string name="phone_agent_nodes_ready">Read %1$d · Candidates %2$d · Sent %3$d · Waiting for controller…</string>
     <string name="phone_agent_nodes_failed">Node read failed · Waiting for UI controller…</string>
     <string name="phone_agent_source_nodes">Node target</string>
     <string name="phone_agent_source_coordinates">Coordinate action</string>
+    <string name="phone_agent_waiting_startup">Waiting for the app to start…</string>
+    <string name="phone_agent_launch_confirmed">Confirmed %1$s is in the foreground. Launch task completed.</string>
+    <string name="phone_agent_launch_unconfirmed">Requested launch of %1$s, but the foreground activity was not confirmed. Task completion is unverified.</string>
 </resources>

@@ -120,7 +120,7 @@ class PhoneAgent(
     var completedSuccessfully: Boolean = false
         private set
     private var localSession: PhoneAgentLocalSession? = null
-    private var imageRequested = true
+    private var imageOnlyRequested = false
     private var lastActionFeedback = ""
     private var mainInputLease: AutoCloseable? = null
     private var _stepCount = 0
@@ -145,6 +145,7 @@ class PhoneAgent(
         if (!flow.value) {
             return
         }
+        localSession?.invalidate()
         AppLogger.d("PhoneAgent", "[$agentId] awaitIfPaused: entering pause loop, delay starting")
         val pausedAt = System.nanoTime()
         try {
@@ -351,7 +352,19 @@ class PhoneAgent(
         isPausedFlow: StateFlow<Boolean>? = null,
         targetApp: String? = null
     ): String {
+        val progress = if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context) else null
+        val runJob = currentCoroutineContext()[Job]
         try {
+            if (progress != null) {
+                useFullscreenStatusIndicatorForAgent(context, agentId)
+                progress.show(config.maxSteps, context.getString(R.string.phone_agent_waiting_startup),
+                    onCancel = {
+                        PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
+                        runJob?.cancel(CancellationException("User cancelled UI automation"))
+                    },
+                    onToggleTakeOver = { paused -> (isPausedFlow as? MutableStateFlow<Boolean>)?.value = paused },
+                )
+            }
             return runSession(task, systemPrompt, onStep, isPausedFlow, targetApp)
         } finally {
             val lease = mainInputLease
@@ -364,6 +377,11 @@ class PhoneAgent(
                     AppLogger.e("PhoneAgent", "[$agentId] Failed to release main-screen input client", e)
                 }
             }
+            pauseFlow = null
+            if (progress != null) withContext(NonCancellable + Dispatchers.Main.immediate) {
+                progress.hide()
+                progress.setBorderEnabled(false)
+            }
         }
     }
 
@@ -375,6 +393,8 @@ class PhoneAgent(
         targetApp: String? = null
     ): String {
         completedSuccessfully = false
+        reset()
+        pauseFlow = isPausedFlow
         val floatingService = FloatingChatService.getInstance()
         val job = currentCoroutineContext()[Job]
 
@@ -389,6 +409,14 @@ class PhoneAgent(
             return requiredVirtualScreenError
         }
 
+        if (isMainScreenAgent) {
+            val launchOnly = actionHandler.resolveLaunchOnlyTarget(task)
+            if (launchOnly != null) {
+                val outcome = actionHandler.executeLaunchOnly(launchOnly, ::awaitIfPaused)
+                completedSuccessfully = outcome.first
+                return outcome.second
+            }
+        }
         val mainScreenShowerReady = prewarmMainScreenShowerIfPossible()
         actionHandler.setMainScreenShowerPrepared(mainScreenShowerReady)
         if (mainScreenShowerReady) {
@@ -434,7 +462,7 @@ class PhoneAgent(
                         job?.cancel(CancellationException("User cancelled UI automation"))
                     }
                 )
-            } else {
+            } else if (!isMainScreenAgent) {
                 progressOverlay.show(
                     config.maxSteps,
                     context.getString(R.string.phone_agent_thinking),
@@ -446,11 +474,11 @@ class PhoneAgent(
                 )
             }
 
-            reset()
             // The installed provider is main-display-only. Select capabilities once for this run.
             if (isMainScreenAgent && PermissionCapabilityResolver.uiSnapshot(context).canUseAccessibility) {
                 localSession = PhoneAgentLocalSession(
                     context,
+                    task = task,
                     inputScope = { block -> actionHandler.withLocalInputFeedback(block) },
                     onStep = { index, total, action ->
                         val actionLabel = context.getString(when (action) {
@@ -613,7 +641,7 @@ class PhoneAgent(
             }
             if (useShowerUi) {
                 showerOverlay?.hideAutomationControls()
-            } else {
+            } else if (!isMainScreenAgent) {
                 progressOverlay.hide()
             }
             if (cleanupOnFinish) {
@@ -638,28 +666,31 @@ class PhoneAgent(
         observationHistory.reset()
         planProgress.reset()
         localSession = null
-        imageRequested = true
+        imageOnlyRequested = false
         lastActionFeedback = ""
     }
 
     /** Execute a single step of the agent loop. */
     private suspend fun _executeStep(userPrompt: String?, isFirst: Boolean): StepResult {
         _stepCount++
+        val imageOnly = localSession != null && imageOnlyRequested
+        imageOnlyRequested = false
+        if (imageOnly) localSession?.invalidate()
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: begin, step=$_stepCount")
         if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
             _stepCount, config.maxSteps, context.getString(
-                if (localSession != null) R.string.phone_agent_reading_nodes else R.string.phone_agent_reading_screenshot
+                if (localSession != null && !imageOnly) R.string.phone_agent_reading_nodes else R.string.phone_agent_reading_screenshot
             )
         )
 
         val observationStarted = System.nanoTime()
-        val includeImage = isFirst || imageRequested || localSession == null
-        imageRequested = false
+        val includeImage = imageOnly || localSession == null
+        var screenshotAvailable = false
         val screenInfo = buildString {
-            appendLine("[OBSERVATION_MODE] " + if (localSession != null) "ACCESSIBILITY_MAIN" else "SCREENSHOT")
+            appendLine("[OBSERVATION_MODE] " + if (localSession != null && !imageOnly) "ACCESSIBILITY_MAIN" else "SCREENSHOT")
             appendLine("[ACTION_BUDGET] ${config.maxSteps - performance.actions}")
             val session = localSession
-            if (session != null) {
+            if (session != null && !imageOnly) {
                 try {
                     val state = session.observe()
                     val stateLine = state.lineSequence().firstOrNull { it.startsWith("[UI_STATE] ") }
@@ -675,6 +706,7 @@ class PhoneAgent(
                 val screenshotLink = actionHandler.captureScreenshotForAgent()
                 if (screenshotLink != null) {
                     performance.screenshots++
+                    screenshotAvailable = true
                     appendLine("[SCREENSHOT] $screenshotLink")
                 } else {
                     appendLine("[SCREENSHOT_ERROR] No image is available for this observation.")
@@ -692,7 +724,8 @@ class PhoneAgent(
         if (isMainScreenAgent) {
             val nodeCount = localSession?.lastNodeCount
             val status = when {
-                nodeCount != null -> context.getString(R.string.phone_agent_nodes_ready, nodeCount)
+                imageOnly -> context.getString(R.string.phone_agent_waiting_controller)
+                nodeCount != null -> context.getString(R.string.phone_agent_nodes_ready, nodeCount, localSession?.lastCandidateCount ?: 0, localSession?.lastSentCount ?: 0)
                 localSession != null -> context.getString(R.string.phone_agent_nodes_failed)
                 else -> context.getString(R.string.phone_agent_waiting_controller)
             }
@@ -751,25 +784,38 @@ class PhoneAgent(
                 performance.conditionWaitMs += localResult.waitMs
                 if (localResult.sequence) performance.localSequences++
                 val stalled = planProgress.record(localResult.verifiedActions, localResult.inspect)
-                imageRequested = localResult.inspect || !localResult.success || localResult.verifiedActions == 0
+                // Observation changes are explicit; rejected node actions do not silently request
+                // an image and discard the result snapshot that is already available.
+                imageOnlyRequested = when (localResult.actionName) {
+                    "Inspect" -> true
+                    "Observe", "Tap", "Type", "Sequence" -> false
+                    else -> imageOnly
+                }
                 lastActionFeedback = localResult.feedback
                 if (!localResult.inspect && localResult.verifiedActions == 0) {
-                    lastActionFeedback += " No verified UI change in ${planProgress.stalledPlans} local plan(s). Use the fresh screenshot to identify the visible navigation control before planning input."
+                    lastActionFeedback += " No verified UI change in ${planProgress.stalledPlans} local plan(s). Inspect the returned node state; use Inspect when visual context is needed."
                 }
                 AppLogger.d("PhoneAgent", "[$agentId] local_result: success=${localResult.success}, attempted=${localResult.attempted}, verified=${localResult.verifiedActions}, inspect=${localResult.inspect}, stalled=${planProgress.stalledPlans}")
-                val reportedAction = if (localResult.inspect) parsedAction.copy(actionName = "Inspect") else parsedAction
+                val reportedAction = parsedAction.copy(actionName = localResult.actionName ?: if (localResult.inspect) "Inspect" else "Sequence")
                 if (stalled) {
                     return StepResult(false, true, reportedAction, thinking,
                         "Stopped after three local plans without a verified UI action. Task not completed. " + localResult.feedback)
                 }
                 return StepResult(localResult.success, false, reportedAction, thinking, lastActionFeedback)
             }
+            if (!screenshotAvailable && parsedAction.actionName in setOf("Tap", "Double Tap", "Long Press", "Swipe")) {
+                imageOnlyRequested = imageOnly
+                localSession?.invalidate()
+                lastActionFeedback = "No coordinate action was sent: this observation has no screenshot. Use an observed node ref or request Inspect before selecting coordinates."
+                return StepResult(false, false, parsedAction, thinking, lastActionFeedback)
+            }
             if (performance.actions >= config.maxSteps && parsedAction.actionName != "Take_over") {
                 return StepResult(false, true, parsedAction, thinking, "Max steps reached")
             }
             performance.actions++
             planProgress.reset()
-            imageRequested = true
+            imageOnlyRequested = imageOnly
+            localSession?.invalidate()
             val execResult = try {
                 actionHandler.executeAgentAction(parsedAction)
             } finally {
@@ -855,13 +901,9 @@ class PhoneAgent(
 }
 
 private suspend fun useFullscreenStatusIndicatorForAgent(context: Context, agentId: String) {
-    val floatingService = FloatingChatService.getInstance()
-    if (floatingService != null) {
-        floatingService.setStatusIndicatorVisible(true)
-    } else {
-        AppLogger.d("PhoneAgent", "[$agentId] No FloatingChatService instance, using standalone rainbow border overlay")
-        UIAutomationProgressOverlay.getInstance(context).setBorderEnabled(true)
-    }
+    // Automation owns a dedicated border. Chat/screenshot visibility must not imply tool completion.
+    FloatingChatService.getInstance()?.setStatusIndicatorVisible(false)
+    UIAutomationProgressOverlay.getInstance(context).setBorderEnabled(true)
 }
 
 private suspend fun useShowerIndicatorForAgent(context: Context, agentId: String) {
@@ -915,7 +957,7 @@ class ActionHandler(
     )
 
     companion object {
-        private const val POST_LAUNCH_DELAY_MS = 1000L
+        private const val POST_LAUNCH_DELAY_MS = 3000L
         private const val POST_NON_WAIT_ACTION_DELAY_MS = 500L
     }
 
@@ -1077,6 +1119,57 @@ class ActionHandler(
         }
     }
 
+    private var launchOnly = false
+
+    internal suspend fun resolveLaunchOnlyTarget(task: String): PhoneLaunchTarget? = withContext(Dispatchers.IO) {
+        val query = PhoneLaunchRequest.appQuery(task) ?: return@withContext null
+        if (!PermissionCapabilityResolver.uiSnapshot(context).canUseAccessibility) return@withContext null
+        try {
+            val pkg = resolveAppPackageName(query)
+            val info = context.packageManager.getApplicationInfo(pkg, 0)
+            val label = context.packageManager.getApplicationLabel(info).toString()
+            if (!PhoneLaunchRequest.matchesInstalledApp(task, label, pkg) || context.packageManager.getLaunchIntentForPackage(pkg) == null) {
+                return@withContext null
+            }
+            PhoneLaunchTarget(pkg, label)
+        } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+            null
+        }
+    }
+
+    internal suspend fun executeLaunchOnly(target: PhoneLaunchTarget, checkpoint: suspend () -> Unit): Pair<Boolean, String> {
+        checkpoint()
+        launchOnly = true
+        val launched = try {
+            executeAgentAction(ParsedAgentAction("do", "Launch", mapOf("app" to target.packageName)))
+        } finally {
+            launchOnly = false
+        }
+        if (!launched.success) return false to launched.message.orEmpty()
+        var remaining = 3000L
+        while (remaining > 0) {
+            checkpoint()
+            val started = System.nanoTime()
+            val foreground = withContext(Dispatchers.IO) {
+                val activity = com.ai.assistance.operit.data.repository.UIHierarchyManager.getCurrentActivityName(context)
+                if (activity.isNullOrBlank()) false else {
+                    val flattened = PhoneLaunchRequest.foregroundComponent(activity, target.packageName)
+                    val component = flattened?.let { android.content.ComponentName.unflattenFromString(it) }
+                    if (component == null) false else try {
+                        component.packageName == target.packageName &&
+                            context.packageManager.getActivityInfo(component, 0).packageName == target.packageName
+                    } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+                        false
+                    }
+                }
+            }
+            if (foreground) return true to context.getString(R.string.phone_agent_launch_confirmed, target.label)
+            delay(minOf(150L, remaining))
+            remaining -= ((System.nanoTime() - started) / 1_000_000).coerceAtLeast(1L)
+        }
+        return false to context.getString(R.string.phone_agent_launch_unconfirmed, target.label)
+    }
+
     suspend fun executeAgentAction(parsed: ParsedAgentAction): ActionExecResult {
         val actionName = parsed.actionName ?: return fail(message = "Missing action name")
         val fields = parsed.fields
@@ -1132,7 +1225,7 @@ class ActionHandler(
                             AITool("start_app", listOf(ToolParameter("package_name", packageName)))
                         )
                         if (result.success) {
-                            delay(POST_LAUNCH_DELAY_MS)
+                            if (!launchOnly) delay(POST_LAUNCH_DELAY_MS)
                             ok()
                         } else {
                             fail(message = result.error ?: "Failed to launch app: $packageName")

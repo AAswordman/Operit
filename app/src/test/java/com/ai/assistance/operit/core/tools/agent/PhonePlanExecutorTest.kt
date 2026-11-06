@@ -11,7 +11,7 @@ import org.junit.Test
 class PhonePlanExecutorTest {
     private val pkg = "com.example.app"
     private val button = PhoneUiNode(pkg, resourceId = "search", bounds = PhoneBounds(0, 0, 50, 50), clickable = true)
-    private val input = PhoneUiNode(pkg, resourceId = "query", className = "android.widget.EditText", editable = true, focused = true)
+    private val input = PhoneUiNode(pkg, resourceId = "query", className = "android.widget.EditText", editable = true, focused = true, bounds = PhoneBounds(0, 60, 200, 110))
     private fun snapshot(vararg nodes: PhoneUiNode) = PhoneUiSnapshot(1, pkg, nodes.toList())
     private fun tap(expect: PhoneTarget = PhoneTarget(id = "query"), timeout: Long = 200L) =
         PhoneLocalStep(PhoneLocalAction.Tap, PhoneTarget(id = "search"), expect, null, timeout)
@@ -237,6 +237,25 @@ class PhonePlanExecutorTest {
         assertEquals(1, result.completed)
         assertEquals(0, result.verifiedActions)
         assertEquals(0, driver.taps + driver.types)
+    }
+
+
+    @Test fun selectorsUseVisibleCoordinatesForAPartiallyOffscreenTarget() = runTest {
+        val clipped = button.copy(bounds = PhoneBounds(-200, 0, 50, 50))
+        val observed = PhoneUiSnapshot(1, pkg, listOf(clipped), PhoneBounds(0, 0, 500, 500))
+        val driver = Driver(observed)
+        driver.onTap = { driver.state = snapshot(input) }
+        val result = PhonePlanExecutor(driver).execute(plan(tap()), emptyMap(), observed, 1)
+        assertTrue(result.success)
+        assertEquals(PhoneBounds(0, 0, 50, 50), driver.lastTapped?.bounds)
+    }
+
+    @Test fun aSelectorCannotBypassAnAmbiguousGlobalInputFocus() = runTest {
+        val observed = snapshot(input, input.copy(resourceId = "other"))
+        val driver = Driver(observed)
+        val result = PhonePlanExecutor(driver).execute(plan(type("coffee")), emptyMap(), observed, 1)
+        assertFalse(result.success)
+        assertEquals(0, driver.types)
     }
 
 }

@@ -39,9 +39,11 @@ internal data class PhoneLocalSequence(
 }
 
 internal sealed interface PhoneLocalCommand {
+    data class Node(val screen: Long, val ref: Int, val action: PhoneLocalAction, val text: String?) : PhoneLocalCommand
     data class Sequence(val screen: Long, val sequence: PhoneLocalSequence, val arguments: Map<String, String>) : PhoneLocalCommand
     data class Replay(val screen: Long, val packageName: String, val name: String, val arguments: Map<String, String>) : PhoneLocalCommand
     object Inspect : PhoneLocalCommand
+    object Observe : PhoneLocalCommand
 }
 
 /** Validates the whole response before any phone action is sent. No coordinate batches. */
@@ -54,9 +56,18 @@ internal object PhoneLocalPlanParser {
             require(value is JSONObject && tokens.nextClean() == '\u0000') { "One complete JSON command is required" }
             val json = value
             return when (json.getString("action")) {
-                "Inspect" -> {
+                "Tap", "Type" -> {
+                    val action = PhoneLocalAction.valueOf(json.getString("action"))
+                    json.requireKeys(if (action == PhoneLocalAction.Type) setOf("action", "screen", "ref", "text") else setOf("action", "screen", "ref"))
+                    val ref = json.strictLong("ref").also { require(it in 1L..5000L) { "ref must name a shown element" } }.toInt()
+                    val text = if (action == PhoneLocalAction.Type) json.getString("text").also {
+                        require(it.length <= 4000) { "Text exceeds 4000 characters" }
+                    } else null
+                    PhoneLocalCommand.Node(json.screen(), ref, action, text)
+                }
+                "Inspect", "Observe" -> {
                     json.requireKeys(setOf("action"))
-                    PhoneLocalCommand.Inspect
+                    if (json.getString("action") == "Inspect") PhoneLocalCommand.Inspect else PhoneLocalCommand.Observe
                 }
                 "Sequence" -> {
                     json.requireKeys(setOf("action", "screen", "package", "steps", "arguments", "save_as"))

@@ -25,7 +25,7 @@ internal class PhoneObservationHistory {
                 for (i in 0 until nodes.length()) {
                     val node = nodes.getJSONObject(i)
                     val words = JSONObject()
-                    for (key in listOf("text", "desc", "checked", "selected", "focused", "password")) {
+                    for (key in listOf("text", "desc", "label", "role", "checked", "selected", "focused", "password")) {
                         if (node.has(key)) words.put(key, node.get(key))
                     }
                     if (words.length() > 0) oldText.put(words)
