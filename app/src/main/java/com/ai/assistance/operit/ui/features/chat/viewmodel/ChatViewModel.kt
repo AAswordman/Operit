@@ -70,6 +70,7 @@ import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspacePrev
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspacePreviewRefreshEvent
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.toWorkspaceCommandOutputEntries
 import com.ai.assistance.operit.core.tools.system.Terminal
+import com.ai.assistance.operit.terminal.SessionInputResult
 import com.ai.assistance.operit.util.TtsCleaner
 import com.ai.assistance.operit.util.TtsSegmenter
 import com.ai.assistance.operit.ui.features.chat.util.findMentionTokens
@@ -2750,7 +2751,23 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         }
 
         _workspaceCommandExecutionState.value = currentState.copy(isCancelling = true)
-        terminal?.sendInterruptSignal(currentState.sessionId)
+        viewModelScope.launch {
+            val interruptResult = terminal?.sendInterruptSignal(currentState.sessionId)
+            if (interruptResult != SessionInputResult.DELIVERED) {
+                AppLogger.w(
+                    TAG,
+                    "Workspace command cancellation could not interrupt session " +
+                        "${currentState.sessionId}: $interruptResult"
+                )
+                val latestState = _workspaceCommandExecutionState.value
+                if (latestState?.sessionId == currentState.sessionId) {
+                    _workspaceCommandExecutionState.value = latestState.copy(isCancelling = false)
+                }
+                uiStateDelegate.showErrorMessage(
+                    context.getString(R.string.chat_execute_command_cancel_failed)
+                )
+            }
+        }
     }
 
     private fun executeWorkspaceTool(command: CommandConfig, workspacePath: String, toolName: String) {
@@ -3024,7 +3041,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 }
 
                 val cleanerRegexs = speechServiceProfiles.getCurrentTtsProfile().cleanerRegexs
-                val cleanedText = TtsCleaner.clean(message, cleanerRegexs)
+                val cleanedText = TtsCleaner.cleanForSpeech(message, cleanerRegexs)
                 val cleanMessage = WaifuMessageProcessor.cleanContentForWaifu(cleanedText)
                 AppLogger.d(
                     TAG,

@@ -357,25 +357,21 @@ fun PersonaCardGenerationScreen(
 
     // 通过默认底层 AIService 发送消息
     suspend fun requestFromDefaultService(
+        aiService: AIService,
         prompt: String,
         historyPairs: List<Pair<String, String>>,
         systemPrompt: String? = null
-    ): Pair<Stream<String>, AIService> = withContext(Dispatchers.IO) {
-        val aiService = EnhancedAIService
-            .getInstance(context)
-            .getAIServiceForFunction(FunctionType.CHAT)
-
+    ): Stream<String> = withContext(Dispatchers.IO) {
         val fullHistory = mutableListOf<Pair<String, String>>()
         if (systemPrompt != null) {
             fullHistory.add("system" to systemPrompt)
         }
         fullHistory.addAll(historyPairs)
 
-        val stream = aiService.sendMessage(
+        aiService.sendMessage(
             context = context,
             chatHistory = (fullHistory + ("user" to prompt)).toPromptTurns(),
         )
-        Pair(stream, aiService)
     }
 
     // 解析并执行工具调用
@@ -469,8 +465,6 @@ fun PersonaCardGenerationScreen(
                 historySnapshot.map { it.role to it.content }
             }
 
-            val (stream, aiService) = requestFromDefaultService(input, historyPairs, systemPrompt)
-
             // 提前插入占位的"生成中…"助手消息
             val generatingText = context.getString(R.string.generating)
             chatMessages.add(CharacterChatMessage("assistant", generatingText))
@@ -491,32 +485,35 @@ fun PersonaCardGenerationScreen(
             var firstChunkReceived = false
 
             try {
-                withContext(Dispatchers.IO) {
-                    stream.collect { chunk ->
-                        rawBuffer.append(chunk)
-                        withContext(Dispatchers.Main) {
-                            if (!firstChunkReceived) {
-                                firstChunkReceived = true
-                                isGenerating = false
+                EnhancedAIService.acquireAIServiceForFunction(context, FunctionType.CHAT).use { lease ->
+                    val stream = requestFromDefaultService(lease.service, input, historyPairs, systemPrompt)
+                    withContext(Dispatchers.IO) {
+                        stream.collect { chunk ->
+                            rawBuffer.append(chunk)
+                            withContext(Dispatchers.Main) {
+                                if (!firstChunkReceived) {
+                                    firstChunkReceived = true
+                                    isGenerating = false
+                                }
+                                val sanitized = (chatMessages[assistantIndex].content.replace(generatingText, "") + chunk)
+                                    .replace(toolTagRegex, "")
+                                    .replace(toolResultRegex, "")
+                                    .replace(statusRegex, "")
+                                    .replace(Regex("(\\r?\\n){2,}"), "\n")
+                                chatMessages[assistantIndex] = chatMessages[assistantIndex].copy(content = sanitized)
+                                scope.launch { listState.animateScrollToItem(chatMessages.lastIndex) }
                             }
-                            val sanitized = (chatMessages[assistantIndex].content.replace(generatingText, "") + chunk)
-                                .replace(toolTagRegex, "")
-                                .replace(toolResultRegex, "")
-                                .replace(statusRegex, "")
-                                .replace(Regex("(\\r?\\n){2,}"), "\n")
-                            chatMessages[assistantIndex] = chatMessages[assistantIndex].copy(content = sanitized)
-                            scope.launch { listState.animateScrollToItem(chatMessages.lastIndex) }
                         }
                     }
-                }
 
-                // 流结束后解析并执行工具
-                withContext(Dispatchers.IO) {
-                    processToolInvocations(rawBuffer.toString(), assistantIndex)
+                    // 流结束后解析并执行工具
+                    withContext(Dispatchers.IO) {
+                        processToolInvocations(rawBuffer.toString(), assistantIndex)
+                    }
+
+                    // 保存助手回复
+                    saveChatHistory()
                 }
-                
-                // 保存助手回复
-                saveChatHistory()
             } catch (e: Exception) {
                 chatMessages.add(
                     CharacterChatMessage(

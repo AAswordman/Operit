@@ -159,7 +159,7 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Run JVM unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
+        run: ./gradlew :app:testDebugUnitTest :terminal:testDebugUnitTest --stacktrace --no-daemon
 
       - name: Upload Android test reports
         if: always()

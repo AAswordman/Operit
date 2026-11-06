@@ -3526,6 +3526,7 @@
     <string name="chat_create_dedicated_terminal_session_failed">无法创建独立终端会话</string>
     <string name="chat_create_workspace_terminal_session_failed">无法创建工作区终端会话</string>
     <string name="chat_execute_command_failed">命令执行失败: %1$s</string>
+    <string name="chat_execute_command_cancel_failed">无法取消命令：目标终端会话已关闭或未就绪</string>
     <string name="workspace_command_already_running">已有工作区命令正在运行</string>
     <string name="workspace_command_running">命令运行中</string>
     <string name="workspace_command_cancelling">正在取消命令...</string>

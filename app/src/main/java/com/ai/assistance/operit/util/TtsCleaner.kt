@@ -68,4 +68,65 @@ object TtsCleaner {
         AppLogger.d(TAG, "clean(list): Final result='$cleanedText'")
         return cleanedText
     }
+
+    /**
+     * Resolves the spoken reply body of a stored message, then applies the user's cleaner patterns.
+     *
+     * Ordering is what makes this correct. Reasoning, tool and status blocks are only recognizable
+     * while their tags are intact, and the built-in "Remove XML tags" template is the pattern
+     * `<[^>]+>`. Applying that pattern first deletes the tags but keeps the inner text, so a
+     * thought block turns into ordinary unmarked prose that nothing downstream can identify — the
+     * whole chain of thought then gets read aloud. Extracting the body first keeps the user
+     * patterns matching against reply body only.
+     *
+     * Markdown is deliberately still intact at this point. Patterns such as `\*\*[^*]+\*\*` rely
+     * on the markers, and the Markdown flattening that removes them runs downstream in
+     * [WaifuMessageProcessor.cleanContentForWaifu].
+     *
+     * @param text The raw stored message content.
+     * @param regexPatterns The user's TTS cleaner patterns.
+     * @return The reply body after block removal and user pattern removal.
+     */
+    fun cleanForSpeech(text: String, regexPatterns: List<String>): String {
+        val replyBody = extractReplyBody(text)
+        if (replyBody.length != text.length) {
+            AppLogger.d(
+                TAG,
+                "cleanForSpeech: resolved reply body before user patterns | rawLen=${text.length} bodyLen=${replyBody.length}"
+            )
+        }
+        return clean(replyBody, regexPatterns)
+    }
+
+    /**
+     * Drops the blocks that are never part of the spoken reply: provider protocol metadata,
+     * reasoning, search sources, tool calls, tool results, status lines and emotion markers.
+     * Mirrors the block set that [WaifuMessageProcessor.cleanContentForWaifu] strips, applied
+     * before user patterns instead of after them so a tag-stripping pattern cannot orphan their
+     * contents.
+     *
+     * Provider metadata matters here as much as reasoning does: those `<meta>` tags carry base64
+     * payloads, so letting `<[^>]+>` delete only the tags would leave the payload to be read out
+     * loud. The `ChatMarkupRegex` passes run first because they tolerate attributes and letter
+     * case (`<think type="...">`, `<THINK>`); [ChatUtils.removeThinkingContent] follows to cover
+     * blocks that never close, which a paired-tag regex cannot match.
+     */
+    private fun extractReplyBody(text: String): String {
+        return ChatUtils.removeThinkingContent(
+            text
+                .let(ChatMarkupRegex::removeGeminiThoughtSignatureMeta)
+                .let(ChatMarkupRegex::removeOpenAiResponsesProtocolMeta)
+                .replace(ChatMarkupRegex.thinkTag, "")
+                .replace(ChatMarkupRegex.thinkSelfClosingTag, "")
+                .replace(ChatMarkupRegex.searchTag, "")
+                .replace(ChatMarkupRegex.searchSelfClosingTag, "")
+                .replace(ChatMarkupRegex.statusTag, "")
+                .replace(ChatMarkupRegex.statusSelfClosingTag, "")
+                .replace(ChatMarkupRegex.toolTag, "")
+                .replace(ChatMarkupRegex.toolSelfClosingTag, "")
+                .replace(ChatMarkupRegex.toolResultTag, "")
+                .replace(ChatMarkupRegex.toolResultSelfClosingTag, "")
+                .replace(ChatMarkupRegex.emotionTag, "")
+        )
+    }
 }

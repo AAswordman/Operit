@@ -3,7 +3,6 @@ package com.ai.assistance.operit.core.tools.defaultTool.standard
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.tools.DirectoryListingData
@@ -21,7 +20,6 @@ import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolExecutionLimits
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
 import java.io.BufferedInputStream
@@ -64,8 +62,6 @@ import android.webkit.MimeTypeMap
 import com.ai.assistance.operit.api.chat.enhance.FileBindingService
 import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
-import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.terminal.TerminalManager
 import com.ai.assistance.operit.terminal.provider.filesystem.FileSystemProvider
 import com.ai.assistance.operit.terminal.utils.SSHFileConnectionManager
@@ -173,32 +169,23 @@ open class StandardFileSystemTools(protected val context: Context) {
         val parsedBlocks: List<RipgrepBlock>
     )
 
-    protected suspend fun getGrepService(): AIService {
-        return EnhancedAIService.getAIServiceForFunction(context, FunctionType.GREP)
-    }
-
-    protected suspend fun getGrepModelParameters(): List<ModelParameter<*>> {
-        val functionalConfigManager = FunctionalConfigManager(context)
-        val modelConfigManager = ModelConfigManager(context)
-        val mapping = functionalConfigManager.getConfigMappingForFunction(FunctionType.GREP)
-        return modelConfigManager.getModelParametersForConfig(mapping.configId)
-    }
-
     protected suspend fun runGrepModel(prompt: String): String {
-        val service = getGrepService()
-        val modelParameters = getGrepModelParameters()
-        val sb = StringBuilder()
-        val stream =
-            service.sendMessage(
-                context = context,
-                chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                modelParameters = modelParameters,
-                enableThinking = false,
-                stream = false,
-                availableTools = null
-            )
-        stream.collect { chunk -> sb.append(chunk) }
-        return sb.toString().trim()
+        return EnhancedAIService.acquireAIServiceForFunction(context, FunctionType.GREP).use { lease ->
+            val service = lease.service
+            val modelParameters = lease.modelParameters
+            val sb = StringBuilder()
+            val stream =
+                service.sendMessage(
+                    context = context,
+                    chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                    modelParameters = modelParameters,
+                    enableThinking = false,
+                    stream = false,
+                    availableTools = null
+                )
+            stream.collect { chunk -> sb.append(chunk) }
+            sb.toString().trim()
+        }
     }
 
     protected fun extractFirstJsonObject(text: String): JSONObject? {
