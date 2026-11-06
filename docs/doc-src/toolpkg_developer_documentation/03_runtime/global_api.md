@@ -103,6 +103,26 @@ toolCall(toolName: string): Promise<any>;
 
 返回当前调用上下文关联的角色卡 ID；未绑定时为 `undefined`。
 
+### `getToolSessionId(): string | undefined`
+
+自 ToolPkg API `1.2.0` 起提供。返回宿主分配的工具会话身份。普通聊天调用使用所属聊天的身份，子任务使用该次运行的独立 UUID 范围，同一次子任务的后续工具调用复用这个范围。它用于终端等有状态工具，不替代 `getChatId()` 所表示的真实父聊天。
+
+### `getToolExecutionContext(): ToolExecutionContext`
+
+自 ToolPkg API `1.2.0` 起提供。在每次工具函数入口、第一次 `await` 之前调用一次，取得本次执行的固定上下文；不要把该对象缓存在模块顶层供多次调用复用。
+
+返回的只读字段为：
+
+- `callId`：本次 JS 工具调用的宿主标识
+- `java`：绑定本次调用生命周期的 Java facade，方法形状与既有 `Java` 一致
+- `chatId`、`callerCardId`：捕获的父聊天及角色卡身份，可以为 `undefined`
+- `language`：捕获的语言标签
+- `emitIntermediate(xml)`：向本次调用发送进度的绑定函数
+
+通过 `context.java` 获得的 Java 实例、service 和 stream 继续携带相同执行归属，其 suspend 调用在对应工具结束、取消或超时时取消。返回结果只投递给原有的执行会话和 JS runtime；不会因为晚到回调重新启动已结束的引擎。
+
+既有全局 `Java` 保持原调用方式。需要本次执行取消语义的异步代码应显式使用捕获的 `context.java`；共享 QuickJS 的同步脚本执行和 engine 级中断仍属于原有运行时机制，不能据此宣称任意同步插件代码都已实现并发隔离。
+
 ### `getPluginConfigDir(pluginId?): string`
 
 解析 ToolPkg/插件持久配置目录。可显式传 `pluginId`；省略时从当前调用上下文确定目标。路径由 native bridge 提供，目标无法解析或目录不可用时抛错。

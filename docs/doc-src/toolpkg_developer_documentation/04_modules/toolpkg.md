@@ -14,6 +14,8 @@ ToolPkg manifest 可以使用 `api_version` 声明包依赖的宿主 API 版本�
 
 `examples/types/toolpkg.d.ts` 保持一份最新版声明，并用 `@since ToolPkg API x.y.z` 标注公开能力的引入版本。使用这些能力时，manifest 的 `api_version` 需要不低于对应版本。
 
+`1.2.0` 增加本次工具调用的执行上下文、绑定调用生命周期的 Java suspend 能力和子任务执行策略。使用新子代理示例 0.1.2 时需要配套支持 `1.2.0` 的宿主；旧宿主会在加载阶段拒绝该声明。既有 `1.0.0`、`1.0.1`、`1.1.0` 包继续受支持，具体说明见 [API 版本与兼容](../09_compatibility/api_versions.md)。
+
 发布到市场时，市场版本信息会记录 manifest 中的 `api_version`。市场列表、详情和历史版本也会展示这个值；它与包自身的 `version` 以及归档格式的 `formatVer` 是不同的字段。对于缺失或空白的 `apiVersion`，按旧规范的 `1.0.0` 解释。
 
 manifest 还可以声明：

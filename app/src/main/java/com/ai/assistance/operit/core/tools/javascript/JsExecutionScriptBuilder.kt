@@ -48,6 +48,8 @@ private fun buildExecutionPreludeSource(): String {
         var getLang = function() { return __operitInvokeCallRuntime('getLang', arguments); };
         var getCallerName = function() { return __operitInvokeCallRuntime('getCallerName', arguments); };
         var getChatId = function() { return __operitInvokeCallRuntime('getChatId', arguments); };
+        var getToolSessionId = function() { return __operitInvokeCallRuntime('getToolSessionId', arguments); };
+        var getToolExecutionContext = function() { return __operitInvokeCallRuntime('getToolExecutionContext', arguments); };
         var getCallerCardId = function() { return __operitInvokeCallRuntime('getCallerCardId', arguments); };
         var __handleAsync = function() { return __operitInvokeCallRuntime('handleAsync', arguments); };
         var console = {
@@ -493,6 +495,7 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                     if (typeof root.__operitCleanupCallSession === 'function') {
                         root.__operitCleanupCallSession(callId);
                     }
+                    root.__operitJavaBridgeReleaseCallObjects(callId);
                 }
 
                 function isActive() {
@@ -607,6 +610,7 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                 }
 
                 function createRuntime() {
+                    var executionContext = null;
                     return {
                         emit: emitIntermediate,
                         delta: emitIntermediate,
@@ -642,6 +646,22 @@ internal fun buildExecutionRuntimeBridgeScript(): String {
                         getLang: function() { return readCallValue('__operit_package_lang', 'en'); },
                         getCallerName: function() { return readCallValue('__operit_package_caller_name', undefined); },
                         getChatId: function() { return readCallValue('__operit_package_chat_id', undefined); },
+                        getToolSessionId: function() { return readCallValue('__operit_tool_session_id', undefined); },
+                        getToolExecutionContext: function() {
+                            if (executionContext === null) {
+                                // Capture once at entry. Cached modules and later awaits may run
+                                // alongside other calls, so Java ownership cannot use global state.
+                                executionContext = Object.freeze({
+                                    callId: callId,
+                                    java: root.__operitJavaBridgeForCall(callId),
+                                    chatId: readCallValue('__operit_package_chat_id', undefined),
+                                    callerCardId: readCallValue('__operit_package_caller_card_id', undefined),
+                                    language: readCallValue('__operit_package_lang', 'en'),
+                                    emitIntermediate: emitIntermediate
+                                });
+                            }
+                            return executionContext;
+                        },
                         getCallerCardId: function() { return readCallValue('__operit_package_caller_card_id', undefined); },
                         reportDetailedError: callRuntimeReport,
                         handleAsync: handleAsync,

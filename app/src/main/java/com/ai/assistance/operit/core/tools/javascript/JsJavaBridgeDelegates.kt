@@ -20,8 +20,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 import kotlin.coroutines.Continuation
-import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlinx.coroutines.ensureActive
 
 internal typealias JsInterfaceCallbackInvoker = (jsObjectId: String, methodName: String, argsJson: String) -> String
 internal typealias JsInterfaceReleaseInvoker = (jsObjectId: String) -> Unit
@@ -342,6 +343,7 @@ internal object JsJavaBridgeDelegates {
         argsJson: String,
         objectRegistry: ConcurrentHashMap<String, Any>,
         callback: (String) -> Unit,
+        coroutineContext: CoroutineContext,
         jsCallbackInvoker: JsInterfaceCallbackInvoker? = null,
         bridgeClassLoader: ClassLoader? = null
     ) {
@@ -354,6 +356,7 @@ internal object JsJavaBridgeDelegates {
             staticOnly = true,
             objectRegistry = objectRegistry,
             callback = callback,
+            coroutineContext = coroutineContext,
             jsCallbackInvoker = jsCallbackInvoker,
             bridgeClassLoader = bridgeClassLoader
         )
@@ -365,6 +368,7 @@ internal object JsJavaBridgeDelegates {
         argsJson: String,
         objectRegistry: ConcurrentHashMap<String, Any>,
         callback: (String) -> Unit,
+        coroutineContext: CoroutineContext,
         jsCallbackInvoker: JsInterfaceCallbackInvoker? = null,
         bridgeClassLoader: ClassLoader? = null
     ) {
@@ -377,6 +381,7 @@ internal object JsJavaBridgeDelegates {
             staticOnly = false,
             objectRegistry = objectRegistry,
             callback = callback,
+            coroutineContext = coroutineContext,
             jsCallbackInvoker = jsCallbackInvoker,
             bridgeClassLoader = bridgeClassLoader
         )
@@ -760,6 +765,7 @@ internal object JsJavaBridgeDelegates {
         staticOnly: Boolean,
         objectRegistry: ConcurrentHashMap<String, Any>,
         callback: (String) -> Unit,
+        coroutineContext: CoroutineContext,
         jsCallbackInvoker: JsInterfaceCallbackInvoker?,
         bridgeClassLoader: ClassLoader?
     ) {
@@ -809,6 +815,7 @@ internal object JsJavaBridgeDelegates {
                     staticOnly = false,
                     objectRegistry = objectRegistry,
                     callback = callback,
+                    coroutineContext = coroutineContext,
                     jsCallbackInvoker = jsCallbackInvoker,
                     bridgeClassLoader = bridgeClassLoader
                 )
@@ -832,7 +839,9 @@ internal object JsJavaBridgeDelegates {
         val completed = AtomicBoolean(false)
         val continuation =
             object : Continuation<Any?> {
-                override val context = EmptyCoroutineContext
+                // The reflective suspend call must remain a child of its JS execution.
+                // An empty context leaves model/tool collections running after JS cancellation.
+                override val context = coroutineContext
                 override fun resumeWith(result: Result<Any?>) {
                     if (!completed.compareAndSet(false, true)) {
                         return
@@ -847,6 +856,7 @@ internal object JsJavaBridgeDelegates {
             }
 
         try {
+            coroutineContext.ensureActive()
             val argsWithContinuation = selected.args + continuation
             val outcome = selected.method.invoke(instance, *argsWithContinuation)
             if (outcome !== COROUTINE_SUSPENDED && completed.compareAndSet(false, true)) {

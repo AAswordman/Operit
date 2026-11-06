@@ -16,6 +16,7 @@ import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -33,7 +34,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import org.json.JSONObject
+import org.json.JSONException
 
 /** Utility class for managing tool executions */
 object ToolExecutionManager {
@@ -42,12 +45,21 @@ object ToolExecutionManager {
     private const val PACKAGE_CALLER_NAME_PARAM = "__operit_package_caller_name"
     private const val PACKAGE_CHAT_ID_PARAM = "__operit_package_chat_id"
     private const val PACKAGE_CALLER_CARD_ID_PARAM = "__operit_package_caller_card_id"
+    private const val TOOL_SESSION_ID_PARAM = "__operit_tool_session_id"
     private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
 
     data class ToolRuntimeContext(
         val callerCardId: String? = null,
-        val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
+        val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        val callerChatId: String? = null,
+        val toolSessionScopeId: String? = null,
+        val subtaskExecution: SubtaskExecutionState? = null,
     )
+
+    internal sealed class PackageContextInjection {
+        data class Ready(val invocation: ToolInvocation) : PackageContextInjection()
+        data class Rejected(val result: ToolResult) : PackageContextInjection()
+    }
 
     private data class ResolvedToolTarget(
         val tool: AITool,
@@ -117,30 +129,185 @@ object ToolExecutionManager {
         params.add(ToolParameter(name, value))
     }
 
-    private fun injectPackageCallContext(
+    internal fun injectPackageCallContext(
         invocation: ToolInvocation,
         jsPackageNames: Set<String>,
         callerName: String?,
         callerChatId: String?,
-        callerCardId: String?
+        callerCardId: String?,
+        toolSessionScopeId: String?,
+        enforceCallerIdentity: Boolean,
     ): ToolInvocation {
-        val resolvedTargetTool = resolveToolTarget(invocation.tool).tool
+        val resolvedTargetTool = if (enforceCallerIdentity) {
+            resolveSubtaskTarget(invocation.tool)
+        } else {
+            resolveToolTarget(invocation.tool).tool
+        }
         if (!isJsPackageTool(resolvedTargetTool.name, jsPackageNames)) {
             return invocation
         }
 
         val updatedParams = invocation.tool.parameters.toMutableList()
+        // Session identity is host-owned. Remove both outer and proxy-JSON overrides from the model.
+        val authoritativeNames = mutableSetOf(TOOL_SESSION_ID_PARAM)
+        if (enforceCallerIdentity) {
+            authoritativeNames.add(PACKAGE_CHAT_ID_PARAM)
+            authoritativeNames.add(PACKAGE_CALLER_CARD_ID_PARAM)
+        }
+        updatedParams.removeAll { it.name in authoritativeNames }
+        if (invocation.tool.name == PACKAGE_PROXY_TOOL_NAME ||
+            invocation.tool.name == CliToolModeSupport.PROXY_TOOL_NAME
+        ) {
+            val names = updatedParams.filter { it.name == "tool_name" }
+            val payloads = updatedParams.filter { it.name == "params" }
+            require(names.size == 1) { "Exactly one tool_name parameter is required" }
+            require(payloads.size == 1) { "Exactly one params parameter is required" }
+            val rawParams = payloads.single()
+            run {
+                fun injectPayload(paramsObject: JSONObject, targetName: String, depth: Int): JSONObject {
+                    require(depth <= 8) { "Subtask proxy nesting exceeds 8 levels" }
+                    authoritativeNames.forEach { paramsObject.remove(it) }
+                    toolSessionScopeId?.let { paramsObject.put(TOOL_SESSION_ID_PARAM, it) }
+                    if (enforceCallerIdentity) {
+                        callerChatId?.let { paramsObject.put(PACKAGE_CHAT_ID_PARAM, it) }
+                        callerCardId?.let { paramsObject.put(PACKAGE_CALLER_CARD_ID_PARAM, it) }
+                        if (targetName == PACKAGE_PROXY_TOOL_NAME || targetName == CliToolModeSupport.PROXY_TOOL_NAME) {
+                            val nestedTarget = paramsObject.getString("tool_name")
+                            val nestedParams = JSONObject(paramsObject.get("params").toString())
+                            paramsObject.put("params", injectPayload(nestedParams, nestedTarget, depth + 1))
+                        }
+                    }
+                    return paramsObject
+                }
+                val directTarget = names.single().value.trim()
+                val paramsObject = injectPayload(JSONObject(rawParams.value), directTarget, 1)
+                updatedParams.removeAll { it.name == "params" }
+                updatedParams.add(ToolParameter("params", paramsObject.toString()))
+            }
+        }
         addPackageContextParamIfMissing(updatedParams, PACKAGE_CALLER_NAME_PARAM, callerName)
         addPackageContextParamIfMissing(updatedParams, PACKAGE_CHAT_ID_PARAM, callerChatId)
         addPackageContextParamIfMissing(updatedParams, PACKAGE_CALLER_CARD_ID_PARAM, callerCardId)
-
-        if (updatedParams.size == invocation.tool.parameters.size) {
-            return invocation
-        }
+        addPackageContextParamIfMissing(updatedParams, TOOL_SESSION_ID_PARAM, toolSessionScopeId)
 
         return invocation.copy(
             tool = invocation.tool.copy(parameters = updatedParams)
         )
+    }
+
+    /** Input errors belong to this tool's result slot, not to the enclosing conversation. */
+    internal fun preparePackageCallContext(
+        invocation: ToolInvocation,
+        jsPackageNames: Set<String>,
+        callerName: String?,
+        runtimeContext: ToolRuntimeContext,
+    ): PackageContextInjection {
+        fun rejected(message: String) = PackageContextInjection.Rejected(ToolResult(
+            toolName = resolveDisplayToolName(invocation.tool),
+            success = false,
+            result = StringResultData(""),
+            error = message,
+        ))
+        return try {
+            PackageContextInjection.Ready(injectPackageCallContext(
+                invocation = invocation,
+                jsPackageNames = jsPackageNames,
+                callerName = callerName,
+                callerChatId = runtimeContext.callerChatId,
+                callerCardId = runtimeContext.callerCardId,
+                toolSessionScopeId = runtimeContext.toolSessionScopeId,
+                enforceCallerIdentity = runtimeContext.subtaskExecution != null,
+            ))
+        } catch (_: JSONException) {
+            rejected("params must be a valid JSON object")
+        } catch (error: IllegalArgumentException) {
+            rejected(requireNotNull(error.message))
+        }
+    }
+
+    internal fun isSubtaskDelegationTarget(tool: AITool, containerPackageName: String?): Boolean {
+        val resolved = resolveSubtaskTarget(tool)
+        val packageName = resolved.name.substringBefore(':')
+        val functionName = resolved.name.substringAfter(':', "")
+        return functionName == "subagent_run" &&
+            (packageName.equals("subagent", ignoreCase = true) ||
+                packageName.equals("com.operit.subagent_bundle", ignoreCase = true) ||
+                containerPackageName.equals("com.operit.subagent_bundle", ignoreCase = true))
+    }
+
+    /** A delegated run must inspect the real leaf, including proxy calls nested inside proxy params. */
+    internal fun resolveSubtaskTarget(tool: AITool): AITool {
+        var target = tool
+        repeat(9) { depth ->
+            if (target.name != PACKAGE_PROXY_TOOL_NAME && target.name != CliToolModeSupport.PROXY_TOOL_NAME) {
+                return target
+            }
+            require(depth < 8) { "Subtask proxy nesting exceeds 8 levels" }
+            val names = target.parameters.filter { it.name == "tool_name" }
+            val payloads = target.parameters.filter { it.name == "params" }
+            require(names.size == 1 && names.single().value.isNotBlank() && payloads.size == 1) {
+                "Subtask proxy requires exactly one non-empty tool_name and one params object"
+            }
+            val payload = JSONObject(payloads.single().value)
+            val parameters = mutableListOf<ToolParameter>()
+            val keys = payload.keys()
+            while (keys.hasNext()) {
+                val name = keys.next()
+                val value = payload.get(name)
+                parameters.add(ToolParameter(name, if (value === JSONObject.NULL) "null" else value.toString()))
+            }
+            target = AITool(names.single().value.trim(), parameters)
+        }
+        throw IllegalArgumentException("Subtask proxy nesting exceeds 8 levels")
+    }
+
+    internal fun withSubtaskEvidence(result: ToolResult, recordId: String): ToolResult = result.copy(
+        result = StringResultData("Subtask evidence ID: $recordId\n${result.result}"),
+    )
+
+    /** Collect one admitted model call, including cancellation before its final flow emission. */
+    internal suspend fun collectSubtaskToolResult(
+        state: SubtaskExecutionState,
+        tool: AITool,
+        displayToolName: String,
+        source: () -> Flow<ToolResult>,
+    ): ToolResult {
+        var lastRawResult: ToolResult? = null
+        var recorded = false
+        fun record(result: ToolResult): SubtaskExecutionState.RecordedResult {
+            // recordToolResult stores before invoking the observer. An observer failure must not
+            // create a second final record for a tool that already has evidence in the ledger.
+            recorded = true
+            return state.recordToolResult(tool, result, executed = true)
+        }
+        try {
+            val aggregated = aggregateToolResults(displayToolName, source().onEach { lastRawResult = it })
+            val raw = lastRawResult
+            val evidence = if (raw == null) {
+                state.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, aggregated.error)
+                record(aggregated)
+            } else {
+                record(raw)
+            }
+            return withSubtaskEvidence(aggregated, evidence.id)
+        } catch (error: Exception) {
+            val cancelled = error is CancellationException
+            state.stop(
+                if (cancelled) SubtaskExecutionState.Reason.CANCELLED else SubtaskExecutionState.Reason.EXECUTION_ERROR,
+                error.message,
+            )
+            if (!recorded) {
+                val previous = lastRawResult
+                val partial = if (previous == null) StringResultData("") else previous.result
+                record(ToolResult(
+                    toolName = displayToolName,
+                    success = false,
+                    result = partial,
+                    error = if (cancelled) "Tool execution cancelled" else error.message,
+                ))
+            }
+            throw error
+        }
     }
 
     private fun getParameterValue(tool: AITool, name: String): String? {
@@ -389,23 +556,27 @@ object ToolExecutionManager {
     fun executeToolSafely(
         invocation: ToolInvocation,
         executor: ToolExecutor,
-        toolHandler: AIToolHandler? = null
+        toolHandler: AIToolHandler? = null,
+        parametersValidated: Boolean = false,
     ): Flow<ToolResult> {
-        val validationResult = executor.validateParameters(invocation.tool)
-        if (!validationResult.valid) {
-            return flow {
-                emit(
-                    ToolResult(
-                        toolName = invocation.tool.name,
-                        success = false,
-                        result = StringResultData(""),
-                        error = "Invalid parameters: ${validationResult.errorMessage}"
+        if (!parametersValidated) {
+            val validationResult = executor.validateParameters(invocation.tool)
+            if (!validationResult.valid) {
+                return flow {
+                    emit(
+                        ToolResult(
+                            toolName = invocation.tool.name,
+                            success = false,
+                            result = StringResultData(""),
+                            error = "Invalid parameters: ${validationResult.errorMessage}"
+                        )
                     )
-                )
+                }
             }
         }
 
         return executor.invokeAndStream(invocation.tool).catch { e ->
+            if (e is CancellationException) throw e
             AppLogger.e(TAG, "Tool execution error: ${invocation.tool.name}", e)
             toolHandler?.notifyToolExecutionError(invocation.tool, e)
             emit(
@@ -511,10 +682,26 @@ object ToolExecutionManager {
         toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         callerName: String? = null,
         callerChatId: String? = null,
-        callerCardId: String? = null
+        callerCardId: String? = null,
+        subtaskExecution: SubtaskExecutionState? = null,
     ): ToolExecutionBatch = coroutineScope {
         val orderedResults = OrderedToolResults(invocations.size) { markup ->
             collector.emit(ensureOwnLine(markup))
+        }
+        val subtaskTargets = mutableMapOf<Int, AITool>()
+        suspend fun completeUnexecuted(
+            index: Int,
+            invocation: ToolInvocation,
+            result: ToolResult,
+            reason: SubtaskExecutionState.Reason,
+        ) {
+            var modelResult = result
+            subtaskExecution?.let { state ->
+                state.stop(reason, result.error)
+                val recorded = state.recordToolResult(checkNotNull(subtaskTargets[index]), result, executed = false)
+                modelResult = withSubtaskEvidence(result, recorded.id)
+            }
+            orderedResults.complete(index, modelResult)
         }
         // 默认工具注册现在可能在启动阶段被延后；这里确保在真正执行工具前已完成注册
         // registerDefaultTools() 是幂等且线程安全的，可安全重复调用
@@ -531,23 +718,67 @@ object ToolExecutionManager {
                     .resolve(callerCardId, packageManager)
             }.onFailure { error ->
                 AppLogger.e(TAG, "角色卡工具权限解析失败: callerCardId=$callerCardId", error)
+                if (subtaskExecution != null) throw error
             }.getOrNull()
         }
         val toolRuntimeContext =
             ToolRuntimeContext(
                 callerCardId = callerCardId,
-                toolExposureMode = toolExposureMode
+                toolExposureMode = toolExposureMode,
+                callerChatId = callerChatId,
+                toolSessionScopeId = subtaskExecution?.toolSessionScopeId ?: callerChatId,
+                subtaskExecution = subtaskExecution,
             )
 
         // 1. 顶层工具暴露模式拦截
         val toolExposurePermittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
         for ((index, invocation) in invocations.withIndex()) {
+            if (subtaskExecution != null) {
+                val target = try {
+                    resolveSubtaskTarget(invocation.tool)
+                } catch (error: Exception) {
+                    if (error is CancellationException) throw error
+                    subtaskTargets[index] = invocation.tool
+                    val invalid = ToolResult(
+                        toolName = invocation.tool.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "Invalid subtask proxy: ${error.message}",
+                    )
+                    completeUnexecuted(index, invocation, invalid, SubtaskExecutionState.Reason.EXECUTION_ERROR)
+                    continue
+                }
+                subtaskTargets[index] = target
+                val packageName = target.name.substringBefore(':')
+                val container = packageManager.resolveToolPkgSubpackageRuntimeInternal(packageName)
+                    ?.containerPackageName
+                if (isSubtaskDelegationTarget(invocation.tool, container)) {
+                    val result = ToolResult(
+                        toolName = target.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "A subtask cannot delegate another subagent task",
+                    )
+                    completeUnexecuted(index, invocation, result, SubtaskExecutionState.Reason.DELEGATION_DENIED)
+                    continue
+                }
+                if (subtaskExecution.isStopped()) {
+                    val result = ToolResult(
+                        toolName = target.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = subtaskExecution.stopMessage(),
+                    )
+                    completeUnexecuted(index, invocation, result, SubtaskExecutionState.Reason.EXECUTION_ERROR)
+                    continue
+                }
+            }
             val deniedResult = buildToolExposureDeniedResult(context, invocation, toolExposureMode)
             if (deniedResult == null) {
                 toolExposurePermittedInvocations.add(IndexedValue(index, invocation))
             } else {
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
-                orderedResults.complete(index, deniedResult)
+                completeUnexecuted(index, invocation, deniedResult, SubtaskExecutionState.Reason.PERMISSION_DENIED)
             }
         }
 
@@ -566,13 +797,23 @@ object ToolExecutionManager {
                 roleCardPermittedInvocations.add(IndexedValue(index, invocation))
             } else {
                 toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
-                orderedResults.complete(index, deniedResult)
+                completeUnexecuted(index, invocation, deniedResult, SubtaskExecutionState.Reason.PERMISSION_DENIED)
             }
         }
 
         // 3. Hook 拦截与权限检查
         val permittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
         for ((index, invocation) in roleCardPermittedInvocations) {
+            if (subtaskExecution?.isStopped() == true) {
+                val blocked = ToolResult(
+                    toolName = checkNotNull(subtaskTargets[index]).name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = subtaskExecution.stopMessage(),
+                )
+                completeUnexecuted(index, invocation, blocked, SubtaskExecutionState.Reason.EXECUTION_ERROR)
+                continue
+            }
             toolHandler.notifyToolCallRequested(invocation.tool)
             val interceptionTool = resolveToolTarget(invocation.tool).tool
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
@@ -582,7 +823,7 @@ object ToolExecutionManager {
                     if (hasPermission) {
                         permittedInvocations.add(IndexedValue(index, invocation))
                     } else {
-                        orderedResults.complete(index, checkNotNull(errorResult))
+                        completeUnexecuted(index, invocation, checkNotNull(errorResult), SubtaskExecutionState.Reason.PERMISSION_DENIED)
                     }
                 }
 
@@ -594,29 +835,23 @@ object ToolExecutionManager {
                         )
                     toolHandler.notifyToolExecutionResult(invocation.tool, interceptedResult)
                     toolHandler.notifyToolExecutionFinished(invocation.tool)
-                    orderedResults.complete(index, interceptedResult)
+                    completeUnexecuted(index, invocation, interceptedResult, SubtaskExecutionState.Reason.PERMISSION_DENIED)
                 }
             }
         }
 
-        val injectedInvocations =
-            if (callerName.isNullOrBlank() && callerChatId.isNullOrBlank() && callerCardId.isNullOrBlank()) {
-                permittedInvocations
-            } else {
-                val jsPackageNames = packageManager.getAvailablePackages().keys
-                permittedInvocations.map { (index, invocation) ->
-                    IndexedValue(
-                        index,
-                        injectPackageCallContext(
-                            invocation = invocation,
-                            jsPackageNames = jsPackageNames,
-                            callerName = callerName,
-                            callerChatId = callerChatId,
-                            callerCardId = callerCardId
-                        )
-                    )
+        val jsPackageNames = packageManager.getAvailablePackages().keys +
+            packageManager.toolPkgSubpackageByPackageNameInternal.values.map { it.subpackageId }
+        val injectedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
+        for ((index, invocation) in permittedInvocations) {
+            when (val prepared = preparePackageCallContext(invocation, jsPackageNames, callerName, toolRuntimeContext)) {
+                is PackageContextInjection.Ready -> injectedInvocations.add(IndexedValue(index, prepared.invocation))
+                is PackageContextInjection.Rejected -> {
+                    toolHandler.notifyToolExecutionResult(invocation.tool, prepared.result)
+                    completeUnexecuted(index, invocation, prepared.result, SubtaskExecutionState.Reason.EXECUTION_ERROR)
                 }
             }
+        }
 
         // 4. 按并行/串行对工具进行分组
         val parallelizableToolNames = setOf(
@@ -674,9 +909,26 @@ object ToolExecutionManager {
     ): ToolResult {
         val toolName = invocation.tool.name
         val displayToolName = resolveDisplayToolName(invocation.tool)
+        fun recordForModel(result: ToolResult, executed: Boolean, evidence: ToolResult = result): ToolResult {
+            val state = runtimeContext.subtaskExecution ?: return result
+            val record = state.recordToolResult(resolveSubtaskTarget(invocation.tool), evidence, executed)
+            return withSubtaskEvidence(result, record.id)
+        }
 
         return withContext(toolRuntimeContextThreadLocal.asContextElement(runtimeContext)) {
             try {
+                val subtask = runtimeContext.subtaskExecution
+                if (subtask != null && subtask.isStopped()) {
+                    val blocked = ToolResult(
+                        toolName = displayToolName,
+                        success = false,
+                        result = StringResultData(""),
+                        error = subtask.stopMessage(),
+                    )
+                    val annotated = recordForModel(blocked, executed = false)
+                    toolHandler.notifyToolExecutionResult(invocation.tool, annotated)
+                    return@withContext annotated
+                }
                 val executor = toolHandler.getToolExecutorOrActivate(toolName)
                 if (executor == null) {
                     // 如果仍然为 null，则构建错误消息
@@ -690,17 +942,54 @@ object ToolExecutionManager {
                             error = errorMessage
                         )
                     toolHandler.notifyToolExecutionResult(invocation.tool, notAvailableResult)
-                    return@withContext notAvailableResult
+                    subtask?.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, errorMessage)
+                    return@withContext recordForModel(notAvailableResult, executed = false)
+                }
+
+                if (subtask != null) {
+                    val validation = executor.validateParameters(invocation.tool)
+                    if (!validation.valid) {
+                        val invalid = ToolResult(
+                            toolName = displayToolName,
+                            success = false,
+                            result = StringResultData(""),
+                            error = "Invalid parameters: ${validation.errorMessage}",
+                        )
+                        subtask.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, invalid.error)
+                        return@withContext recordForModel(invalid, executed = false)
+                    }
+                    if (!subtask.tryStartTool()) {
+                        val blocked = ToolResult(
+                            toolName = displayToolName,
+                            success = false,
+                            result = StringResultData(""),
+                            error = subtask.stopMessage(),
+                        )
+                        return@withContext recordForModel(blocked, executed = false)
+                    }
                 }
 
                 toolHandler.notifyToolExecutionStarted(invocation.tool)
 
-                val finalResult = aggregateToolResults(
-                    displayToolName,
-                    executeToolSafely(invocation, executor, toolHandler)
-                )
-                toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
-                return@withContext finalResult
+                val annotated = if (subtask == null) {
+                    aggregateToolResults(displayToolName, executeToolSafely(invocation, executor, toolHandler))
+                } else {
+                    collectSubtaskToolResult(subtask, resolveSubtaskTarget(invocation.tool), displayToolName) {
+                        executeToolSafely(invocation, executor, toolHandler, parametersValidated = true)
+                    }
+                }
+                toolHandler.notifyToolExecutionResult(invocation.tool, annotated)
+                return@withContext annotated
+            } catch (error: Exception) {
+                val state = runtimeContext.subtaskExecution
+                if (state != null) {
+                    val cancelled = error is CancellationException
+                    state.stop(
+                        if (cancelled) SubtaskExecutionState.Reason.CANCELLED else SubtaskExecutionState.Reason.EXECUTION_ERROR,
+                        error.message,
+                    )
+                }
+                throw error
             } finally {
                 toolHandler.notifyToolExecutionFinished(invocation.tool)
             }
@@ -724,7 +1013,15 @@ object ToolExecutionManager {
         }
         val lastResult = collectedResults.last()
         val combinedResultString = collectedResults.joinToString("\n") { res ->
-            (if (res.success) res.result.toString() else "Step error: ${res.error ?: "Unknown error"}").trim()
+            if (res.success) {
+                res.result.toString().trim()
+            } else {
+                // Failure data may contain timeout fields or a subagent's structured final result.
+                // Keeping only the error string discards the evidence the caller needs to inspect.
+                val detail = res.result.toString().trim()
+                val error = "Step error: ${res.error ?: "Unknown error"}"
+                if (detail.isEmpty()) error else "$error\n$detail"
+            }
         }.trim()
         return ToolResult(
             toolName = displayToolName,

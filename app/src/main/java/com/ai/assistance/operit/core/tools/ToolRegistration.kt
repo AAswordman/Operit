@@ -79,7 +79,8 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     val packageContextParamNames = setOf(
         "__operit_package_caller_name",
         "__operit_package_chat_id",
-        "__operit_package_caller_card_id"
+        "__operit_package_caller_card_id",
+        "__operit_tool_session_id",
     )
 
     class ParsedProxyInvocation(

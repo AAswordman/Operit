@@ -266,7 +266,8 @@ data class TerminalCommandResultData(
         val output: String,
         val exitCode: Int,
         val sessionId: String,
-        val timedOut: Boolean = false
+        val timedOut: Boolean = false,
+        val sessionAlive: Boolean
 ) : ToolResultData() {
     override fun toString(): String {
         val sb = StringBuilder()
@@ -274,6 +275,7 @@ data class TerminalCommandResultData(
         sb.appendLine("Command: $command")
         sb.appendLine("Session: $sessionId")
         sb.appendLine("Exit Code: $exitCode")
+        sb.appendLine("Session Alive: $sessionAlive")
         if (timedOut) {
             sb.appendLine("Timed Out: true")
         }

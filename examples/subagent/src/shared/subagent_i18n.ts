@@ -6,6 +6,9 @@ export type SubagentI18n = {
   stageSummarizing: string;
   toolTriggeredGeneric: string;
   toolCalledPrefix: (toolName: string) => string;
+  toolSucceededPrefix: (toolName: string) => string;
+  toolFailedPrefix: (toolName: string) => string;
+  errorEvidenceWrite: string;
   errorNoAppContext: string;
   errorNoSummary: string;
   errorExecutionFailedPrefix: (error: string) => string;
@@ -18,8 +21,10 @@ export type SubagentI18n = {
   titleStarted: string;
   titleCompleted: string;
   titleFailed: string;
+  titleBlocked: string;
   badgeSuccess: string;
   badgeFailure: string;
+  badgeBlocked: string;
   detailTargetCount: (count: number) => string;
   badgeTargetCount: (count: number) => string;
   detailRun: (runId: string) => string;
@@ -35,6 +40,9 @@ const ZH_CN: SubagentI18n = {
   stageSummarizing: "正在汇总结果",
   toolTriggeredGeneric: "已触发内部工具",
   toolCalledPrefix: toolName => `已调用 ${toolName}`,
+  toolSucceededPrefix: toolName => `${toolName} 执行成功`,
+  toolFailedPrefix: toolName => `${toolName} 未成功，已保留证据`,
+  errorEvidenceWrite: "无法保存本次运行的完整证据",
   errorNoAppContext: "无法获取应用上下文",
   errorNoSummary: "子代理未返回总结文本",
   errorExecutionFailedPrefix: error => `执行失败：${error}`,
@@ -47,8 +55,10 @@ const ZH_CN: SubagentI18n = {
   titleStarted: "Subagent 已启动",
   titleCompleted: "Subagent 已完成",
   titleFailed: "Subagent 失败",
+  titleBlocked: "Subagent 受阻",
   badgeSuccess: "成功",
   badgeFailure: "失败",
+  badgeBlocked: "受阻",
   detailTargetCount: count => `目标文件 ${count} 个`,
   badgeTargetCount: count => `目标 ${count}`,
   detailRun: runId => `运行 ${runId}`,
@@ -64,6 +74,9 @@ const EN_US: SubagentI18n = {
   stageSummarizing: "Summarizing the result",
   toolTriggeredGeneric: "Internal tool invoked",
   toolCalledPrefix: toolName => `Called ${toolName}`,
+  toolSucceededPrefix: toolName => `${toolName} succeeded`,
+  toolFailedPrefix: toolName => `${toolName} did not succeed; evidence recorded`,
+  errorEvidenceWrite: "Could not store the complete evidence for this run",
   errorNoAppContext: "Failed to obtain the application context",
   errorNoSummary: "The subagent did not return a summary",
   errorExecutionFailedPrefix: error => `Execution failed: ${error}`,
@@ -76,8 +89,10 @@ const EN_US: SubagentI18n = {
   titleStarted: "Subagent started",
   titleCompleted: "Subagent completed",
   titleFailed: "Subagent failed",
+  titleBlocked: "Subagent blocked",
   badgeSuccess: "Success",
   badgeFailure: "Failed",
+  badgeBlocked: "Blocked",
   detailTargetCount: count => `${count} target files`,
   badgeTargetCount: count => `Targets ${count}`,
   detailRun: runId => `Run ${runId}`,
