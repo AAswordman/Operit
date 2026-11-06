@@ -373,12 +373,6 @@ const HistoryChat = (function () {
                 throw new Error(`Character card not found: ${characterCardNameInput}`);
             }
         }
-        try {
-            await Tools.Chat.startService();
-        }
-        catch {
-            // ignore service start errors to avoid blocking agent message
-        }
         let chatId = (params?.chat_id ?? '').toString().trim();
         if (!chatId) {
             const lang = (getLang() || '').toLowerCase();
