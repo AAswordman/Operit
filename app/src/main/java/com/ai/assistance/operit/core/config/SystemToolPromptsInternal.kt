@@ -1118,9 +1118,9 @@ object SystemToolPromptsInternal {
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
-                                        name = "group",
+                                        name = "folder_id",
                                         type = "string",
-                                        description = "optional group name for the new chat",
+                                        description = "optional stable folder ID for the new chat",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -4116,9 +4116,9 @@ object SystemToolPromptsInternal {
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
-                                        name = "group",
+                                        name = "folder_id",
                                         type = "string",
-                                        description = "新对话分组名（可选）",
+                                        description = "新对话的稳定文件夹 ID（可选）",
                                         required = false
                                     ),
                                     ToolParameterSchema(

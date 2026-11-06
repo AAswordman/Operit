@@ -1,6 +1,7 @@
 import type {
   WebActivePromptTarget,
   WebBootstrapResponse,
+  WebChatFolderSummary,
   WebChatReorderItem,
   WebChatMessageLocatorPreview,
   WebChatMessagesPage,
@@ -105,6 +106,10 @@ export async function getCharacterSelector(token: string): Promise<WebCharacterS
   return requestJson<WebCharacterSelectorResponse>('/api/web/character-selector', token);
 }
 
+export async function listChatFolders(token: string): Promise<WebChatFolderSummary[]> {
+  return requestJson<WebChatFolderSummary[]>('/api/web/chat-folders', token);
+}
+
 export async function setActivePrompt(
   token: string,
   target: WebActivePromptTarget
@@ -170,6 +175,8 @@ export async function updateChat(
   payload: {
     title?: string;
     group?: string | null;
+    folder_id?: string | null;
+    update_folder?: boolean;
     update_group?: boolean;
     locked?: boolean;
     update_locked?: boolean;
@@ -270,9 +277,15 @@ export async function toggleMessageFavorite(
 
 export async function reorderChats(
   token: string,
+  expectedItems: WebChatReorderItem[],
   items: WebChatReorderItem[]
 ): Promise<void> {
-  await requestJson('/api/web/chats/reorder', token, { method: 'POST' }, { items });
+  await requestJson(
+    '/api/web/chats/reorder',
+    token,
+    { method: 'POST' },
+    { expected_items: expectedItems, items }
+  );
 }
 
 export async function renameGroup(
@@ -281,6 +294,8 @@ export async function renameGroup(
     old_name: string;
     new_name: string;
     character_card_name?: string | null;
+    character_group_id?: string | null;
+    folder_id?: string | null;
   }
 ): Promise<void> {
   await requestJson('/api/web/chat-groups/rename', token, { method: 'POST' }, payload);
@@ -292,6 +307,8 @@ export async function deleteGroup(
     group_name: string;
     delete_chats: boolean;
     character_card_name?: string | null;
+    character_group_id?: string | null;
+    folder_id?: string | null;
   }
 ): Promise<void> {
   await requestJson('/api/web/chat-groups/delete', token, { method: 'POST' }, payload);

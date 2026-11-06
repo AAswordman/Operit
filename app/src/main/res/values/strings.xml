@@ -8564,4 +8564,26 @@
     <string name="thinking_config_placeholder_high_zh">例如：高</string>
     <string name="thinking_config_write_path">写入路径</string>
     <string name="thinking_config_placeholder_high">例如：high</string>
+    <string name="create_subfolder">新建子文件夹</string>
+    <string name="move_to_folder">移动到文件夹…</string>
+    <string name="move_to_folder_title">移动到文件夹</string>
+    <string name="folder_root">根目录</string>
+    <string name="folder_contents_move_to_parent">直属对话和子文件夹将移至父文件夹“%1$s”</string>
+    <string name="folder_contents_move_to_root">直属对话将移至“未分组”，子文件夹将提升到根层级</string>
+    <string name="target_chat_folder_optional">目标对话文件夹（可选）</string>
+    <string name="select_folder_or_ungrouped">选择文件夹或未分组</string>
+    <string name="apply_chat_folder">应用对话文件夹</string>
+    <string name="assigned_chats_to_folder">已将 %1$d 条对话移动到「%2$s」</string>
+    <string name="backup_import_result_folders_created">\n- 新建文件夹：%1$d个</string>
+    <string name="backup_import_result_empty_folders_warning">\n注意：导入更新了会话的文件夹归属，之前的文件夹树中可能留下空文件夹。</string>
+    <string name="chat_history_time_today">今天</string>
+    <string name="chat_history_time_yesterday">昨天</string>
+    <string name="chat_history_time_monday">星期一</string>
+    <string name="chat_history_time_tuesday">星期二</string>
+    <string name="chat_history_time_wednesday">星期三</string>
+    <string name="chat_history_time_thursday">星期四</string>
+    <string name="chat_history_time_friday">星期五</string>
+    <string name="chat_history_time_saturday">星期六</string>
+    <string name="chat_history_time_sunday">星期日</string>
+    <string name="chat_history_time_seven_days_ago">7天前</string>
 </resources>

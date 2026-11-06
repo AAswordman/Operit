@@ -30,9 +30,13 @@ import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.api.speech.SpeechServiceFactory
 import com.ai.assistance.operit.api.voice.VoiceServiceFactory
 import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.InputProcessingState
+import com.ai.assistance.operit.data.preferences.ActivePromptManager
+import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.model.SerializableColorScheme
 import com.ai.assistance.operit.data.model.SerializableTypography
 import com.ai.assistance.operit.data.model.toComposeColorScheme
@@ -461,7 +465,26 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                         val group = wakePrefs.autoNewChatGroupFlow.first().trim().ifBlank {
                             WakeWordPreferences.DEFAULT_AUTO_NEW_CHAT_GROUP
                         }
-                        chatCore.createNewChat(group = group, inheritGroupFromCurrent = false)
+                        val activePrompt =
+                            ActivePromptManager.getInstance(applicationContext).getActivePrompt()
+                        val activeCard =
+                            when (activePrompt) {
+                                is ActivePrompt.CharacterCard ->
+                                    CharacterCardManager.getInstance(applicationContext)
+                                        .getCharacterCard(activePrompt.id)
+                                is ActivePrompt.CharacterGroup -> null
+                            }
+                        val folderId =
+                            ChatHistoryManager.getInstance(applicationContext)
+                                .resolveOrCreateLegacyFolderId(
+                                    group, activeCard?.name,
+                                    (activePrompt as? ActivePrompt.CharacterGroup)?.id,
+                                )
+                        chatCore.createNewChat(
+                            folderId = folderId,
+                            inheritGroupFromCurrent = false,
+                            characterCardId = activeCard?.id,
+                        )
                     }
                 }
             }
