@@ -3042,6 +3042,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="chat_create_dedicated_terminal_session_failed">Tidak dapat membuat sesi terminal khusus</string>
     <string name="chat_create_workspace_terminal_session_failed">Tidak dapat membuat sesi terminal ruang kerja</string>
     <string name="chat_execute_command_failed">Eksekusi perintah gagal: %1$s</string>
+    <string name="chat_execute_command_cancel_failed">Tidak dapat membatalkan perintah: sesi terminal tujuan sudah ditutup atau belum siap</string>
     <string name="workspace_command_already_running">Sudah ada perintah ruang kerja yang sedang berjalan</string>
     <string name="workspace_command_running">Perintah sedang berjalan</string>
     <string name="workspace_command_cancelling">Membatalkan perintah...</string>

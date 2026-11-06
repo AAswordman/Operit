@@ -8,9 +8,6 @@ import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.config.FunctionalPrompts
-import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
-import com.ai.assistance.operit.api.chat.llmprovider.AIService
-import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.model.FunctionType
@@ -106,7 +103,6 @@ class MessageCoordinationDelegate(
     private val characterGroupCardManager = CharacterGroupCardManager.getInstance(context)
     private val activePromptManager = ActivePromptManager.getInstance(context)
     private val displayPreferencesManager = DisplayPreferencesManager.getInstance(context)
-    private val plannerServiceManager = MultiServiceManager(context)
     private data class PendingAutoContinuationRequest(
         val chatId: String,
         val promptFunctionType: PromptFunctionType,
@@ -1039,47 +1035,47 @@ class MessageCoordinationDelegate(
         memberCardsById: Map<String, CharacterCard>
     ): PlannedRounds? {
         val service = getEnhancedAiService() ?: return null
-        val plannerService = runCatching {
-            service.getAIServiceForFunction(FunctionType.ROLE_RESPONSE_PLANNER)
+        val lease = runCatching {
+            service.acquireAIServiceForFunction(FunctionType.ROLE_RESPONSE_PLANNER)
         }.getOrNull() ?: return null
+        return lease.use {
+            val plannerService = lease.service
+            val modelParameters = lease.modelParameters
 
-        val modelParameters = runCatching {
-            plannerServiceManager.getModelParametersForFunction(FunctionType.ROLE_RESPONSE_PLANNER)
-        }.getOrElse { emptyList<ModelParameter<*>>() }
+            val memberLines = members.mapNotNull { member ->
+                val card = memberCardsById[member.characterCardId] ?: return@mapNotNull null
+                "- id: ${member.characterCardId}, name: ${card.name}"
+            }.joinToString("\n")
 
-        val memberLines = members.mapNotNull { member ->
-            val card = memberCardsById[member.characterCardId] ?: return@mapNotNull null
-            "- id: ${member.characterCardId}, name: ${card.name}"
-        }.joinToString("\n")
-
-        val prompt = FunctionalPrompts.buildGroupRoleResponsePlannerPrompt(
-            memberLines = memberLines,
-            userText = userText,
-            useEnglish = false
-        )
-
-        val contentBuilder = StringBuilder()
-        runCatching {
-            val stream = plannerService.sendMessage(
-                context = context,
-                chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                modelParameters = modelParameters,
-                enableThinking = false,
-                stream = false,
-                preserveThinkInHistory = false,
+            val prompt = FunctionalPrompts.buildGroupRoleResponsePlannerPrompt(
+                memberLines = memberLines,
+                userText = userText,
+                useEnglish = false
             )
-            stream.collect { chunk -> contentBuilder.append(chunk) }
-        }.onFailure {
-            AppLogger.e(TAG, "回答规划模型调用失败: ${it.message}", it)
-            return null
-        }
 
-        val rawContent = ChatUtils.removeThinkingContent(contentBuilder.toString()).trim()
-        return parsePlannedRounds(
-            rawContent = rawContent,
-            memberIds = members.map { it.characterCardId }.toSet(),
-            memberNameToId = memberCardsById.values.associate { it.name.trim() to it.id }
-        )
+            val contentBuilder = StringBuilder()
+            runCatching {
+                val stream = plannerService.sendMessage(
+                    context = context,
+                    chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                    modelParameters = modelParameters,
+                    enableThinking = false,
+                    stream = false,
+                    preserveThinkInHistory = false,
+                )
+                stream.collect { chunk -> contentBuilder.append(chunk) }
+            }.onFailure {
+                AppLogger.e(TAG, "回答规划模型调用失败: ${it.message}", it)
+                return null
+            }
+
+            val rawContent = ChatUtils.removeThinkingContent(contentBuilder.toString()).trim()
+            parsePlannedRounds(
+                rawContent = rawContent,
+                memberIds = members.map { it.characterCardId }.toSet(),
+                memberNameToId = memberCardsById.values.associate { it.name.trim() to it.id }
+            )
+        }
     }
 
     private fun parsePlannedRounds(

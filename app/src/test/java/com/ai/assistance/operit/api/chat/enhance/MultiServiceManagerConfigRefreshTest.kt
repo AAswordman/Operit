@@ -22,12 +22,17 @@ import com.ai.assistance.operit.util.stream.streamOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito
@@ -50,6 +55,8 @@ class MultiServiceManagerConfigRefreshTest {
 
     /** 只记录构造时配置的假 AIService，用于断言服务实例是否重建。 */
     private class FakeAIService(val config: ModelConfigData) : AIService {
+        var releases = 0
+        override fun release() { releases++ }
         override val inputTokenCount: Long = 0L
         override val cachedInputTokenCount: Long = 0L
         override val outputTokenCount: Long = 0L
@@ -109,12 +116,13 @@ class MultiServiceManagerConfigRefreshTest {
     private fun writeFunctionalMapping(
         dataStore: TestPreferencesDataStore,
         configId: String,
-        modelIndex: Int = 0
+        modelIndex: Int = 0,
+        functionType: FunctionType = FunctionType.IMAGE_RECOGNITION
     ) = runBlocking {
         dataStore.updateData { current ->
             current.toMutablePreferences().apply {
                 val mapping = mapOf(
-                    FunctionType.IMAGE_RECOGNITION.name to
+                    functionType.name to
                         com.ai.assistance.operit.data.preferences.FunctionConfigMapping(configId, modelIndex)
                 )
                 set(
@@ -127,7 +135,8 @@ class MultiServiceManagerConfigRefreshTest {
 
     private fun buildManager(
         modelStore: TestPreferencesDataStore,
-        functionalStore: TestPreferencesDataStore
+        functionalStore: TestPreferencesDataStore,
+        factory: (ModelConfigData) -> AIService = { FakeAIService(it) }
     ): MultiServiceManager {
         val context = Mockito.mock(Context::class.java)
         val modelConfigManager = ModelConfigManager(context, modelStore)
@@ -136,7 +145,7 @@ class MultiServiceManagerConfigRefreshTest {
             context = context,
             functionalConfigManager = functionalConfigManager,
             modelConfigManager = modelConfigManager,
-            serviceFactory = { config, _, _ -> FakeAIService(config) }
+            serviceFactory = { config, _, _ -> factory(config) }
         )
     }
 
@@ -292,5 +301,80 @@ class MultiServiceManagerConfigRefreshTest {
 
         // 归还 lease
         lease.close()
+    }
+
+    @Test
+    fun `functional requests survive automatic invalidation and full refresh until lease closes`() = runBlocking {
+        for (function in listOf(FunctionType.SUMMARY, FunctionType.TITLE_GENERATION,
+            FunctionType.TRANSLATION, FunctionType.MEMORY, FunctionType.GREP,
+            FunctionType.UI_CONTROLLER, FunctionType.ROLE_RESPONSE_PLANNER)) {
+            val models = TestPreferencesDataStore(MutableStateFlow(mutablePreferencesOf()))
+            val functions = TestPreferencesDataStore(MutableStateFlow(mutablePreferencesOf()))
+            val config = ModelConfigData(id = "cfg", name = "cfg", modelName = "first")
+            writeModelConfig(models, config)
+            writeFunctionalMapping(functions, "cfg", functionType = function)
+            val manager = buildManager(models, functions)
+            val lease = manager.acquireServiceForFunction(function)
+            val first = lease.service as FakeAIService
+            writeModelConfig(models, config.copy(modelName = "second"))
+            assertNotSame(first, manager.getServiceForFunction(function))
+            manager.refreshAllServices()
+            assertEquals(0, first.releases)
+            lease.close()
+            lease.close()
+            assertEquals(1, first.releases)
+        }
+    }
+
+    @Test
+    fun `failed replacement cannot resurrect a released functional or custom service`() = runBlocking {
+        for (custom in listOf(false, true)) {
+            val models = TestPreferencesDataStore(MutableStateFlow(mutablePreferencesOf()))
+            val functions = TestPreferencesDataStore(MutableStateFlow(mutablePreferencesOf()))
+            val config = ModelConfigData(id = "cfg", name = "cfg", modelName = "valid")
+            writeModelConfig(models, config)
+            writeFunctionalMapping(functions, "cfg")
+            val manager = buildManager(models, functions) {
+                require(it.modelName != "unavailable") { "Provider unavailable" }
+                FakeAIService(it)
+            }
+            suspend fun lookup(): FakeAIService = (if (custom) manager.getServiceForConfig("cfg", 0)
+                else manager.getServiceForFunction(FunctionType.IMAGE_RECOGNITION)) as FakeAIService
+            val first = lookup()
+            writeModelConfig(models, config.copy(modelName = "unavailable"))
+            try {
+                lookup()
+                fail("Invalid config must fail to create its service")
+            } catch (_: IllegalArgumentException) {
+                // Expected from the configured factory.
+            }
+            assertEquals(1, first.releases)
+            writeModelConfig(models, config)
+            val restored = lookup()
+            assertNotSame(first, restored)
+            manager.refreshAllServices()
+            assertEquals(1, restored.releases)
+        }
+    }
+
+    @Test
+    fun `cancelled request returns its retired lease`() = runBlocking {
+        val models = TestPreferencesDataStore(MutableStateFlow(mutablePreferencesOf()))
+        val functions = TestPreferencesDataStore(MutableStateFlow(mutablePreferencesOf()))
+        writeModelConfig(models, ModelConfigData(id = "cfg", name = "cfg", modelName = "model"))
+        writeFunctionalMapping(functions, "cfg")
+        val manager = buildManager(models, functions)
+        val acquired = CompletableDeferred<FakeAIService>()
+        val job = launch {
+            manager.acquireServiceForFunction(FunctionType.IMAGE_RECOGNITION).use {
+                acquired.complete(it.service as FakeAIService)
+                awaitCancellation()
+            }
+        }
+        val service = acquired.await()
+        manager.refreshAllServices()
+        assertEquals(0, service.releases)
+        job.cancelAndJoin()
+        assertEquals(1, service.releases)
     }
 }

@@ -84,84 +84,85 @@ class MemoryAutoSaveScheduler(
         if (profileIds.isEmpty()) return
 
         val toolHandler = AIToolHandler.getInstance(context)
-        val memoryService =
-            EnhancedAIService.getAIServiceForFunction(context, FunctionType.MEMORY)
-        val chatContentDao = AppDatabase.getDatabase(context).chatContentDao()
-        val nowMs = System.currentTimeMillis()
+        EnhancedAIService.acquireAIServiceForFunction(context, FunctionType.MEMORY).use { lease ->
+            val memoryService = lease.service
+            val chatContentDao = AppDatabase.getDatabase(context).chatContentDao()
+            val nowMs = System.currentTimeMillis()
 
-        for (profileId in profileIds) {
-            val intervalMs = intervalMsForProfile(profileId)
-            val nextRunAtMs = getOrInitNextRunAtMs(profileId, nowMs)
-            if (nowMs < nextRunAtMs) {
-                continue
-            }
+            for (profileId in profileIds) {
+                val intervalMs = intervalMsForProfile(profileId)
+                val nextRunAtMs = getOrInitNextRunAtMs(profileId, nowMs)
+                if (nowMs < nextRunAtMs) {
+                    continue
+                }
 
-            val repository = MemoryAutoSaveCandidateRepository(context, profileId)
-            val allCandidates = repository.getPendingAndFailedCandidates()
-            if (allCandidates.size < MIN_TOTAL_CANDIDATES_TO_EXTRACT) {
-                val nextRunAt = System.currentTimeMillis() + intervalMs
+                val repository = MemoryAutoSaveCandidateRepository(context, profileId)
+                val allCandidates = repository.getPendingAndFailedCandidates()
+                if (allCandidates.size < MIN_TOTAL_CANDIDATES_TO_EXTRACT) {
+                    val nextRunAt = System.currentTimeMillis() + intervalMs
+                    AppLogger.d(
+                        TAG,
+                        "候选总条数不足，继续累计并重置下次执行时间: profileId=$profileId, totalCandidates=${allCandidates.size}, nextRunAt=$nextRunAt"
+                    )
+                    scheduleNextRun(profileId, nextRunAt)
+                    continue
+                }
+                val groupedCandidates =
+                    allCandidates
+                        .groupBy { it.chatId }
+                        .filterKeys { it.isNotBlank() }
+
+                if (groupedCandidates.isEmpty()) {
+                    scheduleNextRun(profileId, System.currentTimeMillis() + intervalMs)
+                    continue
+                }
+
                 AppLogger.d(
                     TAG,
-                    "候选总条数不足，继续累计并重置下次执行时间: profileId=$profileId, totalCandidates=${allCandidates.size}, nextRunAt=$nextRunAt"
+                    "开始处理长期记忆候选: profileId=$profileId, chats=${groupedCandidates.size}"
                 )
-                scheduleNextRun(profileId, nextRunAt)
-                continue
-            }
-            val groupedCandidates =
-                allCandidates
-                    .groupBy { it.chatId }
-                    .filterKeys { it.isNotBlank() }
 
-            if (groupedCandidates.isEmpty()) {
+                for ((chatId, candidates) in groupedCandidates) {
+                    val orderedCandidates =
+                        candidates.sortedWith(
+                            compareBy<MemoryAutoSaveCandidate> { it.triggerMessageTimestamp }
+                                .thenBy { it.createdAt.time }
+                        )
+                    val batchCandidates = orderedCandidates.take(MAX_CANDIDATES_PER_RUN_PER_CHAT)
+                    val selectedUserCandidates =
+                        batchCandidates.filter {
+                            MemoryAutoSaveCandidate.isSelectedUserMessageSource(it.sourceType)
+                        }
+                    val automaticCandidates =
+                        batchCandidates.filterNot {
+                            MemoryAutoSaveCandidate.isSelectedUserMessageSource(it.sourceType)
+                        }
+
+                    if (selectedUserCandidates.isNotEmpty()) {
+                        processChatCandidateGroup(
+                            profileId = profileId,
+                            chatId = chatId,
+                            candidates = selectedUserCandidates,
+                            repository = repository,
+                            chatContentDao = chatContentDao,
+                            toolHandler = toolHandler,
+                            memoryService = memoryService
+                        )
+                    }
+                    if (automaticCandidates.isNotEmpty()) {
+                        processChatCandidateGroup(
+                            profileId = profileId,
+                            chatId = chatId,
+                            candidates = automaticCandidates,
+                            repository = repository,
+                            chatContentDao = chatContentDao,
+                            toolHandler = toolHandler,
+                            memoryService = memoryService
+                        )
+                    }
+                }
                 scheduleNextRun(profileId, System.currentTimeMillis() + intervalMs)
-                continue
             }
-
-            AppLogger.d(
-                TAG,
-                "开始处理长期记忆候选: profileId=$profileId, chats=${groupedCandidates.size}"
-            )
-
-            for ((chatId, candidates) in groupedCandidates) {
-                val orderedCandidates =
-                    candidates.sortedWith(
-                        compareBy<MemoryAutoSaveCandidate> { it.triggerMessageTimestamp }
-                            .thenBy { it.createdAt.time }
-                    )
-                val batchCandidates = orderedCandidates.take(MAX_CANDIDATES_PER_RUN_PER_CHAT)
-                val selectedUserCandidates =
-                    batchCandidates.filter {
-                        MemoryAutoSaveCandidate.isSelectedUserMessageSource(it.sourceType)
-                    }
-                val automaticCandidates =
-                    batchCandidates.filterNot {
-                        MemoryAutoSaveCandidate.isSelectedUserMessageSource(it.sourceType)
-                    }
-
-                if (selectedUserCandidates.isNotEmpty()) {
-                    processChatCandidateGroup(
-                        profileId = profileId,
-                        chatId = chatId,
-                        candidates = selectedUserCandidates,
-                        repository = repository,
-                        chatContentDao = chatContentDao,
-                        toolHandler = toolHandler,
-                        memoryService = memoryService
-                    )
-                }
-                if (automaticCandidates.isNotEmpty()) {
-                    processChatCandidateGroup(
-                        profileId = profileId,
-                        chatId = chatId,
-                        candidates = automaticCandidates,
-                        repository = repository,
-                        chatContentDao = chatContentDao,
-                        toolHandler = toolHandler,
-                        memoryService = memoryService
-                    )
-                }
-            }
-            scheduleNextRun(profileId, System.currentTimeMillis() + intervalMs)
         }
     }
 

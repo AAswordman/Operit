@@ -6,6 +6,7 @@ import com.ai.assistance.operit.util.AppLogger
 import androidx.annotation.RequiresApi
 import com.ai.assistance.operit.terminal.CommandExecutionEvent
 import com.ai.assistance.operit.terminal.SessionDirectoryEvent
+import com.ai.assistance.operit.terminal.SessionInputResult
 import com.ai.assistance.operit.terminal.TerminalManager
 import com.ai.assistance.operit.terminal.data.TerminalState
 import com.ai.assistance.operit.terminal.provider.type.HiddenExecResult
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -180,19 +182,25 @@ class Terminal private constructor(private val context: Context) {
     }
     
     /**
-     * 发送输入到当前会话
+     * 发送输入到指定会话，不改变前台当前会话
+     *
+     * 写入 pty 是阻塞 IO，调用方多在主线程，因此切到 IO 上下文执行。
      */
-    fun sendInput(sessionId: String, input: String) {
-        terminalManager.switchToSession(sessionId)
-        terminalManager.sendInput(input)
+    suspend fun sendInput(sessionId: String, input: String): SessionInputResult {
+        return withContext(Dispatchers.IO) {
+            terminalManager.sendInputToSession(sessionId, input)
+        }
     }
 
     /**
-     * 发送中断信号 (Ctrl+C)
+     * 发送中断信号 (Ctrl+C) 到指定会话，不改变前台当前会话
+     * TerminalCore 直接向目标 PTY 投递控制字节，绕开可能被大段输入占用的文本 writer；
+     * 底层写入在 3 秒内结束或返回 WRITE_TIMED_OUT，调用方才能继续执行取消后的收尾。
      */
-    fun sendInterruptSignal(sessionId: String) {
-        terminalManager.switchToSession(sessionId)
-        terminalManager.sendInterruptSignal()
+    suspend fun sendInterruptSignal(sessionId: String): SessionInputResult {
+        return withContext(Dispatchers.IO) {
+            terminalManager.sendInterruptSignalToSession(sessionId)
+        }
     }
 
     /**

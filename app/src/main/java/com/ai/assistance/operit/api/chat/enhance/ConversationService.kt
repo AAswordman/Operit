@@ -118,6 +118,7 @@ class ConversationService(
             summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
     ): String {
+        var serviceLease: MultiServiceManager.ServiceLease? = null
         try {
             val useEnglish = !LocaleUtils.usesChineseContent(context)
             val activePromptMetadata = buildActivePromptHookMetadata(context)
@@ -133,11 +134,13 @@ class ConversationService(
                 )
 
             // Get all model parameters from preferences (with enabled state)
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.SUMMARY)
+            val lease = multiServiceManager.acquireServiceForFunction(FunctionType.SUMMARY)
+            serviceLease = lease
+            val modelParameters = lease.modelParameters
             val serializedModelParameters = serializeSummaryHookModelParameters(modelParameters)
 
             // 获取SUMMARY功能类型的AIService实例
-            val summaryService = multiServiceManager.getServiceForFunction(FunctionType.SUMMARY)
+            val summaryService = lease.service
             var summaryHistory = sanitizedMessages
             var summaryPrompt = FunctionalPrompts.summaryUserMessage(useEnglish)
             val baseSummaryMetadata =
@@ -331,6 +334,8 @@ class ConversationService(
             AppLogger.e(TAG, "生成总结时出错", e)
             // return "对话摘要：生成摘要时出错，但对话仍在继续。"
             throw e
+        } finally {
+            serviceLease?.close()
         }
     }
 
@@ -342,6 +347,7 @@ class ConversationService(
         multiServiceManager: MultiServiceManager,
         recordTokenUsage: Boolean = true,
     ): String {
+        var serviceLease: MultiServiceManager.ServiceLease? = null
         return try {
             val useEnglish = !LocaleUtils.usesChineseContent(context)
             val systemPrompt = FunctionalPrompts.conversationTitleSystemPrompt(useEnglish)
@@ -354,8 +360,10 @@ class ConversationService(
                 PromptTurn(kind = PromptTurnKind.SYSTEM, content = systemPrompt),
                 PromptTurn(kind = PromptTurnKind.USER, content = userPrompt)
             )
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.TITLE_GENERATION)
-            val titleService = multiServiceManager.getServiceForFunction(FunctionType.TITLE_GENERATION)
+            val lease = multiServiceManager.acquireServiceForFunction(FunctionType.TITLE_GENERATION)
+            serviceLease = lease
+            val modelParameters = lease.modelParameters
+            val titleService = lease.service
             val contentBuilder = StringBuilder()
             titleService.sendMessage(
                 context = context,
@@ -379,6 +387,8 @@ class ConversationService(
         } catch (e: Exception) {
             AppLogger.e(TAG, "生成对话标题时出错", e)
             ""
+        } finally {
+            serviceLease?.close()
         }
     }
 
@@ -1111,12 +1121,10 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         
         val contentBuilder = StringBuilder()
         
+        val lease = multiServiceManager.acquireServiceForFunction(FunctionType.TRANSLATION)
         try {
-            // 获取翻译功能的AIService实例
-            val translationService = multiServiceManager.getServiceForFunction(FunctionType.TRANSLATION)
-            
-            // 获取模型参数
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.TRANSLATION)
+            val translationService = lease.service
+            val modelParameters = lease.modelParameters
             
             val stream = translationService.sendMessage(
                 context = context,
@@ -1130,8 +1138,8 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
             }
             
             return contentBuilder.toString().trim()
-        } catch (e: Exception) {
-            throw e
+        } finally {
+            lease.close()
         }
     }
 
@@ -1171,12 +1179,12 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         
         val contentBuilder = StringBuilder()
         
+        var serviceLease: MultiServiceManager.ServiceLease? = null
         try {
-            // 获取总结功能的AIService实例
-            val summaryService = multiServiceManager.getServiceForFunction(FunctionType.SUMMARY)
-            
-            // 获取模型参数
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.SUMMARY)
+            val lease = multiServiceManager.acquireServiceForFunction(FunctionType.SUMMARY)
+            serviceLease = lease
+            val summaryService = lease.service
+            val modelParameters = lease.modelParameters
             
             val stream = summaryService.sendMessage(
                 context = context,
@@ -1199,6 +1207,8 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
         } catch (e: Exception) {
             AppLogger.e(TAG, "生成工具包描述时出错", e)
             return ""
+        } finally {
+            serviceLease?.close()
         }
     }
 

@@ -3347,6 +3347,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="chat_create_dedicated_terminal_session_failed">Nu se poate crea o sesiune de terminal independentă</string>
     <string name="chat_create_workspace_terminal_session_failed">Nu se poate crea o sesiune de terminal în spațiul de lucru</string>
     <string name="chat_execute_command_failed">Executarea comenzii a eșuat: %1$s</string>
+    <string name="chat_execute_command_cancel_failed">Comanda nu poate fi anulată: sesiunea de terminal țintă este închisă sau nu este pregătită</string>
     <string name="workspace_command_already_running">O comandă din spațiul de lucru existent este în curs de execuție</string>
     <string name="workspace_command_running">Comanda este în curs de execuție</string>
     <string name="workspace_command_cancelling">Se anulează comanda...</string>

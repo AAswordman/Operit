@@ -2764,6 +2764,7 @@
     <string name="chat_create_dedicated_terminal_session_failed">Tidak dapat mencipta sesi terminal berdedikasi</string>
     <string name="chat_create_workspace_terminal_session_failed">Tidak dapat mencipta sesi terminal ruang kerja</string>
     <string name="chat_execute_command_failed">Gagal melaksanakan arahan: %1$s</string>
+    <string name="chat_execute_command_cancel_failed">Tidak dapat membatalkan arahan: sesi terminal sasaran telah ditutup atau belum sedia</string>
     <string name="workspace_command_already_running">Sudah ada arahan ruang kerja sedang berjalan</string>
     <string name="workspace_command_running">Arahan sedang berjalan</string>
     <string name="workspace_command_cancelling">Membatalkan arahan...</string>

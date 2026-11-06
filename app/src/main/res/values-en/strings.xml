@@ -3611,6 +3611,7 @@
     <string name="chat_create_dedicated_terminal_session_failed">Failed to create dedicated terminal session</string>
     <string name="chat_create_workspace_terminal_session_failed">Failed to create workspace terminal session</string>
     <string name="chat_execute_command_failed">Command execution failed: %1$s</string>
+    <string name="chat_execute_command_cancel_failed">Cannot cancel the command: the target terminal session is closed or not ready</string>
     <string name="workspace_command_already_running">A workspace command is already running</string>
     <string name="workspace_command_running">Command running</string>
     <string name="workspace_command_cancelling">Cancelling command...</string>

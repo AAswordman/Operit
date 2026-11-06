@@ -3005,6 +3005,7 @@
     <string name="chat_create_dedicated_terminal_session_failed">전용 터미널 세션을 생성하지 못했습니다.</string>
     <string name="chat_create_workspace_terminal_session_failed">작업 공간 터미널 세션을 생성하지 못했습니다.</string>
     <string name="chat_execute_command_failed">명령 실행 실패: %1$s</string>
+    <string name="chat_execute_command_cancel_failed">명령을 취소할 수 없습니다: 대상 터미널 세션이 닫혔거나 준비되지 않았습니다</string>
     <string name="workspace_command_already_running">작업 공간 명령이 이미 실행 중입니다.</string>
     <string name="workspace_command_running">명령 실행 중</string>
     <string name="workspace_command_cancelling">명령 취소 중...</string>

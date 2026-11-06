@@ -253,6 +253,8 @@ jobs:
       - name: Set up Android SDK
         if: steps.plan.outputs.android_resources == 'true'
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ''
 
       - name: Install required Android toolchain
         if: >-
@@ -319,6 +321,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ''
 
       - name: Install required Android toolchain
         shell: bash
@@ -464,6 +468,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ''
 
       - name: Install required Android toolchain
         shell: bash
@@ -563,7 +569,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          tasks=(":app:testDebugUnitTest")
+          tasks=(":app:testDebugUnitTest" ":terminal:testDebugUnitTest")
           if [[ "$INSTRUMENTATION_REQUIRED" == "true" ]]; then
             tasks+=(":app:compileDebugAndroidTestKotlin" ":app:compileDebugAndroidTestJavaWithJavac")
           fi

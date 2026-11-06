@@ -362,7 +362,10 @@ private fun appendInlineNode(
     density: Density? = null,
     fontSize: TextUnit? = null,
     visitedNodes: Set<MarkdownNodeStable> = emptySet(),
-    depth: Int = 0
+    depth: Int = 0,
+    // A link label is already inside a URLSpan, so a bare URL written as the label of an explicit
+    // link must not open a second, nested link over the same characters.
+    linkifyBareText: Boolean = true
 ) {
     if (depth >= MAX_INLINE_RENDER_DEPTH) {
         builder.append(resolveNestedInlineText(child))
@@ -393,7 +396,8 @@ private fun appendInlineNode(
                         density,
                         fontSize,
                         nextVisitedNodes,
-                        nextDepth
+                        nextDepth,
+                        linkifyBareText = false
                     )
                 }
             } else {
@@ -429,9 +433,12 @@ private fun appendInlineNode(
                         density,
                         fontSize,
                         nextVisitedNodes,
-                        nextDepth
+                        nextDepth,
+                        linkifyBareText
                     )
                 }
+            } else if (linkifyBareText) {
+                appendLinkifiedText(builder, fallbackText, primaryColor)
             } else {
                 builder.append(fallbackText)
             }
@@ -536,10 +543,56 @@ private fun appendInlineNode(
             builder.append('\n')
         }
 
+        MarkdownProcessorType.PLAIN_TEXT -> {
+            if (linkifyBareText) {
+                appendLinkifiedText(builder, content, primaryColor)
+            } else {
+                builder.append(content)
+            }
+        }
+
         else -> {
             builder.append(content)
         }
     }
+}
+
+/**
+ * Appends [text] and gives every bare http/https URL in it the same [URLSpan] the explicit
+ * `[text](url)` branch sets, so a typed-out URL reaches the existing click handler unchanged.
+ *
+ * Only the URL range is spanned; the prose around it keeps its own styling.
+ */
+private fun appendLinkifiedText(
+    builder: SpannableStringBuilder,
+    text: String,
+    primaryColor: Color
+) {
+    val bareUrls = findBareUrls(text)
+    if (bareUrls.isEmpty()) {
+        builder.append(text)
+        return
+    }
+
+    var cursor = 0
+    bareUrls.forEach { bareUrl ->
+        builder.append(text, cursor, bareUrl.start)
+        val start = builder.length
+        builder.append(text, bareUrl.start, bareUrl.end)
+        val end = builder.length
+        if (start < end) {
+            builder.setSpan(URLSpan(bareUrl.url), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            builder.setSpan(UnderlineSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            builder.setSpan(
+                ForegroundColorSpan(primaryColor.toArgb()),
+                start,
+                end,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        cursor = bareUrl.end
+    }
+    builder.append(text, cursor, text.length)
 }
 
 internal fun buildMarkdownInlineSpannableFromChildren(
@@ -567,7 +620,9 @@ internal fun buildMarkdownInlineSpannableFromText(
 
     val inlineNodes = NestedInlineNodeCache.getOrParse(text)
     if (inlineNodes.isEmpty()) {
-        return SpannableStringBuilder(text)
+        val builder = SpannableStringBuilder()
+        appendLinkifiedText(builder, text, primaryColor)
+        return builder
     }
 
     return buildMarkdownInlineSpannableFromChildren(

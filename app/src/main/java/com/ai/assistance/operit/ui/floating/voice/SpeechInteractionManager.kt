@@ -317,6 +317,6 @@ class SpeechInteractionManager(
     }
     
     fun cleanTextForTts(text: String, regexs: List<String>): String {
-        return WaifuMessageProcessor.cleanContentForWaifu(TtsCleaner.clean(text, regexs))
+        return WaifuMessageProcessor.cleanContentForWaifu(TtsCleaner.cleanForSpeech(text, regexs))
     }
 }

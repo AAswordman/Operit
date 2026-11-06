@@ -3553,6 +3553,7 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="chat_create_dedicated_terminal_session_failed">No se pudo crear la sesión de terminal independiente</string>
     <string name="chat_create_workspace_terminal_session_failed">No se pudo crear la sesión de terminal del espacio de trabajo</string>
     <string name="chat_execute_command_failed">Error al ejecutar el comando: %1$s</string>
+    <string name="chat_execute_command_cancel_failed">No se puede cancelar el comando: la sesión de terminal de destino está cerrada o no está lista</string>
     <string name="workspace_command_already_running">Ya hay un comando del espacio de trabajo en ejecución</string>
     <string name="workspace_command_running">Comando en ejecución</string>
     <string name="workspace_command_cancelling">Cancelando comando...</string>
