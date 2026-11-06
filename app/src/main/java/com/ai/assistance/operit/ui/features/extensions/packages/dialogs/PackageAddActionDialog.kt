@@ -37,7 +37,7 @@ import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateKind
 /**
  * 包管理加号弹出的中心选择面板。
  * 插件页：导入现有 / 新建 JS 模板 / 新建 TS 模板。
- * 沙盒包页：导入现有 / 新建 JS 模板。
+ * 脚本页：导入现有 / 新建 JS 模板。
  */
 @Composable
 fun PackageAddActionDialog(

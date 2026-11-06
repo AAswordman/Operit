@@ -36,6 +36,7 @@ import com.ai.assistance.operit.ui.features.conversation.memory.screens.MemoryOv
 
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.MarketHomeTab
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.PackageManagerScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.PackageDetailEntryScreen
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.ArtifactPublishScreen
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.RepoMarketPublishScreen
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.UnifiedMarketManageScreen
@@ -222,18 +223,36 @@ sealed class Screen(
                     PendingChatDraftHandler.setPendingDraft(intent.toPrompt(context))
                     navigateTo(AiChat)
                 },
-                onOpenToolPkgPluginConfig = { containerPackageName, uiModuleId, title, keepAlive ->
-                    navigateTo(
-                        ToolPkgPluginConfig(
-                            containerPackageName = containerPackageName,
-                            uiModuleId = uiModuleId,
-                            title = title,
-                            keepAlive = keepAlive
-                        )
-                    )
+                onOpenPackageDetail = { packageName, title ->
+                    navigateTo(PackageDetail(packageName, title))
                 }
             )
         }
+    }
+
+    data class PackageDetail(val packageName: String, val title: String) : Screen(navItem = NavItem.Packages) {
+        @Composable
+        override fun Content(
+            navController: NavController,
+            navigateTo: ScreenNavigationHandler,
+            onGoBack: () -> Unit,
+            hasBackgroundImage: Boolean,
+            onLoading: (Boolean) -> Unit,
+            onError: (String) -> Unit,
+            onGestureConsumed: (Boolean) -> Unit,
+        ) {
+            PackageDetailEntryScreen(
+                packageName = packageName,
+                onNavigateBack = onGoBack,
+                onOpenMarketDetail = { navigateTo(MarketEntryDetail(it)) },
+                onOpenToolPkgPluginConfig = { container, module, moduleTitle, keepAlive ->
+                    navigateTo(ToolPkgPluginConfig(container, module, moduleTitle, keepAlive))
+                },
+            )
+        }
+
+        @Composable
+        override fun getTitle(): String = title
     }
 
     data class Market(val initialTab: MarketHomeTab = MarketHomeTab.ALL) :

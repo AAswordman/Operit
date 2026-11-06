@@ -762,7 +762,7 @@
     <string name="package_tools">Contém ferramentas</string>
     <string name="package_import_success">Pacote importado com sucesso</string>
     <string name="package_import_error">Falha no pacote de importação</string>
-    <string name="no_packages_available">Nenhum pacote disponível</string>
+    <string name="no_packages_available">Nenhum script disponível</string>
     <string name="no_packages_imported">Nenhum pacote foi importado ainda</string>
     <string name="remove_package">Remover pacote</string>
     <string name="package_removed">Pacote removido</string>
@@ -6087,7 +6087,7 @@
     <string name="provider_nous_portal">Nous Portal (Nous Research)</string>
     <string name="login_github_to_manage_scripts">Faça login no GitHub para publicar e gerenciar seus scripts</string>
     <string name="login_github_to_manage_packages">Faça login no GitHub para publicar e gerenciar seus pacotes de ferramentas</string>
-    <string name="market_tab_artifact">Pacotes Sandbox</string>
+    <string name="market_tab_artifact">Scripts</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Meus</string>
@@ -6103,9 +6103,9 @@
     <string name="available_scripts_market">Scripts disponíveis</string>
     <string name="available_packages_market">Pacotes de ferramentas disponíveis</string>
     <string name="no_matching_scripts_found">Nenhum script correspondente encontrado</string>
-    <string name="no_matching_packages_found">Nenhum pacote de ferramentas correspondente encontrado</string>
+    <string name="no_matching_packages_found">Nenhum script correspondente</string>
     <string name="script_market_search_placeholder">Pesquisar por nome, descrição, autor do script...</string>
-    <string name="package_market_search_placeholder">Pesquisar por nome, descrição, autor do pacote...</string>
+    <string name="package_market_search_placeholder">Pesquisar nome, descrição ou autor do script…</string>
     <string name="no_scripts_available">Nenhum script disponível no momento</string>
     <string name="no_market_packages_available">Nenhum pacote de ferramentas disponível no momento</string>
     <string name="publish_new_script">Publicar novo script</string>
@@ -6362,19 +6362,19 @@
     <string name="import_external_plugin">Importar plugin externo</string>
     <string name="package_script_only">Apenas arquivos HJSON (.hjson), JavaScript (.js) e TypeScript (.ts)</string>
     <string name="package_add_dialog_title_plugin">Adicionar plugin</string>
-    <string name="package_add_dialog_title_package">Adicionar pacote sandbox</string>
+    <string name="package_add_dialog_title_package">Adicionar script</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Importe um script existente ou crie um modelo JS com comentários.</string>
     <string name="package_add_import_existing_plugin">Importar plugin existente</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Importar pacote sandbox existente</string>
+    <string name="package_add_import_existing_package">Importar script existente</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Criar modelo JS</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Criar modelo TypeScript</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Criar modelo JS</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Crie um script .js com METADATA e uma ferramenta de exemplo.</string>
     <string name="package_template_identity_title">Novo modelo</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -6393,7 +6393,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Importar como plugin ou pacote sandbox</string>
+    <string name="package_share_choice_import">Importar como plugin ou script</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Adicionar como anexo do chat</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -6685,7 +6685,7 @@
     <string name="market_tab_all">Todos</string>
     <string name="market_tab_categories">Categorias</string>
     <string name="market_category_type_all">Todos</string>
-    <string name="market_category_type_script">Script</string>
+    <string name="market_category_type_script">Scripts</string>
     <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
@@ -7284,7 +7284,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Mercado de plugins</string>
-    <string name="package_market">Mercado de pacotes</string>
+    <string name="package_market">Mercado de scripts</string>
     <string name="plugin_sort_action">Ordenar</string>
     <string name="plugin_sort_custom">Ordem personalizada</string>
     <string name="plugin_sort_name">Nome</string>
@@ -7303,7 +7303,7 @@
     <string name="plugin_manage_load_errors">Erros de carregamento (%1$d)</string>
     <string name="plugin_import_format_help">Formatos de importação</string>
     <string name="plugin_import_format_description">Plugins aceitam arquivos .toolpkg com manifest.json ou manifest.hjson e os arquivos de entrada e recursos declarados.</string>
-    <string name="sandbox_import_format_description">Pacotes sandbox aceitam .js, .ts e .hjson. Scripts precisam de METADATA; TypeScript deve ser compilado separadamente.</string>
+    <string name="sandbox_import_format_description">Scripts independentes aceitam .js, .ts e .hjson. Exigem METADATA; TypeScript deve ser compilado separadamente.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">Mensagens da IA</string>
@@ -8280,4 +8280,12 @@
     <string name="data_storage_detail_model_engines">Mecanismos de execução</string>
     <string name="pkg_delete_failed">Não foi possível excluir os arquivos da extensão. Verifique o acesso ou desative os plugins dependentes.</string>
     <string name="pkg_delete_success">Arquivos da extensão excluídos</string>
+
+    <string name="extension_interfaces">Interfaces</string>
+    <string name="extension_description_title">Descrição</string>
+    <string name="extension_description_expand">Expandir descrição</string>
+    <string name="extension_description_collapse">Recolher descrição</string>
+    <string name="extension_detail_load_failed">Não foi possível carregar os detalhes. Verifique se a extensão está instalada ou tente novamente.</string>
+    <string name="extension_toggle_failed">Não foi possível alterar a ativação. Verifique as dependências e as configurações do ambiente.</string>
+    <string name="extension_detail_retry">Tentar novamente</string>
 </resources>

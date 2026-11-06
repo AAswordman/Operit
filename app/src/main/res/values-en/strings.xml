@@ -963,7 +963,7 @@
     <string name="package_tools">Included Tools</string>
     <string name="package_import_success">Package imported successfully</string>
     <string name="package_import_error">Package import failed</string>
-    <string name="no_packages_available">No packages available</string>
+    <string name="no_packages_available">No scripts available</string>
     <string name="no_packages_imported">No packages imported yet</string>
     <string name="remove_package">Remove Package</string>
     <string name="package_removed">Package removed</string>
@@ -7456,14 +7456,14 @@
     <string name="chat_style_bubble_ai_image_disabled_by_glass">AI bubble frosted glass or water glass background is currently enabled, AI bubble images will not take effect</string>
     <string name="login_github_to_manage_scripts">Log in to GitHub to publish and manage your scripts</string>
     <string name="login_github_to_manage_packages">Log in to GitHub to publish and manage your packages</string>
-    <string name="market_tab_artifact">Sandbox Packages</string>
+    <string name="market_tab_artifact">Scripts</string>
     <string name="market_tab_all">All</string>
     <string name="market_tab_categories">Categories</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Mine</string>
     <string name="market_category_type_all">All</string>
-    <string name="market_category_type_script">Script</string>
+    <string name="market_category_type_script">Scripts</string>
     <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
@@ -7510,9 +7510,9 @@
     <string name="available_scripts_market">Available Scripts</string>
     <string name="available_packages_market">Available Packages</string>
     <string name="no_matching_scripts_found">No matching scripts found</string>
-    <string name="no_matching_packages_found">No matching packages found</string>
+    <string name="no_matching_packages_found">No matching scripts found</string>
     <string name="script_market_search_placeholder">Search script name, description, author...</string>
-    <string name="package_market_search_placeholder">Search package name, description, author...</string>
+    <string name="package_market_search_placeholder">Search script name, description, author…</string>
     <string name="no_scripts_available">No scripts available</string>
     <string name="no_market_packages_available">No packages available</string>
     <string name="publish_new_script">Publish New Script</string>
@@ -7697,19 +7697,19 @@
     <string name="import_external_plugin">Import external plugin</string>
     <string name="package_script_only">Only HJSON (.hjson), JavaScript (.js), and TypeScript (.ts) files are supported</string>
     <string name="package_add_dialog_title_plugin">Add plugin</string>
-    <string name="package_add_dialog_title_package">Add sandbox package</string>
+    <string name="package_add_dialog_title_package">Add script</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Import an existing script, or create a JS template with comments.</string>
     <string name="package_add_import_existing_plugin">Import existing plugin</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Import existing sandbox package</string>
+    <string name="package_add_import_existing_package">Import existing script</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Create JS template</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Create TypeScript template</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Create JS template</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Create a .js script with METADATA and a sample tool.</string>
     <string name="package_template_identity_title">New template</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -7728,7 +7728,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Import as plugin or sandbox package</string>
+    <string name="package_share_choice_import">Import as plugin or script</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Add as a chat attachment</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -8153,7 +8153,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Plugin market</string>
-    <string name="package_market">Package market</string>
+    <string name="package_market">Script market</string>
     <string name="plugin_sort_action">Sort</string>
     <string name="plugin_sort_custom">Custom order</string>
     <string name="plugin_sort_name">Name</string>
@@ -8172,7 +8172,7 @@
     <string name="plugin_manage_load_errors">Loading errors (%1$d)</string>
     <string name="plugin_import_format_help">Import formats</string>
     <string name="plugin_import_format_description">Plugins accept .toolpkg files containing manifest.json or manifest.hjson and the declared entry files and resources.</string>
-    <string name="sandbox_import_format_description">Sandbox packages accept .js, .ts and .hjson files. Scripts require METADATA; TypeScript must be compiled separately.</string>
+    <string name="sandbox_import_format_description">Standalone scripts support .js, .ts and .hjson files. Scripts need METADATA; TypeScript must be compiled separately.</string>
     <string name="skill_list_count">Skills · %1$d</string>
     <string name="mcp_start_services">Start services</string>
     <string name="mcp_starting_services">Starting</string>
@@ -9188,4 +9188,12 @@
     <string name="theme_icon_navigation">Common navigation icon</string>
     <string name="theme_appearance_disabled">Disabled</string>
     <string name="toolreg_terminal_task_desc">Terminal managed task operation: %1$s</string>
+
+    <string name="extension_interfaces">Interfaces</string>
+    <string name="extension_description_title">Description</string>
+    <string name="extension_description_expand">Expand description</string>
+    <string name="extension_description_collapse">Collapse description</string>
+    <string name="extension_detail_load_failed">Unable to load extension details. Check that it is still installed or retry.</string>
+    <string name="extension_toggle_failed">Unable to change activation. Check dependencies and environment settings, then retry.</string>
+    <string name="extension_detail_retry">Retry</string>
 </resources>

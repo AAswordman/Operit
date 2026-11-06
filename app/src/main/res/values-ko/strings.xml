@@ -786,7 +786,7 @@
     <string name="package_tools">포함된 도구</string>
     <string name="package_import_success">패키지를 성공적으로 가져왔습니다.</string>
     <string name="package_import_error">패키지 가져오기 실패</string>
-    <string name="no_packages_available">사용 가능한 패키지가 없습니다.</string>
+    <string name="no_packages_available">사용 가능한 스크립트가 없습니다</string>
     <string name="no_plugins_available">사용 가능한 플러그인이 없습니다</string>
     <string name="no_packages_imported">아직 가져온 패키지가 없습니다.</string>
     <string name="remove_package">패키지 제거</string>
@@ -807,19 +807,19 @@
     <string name="package_js_only">JavaScript(.js) 및 ToolPkg(.toolpkg) 파일만 지원됩니다.</string>
     <string name="package_script_only">HJSON(.hjson), JavaScript(.js), TypeScript(.ts) 파일만 지원합니다</string>
     <string name="package_add_dialog_title_plugin">플러그인 추가</string>
-    <string name="package_add_dialog_title_package">샌드박스 패키지 추가</string>
+    <string name="package_add_dialog_title_package">스크립트 추가</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">기존 스크립트를 가져오거나 주석이 포함된 JS 템플릿을 만듭니다.</string>
     <string name="package_add_import_existing_plugin">기존 플러그인 가져오기</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">기존 샌드박스 패키지 가져오기</string>
+    <string name="package_add_import_existing_package">기존 스크립트 가져오기</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">JS 템플릿 만들기</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">TypeScript 템플릿 만들기</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">JS 템플릿 만들기</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">METADATA와 예제 도구가 포함된 .js 스크립트를 만듭니다.</string>
     <string name="package_template_identity_title">새 템플릿</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -838,7 +838,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">플러그인 또는 샌드박스 패키지로 가져오기</string>
+    <string name="package_share_choice_import">플러그인 또는 스크립트로 가져오기</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">채팅 첨부 파일로 추가</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -3480,7 +3480,7 @@
     <string name="login_github_to_manage_packages">GitHub에 로그인하여 패키지를 게시하고 관리하세요.</string>
     <string name="browse">둘러보기</string>
     <string name="my_tab">내</string>
-    <string name="market_tab_artifact">샌드박스 패키지</string>
+    <string name="market_tab_artifact">스크립트</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">스킬</string>
     <string name="market_tab_mine">내 항목</string>
@@ -3502,11 +3502,11 @@
     <string name="no_matching_plugins_found">일치하는 플러그인을 찾을 수 없습니다.</string>
     <string name="no_matching_skills_found">일치하는 스킬을 찾을 수 없습니다.</string>
     <string name="no_matching_scripts_found">일치하는 스크립트가 없습니다.</string>
-    <string name="no_matching_packages_found">일치하는 패키지를 찾을 수 없습니다.</string>
+    <string name="no_matching_packages_found">일치하는 스크립트가 없습니다</string>
     <string name="skill_market_search_placeholder">스킬 또는 작성자 검색</string>
     <string name="script_market_search_placeholder">스크립트 이름, 설명, 작성자 검색...</string>
     <string name="plugin_market_search_placeholder">플러그인 검색</string>
-    <string name="package_market_search_placeholder">패키지 이름, 설명, 작성자 검색...</string>
+    <string name="package_market_search_placeholder">스크립트 이름, 설명, 작성자 검색…</string>
     <string name="mcp_market_search_placeholder">MCP 검색</string>
     <string name="skill_repo_url_not_found">저장소 URL을 찾을 수 없습니다.</string>
     <string name="skill_repo_url_not_found_cannot_install">저장소 URL을 찾을 수 없어 설치할 수 없습니다.</string>
@@ -7291,7 +7291,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">플러그인 마켓</string>
-    <string name="package_market">패키지 마켓</string>
+    <string name="package_market">스크립트 마켓</string>
     <string name="plugin_sort_action">정렬</string>
     <string name="plugin_sort_custom">사용자 지정 순서</string>
     <string name="plugin_sort_name">이름</string>
@@ -7310,7 +7310,7 @@
     <string name="plugin_manage_load_errors">로딩 오류 (%1$d)</string>
     <string name="plugin_import_format_help">가져오기 형식 안내</string>
     <string name="plugin_import_format_description">플러그인은 manifest.json 또는 manifest.hjson과 선언된 진입 파일 및 리소스가 포함된 .toolpkg 파일을 지원합니다.</string>
-    <string name="sandbox_import_format_description">샌드박스 패키지는 .js, .ts, .hjson 파일을 지원합니다. 스크립트에는 METADATA가 필요하며 TypeScript는 별도로 컴파일해야 합니다.</string>
+    <string name="sandbox_import_format_description">독립 스크립트는 .js, .ts, .hjson을 지원합니다. METADATA가 필요하며 TypeScript는 별도로 컴파일해야 합니다.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">AI 메시지</string>
@@ -8287,4 +8287,12 @@
     <string name="data_storage_detail_model_engines">실행 엔진</string>
     <string name="pkg_delete_failed">확장 파일을 삭제할 수 없습니다. 파일 권한을 확인하거나 의존 플러그인을 비활성화한 후 다시 시도하세요.</string>
     <string name="pkg_delete_success">확장 설치 파일을 삭제했습니다</string>
+
+    <string name="extension_interfaces">인터페이스</string>
+    <string name="extension_description_title">설명</string>
+    <string name="extension_description_expand">설명 펼치기</string>
+    <string name="extension_description_collapse">설명 접기</string>
+    <string name="extension_detail_load_failed">확장 기능 정보를 불러올 수 없습니다. 설치 상태를 확인하거나 다시 시도하세요.</string>
+    <string name="extension_toggle_failed">활성화 상태를 변경할 수 없습니다. 종속성과 환경 설정을 확인한 후 다시 시도하세요.</string>
+    <string name="extension_detail_retry">다시 시도</string>
 </resources>

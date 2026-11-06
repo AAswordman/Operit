@@ -677,23 +677,23 @@
     <string name="mcp_start_services_failed">MCP サービスの初期化を開始できません</string>
     <string name="mcp_starting_services">開始中</string>
     <string name="package_add_create_js_package">JS テンプレートを作成</string>
-    <string name="package_add_create_js_package_hint">METADATA とサンプルツールを含む .js サンドボックスパッケージを作成します。</string>
+    <string name="package_add_create_js_package_hint">METADATA とサンプルツールを含む .js スクリプトを作成します。</string>
     <string name="package_add_create_js_plugin">JS テンプレートを作成</string>
     <string name="package_add_create_js_plugin_hint">dist/main.js をエントリーとする、読み込み可能な .toolpkg を作成します。</string>
     <string name="package_add_create_ts_plugin">TypeScript テンプレートを作成</string>
     <string name="package_add_create_ts_plugin_hint">src/main.ts が含まれます。編集後は自身でコンパイルしてください。</string>
-    <string name="package_add_dialog_message_package">既存のサンドボックスパッケージをインポートするか、コメント付きの JS テンプレートを作成します。</string>
+    <string name="package_add_dialog_message_package">既存のスクリプトを読み込むか、コメント付きの JS テンプレートを作成します。</string>
     <string name="package_add_dialog_message_plugin">既存の .toolpkg をインポートするか、読み込み可能なテンプレートを作成します。</string>
-    <string name="package_add_dialog_title_package">サンドボックスパッケージを追加</string>
+    <string name="package_add_dialog_title_package">スクリプトを追加</string>
     <string name="package_add_dialog_title_plugin">プラグインを追加</string>
-    <string name="package_add_import_existing_package">既存のサンドボックスパッケージをインポート</string>
+    <string name="package_add_import_existing_package">既存のスクリプトを読み込む</string>
     <string name="package_add_import_existing_package_hint">.js、.ts、.hjson ファイルを選択してインポートします。</string>
     <string name="package_add_import_existing_plugin">既存のプラグインをインポート</string>
     <string name="package_add_import_existing_plugin_hint">.toolpkg ファイルを選択し、外部パッケージフォルダーにインポートします。</string>
-    <string name="package_market">パッケージマーケット</string>
+    <string name="package_market">スクリプトマーケット</string>
     <string name="package_share_choice_chat">チャットの添付ファイルにする</string>
     <string name="package_share_choice_chat_hint">先にチャットを選択してから、ファイルを添付します。</string>
-    <string name="package_share_choice_import">プラグインまたはサンドボックスパッケージとしてインポート</string>
+    <string name="package_share_choice_import">プラグインまたはスクリプトとして読み込む</string>
     <string name="package_share_choice_import_hint">外部パッケージフォルダーに保存し、パッケージ管理に表示します。</string>
     <string name="package_share_choice_message">インポート可能な .js / .toolpkg ファイルが %1$d 件見つかりました。</string>
     <string name="package_share_choice_title">このファイルの用途を選択</string>
@@ -755,7 +755,7 @@
     <string name="plugin_sort_name">名前</string>
     <string name="plugin_sort_reverse">降順</string>
     <string name="plugin_sort_size">ファイルサイズ</string>
-    <string name="sandbox_import_format_description">サンドボックスパッケージは .js、.ts、.hjson ファイルに対応します。スクリプトには METADATA が必要です。TypeScript は別途コンパイルしてください。</string>
+    <string name="sandbox_import_format_description">単体スクリプトは .js、.ts、.hjson に対応します。METADATA が必要で、TypeScript は別途コンパイルしてください。</string>
     <string name="settings_diagnostics">診断とログ</string>
     <string name="sidebar_character_settings">キャラクター設定</string>
     <string name="skill_list_count">スキル · %1$d</string>
@@ -1637,7 +1637,7 @@
     <string name="tag_count_lock">ロックされた数量</string>
     <string name="tag_count_limit">オプションの最大数</string>
     <string name="tag_count_locked_status">選択済み %1$d / 上限 %2$d</string>
-    <string name="packages">サンドボックスパッケージ</string>
+    <string name="packages">スクリプト</string>
     <string name="skills">スキル</string>
     <string name="quick_plugin_creator_title">プラグインをすばやく作成する</string>
     <string name="quick_plugin_creator_desc">必要なプラグインが組み込みまたは市販で見つかりませんか?欲しいものを作りましょう！</string>
@@ -1658,7 +1658,7 @@
     <string name="package_tools">ツールが含まれています</string>
     <string name="package_import_success">パッケージが正常にインポートされました</string>
     <string name="package_import_error">パッケージのインポートに失敗しました</string>
-    <string name="no_packages_available">利用可能なパッケージがありません</string>
+    <string name="no_packages_available">利用可能なスクリプトはありません</string>
     <string name="no_plugins_available">まだ利用可能なプラグインはありません</string>
     <string name="no_packages_imported">まだパッケージがインポートされていません</string>
     <string name="remove_package">パッケージを削除する</string>
@@ -3373,9 +3373,9 @@
     <string name="scan_color_qr">QRコードをスキャンしてください</string>
     <string name="url_label">URL</string>
     <string name="settings_config">設定</string>
-    <string name="market_tab_artifact">サンドボックスパッケージ</string>
+    <string name="market_tab_artifact">スクリプト</string>
     <string name="market_tab_mcp">MCP</string>
-    <string name="market_category_type_script">サンドボックスパッケージ</string>
+    <string name="market_category_type_script">スクリプト</string>
     <string name="market_category_type_package">プラグイン</string>
     <string name="market_category_type_mcp">MCP</string>
     <string name="market_error_load_failed">読み込みに失敗しました</string>
@@ -5297,11 +5297,11 @@
     <string name="no_matching_plugins_found">一致するプラグインが見つかりません</string>
     <string name="no_matching_skills_found">一致する Skill が見つかりません</string>
     <string name="no_matching_scripts_found">一致するスクリプトが見つかりません</string>
-    <string name="no_matching_packages_found">一致するツールパッケージが見つかりません</string>
+    <string name="no_matching_packages_found">一致するスクリプトがありません</string>
     <string name="skill_market_search_placeholder">Skill を検索</string>
     <string name="script_market_search_placeholder">スクリプト名、説明、作者を検索...</string>
     <string name="plugin_market_search_placeholder">プラグインを検索</string>
-    <string name="package_market_search_placeholder">パッケージを検索</string>
+    <string name="package_market_search_placeholder">スクリプト名・説明・作者を検索…</string>
     <string name="mcp_market_search_placeholder">MCP を検索</string>
     <string name="skill_repo_url_not_found">リポジトリの URL が見つかりません</string>
     <string name="skill_repo_url_not_found_cannot_install">リポジトリの URL がないため、インストールできません</string>
@@ -8277,4 +8277,12 @@
     <string name="data_storage_detail_model_engines">実行エンジン</string>
     <string name="pkg_delete_failed">拡張機能のファイルを削除できません。アクセス権を確認するか、依存するプラグインを無効にして再試行してください。</string>
     <string name="pkg_delete_success">拡張機能のファイルを削除しました</string>
+
+    <string name="extension_interfaces">インターフェース</string>
+    <string name="extension_description_title">説明</string>
+    <string name="extension_description_expand">説明を展開</string>
+    <string name="extension_description_collapse">説明を折りたたむ</string>
+    <string name="extension_detail_load_failed">拡張機能の詳細を読み込めません。インストール状態を確認するか、再試行してください。</string>
+    <string name="extension_toggle_failed">有効状態を変更できません。依存関係と環境設定を確認して再試行してください。</string>
+    <string name="extension_detail_retry">再試行</string>
 </resources>

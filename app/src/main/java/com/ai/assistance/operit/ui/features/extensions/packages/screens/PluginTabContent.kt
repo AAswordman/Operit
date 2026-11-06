@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.screens
+
+import com.ai.assistance.operit.ui.features.extensions.packages.components.ExtensionSwitch
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
@@ -30,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -211,7 +212,7 @@ fun PluginTabContent(
                                     )
                                 }
                             }
-                            Switch(checked = isEnabled, onCheckedChange = { onTogglePlugin(details, it) })
+                            ExtensionSwitch(checked = isEnabled, onCheckedChange = { onTogglePlugin(details, it) })
                         }
                     }
                     if (index < orderedItems.lastIndex) {

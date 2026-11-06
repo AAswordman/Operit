@@ -889,7 +889,7 @@
     <string name="package_tools">Include instrumente</string>
     <string name="package_import_success">Pachetul a fost importat cu succes</string>
     <string name="package_import_error">Eroare la importarea pachetului</string>
-    <string name="no_packages_available">Nu există pachete disponibile</string>
+    <string name="no_packages_available">Nu există scripturi disponibile</string>
     <string name="no_plugins_available">Nu există pluginuri disponibile în acest moment</string>
     <string name="no_packages_imported">Nu a fost importat încă niciun pachet</string>
     <string name="remove_package">Eliminarea pachetului</string>
@@ -910,19 +910,19 @@
     <string name="package_js_only">Se acceptă doar JavaScript(.js) și ToolPkg(.toolpkg) Document</string>
     <string name="package_script_only">Se acceptă doar HJSON(.hjson),JavaScript(.js) și TypeScript(.ts) Document</string>
     <string name="package_add_dialog_title_plugin">Adaugă plugin</string>
-    <string name="package_add_dialog_title_package">Adaugă pachet sandbox</string>
+    <string name="package_add_dialog_title_package">Adaugă script</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Importă un script existent sau creează un șablon JS cu comentarii.</string>
     <string name="package_add_import_existing_plugin">Importă un plugin existent</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Importă un pachet sandbox existent</string>
+    <string name="package_add_import_existing_package">Importă un script existent</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Creează un șablon JS</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Creează un șablon TypeScript</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Creează un șablon JS</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Creează un script .js cu METADATA și un instrument demonstrativ.</string>
     <string name="package_template_identity_title">Șablon nou</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -941,7 +941,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Importă ca plugin sau pachet sandbox</string>
+    <string name="package_share_choice_import">Importă ca plugin sau script</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Adaugă ca atașament de chat</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -3874,14 +3874,14 @@
     <string name="login_github_to_manage_packages">Autentificare GitHub Pentru publicarea și gestionarea kitului dvs. de instrumente</string>
     <string name="browse">Răsfoire</string>
     <string name="my_tab">Al meu</string>
-    <string name="market_tab_artifact">Geantă tip „sandbox”</string>
+    <string name="market_tab_artifact">Scripturi</string>
     <string name="market_tab_all">Toate</string>
     <string name="market_tab_categories">Clasificare</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Al meu</string>
     <string name="market_category_type_all">Toate</string>
-    <string name="market_category_type_script">Scenariu</string>
+    <string name="market_category_type_script">Scripturi</string>
     <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
@@ -3974,11 +3974,11 @@
     <string name="no_matching_plugins_found">Nu s-au găsit pluginuri corespunzătoare</string>
     <string name="no_matching_skills_found">Nu s-au găsit rezultate corespunzătoare Skill</string>
     <string name="no_matching_scripts_found">Nu s-au găsit scripturi corespunzătoare</string>
-    <string name="no_matching_packages_found">Nu s-au găsit kituri corespunzătoare</string>
+    <string name="no_matching_packages_found">Nu s-au găsit scripturi corespunzătoare</string>
     <string name="skill_market_search_placeholder">Abilități de căutare</string>
     <string name="script_market_search_placeholder">Căutare după numele scriptului, descriere și autor...</string>
     <string name="plugin_market_search_placeholder">Plugin de căutare</string>
-    <string name="package_market_search_placeholder">Pachet de căutare</string>
+    <string name="package_market_search_placeholder">Caută numele, descrierea sau autorul scriptului…</string>
     <string name="mcp_market_search_placeholder">Căutare MCP</string>
     <string name="skill_repo_url_not_found">Nu s-a găsit adresa depozitului</string>
     <string name="skill_repo_url_not_found_cannot_install">Nu s-a găsit adresa depozitului; instalarea nu este posibilă</string>
@@ -8116,7 +8116,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Piață de pluginuri</string>
-    <string name="package_market">Piață de pachete</string>
+    <string name="package_market">Piață de scripturi</string>
     <string name="plugin_sort_action">Sortează</string>
     <string name="plugin_sort_custom">Ordine personalizată</string>
     <string name="plugin_sort_name">Nume</string>
@@ -8135,7 +8135,7 @@
     <string name="plugin_manage_load_errors">Erori de încărcare (%1$d)</string>
     <string name="plugin_import_format_help">Formate de import</string>
     <string name="plugin_import_format_description">Pluginurile acceptă fișiere .toolpkg cu manifest.json sau manifest.hjson și fișierele de intrare și resursele declarate.</string>
-    <string name="sandbox_import_format_description">Pachetele sandbox acceptă .js, .ts și .hjson. Scripturile necesită METADATA; TypeScript trebuie compilat separat.</string>
+    <string name="sandbox_import_format_description">Scripturile independente acceptă .js, .ts și .hjson. Necesită METADATA; TypeScript trebuie compilat separat.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">Mesaje AI</string>
@@ -9033,4 +9033,12 @@
     <string name="data_storage_detail_model_engines">Motoare de execuție</string>
     <string name="pkg_delete_failed">Fișierele extensiei nu au putut fi șterse. Verifică accesul sau dezactivează pluginurile dependente.</string>
     <string name="pkg_delete_success">Fișierele extensiei au fost șterse</string>
+
+    <string name="extension_interfaces">Interfețe</string>
+    <string name="extension_description_title">Descriere</string>
+    <string name="extension_description_expand">Extinde descrierea</string>
+    <string name="extension_description_collapse">Restrânge descrierea</string>
+    <string name="extension_detail_load_failed">Detaliile extensiei nu pot fi încărcate. Verifică dacă este instalată sau reîncearcă.</string>
+    <string name="extension_toggle_failed">Activarea nu poate fi schimbată. Verifică dependențele și setările mediului.</string>
+    <string name="extension_detail_retry">Reîncearcă</string>
 </resources>

@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.screens
+
+import com.ai.assistance.operit.ui.features.extensions.packages.components.ExtensionSwitch
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import com.ai.assistance.operit.ui.theme.glass.rememberGlassAppearance
@@ -32,12 +34,10 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -329,10 +329,9 @@ private fun PackageListItemWithTag(
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Switch(
+                ExtensionSwitch(
                     checked = isImported,
                     onCheckedChange = onToggleImport,
-                    modifier = Modifier.scale(0.8f)
                 )
             }
         }

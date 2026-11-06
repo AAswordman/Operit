@@ -684,16 +684,17 @@ private fun MarketLocalInstallState?.shouldShowSwitchAction(): Boolean {
     }
 }
 
+@Composable
 private fun MarketV2Entry.detailSections(): List<UnifiedMarketDetailSection> {
     return buildList {
         val about = detail.ifBlank { description }
         if (about.isNotBlank()) {
             add(
                 UnifiedMarketDetailSection(
-                    title = "About",
+                    title = stringResource(R.string.extension_description_title),
                     body = about,
                     icon = Icons.Default.Info,
-                    showTitle = false
+                    collapsible = true
                 )
             )
         }

@@ -890,7 +890,7 @@
     <string name="tag_count_locked_status">已选择 %1$d / 上限 %2$d</string>
 
     <!-- Package Manager Screen -->
-    <string name="packages">沙盒包</string>
+    <string name="packages">脚本</string>
     <string name="skills">技能</string>
     <string name="package_tab_skills">技能</string>
     <string name="quick_plugin_creator_title">快速创作你的插件</string>
@@ -913,7 +913,7 @@
     <string name="package_tools">包含工具</string>
     <string name="package_import_success">成功导入包</string>
     <string name="package_import_error">导入包失败</string>
-    <string name="no_packages_available">没有可用的包</string>
+    <string name="no_packages_available">没有可用的脚本</string>
     <string name="no_plugins_available">暂无可用插件</string>
     <string name="no_packages_imported">尚未导入任何包</string>
     <string name="remove_package">移除包</string>
@@ -934,19 +934,19 @@
     <string name="package_js_only">仅支持 JavaScript(.js) 和 ToolPkg(.toolpkg) 文件</string>
     <string name="package_script_only">仅支持 HJSON(.hjson)、JavaScript(.js) 和 TypeScript(.ts) 文件</string>
     <string name="package_add_dialog_title_plugin">添加插件</string>
-    <string name="package_add_dialog_title_package">添加沙盒包</string>
+    <string name="package_add_dialog_title_package">添加脚本</string>
     <string name="package_add_dialog_message_plugin">导入现有 .toolpkg，或新建一份可直接加载的模板。</string>
-    <string name="package_add_dialog_message_package">导入现有沙盒包，或新建一份带完整注释的 JS 模板。</string>
+    <string name="package_add_dialog_message_package">导入现有脚本，或新建一份带完整注释的 JS 模板。</string>
     <string name="package_add_import_existing_plugin">导入现有插件</string>
     <string name="package_add_import_existing_plugin_hint">选择一个 .toolpkg 文件并导入到外部包目录。</string>
-    <string name="package_add_import_existing_package">导入现有沙盒包</string>
+    <string name="package_add_import_existing_package">导入现有脚本</string>
     <string name="package_add_import_existing_package_hint">选择 .js、.ts 或 .hjson 文件并导入。</string>
     <string name="package_add_create_js_plugin">新建基础 JS 模板</string>
     <string name="package_add_create_js_plugin_hint">生成可直接加载的 .toolpkg，入口是 dist/main.js。</string>
     <string name="package_add_create_ts_plugin">新建 TypeScript 模板</string>
     <string name="package_add_create_ts_plugin_hint">同时带上 src/main.ts。改完后需要自行编译再打包。</string>
     <string name="package_add_create_js_package">新建 JS 模板</string>
-    <string name="package_add_create_js_package_hint">生成带 METADATA 和示范工具的 .js 沙盒包。</string>
+    <string name="package_add_create_js_package_hint">生成带 METADATA 和示范工具的 .js 脚本。</string>
     <string name="package_template_identity_title">新建模板</string>
     <string name="package_template_identity_message_plugin">先填写显示名和 toolpkg_id，再写入 Android/data/.../files/packages。</string>
     <string name="package_template_identity_message_package">先填写显示名和包名，再写入 Android/data/.../files/packages。</string>
@@ -965,7 +965,7 @@
     <string name="package_share_choice_title">如何处理这个文件？</string>
     <string name="package_share_choice_title_plural">如何处理这些文件？</string>
     <string name="package_share_choice_message">检测到 %1$d 个可导入的 .js / .toolpkg 文件。</string>
-    <string name="package_share_choice_import">导入为插件或沙盒包</string>
+    <string name="package_share_choice_import">导入为插件或脚本</string>
     <string name="package_share_choice_import_hint">写入外部包目录，并出现在包管理里。</string>
     <string name="package_share_choice_chat">添加到聊天附件</string>
     <string name="package_share_choice_chat_hint">先选择聊天窗口，再作为附件发送。</string>
@@ -4228,14 +4228,14 @@
     <string name="login_github_to_manage_packages">登录 GitHub 以发布和管理您的工具包</string>
     <string name="browse">浏览</string>
     <string name="my_tab">我的</string>
-    <string name="market_tab_artifact">沙盒包</string>
+    <string name="market_tab_artifact">脚本</string>
     <string name="market_tab_all">全部</string>
     <string name="market_tab_categories">分类</string>
     <string name="market_tab_mcp">模型上下文协议</string>
     <string name="market_tab_skill">技能</string>
     <string name="market_tab_mine">我的</string>
     <string name="market_category_type_all">全部</string>
-    <string name="market_category_type_script">沙盒包</string>
+    <string name="market_category_type_script">脚本</string>
     <string name="market_category_type_package">插件</string>
     <string name="market_category_type_skill">技能</string>
     <string name="market_category_type_mcp">模型上下文协议</string>
@@ -4332,11 +4332,11 @@
     <string name="no_matching_plugins_found">未找到匹配的插件</string>
     <string name="no_matching_skills_found">未找到匹配的技能</string>
     <string name="no_matching_scripts_found">未找到匹配的脚本</string>
-    <string name="no_matching_packages_found">未找到匹配的工具包</string>
+    <string name="no_matching_packages_found">未找到匹配的脚本</string>
     <string name="skill_market_search_placeholder">搜索技能</string>
     <string name="script_market_search_placeholder">搜索脚本名称、描述、作者...</string>
     <string name="plugin_market_search_placeholder">搜索插件</string>
-    <string name="package_market_search_placeholder">搜索包</string>
+    <string name="package_market_search_placeholder">搜索脚本名称、描述、作者…</string>
     <string name="mcp_market_search_placeholder">搜索模型上下文协议</string>
     <string name="skill_repo_url_not_found">未找到仓库地址</string>
     <string name="skill_repo_url_not_found_cannot_install">未找到仓库地址，无法安装</string>
@@ -8382,7 +8382,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">插件市场</string>
-    <string name="package_market">包市场</string>
+    <string name="package_market">脚本市场</string>
     <string name="plugin_sort_action">排序</string>
     <string name="plugin_sort_custom">自定义顺序</string>
     <string name="plugin_sort_name">名称</string>
@@ -8401,7 +8401,7 @@
     <string name="plugin_manage_load_errors">加载错误（%1$d）</string>
     <string name="plugin_import_format_help">导入格式说明</string>
     <string name="plugin_import_format_description">插件支持导入 .toolpkg 文件。文件中应包含 manifest.json 或 manifest.hjson，以及声明的入口文件和资源。</string>
-    <string name="sandbox_import_format_description">沙盒包支持 .js、.ts 和 .hjson 文件。脚本需要包含 METADATA 元数据；TypeScript 文件需要自行编译。</string>
+    <string name="sandbox_import_format_description">独立脚本支持 .js、.ts 和 .hjson 文件。脚本需要包含 METADATA 元数据；TypeScript 文件需要自行编译。</string>
     <string name="skill_list_count">技能 · %1$d 项</string>
     <string name="mcp_start_services">启动服务</string>
     <string name="mcp_starting_services">正在启动</string>
@@ -9164,4 +9164,12 @@
     <string name="theme_icon_navigation">导航项通用图标</string>
     <string name="theme_appearance_disabled">停用</string>
     <string name="toolreg_terminal_task_desc">终端托管任务操作：%1$s</string>
+
+    <string name="extension_interfaces">界面</string>
+    <string name="extension_description_title">介绍</string>
+    <string name="extension_description_expand">展开介绍</string>
+    <string name="extension_description_collapse">收起介绍</string>
+    <string name="extension_detail_load_failed">无法加载扩展详情。请返回列表确认它仍已安装，或重试。</string>
+    <string name="extension_toggle_failed">无法更改启用状态，请检查依赖或环境配置后重试。</string>
+    <string name="extension_detail_retry">重试</string>
 </resources>

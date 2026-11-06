@@ -582,7 +582,7 @@
     <string name="package_tools">Alat yang terkandung</string>
     <string name="package_import_success">Pakej berjaya diimport</string>
     <string name="package_import_error">Gagal mengimport pakej</string>
-    <string name="no_packages_available">Tiada pakej tersedia</string>
+    <string name="no_packages_available">Tiada skrip tersedia</string>
     <string name="no_packages_imported">Tiada pakej yang diimport</string>
     <string name="remove_package">Alih keluar pakej</string>
     <string name="package_removed">Pakej telah dialih keluar</string>
@@ -3411,10 +3411,10 @@
     <string name="no_matching_plugins_found">Tiada pemalam yang sepadan ditemui</string>
     <string name="no_matching_skills_found">Tiada Skill yang sepadan ditemui</string>
     <string name="no_matching_scripts_found">Tiada skrip yang sepadan ditemui</string>
-    <string name="no_matching_packages_found">Tiada pakej alat yang sepadan ditemui</string>
+    <string name="no_matching_packages_found">Tiada skrip sepadan</string>
     <string name="skill_market_search_placeholder">Cari nama Skill, keterangan, pengarang...</string>
     <string name="script_market_search_placeholder">Cari nama skrip, keterangan, pengarang...</string>
-    <string name="package_market_search_placeholder">Cari nama pakej alat, keterangan, pengarang...</string>
+    <string name="package_market_search_placeholder">Cari nama, perihalan atau pengarang skrip…</string>
     <string name="skill_repo_url_not_found">Alamat repositori tidak ditemui</string>
     <string name="skill_repo_url_not_found_cannot_install">Alamat repositori tidak ditemui, tidak boleh dipasang</string>
     <string name="no_available_mcp_plugins">Tiada pemalam MCP yang tersedia buat masa ini</string>
@@ -6309,7 +6309,7 @@
     <string name="chat_previous_variant">Jawapan sebelumnya</string>
     <string name="chat_next_variant">Jawapan seterusnya</string>
     <string name="provider_nous_portal">Nous Portal (Nous Research)</string>
-    <string name="market_tab_artifact">Pakej Kotak Pasir</string>
+    <string name="market_tab_artifact">Skrip</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Milik Saya</string>
@@ -6521,19 +6521,19 @@
     <string name="import_external_plugin">Import Pemalam Luaran</string>
     <string name="package_script_only">Hanya fail HJSON (.hjson), JavaScript (.js) dan TypeScript (.ts) disokong</string>
     <string name="package_add_dialog_title_plugin">Tambah pemalam</string>
-    <string name="package_add_dialog_title_package">Tambah pakej kotak pasir</string>
+    <string name="package_add_dialog_title_package">Tambah skrip</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Import skrip sedia ada atau cipta templat JS dengan komen.</string>
     <string name="package_add_import_existing_plugin">Import pemalam sedia ada</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Import pakej kotak pasir sedia ada</string>
+    <string name="package_add_import_existing_package">Import skrip sedia ada</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Cipta templat JS</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Cipta templat TypeScript</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Cipta templat JS</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Cipta skrip .js dengan METADATA dan alat contoh.</string>
     <string name="package_template_identity_title">Templat baharu</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -6552,7 +6552,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Import sebagai pemalam atau pakej kotak pasir</string>
+    <string name="package_share_choice_import">Import sebagai pemalam atau skrip</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Tambah sebagai lampiran sembang</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -7522,7 +7522,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Pasaran plugin</string>
-    <string name="package_market">Pasaran pakej</string>
+    <string name="package_market">Pasaran skrip</string>
     <string name="plugin_sort_action">Isih</string>
     <string name="plugin_sort_custom">Susunan tersuai</string>
     <string name="plugin_sort_name">Nama</string>
@@ -7541,7 +7541,7 @@
     <string name="plugin_manage_load_errors">Ralat pemuatan (%1$d)</string>
     <string name="plugin_import_format_help">Format import</string>
     <string name="plugin_import_format_description">Plugin menerima fail .toolpkg yang mengandungi manifest.json atau manifest.hjson serta fail utama dan sumber yang diisytiharkan.</string>
-    <string name="sandbox_import_format_description">Pakej sandbox menerima .js, .ts dan .hjson. Skrip memerlukan METADATA; TypeScript mesti dikompil secara berasingan.</string>
+    <string name="sandbox_import_format_description">Skrip kendiri menyokong .js, .ts dan .hjson. METADATA diperlukan; TypeScript perlu dikompil secara berasingan.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">Mesej AI</string>
@@ -8439,4 +8439,12 @@
     <string name="data_storage_detail_model_engines">Enjin masa jalan</string>
     <string name="pkg_delete_failed">Fail sambungan tidak dapat dipadam. Semak akses fail atau nyahdayakan pemalam yang bergantung padanya.</string>
     <string name="pkg_delete_success">Fail sambungan telah dipadam</string>
+
+    <string name="extension_interfaces">Antara muka</string>
+    <string name="extension_description_title">Perihalan</string>
+    <string name="extension_description_expand">Kembangkan perihalan</string>
+    <string name="extension_description_collapse">Runtuhkan perihalan</string>
+    <string name="extension_detail_load_failed">Butiran sambungan tidak dapat dimuatkan. Semak pemasangannya atau cuba lagi.</string>
+    <string name="extension_toggle_failed">Pengaktifan tidak dapat diubah. Semak kebergantungan dan tetapan persekitaran.</string>
+    <string name="extension_detail_retry">Cuba lagi</string>
 </resources>
