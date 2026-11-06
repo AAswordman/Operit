@@ -1334,23 +1334,36 @@ class ChatHistoryDelegate(
         }
     }
 
-    /** 更新聊天标题 */
-    fun updateChatTitle(chatId: String, title: String) {
-        coroutineScope.launch {
-            // 更新数据库
-            chatHistoryManager.updateChatTitle(chatId, title)
+    /** 更新聊天标题，失败时异常向上抛出，供调用方提示并重试 */
+    suspend fun applyChatTitle(chatId: String, title: String) {
+        // 先落库，再同步列表状态；任一步抛错都由调用方统一处理
+        chatHistoryManager.updateChatTitle(chatId, title)
 
-            // 更新UI状态
-            val updatedHistories =
-                    _chatHistories.value.map {
-                        if (it.id == chatId) {
-                            it.copy(title = title, updatedAt = LocalDateTime.now())
-                        } else {
-                            it
-                        }
+        // 更新UI状态
+        val updatedHistories =
+                _chatHistories.value.map {
+                    if (it.id == chatId) {
+                        it.copy(title = title, updatedAt = LocalDateTime.now())
+                    } else {
+                        it
                     }
-            _chatHistories.value = updatedHistories
-        }
+                }
+        _chatHistories.value = updatedHistories
+    }
+
+    /** 更新聊天标题（后台执行，不回报结果） */
+    fun updateChatTitle(chatId: String, title: String) {
+        coroutineScope.launch { applyChatTitle(chatId, title) }
+    }
+
+    /**
+     * 读取会话最近 [limit] 条消息，按时间从旧到新返回。
+     *
+     * AI 总结标题只关心最近的对话走向，按条数截取可以避免长会话把整段历史读进内存。
+     */
+    suspend fun getRecentChatHistory(chatId: String, limit: Int): List<ChatMessage> {
+        if (limit <= 0) return emptyList()
+        return chatHistoryManager.loadChatMessages(chatId, order = "desc", limit = limit).reversed()
     }
 
     suspend fun renameWorkspaceAndChat(

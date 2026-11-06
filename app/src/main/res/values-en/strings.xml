@@ -3693,6 +3693,13 @@
     <string name="chat_memory_rebuild_empty_range">The selected time range contains no user messages that can be used to build memory</string>
     <string name="long_press_to_manage">Long press to manage</string>
     <string name="edit_title_desc">Edit title</string>
+    <string name="ai_summary_title">AI summary title</string>
+    <string name="ai_summary_title_generating">AI is reading the conversation and writing a title…</string>
+    <string name="ai_summary_title_retry">Retry</string>
+    <string name="ai_title_applied">Title updated: %1$s</string>
+    <string name="ai_title_no_messages">This chat has no conversation content to summarize yet</string>
+    <string name="ai_title_empty_result">The AI returned no usable title</string>
+    <string name="ai_title_failed">Failed to generate a title</string>
     <string name="reorder">Reorder</string>
     <string name="choose_delete_method">Please choose deletion method:</string>
     <string name="swipe_hint">Swipe left or right to edit or delete (tap to hide)</string>

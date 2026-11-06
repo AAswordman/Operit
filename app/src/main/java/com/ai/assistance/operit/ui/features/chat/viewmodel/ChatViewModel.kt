@@ -20,6 +20,7 @@ import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
 import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.core.chat.AIMessageManager
+import com.ai.assistance.operit.core.chat.ConversationTitleTranscript
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
@@ -52,6 +53,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.ai.assistance.operit.ui.floating.ui.pet.AvatarEmotionManager
@@ -106,6 +108,9 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     companion object {
         private const val TAG = "ChatViewModel"
         private const val SPEECH_PREVIEW_MAX = 48
+
+        /** AI 总结标题读取的最近消息条数，只覆盖近期对话走向 */
+        private const val HISTORY_TITLE_RECENT_MESSAGE_LIMIT = 40
     }
 
     private data class ActiveMentionTrigger(
@@ -372,6 +377,14 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     // 添加一个用于跟踪附件面板状态的变量
     private val _attachmentPanelState = MutableStateFlow(false)
     val attachmentPanelState: StateFlow<Boolean> = _attachmentPanelState
+
+    // AI 总结标题：按 chatId 记录生成中的状态，未出现的 chatId 视为空闲
+    private val _aiTitleGenerationStates = MutableStateFlow<Map<String, AiTitleGenerationState>>(emptyMap())
+    val aiTitleGenerationStates: StateFlow<Map<String, AiTitleGenerationState>> =
+        _aiTitleGenerationStates.asStateFlow()
+
+    // 用户在这次生成结束前关掉了菜单的 chatId，结果不再回填到状态里
+    private val pendingAiTitleDismissals = mutableSetOf<String>()
 
     // 添加WebView显示状态的状态流
     private val _showWebView = MutableStateFlow(false)
@@ -2462,6 +2475,108 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     /** 更新指定聊天的标题 */
     fun updateChatTitle(chatId: String, newTitle: String) {
         chatHistoryDelegate.updateChatTitle(chatId, newTitle)
+    }
+
+    /**
+     * 用户从会话历史长按菜单显式触发 AI 总结标题。
+     *
+     * 只有这里会覆盖已有标题，自动命名流程仍走各自的首条消息判断，因此用户手动改过的标题
+     * 不会被后台流程改写。执行状态写进 [aiTitleGenerationStates]，由菜单渲染进行中和失败提示。
+     */
+    fun generateAiSummaryTitle(chatId: String) {
+        if (_aiTitleGenerationStates.value[chatId] is AiTitleGenerationState.Running) return
+        pendingAiTitleDismissals.remove(chatId)
+        setAiTitleGenerationState(chatId, AiTitleGenerationState.Running)
+        viewModelScope.launch {
+            val transcript =
+                ConversationTitleTranscript.build(
+                    chatHistoryDelegate.getRecentChatHistory(
+                        chatId,
+                        HISTORY_TITLE_RECENT_MESSAGE_LIMIT
+                    )
+                )
+            if (!transcript.isUsable) {
+                finishAiTitleGeneration(
+                    chatId,
+                    AiTitleGenerationState.Failed(context.getString(R.string.ai_title_no_messages))
+                )
+                return@launch
+            }
+
+            try {
+                val title =
+                    withContext(Dispatchers.IO) {
+                        EnhancedAIService.getChatInstance(context, chatId)
+                            .generateConversationTitleFromHistory(
+                                transcript = transcript.transcript,
+                                messageCount = transcript.messageCount
+                            )
+                    }.trim()
+                if (title.isBlank()) {
+                    finishAiTitleGeneration(
+                        chatId,
+                        AiTitleGenerationState.Failed(context.getString(R.string.ai_title_empty_result))
+                    )
+                    return@launch
+                }
+                chatHistoryDelegate.applyChatTitle(chatId, title)
+                finishAiTitleGeneration(chatId, state = null)
+                uiStateDelegate.showToast(context.getString(R.string.ai_title_applied, title))
+            } catch (e: CancellationException) {
+                finishAiTitleGeneration(chatId, state = null)
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "AI 总结标题失败: chatId=$chatId", e)
+                finishAiTitleGeneration(
+                    chatId,
+                    AiTitleGenerationState.Failed(
+                        e.message?.takeIf { it.isNotBlank() }
+                            ?: context.getString(R.string.ai_title_failed)
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * 收起某个会话的标题生成状态。
+     *
+     * 生成中收起时记下会话，等这次生成结束再清掉结果，避免用户下次长按看到已经过期的提示。
+     */
+    fun dismissAiTitleGenerationResult(chatId: String) {
+        var stillRunning = false
+        _aiTitleGenerationStates.update { current ->
+            if (current[chatId] is AiTitleGenerationState.Running) {
+                stillRunning = true
+                current
+            } else {
+                current - chatId
+            }
+        }
+        if (stillRunning) {
+            pendingAiTitleDismissals.add(chatId)
+        } else {
+            pendingAiTitleDismissals.remove(chatId)
+        }
+    }
+
+    private fun setAiTitleGenerationState(chatId: String, state: AiTitleGenerationState) {
+        _aiTitleGenerationStates.update { current -> current + (chatId to state) }
+    }
+
+    /** 生成结束后应用收起意图：菜单已经关掉就不把结果留在状态里 */
+    private fun finishAiTitleGeneration(chatId: String, state: AiTitleGenerationState?) {
+        if (pendingAiTitleDismissals.remove(chatId)) {
+            _aiTitleGenerationStates.update { current -> current - chatId }
+            if (state is AiTitleGenerationState.Failed) {
+                // 菜单已关闭，失败信息通过 toast 递给用户，仍可从下一次长按重试
+                uiStateDelegate.showToast(state.message)
+            }
+            return
+        }
+        _aiTitleGenerationStates.update { current ->
+            if (state == null) current - chatId else current + (chatId to state)
+        }
     }
 
     /** 更新指定聊天绑定的角色卡 */
