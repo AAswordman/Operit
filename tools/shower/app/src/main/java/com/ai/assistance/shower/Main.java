@@ -936,7 +936,11 @@ public class Main {
                 return;
             }
 
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // Use the same task-preserving entry as the launcher on the selected display.
+            intent.setAction(Intent.ACTION_MAIN);
+            intent.removeCategory(Intent.CATEGORY_INFO);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
             android.os.Bundle options = null;
             if (Build.VERSION.SDK_INT >= 26) {
