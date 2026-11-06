@@ -12,10 +12,11 @@ import org.json.JSONObject
 internal class PhoneAgentLocalSession(
     context: Context,
     inputScope: suspend (suspend () -> Boolean) -> Boolean,
+    tapAt: suspend (Int, Int) -> Boolean,
     private val onStep: (Int, Int, PhoneLocalAction) -> Unit = { _, _, _ -> },
     private val task: String = "",
 ) {
-    private val driver = AccessibilityPhoneUiDriver(context, inputScope)
+    private val driver = AccessibilityPhoneUiDriver(context, inputScope, tapAt)
     private val store = PhoneSequenceStore(File(context.filesDir, "phone_sequences")) { packageName ->
         val info = context.packageManager.getPackageInfo(packageName, 0)
         "${PackageInfoCompat.getLongVersionCode(info)}:${info.lastUpdateTime}"
@@ -33,14 +34,19 @@ internal class PhoneAgentLocalSession(
         pendingObservation = null
         shown = emptyMap()
         lastNodeCount = null
+        lastPackageName = null
         lastCandidateCount = 0
         lastSentCount = 0
     }
     var lastNodeCount: Int? = null
         private set
 
-    suspend fun observe(): String {
+    var lastPackageName: String? = null
+        private set
+
+    suspend fun observe(expectedPackage: String? = null): String {
         observed = null
+        lastPackageName = null
         lastNodeCount = null
         shown = emptyMap()
         lastCandidateCount = 0
@@ -50,6 +56,10 @@ internal class PhoneAgentLocalSession(
         val age = pending?.let { System.nanoTime() / 1_000_000 - it.capturedAtMs }
         val state = if (pending != null && age != null && age in 0L..1000L) pending else driver.read()
         val summary = state.summary(task)
+        if (expectedPackage != null && (state.packageName != expectedPackage || summary.shown.isEmpty())) {
+            throw PhoneUiUnavailableException("Launched app window is not ready for node observation: $expectedPackage")
+        }
+        lastPackageName = state.packageName
         lastNodeCount = state.nodes.size
         lastCandidateCount = summary.candidates.size
         lastSentCount = summary.shown.size

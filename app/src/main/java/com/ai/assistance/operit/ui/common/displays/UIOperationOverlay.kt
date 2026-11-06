@@ -90,6 +90,21 @@ class UIOperationOverlay private constructor(private val context: Context) {
     private var overlayView: ComposeView? = null
     private var lifecycleOwner: ServiceLifecycleOwner? = null
     private var hiddenForScreenshot = false
+    private var agentSessionCount = 0
+
+    /** Keep one composed feedback window throughout a main-screen tool call. */
+    fun beginAgentSession() = runOnMainThread {
+        agentSessionCount++
+        clearFeedback()
+        initOverlay()
+        overlayView?.visibility = View.INVISIBLE
+    }
+
+    fun endAgentSession() = runOnMainThread {
+        check(agentSessionCount > 0) { "No active agent feedback session" }
+        agentSessionCount--
+        if (agentSessionCount == 0) dismissOverlayNow()
+    }
     
     // 为每个操作定义一个带唯一ID的数据类
     data class TapEvent(val x: Int, val y: Int, val id: UUID = UUID.randomUUID(), val label: String? = null)
@@ -191,7 +206,8 @@ class UIOperationOverlay private constructor(private val context: Context) {
                     WindowManager.LayoutParams.TYPE_PHONE
                 }
                 // 关键flags：彻底不可聚焦，不阻挡触摸事件传递到下层应用
-                flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                flags = WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
@@ -199,10 +215,8 @@ class UIOperationOverlay private constructor(private val context: Context) {
                 format = PixelFormat.TRANSLUCENT
                 gravity = Gravity.TOP or Gravity.START
                 alpha = automationPassthroughAlpha(context)
-                // 设置足够高的层级确保可见性
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    windowAnimations = android.R.style.Animation_Toast
-                }
+                // Feedback already animates in Canvas; a window transition adds another animation.
+                windowAnimations = 0
             }
             
             lifecycleOwner = ServiceLifecycleOwner().apply {
@@ -231,8 +245,9 @@ class UIOperationOverlay private constructor(private val context: Context) {
                     }
                 }
             }
-            
+            // Compose creates its composition on attach; retain that window between events.
             windowManager?.addView(overlayView, params)
+
             AppLogger.d(TAG, "Overlay view added successfully")
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error adding overlay view", e)
@@ -252,7 +267,10 @@ class UIOperationOverlay private constructor(private val context: Context) {
         val newTapEvent = TapEvent(x, y, label = label)
         
         runOnMainThread {
+            // The agent owns the labelled tap. Do not create a second generic effect in a tool.
+            if (agentSessionCount > 0 && label == null) return@runOnMainThread
             initOverlay()
+            overlayView?.visibility = if (hiddenForScreenshot) View.INVISIBLE else View.VISIBLE
             tapEvents.add(newTapEvent)
             // 为这个特定的事件安排移除
             handler.postDelayed({ 
@@ -265,8 +283,8 @@ class UIOperationOverlay private constructor(private val context: Context) {
     /** Show the dispatched screen coordinates; delivery is distinct from an app state change. */
     fun showAgentTap(x: Int, y: Int, delivered: Boolean, source: String? = null) {
         runOnMainThread {
-            // A tool may have scheduled its short generic animation for removal. Replace it once.
-            dismissOverlayNow()
+            // Reuse the composed window and replace only the previous event's state.
+            clearFeedback()
             val label = context.getString(
                 if (delivered) R.string.phone_agent_tap_sent else R.string.phone_agent_tap_unconfirmed,
                 x, y
@@ -277,7 +295,8 @@ class UIOperationOverlay private constructor(private val context: Context) {
 
     suspend fun setVisibleForScreenshot(visible: Boolean) = withContext(Dispatchers.Main.immediate) {
         hiddenForScreenshot = !visible
-        overlayView?.visibility = if (visible) View.VISIBLE else View.INVISIBLE
+        val hasEvents = tapEvents.isNotEmpty() || swipeEvents.isNotEmpty() || textInputEvents.isNotEmpty()
+        overlayView?.visibility = if (visible && hasEvents) View.VISIBLE else View.INVISIBLE
     }
 
     /**
@@ -290,6 +309,7 @@ class UIOperationOverlay private constructor(private val context: Context) {
 
         runOnMainThread {
             initOverlay()
+            overlayView?.visibility = if (hiddenForScreenshot) View.INVISIBLE else View.VISIBLE
             swipeEvents.add(newSwipeEvent)
             handler.postDelayed({ 
                 swipeEvents.remove(newSwipeEvent)
@@ -308,6 +328,7 @@ class UIOperationOverlay private constructor(private val context: Context) {
         
         runOnMainThread {
             initOverlay()
+            overlayView?.visibility = if (hiddenForScreenshot) View.INVISIBLE else View.VISIBLE
             textInputEvents.add(newTextInputEvent)
             handler.postDelayed({ 
                 textInputEvents.remove(newTextInputEvent)
@@ -322,8 +343,8 @@ class UIOperationOverlay private constructor(private val context: Context) {
     private fun scheduleAutoCleanup() {
         handler.postDelayed({
             if (tapEvents.isEmpty() && swipeEvents.isEmpty() && textInputEvents.isEmpty()) {
-                AppLogger.d(TAG, "All events cleared, auto-cleaning overlay window")
-                hide()
+                if (agentSessionCount > 0) overlayView?.visibility = View.INVISIBLE
+                else hide()
             }
         }, AUTO_CLEANUP_DELAY_MS)
     }
@@ -333,6 +354,7 @@ class UIOperationOverlay private constructor(private val context: Context) {
      */
     fun hide() {
         runOnMainThread {
+            if (agentSessionCount > 0) return@runOnMainThread
             handler.postDelayed({
                 dismissOverlayNow()
             }, HIDE_DELAY_MS)
@@ -344,18 +366,25 @@ class UIOperationOverlay private constructor(private val context: Context) {
      */
     fun hideImmediately() {
         runOnMainThread {
-            dismissOverlayNow()
+            if (agentSessionCount > 0) {
+                clearFeedback()
+                overlayView?.visibility = View.INVISIBLE
+            } else {
+                dismissOverlayNow()
+            }
         }
+    }
+
+    private fun clearFeedback() {
+        handler.removeCallbacksAndMessages(null)
+        tapEvents.clear()
+        swipeEvents.clear()
+        textInputEvents.clear()
     }
 
     private fun dismissOverlayNow() {
         try {
-            // 清除所有待处理的移除任务
-            handler.removeCallbacksAndMessages(null)
-            // 清空所有事件列表
-            tapEvents.clear()
-            swipeEvents.clear()
-            textInputEvents.clear()
+            clearFeedback()
 
             // 彻底移除视图
             if (overlayView != null) {
@@ -439,14 +468,15 @@ private fun TapIndicator(
     LaunchedEffect(Unit) {
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = if (label == null) 600 else 1600, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
         )
     }
-    val p = progress.value
-    val radius = lerp(10.dp, 50.dp, p)
-    val rippleAlpha = (1f - p).coerceIn(0f, 1f)
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
+            // Reading animation state here invalidates drawing, not the static label's layout.
+            val p = progress.value
+            val radius = lerp(10.dp, 50.dp, p)
+            val rippleAlpha = (1f - p).coerceIn(0f, 1f)
             val center = Offset(x.toFloat(), y.toFloat())
             drawCircle(
                 color = Color(0xFF00BCD4),
@@ -507,14 +537,10 @@ private fun SwipeIndicator(
         )
     }
 
-    val p = progress.value
-    // 将整个动画分为两个阶段：
-    // 1. 滑动动画（p: 0.0 -> 0.8），彗星沿轨迹移动
-    val swipeProgress = (p / 0.8f).coerceIn(0f, 1f)
-    // 2. 淡出动画（p: 0.6 -> 1.0），整体效果逐渐消失
-    val alpha = ((1f - p) / 0.4f).coerceIn(0f, 1f)
-    
     Canvas(modifier = Modifier.fillMaxSize()) {
+        val p = progress.value
+        val swipeProgress = (p / 0.8f).coerceIn(0f, 1f)
+        val alpha = ((1f - p) / 0.4f).coerceIn(0f, 1f)
         with(density) {
             val startOffset = Offset(startX.toFloat(), startY.toFloat())
 

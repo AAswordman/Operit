@@ -354,6 +354,7 @@ class PhoneAgent(
     ): String {
         val progress = if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context) else null
         val runJob = currentCoroutineContext()[Job]
+        var feedbackSessionStarted = false
         try {
             if (progress != null) {
                 useFullscreenStatusIndicatorForAgent(context, agentId)
@@ -364,6 +365,10 @@ class PhoneAgent(
                     },
                     onToggleTakeOver = { paused -> (isPausedFlow as? MutableStateFlow<Boolean>)?.value = paused },
                 )
+            }
+            if (isMainScreenAgent) withContext(Dispatchers.Main.immediate) {
+                UIOperationOverlay.getInstance(context).beginAgentSession()
+                feedbackSessionStarted = true
             }
             return runSession(task, systemPrompt, onStep, isPausedFlow, targetApp)
         } finally {
@@ -379,6 +384,7 @@ class PhoneAgent(
             }
             pauseFlow = null
             if (progress != null) withContext(NonCancellable + Dispatchers.Main.immediate) {
+                if (feedbackSessionStarted) UIOperationOverlay.getInstance(context).endAgentSession()
                 progress.hide()
                 progress.setBorderEnabled(false)
             }
@@ -480,6 +486,7 @@ class PhoneAgent(
                     context,
                     task = task,
                     inputScope = { block -> actionHandler.withLocalInputFeedback(block) },
+                    tapAt = { x, y -> actionHandler.tapNode(x, y) },
                     onStep = { index, total, action ->
                         val actionLabel = context.getString(when (action) {
                             PhoneLocalAction.Tap -> R.string.phone_agent_local_tap
@@ -494,7 +501,9 @@ class PhoneAgent(
             val localPrompt = if (localSession != null) {
                 PhoneLocalProtocol.prompt(useEnglish = !LocaleUtils.usesChineseContent(context))
             } else ""
-            _contextHistory.add("system" to systemPrompt + localPrompt)
+            _contextHistory.add("system" to systemPrompt + PhoneLocalProtocol.launchPrompt(
+                useEnglish = !LocaleUtils.usesChineseContent(context)
+            ) + localPrompt)
             pauseFlow = isPausedFlow
 
             // First step with user prompt
@@ -665,6 +674,7 @@ class PhoneAgent(
         performance.reset()
         observationHistory.reset()
         planProgress.reset()
+        actionHandler.resetTaskState()
         localSession = null
         imageOnlyRequested = false
         lastActionFeedback = ""
@@ -692,14 +702,21 @@ class PhoneAgent(
             val session = localSession
             if (session != null && !imageOnly) {
                 try {
-                    val state = session.observe()
+                    val expectedPackage = actionHandler.launchState.pendingPackage
+                    if (expectedPackage != null) actionHandler.awaitStartupForeground(::awaitIfPaused)
+                    val state = PhoneStartupObservation().read(
+                        deadlineMs = if (expectedPackage != null) actionHandler.launchState.deadlineMs else null,
+                        checkpoint = ::awaitIfPaused,
+                    ) { session.observe(expectedPackage) }
+                    actionHandler.launchState.observationAvailable(requireNotNull(session.lastPackageName))
                     val stateLine = state.lineSequence().firstOrNull { it.startsWith("[UI_STATE] ") }
                     if (stateLine != null) observationHistory.record(_contextHistory.size, stateLine)
                     appendLine(state)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    appendLine("[UI_STATE_ERROR] ${e.message}; request Inspect for an image. No node sequence may run without a valid state.")
+                    actionHandler.launchState.observationUnavailable()
+                    appendLine("[UI_STATE_ERROR] ${e.message}. UI observation is unavailable; this does not mean an accepted launch failed. Use Wait or Inspect, not another Launch of the same app. No node action may run without a valid state.")
                 }
             }
             if (includeImage) {
@@ -712,6 +729,7 @@ class PhoneAgent(
                     appendLine("[SCREENSHOT_ERROR] No image is available for this observation.")
                 }
             }
+            actionHandler.launchState.prompt().takeIf { it.isNotEmpty() }?.let { appendLine(it) }
             appendLine(actionHandler.coordinatePrompt())
             if (lastActionFeedback.isNotBlank()) appendLine("[ACTION_RESULT] $lastActionFeedback")
         }.trim()
@@ -821,6 +839,7 @@ class PhoneAgent(
             } finally {
                 performance.executionMs += ((System.nanoTime() - executionStarted) / 1_000_000 - (performance.pausedMs - pausedBefore)).coerceAtLeast(0L)
             }
+            if (execResult.success && parsedAction.actionName == "Home") actionHandler.launchState.leftApp()
             lastActionFeedback = "success=${execResult.success}; ${execResult.message.orEmpty()}; verify the observed result"
             if (execResult.shouldFinish) {
                  return StepResult(success = execResult.success, finished = true, action = parsedAction, thinking = thinking, message = execResult.message)
@@ -998,6 +1017,46 @@ class ActionHandler(
 
     private var screenshotHiddenDepth = 0
 
+    internal suspend fun tapNode(x: Int, y: Int): Boolean =
+        dispatchTapAtPixels(x, y, context.getString(R.string.phone_agent_source_nodes)).success
+
+    private suspend fun dispatchTapAtPixels(x: Int, y: Int, source: String): ActionExecResult {
+        val channel = resolveShowerUsageContext()
+        // Resolve one channel before dispatch; an unconfirmed injection is never resent on another.
+        val useAccessibility = isMainScreenAgent() && PermissionCapabilityResolver.uiSnapshot(context).canUseAccessibility
+        val inputSource = when {
+            channel.canUseShowerForInput -> "shower"
+            useAccessibility -> "accessibility"
+            else -> "ui_tool"
+        }
+        AppLogger.d("ActionHandler", "[$agentId] tap_request: source=$inputSource pixel=($x,$y) origin=$source")
+        val feedback = if (isMainScreenAgent()) UIOperationOverlay.getInstance(context) else null
+        if (feedback != null) withContext(Dispatchers.Main.immediate) { feedback.hideImmediately() }
+        var delivered = false
+        try {
+            return withAgentInputFeedback {
+                if (channel.canUseShowerForInput) {
+                    val confirmed = ShowerController.tap(agentId, x, y)
+                    if (confirmed) ok(message = "Tap injection completed at ($x,$y); verify the app response")
+                    else fail(shouldFinish = true, message = "Shower TAP injection unconfirmed at ($x,$y); task incomplete, do not automatically resend")
+                } else if (useAccessibility) {
+                    val accepted = com.ai.assistance.operit.data.repository.UIHierarchyManager.performClick(context, x, y)
+                    if (accepted) ok(message = "Accessibility tap request accepted at ($x,$y); verify the app response")
+                    else fail(message = "Accessibility tap request unconfirmed at ($x,$y); do not automatically resend")
+                } else {
+                    val params = withDisplayParam(listOf(ToolParameter("x", x.toString()), ToolParameter("y", y.toString())))
+                    val result = toolImplementations.tap(AITool("tap", params))
+                    if (result.success) ok(message = "Tap request accepted at ($x,$y); verify the app response")
+                    else fail(message = "Tap at ($x,$y): ${result.error}")
+                }
+            }.also { delivered = it.success }
+        } finally {
+            if (feedback != null) withContext(NonCancellable + Dispatchers.Main.immediate) {
+                feedback.showAgentTap(x, y, delivered, source)
+            }
+        }
+    }
+
     internal suspend fun <T> withLocalInputFeedback(block: suspend () -> T): T =
         withAgentInputFeedback(block)
 
@@ -1119,7 +1178,51 @@ class ActionHandler(
         }
     }
 
-    private var launchOnly = false
+    internal val launchState = PhoneAppLaunchState()
+
+    internal fun resetTaskState() {
+        launchState.reset()
+        mainScreenShowerPrepared = false
+    }
+
+    private suspend fun isAppForeground(packageName: String): Boolean? = withContext(Dispatchers.IO) {
+        val activity = com.ai.assistance.operit.data.repository.UIHierarchyManager.getCurrentActivityName(context)
+        if (activity.isNullOrBlank()) return@withContext null
+        if ('/' in activity && activity.substringBefore('/') != packageName) return@withContext false
+        val flattened = PhoneLaunchRequest.foregroundComponent(activity, packageName) ?: return@withContext null
+        val component = android.content.ComponentName.unflattenFromString(flattened) ?: return@withContext null
+        try {
+            context.packageManager.getActivityInfo(component, 0).packageName == packageName
+        } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+            null
+        }
+    }
+
+    private suspend fun awaitForeground(
+        packageName: String,
+        deadlineMs: Long,
+        waitForUnavailable: Boolean,
+        checkpoint: suspend () -> Unit,
+    ): Boolean {
+        while (true) {
+            checkpoint()
+            val foreground = isAppForeground(packageName)
+            if (foreground == true) {
+                launchState.foregroundConfirmed()
+                return true
+            }
+            if (foreground == null && !waitForUnavailable) return false
+            val remaining = deadlineMs - System.nanoTime() / 1_000_000
+            if (remaining <= 0) return false
+            delay(minOf(200L, remaining))
+        }
+    }
+
+    internal suspend fun awaitStartupForeground(checkpoint: suspend () -> Unit) {
+        val packageName = launchState.pendingPackage ?: return
+        val deadline = requireNotNull(launchState.deadlineMs)
+        awaitForeground(packageName, deadline, waitForUnavailable = false, checkpoint = checkpoint)
+    }
 
     internal suspend fun resolveLaunchOnlyTarget(task: String): PhoneLaunchTarget? = withContext(Dispatchers.IO) {
         val query = PhoneLaunchRequest.appQuery(task) ?: return@withContext null
@@ -1139,35 +1242,14 @@ class ActionHandler(
 
     internal suspend fun executeLaunchOnly(target: PhoneLaunchTarget, checkpoint: suspend () -> Unit): Pair<Boolean, String> {
         checkpoint()
-        launchOnly = true
-        val launched = try {
-            executeAgentAction(ParsedAgentAction("do", "Launch", mapOf("app" to target.packageName)))
-        } finally {
-            launchOnly = false
-        }
+        val launched = executeAgentAction(ParsedAgentAction("do", "Launch", mapOf("app" to target.packageName)))
         if (!launched.success) return false to launched.message.orEmpty()
-        var remaining = 3000L
-        while (remaining > 0) {
-            checkpoint()
-            val started = System.nanoTime()
-            val foreground = withContext(Dispatchers.IO) {
-                val activity = com.ai.assistance.operit.data.repository.UIHierarchyManager.getCurrentActivityName(context)
-                if (activity.isNullOrBlank()) false else {
-                    val flattened = PhoneLaunchRequest.foregroundComponent(activity, target.packageName)
-                    val component = flattened?.let { android.content.ComponentName.unflattenFromString(it) }
-                    if (component == null) false else try {
-                        component.packageName == target.packageName &&
-                            context.packageManager.getActivityInfo(component, 0).packageName == target.packageName
-                    } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
-                        false
-                    }
-                }
-            }
-            if (foreground) return true to context.getString(R.string.phone_agent_launch_confirmed, target.label)
-            delay(minOf(150L, remaining))
-            remaining -= ((System.nanoTime() - started) / 1_000_000).coerceAtLeast(1L)
-        }
-        return false to context.getString(R.string.phone_agent_launch_unconfirmed, target.label)
+        val confirmed = awaitForeground(target.packageName, requireNotNull(launchState.deadlineMs),
+            waitForUnavailable = true, checkpoint = checkpoint)
+        return confirmed to context.getString(
+            if (confirmed) R.string.phone_agent_launch_confirmed else R.string.phone_agent_launch_unconfirmed,
+            target.label,
+        )
     }
 
     suspend fun executeAgentAction(parsed: ParsedAgentAction): ActionExecResult {
@@ -1182,6 +1264,9 @@ class ActionHandler(
             "Launch" -> {
                 val app = fields["app"]?.takeIf { it.isNotBlank() } ?: return fail(message = "No app name specified for Launch")
                 val packageName = resolveAppPackageName(app)
+                if (isMainScreenAgent() && launchState.suppressesLaunch(packageName)) {
+                    return ok(message = "No Launch dispatched: the launch request for $packageName was already accepted. Missing UI observations do not revoke it; continue with Wait or Inspect.")
+                }
                 try {
                     if (showerCtx.isAdbOrHigher && !isMainScreenAgent()) {
                         val pm = context.packageManager
@@ -1225,8 +1310,8 @@ class ActionHandler(
                             AITool("start_app", listOf(ToolParameter("package_name", packageName)))
                         )
                         if (result.success) {
-                            if (!launchOnly) delay(POST_LAUNCH_DELAY_MS)
-                            ok()
+                            launchState.accepted(packageName)
+                            ok(message = "Launch request accepted for $packageName; window observation is pending. Do not relaunch because the first node read is unavailable.")
                         } else {
                             fail(message = result.error ?: "Failed to launch app: $packageName")
                         }
@@ -1240,29 +1325,7 @@ class ActionHandler(
                 val element = fields["element"] ?: return fail(message = "No element for Tap")
                 val (x, y) = parseRelativePoint(element)
                     ?: return fail(message = "Tap requires exactly two normalized integers in 0..999: $element")
-                val inputSource = if (showerCtx.canUseShowerForInput) "shower" else "ui_tool"
-                AppLogger.d("ActionHandler", "[$agentId] tap_request: source=$inputSource raw=$element normalized=0..999 screen=${screenWidth}x${screenHeight} pixel=($x,$y)")
-                val feedback = if (isMainScreenAgent()) UIOperationOverlay.getInstance(context) else null
-                if (feedback != null) withContext(Dispatchers.Main.immediate) { feedback.hideImmediately() }
-                var delivered = false
-                val exec = try {
-                    withAgentInputFeedback {
-                        if (showerCtx.canUseShowerForInput) {
-                            val okTap = ShowerController.tap(agentId, x, y)
-                            if (okTap) ok(message = "Tap delivered at ($x,$y); verify the observed result")
-                            else fail(shouldFinish = true, message = "Shower TAP delivery unconfirmed at ($x,$y); input service failed, task incomplete")
-                        } else {
-                            val params = withDisplayParam(listOf(ToolParameter("x", x.toString()), ToolParameter("y", y.toString())))
-                            val result = toolImplementations.tap(AITool("tap", params))
-                            if (result.success) ok(message = "Tap delivered at ($x,$y); verify the observed result")
-                            else fail(message = "Tap at ($x,$y): ${result.error}")
-                        }
-                    }.also { delivered = it.success }
-                } finally {
-                    if (feedback != null) withContext(NonCancellable + Dispatchers.Main.immediate) {
-                        feedback.showAgentTap(x, y, delivered, context.getString(R.string.phone_agent_source_coordinates))
-                    }
-                }
+                val exec = dispatchTapAtPixels(x, y, context.getString(R.string.phone_agent_source_coordinates))
                 if (exec.success && !exec.shouldFinish) delay(POST_NON_WAIT_ACTION_DELAY_MS)
                 exec
             }

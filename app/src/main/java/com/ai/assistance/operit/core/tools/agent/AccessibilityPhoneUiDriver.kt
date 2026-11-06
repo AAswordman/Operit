@@ -4,14 +4,11 @@ import android.content.Context
 import android.graphics.Point
 import android.hardware.display.DisplayManager
 import android.view.Display
-import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
-import com.ai.assistance.operit.ui.common.displays.UIOperationOverlay
 import java.io.StringReader
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
@@ -20,12 +17,13 @@ import org.xmlpull.v1.XmlPullParserFactory
 internal class AccessibilityPhoneUiDriver(
     private val context: Context,
     private val inputScope: suspend (suspend () -> Boolean) -> Boolean,
+    private val tapAt: suspend (Int, Int) -> Boolean,
 ) : PhoneUiDriver {
     private val revision = AtomicLong()
 
     override suspend fun read(): PhoneUiSnapshot = withContext(Dispatchers.IO) {
         val xml = UIHierarchyManager.getUIHierarchy(context)
-        if (xml.isBlank()) throw PhoneUiException("Accessibility returned no main-screen hierarchy")
+        if (xml.isBlank()) throw PhoneUiUnavailableException("Accessibility returned no main-screen hierarchy")
         if (xml.length > 2_000_000) throw PhoneUiException("Accessibility hierarchy exceeds the local read limit")
         val parser = XmlPullParserFactory.newInstance().newPullParser()
         parser.setInput(StringReader(xml))
@@ -63,7 +61,7 @@ internal class AccessibilityPhoneUiDriver(
             throw PhoneUiException("Could not parse accessibility hierarchy: ${e.javaClass.simpleName}")
         }
         val packageName = nodes.firstOrNull { it.packageName.isNotBlank() }?.packageName
-            ?: throw PhoneUiException("Main-screen hierarchy has no app identity")
+            ?: throw PhoneUiUnavailableException("Main-screen hierarchy has no app identity")
         val display = context.getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
             ?: throw PhoneUiException("Main display is unavailable")
         val size = Point()
@@ -73,24 +71,12 @@ internal class AccessibilityPhoneUiDriver(
     }
 
     override suspend fun tap(node: PhoneUiNode): Boolean = withContext(Dispatchers.IO) {
-        // Both executors resolve a unique target from a fresh snapshot immediately before dispatch.
-        // Another XML read here adds a round trip; it cannot make read-and-dispatch atomic.
+        // The executor has just resolved this control; use the session's selected input channel.
         if (!node.enabled || node.password || node.visibleToUser == false) throw PhoneUiException("Tap target is not available")
         val bounds = node.bounds ?: throw PhoneUiException("Tap target has no bounds")
         if (!bounds.isUsable) throw PhoneUiException("Tap target has no usable bounds")
         AppLogger.d("PhoneAgent", "node_tap_request: pixel=(${bounds.centerX},${bounds.centerY}) resource_id=${node.resourceId}")
-        inputScope {
-            val feedback = UIOperationOverlay.getInstance(context)
-            withContext(Dispatchers.Main.immediate) { feedback.hideImmediately() }
-            var delivered = false
-            try {
-                UIHierarchyManager.performClick(context, bounds.centerX, bounds.centerY).also { delivered = it }
-            } finally {
-                withContext(NonCancellable + Dispatchers.Main.immediate) {
-                    feedback.showAgentTap(bounds.centerX, bounds.centerY, delivered, context.getString(R.string.phone_agent_source_nodes))
-                }
-            }
-        }
+        tapAt(bounds.centerX, bounds.centerY)
     }
 
     override suspend fun type(node: PhoneUiNode, text: String): Boolean = inputScope {

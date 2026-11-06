@@ -4,6 +4,12 @@ package com.ai.assistance.operit.core.tools.agent
 internal object PhoneLocalProtocol {
     fun prompt(useEnglish: Boolean): String = if (useEnglish) EN else CN
 
+    fun launchPrompt(useEnglish: Boolean): String = if (useEnglish) {
+        "\nAPP_LAUNCH_STATE records an accepted launch separately from UI readiness. Missing or unreadable nodes do not mean the app failed to start. When same_app_launch_allowed=false, continue from the current app with Wait/Inspect/Observe; do not send Launch again. A tap being accepted does not prove the intended control responded.\n"
+    } else {
+        "\nAPP_LAUNCH_STATE 将启动请求已受理与页面就绪分开记录。节点缺失或读取失败不代表软件启动失败。same_app_launch_allowed=false 时，在当前 App 上继续等待或请求 Inspect/Observe，不得再次 Launch。点击受理不等于目标控件已响应。\n"
+    }
+
     private const val CN = """
 
 主屏通用节点协议：

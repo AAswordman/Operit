@@ -2,7 +2,7 @@
 repo: https://github.com/3316891527/Operit
 branch: feat/phone-agent-local-execution
 base: e9bb154a631300ec6fd7d9a073b50d58792aca38
-status: compact-observation-implemented-validation-pending
+status: startup-input-feedback-fix-ci-pending
 ---
 
 # PhoneAgent 控件感知与本地连续执行
@@ -20,6 +20,7 @@ status: compact-observation-implemented-validation-pending
 - [05：可见操作反馈与通用控制器命名](05-visible-feedback.md)
 - [06：输入进程生命周期与坐标证据](06-input-lifetime.md)
 - [07：通用节点摘要与操作后快照交接](07-compact-node-handoff.md)
+- [08：启动观察分离、点击派发与反馈动画](08-startup-input-feedback.md)
 
 ## 边界
 
