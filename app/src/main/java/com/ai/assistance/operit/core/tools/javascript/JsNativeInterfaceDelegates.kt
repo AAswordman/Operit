@@ -13,9 +13,11 @@ import android.util.Base64
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.BinaryResultData
 import com.ai.assistance.operit.core.tools.BooleanResultData
+import com.ai.assistance.operit.core.tools.HiddenTerminalCommandResultData
 import com.ai.assistance.operit.core.tools.IntResultData
 import com.ai.assistance.operit.core.tools.SandboxScriptExecutionResultData
 import com.ai.assistance.operit.core.tools.StringResultData
+import com.ai.assistance.operit.core.tools.TerminalCommandResultData
 import com.ai.assistance.operit.core.tools.ToolResultData
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.AITool
@@ -166,6 +168,17 @@ internal object JsNativeInterfaceDelegates {
             is StringResultData -> SerializedToolResultData(data = JsonPrimitive(resultData.value))
             is BooleanResultData -> SerializedToolResultData(data = JsonPrimitive(resultData.value))
             is IntResultData -> SerializedToolResultData(data = JsonPrimitive(resultData.value))
+            // Terminal timeouts remain host failures, but the published terminal SDK returns
+            // their structured outcome. A stable type lets the decoder preserve that contract
+            // without treating unrelated failures as terminal execution results.
+            is TerminalCommandResultData -> SerializedToolResultData(
+                data = Json.parseToJsonElement(resultData.toJson()),
+                dataType = "terminal_command_result"
+            )
+            is HiddenTerminalCommandResultData -> SerializedToolResultData(
+                data = Json.parseToJsonElement(resultData.toJson()),
+                dataType = "hidden_terminal_command_result"
+            )
             is SandboxScriptExecutionResultData -> {
                 val jsonData =
                     Json.parseToJsonElement(

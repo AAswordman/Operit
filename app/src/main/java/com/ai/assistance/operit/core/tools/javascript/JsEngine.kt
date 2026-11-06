@@ -34,9 +34,14 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -76,6 +81,7 @@ class JsEngine(private val context: Context) {
     }
     private val quickJsDispatcher = quickJsExecutor.asCoroutineDispatcher()
     private val engineScope = CoroutineScope(SupervisorJob() + quickJsDispatcher)
+    private val suspendBridgeRootJob = SupervisorJob()
     private val quickJsInitLock = Any()
     // A disposed Compose host can otherwise close QuickJS between setup and task dispatch.
     private val executionStartLock = Any()
@@ -95,7 +101,8 @@ class JsEngine(private val context: Context) {
         val toolPkgLogSnapshot: JsToolPkgExecutionContext.LogSnapshot,
         val runtimeMonitorCall: ToolPkgRuntimeMonitor.CallHandle?,
         val runtimeFailureMessage: AtomicReference<String?>,
-        val executionListener: JsExecutionListener?
+        val executionListener: JsExecutionListener?,
+        val suspendBridgeJob: CompletableJob,
     )
 
     private data class ExecutionDispatch(
@@ -359,7 +366,8 @@ class JsEngine(private val context: Context) {
             toolPkgLogSnapshot = toolPkgExecutionContext.capture(script, functionName, params),
             runtimeMonitorCall = runtimeMonitorCall,
             runtimeFailureMessage = AtomicReference(null),
-            executionListener = executionListener
+            executionListener = executionListener,
+            suspendBridgeJob = SupervisorJob(suspendBridgeRootJob),
         )
     }
 
@@ -399,7 +407,10 @@ class JsEngine(private val context: Context) {
     }
 
     private fun removeExecutionSession(callId: String): ExecutionSession? {
-        return activeExecutionSessions.remove(callId.trim())
+        return activeExecutionSessions.remove(callId.trim())?.also { session ->
+            // Completion and failure both end native work started by this execution.
+            session.suspendBridgeJob.cancel(CancellationException("JavaScript execution session ended"))
+        }
     }
 
     private fun clearPendingJsBridgeCallbacks(reason: String) {
@@ -419,8 +430,7 @@ class JsEngine(private val context: Context) {
     }
 
     private fun requestPendingJsBridgeCallbackPump() {
-        ensureQuickJs()
-        if (quickJs == null || !jsEnvironmentInitialized) {
+        if (!canScheduleQuickJsWork() || quickJs == null || !jsEnvironmentInitialized) {
             return
         }
         launchQuickJsEvaluation(
@@ -492,6 +502,7 @@ class JsEngine(private val context: Context) {
         val sessions = activeExecutionSessions.values.toList()
         activeExecutionSessions.clear()
         sessions.forEach { session ->
+            session.suspendBridgeJob.cancel(CancellationException(reason))
             ToolPkgRuntimeMonitor.finishCall(
                 handle = session.runtimeMonitorCall,
                 success = false,
@@ -514,7 +525,7 @@ class JsEngine(private val context: Context) {
     }
 
     private fun cancelExecutionSessionInJs(callId: String, reason: String) {
-        ensureQuickJs()
+        if (!canScheduleQuickJsWork() || quickJs == null || !jsEnvironmentInitialized) return
         val safeCallId = JSONObject.quote(callId)
         val safeReason = JSONObject.quote(reason)
         launchQuickJsEvaluation(
@@ -526,6 +537,9 @@ class JsEngine(private val context: Context) {
                             : (typeof window !== 'undefined' ? window : this);
                         if (typeof root.__operitCancelCallSession === 'function') {
                             root.__operitCancelCallSession($safeCallId, $safeReason);
+                        }
+                        if (typeof root.__operitJavaBridgeReleaseCallObjects === 'function') {
+                            root.__operitJavaBridgeReleaseCallObjects($safeCallId);
                         }
                     })();
                 """.trimIndent(),
@@ -652,8 +666,7 @@ class JsEngine(private val context: Context) {
                 .toString()
         }
 
-        ensureQuickJs()
-        if (quickJs == null || !jsEnvironmentInitialized) {
+        if (!canScheduleQuickJsWork() || quickJs == null || !jsEnvironmentInitialized) {
             return JSONObject()
                 .put("success", false)
                 .put("message", "java bridge callback runtime unavailable")
@@ -691,10 +704,10 @@ class JsEngine(private val context: Context) {
             return false
         }
 
-        ensureQuickJs()
-        if (quickJs == null) {
+        if (!canScheduleQuickJsWork()) {
             return false
         }
+        val engine = quickJs ?: return false
 
         val releaseScript =
             """
@@ -717,10 +730,9 @@ class JsEngine(private val context: Context) {
         return try {
             when (
                 val result =
-                    evaluateQuickJsBlocking<Any?>(
-                        script = releaseScript,
-                        fileName = "quickjs/runtime/java-bridge-release.js"
-                    )
+                    runOnQuickJsThreadBlocking {
+                        engine.evaluate<Any?>(releaseScript, "quickjs/runtime/java-bridge-release.js")
+                    }
             ) {
                 is Boolean -> result
                 is String -> result.equals("true", ignoreCase = true)
@@ -2079,44 +2091,88 @@ class JsEngine(private val context: Context) {
 
         private fun launchSuspendJavaBridgeCall(
             callbackId: String,
-            block: (normalizedCallbackId: String, resultCallback: (String) -> Unit) -> Unit
+            callId: String? = null,
+            block: (coroutineContext: CoroutineContext, resultCallback: (String) -> Unit) -> Unit
         ) {
             val normalizedCallback = callbackId.trim()
-            if (normalizedCallback.isEmpty()) {
-                return
+            require(normalizedCallback.isNotEmpty()) { "Java suspend callback id is required" }
+            check(!destroyed.get()) { "JsEngine already destroyed" }
+            val session = if (callId == null) {
+                null
+            } else {
+                val normalizedCall = callId.trim()
+                require(normalizedCall.isNotEmpty()) { "Java suspend execution call id is required" }
+                checkNotNull(resolveExecutionSession(normalizedCall)) { "JavaScript execution session has ended" }
+            }
+            val ownerJob = if (session == null) suspendBridgeRootJob else session.suspendBridgeJob
+            ownerJob.ensureActive()
+            val invocationJob = SupervisorJob(ownerJob)
+            val invocationContext = invocationJob + Dispatchers.IO
+            val callback = createSuspendJavaBridgeResultCallback(normalizedCallback, session, quickJs)
+            val delivered = AtomicBoolean(false)
+            val complete: (String) -> Unit = { resultJson ->
+                if (delivered.compareAndSet(false, true)) {
+                    try {
+                        callback(resultJson)
+                    } finally {
+                        invocationJob.complete()
+                    }
+                }
             }
             Thread {
-                block(
-                    normalizedCallback,
-                    createSuspendJavaBridgeResultCallback(normalizedCallback)
-                )
+                try {
+                    invocationContext.ensureActive()
+                    block(invocationContext, complete)
+                } catch (error: Exception) {
+                    AppLogger.e(TAG, "Java suspend bridge call failed: ${error.message}", error)
+                    complete(
+                        JSONObject()
+                            .put("success", false)
+                            .put("message", error.message ?: error.javaClass.name)
+                            .toString()
+                    )
+                }
             }.start()
         }
 
-        private fun createSuspendJavaBridgeResultCallback(callbackId: String): (String) -> Unit {
+        private fun isSuspendJavaBridgeOwnerActive(session: ExecutionSession?): Boolean {
+            if (!canScheduleQuickJsWork() || !suspendBridgeRootJob.isActive) return false
+            return session == null ||
+                (session.suspendBridgeJob.isActive && !session.future.isDone &&
+                    resolveExecutionSession(session.callId) === session)
+        }
+
+        private fun createSuspendJavaBridgeResultCallback(
+            callbackId: String,
+            session: ExecutionSession?,
+            expectedEngine: OperitQuickJsEngine?,
+        ): (String) -> Unit {
             return { resultJson ->
-                ensureQuickJs()
-                try {
-                    launchQuickJsEvaluation(
-                        script = buildSuspendJavaBridgeCallbackScript(
-                            callbackId = callbackId,
-                            resultJson = resultJson
-                        ),
-                        fileName = "quickjs/runtime/java-bridge-suspend-callback.js",
-                        onError = { error ->
-                            AppLogger.e(
-                                TAG,
-                                "Error delivering suspend bridge callback to JavaScript: ${error.message}",
-                                error
-                            )
+                // A late native continuation must not initialize another JS runtime or deliver
+                // its result into a different execution that now happens to use this engine.
+                if (isSuspendJavaBridgeOwnerActive(session) && jsEnvironmentInitialized &&
+                    quickJs === expectedEngine
+                ) {
+                    val engine = expectedEngine
+                    if (engine != null) {
+                        engineScope.launch {
+                            if (!isSuspendJavaBridgeOwnerActive(session) || quickJs !== engine) {
+                                return@launch
+                            }
+                            try {
+                                engine.evaluate<Any?>(
+                                    buildSuspendJavaBridgeCallbackScript(callbackId, resultJson),
+                                    "quickjs/runtime/java-bridge-suspend-callback.js",
+                                )
+                            } catch (error: Exception) {
+                                AppLogger.e(
+                                    TAG,
+                                    "Error delivering suspend bridge callback to JavaScript: ${error.message}",
+                                    error,
+                                )
+                            }
                         }
-                    )
-                } catch (error: Exception) {
-                    AppLogger.e(
-                        TAG,
-                        "Error scheduling suspend bridge callback delivery: ${error.message}",
-                        error
-                    )
+                    }
                 }
             }
         }
@@ -2257,13 +2313,35 @@ class JsEngine(private val context: Context) {
                 argsJson: String,
                 callbackId: String
         ) {
-            launchSuspendJavaBridgeCall(callbackId) { _normalizedCallback, resultCallback ->
+            dispatchJavaStaticSuspend(null, className, methodName, argsJson, callbackId)
+        }
+
+        @JavascriptInterface
+        fun javaCallStaticSuspendForCall(
+            callId: String,
+            className: String,
+            methodName: String,
+            argsJson: String,
+            callbackId: String,
+        ) {
+            dispatchJavaStaticSuspend(callId, className, methodName, argsJson, callbackId)
+        }
+
+        private fun dispatchJavaStaticSuspend(
+            callId: String?,
+            className: String,
+            methodName: String,
+            argsJson: String,
+            callbackId: String,
+        ) {
+            launchSuspendJavaBridgeCall(callbackId, callId) { coroutineContext, resultCallback ->
                 JsJavaBridgeDelegates.callStaticSuspend(
                     className = className,
                     methodName = methodName,
                     argsJson = argsJson,
                     objectRegistry = javaObjectRegistry,
                     callback = resultCallback,
+                    coroutineContext = coroutineContext,
                     jsCallbackInvoker = jsBridgeCallbackInvoker,
                     bridgeClassLoader = bridgeClassLoader()
                 )
@@ -2277,13 +2355,35 @@ class JsEngine(private val context: Context) {
                 argsJson: String,
                 callbackId: String
         ) {
-            launchSuspendJavaBridgeCall(callbackId) { _normalizedCallback, resultCallback ->
+            dispatchJavaInstanceSuspend(null, instanceHandle, methodName, argsJson, callbackId)
+        }
+
+        @JavascriptInterface
+        fun javaCallInstanceSuspendForCall(
+            callId: String,
+            instanceHandle: String,
+            methodName: String,
+            argsJson: String,
+            callbackId: String,
+        ) {
+            dispatchJavaInstanceSuspend(callId, instanceHandle, methodName, argsJson, callbackId)
+        }
+
+        private fun dispatchJavaInstanceSuspend(
+            callId: String?,
+            instanceHandle: String,
+            methodName: String,
+            argsJson: String,
+            callbackId: String,
+        ) {
+            launchSuspendJavaBridgeCall(callbackId, callId) { coroutineContext, resultCallback ->
                 JsJavaBridgeDelegates.callInstanceSuspend(
                     instanceHandle = instanceHandle,
                     methodName = methodName,
                     argsJson = argsJson,
                     objectRegistry = javaObjectRegistry,
                     callback = resultCallback,
+                    coroutineContext = coroutineContext,
                     jsCallbackInvoker = jsBridgeCallbackInvoker,
                     bridgeClassLoader = bridgeClassLoader()
                 )
@@ -2769,6 +2869,7 @@ class JsEngine(private val context: Context) {
                 if (!destroyed.compareAndSet(false, true)) {
                     return
                 }
+                suspendBridgeRootJob.cancel(CancellationException("JavaScript engine destroyed"))
                 synchronized(quickJsInitLock) {
                     quickJs.also {
                         quickJs = null

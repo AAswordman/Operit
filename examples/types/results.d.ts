@@ -629,6 +629,9 @@ export interface TerminalCommandResultData {
     /** ID of the terminal session used for execution */
     sessionId: string;
 
+    /** Whether the same shell process is still alive when the result is returned. */
+    sessionAlive: boolean;
+
     /** Whether this execution ended due to timeout. On timeout, the current command is cancelled and the terminal session is kept. */
     timedOut?: boolean;
 

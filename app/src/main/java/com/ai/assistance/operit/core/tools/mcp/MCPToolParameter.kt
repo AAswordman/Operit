@@ -77,6 +77,8 @@ data class MCPToolParameter(
             if (value !is String) return value
 
             return when (typeName?.lowercase()) {
+                // 显式声明为 string：原样返回，不做任何类型猜测
+                "string" -> value
                 "number" -> {
                     try {
                         if (value.contains(".")) value.toDouble() else value.toLong()

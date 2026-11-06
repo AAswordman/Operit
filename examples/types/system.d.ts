@@ -281,6 +281,8 @@ export namespace System {
          * @param command The command to execute.
          * @param timeoutMs Optional timeout in milliseconds. Strongly recommended to always pass explicitly.
          * @returns Promise resolving to the command execution result. On timeout, the current command is cancelled, the terminal session is kept, and the returned result has `timedOut === true`.
+         * The host marks a timeout as a failed tool execution; the SDK still resolves its structured result.
+         * Nonzero exits and other execution failures reject with details in error.data. sessionAlive reports the original shell's actual state.
          */
         function exec(sessionId: string, command: string, timeoutMs?: number | string): Promise<TerminalCommandResultData>;
 
@@ -290,7 +292,8 @@ export namespace System {
          * @param sessionId The ID of the session.
          * @param command The command to execute.
          * @param options Streaming execution options.
-         * @returns Promise resolving to the final command execution result.
+         * @returns Promise resolving to the final command execution result, including a structured `timedOut === true` result on timeout. The host records that timeout as a failed tool execution.
+         * Other execution failures reject; already delivered intermediate events remain available to the caller.
          */
         function execStreaming(sessionId: string, command: string, options?: {
             timeoutMs?: number | string;
@@ -303,6 +306,7 @@ export namespace System {
          * @param command The command to execute.
          * @param options Optional hidden executor options.
          * @returns Promise resolving to the hidden command execution result. On timeout, the current command is cancelled, the hidden executor session is kept, and the returned result has `timedOut === true`.
+         * The host marks a timeout as a failed tool execution; the SDK still resolves its structured result. Other execution failures reject.
          */
         function hiddenExec(command: string, options?: {
             executorKey?: string;

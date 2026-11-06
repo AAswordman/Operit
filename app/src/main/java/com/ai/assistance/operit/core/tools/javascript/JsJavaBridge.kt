@@ -2,7 +2,7 @@ package com.ai.assistance.operit.core.tools.javascript
 
 internal fun buildJavaClassBridgeDefinition(): String {
     return """
-        (function() {
+        (function createJavaBridge(ownerCallId, sharedState) {
             function hasNative(methodName) {
                 return (
                     typeof NativeInterface !== 'undefined' &&
@@ -47,17 +47,23 @@ internal fun buildJavaClassBridgeDefinition(): String {
                 return typeof value === 'string' && value.length > 0;
             }
 
-            var __javaBridgeJsObjectStore = Object.create(null);
-            var __javaBridgeJsObjectCounter = 0;
+            var __javaBridgeJsObjectStore = sharedState.objects;
             var __javaHandleRegistrations = new Map();
             var __javaInstanceFinalizer = new FinalizationRegistry(function(heldValue) {
                 finalizeInstanceProxy(heldValue);
             });
 
             function registerJsObject(value) {
-                __javaBridgeJsObjectCounter += 1;
-                var id = '__java_js_obj_' + __javaBridgeJsObjectCounter;
-                __javaBridgeJsObjectStore[id] = value;
+                sharedState.nextObjectId += 1;
+                var id = '__java_js_obj_' +
+                    (ownerCallId ? ownerCallId + '_' : '') + sharedState.nextObjectId;
+                // Promise results and interface arguments must retain the facade's exact owner;
+                // a global bridge wrapping returned Java handles would lose that ownership.
+                __javaBridgeJsObjectStore[id] = {
+                    value: value,
+                    ownerCallId: ownerCallId,
+                    wrapValue: wrapValue
+                };
                 return id;
             }
 
@@ -334,11 +340,18 @@ internal fun buildJavaClassBridgeDefinition(): String {
                     throw new Error('js object not found: ' + id);
                 }
 
-                var target = __javaBridgeJsObjectStore[id];
+                var registration = __javaBridgeJsObjectStore[id];
+                if (registration.ownerCallId) {
+                    var callState = globalThis.__operitGetCallState(registration.ownerCallId);
+                    if (!callState || callState.completed) {
+                        throw new Error('JavaScript execution session has ended');
+                    }
+                }
+                var target = registration.value;
                 var normalizedMethod = String(methodName || '').trim();
                 var normalizedArgs = Array.isArray(args)
                     ? args.map(function(item) {
-                        return wrapValue(item);
+                        return registration.wrapValue(item);
                     })
                     : [];
 
@@ -504,6 +517,10 @@ internal fun buildJavaClassBridgeDefinition(): String {
             }
 
             function invokeNativeSuspend(methodName, args) {
+                if (ownerCallId) {
+                    methodName += 'ForCall';
+                    args = [ownerCallId].concat(args);
+                }
                 if (!hasNative(methodName)) {
                     throw new Error('NativeInterface.' + methodName + ' is unavailable');
                 }
@@ -1309,7 +1326,7 @@ internal fun buildJavaClassBridgeDefinition(): String {
                 }
             });
 
-            if (typeof globalThis !== 'undefined') {
+            if (!ownerCallId && typeof globalThis !== 'undefined') {
                 globalThis.__operitJavaBridgeInvokeJsObject = function(jsObjectId, methodName, args) {
                     return invokeRegisteredJsObject(jsObjectId, methodName, args);
                 };
@@ -1317,16 +1334,30 @@ internal fun buildJavaClassBridgeDefinition(): String {
                     return releaseJsObject(jsObjectId);
                 };
                 globalThis.__operitJavaBridgeWrapValue = wrapValue;
+                globalThis.__operitJavaBridgeForCall = function(callId) {
+                    if (typeof callId !== 'string' || !callId.trim()) {
+                        throw new Error('JavaScript execution call id is required');
+                    }
+                    return createJavaBridge(callId, sharedState);
+                };
+                globalThis.__operitJavaBridgeReleaseCallObjects = function(callId) {
+                    Object.keys(__javaBridgeJsObjectStore).forEach(function(objectId) {
+                        if (__javaBridgeJsObjectStore[objectId].ownerCallId === callId) {
+                            delete __javaBridgeJsObjectStore[objectId];
+                        }
+                    });
+                };
             }
 
-            if (typeof globalThis !== 'undefined') {
+            if (!ownerCallId && typeof globalThis !== 'undefined') {
                 globalThis.Java = Java;
                 globalThis.Kotlin = Java;
             }
-            if (typeof window !== 'undefined') {
+            if (!ownerCallId && typeof window !== 'undefined') {
                 window.Java = Java;
                 window.Kotlin = Java;
             }
-        })();
+            return Java;
+        })('', { objects: Object.create(null), nextObjectId: 0 });
         """.trimIndent()
 }
