@@ -1,412 +1,186 @@
-import SubagentStatusScreen from "../ui/subagent-status.ui";
+import SubagentStatusScreen from "../ui/subagent-status.ui.js";
+import { resolveSubagentI18n, type SubagentI18n } from "../shared/subagent_i18n.js";
+import type { SubagentStatus } from "../shared/subagent_protocol.js";
 import type { ToolPkg } from "../../../types";
 
-const SUBAGENT_TOOL_NAME = "subagent_run";
-
 interface ToolCallInfo {
-  rawToolName: string;
   toolName: string;
-  params: Record<string, unknown>;
-}
-
-interface ToolResultInfo {
-  toolName: string;
-  status: string;
-  content: string;
+  task: string;
+  targetPathsJson: string | undefined;
 }
 
 interface SubagentUpdateMessage {
   kind: "update";
   runId: string;
   stage: string;
-  count?: number;
+  count: number | undefined;
   text: string;
 }
 
 interface SubagentFinalMessage {
   kind: "final";
   runId: string;
-  success: boolean;
-  toolCount?: number;
+  status: SubagentStatus;
+  toolCount: number | undefined;
+  evidencePath: string;
   text: string;
 }
 
 type SubagentProtocolMessage = SubagentUpdateMessage | SubagentFinalMessage;
 
-function normalizePayload(input: unknown): Record<string, unknown> {
-  const record = input as Record<string, unknown>;
-  if (record && record.eventPayload && typeof record.eventPayload === "object") {
-    return record.eventPayload as Record<string, unknown>;
-  }
-  return record || {};
-}
-
-function decodeXml(value: unknown): string {
-  return String(value || "")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, "\"")
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&");
-}
-
-function maybeParseJsonString(value: unknown): string | null {
-  const text = String(value || "").trim();
-  if (!text) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(text);
-    return typeof parsed === "string" ? parsed : null;
-  } catch (_error) {
-    return null;
-  }
-}
-
-function unwrapSerializedString(value: unknown): string {
-  let current = String(value || "").trim();
-  let depth = 0;
-
-  while (current && depth < 3) {
-    const parsed = maybeParseJsonString(current);
-    if (parsed === null) {
-      break;
-    }
-    current = String(parsed || "").trim();
-    depth += 1;
-  }
-
-  return current;
-}
-
-function normalizeProtocolText(value: unknown): string {
-  return decodeXml(unwrapSerializedString(value))
-    .replace(/\\"/g, "\"")
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .replace(/\\t/g, "\t")
-    .trim();
-}
-
-function normalizeWhitespace(value: unknown): string {
-  return String(value || "").replace(/\s+/g, " ").trim();
-}
-
-function summarizeText(value: unknown, maxLength: number): string {
-  const text = normalizeWhitespace(decodeXml(value));
-  if (!text) {
-    return "";
-  }
-  if (text.length <= maxLength) {
-    return text;
-  }
-  return text.slice(0, Math.max(0, maxLength - 3)).trimEnd() + "...";
+function decodeXml(value: string): string {
+  return value.replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
 }
 
 function parseTagAttributes(fragment: string): Record<string, string> {
   const attrs: Record<string, string> = {};
-  const normalizedFragment = normalizeProtocolText(fragment);
   const regex = /([A-Za-z_][A-Za-z0-9_\-]*)\s*=\s*"([^"]*)"/g;
   let match: RegExpExecArray | null;
-  while ((match = regex.exec(normalizedFragment)) !== null) {
-    attrs[match[1]] = decodeXml(match[2]);
-  }
+  while ((match = regex.exec(fragment)) !== null) attrs[match[1]] = decodeXml(match[2]);
   return attrs;
 }
 
-function parseParamTags(xmlContent: string): Record<string, string> {
+function shortToolName(name: string): string {
+  return name.substring(name.lastIndexOf(":") + 1).trim();
+}
+
+function resolveToolCallInfo(xml: string): ToolCallInfo | null {
+  const opening = /^\s*<[A-Za-z][A-Za-z0-9_]*\b([^>]*)>/.exec(xml);
+  if (!opening) return null;
+  const attrs = parseTagAttributes(opening[1]);
   const params: Record<string, string> = {};
-  const regex = /<param\s+name="([^"]+)">([\s\S]*?)<\/param>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(String(xmlContent || ""))) !== null) {
-    params[match[1]] = decodeXml(match[2]);
+  const paramPattern = /<param\s+name="([^"]+)">([\s\S]*?)<\/param>/gi;
+  let param: RegExpExecArray | null;
+  while ((param = paramPattern.exec(xml)) !== null) params[param[1]] = decodeXml(param[2]);
+  const name = attrs.name ?? "";
+  if (name !== "package_proxy") {
+    return { toolName: name, task: params.task ?? "", targetPathsJson: params.target_paths_json };
   }
-  return params;
-}
-
-function parseJsonObject(raw: unknown): Record<string, unknown> {
-  const text = String(raw || "").trim();
-  if (!text) {
-    return {};
-  }
-
   try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch (_error) { }
-
-  return {};
-}
-
-function shortToolName(toolName: unknown): string {
-  const raw = String(toolName || "").trim();
-  if (!raw) {
-    return "";
-  }
-  if (raw.includes(":")) {
-    return raw.substring(raw.lastIndexOf(":") + 1).trim();
-  }
-  return raw;
-}
-
-function isSubagentToolName(toolName: unknown): boolean {
-  return shortToolName(toolName) === SUBAGENT_TOOL_NAME;
-}
-
-function resolveToolCallInfo(xmlContent: string): ToolCallInfo {
-  const openTagMatch = /<([A-Za-z][A-Za-z0-9_]*)\b([^>]*)>/i.exec(String(xmlContent || ""));
-  const attrs = parseTagAttributes(openTagMatch ? openTagMatch[2] : "");
-  const rawToolName = String(attrs.name || "").trim();
-  const params = parseParamTags(xmlContent);
-
-  if (rawToolName === "package_proxy") {
-    const forwardedToolName = String(params.tool_name || "").trim();
-    const forwardedParams = parseJsonObject(params.params);
+    const forwarded: ToolPkg.JsonValue = JSON.parse(params.params ?? "{}");
+    if (forwarded === null || typeof forwarded !== "object" || Array.isArray(forwarded)) return null;
     return {
-      rawToolName,
-      toolName: forwardedToolName || rawToolName,
-      params: forwardedParams,
+      toolName: params.tool_name ?? "",
+      task: typeof forwarded.task === "string" ? forwarded.task : "",
+      targetPathsJson: typeof forwarded.target_paths_json === "string" ? forwarded.target_paths_json : undefined,
     };
-  }
-
-  return {
-    rawToolName,
-    toolName: rawToolName,
-    params,
-  };
-}
-
-function extractToolResultInfo(xmlContent: string): ToolResultInfo {
-  const openTagMatch = /<([A-Za-z][A-Za-z0-9_]*)\b([^>]*)>/i.exec(String(xmlContent || ""));
-  const attrs = parseTagAttributes(openTagMatch ? openTagMatch[2] : "");
-  const contentMatch = /<content>([\s\S]*?)<\/content>/i.exec(String(xmlContent || ""));
-
-  return {
-    toolName: String(attrs.name || "").trim(),
-    status: String(attrs.status || "success").trim().toLowerCase(),
-    content: contentMatch ? String(contentMatch[1] || "").trim() : "",
-  };
-}
-
-function countTargetPaths(raw: unknown): number {
-  const text = String(raw || "").trim();
-  if (!text) {
-    return 0;
-  }
-
-  try {
-    const parsed = JSON.parse(text);
-    if (!Array.isArray(parsed)) {
-      return 0;
-    }
-    return parsed
-      .map((item) => String(item || "").trim())
-      .filter(Boolean)
-      .length;
-  } catch (_error) {
-    return 0;
-  }
-}
-
-function stageLabel(stage: string): string {
-  switch (String(stage || "").trim().toLowerCase()) {
-    case "accepted":
-      return "已接受";
-    case "planning":
-      return "规划中";
-    case "tool":
-      return "工具处理中";
-    case "executing":
-      return "执行中";
-    case "summarizing":
-      return "汇总中";
-    default:
-      return "进行中";
-  }
-}
-
-function stageTone(stage: string): "start" | "progress" {
-  const normalized = String(stage || "").trim().toLowerCase();
-  if (normalized === "accepted") {
-    return "start";
-  }
-  return "progress";
-}
-
-function parseSubagentProtocol(content: string): SubagentProtocolMessage | null {
-  const normalizedContent = normalizeProtocolText(content);
-  if (!normalizedContent) {
+  } catch (error) {
+    console.error("Subagent renderer could not parse forwarded parameters", error);
     return null;
   }
-
-  const fragments: string[] = [];
-  fragments.push(normalizedContent);
-  normalizedContent
-    .split(/\r?\n+/)
-    .map((item) => normalizeProtocolText(item))
-    .filter(Boolean)
-    .forEach((item) => fragments.push(item));
-
-  const blocks: string[] = [];
-  fragments.forEach((fragment) => {
-    const matches = fragment.match(/<subagent\b[^>]*>[\s\S]*?<\/subagent>/gi);
-    if (matches) {
-      matches.forEach((match) => {
-        const normalizedBlock = normalizeProtocolText(match);
-        if (normalizedBlock) {
-          blocks.push(normalizedBlock);
-        }
-      });
-    }
-  });
-
-  for (let index = blocks.length - 1; index >= 0; index -= 1) {
-    const block = blocks[index];
-    const wrapperMatch = /<subagent\b[^>]*>([\s\S]*?)<\/subagent>/i.exec(block);
-    if (!wrapperMatch) {
-      continue;
-    }
-
-    const body = wrapperMatch[1];
-    const finalMatch = /<final\b([^>]*)>([\s\S]*?)<\/final>/i.exec(body);
-    if (finalMatch) {
-      const attrs = parseTagAttributes(finalMatch[1]);
-      const toolCountNumber = Number(attrs.tool_count || "");
-      return {
-        kind: "final",
-        runId: String(attrs.run || "").trim(),
-        success: String(attrs.success || "").trim().toLowerCase() === "true",
-        toolCount: Number.isFinite(toolCountNumber) ? toolCountNumber : undefined,
-        text: summarizeText(finalMatch[2], 220),
-      };
-    }
-
-    const updateMatch = /<update\b([^>]*)>([\s\S]*?)<\/update>/i.exec(body);
-    if (updateMatch) {
-      const attrs = parseTagAttributes(updateMatch[1]);
-      const countNumber = Number(attrs.count || "");
-      return {
-        kind: "update",
-        runId: String(attrs.run || "").trim(),
-        stage: String(attrs.stage || "").trim(),
-        count: Number.isFinite(countNumber) ? countNumber : undefined,
-        text: summarizeText(updateMatch[2], 140),
-      };
-    }
-  }
-
-  return null;
 }
 
-function createComposeResult(
-  state: Record<string, ToolPkg.JsonValue>
-): ToolPkg.XmlRenderHookObjectResult {
+function legacyProtocolContent(content: string): string {
+  let text = content.trim();
+  // Older script results serialized the XML string as JSON, sometimes in another serialized string.
+  for (let depth = 0; depth < 3 && text.startsWith('"'); depth += 1) {
+    try {
+      const value: ToolPkg.JsonValue = JSON.parse(text);
+      if (typeof value !== "string") return "";
+      text = value.trim();
+    } catch (error) {
+      console.error("Subagent renderer could not decode a serialized result", error);
+      return "";
+    }
+  }
+  // Decode only an encoded wrapper. Decoding a live wrapper would turn escaped summary text into tags.
+  return text.startsWith("&lt;subagent") ? decodeXml(text) : text;
+}
+
+function optionalCount(value: string | undefined): number | undefined {
+  if (value === undefined || !/^\d+$/.test(value)) return undefined;
+  const count = Number(value);
+  return Number.isSafeInteger(count) ? count : undefined;
+}
+
+export function parseSubagentProtocol(content: string): SubagentProtocolMessage | null {
+  const blocks = legacyProtocolContent(content).match(/<subagent\b[^>]*>[\s\S]*?<\/subagent>/gi);
+  if (!blocks || blocks.length === 0) return null;
+  const body = blocks[blocks.length - 1];
+  const final = /<final\b([^>]*)>([\s\S]*?)<\/final>/i.exec(body);
+  if (final) {
+    const attrs = parseTagAttributes(final[1]);
+    let status: SubagentStatus;
+    if (attrs.status === undefined) {
+      // Historical final messages predate status; success is their explicit protocol field.
+      status = attrs.success === "true" ? "completed" : "failed";
+    } else if (attrs.status === "completed" || attrs.status === "blocked" || attrs.status === "failed") {
+      status = attrs.status;
+      if ((status === "completed") !== (attrs.success === "true")) return null;
+    } else {
+      return null;
+    }
+    return {
+      kind: "final",
+      runId: attrs.run ?? "",
+      status,
+      toolCount: optionalCount(attrs.tool_count),
+      evidencePath: attrs.evidence_path ?? "",
+      text: decodeXml(final[2]).trim(),
+    };
+  }
+  const update = /<update\b([^>]*)>([\s\S]*?)<\/update>/i.exec(body);
+  if (!update) return null;
+  const attrs = parseTagAttributes(update[1]);
   return {
-    handled: true,
-    composeDsl: {
-      screen: SubagentStatusScreen,
-      state,
-      memo: {},
-    },
+    kind: "update", runId: attrs.run ?? "", stage: attrs.stage ?? "",
+    count: optionalCount(attrs.count), text: decodeXml(update[2]).trim(),
   };
 }
 
-function buildToolStartState(info: ToolCallInfo): Record<string, ToolPkg.JsonValue> {
-  const taskSummary = summarizeText(info.params.task, 96);
-  const targetCount = countTargetPaths(info.params.target_paths_json);
-
-  return {
-    title: "Subagent 已启动",
-    summary: taskSummary,
-    detail: targetCount > 0 ? `目标文件 ${targetCount} 个` : "",
-    badge: targetCount > 0 ? `目标 ${targetCount}` : "",
-    tone: "start",
-    variant: "tool_start",
-  };
+function compose(state: ToolPkg.JsonObject): ToolPkg.XmlRenderHookObjectResult {
+  return { handled: true, composeDsl: { screen: SubagentStatusScreen, state, memo: {} } };
 }
 
-function buildUpdateState(
-  message: SubagentUpdateMessage
-): Record<string, ToolPkg.JsonValue> {
-  const detailParts: string[] = [];
-  if (message.runId) {
-    detailParts.push(`运行 ${message.runId}`);
+function stageLabel(stage: string, text: SubagentI18n): string {
+  switch (stage) {
+    case "accepted": return text.stageLabelAccepted;
+    case "planning": return text.stageLabelPlanning;
+    case "executing": return text.stageLabelExecuting;
+    case "tool": return text.stageLabelTool;
+    case "summarizing": return text.stageLabelSummarizing;
+    default: return text.stageLabelDefault;
   }
-
-  return {
-    title: `Subagent ${stageLabel(message.stage)}`,
-    summary: message.text,
-    detail: detailParts.join(" · "),
-    badge: message.count && message.count > 0 ? `工具 ${message.count}` : "",
-    tone: stageTone(message.stage),
-    variant: "update",
-  };
 }
 
-function buildFinalState(
-  message: SubagentFinalMessage
-): Record<string, ToolPkg.JsonValue> {
-  const detailParts: string[] = [];
-  if (message.runId) {
-    detailParts.push(`运行 ${message.runId}`);
-  }
-  if (message.toolCount && message.toolCount > 0) {
-    detailParts.push(`工具调用 ${message.toolCount} 次`);
-  }
-
-  return {
-    title: message.success ? "Subagent 已完成" : "Subagent 失败",
-    summary: message.text,
-    detail: detailParts.join(" · "),
-    badge: message.success ? "成功" : "失败",
-    tone: message.success ? "success" : "failure",
-    variant: "final",
-  };
-}
-
-export function onToolXmlRender(
-  event: ToolPkg.XmlRenderHookEvent
-): ToolPkg.XmlRenderHookReturn {
-  const payload = normalizePayload(event);
-  const tagName = String(payload.tagName || "").trim().toLowerCase();
-  const xmlContent = String(payload.xmlContent || "");
-  if (tagName !== "tool" || !xmlContent) {
-    return { handled: false };
-  }
-
+export function onToolXmlRender(event: ToolPkg.XmlRenderHookEvent): ToolPkg.XmlRenderHookReturn {
+  const { tagName, xmlContent } = event.eventPayload;
+  if (tagName !== "tool" || xmlContent === undefined) return { handled: false };
   const info = resolveToolCallInfo(xmlContent);
-  if (!isSubagentToolName(info.toolName)) {
-    return { handled: false };
-  }
-
-  return createComposeResult(buildToolStartState(info));
+  if (info === null || shortToolName(info.toolName) !== "subagent_run") return { handled: false };
+  const text = resolveSubagentI18n();
+  return compose({
+    title: text.titleStarted, summary: info.task, detail: "", badge: "", tone: "start", variant: "tool_start",
+  });
 }
 
-export function onToolResultXmlRender(
-  event: ToolPkg.XmlRenderHookEvent
-): ToolPkg.XmlRenderHookReturn {
-  const payload = normalizePayload(event);
-  const tagName = String(payload.tagName || "").trim().toLowerCase();
-  const xmlContent = String(payload.xmlContent || "");
-  if (tagName !== "tool_result" || !xmlContent) {
-    return { handled: false };
+export function onToolResultXmlRender(event: ToolPkg.XmlRenderHookEvent): ToolPkg.XmlRenderHookReturn {
+  const { tagName, xmlContent } = event.eventPayload;
+  if (tagName !== "tool_result" || xmlContent === undefined) return { handled: false };
+  const opening = /^\s*<[A-Za-z][A-Za-z0-9_]*\b([^>]*)>/.exec(xmlContent);
+  const content = /<content>([\s\S]*?)<\/content>/i.exec(xmlContent);
+  if (!opening || !content) return { handled: false };
+  const attrs = parseTagAttributes(opening[1]);
+  if (shortToolName(attrs.name ?? "") !== "subagent_run") return { handled: false };
+  const message = parseSubagentProtocol(content[1]);
+  if (message === null) return { handled: false };
+  const text = resolveSubagentI18n();
+  const details = message.runId ? [text.detailRun(message.runId)] : [];
+  if (message.kind === "update") {
+    return compose({
+      title: `Subagent ${stageLabel(message.stage, text)}`, summary: message.text,
+      detail: details.join(" · "), badge: message.count === undefined ? "" : text.badgeToolCount(message.count),
+      tone: message.stage === "accepted" ? "start" : "progress", variant: "update",
+    });
   }
-
-  const info = extractToolResultInfo(xmlContent);
-  if (!isSubagentToolName(info.toolName)) {
-    return { handled: false };
-  }
-
-  const protocol = parseSubagentProtocol(info.content);
-  if (!protocol) {
-    return { handled: false };
-  }
-
-  if (protocol.kind === "update") {
-    return createComposeResult(buildUpdateState(protocol));
-  }
-  return createComposeResult(buildFinalState(protocol));
+  const status = attrs.status === "error" && message.status === "completed" ? "failed" : message.status;
+  if (message.toolCount !== undefined) details.push(text.detailToolCalls(message.toolCount));
+  if (message.evidencePath) details.push(message.evidencePath);
+  return compose({
+    title: status === "completed" ? text.titleCompleted : status === "blocked" ? text.titleBlocked : text.titleFailed,
+    summary: message.text, detail: details.join(" · "),
+    badge: status === "completed" ? text.badgeSuccess : status === "blocked" ? text.badgeBlocked : text.badgeFailure,
+    tone: status === "completed" ? "success" : status === "blocked" ? "blocked" : "failure", variant: "final",
+  });
 }

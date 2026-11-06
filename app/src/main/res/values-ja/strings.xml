@@ -253,7 +253,6 @@
     <string name="permission_guide_intro_page_indicator">機能紹介 %1$d/%2$d</string>
 
     <!-- 2026-08-21 upstream UI additions -->
-    <string name="follow_chat_model_for_all_functions">すべての機能を現在のチャットモデルに合わせる</string>
     <string name="token_stats_rate_summary">1 USD = %1$s CNY</string>
     <string name="token_stats_rate_input_prefix">1 USD =</string>
     <string name="token_stats_rate_estimated">標準の推定値</string>

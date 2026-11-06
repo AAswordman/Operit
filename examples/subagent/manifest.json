@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "toolpkg_id": "com.operit.subagent_bundle",
-  "version": "0.1.0",
-  "api_version": "1.0.0",
+  "version": "0.1.2",
+  "api_version": "1.2.0",
   "main": "dist/main.js",
   "display_name": {
     "zh": "被动式 Subagent 工具包",
     "en": "Passive Subagent Bundle"
   },
   "description": {
-    "zh": "提供一个被动式 subagent ToolPkg 工具，并用轻量 XML 协议渲染启动、进度和最终结果。",
-    "en": "Provides a passive subagent ToolPkg tool with lightweight XML protocol rendering for start, progress, and final results."
+    "zh": "提供有执行预算的被动式子代理，以 XML 返回完成状态和实际工具证据路径。",
+    "en": "Provides a passive subagent with an enforced budget, explicit XML outcome and a path to actual tool evidence."
   },
   "enabled_by_default": true,
   "subpackages": [

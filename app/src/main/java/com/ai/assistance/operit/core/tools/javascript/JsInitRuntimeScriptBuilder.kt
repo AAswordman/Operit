@@ -425,6 +425,21 @@ private fun buildRuntimeToolCallScript(): String {
             }
 
             function parseToolResult(result, isError) {
+                // A terminal timeout is a completed execution outcome for the published SDK.
+                // Keep the host failure flag, while returning the typed timeout details to
+                // scripts that inspect timedOut. Other execution failures still reject.
+                if (
+                    result &&
+                    typeof result === 'object' &&
+                    result.success === false &&
+                    (result.dataType === 'terminal_command_result' ||
+                        result.dataType === 'hidden_terminal_command_result') &&
+                    result.data &&
+                    typeof result.data === 'object' &&
+                    result.data.timedOut === true
+                ) {
+                    return result.data;
+                }
                 if (isError) {
                     if (result && typeof result === 'object' && result.success === false) {
                         throw buildToolError(result);

@@ -56,7 +56,11 @@ class ToolPkgFloatingWindowController(
                 "update" -> updateWindow(owner, args)
                 "show" -> setVisibility(owner, args, visible = true)
                 "hide" -> setVisibility(owner, args, visible = false)
-                "close" -> closeWindow(owner, args)
+                "close" -> {
+                    closeWindow(owner, args)
+                    // The bridge serializes this result; returning Unit breaks the JSON null contract.
+                    null
+                }
                 else -> throw IllegalArgumentException(
                     "Unknown floating window operation: $operation"
                 )

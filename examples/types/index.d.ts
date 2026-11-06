@@ -285,6 +285,22 @@ declare global {
 
     function getChatId(): string | undefined;
 
+    /** Host-assigned tool session identity; distinct for every delegated subtask run. @since 1.2.0 */
+    function getToolSessionId(): string | undefined;
+
+    /** Capture at tool entry before awaiting. Its Java calls and metadata belong to this execution. @since 1.2.0 */
+    interface ToolExecutionContext {
+        readonly callId: string;
+        readonly java: JavaBridgeApiType;
+        readonly chatId: string | undefined;
+        readonly callerCardId: string | undefined;
+        readonly language: string;
+        readonly emitIntermediate: (xml: string) => void;
+    }
+
+    /** @since 1.2.0 */
+    function getToolExecutionContext(): ToolExecutionContext;
+
     function getCallerCardId(): string | undefined;
 
     const OPERIT_DOWNLOAD_DIR: string;

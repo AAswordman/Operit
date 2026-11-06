@@ -410,9 +410,17 @@ function create(sessionName?: string): Promise<TerminalSessionCreationResultData
 function exec(sessionId: string, command: string, timeoutMs?: number | string): Promise<TerminalCommandResultData>;
 ```
 
-`sessionId` 必填且必须仍存在。默认超时是 `1800000` 毫秒（30 分钟）。宿主收集命令的全部输出，结果包含 `command`、`output`、`exitCode`、`sessionId` 和 `timedOut`。
+`sessionId` 必填且必须仍存在。默认超时是 `1800000` 毫秒（30 分钟）。宿主收集命令的全部输出，结果包含 `command`、`output`、`exitCode`、`sessionId`、`timedOut` 和 `sessionAlive`。
 
-超时处理不是立即丢弃会话：宿主发送中断信号，最多再等待 3 秒确认命令停止，然后返回 `exitCode = -1`、`timedOut = true` 的结果；该路径不会把超时本身作为失败错误，也会保留终端会话。会话不存在、无法取得输出流或其他异常才返回失败。
+工具执行使用 Bash 在原 shell 中报告实际退出状态，保留工作目录、变量和已有提示符钩子。非零退出属于工具失败；仅看到提示符、完成事件或全屏程序退出，不等于退出码为 0。主动结束 shell 时保留进程实际退出码；缺失退出状态明确失败。连接到其他 shell 时需使用 Bash 执行工具命令。
+
+`sessionAlive` 表示返回结果时原 shell 进程仍然存在，不表示工作目录或变量被还原。`super_admin` 保留 `context_preserved` 字段，并令其等于这一真实存活状态；超时后的活会话可以为 true，主动退出后的会话为 false。
+
+超时时，宿主发送中断信号，最多再等待 3 秒确认命令停止，然后将本次工具执行标记为失败，同时保留 `exitCode = -1`、`timedOut = true`、会话 ID 和已收集输出。终端不会因超时被主动关闭，是否仍可使用以 `sessionAlive` 为准。
+
+JavaScript SDK 保持既有返回约定：`terminal.exec` 的 Promise 会返回该结构化超时结果，脚本应检查 `result.timedOut`。该约定只适用于宿主明确标记类型的终端超时结果；会话不存在、无法取得输出流或其他异常仍会 reject。宿主失败状态与 SDK 返回结果是不同层次，不应把拿到结果对象解释为命令已成功完成。
+
+内置 `super_admin:terminal` 和 `super_admin:bash` 在超时或非零退出时向模型报告失败，失败详情保留输出、实际退出码、会话 ID、`timedOut`、`sessionAlive` 和实际超时时长。非超时执行失败的 SDK Promise 仍然 reject，结构化详情放在 error.data；包工具消费这些详情形成失败结果，不重复执行命令。大段输出按原规则先保存到文件，失败详情中保留对应文件路径。
 
 ### `terminal.execStreaming(sessionId, command, options?)`
 
@@ -428,7 +436,7 @@ function execStreaming(sessionId: string, command: string, options?: {
 - `type = "start"`：包含命令和会话 ID，尚无输出块。
 - `type = "chunk"`：包含 `chunk`、从 0 开始的 `chunkIndex` 和累计 `receivedChars`。
 
-Promise 最终仍返回 `TerminalCommandResultData`。超时的最终结果仍使用 `timedOut = true` 和 `exitCode = -1`，并保留会话。
+Promise 最终仍返回 `TerminalCommandResultData`。超时时，宿主将执行标记为失败，SDK 最终返回 `timedOut = true`、`exitCode = -1` 的完整结果，并保留会话。已经投递的 start／chunk 回调不受最终超时结果影响。其他执行失败仍会 reject。
 
 ### `terminal.hiddenExec(command, options?)`
 
@@ -439,7 +447,13 @@ function hiddenExec(command: string, options?: {
 }): Promise<HiddenTerminalCommandResultData>;
 ```
 
-`command` 不能为空。默认 `executorKey = "default"`、`timeoutMs = 120000` 毫秒；同一个 key 复用隐藏执行器的登录上下文。结果包含 `command`、`output`、`exitCode`、`executorKey` 和 `timedOut`。超时返回 `timedOut = true`；非超时但隐藏执行器报告失败时返回错误。
+`command` 不能为空。默认 `executorKey = "default"`、`timeoutMs = 120000` 毫秒；同一个 key 复用隐藏执行器的登录上下文。结果包含 `command`、`output`、`exitCode`、`executorKey` 和 `timedOut`。超时时宿主将执行标记为失败，SDK 仍返回 `timedOut = true` 的结构化结果；非零退出或隐藏执行器报告失败时 Promise 会 reject，并保留 error.data。
+
+内置 `super_admin:terminal_wait` 在指定终端会话排队执行完成标记。超时或未观察到完成标记时向模型报告失败，详情包含 `sessionId`、`timedOut`、`waitCompleted`、`markerSeen`、已收集输出和实际等待时长。成功返回的字段保持原有格式。
+
+`super_admin` 未显式指定 `sessionId` 的终端操作按 `getToolSessionId()` 选择默认会话：普通调用使用所属对话的工具会话身份，子代理使用该次任务的独立身份。同一任务的后续调用复用其上下文；无工具会话上下文时仍使用 `super_admin_default_session`。显式传入的 `sessionId` 继续直接指定目标终端。
+
+[终端返回约定回归用例](../../../../examples/tests/terminal-timeout.test.mjs) 可从仓库根目录使用 `node --test examples/tests/terminal-timeout.test.mjs` 执行。用例运行生产 decoder、SDK 定义和两份实际包脚本，模拟宿主回调，覆盖超时详情、流式事件、大输出保存、等待完成标记及工具会话命名；真实 PTY 中断和 hidden executor 复用仍需设备验证。
 
 ### `terminal.close(sessionId)`
 

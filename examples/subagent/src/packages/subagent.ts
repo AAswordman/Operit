@@ -1,544 +1,251 @@
 /* METADATA
 {
     "name": "subagent",
-    "display_name": {
-        "zh": "被动式 Subagent",
-        "en": "Passive Subagent"
-    },
+    "display_name": { "zh": "被动式 Subagent", "en": "Passive Subagent" },
     "description": {
-        "zh": "执行一次被动式子代理委托任务，使用轻量 XML 文本协议返回启动、进度和最终总结。",
-        "en": "Run one delegated passive subagent task and return start, progress, and final summary through a lightweight XML text protocol."
+        "zh": "执行一次被动式子代理委托任务，返回明确完成状态和可核验的工具证据。",
+        "en": "Run one delegated passive subagent task with an explicit outcome and verifiable tool evidence."
     },
     "enabledByDefault": true,
     "category": "System",
-    "tools": [
-        {
-            "name": "subagent_run",
-            "description": {
-                "zh": "接受主 agent 的具体委托任务，内部以子任务模式调用 AI，并以轻量 XML 协议返回简洁进度与最终总结。",
-                "en": "Accept a concrete delegated task from the main agent, call AI in subtask mode internally, and return concise progress plus a final summary using a lightweight XML protocol."
-            },
-            "parameters": [
-                {
-                    "name": "task",
-                    "description": {
-                        "zh": "主 agent 委托的具体任务。",
-                        "en": "The concrete task delegated by the main agent."
-                    },
-                    "type": "string",
-                    "required": true
-                },
-                {
-                    "name": "context_text",
-                    "description": {
-                        "zh": "补充上下文，例如限制条件、验收标准或资源编号。",
-                        "en": "Additional context such as constraints, acceptance criteria, or resource identifiers."
-                    },
-                    "type": "string",
-                    "required": false
-                },
-                {
-                    "name": "target_paths_json",
-                    "description": {
-                        "zh": "JSON 字符串数组，表示优先处理的文件路径列表。",
-                        "en": "A JSON string array containing file paths to prioritize."
-                    },
-                    "type": "string",
-                    "required": false
-                },
-                {
-                    "name": "max_tool_calls",
-                    "description": {
-                        "zh": "建议的最大工具调用次数，默认 8。",
-                        "en": "Suggested maximum number of tool calls, default 8."
-                    },
-                    "type": "number",
-                    "required": false
-                }
-            ]
-        }
-    ]
+    "tools": [{
+        "name": "subagent_run",
+        "description": {
+            "zh": "接受具体委托，返回完成、受阻或失败状态及实际工具证据路径；摘要超限时完整正文见 evidence_path。",
+            "en": "Return completed, blocked or failed with actual evidence; full text exceeding the inline summary limit is in evidence_path."
+        },
+        "parameters": [
+            { "name": "task", "description": { "zh": "非空的具体委托任务。", "en": "A non-empty concrete delegated task." }, "type": "string", "required": true },
+            { "name": "context_text", "description": { "zh": "补充上下文、限制和验收条件。", "en": "Additional context, constraints and acceptance criteria." }, "type": "string", "required": false },
+            { "name": "target_paths_json", "description": { "zh": "非空文件路径组成的 JSON 字符串数组。", "en": "A JSON array of non-empty file path strings." }, "type": "string", "required": false },
+            { "name": "max_tool_calls", "description": { "zh": "实际工具调用预算，整数 1 至 64，默认 8。", "en": "An enforced tool-call budget, integer 1 to 64, default 8." }, "type": "number", "required": false }
+        ]
+    }]
 }
 */
-import "../../../types/quickjs-runtime.js";
-import type { JavaBridgeValue } from "../../../types/java-bridge";
+import { resolveSubagentI18n } from "../shared/subagent_i18n.js";
+import {
+  decideOutcome, escapeXmlAttr, escapeXmlText, finalXml, inlineSummary,
+  parseHostOutcome, parseToolEvidence, SubagentProtocolError, toolReturn, validateTask,
+} from "../shared/subagent_protocol.js";
+import type {
+  FailureEnvelope, FinalDecision, HostOutcome, SubagentParams, ToolEvidence, ValidatedTask,
+} from "../shared/subagent_protocol.js";
+import type { JavaBridgeInstance } from "../../../types/java-bridge";
 
-const EnhancedAIService = Java.com.ai.assistance.operit.api.chat.EnhancedAIService;
-const FunctionType = Java.com.ai.assistance.operit.data.model.FunctionType;
-const SystemPromptConfig = Java.com.ai.assistance.operit.core.config.SystemPromptConfig;
-const Unit = Java.kotlin.Unit;
-const PromptTurnClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurn");
-const PromptTurnKindClass = Java.type("com.ai.assistance.operit.core.chat.hooks.PromptTurnKind");
-const SendMessageOptionsClass = Java.type(
-  "com.ai.assistance.operit.api.chat.EnhancedAIService$SendMessageOptions"
-);
+interface HostCallbacks {
+  onNonFatalError(error: string): JavaBridgeInstance;
+  onTokenLimitExceeded(): JavaBridgeInstance;
+  onToolInvocation(toolName: string): JavaBridgeInstance;
+  onSubtaskToolResult(recordJson: string): JavaBridgeInstance;
+  onSubtaskCompleted(outcomeJson: string): JavaBridgeInstance;
+}
 
-const TOOL_TAG = /<tool\b[\s\S]*?<\/tool>/gi;
-const TOOL_SELF_CLOSING = /<tool\b[^>]*\/>/gi;
-const TOOL_RESULT_TAG = /<tool_result\b[\s\S]*?<\/tool_result>/gi;
-const TOOL_RESULT_SELF = /<tool_result\b[^>]*\/>/gi;
-const STATUS_TAG = /<status\b[\s\S]*?<\/status>/gi;
-const STATUS_SELF = /<status\b[^>]*\/>/gi;
-const THINK_TAG = /<think(?:ing)?>[\s\S]*?(<\/think(?:ing)?>|\z)/gi;
-const SEARCH_TAG = /<search>[\s\S]*?(<\/search>|\z)/gi;
-
-interface SendMessageOptions {
+interface BridgeSendMessageOptions extends JavaBridgeInstance {
   message: string;
-  chatHistory: ToolPkg.PromptTurn[];
+  chatHistory: JavaBridgeInstance[];
+  chatId: string | null;
+  roleCardId: string | null;
   maxTokens: number;
   tokenUsageThreshold: number;
   customSystemPromptTemplate: string;
-  onToolInvocation?: (toolName: string) => void;
+  subTask: boolean;
+  subtaskMaxToolCalls: number;
+  proxySenderName: string;
+  enableMemoryAutoUpdate: boolean;
+  callbacks: HostCallbacks;
 }
 
-interface ExecutionSettings {
-  maxTokens: number;
-  tokenUsageThreshold: number;
+interface StreamCollector {
+  emit(value: string): JavaBridgeInstance;
 }
 
-interface SubagentParams {
-  task: string;
-  context_text?: string;
-  target_paths_json?: string;
-  max_tool_calls?: number;
+interface HostTextStream {
+  callSuspend(methodName: "collect", collector: StreamCollector): Promise<JavaBridgeInstance>;
 }
 
-function asText(value: unknown): string {
-  if (value === undefined || value === null) {
-    return "";
-  }
-  return String(value);
+interface SubtaskService {
+  callSuspend(methodName: "getModelConfigForFunction", functionType: JavaBridgeInstance, configId: null, modelIndex: null): Promise<JavaBridgeInstance>;
+  callSuspend(methodName: "sendMessage", options: BridgeSendMessageOptions): Promise<HostTextStream>;
 }
 
-function normalizeWhitespace(value: unknown): string {
-  return asText(value).replace(/\s+/g, " ").trim();
+function updateXml(runId: string, stage: string, message: string, count?: number): string {
+  const countAttr = count === undefined ? "" : ` count="${count}"`;
+  return `<subagent><update run="${escapeXmlAttr(runId)}" stage="${escapeXmlAttr(stage)}"${countAttr}>${escapeXmlText(message)}</update></subagent>`;
 }
 
-function clipText(value: unknown, maxLength: number): string {
-  const text = normalizeWhitespace(value);
-  if (!text) {
-    return "";
-  }
-  if (text.length <= maxLength) {
-    return text;
-  }
-  return text.slice(0, Math.max(0, maxLength - 3)).trimEnd() + "...";
-}
-
-function escapeXmlText(value: unknown): string {
-  return asText(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function escapeXmlAttr(value: unknown): string {
-  return escapeXmlText(value).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-
-function toErrorText(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message || String(error);
-  }
-  return asText(error) || "unknown error";
-}
-
-function readBridgeValue(target: any, key: string): unknown {
-  if (!target) {
-    return undefined;
-  }
-
-  try {
-    const value = target[key];
-    if (value !== undefined) {
-      return value;
-    }
-  } catch (_error) { }
-
-  const capitalized = key.charAt(0).toUpperCase() + key.slice(1);
-  const getterNames = ["get" + capitalized, "is" + capitalized];
-  for (const getterName of getterNames) {
-    try {
-      if (typeof target[getterName] === "function") {
-        return target[getterName]();
-      }
-    } catch (_error) { }
-  }
-
-  return undefined;
-}
-
-function removeThinkingContent(raw: unknown): string {
-  return asText(raw).replace(THINK_TAG, "").replace(SEARCH_TAG, "").trim();
-}
-
-function stripMarkup(text: unknown): string {
-  return asText(text)
-    .replace(TOOL_TAG, "")
-    .replace(TOOL_SELF_CLOSING, "")
-    .replace(TOOL_RESULT_TAG, "")
-    .replace(TOOL_RESULT_SELF, "")
-    .replace(STATUS_TAG, "")
-    .replace(STATUS_SELF, "")
-    .trim();
-}
-
-function extractFinalNonToolAssistantContent(raw: unknown): string {
-  const noThinking = removeThinkingContent(asText(raw).trim());
-  const lastToolLike =
-    /(<tool\s+name="([^"]+)"[\s\S]*?<\/tool>)|(<tool_result([^>]*)>[\s\S]*?<\/tool_result>)/gi;
-
-  let lastMatch: RegExpExecArray | null = null;
-  let match: RegExpExecArray | null;
-  while ((match = lastToolLike.exec(noThinking)) !== null) {
-    lastMatch = match;
-  }
-
-  const tail = lastMatch
-    ? noThinking.substring((lastMatch.index || 0) + lastMatch[0].length)
-    : noThinking;
-  const tailStripped = stripMarkup(tail);
-  if (tailStripped) {
-    return tailStripped;
-  }
-
-  const fullStripped = stripMarkup(noThinking);
-  if (!fullStripped) {
-    return "";
-  }
-
-  const parts = fullStripped
-    .split(/\n\s*\n+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return parts.length > 0 ? parts[parts.length - 1] : fullStripped;
-}
-
-function toKotlinPromptTurnList(history: ToolPkg.PromptTurn[]): JavaBridgeValue[] {
-  return (history || []).map((turn) =>
-    new PromptTurnClass(
-      resolvePromptTurnKind(turn.kind),
-      String(turn.content ?? ""),
-      typeof turn.toolName === "string" ? turn.toolName : null,
-      isJsonObject(turn.metadata) ? turn.metadata : {}
-    )
-  );
-}
-
-function resolvePromptTurnKind(kind: ToolPkg.PromptTurnKind): JavaBridgeValue {
-  switch (kind) {
-    case "SYSTEM":
-      return PromptTurnKindClass.SYSTEM;
-    case "ASSISTANT":
-      return PromptTurnKindClass.ASSISTANT;
-    case "TOOL_CALL":
-      return PromptTurnKindClass.TOOL_CALL;
-    case "TOOL_RESULT":
-      return PromptTurnKindClass.TOOL_RESULT;
-    case "SUMMARY":
-      return PromptTurnKindClass.SUMMARY;
-    case "USER":
-    default:
-      return PromptTurnKindClass.USER;
-  }
-}
-
-function isJsonObject(value: unknown): value is ToolPkg.JsonObject {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function createSendMessageOptions(options: SendMessageOptions): JavaBridgeValue {
-  const javaOptions = new SendMessageOptionsClass();
-  javaOptions.message = String(options.message ?? "");
-  javaOptions.chatHistory = toKotlinPromptTurnList(options.chatHistory || []);
-  javaOptions.maxTokens = Number(options.maxTokens);
-  javaOptions.tokenUsageThreshold = Number(options.tokenUsageThreshold);
-  javaOptions.customSystemPromptTemplate = options.customSystemPromptTemplate || null;
-  javaOptions.subTask = true;
-  javaOptions.proxySenderName = "Subagent";
-  javaOptions.enableMemoryAutoUpdate = false;
-  return javaOptions;
-}
-
-async function collectStreamToString(stream: {
-  callSuspend: (...args: unknown[]) => Promise<unknown>;
-}): Promise<string> {
-  let buffer = "";
-  const collector = {
-    emit(value: unknown) {
-      buffer += String(value || "");
-      return Unit.INSTANCE;
-    },
-  };
-
-  await stream.callSuspend("collect", collector);
-  return buffer;
-}
-
-async function sendMessage(
-  enhancedAIService: { callSuspend: (...args: unknown[]) => Promise<unknown> },
-  options: SendMessageOptions
-): Promise<string> {
-  const javaOptions = createSendMessageOptions(options) as {
-    callbacks?: unknown;
-  };
-  javaOptions.callbacks = options.onToolInvocation
-    ? {
-      onToolInvocation(toolName: string) {
-        options.onToolInvocation?.(toolName);
-        return Unit.INSTANCE;
-      }
-    }
-    : null;
-
-  const stream = await enhancedAIService.callSuspend(
-    "sendMessage",
-    javaOptions
-  );
-
-  return collectStreamToString(stream as { callSuspend: (...args: unknown[]) => Promise<unknown> });
-}
-
-function getAppContext(): unknown {
-  if (typeof Java.getApplicationContext !== "function") {
-    return null;
-  }
-  return Java.getApplicationContext();
-}
-
-function createRunId(): string {
-  const now = Date.now().toString(36).slice(-6);
-  const random = Math.floor(Math.random() * 1296)
-    .toString(36)
-    .padStart(2, "0");
-  return "s" + now + random;
-}
-
-function parseTargetPaths(params: SubagentParams): string[] {
-  const raw = asText(params.target_paths_json).trim();
-  if (!raw) {
-    return [];
-  }
-
-  const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed)) {
-    throw new Error("target_paths_json must be a JSON string array");
-  }
-
-  return parsed.map((item) => asText(item).trim()).filter(Boolean);
-}
-
-function parseMaxToolCalls(params: SubagentParams): number {
-  const raw = params.max_tool_calls;
-  if (raw === undefined || raw === null || String(raw).trim() === "") {
-    return 8;
-  }
-
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error("max_tool_calls must be a positive number");
-  }
-  return Math.floor(value);
-}
-
-function stageUpdateXml(
-  runId: string,
-  stage: string,
-  message: string,
-  attrs?: Record<string, unknown>
-): string {
-  const extraAttrs = attrs || {};
-  const attrSegments = [
-    `run="${escapeXmlAttr(runId)}"`,
-    `stage="${escapeXmlAttr(stage)}"`,
-  ];
-
-  Object.keys(extraAttrs).forEach((key) => {
-    const value = extraAttrs[key];
-    if (value !== undefined && value !== null && String(value).trim() !== "") {
-      attrSegments.push(`${key}="${escapeXmlAttr(String(value))}"`);
-    }
-  });
-
-  return `<subagent><update ${attrSegments.join(" ")}>${escapeXmlText(message)}</update></subagent>`;
-}
-
-function finalXml(
-  runId: string,
-  success: boolean,
-  toolCount: number,
-  message: string
-): string {
-  const attrs = [
-    `run="${escapeXmlAttr(runId)}"`,
-    `success="${success ? "true" : "false"}"`,
-    `tool_count="${escapeXmlAttr(String(toolCount))}"`,
-  ];
-
-  return `<subagent><final ${attrs.join(" ")}>${escapeXmlText(message)}</final></subagent>`;
-}
-
-function emitIntermediate(xmlText: string): void {
-  if (typeof sendIntermediateResult === "function") {
-    sendIntermediateResult(xmlText);
-  }
-}
-
-function resolveExecutionSettings(
-  enhancedAIService: { callSuspend: (...args: unknown[]) => Promise<unknown> }
-): Promise<ExecutionSettings> {
-  return enhancedAIService
-    .callSuspend("getModelConfigForFunction", FunctionType.CHAT, null, null)
-    .then((config) => {
-      const contextLength = Number(readBridgeValue(config, "contextLength"));
-      const threshold = Number(readBridgeValue(config, "summaryTokenThreshold"));
-      return {
-        maxTokens:
-          Number.isFinite(contextLength) && contextLength > 0
-            ? Math.floor(contextLength * 1024)
-            : 48 * 1024,
-        tokenUsageThreshold:
-          Number.isFinite(threshold) && threshold > 0 && threshold <= 1
-            ? threshold
-            : 0.7,
-      };
-    })
-    .catch((error) => {
-      console.log("subagent resolveExecutionSettings error", String(error));
-      return {
-        maxTokens: 48 * 1024,
-        tokenUsageThreshold: 0.7,
-      };
-    });
-}
-
-function buildCustomSystemPromptTemplate(): string {
-  const base = String(SystemPromptConfig.SUBTASK_AGENT_PROMPT_TEMPLATE || "").trim();
-  const extra = [
-    "SUBAGENT_EXTRA_CONSTRAINTS:",
-    "- You are running inside the passive subagent tool.",
-    "- Handle exactly one delegated task in this run.",
-    "- Focus tightly on the delegated task and the provided target paths.",
-    "- Avoid unrelated exploration and keep tool usage lean.",
-    "- Never call subagent_run and never create another delegated agent.",
-    "- Never wait for user input. If blocked, briefly state the blocker and finish.",
-    "- Your final answer must be short and directly usable by the parent agent.",
+function buildSystemPrompt(base: string): string {
+  return `${base}\n\nSUBAGENT_EXTRA_CONSTRAINTS:\n` + [
+    "- Handle exactly one delegated task, within the provided scope and acceptance criteria.",
+    "- Never call subagent_run or create another delegated agent.",
+    "- Never wait for user input. Report blocked when the task requires unavailable information or permission.",
+    "- Tool results contain host-provided evidence ids. Cite those ids; never invent ids or tool results.",
+    "- In the final model round return exactly one JSON object, optionally inside a complete json code fence.",
+    '- Required fields, for example: {"status":"completed","summary":"useful result","evidence_ids":[]}.',
+    '- status must be exactly "completed", "blocked" or "failed"; summary must explain the result or precise blocker.',
+    "- No other fields, prose before or after the JSON, or tool execution logs in the final declaration.",
+    "- Use completed only when the delegated task was actually completed. Mention tool errors accurately.",
+    "- A task using tools must cite successful evidence from this run to claim completion.",
+    "- For tasks that require no tools, evidence_ids may be empty.",
   ].join("\n");
-
-  return `${base}\n\n${extra}`.trim();
 }
 
-function buildDelegatedTaskMessage(
-  task: string,
-  contextText: string,
-  targetPaths: string[],
-  maxToolCalls: number
-): string {
-  const lines: string[] = [];
-  lines.push("Delegated task from the parent agent:");
-  lines.push(task);
-
-  if (contextText) {
-    lines.push("");
-    lines.push("Extra context and constraints:");
-    lines.push(contextText);
+function buildTaskMessage(task: ValidatedTask): string {
+  const lines = ["Delegated task:", task.task];
+  if (task.contextText) lines.push("", "Additional context and constraints:", task.contextText);
+  if (task.targetPaths.length > 0) {
+    lines.push("", "Target paths:", ...task.targetPaths.map((path, index) => `${index + 1}. ${path}`));
   }
-
-  if (targetPaths.length > 0) {
-    lines.push("");
-    lines.push(
-      "Priority target paths. Stay focused on these unless expansion is strictly necessary:"
-    );
-    targetPaths.forEach((path, index) => {
-      lines.push(`${index + 1}. ${path}`);
-    });
-  }
-
-  lines.push("");
-  lines.push("Execution rules:");
-  lines.push("- Focus only on this delegated task.");
-  lines.push("- Prefer the listed target paths and avoid unrelated exploration.");
-  lines.push(`- Use tools only when necessary. Target maximum tool calls: ${maxToolCalls}.`);
-  lines.push("- Never call subagent_run or delegate to another subagent.");
-  lines.push("- Do not ask the user questions.");
-  lines.push("- Final output must be 2-6 short lines with only the useful result summary.");
+  lines.push("", `Enforced maximum executed tool calls: ${task.maxToolCalls}.`,
+    "Return the explicit final JSON declaration required by the system prompt.");
   return lines.join("\n");
 }
 
-function internalToolUpdateText(toolName: string): string {
-  const raw = asText(toolName).trim();
-  if (!raw || raw === "package_proxy") {
-    return "已触发内部工具";
+async function executionSettings(service: SubtaskService, functionType: JavaBridgeInstance): Promise<{ maxTokens: number; tokenUsageThreshold: number }> {
+  const config = await service.callSuspend("getModelConfigForFunction", functionType, null, null);
+  const contextLength = config.call<number>("getContextLength");
+  const threshold = config.call<number>("getSummaryTokenThreshold");
+  const maxTokens = Math.floor(contextLength * 1024);
+  if (!Number.isFinite(contextLength) || !Number.isSafeInteger(maxTokens) || maxTokens < 1 || maxTokens > 2147483647 ||
+      !Number.isFinite(threshold) || threshold <= 0 || threshold > 1) {
+    throw new SubagentProtocolError("invalid_model_settings", "The configured context length or summary threshold is invalid");
   }
-  const shortName = raw.includes(":")
-    ? raw.substring(raw.lastIndexOf(":") + 1).trim()
-    : raw;
-  return shortName ? `已调用 ${shortName}` : "已触发内部工具";
+  return { maxTokens, tokenUsageThreshold: threshold };
 }
 
-async function runSubagent(params: SubagentParams): Promise<string> {
-  const runId = createRunId();
-  let toolCount = 0;
+async function persistEvidence(runId: string, outcome: HostOutcome | null, records: ToolEvidence[], decision: FinalDecision): Promise<string> {
+  const directory = await Tools.Files.mkdir(OPERIT_CLEAN_ON_EXIT_DIR, true, "android");
+  if (!directory.successful) throw new SubagentProtocolError("evidence_write_failed", directory.details);
+  const path = `${OPERIT_CLEAN_ON_EXIT_DIR}/subagent_${runId}.json`;
+  const written = await Tools.Files.write(path, JSON.stringify({
+    run: runId,
+    outcome,
+    observed_tools: records,
+    decision,
+  }, null, 2), false, "android");
+  if (!written.successful) throw new SubagentProtocolError("evidence_write_failed", written.details);
+  return path;
+}
+
+export async function subagent_run(params: SubagentParams): Promise<string | FailureEnvelope> {
+  // Capture identity and the Java facade before the first await; another script call may run later.
+  const context = getToolExecutionContext();
+  const bridge = context.java;
+  const UUID = bridge.type("java.util.UUID");
+  const unit = bridge.type("kotlin.Unit").getStatic<JavaBridgeInstance>("INSTANCE");
+  const runId = UUID.callStatic<JavaBridgeInstance>("randomUUID").toString();
+  const text = resolveSubagentI18n(context.language);
+  const records: ToolEvidence[] = [];
+  const execution: { outcome: HostOutcome | null; callbackError: SubagentProtocolError | null } = {
+    outcome: null,
+    callbackError: null,
+  };
+  let decision: FinalDecision;
 
   try {
-    const task = asText(params.task).trim();
-    const contextText = asText(params.context_text).trim();
-    const targetPaths = parseTargetPaths(params);
-    const maxToolCalls = parseMaxToolCalls(params);
-
-    emitIntermediate(stageUpdateXml(runId, "accepted", "已接受任务"));
-    emitIntermediate(
-      stageUpdateXml(
-        runId,
-        "planning",
-        targetPaths.length > 0 ? "正在分析目标文件" : "正在分析委托任务"
-      )
-    );
-
-    const context = getAppContext();
-    if (!context) {
-      throw new Error("无法获取应用上下文");
-    }
-
-    const enhancedAIService = EnhancedAIService.getInstance(context);
-    const settings = await resolveExecutionSettings(enhancedAIService);
-
-    emitIntermediate(stageUpdateXml(runId, "executing", "正在执行委托任务"));
-
-    const raw = await sendMessage(enhancedAIService, {
-      message: buildDelegatedTaskMessage(task, contextText, targetPaths, maxToolCalls),
-      chatHistory: [],
-      maxTokens: settings.maxTokens,
-      tokenUsageThreshold: settings.tokenUsageThreshold,
-      customSystemPromptTemplate: buildCustomSystemPromptTemplate(),
-      onToolInvocation: (toolName: string) => {
-        toolCount += 1;
-        emitIntermediate(
-          stageUpdateXml(runId, "tool", internalToolUpdateText(toolName), {
-            count: toolCount,
-          })
-        );
+    // Invalid tasks must fail before accepted/planning or model/service invocation.
+    const task = validateTask(params);
+    context.emitIntermediate(updateXml(runId, "accepted", text.stageAccepted));
+    context.emitIntermediate(updateXml(runId, "planning", task.targetPaths.length > 0 ? text.stagePlanningTargets : text.stagePlanningTask));
+    const EnhancedAIService = bridge.type("com.ai.assistance.operit.api.chat.EnhancedAIService");
+    const service = EnhancedAIService.getInstance(bridge.getApplicationContext()) as SubtaskService;
+    const FunctionType = bridge.type("com.ai.assistance.operit.data.model.FunctionType");
+    const settings = await executionSettings(service, FunctionType.getStatic<JavaBridgeInstance>("CHAT"));
+    const SendMessageOptionsClass = bridge.type("com.ai.assistance.operit.api.chat.EnhancedAIService$SendMessageOptions");
+    const options = new SendMessageOptionsClass() as BridgeSendMessageOptions;
+    options.message = buildTaskMessage(task);
+    options.chatHistory = [];
+    options.chatId = context.chatId ?? null;
+    options.roleCardId = context.callerCardId ?? null;
+    options.maxTokens = settings.maxTokens;
+    options.tokenUsageThreshold = settings.tokenUsageThreshold;
+    options.customSystemPromptTemplate = buildSystemPrompt(bridge.type("com.ai.assistance.operit.core.config.SystemPromptConfig").getStatic<string>("SUBTASK_AGENT_PROMPT_TEMPLATE"));
+    options.subTask = true;
+    options.subtaskMaxToolCalls = task.maxToolCalls;
+    options.proxySenderName = "Subagent";
+    options.enableMemoryAutoUpdate = false;
+    options.callbacks = {
+      onNonFatalError(error: string) {
+        console.error("Subagent non-fatal model error", error);
+        return unit;
       },
-    });
-
-    emitIntermediate(stageUpdateXml(runId, "summarizing", "正在汇总结果"));
-
-    const summary = clipText(extractFinalNonToolAssistantContent(raw), 320);
-    if (!summary) {
-      throw new Error("子代理未返回总结文本");
+      onTokenLimitExceeded() {
+        console.error("Subagent token limit reached");
+        return unit;
+      },
+      onToolInvocation(_toolName: string) {
+        // Invocation notification precedes the execution gate; it is not evidence of execution.
+        return unit;
+      },
+      onSubtaskToolResult(recordJson: string) {
+        try {
+          const record = parseToolEvidence(recordJson);
+          if (records.some(item => item.id === record.id)) {
+            throw new SubagentProtocolError("invalid_host_outcome", "Duplicate tool evidence callback id");
+          }
+          records.push(record);
+          const message = record.success ? text.toolSucceededPrefix(record.toolName) : text.toolFailedPrefix(record.toolName);
+          context.emitIntermediate(updateXml(runId, "tool", message, records.filter(item => item.executed).length));
+        } catch (error) {
+          console.error("Subagent tool evidence callback failed", error);
+          execution.callbackError = new SubagentProtocolError("invalid_host_outcome", error instanceof Error ? error.message : `${error}`);
+        }
+        return unit;
+      },
+      onSubtaskCompleted(outcomeJson: string) {
+        try {
+          if (execution.outcome !== null) throw new SubagentProtocolError("invalid_host_outcome", "Duplicate host completion callback");
+          execution.outcome = parseHostOutcome(outcomeJson);
+        } catch (error) {
+          console.error("Subagent completion callback failed", error);
+          execution.callbackError = new SubagentProtocolError("invalid_host_outcome", error instanceof Error ? error.message : `${error}`);
+        }
+        return unit;
+      },
+    };
+    context.emitIntermediate(updateXml(runId, "executing", text.stageExecuting));
+    const stream = await service.callSuspend("sendMessage", options);
+    await stream.callSuspend("collect", { emit(_value: string) { return unit; } });
+    if (execution.callbackError !== null) throw execution.callbackError;
+    // The callback belongs to this execution. Never infer completion from text or global UI state.
+    if (execution.outcome === null) throw new SubagentProtocolError("missing_host_outcome", "The host did not publish a subtask outcome");
+    context.emitIntermediate(updateXml(runId, "summarizing", text.stageSummarizing));
+    decision = decideOutcome(execution.outcome);
+  } catch (error) {
+    console.error("Subagent execution failed", error);
+    if (execution.callbackError !== null) {
+      decision = { status: "failed", reason: execution.callbackError.reason, summary: execution.callbackError.message, evidenceIds: [] };
+    } else if (execution.outcome !== null && execution.outcome.reason !== "model_finished") {
+      // collect may rethrow after publishing cancellation; preserve that execution's terminal reason.
+      decision = decideOutcome(execution.outcome);
+    } else {
+      decision = {
+        status: "failed",
+        reason: error instanceof SubagentProtocolError ? error.reason : "execution_error",
+        summary: error instanceof Error ? error.message : `${error}`,
+        evidenceIds: [],
+      };
     }
-
-    return finalXml(runId, true, toolCount, summary);
-  } catch (error) {
-    return finalXml(runId, false, toolCount, clipText(`执行失败：${toErrorText(error)}`, 220));
   }
-}
 
-export async function subagent_run(params: SubagentParams): Promise<string> {
-  try {
-    return await runSubagent(params);
-  } catch (error) {
-    const runId = createRunId();
-    return finalXml(runId, false, 0, clipText(`执行失败：${toErrorText(error)}`, 220));
+  const outcome = execution.outcome;
+  const tools = outcome === null ? records : outcome.tools;
+  let evidencePath: string | null = null;
+  // A full ledger can exceed the single-result limit. Archive it before returning a compact index.
+  if (tools.length > 0 || inlineSummary(decision.summary).truncated) {
+    try {
+      evidencePath = await persistEvidence(runId, outcome, records, decision);
+    } catch (error) {
+      console.error("Subagent evidence storage failed", error);
+      decision = {
+        status: "failed",
+        reason: "evidence_write_failed",
+        summary: `${text.errorEvidenceWrite}: ${error instanceof Error ? error.message : `${error}`}`,
+        evidenceIds: [],
+      };
+    }
   }
+  const scopeId = outcome === null ? "" : outcome.toolSessionScopeId;
+  const toolCount = outcome === null ? records.filter(tool => tool.executed).length : outcome.executedToolCount;
+  return toolReturn(finalXml(runId, decision, tools, scopeId, evidencePath, toolCount), decision);
 }

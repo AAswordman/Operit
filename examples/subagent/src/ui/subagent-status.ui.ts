@@ -1,7 +1,5 @@
 import type { ComposeColor, ComposeDslContext, ComposeNode } from "../../../types/compose-dsl";
 
-type RenderTone = "start" | "progress" | "success" | "failure";
-
 interface TonePalette {
   container: ComposeColor;
   title: ComposeColor;
@@ -12,7 +10,7 @@ interface TonePalette {
 
 function resolveTone(ctx: ComposeDslContext, tone: string): TonePalette {
   const scheme = ctx.MaterialTheme.colorScheme;
-  switch (String(tone || "").trim().toLowerCase() as RenderTone) {
+  switch (tone.trim().toLowerCase()) {
     case "start":
       return {
         container: scheme.secondaryContainer.copy({ alpha: 0.38 }),
@@ -20,6 +18,14 @@ function resolveTone(ctx: ComposeDslContext, tone: string): TonePalette {
         summary: scheme.onSecondaryContainer,
         detail: scheme.onSecondaryContainer.copy({ alpha: 0.78 }),
         badge: scheme.onSecondaryContainer.copy({ alpha: 0.74 }),
+      };
+    case "blocked":
+      return {
+        container: scheme.tertiaryContainer.copy({ alpha: 0.30 }),
+        title: scheme.onTertiaryContainer,
+        summary: scheme.onTertiaryContainer,
+        detail: scheme.onTertiaryContainer.copy({ alpha: 0.82 }),
+        badge: scheme.onTertiaryContainer.copy({ alpha: 0.76 }),
       };
     case "failure":
       return {
@@ -92,21 +98,21 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
   const [detail] = ctx.useState("detail", "");
   const [badge] = ctx.useState("badge", "");
   const [tone] = ctx.useState("tone", "progress");
-  const colors = resolveTone(ctx, String(tone || ""));
+  const colors = resolveTone(ctx, tone);
 
   const bodyChildren: ComposeNode[] = [
     buildHeader(
       ctx,
       colors,
-      String(title || "Subagent"),
-      String(badge || "").trim()
+      title,
+      badge.trim()
     ),
   ];
 
-  if (String(summary || "").trim()) {
+  if (summary.trim()) {
     bodyChildren.push(
       ctx.UI.Text({
-        text: String(summary || "").trim(),
+        text: summary.trim(),
         style: "bodySmall",
         color: colors.summary,
         fontSize: 11,
@@ -115,10 +121,10 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
     );
   }
 
-  if (String(detail || "").trim()) {
+  if (detail.trim()) {
     bodyChildren.push(
       ctx.UI.Text({
-        text: String(detail || "").trim(),
+        text: detail.trim(),
         style: "labelSmall",
         color: colors.detail,
         fontSize: 10,
@@ -133,7 +139,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
       paddingHorizontal: 4,
       paddingVertical: 2,
       containerColor: colors.container,
-      elevation: String(tone || "").trim().toLowerCase() === "progress" ? 1 : 0,
+      elevation: tone.trim().toLowerCase() === "progress" ? 1 : 0,
       shape: { cornerRadius: 10 },
     },
     ctx.UI.Column(

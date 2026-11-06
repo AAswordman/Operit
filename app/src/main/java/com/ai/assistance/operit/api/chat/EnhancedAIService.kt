@@ -12,6 +12,7 @@ import com.ai.assistance.operit.api.chat.enhance.ConversationService
 import com.ai.assistance.operit.api.chat.enhance.FileBindingService
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
+import com.ai.assistance.operit.api.chat.enhance.SubtaskExecutionState
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
@@ -57,6 +58,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -323,6 +325,10 @@ class EnhancedAIService private constructor(private val context: Context) {
         fun onTokenLimitExceeded() {}
 
         fun onToolInvocation(toolName: String) {}
+
+        fun onSubtaskToolResult(recordJson: String) {}
+
+        fun onSubtaskCompleted(outcomeJson: String) {}
     }
 
     data class SendMessageOptions(
@@ -354,7 +360,8 @@ class EnhancedAIService private constructor(private val context: Context) {
         var chatModelIndexOverride: Int? = null,
         var memorySpaceIdOverride: String? = null,
         var stream: Boolean = true,
-        var disableWarning: Boolean = false
+        var disableWarning: Boolean = false,
+        var subtaskMaxToolCalls: Int? = null,
     )
 
     // MultiServiceManager 管理不同功能的 AIService 实例
@@ -433,6 +440,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val isConversationActive: AtomicBoolean = AtomicBoolean(true),
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
+        val subtaskExecution: SubtaskExecutionState? = null,
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
         /**
          * Characters of this execution's response already emitted to the consumer.
@@ -458,6 +466,7 @@ class EnhancedAIService private constructor(private val context: Context) {
 
     private fun invalidateExecutionContext(context: MessageExecutionContext, reason: String) {
         if (context.isConversationActive.compareAndSet(true, false)) {
+            context.subtaskExecution?.stop(SubtaskExecutionState.Reason.CANCELLED, reason)
             AppLogger.d(TAG, "执行上下文已失效: id=${context.executionId}, reason=$reason")
         }
     }
@@ -942,6 +951,11 @@ class EnhancedAIService private constructor(private val context: Context) {
         val tokenUsageThreshold = options.tokenUsageThreshold
         val customSystemPromptTemplate = options.customSystemPromptTemplate
         val isSubTask = options.isSubTask
+        val subtaskMaxToolCalls = options.subtaskMaxToolCalls
+        if (subtaskMaxToolCalls != null) {
+            require(isSubTask) { "subtaskMaxToolCalls is only supported for a subtask" }
+            require(subtaskMaxToolCalls in 1..64) { "subtaskMaxToolCalls must be from 1 through 64" }
+        }
         val characterName = options.characterName
         val avatarUri = options.avatarUri
         val roleCardId = options.roleCardId
@@ -992,7 +1006,12 @@ class EnhancedAIService private constructor(private val context: Context) {
                 MessageExecutionContext(
                     executionId = nextExecutionContextId.incrementAndGet(),
                     conversationHistory = chatHistory.toMutableList(),
-                    eventChannel = eventChannel
+                    eventChannel = eventChannel,
+                    subtaskExecution = subtaskMaxToolCalls?.let { maximum ->
+                        SubtaskExecutionState(maximum) { recordJson ->
+                            callbacks?.onSubtaskToolResult(recordJson)
+                        }
+                    },
                 )
             registerExecutionContext(execContext)
             // One execution publishes every tool round into a single response stream, while each
@@ -1257,10 +1276,17 @@ class EnhancedAIService private constructor(private val context: Context) {
                     )
                 }
             } catch (e: CancellationException) {
+                execContext.subtaskExecution?.stop(SubtaskExecutionState.Reason.CANCELLED, e.message)
                 invalidateExecutionContext(execContext, "sendMessage.collect.cancelled")
                 AppLogger.d(TAG, "sendMessage流被取消")
                 throw e
             } catch (e: Exception) {
+                if (execContext.subtaskExecution != null) {
+                    hadFatalError = true
+                    execContext.subtaskExecution.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, e.message)
+                    AppLogger.e(TAG, "Subtask model execution failed", e)
+                    throw e
+                }
                 // 用户取消导致的 Socket closed 是预期行为，不应作为错误处理
                 val isSocketClosed = e.message?.contains("Socket closed", ignoreCase = true) == true
                 if (isSocketClosed) {
@@ -1326,10 +1352,28 @@ class EnhancedAIService private constructor(private val context: Context) {
                             "跳过流完成处理：执行上下文已失效, id=${execContext.executionId}"
                         )
                     }
+                } catch (e: CancellationException) {
+                    execContext.subtaskExecution?.stop(SubtaskExecutionState.Reason.CANCELLED, e.message)
+                    throw e
+                } catch (e: Exception) {
+                    execContext.subtaskExecution?.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, e.message)
+                    throw e
                 } finally {
                     unregisterExecutionContext(execContext)
-                    withContext(NonCancellable) {
-                        releaseModelExecutionSnapshot(execContext)
+                    try {
+                        execContext.subtaskExecution?.let { state ->
+                            if (!state.isStopped()) {
+                                state.stop(
+                                    SubtaskExecutionState.Reason.EXECUTION_ERROR,
+                                    "Subtask execution ended without a terminal outcome",
+                                )
+                            }
+                            state.takeOutcomeJson()?.let { callbacks?.onSubtaskCompleted(it) }
+                        }
+                    } finally {
+                        withContext(NonCancellable) {
+                            releaseModelExecutionSnapshot(execContext)
+                        }
                     }
                 }
             }
@@ -1754,6 +1798,24 @@ class EnhancedAIService private constructor(private val context: Context) {
             // Get response content
             val content = context.streamBuffer.toString().trim()
 
+            if (context.subtaskExecution != null &&
+                SubtaskExecutionState.isFinalDeclarationCandidate(content)
+            ) {
+                // A final declaration can quote literal tool XML. Its JSON belongs to the subtask
+                // protocol parser and must never be scanned or repaired as executable tool markup.
+                finalizeAssistantResponse(
+                    context = context,
+                    content = content,
+                    enableMemoryAutoUpdate = enableMemoryAutoUpdate,
+                    onNonFatalError = onNonFatalError,
+                    isSubTask = isSubTask,
+                    chatId = chatId,
+                    notifyReplyOverride = notifyReplyOverride,
+                    memorySpaceIdOverride = memorySpaceIdOverride,
+                )
+                return
+            }
+
             // If content is empty, it means an error likely occurred or the model returned nothing.
             // We must still finalize the conversation to reset the state correctly.
             if (content.isEmpty()) {
@@ -2011,6 +2073,15 @@ class EnhancedAIService private constructor(private val context: Context) {
         } catch (e: Exception) {
             // Catch any exceptions in the processing flow
             AppLogger.e(TAG, "处理流完成时发生错误", e)
+            context.subtaskExecution?.let { state ->
+                val reason = if (e is CancellationException) {
+                    SubtaskExecutionState.Reason.CANCELLED
+                } else {
+                    SubtaskExecutionState.Reason.EXECUTION_ERROR
+                }
+                state.stop(reason, e.message)
+                throw e
+            }
             withContext(Dispatchers.Main) {
                 _inputProcessingState.value = InputProcessingState.Idle
             }
@@ -2030,6 +2101,12 @@ class EnhancedAIService private constructor(private val context: Context) {
         notifyReplyOverride: Boolean? = null,
         memorySpaceIdOverride: String? = null
     ) {
+        // Only the current revision-applied model round is the subtask's final answer. Display
+        // content also contains earlier tool rounds and must not be exported as its summary.
+        context.subtaskExecution?.stop(
+            SubtaskExecutionState.Reason.MODEL_FINISHED,
+            finalText = context.streamBuffer.toString().trim(),
+        )
         // Mark conversation as complete
         context.isConversationActive.set(false)
 
@@ -2108,6 +2185,11 @@ class EnhancedAIService private constructor(private val context: Context) {
     ) {
         val startTime = messageTimingNow()
 
+        if (context.subtaskExecution?.isStopped() == true) {
+            context.isConversationActive.set(false)
+            return
+        }
+
         toolInvocations.forEach { invocation ->
             onToolInvocation?.invoke(invocation.tool.name)
         }
@@ -2119,7 +2201,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             }
         }
 
-        val processToolJob = toolProcessingScope.launch {
+        val processTools: suspend () -> Unit = processTools@{
             val modelSnapshot = getModelExecutionSnapshot(
                 context,
                 functionType,
@@ -2136,8 +2218,14 @@ class EnhancedAIService private constructor(private val context: Context) {
                 toolExposureMode = ToolExposureMode.resolve(config.apiProviderType),
                 callerName = characterName,
                 callerChatId = chatId,
-                callerCardId = roleCardId
+                callerCardId = roleCardId,
+                subtaskExecution = context.subtaskExecution,
             )
+
+            if (context.subtaskExecution?.isStopped() == true) {
+                context.isConversationActive.set(false)
+                return@processTools
+            }
 
             if (toolBatch.results.isNotEmpty()) {
                 AppLogger.d(TAG, "所有工具结果收集完毕，准备最终处理。")
@@ -2187,13 +2275,22 @@ class EnhancedAIService private constructor(private val context: Context) {
             )
         }
 
-        val invocationId = java.util.UUID.randomUUID().toString()
-        toolExecutionJobs[invocationId] = processToolJob
-
-        try {
-            processToolJob.join()
-        } finally {
-            toolExecutionJobs.remove(invocationId)
+        suspend fun awaitToolJob(scope: CoroutineScope) {
+            val processToolJob = scope.launch { processTools() }
+            val invocationId = java.util.UUID.randomUUID().toString()
+            toolExecutionJobs[invocationId] = processToolJob
+            try {
+                processToolJob.join()
+            } finally {
+                toolExecutionJobs.remove(invocationId)
+            }
+        }
+        if (context.subtaskExecution != null) {
+            // The normal UI uses a SupervisorJob. A delegated run must instead own its tool job,
+            // otherwise join() hides a failed child job and cancellation can outlive the run.
+            coroutineScope { awaitToolJob(this) }
+        } else {
+            awaitToolJob(toolProcessingScope)
         }
     }
 
@@ -2227,6 +2324,10 @@ class EnhancedAIService private constructor(private val context: Context) {
             disableWarning: Boolean = false
     ) {
         val startTime = messageTimingNow()
+        if (context.subtaskExecution?.isStopped() == true) {
+            context.isConversationActive.set(false)
+            return
+        }
         val toolNames = results.joinToString(", ") { it.toolName }
         val toolResultMessage =
             toolResultMessageOverride ?: ConversationMarkupManager.buildToolResultMessage(results)
@@ -2325,6 +2426,10 @@ class EnhancedAIService private constructor(private val context: Context) {
 
             if (usageRatio >= tokenUsageThreshold) {
                 AppLogger.w(TAG, "Token usage ($usageRatio) exceeds threshold ($tokenUsageThreshold) after tool call. Triggering summary.")
+                context.subtaskExecution?.stop(
+                    SubtaskExecutionState.Reason.TOKEN_LIMIT,
+                    "Subtask context token threshold reached",
+                )
                 onTokenLimitExceeded?.invoke()
                 context.isConversationActive.set(false)
                 if (!isSubTask) {
@@ -2464,10 +2569,15 @@ class EnhancedAIService private constructor(private val context: Context) {
                     disableWarning
                 )
             } catch (e: CancellationException) {
+                context.subtaskExecution?.stop(SubtaskExecutionState.Reason.CANCELLED, e.message)
                 AppLogger.d(TAG, "处理工具执行结果被取消")
                 throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "处理工具执行结果时出错", e)
+                context.subtaskExecution?.let { state ->
+                    state.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, e.message)
+                    throw e
+                }
                 withContext(Dispatchers.Main) {
                     _inputProcessingState.value =
                             InputProcessingState.Error(this@EnhancedAIService.context.getString(R.string.enhanced_process_tool_result_failed, e.message ?: ""))
@@ -2855,6 +2965,8 @@ class EnhancedAIService private constructor(private val context: Context) {
 
     /** Cancel all tool executions */
     private fun cancelAllToolExecutions() {
+        // Subtask tool jobs are children of the request, not of the UI's supervisor scope.
+        toolExecutionJobs.values.forEach { it.cancel() }
         toolProcessingScope.coroutineContext.cancelChildren()
     }
 
