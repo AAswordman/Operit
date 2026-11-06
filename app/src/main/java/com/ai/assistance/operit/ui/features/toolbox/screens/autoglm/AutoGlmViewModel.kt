@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.core.tools.agent.ActionHandler
 import com.ai.assistance.operit.core.tools.agent.AgentConfig
@@ -48,6 +49,7 @@ class AutoGlmViewModel(private val context: Context) : ViewModel() {
         executionJob?.cancel()
 
         executionJob = viewModelScope.launch {
+            var serviceLease: MultiServiceManager.ServiceLease? = null
             val logBuilder = StringBuilder()
             appendWithTimestamp(logBuilder, "Initializing agent...")
             _uiState.value = AutoGlmUiState(isLoading = true, log = logBuilder.toString().trimEnd())
@@ -103,7 +105,9 @@ class AutoGlmViewModel(private val context: Context) : ViewModel() {
                     _uiState.value = AutoGlmUiState(isLoading = true, log = logBuilder.toString().trimEnd())
                 }
 
-                val uiService = EnhancedAIService.getAIServiceForFunction(context, com.ai.assistance.operit.data.model.FunctionType.UI_CONTROLLER)
+                val lease = EnhancedAIService.acquireAIServiceForFunction(context, FunctionType.UI_CONTROLLER)
+                serviceLease = lease
+                val uiService = lease.service
                 val systemPrompt = buildUiAutomationSystemPrompt()
 
                 val agentConfig = AgentConfig(maxSteps = 25)
@@ -186,6 +190,8 @@ class AutoGlmViewModel(private val context: Context) : ViewModel() {
             } catch (e: Exception) {
                 AppLogger.e("AutoGlmViewModel", "Error executing task", e)
                 _uiState.value = AutoGlmUiState(isLoading = false, log = "Error: ${e.message}")
+            } finally {
+                serviceLease?.close()
             }
         }
     }

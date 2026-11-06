@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { loadHistoryThroughAnchor, mergeLatestConversationPage } from './ConversationHistorySync';
+import type { PendingHistorySync } from './ConversationHistorySync';
 import {
   bootstrap,
   createChat,
@@ -320,22 +322,6 @@ function makeUploadsFileNamesUnique(
   });
 }
 
-function mergeLatestConversationPage(
-  existingMessages: WebChatMessage[],
-  latestMessages: WebChatMessage[]
-) {
-  if (!latestMessages.length) {
-    return existingMessages;
-  }
-
-  const latestIds = new Set(latestMessages.map((message) => message.id));
-  const oldestLatestTimestamp = latestMessages[0]?.timestamp ?? Number.NEGATIVE_INFINITY;
-  const preservedOlderMessages = existingMessages.filter(
-    (message) => !latestIds.has(message.id) && message.timestamp < oldestLatestTimestamp
-  );
-  return preservedOlderMessages.concat(latestMessages);
-}
-
 function prependOlderMessages(
   existingMessages: WebChatMessage[],
   olderMessages: WebChatMessage[]
@@ -624,6 +610,9 @@ export function useChatViewModel(): ChatViewModel {
   const [inputSettings, setInputSettings] = useState<WebInputSettingsState | null>(null);
   const [memorySelector, setMemorySelector] = useState<WebMemorySelectorState | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
+  const sendInProgressRef = useRef(false);
+  const pendingHistorySyncRef = useRef(new Map<string, PendingHistorySync>());
+  const conversationLoadVersionRef = useRef(0);
   const queueIdRef = useRef(1);
   const skipNextConversationLoadRef = useRef(false);
   const selectedChatIdRef = useRef<string | null>(null);
@@ -773,6 +762,10 @@ export function useChatViewModel(): ChatViewModel {
     chatId: string,
     mode: 'replace' | 'merge-latest' = 'replace'
   ) {
+    const pending = pendingHistorySyncRef.current.get(chatId);
+    // A running response has not finished persisting its history yet.
+    if (pending?.sending) return;
+    const loadVersion = ++conversationLoadVersionRef.current;
     setConnecting(true);
     setInputProcessingStage((currentStage) => (isStreaming ? currentStage : 'connecting'));
 
@@ -780,29 +773,41 @@ export function useChatViewModel(): ChatViewModel {
       if (mode === 'replace') {
         await selectChatOnServer(currentToken, chatId);
       }
+      const completedMessageIds = new Set(pending?.temporaryIds);
       const [themeData, messagePage, selectorData, modelSelectorData, inputSettingsData] =
         await Promise.all([
         getTheme(currentToken, chatId),
-        getMessages(currentToken, chatId, { limit: INITIAL_MESSAGES_PAGE_SIZE }),
+        loadHistoryThroughAnchor(
+          (beforeTimestamp) => getMessages(currentToken, chatId, {
+            limit: INITIAL_MESSAGES_PAGE_SIZE,
+            beforeTimestamp
+          }),
+          pending
+        ),
         getCharacterSelector(currentToken),
         getModelSelector(currentToken),
         getInputSettings(currentToken)
       ]);
+      // A response for the previous chat must not replace the chat now on screen.
+      if (selectedChatIdRef.current !== chatId || loadVersion !== conversationLoadVersionRef.current) return;
       setTheme(themeData);
       setCharacterSelector(selectorData);
       setModelSelector(modelSelectorData);
       setInputSettings(inputSettingsData);
       setMessages((currentMessages) =>
         mode === 'merge-latest'
-          ? mergeLatestConversationPage(currentMessages, messagePage.messages)
+          ? mergeLatestConversationPage(currentMessages, messagePage.messages, completedMessageIds)
           : messagePage.messages
       );
       setHasMoreHistoryBefore(messagePage.has_more_before);
       setHasMoreHistoryAfter(messagePage.has_more_after);
+      pendingHistorySyncRef.current.delete(chatId);
       setError(null);
     } finally {
-      setConnecting(false);
-      setInputProcessingStage(isStreaming ? 'streaming' : 'idle');
+      if (loadVersion === conversationLoadVersionRef.current) {
+        setConnecting(false);
+        setInputProcessingStage(isStreaming ? 'streaming' : 'idle');
+      }
     }
   }
 
@@ -817,6 +822,7 @@ export function useChatViewModel(): ChatViewModel {
       setModelSelectorLoading(false);
       setChats([]);
       resetChatDrafts();
+      pendingHistorySyncRef.current.clear();
       setMessages([]);
       setPendingUploads([]);
       setPendingQueueMessages([]);
@@ -968,9 +974,12 @@ export function useChatViewModel(): ChatViewModel {
   }
 
   async function sendPreparedMessage(text: string, uploadsSnapshot: WebUploadedAttachment[]) {
-    if (!token || isStreaming || (!text.trim() && uploadsSnapshot.length === 0)) {
+    if (!token || sendInProgressRef.current || (!text.trim() && uploadsSnapshot.length === 0)) {
       return;
     }
+    sendInProgressRef.current = true;
+    conversationLoadVersionRef.current += 1;
+    setConnecting(false);
     setBusy(true);
     setStreaming(true);
     setError(null);
@@ -1013,6 +1022,20 @@ export function useChatViewModel(): ChatViewModel {
         streaming: true
       };
 
+      let pending = pendingHistorySyncRef.current.get(targetChatId);
+      if (!pending) {
+        const lastPersistedMessage = messages[messages.length - 1];
+        pending = {
+          temporaryIds: new Set<string>(),
+          sending: true,
+          anchorTimestamp: lastPersistedMessage?.timestamp ?? null
+        };
+        pendingHistorySyncRef.current.set(targetChatId, pending);
+      }
+      pending.sending = true;
+      pending.temporaryIds.add(optimisticUserMessage.id);
+      pending.temporaryIds.add(optimisticAssistantMessage.id);
+
       setMessages((currentMessages) =>
         currentMessages.concat(optimisticUserMessage, optimisticAssistantMessage)
       );
@@ -1029,10 +1052,16 @@ export function useChatViewModel(): ChatViewModel {
         },
         {
           onEvent: (event) => {
-            if (event.event === 'user_message' && event.message) {
+            if (selectedChatIdRef.current !== targetChatId) return;
+            const userMessage = event.message;
+            if (event.event === 'user_message' && userMessage) {
               setMessages((currentMessages) =>
                 currentMessages.map((item) =>
-                  item.id === optimisticUserMessage.id ? event.message ?? item : item
+                  // This SSE event precedes persistence, so it updates the draft without assigning
+                  // a durable identity. The history response replaces this exact draft after send.
+                  item.id === optimisticUserMessage.id
+                    ? { ...userMessage, id: optimisticUserMessage.id }
+                    : item
                 )
               );
             }
@@ -1069,21 +1098,31 @@ export function useChatViewModel(): ChatViewModel {
         streamAbortRef.current.signal
       );
     } catch (sendError: unknown) {
-      const domException = sendError as DOMException;
-      if (domException.name !== 'AbortError') {
+      if (!(sendError instanceof DOMException && sendError.name === 'AbortError')) {
+        console.error('Failed to send chat message', sendError);
         handleApiFailure(sendError);
       }
     } finally {
-      setBusy(false);
-      setStreaming(false);
-      setInputProcessingStage('idle');
-      streamAbortRef.current = null;
-      setAttachmentPanelOpen(false);
-      if (token && targetChatId) {
-        await loadConversation(token, targetChatId, 'merge-latest');
-        if (historyLoaded) {
-          await ensureChatsLoaded(token, true);
+      try {
+        if (token && targetChatId) {
+          const pending = pendingHistorySyncRef.current.get(targetChatId);
+          if (pending) pending.sending = false;
+          await loadConversation(token, targetChatId, 'merge-latest');
+          if (historyLoaded) {
+            await ensureChatsLoaded(token, true);
+          }
         }
+      } catch (refreshError) {
+        console.error('Failed to synchronize chat history after sending a message', refreshError);
+        handleApiFailure(refreshError);
+      } finally {
+        // Keep the next send out of the previous send's history reconciliation window.
+        sendInProgressRef.current = false;
+        setBusy(false);
+        setStreaming(false);
+        setInputProcessingStage('idle');
+        streamAbortRef.current = null;
+        setAttachmentPanelOpen(false);
       }
     }
   }
@@ -1265,6 +1304,7 @@ export function useChatViewModel(): ChatViewModel {
   }
 
   async function sendMessage() {
+    if (sendInProgressRef.current) return;
     const outgoingText = messageInputRef.current.trim();
     const uploadsSnapshot = [...pendingUploads];
     if (!shouldConfirmContextLimit(outgoingText)) {
@@ -1277,8 +1317,6 @@ export function useChatViewModel(): ChatViewModel {
 
   function cancelCurrentMessage() {
     streamAbortRef.current?.abort();
-    setStreaming(false);
-    setInputProcessingStage('idle');
   }
 
   function setHistoryOpen(value: boolean) {
@@ -1367,6 +1405,7 @@ export function useChatViewModel(): ChatViewModel {
   }
 
   async function sendPendingQueueMessage(id: number) {
+    if (sendInProgressRef.current) return;
     const target = pendingQueueMessages.find((item) => item.id === id);
     if (!target) {
       return;

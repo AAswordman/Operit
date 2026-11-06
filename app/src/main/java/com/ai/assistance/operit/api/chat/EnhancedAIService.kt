@@ -153,6 +153,12 @@ class EnhancedAIService private constructor(private val context: Context) {
             return getInstance(context).multiServiceManager.getServiceForFunction(functionType)
         }
 
+        suspend fun acquireAIServiceForFunction(
+            context: Context,
+            functionType: FunctionType
+        ): MultiServiceManager.ServiceLease =
+            getInstance(context).acquireAIServiceForFunction(functionType)
+
         suspend fun getModelConfigForFunction(
             context: Context,
             functionType: FunctionType
@@ -556,6 +562,22 @@ class EnhancedAIService private constructor(private val context: Context) {
         )
     }
 
+    suspend fun acquireAIServiceForFunction(
+        functionType: FunctionType,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null
+    ): MultiServiceManager.ServiceLease {
+        ensureInitialized()
+        val overrideConfigId = chatModelConfigIdOverride?.takeIf { it.isNotBlank() }
+        return if (functionType == FunctionType.CHAT && overrideConfigId != null) {
+            multiServiceManager.acquireServiceForConfig(
+                overrideConfigId, (chatModelIndexOverride ?: 0).coerceAtLeast(0)
+            )
+        } else {
+            multiServiceManager.acquireServiceForFunction(functionType)
+        }
+    }
+
     suspend fun getAIServiceForFunction(
         functionType: FunctionType,
         chatModelConfigIdOverride: String?,
@@ -677,26 +699,28 @@ class EnhancedAIService private constructor(private val context: Context) {
         recordTokenUsage: Boolean = true
     ): String {
         ensureInitialized()
-        val serviceForFunction = getAIServiceForFunction(functionType)
-        val modelParameters = getModelParametersForFunction(functionType)
-        val output = StringBuilder()
+        return acquireAIServiceForFunction(functionType).use { lease ->
+            val serviceForFunction = lease.service
+            val modelParameters = lease.modelParameters
+            val output = StringBuilder()
 
-        serviceForFunction
-            .sendMessage(
-                context = context,
-                chatHistory = turns,
-                modelParameters = modelParameters,
-                enableThinking = enableThinking,
-                stream = false,
-                availableTools = emptyList(),
-                preserveThinkInHistory = true,
-                recordTokenUsage = recordTokenUsage
-            )
-            .collect { chunk ->
-                output.append(chunk)
-            }
+            serviceForFunction
+                .sendMessage(
+                    context = context,
+                    chatHistory = turns,
+                    modelParameters = modelParameters,
+                    enableThinking = enableThinking,
+                    stream = false,
+                    availableTools = emptyList(),
+                    preserveThinkInHistory = true,
+                    recordTokenUsage = recordTokenUsage
+                )
+                .collect { chunk ->
+                    output.append(chunk)
+                }
 
-        return output.toString()
+            output.toString()
+        }
     }
 
     private fun publishRequestWindowEstimate(windowSize: Long) {
@@ -821,88 +845,84 @@ class EnhancedAIService private constructor(private val context: Context) {
                 dispatchToolPromptComposeHooks = ::bypassPromptHooks
             )
 
-        val modelParameters =
-            getModelParametersForFunction(
+        return acquireAIServiceForFunction(
                 functionType = functionType,
                 chatModelConfigIdOverride = chatModelConfigIdOverride,
                 chatModelIndexOverride = chatModelIndexOverride
-            )
-        val serviceForFunction =
-            getAIServiceForFunction(
-                functionType = functionType,
-                chatModelConfigIdOverride = chatModelConfigIdOverride,
-                chatModelIndexOverride = chatModelIndexOverride
-            )
-        val availableTools =
-            getAvailableToolsForFunction(
-                functionType = functionType,
-                chatId = chatId,
-                promptFunctionType = promptFunctionType,
-                roleCardId = roleCardId,
-                modelConfig = modelConfig
-            )
-
-        var finalProcessedInput = message
-        var finalPreparedHistory = preparedHistory
-        val beforeFinalizeContext =
-            applyPromptFinalizeHooks(
-                PromptHookContext(
-                    stage = "before_finalize_prompt",
+            ).use { lease ->
+            val modelParameters = lease.modelParameters
+            val serviceForFunction = lease.service
+            val availableTools =
+                getAvailableToolsForFunction(
+                    functionType = functionType,
                     chatId = chatId,
-                    functionType = functionType.name,
-                    promptFunctionType = promptFunctionType.name,
-                    rawInput = message,
-                    processedInput = finalProcessedInput,
-                    preparedHistory = finalPreparedHistory,
-                    modelParameters = serializePromptHookModelParameters(modelParameters),
-                    availableTools = serializePromptHookToolPrompts(availableTools),
-                    metadata = buildPromptFinalizeMetadata(
-                        chatId = chatId,
-                        roleCardId = roleCardId,
-                        workspacePath = workspacePath,
-                        workspaceEnv = workspaceEnv,
-                        enableThinking = enableThinking,
-                        stream = stream,
-                        isSubTask = isSubTask
-                    )
-                ),
-                dispatchHooks = PromptHookRegistry::dispatchPromptEstimateFinalizeHooks
-            )
-        finalProcessedInput = beforeFinalizeContext.processedInput ?: finalProcessedInput
-        finalPreparedHistory = beforeFinalizeContext.preparedHistory
-        val beforeSendContext =
-            applyPromptFinalizeHooks(
-                beforeFinalizeContext.copy(
-                    stage = "before_send_to_model",
-                    processedInput = finalProcessedInput,
-                    preparedHistory = finalPreparedHistory
-                ),
-                dispatchHooks = PromptHookRegistry::dispatchPromptEstimateFinalizeHooks
-            )
-        finalProcessedInput = beforeSendContext.processedInput ?: finalProcessedInput
-        finalPreparedHistory = beforeSendContext.preparedHistory
-        if (!ChatUtils.isGeminiProviderModel(serviceForFunction.providerModel)) {
-            finalProcessedInput = ChatUtils.stripGeminiThoughtSignatureMeta(finalProcessedInput)
-            finalPreparedHistory = ChatUtils.stripGeminiThoughtSignatureMetaTurns(finalPreparedHistory)
-        }
+                    promptFunctionType = promptFunctionType,
+                    roleCardId = roleCardId,
+                    modelConfig = modelConfig
+                )
 
-        val requestHistory =
-            applyFinalizedCurrentUserTurn(
-                preparedHistory = finalPreparedHistory,
-                originalCurrentMessage = message,
-                finalizedCurrentMessage = finalProcessedInput
-            ).mergeAdjacentTurns { previous, current ->
-                previous.kind == PromptTurnKind.USER &&
-                    current.kind == PromptTurnKind.USER &&
-                    previous.toolName == current.toolName
+            var finalProcessedInput = message
+            var finalPreparedHistory = preparedHistory
+            val beforeFinalizeContext =
+                applyPromptFinalizeHooks(
+                    PromptHookContext(
+                        stage = "before_finalize_prompt",
+                        chatId = chatId,
+                        functionType = functionType.name,
+                        promptFunctionType = promptFunctionType.name,
+                        rawInput = message,
+                        processedInput = finalProcessedInput,
+                        preparedHistory = finalPreparedHistory,
+                        modelParameters = serializePromptHookModelParameters(modelParameters),
+                        availableTools = serializePromptHookToolPrompts(availableTools),
+                        metadata = buildPromptFinalizeMetadata(
+                            chatId = chatId,
+                            roleCardId = roleCardId,
+                            workspacePath = workspacePath,
+                            workspaceEnv = workspaceEnv,
+                            enableThinking = enableThinking,
+                            stream = stream,
+                            isSubTask = isSubTask
+                        )
+                    ),
+                    dispatchHooks = PromptHookRegistry::dispatchPromptEstimateFinalizeHooks
+                )
+            finalProcessedInput = beforeFinalizeContext.processedInput ?: finalProcessedInput
+            finalPreparedHistory = beforeFinalizeContext.preparedHistory
+            val beforeSendContext =
+                applyPromptFinalizeHooks(
+                    beforeFinalizeContext.copy(
+                        stage = "before_send_to_model",
+                        processedInput = finalProcessedInput,
+                        preparedHistory = finalPreparedHistory
+                    ),
+                    dispatchHooks = PromptHookRegistry::dispatchPromptEstimateFinalizeHooks
+                )
+            finalProcessedInput = beforeSendContext.processedInput ?: finalProcessedInput
+            finalPreparedHistory = beforeSendContext.preparedHistory
+            if (!ChatUtils.isGeminiProviderModel(serviceForFunction.providerModel)) {
+                finalProcessedInput = ChatUtils.stripGeminiThoughtSignatureMeta(finalProcessedInput)
+                finalPreparedHistory = ChatUtils.stripGeminiThoughtSignatureMetaTurns(finalPreparedHistory)
             }
 
-        return estimatePreparedRequestWindow(
-            serviceForFunction = serviceForFunction,
-            preparedHistory = requestHistory,
-            availableTools = availableTools,
-            publishEstimate = publishEstimate
-        )
+            val requestHistory =
+                applyFinalizedCurrentUserTurn(
+                    preparedHistory = finalPreparedHistory,
+                    originalCurrentMessage = message,
+                    finalizedCurrentMessage = finalProcessedInput
+                ).mergeAdjacentTurns { previous, current ->
+                    previous.kind == PromptTurnKind.USER &&
+                        current.kind == PromptTurnKind.USER &&
+                        previous.toolName == current.toolName
+                }
+
+            estimatePreparedRequestWindow(
+                serviceForFunction = serviceForFunction,
+                preparedHistory = requestHistory,
+                availableTools = availableTools,
+                publishEstimate = publishEstimate
+            )
+        }
     }
 
     /** Send a message to the AI service */
@@ -3138,23 +3158,19 @@ class EnhancedAIService private constructor(private val context: Context) {
         AppLogger.d(TAG, "手动触发记忆更新...")
         toolProcessingScope.launch {
             try {
-                val memoryService = multiServiceManager.getServiceForFunction(FunctionType.MEMORY)
-                com.ai.assistance.operit.api.chat.library.MemoryLibrary.saveMemoryAsync(
-                    context = context,
-                    toolHandler = toolHandler,
-                    conversationHistory = conversationHistory,
-                    content = lastContent,
-                    aiService = memoryService,
-                    profileIdOverride = memorySpaceIdOverride,
-                    onSuccess = {
-                        AppLogger.d(TAG, "手动记忆更新成功")
-                        onSuccess?.invoke()
-                    },
-                    onError = { e ->
-                        AppLogger.e(TAG, "手动记忆更新失败", e)
-                        onError?.invoke(e)
-                    }
-                )
+                acquireAIServiceForFunction(FunctionType.MEMORY).use { lease ->
+                    // This coroutine owns the lease until the actual memory operation finishes.
+                    com.ai.assistance.operit.api.chat.library.MemoryLibrary.saveMemoryNow(
+                        context = context,
+                        toolHandler = toolHandler,
+                        conversationHistory = conversationHistory,
+                        content = lastContent,
+                        aiService = lease.service,
+                        profileIdOverride = memorySpaceIdOverride
+                    )
+                }
+                AppLogger.d(TAG, "手动记忆更新成功")
+                onSuccess?.invoke()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

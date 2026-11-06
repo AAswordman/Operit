@@ -57,7 +57,7 @@ internal object A2aJsonSerialization {
             is A2aTaskEvent.Status ->
                 statusUpdate(event.task) to A2aTaskManager.isTerminalState(event.task.state)
 
-            is A2aTaskEvent.Artifact -> artifactUpdate(event.task, event.text) to false
+            is A2aTaskEvent.Artifact -> artifactUpdate(event) to false
         }
         return StreamFrame(payload = jsonRpcResult(requestId, result), endsStream = endsStream)
     }
@@ -73,15 +73,16 @@ internal object A2aJsonSerialization {
         )
     }
 
-    private fun artifactUpdate(task: A2aTaskSnapshot, text: String): JSONObject {
+    private fun artifactUpdate(event: A2aTaskEvent.Artifact): JSONObject {
+        val task = event.task
         return JSONObject().put(
             "artifactUpdate",
             JSONObject().apply {
                 put("taskId", task.id)
                 put("contextId", task.contextId)
-                put("artifact", artifact(task.id, text))
-                put("append", true)
-                put("lastChunk", false)
+                put("artifact", artifact(task.id, event.text))
+                put("append", event.append)
+                put("lastChunk", event.lastChunk)
             }
         )
     }

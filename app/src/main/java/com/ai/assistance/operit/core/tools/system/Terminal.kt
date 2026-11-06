@@ -194,6 +194,8 @@ class Terminal private constructor(private val context: Context) {
 
     /**
      * 发送中断信号 (Ctrl+C) 到指定会话，不改变前台当前会话
+     * TerminalCore 直接向目标 PTY 投递控制字节，绕开可能被大段输入占用的文本 writer；
+     * 底层写入在 3 秒内结束或返回 WRITE_TIMED_OUT，调用方才能继续执行取消后的收尾。
      */
     suspend fun sendInterruptSignal(sessionId: String): SessionInputResult {
         return withContext(Dispatchers.IO) {
