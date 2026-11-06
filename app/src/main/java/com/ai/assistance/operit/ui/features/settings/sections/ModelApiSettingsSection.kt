@@ -173,6 +173,9 @@ fun ModelApiSettingsSection(
     var hasInitializedProviderEndpointSync by remember(config.id) { mutableStateOf(false) }
     var previousProviderTypeId by remember(config.id) { mutableStateOf(config.apiProviderTypeId) }
     val selectedApiProvider = ApiProviderType.fromProviderTypeId(selectedProviderTypeId)
+    val selectedToolPkgProvider = if (selectedApiProvider == null) {
+        ToolPkgAiProviderRegistry.get(selectedProviderTypeId)
+    } else null
     val isCodexProvider = selectedApiProvider == ApiProviderType.OPENAI_CODEX
     val codexUsage = persistedCodexUsage
         ?.takeIf { it.accountId == codexAuthState?.accountId }
@@ -636,6 +639,31 @@ fun ModelApiSettingsSection(
                         keyboardType = KeyboardType.Uri,
                         imeAction = ImeAction.Next,
                     ),
+                )
+            } else if (selectedToolPkgProvider?.auth != null) {
+                ToolPkgOAuthSettingsBlock(
+                    provider = selectedToolPkgProvider,
+                    config = config.copy(
+                        apiProviderType = ApiProviderType.OTHER,
+                        apiProviderTypeId = selectedProviderTypeId,
+                        apiEndpoint = apiEndpointInput
+                    ),
+                    onAuthChanged = {
+                        scope.launch { EnhancedAIService.refreshAllServices(configManager.appContext) }
+                    }
+                )
+                SettingsTextField(
+                    title = stringResource(R.string.api_endpoint),
+                    subtitle = stringResource(R.string.api_endpoint_placeholder),
+                    value = apiEndpointInput,
+                    onValueChange = {
+                        apiEndpointInput = it.replace("\n", "").replace("\r", "").replace(" ", "")
+                    },
+                    enabled = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Uri,
+                        imeAction = ImeAction.Next
+                    )
                 )
             } else {
                 SettingsTextField(

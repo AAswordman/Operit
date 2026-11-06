@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="toolpkg_oauth_title">%1$s account authorization</string>
+    <string name="toolpkg_oauth_signed_in">Signed in</string>
+    <string name="toolpkg_oauth_signed_out">Sign-in required</string>
+    <string name="toolpkg_oauth_trust_notice">Only authorize plugins you trust. This plugin receives your access token when calling its models; refresh tokens remain in the host credential store.</string>
+    <string name="toolpkg_oauth_configure_endpoint">Enter a valid HTTPS API endpoint before signing in.</string>
+    <string name="toolpkg_oauth_failed">Authorization could not be completed. Check the provider configuration and try signing in again.</string>
+    <string name="toolpkg_oauth_login">Sign in with browser</string>
+    <string name="toolpkg_oauth_logout">Sign out</string>
+    <string name="toolpkg_oauth_cancel">Cancel</string>
+    <string name="toolpkg_oauth_refresh">Refresh authorization</string>
+    <string name="toolpkg_oauth_authorization_endpoint">Authorization endpoint: %1$s</string>
+    <string name="toolpkg_oauth_token_endpoint">Token endpoint: %1$s</string>
+</resources>
