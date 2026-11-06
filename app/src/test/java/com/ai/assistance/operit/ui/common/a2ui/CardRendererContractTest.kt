@@ -23,8 +23,9 @@ class CardRendererContractTest {
             root = Button(child=Text(text="Submit"),
                 action=Event(name="ai_submit",context={value:"plain"}))
         """.trimIndent())
-        // Official Button actions allow literal scalars and bindings, not literal objects.
-        val incompatible = valid.replace("\"value\":\"plain\"", "\"value\":{\"private\":\"do-not-relay\"}")
+        // Context itself must remain an object even though its values may be structured.
+        val incompatible = valid.replace("\"context\":{\"value\":\"plain\"}", "\"context\":[\"do-not-relay\"]")
+        assertNotEquals(valid, incompatible)
         val report = A2uiProtocol.validationReport(incompatible)
         assertEquals(false, report.getValue("valid").jsonPrimitive.boolean)
         assertTrue(report.getValue("message").jsonPrimitive.content.contains("Button.action"))
@@ -47,12 +48,19 @@ class CardRendererContractTest {
     @Test fun allShippedExamplesMatchRendererSchemas() {
         for (name in listOf("shopping_list", "trip_budget", "filtered_chart", "calculator", "cost_calculator", "charts", "form", "info", "stats",
             "progress", "responsive", "data", "vector", "repeat", "curves", "interactive_flow",
-            "p2_controls", "p2_lists", "flow_steps", "flowchart", "data_story", "mixed_branch", "profile")) {
+            "p2_controls", "p2_lists", "flow_steps", "flowchart", "data_story", "mixed_branch", "profile", "catalog_inputs")) {
             try {
                 validateRenderer(javaClass.getResource("/a2ui/$name.express")!!.readText())
             } catch (e: Exception) {
                 throw AssertionError("Renderer rejected example $name", e)
             }
+        }
+    }
+
+    @Test fun actualCatalogExamplesMatchRendererSchemas() {
+        CardAuthoringCatalog.authoringExamples.forEach { (name, source) ->
+            assertTrue(name, CardAuthoringCatalog.guide().contains(source))
+            validateRenderer(source)
         }
     }
 

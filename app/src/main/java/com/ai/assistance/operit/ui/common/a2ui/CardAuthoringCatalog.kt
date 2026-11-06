@@ -109,6 +109,19 @@ internal object CardAuthoringCatalog {
         field in staticFields && !(component == "Flow" && field == "steps") || component == "Table" && field == "columns" ||
             component == "Html" && field in setOf("html", "css")
 
+    // These are the actual snippets sent to models; renderer contract tests compile
+    // them through the same protocol and schema checks as a2ui_prepare.
+    val authoringExamples = linkedMapOf(
+        "dynamic_table_cells" to """
+            $/minutes = 40
+            root = Table(columns=["Topic","Minutes"],rows=[["GPU",formatNumber(value=$/minutes,decimals=0)]])
+        """.trimIndent(),
+        "structured_event_context" to """
+            $/plan = {title:"GPU",done:true}
+            root = Button(child=Text(text="Reset"),action=Event(name="local_action",context={op:"set",path:"/plan",value:{title:"GPU",done:false}}))
+        """.trimIndent(),
+    )
+
     fun guide(): String = buildString {
         appendLine("a2ui_prepare compiles and queues a card. Operit automatically displays queued cards when this turn completes. You may optionally output the returned reference in an a2ui-ref fence to position it earlier. Do not rewrite JSON, print a URL, or copy historical card summaries as a display instruction. References belong only to the current turn.")
         appendLine("For a form that must be answered inside this turn, call a2ui_prepare(source=...,wait_timeout_seconds=180). Range: integer 0..600; default 0 preserves ordinary queued delivery. A positive timeout displays the card immediately, then suspends the tool until the user confirms an ai_submit/tool_action, cancels, or the timeout expires. The tool returns status=submitted with structured data, status=timed_out, or status=cancelled. Do not output another message, poll, or display the reference again while waiting. Use native form inputs and Event actions; Html authored scripts cannot submit data. Live mode may be combined with waiting.")
@@ -140,6 +153,11 @@ internal object CardAuthoringCatalog {
         CardFunctions.specs.forEach { (name, spec) ->
             appendLine("$name(${(spec.required.map { "$it: value" } + spec.optional.map { "$it?: value" }).joinToString()})")
         }
-        appendLine("Event(name: string, context?: object) describes a Button/Pressable action or a local-only onChange. It does not execute while compiling.")
+        appendLine("Table rows supports direct bindings and calculations inside cells, as well as a binding/calculation for whole rows. Evaluated rows must be up to 32 arrays of scalar cells, each matching the number of columns.")
+        appendLine("Event(name: string, context?: object) describes a Button/Pressable action or a local-only onChange. Context values may contain nested objects, arrays, bindings and local calculations. They are evaluated when dispatched; compiling does not execute actions. A local_action/set value may directly be an object literal.")
+        authoringExamples.forEach { (name, source) ->
+            appendLine("Complete example ($name):")
+            appendLine(source)
+        }
     }
 }

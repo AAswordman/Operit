@@ -29,3 +29,17 @@ root=Progress(label="实时进度",number=divide(a=$/agent/progress,b=100))
 `a2ui_catalog` 包含可执行的最小源码、图表系列及散点结构、输入框直接路径回写和滑块参数说明。图表系列名称使用 `label`，普通系列使用 `values`，散点使用 `points`。新 Express 对已知初始系列严格检查字段，并在参数错误中列出真实签名、未知项和缺少项；历史 JSON 继续按原协议渲染。滑块取消与渲染负担无关的 1000 跨度限制，端点仍限制在 -1000000—1000000，steps 为 0—999。
 
 送给模型的历史摘要明确标注仅供上下文，不再使用类似链接的方括号占位。数据库和复制内容保留真实卡片全文；正常结束时未定位卡片由宿主追加，流式回滚后按实际保留正文重新判断，已取消或已结束的其他请求不能投递。
+
+
+动态表格可以直接在单元格中使用初始化路径和局部计算；`rows` 整体也可绑定或计算。求值后的每行列数必须与表头一致，单元格为标量，最多 32 行。按钮事件的 `context` 支持嵌套对象、数组、路径绑定及局部计算，`local_action/set` 可以直接写入对象字面量；这些值在事件派发时求值，编译不会执行动作。
+
+下面的动态表格和对象重置可直接交给 `a2ui_prepare`：
+
+```text
+$/plan = {gpu:40,cuda:35}
+root = Column(children=[table,reset])
+table = Table(columns=["主题","分钟"],rows=[["GPU",formatNumber(value=$/plan/gpu,decimals=0)],["CUDA",$/plan/cuda]])
+reset = Button(child=Text(text="重置计划"),action=Event(name="local_action",context={op:"set",path:"/plan",value:{gpu:40,cuda:35}}))
+```
+
+Catalog 内的完整正向示例同时作为渲染器契约回归输入，覆盖实际组件 Schema，减少说明与实现脱节。

@@ -19,7 +19,7 @@ class CardExpressTest {
     }
 
     @Test fun examplesPassNativeProtocol() {
-        for (name in listOf("shopping_list", "trip_budget", "filtered_chart", "calculator", "cost_calculator", "charts", "form", "info", "stats", "progress", "responsive", "data", "vector", "repeat", "curves", "interactive_flow", "p2_controls", "p2_lists", "flow_steps", "flowchart", "data_story", "mixed_branch", "profile", "backgrounds", "surfaces")) {
+        for (name in listOf("shopping_list", "trip_budget", "filtered_chart", "calculator", "cost_calculator", "charts", "form", "info", "stats", "progress", "responsive", "data", "vector", "repeat", "curves", "interactive_flow", "p2_controls", "p2_lists", "flow_steps", "flowchart", "data_story", "mixed_branch", "profile", "backgrounds", "surfaces", "catalog_inputs")) {
             val source = javaClass.getResource("/a2ui/$name.express")!!.readText()
             val report = CardExpress.report(source)
             assertEquals("$name: $report", JsonPrimitive(true), report["valid"])
