@@ -1,6 +1,8 @@
 package com.ai.assistance.operit.core.tools.agent
 
 import android.content.Context
+import com.ai.assistance.operit.R
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import com.ai.assistance.operit.ui.common.displays.UIOperationOverlay
 import java.io.StringReader
@@ -62,6 +64,7 @@ internal class AccessibilityPhoneUiDriver(
         }
         val bounds = targets.single().bounds ?: throw PhoneUiException("Tap target has no bounds")
         if (!bounds.isUsable) throw PhoneUiException("Tap target has no usable bounds")
+        AppLogger.d("PhoneAgent", "node_tap_request: pixel=(${bounds.centerX},${bounds.centerY}) resource_id=${node.resourceId}")
         inputScope {
             val feedback = UIOperationOverlay.getInstance(context)
             withContext(Dispatchers.Main.immediate) { feedback.hideImmediately() }
@@ -70,7 +73,7 @@ internal class AccessibilityPhoneUiDriver(
                 UIHierarchyManager.performClick(context, bounds.centerX, bounds.centerY).also { delivered = it }
             } finally {
                 withContext(NonCancellable + Dispatchers.Main.immediate) {
-                    feedback.showAgentTap(bounds.centerX, bounds.centerY, delivered)
+                    feedback.showAgentTap(bounds.centerX, bounds.centerY, delivered, context.getString(R.string.phone_agent_source_nodes))
                 }
             }
         }

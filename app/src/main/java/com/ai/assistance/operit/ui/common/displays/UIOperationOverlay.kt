@@ -263,7 +263,7 @@ class UIOperationOverlay private constructor(private val context: Context) {
     }
     
     /** Show the dispatched screen coordinates; delivery is distinct from an app state change. */
-    fun showAgentTap(x: Int, y: Int, delivered: Boolean) {
+    fun showAgentTap(x: Int, y: Int, delivered: Boolean, source: String? = null) {
         runOnMainThread {
             // A tool may have scheduled its short generic animation for removal. Replace it once.
             dismissOverlayNow()
@@ -271,7 +271,7 @@ class UIOperationOverlay private constructor(private val context: Context) {
                 if (delivered) R.string.phone_agent_tap_sent else R.string.phone_agent_tap_unconfirmed,
                 x, y
             )
-            showTap(x, y, autoHideDelayMs = 2500, label = label)
+            showTap(x, y, autoHideDelayMs = 2500, label = if (source == null) label else "$label · $source")
         }
     }
 

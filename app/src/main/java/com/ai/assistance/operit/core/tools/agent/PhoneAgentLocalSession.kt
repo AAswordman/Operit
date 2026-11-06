@@ -20,10 +20,14 @@ internal class PhoneAgentLocalSession(
         "${PackageInfoCompat.getLongVersionCode(info)}:${info.lastUpdateTime}"
     }
     private var observed: PhoneUiSnapshot? = null
+    var lastNodeCount: Int? = null
+        private set
 
     suspend fun observe(): String {
         observed = null
+        lastNodeCount = null
         val state = driver.read()
+        lastNodeCount = state.nodes.size
         val reusable = try {
             withContext(Dispatchers.IO) { store.catalog(state.packageName) }
         } catch (e: CancellationException) {

@@ -13,6 +13,8 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.RemoteException;
+import android.os.SystemClock;
 import android.view.Surface;
 
 import com.ai.assistance.shower.shell.FakeContext;
@@ -106,8 +108,11 @@ public class Main {
     // Map of displayId -> DisplaySession
     private final Map<Integer, DisplaySession> displays = new ConcurrentHashMap<>();
 
+    // A main-screen task has no video sink. Its Binder token must keep the input process alive
+    // while the controller is planning, even when no RPC has been sent for more than 15 seconds.
+    private final Map<IBinder, IBinder.DeathRecipient> inputClients = new ConcurrentHashMap<>();
     private static final long CLIENT_IDLE_TIMEOUT_MS = 15_000L;
-    private volatile long lastClientActiveTime = System.currentTimeMillis();
+    private volatile long lastClientActiveTime = SystemClock.elapsedRealtime();
     private Thread idleWatcherThread;
 
     private static PrintWriter fileLog;
@@ -326,7 +331,30 @@ public class Main {
 
 
     private void markClientActive() {
-        lastClientActiveTime = System.currentTimeMillis();
+        lastClientActiveTime = SystemClock.elapsedRealtime();
+    }
+
+    private void registerInputClient(IBinder client) throws RemoteException {
+        if (client == null) throw new IllegalArgumentException("Input client token is required");
+        synchronized (inputClients) {
+            if (!inputClients.containsKey(client)) {
+                IBinder.DeathRecipient recipient = () -> unregisterInputClient(client);
+                client.linkToDeath(recipient, 0);
+                inputClients.put(client, recipient);
+            }
+            markClientActive();
+            logToFile("Input client registered, active=" + inputClients.size(), null);
+        }
+    }
+
+    private void unregisterInputClient(IBinder client) {
+        if (client == null) throw new IllegalArgumentException("Input client token is required");
+        synchronized (inputClients) {
+            IBinder.DeathRecipient recipient = inputClients.remove(client);
+            if (recipient != null) client.unlinkToDeath(recipient, 0);
+            markClientActive();
+            logToFile("Input client released, active=" + inputClients.size(), null);
+        }
     }
 
     private void startIdleWatcher() {
@@ -339,7 +367,7 @@ public class Main {
                     } catch (InterruptedException e) {
                         return;
                     }
-                    long now = System.currentTimeMillis();
+                    long now = SystemClock.elapsedRealtime();
                     // Check if *any* display has a sink
                     boolean hasActiveSink = false;
                     for (DisplaySession session : displays.values()) {
@@ -352,8 +380,12 @@ public class Main {
                     }
                     
                     if (!hasActiveSink && now - lastClientActiveTime > CLIENT_IDLE_TIMEOUT_MS) {
-                        logToFile("No active Binder clients for " + CLIENT_IDLE_TIMEOUT_MS + "ms, exiting", null);
-                        System.exit(0);
+                        synchronized (inputClients) {
+                            if (inputClients.isEmpty() && SystemClock.elapsedRealtime() - lastClientActiveTime > CLIENT_IDLE_TIMEOUT_MS) {
+                                logToFile("No active Binder clients for " + CLIENT_IDLE_TIMEOUT_MS + "ms, exiting", null);
+                                System.exit(0);
+                            }
+                        }
                     }
                 }
             }
@@ -442,6 +474,16 @@ public class Main {
                     if (packageName != null && !packageName.isEmpty()) {
                         launchPackageOnVirtualDisplay(packageName, displayId);
                     }
+                }
+
+                @Override
+                public void registerInputClient(IBinder client) throws RemoteException {
+                    Main.this.registerInputClient(client);
+                }
+
+                @Override
+                public void unregisterInputClient(IBinder client) {
+                    Main.this.unregisterInputClient(client);
                 }
 
                 @Override

@@ -122,6 +122,7 @@ class PhoneAgent(
     private var localSession: PhoneAgentLocalSession? = null
     private var imageRequested = true
     private var lastActionFeedback = ""
+    private var mainInputLease: AutoCloseable? = null
     private var _stepCount = 0
     val stepCount: Int
         get() = _stepCount
@@ -298,7 +299,8 @@ class PhoneAgent(
             false
         }
         if (okMainDisplay) {
-            AppLogger.d("PhoneAgent", "[$agentId] main-screen Shower prewarm ready (displayId=0)")
+            mainInputLease = ShowerController.acquireInputClient(agentId)
+            AppLogger.d("PhoneAgent", "[$agentId] main-screen Shower prewarm ready (displayId=0), input client registered")
         }
         return okMainDisplay
     }
@@ -343,6 +345,29 @@ class PhoneAgent(
      * @return Final message from the agent.
      */
     suspend fun run(
+        task: String,
+        systemPrompt: String,
+        onStep: (suspend (StepResult) -> Unit)? = null,
+        isPausedFlow: StateFlow<Boolean>? = null,
+        targetApp: String? = null
+    ): String {
+        try {
+            return runSession(task, systemPrompt, onStep, isPausedFlow, targetApp)
+        } finally {
+            val lease = mainInputLease
+            mainInputLease = null
+            if (lease != null) withContext(NonCancellable + Dispatchers.IO) {
+                try {
+                    lease.close()
+                    AppLogger.d("PhoneAgent", "[$agentId] main-screen input client released")
+                } catch (e: Exception) {
+                    AppLogger.e("PhoneAgent", "[$agentId] Failed to release main-screen input client", e)
+                }
+            }
+        }
+    }
+
+    private suspend fun runSession(
         task: String,
         systemPrompt: String,
         onStep: (suspend (StepResult) -> Unit)? = null,
@@ -622,7 +647,9 @@ class PhoneAgent(
         _stepCount++
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: begin, step=$_stepCount")
         if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
-            _stepCount, config.maxSteps, context.getString(R.string.phone_agent_reading_ui)
+            _stepCount, config.maxSteps, context.getString(
+                if (localSession != null) R.string.phone_agent_reading_nodes else R.string.phone_agent_reading_screenshot
+            )
         )
 
         val observationStarted = System.nanoTime()
@@ -653,6 +680,7 @@ class PhoneAgent(
                     appendLine("[SCREENSHOT_ERROR] No image is available for this observation.")
                 }
             }
+            appendLine(actionHandler.coordinatePrompt())
             if (lastActionFeedback.isNotBlank()) appendLine("[ACTION_RESULT] $lastActionFeedback")
         }.trim()
         performance.observations++
@@ -661,9 +689,15 @@ class PhoneAgent(
 
         _contextHistory.add("user" to userMessage)
 
-        if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
-            _stepCount, config.maxSteps, context.getString(R.string.phone_agent_waiting_controller)
-        )
+        if (isMainScreenAgent) {
+            val nodeCount = localSession?.lastNodeCount
+            val status = when {
+                nodeCount != null -> context.getString(R.string.phone_agent_nodes_ready, nodeCount)
+                localSession != null -> context.getString(R.string.phone_agent_nodes_failed)
+                else -> context.getString(R.string.phone_agent_waiting_controller)
+            }
+            UIAutomationProgressOverlay.getInstance(context).updateProgress(_stepCount, config.maxSteps, status)
+        }
         val modelStarted = System.nanoTime()
         performance.modelCalls++
         val fullResponse = try {
@@ -1111,7 +1145,10 @@ class ActionHandler(
             }
             "Tap" -> {
                 val element = fields["element"] ?: return fail(message = "No element for Tap")
-                val (x, y) = parseRelativePoint(element) ?: return fail(message = "Invalid coordinates for Tap: $element")
+                val (x, y) = parseRelativePoint(element)
+                    ?: return fail(message = "Tap requires exactly two normalized integers in 0..999: $element")
+                val inputSource = if (showerCtx.canUseShowerForInput) "shower" else "ui_tool"
+                AppLogger.d("ActionHandler", "[$agentId] tap_request: source=$inputSource raw=$element normalized=0..999 screen=${screenWidth}x${screenHeight} pixel=($x,$y)")
                 val feedback = if (isMainScreenAgent()) UIOperationOverlay.getInstance(context) else null
                 if (feedback != null) withContext(Dispatchers.Main.immediate) { feedback.hideImmediately() }
                 var delivered = false
@@ -1120,7 +1157,7 @@ class ActionHandler(
                         if (showerCtx.canUseShowerForInput) {
                             val okTap = ShowerController.tap(agentId, x, y)
                             if (okTap) ok(message = "Tap delivered at ($x,$y); verify the observed result")
-                            else fail(message = "Shower TAP delivery unconfirmed at ($x,$y)")
+                            else fail(shouldFinish = true, message = "Shower TAP delivery unconfirmed at ($x,$y); input service failed, task incomplete")
                         } else {
                             val params = withDisplayParam(listOf(ToolParameter("x", x.toString()), ToolParameter("y", y.toString())))
                             val result = toolImplementations.tap(AITool("tap", params))
@@ -1130,7 +1167,7 @@ class ActionHandler(
                     }.also { delivered = it.success }
                 } finally {
                     if (feedback != null) withContext(NonCancellable + Dispatchers.Main.immediate) {
-                        feedback.showAgentTap(x, y, delivered)
+                        feedback.showAgentTap(x, y, delivered, context.getString(R.string.phone_agent_source_coordinates))
                     }
                 }
                 if (exec.success && !exec.shouldFinish) delay(POST_NON_WAIT_ACTION_DELAY_MS)
@@ -1304,13 +1341,13 @@ class ActionHandler(
     private fun ok(shouldFinish: Boolean = false, message: String? = null) = ActionExecResult(true, shouldFinish, message)
     private fun fail(shouldFinish: Boolean = false, message: String) = ActionExecResult(false, shouldFinish, message)
 
-    private fun parseRelativePoint(value: String): Pair<Int, Int>? {
-        val parts = value.trim().removeSurrounding("[", "]").split(",").map { it.trim() }
-        if (parts.size < 2) return null
-        val relX = parts[0].toIntOrNull() ?: return null
-        val relY = parts[1].toIntOrNull() ?: return null
-        return (relX / 1000.0 * screenWidth).toInt() to (relY / 1000.0 * screenHeight).toInt()
-    }
+    internal fun coordinatePrompt(): String =
+        "[COORDINATE_SPACE] Legacy do Tap/Swipe use normalized integers 0..999 on each axis, never image pixels. " +
+            "Physical screen=${screenWidth}x${screenHeight}; x_pixel=floor(x*width/1000), y_pixel=floor(y*height/1000). " +
+            "Image resizing does not change normalized coordinates. Node Sequence targets use selectors, not coordinates."
+
+    private fun parseRelativePoint(value: String): Pair<Int, Int>? =
+        mapPhoneNormalizedPoint(value, screenWidth, screenHeight)
 
     private suspend fun resolveAppPackageName(app: String): String {
         val trimmed = app.trim()

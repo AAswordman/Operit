@@ -8,4 +8,10 @@
     <string name="phone_agent_local_wait">等待界面条件</string>
     <string name="phone_agent_tap_sent">点击已派发 · (%1$d, %2$d)</string>
     <string name="phone_agent_tap_unconfirmed">点击未确认 · (%1$d, %2$d)</string>
+    <string name="phone_agent_reading_nodes">正在读取无障碍节点…</string>
+    <string name="phone_agent_reading_screenshot">正在获取界面截图…</string>
+    <string name="phone_agent_nodes_ready">节点读取成功：%1$d 个 · 等待 UI 控制器…</string>
+    <string name="phone_agent_nodes_failed">节点读取失败 · 等待 UI 控制器…</string>
+    <string name="phone_agent_source_nodes">节点定位</string>
+    <string name="phone_agent_source_coordinates">坐标单步</string>
 </resources>
