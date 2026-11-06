@@ -20,6 +20,8 @@ Tap 必须有 target 和 expect；expect 描述点击后才出现的可观察变
 Type 必须有 target 和 text；target 使用 id，或 class 加 editable=true。只能输入已聚焦的普通输入框，自动替换文字并逐字读回确认，不再写 expect。密码输入仍使用原有单步与用户接管流程。
 Wait 只写 expect，等条件出现即结束。每步可选 timeout_ms 为 100～5000，默认 2000；这是逐次读树间的时间预算，不会终止已进入远程服务的 Binder 调用。
 save_as 可省略；只有所有步骤检查通过才保存模板。同名模板按 App 安装版本隔离。保存模板的 Type.text 必须完整使用 {{query}} 这类英文字母、数字、下划线参数名，通过 arguments 传入本次内容，不把本次输入写死到模板中；动态的文字选择器也使用参数。arguments 对象本身不保存。
+进入搜索、填写等新页面前，先操作当前页面上真实可见的入口。当前树没有下一页输入框时，不要猜它的资源 ID；可根据最新截图用原有单步 Tap 点击当前入口，观察新页面后再组织填写序列。
+遇到目标不存在、歧义或超时，下一轮会附新截图。读取 ACTION_RESULT 的原因后改变计划；重复相同失败序列不会产生进展，连续三段没有经过验证的界面动作会停止并报告未完成。
 遇到新页面分支、歧义、弹窗、超时就检查新状态并重新决定，不自动重发。ACTION_RESULT 中 last_action_may_have_run=true 表示动作可能已发生，不能视为未执行。发送、付款、删除等需要单独检查结果的最终提交，保留单步操作。
 短序列结束后的下一轮通常只返回新节点树；需要看图时明确请求 Inspect。只有核对了用户要求的结果才 finish；不要把动作受理、模板保存或条件检查通过直接说成整个任务完成。
 本轮 ACTION_BUDGET 是剩余动作数，短序列每步均计数。保持说明简短，避免重复描述已知页面。
@@ -41,6 +43,8 @@ Tap requires target and expect. Its expectation must describe a change absent be
 Type requires target and text, with id or class plus editable=true. It replaces a focused ordinary input and verifies exact text readback automatically; do not provide expect. Password fields remain in the existing single-step/takeover flow.
 Wait has expect only and ends as soon as the condition appears. Optional per-step timeout_ms is 100 to 5000, default 2000. This budget is checked between reads; it cannot abort an in-progress provider Binder call.
 Optional save_as stores the template only after all step conditions pass. Templates are scoped to the app install/version. A saved Type.text must be a complete {{parameter}} supplied through arguments. Parameterize dynamic text selectors too. The arguments object is never stored.
+Navigate through a real visible entry before planning input on another page. Do not guess a resource id for an unseen input. A single legacy Tap may target the visible entry using the current screenshot; observe the new page before planning input.
+A rejected, timed-out or non-mutating local plan is followed by a fresh screenshot. Read ACTION_RESULT and change the plan. Three local plans without a verified UI action stop the task as incomplete; repeating the same rejected command is not progress.
 Stop and inspect new branches, ambiguous nodes, dialogs or timeouts. last_action_may_have_run=true in ACTION_RESULT means the action may already have happened; do not automatically resend it. Keep final send/payment/deletion submissions as single steps with separate result inspection.
 After a sequence the next observation normally contains fresh nodes without an image. Request Inspect when needed. Finish only after checking the user's outcome; action acceptance, saving a template and passing local conditions do not alone prove task completion.
 ACTION_BUDGET is the remaining number of actions; every sequence step counts. Keep explanations brief.

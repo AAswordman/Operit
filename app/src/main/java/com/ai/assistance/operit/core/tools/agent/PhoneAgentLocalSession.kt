@@ -41,6 +41,7 @@ internal class PhoneAgentLocalSession(
         val inspect: Boolean,
         val sequence: Boolean,
         val success: Boolean,
+        val verifiedActions: Int = 0,
     )
 
     suspend fun execute(raw: String, remainingActions: Int, checkpoint: suspend () -> Unit): Result {
@@ -79,9 +80,10 @@ internal class PhoneAgentLocalSession(
             }
         }
         val feedback = JSONObject().put("success", result.success).put("completed", result.completed)
-            .put("attempted", result.attempted).put("last_action_accepted", result.lastActionAccepted)
+            .put("attempted", result.attempted).put("verified_actions", result.verifiedActions)
+            .put("last_action_accepted", result.lastActionAccepted)
             .put("last_action_may_have_run", result.lastActionMayHaveRun)
             .put("message", result.message + storageMessage).toString()
-        return Result(feedback, result.attempted, result.conditionWaitMs, false, true, result.success)
+        return Result(feedback, result.attempted, result.conditionWaitMs, false, true, result.success, result.verifiedActions)
     }
 }

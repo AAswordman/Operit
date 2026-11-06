@@ -20,13 +20,14 @@ class PhonePlanExecutorTest {
 
     private class Driver(var state: PhoneUiSnapshot) : PhoneUiDriver {
         var taps = 0
+        var lastTapped: PhoneUiNode? = null
         var types = 0
         var accept = true
         var onTap: () -> Unit = {}
         var onType: (String) -> Unit = {}
         var onRead: () -> Unit = {}
         override suspend fun read(): PhoneUiSnapshot { onRead(); return state }
-        override suspend fun tap(node: PhoneUiNode): Boolean { taps++; onTap(); return accept }
+        override suspend fun tap(node: PhoneUiNode): Boolean { taps++; lastTapped = node; onTap(); return accept }
         override suspend fun type(node: PhoneUiNode, text: String): Boolean { types++; onType(text); return accept }
     }
 
@@ -43,12 +44,20 @@ class PhonePlanExecutorTest {
         assertEquals(0L, testScheduler.currentTime)
     }
 
-    @Test fun changedScreenIsRejectedBeforeAnyAction() = runTest {
+    @Test fun changedObservedTargetIsRejectedBeforeAnyAction() = runTest {
         val observed = snapshot(button)
-        val driver = Driver(snapshot(button.copy(text = "another row")))
-        val result = PhonePlanExecutor(driver).execute(plan(tap()), emptyMap(), observed, 1)
-        assertFalse(result.success)
-        assertEquals(0, driver.taps)
+        for (changed in listOf(
+            button.copy(text = "another row"),
+            button.copy(enabled = false),
+            button.copy(checked = true),
+            button.copy(className = "android.widget.EditText"),
+        )) {
+            val driver = Driver(snapshot(changed))
+            val result = PhonePlanExecutor(driver).execute(plan(tap()), emptyMap(), observed, 1)
+            assertFalse(result.success)
+            assertEquals(0, result.verifiedActions)
+            assertEquals(0, driver.taps)
+        }
     }
 
     @Test fun duplicateTargetsAreNeverResolvedByTakingTheFirst() = runTest {
@@ -173,6 +182,61 @@ class PhonePlanExecutorTest {
         )
         assertTrue(result.success)
         assertEquals(1, driver.taps)
+    }
+
+    @Test fun unrelatedVideoTextDoesNotBlockTheObservedSearchControl() = runTest {
+        val oldVideo = PhoneUiNode(pkg, resourceId = "video", text = "caption one")
+        val observed = snapshot(button, oldVideo)
+        val driver = Driver(snapshot(button, oldVideo.copy(text = "caption two")))
+        driver.onTap = { driver.state = snapshot(input) }
+        val result = PhonePlanExecutor(driver).execute(plan(tap()), emptyMap(), observed, 1)
+        assertTrue(result.success)
+        assertEquals(1, driver.taps)
+        assertEquals(1, result.verifiedActions)
+    }
+
+    @Test fun movedUniqueTargetUsesCurrentBoundsInsteadOfOldCoordinates() = runTest {
+        val observed = snapshot(button)
+        val moved = button.copy(bounds = PhoneBounds(100, 100, 150, 150))
+        val driver = Driver(snapshot(moved))
+        driver.onTap = { driver.state = snapshot(input) }
+        val result = PhonePlanExecutor(driver).execute(plan(tap()), emptyMap(), observed, 1)
+        assertTrue(result.success)
+        assertEquals(moved.bounds, driver.lastTapped?.bounds)
+    }
+
+    @Test fun readingBackAlreadyPresentTextDoesNotCountAsProgress() = runTest {
+        val observed = snapshot(input.copy(text = "coffee"))
+        val driver = Driver(observed)
+        val result = PhonePlanExecutor(driver).execute(plan(type("coffee")), emptyMap(), observed, 1)
+        assertTrue(result.success)
+        assertEquals(0, result.verifiedActions)
+    }
+
+    @Test fun partialSequenceRetainsCheckedMutationsBeforeLaterFailure() = runTest {
+        val observed = snapshot(button)
+        val driver = Driver(observed)
+        driver.onTap = { driver.state = snapshot(input) }
+        driver.onType = { driver.state = snapshot(input.copy(text = "wrong")) }
+        val result = PhonePlanExecutor(driver, { testScheduler.currentTime }).execute(
+            plan(tap(), type("coffee")), emptyMap(), observed, 2,
+        )
+        assertFalse(result.success)
+        assertEquals(1, result.verifiedActions)
+        assertEquals(1, result.completed)
+        assertEquals(1, driver.taps)
+        assertEquals(1, driver.types)
+    }
+
+    @Test fun waitingForAnExistingConditionDoesNotCountAsAMutation() = runTest {
+        val observed = snapshot(input)
+        val driver = Driver(observed)
+        val wait = PhoneLocalStep(PhoneLocalAction.Wait, null, PhoneTarget(id = "query"), null, 200)
+        val result = PhonePlanExecutor(driver).execute(plan(wait), emptyMap(), observed, 1)
+        assertTrue(result.success)
+        assertEquals(1, result.completed)
+        assertEquals(0, result.verifiedActions)
+        assertEquals(0, driver.taps + driver.types)
     }
 
 }

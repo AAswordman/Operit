@@ -1,6 +1,5 @@
 package com.ai.assistance.operit.core.tools.agent
 
-import java.security.MessageDigest
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -10,6 +9,13 @@ internal data class PhoneBounds(val left: Int, val top: Int, val right: Int, val
     val isUsable: Boolean get() = left >= 0 && top >= 0 && right > left && bottom > top
     val centerX: Int get() = left + (right - left) / 2
     val centerY: Int get() = top + (bottom - top) / 2
+
+    companion object {
+        private val pattern = Regex("""\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]""")
+
+        fun parse(value: String): PhoneBounds? = pattern.matchEntire(value)
+            ?.groupValues?.drop(1)?.map(String::toInt)?.let { PhoneBounds(it[0], it[1], it[2], it[3]) }
+    }
 }
 
 internal data class PhoneUiNode(
@@ -26,16 +32,12 @@ internal data class PhoneUiNode(
     val password: Boolean = false,
     val selected: Boolean = false,
     val checked: Boolean = false,
-)
+) {
+    // Re-resolve coordinates, but reject a changed label, type, focus or selection state.
+    fun sameTargetAs(other: PhoneUiNode): Boolean = copy(bounds = null) == other.copy(bounds = null)
+}
 
 internal data class PhoneUiSnapshot(val revision: Long, val packageName: String, val nodes: List<PhoneUiNode>) {
-    // A model response must not start a sequence on a different screen from the one it observed.
-    val fingerprint: String by lazy {
-        MessageDigest.getInstance("SHA-256")
-            .digest((packageName + nodes.toString()).toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-    }
-
     fun matches(target: PhoneTarget): List<PhoneUiNode> = nodes.filter {
         it.packageName == packageName && target.matches(it)
     }
@@ -102,7 +104,8 @@ internal data class PhoneTarget(
     )
 }
 
-private val phoneArgumentPattern = Regex("""\{\{([A-Za-z][A-Za-z0-9_]*)}}""")
+// Android's ICU regex parser requires literal closing braces to be escaped too.
+private val phoneArgumentPattern = Regex("""\{\{([A-Za-z][A-Za-z0-9_]*)\}\}""")
 
 internal fun bindPhoneArguments(template: String, arguments: Map<String, String>): String =
     phoneArgumentPattern.replace(template) { match ->
@@ -111,3 +114,6 @@ internal fun bindPhoneArguments(template: String, arguments: Map<String, String>
     }
 
 internal fun isPhoneArgument(template: String): Boolean = phoneArgumentPattern.matches(template)
+
+internal fun phoneArgumentNames(template: String): Set<String> =
+    phoneArgumentPattern.findAll(template).map { it.groupValues[1] }.toSet()

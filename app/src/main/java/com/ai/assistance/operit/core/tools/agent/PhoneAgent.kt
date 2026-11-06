@@ -113,7 +113,10 @@ class PhoneAgent(
 ) {
     private val performance = PhoneAgentPerformance()
     private val observationHistory = PhoneObservationHistory()
+    private val planProgress = PhonePlanProgress()
     val performanceSummary: String get() = performance.summary()
+    var completedSuccessfully: Boolean = false
+        private set
     private var localSession: PhoneAgentLocalSession? = null
     private var imageRequested = true
     private var lastActionFeedback = ""
@@ -344,6 +347,7 @@ class PhoneAgent(
         isPausedFlow: StateFlow<Boolean>? = null,
         targetApp: String? = null
     ): String {
+        completedSuccessfully = false
         val floatingService = FloatingChatService.getInstance()
         val job = currentCoroutineContext()[Job]
 
@@ -492,6 +496,7 @@ class PhoneAgent(
             onStep?.invoke(result)
 
             if (result.finished) {
+                completedSuccessfully = result.success && result.action?.metadata == "finish"
                 return result.message ?: "Task completed"
             }
 
@@ -551,6 +556,7 @@ class PhoneAgent(
                 onStep?.invoke(result)
 
                 if (result.finished) {
+                    completedSuccessfully = result.success && result.action?.metadata == "finish"
                     return result.message ?: "Task completed"
                 }
             }
@@ -591,6 +597,7 @@ class PhoneAgent(
         _stepCount = 0
         performance.reset()
         observationHistory.reset()
+        planProgress.reset()
         localSession = null
         imageRequested = true
         lastActionFeedback = ""
@@ -600,6 +607,9 @@ class PhoneAgent(
     private suspend fun _executeStep(userPrompt: String?, isFirst: Boolean): StepResult {
         _stepCount++
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: begin, step=$_stepCount")
+        if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
+            _stepCount, config.maxSteps, context.getString(R.string.phone_agent_thinking)
+        )
 
         val observationStarted = System.nanoTime()
         val includeImage = isFirst || imageRequested || localSession == null
@@ -671,6 +681,10 @@ class PhoneAgent(
 
         if (parsedAction.metadata == "do") {
             awaitIfPaused()
+            if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
+                _stepCount, config.maxSteps,
+                context.getString(R.string.phone_agent_executing_action, parsedAction.actionName.orEmpty())
+            )
             val executionStarted = System.nanoTime()
             val pausedBefore = performance.pausedMs
             if (isLocalCommand) {
@@ -687,14 +701,25 @@ class PhoneAgent(
                 performance.actions += localResult.attempted
                 performance.conditionWaitMs += localResult.waitMs
                 if (localResult.sequence) performance.localSequences++
-                imageRequested = localResult.inspect
+                val stalled = planProgress.record(localResult.verifiedActions, localResult.inspect)
+                imageRequested = localResult.inspect || !localResult.success || localResult.verifiedActions == 0
                 lastActionFeedback = localResult.feedback
-                return StepResult(localResult.success, false, parsedAction, thinking, localResult.feedback)
+                if (!localResult.inspect && localResult.verifiedActions == 0) {
+                    lastActionFeedback += " No verified UI change in ${planProgress.stalledPlans} local plan(s). Use the fresh screenshot to identify the visible navigation control before planning input."
+                }
+                AppLogger.d("PhoneAgent", "[$agentId] local_result: success=${localResult.success}, attempted=${localResult.attempted}, verified=${localResult.verifiedActions}, inspect=${localResult.inspect}, stalled=${planProgress.stalledPlans}")
+                val reportedAction = if (localResult.inspect) parsedAction.copy(actionName = "Inspect") else parsedAction
+                if (stalled) {
+                    return StepResult(false, true, reportedAction, thinking,
+                        "Stopped after three local plans without a verified UI action. Task not completed. " + localResult.feedback)
+                }
+                return StepResult(localResult.success, false, reportedAction, thinking, lastActionFeedback)
             }
             if (performance.actions >= config.maxSteps && parsedAction.actionName != "Take_over") {
                 return StepResult(false, true, parsedAction, thinking, "Max steps reached")
             }
             performance.actions++
+            planProgress.reset()
             imageRequested = true
             val execResult = try {
                 actionHandler.executeAgentAction(parsedAction)
@@ -890,7 +915,7 @@ class ActionHandler(
         return withAgentUiHiddenForAction(showerCtx) {
             var screenshotLink: String? = null
             var dimensions: Pair<Int, Int>? = null
-            if (showerCtx.canUseShowerForInput) {
+            if (!isMainScreenAgent() && showerCtx.canUseShowerForInput) {
                 val (link, dims) = captureScreenshotViaShower()
                 screenshotLink = link
                 dimensions = dims
@@ -921,11 +946,8 @@ class ActionHandler(
 
     private suspend fun captureScreenshotViaShower(): Pair<String?, Pair<Int, Int>?> {
         return try {
-            val pngBytes = if (isMainScreenAgent()) {
-                ShowerController.requestScreenshot(agentId)
-            } else {
-                VirtualDisplayOverlay.getInstance(context, agentId).captureCurrentFramePng()
-            }
+            check(!isMainScreenAgent()) { "Main-screen capture uses the main-screen screenshot tools" }
+            val pngBytes = VirtualDisplayOverlay.getInstance(context, agentId).captureCurrentFramePng()
             if (pngBytes == null || pngBytes.isEmpty()) {
                 AppLogger.w("ActionHandler", "[$agentId] Shower WS screenshot returned no data")
                 Pair(null, null)

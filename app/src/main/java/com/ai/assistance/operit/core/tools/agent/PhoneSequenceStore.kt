@@ -63,9 +63,7 @@ internal class PhoneSequenceStore(
     @Synchronized
     fun catalog(packageName: String): String = names(packageName).joinToString(", ") { name ->
         val plan = load(packageName, name)
-        val parameters = Regex("""\{\{([A-Za-z][A-Za-z0-9_]*)}}""")
-            .findAll(PhoneLocalPlanParser.encode(plan).toString())
-            .map { it.groupValues[1] }.toSet().sorted()
+        val parameters = phoneArgumentNames(PhoneLocalPlanParser.encode(plan).toString()).sorted()
         "$name(${parameters.joinToString(",")})"
     }
 

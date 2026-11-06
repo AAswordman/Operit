@@ -2,7 +2,7 @@
 repo: https://github.com/3316891527/Operit
 branch: feat/phone-agent-local-execution
 base: e9bb154a631300ec6fd7d9a073b50d58792aca38
-status: implemented-ci-pending
+status: device-regression-fix-ci-pending
 ---
 
 # PhoneAgent 控件感知与本地连续执行
@@ -16,6 +16,7 @@ status: implemented-ci-pending
 - [01：节点观察与等待](01-observation.md)
 - [02：受检查的连续操作与复用](02-sequences.md)
 - [03：耗时记录与验证](03-validation.md)
+- [04：抖音首页停滞与 Android 参数解析修复](04-device-regressions.md)
 
 ## 边界
 
@@ -23,4 +24,4 @@ status: implemented-ci-pending
 
 运行效率以同一设备、同一模型、同一任务的端到端耗时及成功率为准。减少的固定等待或模型轮数不等于已经取得真机提速数据。本轮未执行本地编译、构建或测试。
 
-源码与 30 项纯 JVM 回归用例已完成；静态检查、CI 和设备结果分别记录，尚无真机提速数据。
+初版测试包已在设备上暴露参数解析崩溃、首页停滞及截图服务长时间阻塞。修复源码现包含 40 项 JVM 和 3 项 Android 回归用例；本次增量的静态检查、远程 CI 和修复后设备复测分别记录，尚无真机提速数据。

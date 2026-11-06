@@ -30,10 +30,7 @@ internal class AccessibilityPhoneUiDriver(
                     fun attr(name: String): String = parser.getAttributeValue(null, name).orEmpty()
                     val password = attr("password") == "true"
                     val className = attr("class")
-                    val boundsMatch = boundsPattern.matchEntire(attr("bounds"))
-                    val bounds = boundsMatch?.groupValues?.drop(1)?.map { it.toInt() }?.let {
-                        PhoneBounds(it[0], it[1], it[2], it[3])
-                    }
+                    val bounds = PhoneBounds.parse(attr("bounds"))
                     nodes += PhoneUiNode(
                         packageName = attr("package"), resourceId = attr("resource-id"), className = className,
                         text = if (password) "" else attr("text"), description = if (password) "" else attr("content-desc"),
@@ -58,10 +55,12 @@ internal class AccessibilityPhoneUiDriver(
     override suspend fun tap(node: PhoneUiNode): Boolean = inputScope {
         withContext(Dispatchers.IO) {
             val current = read()
-            if (current.packageName != node.packageName || node !in current.nodes) {
-                throw PhoneUiException("Tap target changed before dispatch; no tap was sent")
+            val targets = current.nodes.filter { it.sameTargetAs(node) }
+            if (current.packageName != node.packageName || targets.size != 1) {
+                throw PhoneUiException("Tap target changed or became ambiguous before dispatch; no tap was sent")
             }
-            val bounds = node.bounds ?: throw PhoneUiException("Tap target has no bounds")
+            val bounds = targets.single().bounds ?: throw PhoneUiException("Tap target has no bounds")
+            if (!bounds.isUsable) throw PhoneUiException("Tap target has no usable bounds")
             UIHierarchyManager.performClick(context, bounds.centerX, bounds.centerY)
         }
     }
@@ -70,7 +69,7 @@ internal class AccessibilityPhoneUiDriver(
         withContext(Dispatchers.IO) {
             val current = read()
             val focused = current.nodes.filter { it.packageName == node.packageName && it.focused && it.editable }
-            if (current.packageName != node.packageName || focused.size != 1 || focused.single() != node) {
+            if (current.packageName != node.packageName || focused.size != 1 || !focused.single().sameTargetAs(node)) {
                 throw PhoneUiException("Input focus changed before typing; no text was sent")
             }
             val focusedId = UIHierarchyManager.findFocusedNodeId(context)
@@ -79,7 +78,4 @@ internal class AccessibilityPhoneUiDriver(
         }
     }
 
-    private companion object {
-        val boundsPattern = Regex("""\[(-?\d+),(-?\d+)]\[(-?\d+),(-?\d+)]""")
-    }
 }

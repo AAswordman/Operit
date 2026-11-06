@@ -83,4 +83,11 @@ class PhoneLocalPlanTest {
         }
     }
 
+    @Test fun argumentNamesAndBindingShareTheSameLiteralBraceGrammar() {
+        assertEquals(setOf("query", "value_2"), phoneArgumentNames("{{query}} / {{value_2}} / {{query}}"))
+        assertEquals("cash $1 and braces }}", bindPhoneArguments("{{query}}", mapOf("query" to "cash $1 and braces }}")))
+        assertTrue(isPhoneArgument("{{query}}"))
+        assertFalse(isPhoneArgument("prefix {{query}}"))
+        assertEquals("plain resource id", bindPhoneArguments("plain resource id", emptyMap()))
+    }
 }

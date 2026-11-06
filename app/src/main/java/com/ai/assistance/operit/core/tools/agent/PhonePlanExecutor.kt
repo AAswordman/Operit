@@ -17,6 +17,7 @@ internal data class PhonePlanResult(
     val success: Boolean,
     val message: String,
     val conditionWaitMs: Long,
+    val verifiedActions: Int = 0,
 )
 
 /** Executes known selectors and explicit postconditions. Dispatched actions are never resent here. */
@@ -34,6 +35,7 @@ internal class PhonePlanExecutor(
         remainingActions: Int,
     ): PhonePlanResult {
         var completed = 0
+        var verifiedActions = 0
         var attempted = 0
         var accepted = false
         var mayHaveRun = false
@@ -43,8 +45,16 @@ internal class PhonePlanExecutor(
             val plan = template.bind(arguments)
             if (plan.steps.size > remainingActions) throw PhoneUiException("Sequence exceeds remaining action budget")
             var state = read(plan.packageName)
-            if (state.fingerprint != observed.fingerprint || state.packageName != observed.packageName) {
-                throw PhoneUiException("Screen changed while the controller was planning; no action was sent")
+            if (state.packageName != observed.packageName) {
+                throw PhoneUiException("Active app changed while the controller was planning; no action was sent")
+            }
+            // Video text/counters may change while planning. Validate the first target, not unrelated nodes.
+            plan.steps.first().target?.let { target ->
+                val before = unique(observed, target)
+                val current = unique(state, target)
+                if (!before.sameTargetAs(current)) {
+                    throw PhoneUiException("Observed target changed while planning; no action was sent")
+                }
             }
             for ((index, step) in plan.steps.withIndex()) {
                 checkpoint()
@@ -66,6 +76,7 @@ internal class PhonePlanExecutor(
                         accepted = driver.tap(node)
                         if (!accepted) throw PhoneUiException("Tap delivery was not confirmed; sequence stopped")
                         awaitTarget(plan.packageName, expected, step.timeoutMs)
+                        verifiedActions++
                     }
                     PhoneLocalAction.Type -> {
                         val target = requireNotNull(step.target)
@@ -79,6 +90,7 @@ internal class PhonePlanExecutor(
                         accepted = driver.type(node, text)
                         if (!accepted) throw PhoneUiException("Text delivery was not confirmed; sequence stopped")
                         awaitTarget(plan.packageName, target.copy(text = text), step.timeoutMs)
+                        if (node.text != text) verifiedActions++
                     }
                     PhoneLocalAction.Wait -> {
                         attempted++
@@ -88,13 +100,13 @@ internal class PhonePlanExecutor(
                 completed++
             }
             return PhonePlanResult(completed, attempted, accepted, mayHaveRun, true,
-                "All local step conditions satisfied; verify the task outcome before finishing", conditionWaitMs)
+                "All local step conditions satisfied; verify the task outcome before finishing", conditionWaitMs, verifiedActions)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             val detail = if (e is PhoneUiException) e.message.orEmpty() else "Local execution stopped: ${e.javaClass.simpleName}"
             val status = if (mayHaveRun) " The last action may already have taken effect. Inspect before deciding whether to repeat it." else ""
-            return PhonePlanResult(completed, attempted, accepted, mayHaveRun, false, detail + status, conditionWaitMs)
+            return PhonePlanResult(completed, attempted, accepted, mayHaveRun, false, detail + status, conditionWaitMs, verifiedActions)
         }
     }
 
@@ -107,7 +119,9 @@ internal class PhonePlanExecutor(
 
     private fun unique(state: PhoneUiSnapshot, target: PhoneTarget): PhoneUiNode {
         val matches = state.matches(target)
-        if (matches.size != 1) throw PhoneUiException("Target must match exactly one node; matched ${matches.size}")
+        if (matches.size != 1) throw PhoneUiException(
+            "Target must match exactly one node; matched ${matches.size}. Inspect the current screenshot before choosing another action; do not invent selectors for an unseen page."
+        )
         return matches.single()
     }
 
