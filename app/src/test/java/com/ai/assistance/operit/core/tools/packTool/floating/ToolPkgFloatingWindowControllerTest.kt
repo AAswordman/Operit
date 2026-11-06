@@ -213,6 +213,18 @@ class ToolPkgFloatingWindowControllerTest {
         val listA = harness.controller.command("com.example.a", "list", JSONObject()) as JSONArray
         assertEquals(1, listA.length())
 
+        harness.controller.command(
+            "com.example.a", "close", JSONObject().put("id", "w1")
+        )
+        assertTrue(harness.surfaces[0].closed)
+        val remainingA = harness.controller.command("com.example.a", "list", JSONObject()) as JSONArray
+        assertEquals(0, remainingA.length())
+        val remainingB = harness.controller.command("com.example.b", "list", JSONObject()) as JSONArray
+        assertEquals(1, remainingB.length())
+        assertEquals("w1", remainingB.getJSONObject(0).getString("id"))
+        assertFalse(harness.surfaces[1].closed)
+
+        // Once A has closed its own ID, another close must not reach B's identically named window.
         try {
             harness.controller.command(
                 "com.example.a", "close", JSONObject().put("id", "w1")
