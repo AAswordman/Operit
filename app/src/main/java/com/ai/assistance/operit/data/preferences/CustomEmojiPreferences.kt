@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -43,11 +44,7 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
         private val LEGACY_CUSTOM_EMOJIS = stringPreferencesKey("custom_emojis")
         private val LEGACY_ALL_CATEGORIES = stringSetPreferencesKey("all_categories")
         private val LEGACY_BUILTIN_EMOJIS_INITIALIZED = booleanPreferencesKey("builtin_emojis_initialized")
-
-        val BUILTIN_EMOTIONS = listOf(
-            "happy", "sad", "angry", "surprised", "confused",
-            "crying", "like_you", "miss_you", "speechless"
-        )
+        private const val LEGACY_BUILTIN_EMOJI_REMOVAL_VERSION = 1
     }
 
     private val json = Json {
@@ -68,8 +65,8 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
     private fun categoriesKey(target: ActivePrompt) =
         stringSetPreferencesKey("${targetPrefix(target)}all_categories")
 
-    private fun builtinInitializedKey(target: ActivePrompt) =
-        booleanPreferencesKey("${targetPrefix(target)}builtin_emojis_initialized")
+    private fun legacyBuiltinEmojiRemovalVersionKey(target: ActivePrompt) =
+        intPreferencesKey("${targetPrefix(target)}legacy_builtin_emoji_removal_version")
 
     private fun decodeCustomEmojis(jsonString: String): List<CustomEmoji> {
         return try {
@@ -135,9 +132,7 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
     fun getAllCategories(target: ActivePrompt): Flow<List<String>> {
         return context.customEmojiDataStore.data.map { preferences ->
             val storedCategories = preferences[categoriesKey(target)] ?: emptySet()
-            val builtin = BUILTIN_EMOTIONS.filter { it in storedCategories }
-            val custom = storedCategories.filter { it !in BUILTIN_EMOTIONS }.sorted()
-            builtin + custom
+            storedCategories.sorted()
         }
     }
 
@@ -176,24 +171,36 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
         context.customEmojiDataStore.edit { preferences ->
             preferences[customEmojisKey(target)] = "[]"
             preferences.remove(categoriesKey(target))
-            preferences.remove(builtinInitializedKey(target))
             AppLogger.d(TAG, "Cleared all emojis for target: $target")
         }
     }
 
-    fun isBuiltinEmojisInitialized(target: ActivePrompt): Flow<Boolean> {
-        return context.customEmojiDataStore.data.map { preferences ->
-            preferences[builtinInitializedKey(target)] ?: false
-        }
-    }
-
-    suspend fun setBuiltinEmojisInitialized(target: ActivePrompt, initialized: Boolean) {
+    suspend fun removeLegacyBuiltinEmojis(target: ActivePrompt) {
         context.customEmojiDataStore.edit { preferences ->
-            if (initialized) {
-                preferences[builtinInitializedKey(target)] = true
-            } else {
-                preferences.remove(builtinInitializedKey(target))
+            val removalVersionKey = legacyBuiltinEmojiRemovalVersionKey(target)
+            if (preferences[removalVersionKey] == LEGACY_BUILTIN_EMOJI_REMOVAL_VERSION) {
+                return@edit
             }
+
+            val currentEmojis = decodeCustomEmojis(preferences[customEmojisKey(target)] ?: "[]")
+            val remainingEmojis = currentEmojis.filterNot { it.isBuiltInCategory }
+            if (remainingEmojis.isEmpty()) {
+                preferences.remove(customEmojisKey(target))
+            } else {
+                preferences[customEmojisKey(target)] = json.encodeToString(remainingEmojis)
+            }
+
+            val remainingCategories = (preferences[categoriesKey(target)] ?: emptySet())
+                .filter { category -> remainingEmojis.any { it.emotionCategory == category } }
+                .toSet()
+            if (remainingCategories.isEmpty()) {
+                preferences.remove(categoriesKey(target))
+            } else {
+                preferences[categoriesKey(target)] = remainingCategories
+            }
+
+            preferences[removalVersionKey] = LEGACY_BUILTIN_EMOJI_REMOVAL_VERSION
+            AppLogger.d(TAG, "Removed legacy built-in emojis for target: $target")
         }
     }
 
@@ -201,7 +208,7 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
         context.customEmojiDataStore.edit { preferences ->
             preferences.remove(customEmojisKey(target))
             preferences.remove(categoriesKey(target))
-            preferences.remove(builtinInitializedKey(target))
+            preferences.remove(legacyBuiltinEmojiRemovalVersionKey(target))
         }
     }
 

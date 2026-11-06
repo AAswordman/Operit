@@ -26,8 +26,8 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.CustomEmoji
-import com.ai.assistance.operit.data.preferences.CustomEmojiPreferences
 import com.ai.assistance.operit.ui.features.settings.viewmodels.CustomEmojiViewModel
+
 import kotlinx.coroutines.launch
 
 /**
@@ -410,15 +410,6 @@ private fun CategorySelector(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(category)
-                            if (category !in CustomEmojiPreferences.BUILTIN_EMOTIONS) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    Icons.Default.Star,
-                                    contentDescription = stringResource(R.string.custom),
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
                         }
                     },
                     onClick = {

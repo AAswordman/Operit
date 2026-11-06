@@ -459,12 +459,24 @@ object FunctionalPrompts {
         }
     }
 
-    fun waifuEmotionRule(emotionListText: String): String {
-        return "**表达情绪规则：你必须在每个句末判断句中包含的情绪或增强语气，并使用<emotion>标签在句末插入情绪状态。后续会根据情绪生成表情包。可用情绪包括：$emotionListText。例如：<emotion>happy</emotion>、<emotion>miss_you</emotion>等。如果没有这些情绪则不插入。**"
+    fun waifuEmotionRule(emotionListText: String, useEnglish: Boolean = false): String {
+        return if (useEnglish) {
+            """
+            **Emoticon rendering rules: use an emoticon only when a clear emotion makes it helpful. When you choose to use one, insert an `<emotion>category</emotion>` tag at the most natural position for the current meaning and tone, for example `<emotion>happy</emotion>`. The tag may appear at the beginning, middle, or end of a sentence; choose its position based on context, and do not insert one merely to use an emoticon. The app replaces this tag with one image from the current character's matching emoticon category; the tag itself is not shown to the user. Do not output image URLs, Markdown images, file paths, or other rendering tags. Use only these categories: $emotionListText. Do not use a tag for ordinary conversation, factual explanations, or unclear emotions.**
+            """.trimIndent()
+        } else {
+            """
+            **表情包渲染规则：仅在明确的情绪能增强表达时使用表情包。需要使用时，在最自然、最符合当前语义和语气的位置插入 `<emotion>类别</emotion>` 标签，例如 `<emotion>happy</emotion>`。标签可以位于句首、句中或句末，具体位置由你根据上下文决定，不要为了使用表情包而强行插入。客户端会把这个标签替换为当前角色对应类别中的一张表情图片，标签本身不会展示给用户。不要输出图片 URL、Markdown 图片、文件路径或其他渲染标签。类别只能使用以下值：$emotionListText。普通聊天、信息说明或情绪不明确时不要使用表情包。**
+            """.trimIndent()
+        }
     }
 
-    fun waifuNoCustomEmojiRule(): String {
-        return "**当前没有可用的自定义表情，请不要使用<emotion>标签。**"
+    fun waifuNoCustomEmojiRule(useEnglish: Boolean = false): String {
+        return if (useEnglish) {
+            "**There are no available emoticon categories for the current character. Do not output the `<emotion>` tag.**"
+        } else {
+            "**当前角色没有可用的表情包类别，请不要输出 `<emotion>` 标签。**"
+        }
     }
 
     fun waifuCustomPromptRule(customPrompt: String): String {

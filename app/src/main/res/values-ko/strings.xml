@@ -3759,7 +3759,7 @@
     <string name="waifu_custom_prompt_tip">이 내용은 추가 Waifu 모드 규칙으로 시스템 프롬프트에 추가됩니다.</string>
     <string name="enable_emoticons">이모티콘 활성화</string>
     <string name="emoticons_desc">대화에 감정 상태 태그를 삽입하여 표현 향상</string>
-    <string name="available_emoticons">사용 가능한 이모티콘: crying, like_you, happy, surprised, miss_you, speechless, angry, confused, sad</string>
+    <string name="available_emoticons">카테고리는 이모티콘 관리에서 추가되며, AI는 &lt;emotion&gt;category&lt;/emotion&gt; 태그로 이모티콘을 보냅니다</string>
     <string name="enable_selfie_feature">셀카 기능 활성화</string>
     <string name="selfie_feature_desc">AI가 캐릭터 셀카 이미지를 생성하도록 허용하며, 외모 프롬프트 구성이 필요합니다.</string>
     <string name="appearance_prompt">외모 프롬프트</string>

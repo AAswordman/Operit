@@ -4160,7 +4160,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="waifu_custom_prompt_tip">Acest text va fi utilizat ca Waifu Regulile suplimentare ale modelului sunt inserate în promptul sistemului.</string>
     <string name="enable_emoticons">Activează emojile</string>
     <string name="emoticons_desc">Includeți etichete care indică starea emoțională în dialog pentru a spori eficacitatea exprimării</string>
-    <string name="available_emoticons">Emoticoane disponibile:crying, like_you, happy, surprised, miss_you, speechless, angry, confused, sad</string>
+    <string name="available_emoticons">Categoriile sunt adăugate din gestionarea emoticoanelor; AI folosește eticheta &lt;emotion&gt;category&lt;/emotion&gt; pentru a trimite un emoticon</string>
     <string name="enable_selfie_feature">Activarea funcției de selfie</string>
     <string name="selfie_feature_desc">PermisAIPentru a genera o imagine cu un personaj făcând un selfie, este necesar să configurați cuvintele-cheie referitoare la aspectul fizic</string>
     <string name="appearance_prompt">Cuvinte-cheie legate de aspectul fizic</string>
