@@ -150,6 +150,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
                 layoutParams = params
 
                 overlayView = ComposeView(context).apply {
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                     setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
                     setViewTreeLifecycleOwner(lifecycleOwner)
                     setViewTreeViewModelStoreOwner(lifecycleOwner)
@@ -227,6 +228,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
+            alpha = automationPassthroughAlpha(context)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
@@ -235,6 +237,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
 
         borderLayoutParams = params
         borderView = ComposeView(context).apply {
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setViewTreeLifecycleOwner(lifecycleOwner)
             setViewTreeViewModelStoreOwner(lifecycleOwner)
@@ -344,9 +347,21 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
         }
     }
 
-    /**
-     * 在截图或实际 UI 操作期间临时隐藏卡片（通过调整可见性实现）。
-     */
+    /** Keep the current phase visible while allowing an injected gesture through the card. */
+    suspend fun setInputPassthrough(enabled: Boolean) = withContext(Dispatchers.Main.immediate) {
+        val view = overlayView ?: return@withContext
+        val params = layoutParams ?: return@withContext
+        params.flags = if (enabled) params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            else params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        params.alpha = if (enabled) automationPassthroughAlpha(context) else 1f
+        try {
+            windowManager?.updateViewLayout(view, params)
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Error updating progress input passthrough", e)
+        }
+    }
+
+    /** Only screenshot capture temporarily hides the card and border. */
     suspend fun setOverlayVisible(visible: Boolean) {
         try {
             withContext(Dispatchers.Main) {

@@ -2,9 +2,11 @@ package com.ai.assistance.operit.core.tools.agent
 
 import android.content.Context
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
+import com.ai.assistance.operit.ui.common.displays.UIOperationOverlay
 import java.io.StringReader
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
@@ -52,16 +54,25 @@ internal class AccessibilityPhoneUiDriver(
         PhoneUiSnapshot(revision.incrementAndGet(), packageName, nodes)
     }
 
-    override suspend fun tap(node: PhoneUiNode): Boolean = inputScope {
-        withContext(Dispatchers.IO) {
-            val current = read()
-            val targets = current.nodes.filter { it.sameTargetAs(node) }
-            if (current.packageName != node.packageName || targets.size != 1) {
-                throw PhoneUiException("Tap target changed or became ambiguous before dispatch; no tap was sent")
+    override suspend fun tap(node: PhoneUiNode): Boolean = withContext(Dispatchers.IO) {
+        val current = read()
+        val targets = current.nodes.filter { it.sameTargetAs(node) }
+        if (current.packageName != node.packageName || targets.size != 1) {
+            throw PhoneUiException("Tap target changed or became ambiguous before dispatch; no tap was sent")
+        }
+        val bounds = targets.single().bounds ?: throw PhoneUiException("Tap target has no bounds")
+        if (!bounds.isUsable) throw PhoneUiException("Tap target has no usable bounds")
+        inputScope {
+            val feedback = UIOperationOverlay.getInstance(context)
+            withContext(Dispatchers.Main.immediate) { feedback.hideImmediately() }
+            var delivered = false
+            try {
+                UIHierarchyManager.performClick(context, bounds.centerX, bounds.centerY).also { delivered = it }
+            } finally {
+                withContext(NonCancellable + Dispatchers.Main.immediate) {
+                    feedback.showAgentTap(bounds.centerX, bounds.centerY, delivered)
+                }
             }
-            val bounds = targets.single().bounds ?: throw PhoneUiException("Tap target has no bounds")
-            if (!bounds.isUsable) throw PhoneUiException("Tap target has no usable bounds")
-            UIHierarchyManager.performClick(context, bounds.centerX, bounds.centerY)
         }
     }
 

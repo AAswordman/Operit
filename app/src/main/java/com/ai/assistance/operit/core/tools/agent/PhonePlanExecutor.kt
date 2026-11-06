@@ -24,6 +24,7 @@ internal data class PhonePlanResult(
 internal class PhonePlanExecutor(
     private val driver: PhoneUiDriver,
     private val nowMs: () -> Long = { System.nanoTime() / 1_000_000 },
+    private val onStep: (Int, Int, PhoneLocalAction) -> Unit = { _, _, _ -> },
     private val checkpoint: suspend () -> Unit = {},
 ) {
     private var conditionWaitMs = 0L
@@ -58,6 +59,7 @@ internal class PhonePlanExecutor(
             }
             for ((index, step) in plan.steps.withIndex()) {
                 checkpoint()
+                onStep(index + 1, plan.steps.size, step.action)
                 if (index > 0) state = read(plan.packageName)
                 accepted = false
                 mayHaveRun = false

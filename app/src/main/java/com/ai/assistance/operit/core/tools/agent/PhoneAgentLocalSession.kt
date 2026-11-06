@@ -12,6 +12,7 @@ import org.json.JSONObject
 internal class PhoneAgentLocalSession(
     context: Context,
     inputScope: suspend (suspend () -> Boolean) -> Boolean,
+    private val onStep: (Int, Int, PhoneLocalAction) -> Unit = { _, _, _ -> },
 ) {
     private val driver = AccessibilityPhoneUiDriver(context, inputScope)
     private val store = PhoneSequenceStore(File(context.filesDir, "phone_sequences")) { packageName ->
@@ -66,7 +67,7 @@ internal class PhoneAgentLocalSession(
         if (state == null || screen != state.revision) {
             return Result("Command must reference a valid latest main-screen observation.", 0, 0, false, false, false)
         }
-        val result = PhonePlanExecutor(driver, checkpoint = checkpoint).execute(plan, arguments, state, remainingActions)
+        val result = PhonePlanExecutor(driver, onStep = onStep, checkpoint = checkpoint).execute(plan, arguments, state, remainingActions)
         var storageMessage = ""
         if (result.success && plan.saveAs != null) {
             try {

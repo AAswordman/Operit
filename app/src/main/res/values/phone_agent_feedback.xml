@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_reading_ui">正在读取界面…</string>
+    <string name="phone_agent_waiting_controller">等待 UI 控制器规划…</string>
+    <string name="phone_agent_local_step">本地步骤 %1$d/%2$d：%3$s</string>
+    <string name="phone_agent_local_tap">点击并检查结果</string>
+    <string name="phone_agent_local_type">输入并核对文字</string>
+    <string name="phone_agent_local_wait">等待界面条件</string>
+    <string name="phone_agent_tap_sent">点击已派发 · (%1$d, %2$d)</string>
+    <string name="phone_agent_tap_unconfirmed">点击未确认 · (%1$d, %2$d)</string>
+</resources>

@@ -17,6 +17,7 @@ status: device-regression-fix-ci-pending
 - [02：受检查的连续操作与复用](02-sequences.md)
 - [03：耗时记录与验证](03-validation.md)
 - [04：抖音首页停滞与 Android 参数解析修复](04-device-regressions.md)
+- [05：可见操作反馈与通用控制器命名](05-visible-feedback.md)
 
 ## 边界
 

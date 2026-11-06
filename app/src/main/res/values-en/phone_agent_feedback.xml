@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_reading_ui">Reading the screen…</string>
+    <string name="phone_agent_waiting_controller">Waiting for the UI controller…</string>
+    <string name="phone_agent_local_step">Local step %1$d/%2$d: %3$s</string>
+    <string name="phone_agent_local_tap">Tap and check the result</string>
+    <string name="phone_agent_local_type">Type and verify text</string>
+    <string name="phone_agent_local_wait">Wait for the screen condition</string>
+    <string name="phone_agent_tap_sent">Tap dispatched · (%1$d, %2$d)</string>
+    <string name="phone_agent_tap_unconfirmed">Tap unconfirmed · (%1$d, %2$d)</string>
+</resources>
