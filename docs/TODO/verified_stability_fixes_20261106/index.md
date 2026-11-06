@@ -36,6 +36,11 @@ date: 2026-11-06
 本贡献分支基于上游 dev `5a8f293fb8822831aa7737caa93b666adbc90292` 导出，保留原作者和来源记录；导出过程中没有手工冲突。
 本轮发布贡献分支未重新运行编译、构建或自动测试，新增回归用例也未因此记录为已执行。
 
+## 首次上游 CI 的环境修正
+
+首次 Candidate checks 的 Android build 与 JVM tests 都在 SDK 准备阶段失败，日志为 `Failed to find package 'tools'`，没有进入应用编译或测试。
+固定版本 setup-android 的 action.yml 默认额外安装 `tools platform-tools`，其中旧 `tools` 包已经无法获取。PR workflow 三个 SDK 初始化入口显式传入空 packages，与现有独立 Android workflow 一致，后续 sdkmanager 步骤继续安装已声明的 SDK／NDK 工具链。
+
 ## 手工复核
 
 1. 新对话发送一次只保留一条用户消息，真实重复发送保留两条；历史同步失败后恢复及长 Waifu 回复不会留下重复或中间缺口。
