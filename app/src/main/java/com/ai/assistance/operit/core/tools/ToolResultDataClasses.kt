@@ -556,7 +556,9 @@ data class FileOperationData(
 data class FileApplyResultData(
     val operation: FileOperationData,
     val aiDiffInstructions: String,
-    val diffContent: String? = null
+    val diffContent: String? = null,
+    /** 修改意图：各编辑操作的实际匹配位置（1-based 行号区间），成功时回传给模型核对编辑落点 */
+    val matchedRanges: List<String> = emptyList()
 ) : ToolResultData() {
     private fun buildRequestContent(): String {
         val sections = mutableListOf<String>()

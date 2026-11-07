@@ -3997,6 +3997,10 @@ open class StandardFileSystemTools(protected val context: Context) {
         val typeParam = tool.parameters.find { it.name == "type" }?.value
         val oldParam = tool.parameters.find { it.name == "old" }?.value
         val newParam = tool.parameters.find { it.name == "new" }?.value
+        // 修改意图：occurrence 用于 old 命中多处时按第 N 处定位；未传时保持 null，
+        // 多候选一律拒绝并列出候选行号，绝不静默选第一处
+        val occurrenceParam =
+            tool.parameters.find { it.name == "occurrence" }?.value?.trim()?.toIntOrNull()
         ToolProgressBus.update(tool.name, 0f, "Preparing...")
         try {
             PathValidator.validateAndroidPath(path, tool.name)?.let {
@@ -4233,7 +4237,8 @@ open class StandardFileSystemTools(protected val context: Context) {
                             FileBindingService.StructuredEditOperation(
                                 action = FileBindingService.StructuredEditAction.REPLACE,
                                 oldContent = oldContent,
-                                newContent = newContent
+                                newContent = newContent,
+                                occurrence = occurrenceParam
                             )
                         )
                     }
@@ -4260,7 +4265,8 @@ open class StandardFileSystemTools(protected val context: Context) {
                         listOf(
                             FileBindingService.StructuredEditOperation(
                                 action = FileBindingService.StructuredEditAction.DELETE,
-                                oldContent = oldContent
+                                oldContent = oldContent,
+                                occurrence = occurrenceParam
                             )
                         )
                     }
@@ -4296,8 +4302,11 @@ open class StandardFileSystemTools(protected val context: Context) {
                     val mapped = (0.2f + 0.6f * p).coerceIn(0f, 0.99f)
                     ToolProgressBus.update(tool.name, mapped, msg)
                 }
-            val mergedContent = bindingResult.first
-            val aiInstructions = bindingResult.second
+            // 修改意图：bindingResult 已携带各 op 的匹配行号（appliedRanges），
+            // 成功消息中回传给模型，便于其核对编辑落点
+            val mergedContent = bindingResult.mergedContent
+            val aiInstructions = bindingResult.diff
+            val appliedRanges = bindingResult.appliedRanges
 
             if (aiInstructions.startsWith("Error", ignoreCase = true)) {
                 AppLogger.e(TAG, "File binding failed: $aiInstructions")
@@ -4360,7 +4369,9 @@ open class StandardFileSystemTools(protected val context: Context) {
                     env = environment.orEmpty().trim().ifBlank { "android" },
                     path = path,
                     successful = true,
-                    details = "Successfully applied AI code to file: $path"
+                    details =
+                    "Successfully applied AI code to file: $path" +
+                        (if (appliedRanges.isNotEmpty()) " Applied at: ${appliedRanges.joinToString("; ")}" else "")
                 )
 
             ToolProgressBus.update(tool.name, 0.92f, "Generating diff...")
@@ -4376,7 +4387,8 @@ open class StandardFileSystemTools(protected val context: Context) {
                     FileApplyResultData(
                         operation = operationData,
                         aiDiffInstructions = aiInstructions,
-                        diffContent = diffContent
+                        diffContent = diffContent,
+                        matchedRanges = appliedRanges
                     ),
                     error = ""
                 )
